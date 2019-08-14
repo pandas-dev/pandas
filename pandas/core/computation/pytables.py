@@ -11,7 +11,6 @@ from pandas.compat.chainmap import DeepChainMap
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
-from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation import expr, ops
 from pandas.core.computation.common import _ensure_decoded
@@ -32,8 +31,7 @@ class Scope(expr.Scope):
 class Term(ops.Term):
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        supr_new = StringMixin.__new__
-        return supr_new(klass)
+        return object.__new__(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
@@ -90,9 +88,7 @@ class BinOp(ops.BinOp):
 
             k = klass
             if isinstance(left, ConditionBinOp):
-                if isinstance(left, ConditionBinOp) and isinstance(
-                    right, ConditionBinOp
-                ):
+                if isinstance(right, ConditionBinOp):
                     k = JointConditionBinOp
                 elif isinstance(left, k):
                     return left
@@ -100,7 +96,7 @@ class BinOp(ops.BinOp):
                     return right
 
             elif isinstance(left, FilterBinOp):
-                if isinstance(left, FilterBinOp) and isinstance(right, FilterBinOp):
+                if isinstance(right, FilterBinOp):
                     k = JointFilterBinOp
                 elif isinstance(left, k):
                     return left
@@ -233,7 +229,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    def __str__(self):
+    def __repr__(self):
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )
@@ -299,7 +295,7 @@ class JointFilterBinOp(FilterBinOp):
 
 
 class ConditionBinOp(BinOp):
-    def __str__(self):
+    def __repr__(self):
         return pprint_thing("[Condition : [{cond}]]".format(cond=self.condition))
 
     def invert(self):
@@ -308,7 +304,7 @@ class ConditionBinOp(BinOp):
         #    self.condition = "~(%s)" % self.condition
         # return self
         raise NotImplementedError(
-            "cannot use an invert condition when " "passing to numexpr"
+            "cannot use an invert condition when passing to numexpr"
         )
 
     def format(self):
@@ -476,9 +472,7 @@ def _validate_where(w):
     """
 
     if not (isinstance(w, (Expr, str)) or is_list_like(w)):
-        raise TypeError(
-            "where must be passed as a string, Expr, " "or list-like of Exprs"
-        )
+        raise TypeError("where must be passed as a string, Expr, or list-like of Exprs")
 
     return w
 
@@ -552,7 +546,7 @@ class Expr(expr.Expr):
             )
             self.terms = self.parse()
 
-    def __str__(self):
+    def __repr__(self):
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)

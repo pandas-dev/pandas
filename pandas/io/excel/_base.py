@@ -41,10 +41,16 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, file descriptor, pathlib.Path, ExcelFile or xlrd.Book
-    The string could be a URL. Valid URL schemes include http, ftp, s3,
-    gcs, and file. For file URLs, a host is expected. For instance, a local
-    file could be /path/to/workbook.xlsx.
+io : str, ExcelFile, xlrd.Book, path object or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
+
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+
+    By file-like object, we refer to objects with a ``read()`` method,
+    such as a file handler (e.g. via builtin ``open`` function)
+    or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions. Lists of strings/integers are used to request
@@ -114,14 +120,8 @@ converters : dict, default None
     content.
 true_values : list, default None
     Values to consider as True.
-
-    .. versionadded:: 0.19.0
-
 false_values : list, default None
     Values to consider as False.
-
-    .. versionadded:: 0.19.0
-
 skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None
@@ -297,7 +297,7 @@ def read_excel(
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
             raise TypeError(
-                "read_excel() got an unexpected keyword argument " "`{}`".format(arg)
+                "read_excel() got an unexpected keyword argument `{}`".format(arg)
             )
 
     if not isinstance(io, ExcelFile):
@@ -353,7 +353,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         else:
             raise ValueError(
-                "Must explicitly set engine if not passing in" " buffer or path for io."
+                "Must explicitly set engine if not passing in buffer or path for io."
             )
 
     @property
@@ -713,9 +713,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise ValueError(
-                "Must pass explicit sheet_name or set " "cur_sheet property"
-            )
+            raise ValueError("Must pass explicit sheet_name or set cur_sheet property")
         return sheet_name
 
     def _value_with_fmt(self, val):
@@ -851,7 +849,7 @@ class ExcelFile:
         """
         if "chunksize" in kwds:
             raise NotImplementedError(
-                "chunksize keyword of read_excel " "is not implemented"
+                "chunksize keyword of read_excel is not implemented"
             )
 
         return self._reader.parse(

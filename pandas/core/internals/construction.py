@@ -8,18 +8,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 import pandas.compat as compat
-from pandas.compat import raise_with_traceback
+from pandas.compat import PY36, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike,
-    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
-    maybe_cast_to_integer_array,
-    maybe_castable,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
@@ -29,13 +23,9 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
-    is_float_dtype,
     is_integer_dtype,
-    is_iterator,
     is_list_like,
     is_object_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -45,10 +35,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
-from pandas.core.arrays import Categorical, ExtensionArray, period_array
+from pandas.core.arrays import Categorical
+from pandas.core.construction import sanitize_array
 from pandas.core.index import (
     Index,
     _get_objs_combined_axis,
@@ -60,7 +50,6 @@ from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
-from pandas.core.internals.arrays import extract_array
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -224,7 +213,7 @@ def init_dict(data, index, columns, dtype=None):
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
 
-        missing = arrays.isnull()
+        missing = arrays.isna()
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
@@ -355,7 +344,7 @@ def extract_index(data):
                 raw_lengths.append(len(val))
 
         if not indexes and not raw_lengths:
-            raise ValueError("If using all scalar values, you must pass" " an index")
+            raise ValueError("If using all scalar values, you must pass an index")
 
         if have_series:
             index = _union_indexes(indexes)
@@ -369,7 +358,7 @@ def extract_index(data):
 
             if have_dicts:
                 raise ValueError(
-                    "Mixing dicts with non-Series may lead to " "ambiguous ordering."
+                    "Mixing dicts with non-Series may lead to ambiguous ordering."
                 )
 
             if have_series:
@@ -536,9 +525,30 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+    """Convert list of dicts to numpy arrays
+
+    if `columns` is not passed, column names are inferred from the records
+    - for OrderedDict and (on Python>=3.6) dicts, the column names match
+      the key insertion-order from the first record to the last.
+    - For other kinds of dict-likes, the keys are lexically sorted.
+
+    Parameters
+    ----------
+    data : iterable
+        collection of records (OrderedDict, dict)
+    columns: iterables or None
+    coerce_float : bool
+    dtype : np.dtype
+
+    Returns
+    -------
+    tuple
+        arrays, columns
+    """
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        sort = not any(isinstance(d, OrderedDict) for d in data)
+        types = (dict, OrderedDict) if PY36 else OrderedDict
+        sort = not any(isinstance(d, types) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived
@@ -604,186 +614,3 @@ def sanitize_index(data, index, copy=False):
             data = sanitize_array(data, index, copy=copy)
 
     return data
-
-
-def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False):
-    """
-    Sanitize input data to an ndarray, copy if specified, coerce to the
-    dtype if specified.
-    """
-    if dtype is not None:
-        dtype = pandas_dtype(dtype)
-
-    if isinstance(data, ma.MaskedArray):
-        mask = ma.getmaskarray(data)
-        if mask.any():
-            data, fill_value = maybe_upcast(data, copy=True)
-            data.soften_mask()  # set hardmask False if it was True
-            data[mask] = fill_value
-        else:
-            data = data.copy()
-
-    # extract ndarray or ExtensionArray, ensure we have no PandasArray
-    data = extract_array(data, extract_numpy=True)
-
-    # GH#846
-    if isinstance(data, np.ndarray):
-
-        if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-            # possibility of nan -> garbage
-            try:
-                subarr = _try_cast(data, dtype, copy, True)
-            except ValueError:
-                if copy:
-                    subarr = data.copy()
-                else:
-                    subarr = np.array(data, copy=False)
-        else:
-            # we will try to copy be-definition here
-            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-
-    elif isinstance(data, ExtensionArray):
-        # it is already ensured above this is not a PandasArray
-        subarr = data
-
-        if dtype is not None:
-            subarr = subarr.astype(dtype, copy=copy)
-        elif copy:
-            subarr = subarr.copy()
-        return subarr
-
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
-        if dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-            except Exception:
-                if raise_cast_failure:  # pragma: no cover
-                    raise
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = lib.maybe_convert_objects(subarr)
-
-        else:
-            subarr = maybe_convert_platform(data)
-
-        subarr = maybe_cast_to_datetime(subarr, dtype)
-
-    elif isinstance(data, range):
-        # GH#16804
-        arr = np.arange(data.start, data.stop, data.step, dtype="int64")
-        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    else:
-        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-
-    # scalar like, GH
-    if getattr(subarr, "ndim", 0) == 0:
-        if isinstance(data, list):  # pragma: no cover
-            subarr = np.array(data, dtype=object)
-        elif index is not None:
-            value = data
-
-            # figure out the dtype from the value (upcast if necessary)
-            if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
-            else:
-                # need to possibly convert the value here
-                value = maybe_cast_to_datetime(value, dtype)
-
-            subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
-
-        else:
-            return subarr.item()
-
-    # the result that we want
-    elif subarr.ndim == 1:
-        if index is not None:
-
-            # a 1-element ndarray
-            if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = construct_1d_arraylike_from_scalar(
-                    subarr[0], len(index), subarr.dtype
-                )
-
-    elif subarr.ndim > 1:
-        if isinstance(data, np.ndarray):
-            raise Exception("Data must be 1-dimensional")
-        else:
-            subarr = com.asarray_tuplesafe(data, dtype=dtype)
-
-    # This is to prevent mixed-type Series getting all casted to
-    # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, str):
-        # GH#16605
-        # If not empty convert the data to dtype
-        # GH#19853: If data is a scalar, subarr has already the result
-        if not lib.is_scalar(data):
-            if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            subarr = np.array(data, dtype=object, copy=copy)
-
-    if (
-        not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype))
-        and is_object_dtype(subarr.dtype)
-        and not is_object_dtype(dtype)
-    ):
-        inferred = lib.infer_dtype(subarr, skipna=False)
-        if inferred == "period":
-            try:
-                subarr = period_array(subarr)
-            except IncompatibleFrequency:
-                pass
-
-    return subarr
-
-
-def _try_cast(arr, dtype, copy, raise_cast_failure):
-    """
-    Convert input to numpy ndarray and optionally cast to a given dtype.
-
-    Parameters
-    ----------
-    arr : array-like
-    dtype : np.dtype, ExtensionDtype or None
-    copy : bool
-        If False, don't copy the data if not needed.
-    raise_cast_failure : bool
-        If True, and if a dtype is specified, raise errors during casting.
-        Otherwise an object array is returned.
-    """
-    # perf shortcut as this is the most common case
-    if isinstance(arr, np.ndarray):
-        if maybe_castable(arr) and not copy and dtype is None:
-            return arr
-
-    try:
-        # GH#15832: Check if we are requesting a numeric dype and
-        # that we can convert the data to the requested dtype.
-        if is_integer_dtype(dtype):
-            subarr = maybe_cast_to_integer_array(arr, dtype)
-
-        subarr = maybe_cast_to_datetime(arr, dtype)
-        # Take care in creating object arrays (but iterators are not
-        # supported):
-        if is_object_dtype(dtype) and (
-            is_list_like(subarr)
-            and not (is_iterator(subarr) or isinstance(subarr, np.ndarray))
-        ):
-            subarr = construct_1d_object_array_from_listlike(subarr)
-        elif not is_extension_type(subarr):
-            subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
-    except OutOfBoundsDatetime:
-        # in case of out of bound datetime64 -> always raise
-        raise
-    except (ValueError, TypeError):
-        if is_categorical_dtype(dtype):
-            # We *do* allow casting to categorical, since we know
-            # that Categorical is the only array type for 'category'.
-            subarr = Categorical(arr, dtype.categories, ordered=dtype._ordered)
-        elif is_extension_array_dtype(dtype):
-            # create an extension array from its dtype
-            array_type = dtype.construct_array_type()._from_sequence
-            subarr = array_type(arr, dtype=dtype, copy=copy)
-        elif dtype is not None and raise_cast_failure:
-            raise
-        else:
-            subarr = np.array(arr, dtype=object, copy=copy)
-    return subarr

@@ -289,13 +289,20 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
 
     Parameters
     ----------
-    path_or_buf : string, buffer or path object
-        Path to the file to open, or an open :class:`pandas.HDFStore` object.
-        Supports any object implementing the ``__fspath__`` protocol.
-        This includes :class:`pathlib.Path` and py._path.local.LocalPath
-        objects.
+    path_or_buf : str, path object, pandas.HDFStore or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.h5``.
 
-        .. versionadded:: 0.19.0 support for pathlib, py.path.
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
+
         .. versionadded:: 0.21.0 support for __fspath__ protocol.
 
     key : object, optional
@@ -359,7 +366,7 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
         path_or_buf = _stringify_path(path_or_buf)
         if not isinstance(path_or_buf, str):
             raise NotImplementedError(
-                "Support for generic buffers has not " "been implemented."
+                "Support for generic buffers has not been implemented."
             )
         try:
             exists = os.path.exists(path_or_buf)
@@ -991,7 +998,7 @@ class HDFStore:
                 return None
 
         # remove the node
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -1040,7 +1047,7 @@ class HDFStore:
         """
         if columns is not None:
             raise TypeError(
-                "columns is not a supported keyword in append, " "try data_columns"
+                "columns is not a supported keyword in append, try data_columns"
             )
 
         if dropna is None:
@@ -2154,7 +2161,7 @@ class DataCol(IndexCol):
             # which is an error
 
             raise TypeError(
-                "too many timezones in this block, create separate " "data columns"
+                "too many timezones in this block, create separate data columns"
             )
         elif inferred_type == "unicode":
             raise TypeError("[unicode] is not implemented as a table column")
@@ -2331,9 +2338,7 @@ class DataCol(IndexCol):
         if append:
             existing_fields = getattr(self.attrs, self.kind_attr, None)
             if existing_fields is not None and existing_fields != list(self.values):
-                raise ValueError(
-                    "appended items do not match existing items" " in table!"
-                )
+                raise ValueError("appended items do not match existing items in table!")
 
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if existing_dtype is not None and existing_dtype != self.dtype:
@@ -2629,7 +2634,7 @@ class Fixed:
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -2827,7 +2832,7 @@ class GenericFixed(Fixed):
             # write the level
             if is_extension_type(lev):
                 raise NotImplementedError(
-                    "Saving a MultiIndex with an " "extension dtype is not supported."
+                    "Saving a MultiIndex with an extension dtype is not supported."
                 )
             level_key = "{key}_level{idx}".format(key=key, idx=i)
             conv_level = _convert_index(
@@ -3072,7 +3077,7 @@ class SparseFixed(GenericFixed):
         kwargs = super().validate_read(kwargs)
         if "start" in kwargs or "stop" in kwargs:
             raise NotImplementedError(
-                "start and/or stop are not supported " "in fixed Sparse reading"
+                "start and/or stop are not supported in fixed Sparse reading"
             )
         return kwargs
 
@@ -3197,7 +3202,9 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(
                 "block{idx}_values".format(idx=i), start=_start, stop=_stop
             )
-            blk = make_block(values, placement=items.get_indexer(blk_items))
+            blk = make_block(
+                values, placement=items.get_indexer(blk_items), ndim=len(axes)
+            )
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
@@ -3369,7 +3376,7 @@ class Table(Fixed):
             return obj.reset_index(), levels
         except ValueError:
             raise ValueError(
-                "duplicate names/columns in the multi-index when " "storing as a table"
+                "duplicate names/columns in the multi-index when storing as a table"
             )
 
     @property
@@ -3985,7 +3992,7 @@ class Table(Fixed):
                                 filt = filt.union(Index(self.levels))
 
                             takers = op(axis_values, filt)
-                            return obj.loc._getitem_axis(takers, axis=axis_number)
+                            return obj.loc(axis=axis_number)[takers]
 
                         # this might be the name of a file IN an axis
                         elif field in axis_values:
@@ -3998,7 +4005,7 @@ class Table(Fixed):
                             if isinstance(obj, DataFrame):
                                 axis_number = 1 - axis_number
                             takers = op(values, filt)
-                            return obj.loc._getitem_axis(takers, axis=axis_number)
+                            return obj.loc(axis=axis_number)[takers]
 
                     raise ValueError(
                         "cannot find the field [{field}] for "
@@ -4074,7 +4081,7 @@ class Table(Fixed):
             return False
 
         if where is not None:
-            raise TypeError("read_column does not currently accept a where " "clause")
+            raise TypeError("read_column does not currently accept a where clause")
 
         # find the axes
         for a in self.axes:
@@ -4457,7 +4464,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)))
+            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))
 
@@ -4983,7 +4990,7 @@ class Selection:
                             self.stop is not None and (where >= self.stop).any()
                         ):
                             raise ValueError(
-                                "where must have index locations >= start and " "< stop"
+                                "where must have index locations >= start and < stop"
                             )
                         self.coordinates = where
 

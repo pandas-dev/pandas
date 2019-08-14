@@ -2,10 +2,9 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Set
+from typing import Callable, List, Optional, Set, Union
 import warnings
 
 import numpy as np
@@ -35,23 +34,20 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
+from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.generic import _shared_docs
-from pandas.core.groupby.base import GroupByMixin
-
-_shared_docs = dict(**_shared_docs)
-_doc_template = """
-        Returns
-        -------
-        Series or DataFrame
-            Return type is determined by the caller.
-
-        See Also
-        --------
-        Series.%(name)s : Series %(name)s.
-        DataFrame.%(name)s : DataFrame %(name)s.
-"""
+from pandas.core.index import Index, ensure_index
+from pandas.core.window.common import (
+    _doc_template,
+    _flex_binary_moment,
+    _GroupByMixin,
+    _offset,
+    _require_min_periods,
+    _shared_docs,
+    _use_window,
+    _zsqrt,
+)
 
 
 class _Window(PandasObject, SelectionMixin):
@@ -63,24 +59,23 @@ class _Window(PandasObject, SelectionMixin):
         "axis",
         "on",
         "closed",
-    ]
+    ]  # type: List[str]
     exclusions = set()  # type: Set[str]
 
     def __init__(
         self,
         obj,
         window=None,
-        min_periods=None,
-        center=False,
-        win_type=None,
-        axis=0,
-        on=None,
-        closed=None,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = False,
+        win_type: Optional[str] = None,
+        axis: Axis = 0,
+        on: Optional[str] = None,
+        closed: Optional[str] = None,
         **kwargs
     ):
 
         self.__dict__.update(kwargs)
-        self.blocks = []
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -97,7 +92,7 @@ class _Window(PandasObject, SelectionMixin):
         return Window
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> Optional[bool]:
         return None
 
     @property
@@ -105,7 +100,7 @@ class _Window(PandasObject, SelectionMixin):
         return None
 
     @property
-    def is_freq_type(self):
+    def is_freq_type(self) -> bool:
         return self.win_type == "freq"
 
     def validate(self):
@@ -119,24 +114,16 @@ class _Window(PandasObject, SelectionMixin):
             "left",
             "neither",
         ]:
-            raise ValueError("closed must be 'right', 'left', 'both' or " "'neither'")
-
-    def _convert_freq(self):
-        """
-        Resample according to the how, return a new object.
-        """
-        obj = self._selected_obj
-        index = None
-        return obj, index
+            raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
+        if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
+            raise TypeError("invalid type: {}".format(type(self)))
 
     def _create_blocks(self):
         """
         Split data into blocks & return conformed data.
         """
 
-        obj, index = self._convert_freq()
-        if index is not None:
-            index = self._on
+        obj = self._selected_obj
 
         # filter out the on from the object
         if self.on is not None:
@@ -144,7 +131,7 @@ class _Window(PandasObject, SelectionMixin):
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         blocks = obj._to_dict_of_blocks(copy=False).values()
 
-        return blocks, obj, index
+        return blocks, obj
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -182,14 +169,26 @@ class _Window(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_window(self, other=None):
+    def _get_window(self, other=None, **kwargs) -> int:
+        """
+        Returns window length
+
+        Parameters
+        ----------
+        other:
+            ignored, exists for compatibility
+
+        Returns
+        -------
+        window : int
+        """
         return self.window
 
     @property
-    def _window_type(self):
+    def _window_type(self) -> str:
         return self.__class__.__name__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
         """
@@ -207,23 +206,21 @@ class _Window(PandasObject, SelectionMixin):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
         raise NotImplementedError("See issue #11704 {url}".format(url=url))
 
-    def _get_index(self, index=None):
+    def _get_index(self) -> Optional[np.ndarray]:
         """
-        Return index as ndarrays.
+        Return integer representations as an ndarray if index is frequency.
 
         Returns
         -------
-        tuple of (index, index_as_ndarray)
+        None or ndarray
         """
 
         if self.is_freq_type:
-            if index is None:
-                index = self._on
-            return index, index.asi8
-        return index, index
+            return self._on.asi8
+        return None
 
-    def _prep_values(self, values=None, kill_inf=True):
-
+    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+        """Convert input to numpy arrays for Cython routines"""
         if values is None:
             values = getattr(self._selected_obj, "values", self._selected_obj)
 
@@ -243,13 +240,12 @@ class _Window(PandasObject, SelectionMixin):
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError):
-                raise TypeError(
-                    "cannot handle this type -> {0}" "".format(values.dtype)
-                )
+                raise TypeError("cannot handle this type -> {0}".format(values.dtype))
 
-        if kill_inf:
-            values = values.copy()
-            values[np.isinf(values)] = np.NaN
+        # Convert inf to nan for C funcs
+        inf = np.isinf(values)
+        if inf.any():
+            values = np.where(inf, np.nan, values)
 
         return values
 
@@ -267,6 +263,8 @@ class _Window(PandasObject, SelectionMixin):
             # coerce if necessary
             if block is not None:
                 if is_timedelta64_dtype(block.values.dtype):
+                    # TODO: do we know what result.dtype is at this point?
+                    #  i.e. can we just do an astype?
                     from pandas import to_timedelta
 
                     result = to_timedelta(result.ravel(), unit="ns").values.reshape(
@@ -281,7 +279,7 @@ class _Window(PandasObject, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None):
+    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
         """
         Wrap the results.
 
@@ -294,7 +292,6 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -335,14 +332,12 @@ class _Window(PandasObject, SelectionMixin):
             return obj.astype("float64")
         return concat(final, axis=1).reindex(columns=columns, copy=False)
 
-    def _center_window(self, result, window):
+    def _center_window(self, result, window) -> np.ndarray:
         """
         Center the result in the window.
         """
         if self.axis > result.ndim - 1:
-            raise ValueError(
-                "Requested axis is larger then no. of argument " "dimensions"
-            )
+            raise ValueError("Requested axis is larger then no. of argument dimensions")
 
         offset = _offset(window, True)
         if offset > 0:
@@ -353,6 +348,138 @@ class _Window(PandasObject, SelectionMixin):
                 lead_indexer[self.axis] = slice(offset, None)
                 result = np.copy(result[tuple(lead_indexer)])
         return result
+
+    def _get_roll_func(
+        self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
+    ) -> Callable:
+        """
+        Wrap rolling function to check values passed.
+
+        Parameters
+        ----------
+        cfunc : callable
+            Cython function used to calculate rolling statistics
+        check_minp : callable
+            function to check minimum period parameter
+        index : ndarray
+            used for variable window
+
+        Returns
+        -------
+        func : callable
+        """
+
+        def func(arg, window, min_periods=None, closed=None):
+            minp = check_minp(min_periods, window)
+            return cfunc(arg, window, minp, index, closed, **kwargs)
+
+        return func
+
+    def _apply(
+        self,
+        func: Union[str, Callable],
+        name: Optional[str] = None,
+        window: Optional[Union[int, str]] = None,
+        center: Optional[bool] = None,
+        check_minp: Optional[Callable] = None,
+        **kwargs
+    ):
+        """
+        Rolling statistical measure using supplied function.
+
+        Designed to be used with passed-in Cython array-based functions.
+
+        Parameters
+        ----------
+        func : str/callable to apply
+        name : str, optional
+           name of this function
+        window : int/str, default to _get_window()
+            window length or offset
+        center : bool, default to self.center
+        check_minp : function, default to _use_window
+        **kwargs
+            additional arguments for rolling function and window function
+
+        Returns
+        -------
+        y : type of input
+        """
+        if center is None:
+            center = self.center
+
+        if check_minp is None:
+            check_minp = _use_window
+
+        if window is None:
+            window = self._get_window(**kwargs)
+
+        blocks, obj = self._create_blocks()
+        block_list = list(blocks)
+        index_as_array = self._get_index()
+
+        results = []
+        exclude = []  # type: List[Scalar]
+        for i, b in enumerate(blocks):
+            try:
+                values = self._prep_values(b.values)
+
+            except (TypeError, NotImplementedError):
+                if isinstance(obj, ABCDataFrame):
+                    exclude.extend(b.columns)
+                    del block_list[i]
+                    continue
+                else:
+                    raise DataError("No numeric types to aggregate")
+
+            if values.size == 0:
+                results.append(values.copy())
+                continue
+
+            # if we have a string function name, wrap it
+            if isinstance(func, str):
+                cfunc = getattr(libwindow, func, None)
+                if cfunc is None:
+                    raise ValueError(
+                        "we do not support this function "
+                        "in libwindow.{func}".format(func=func)
+                    )
+
+                func = self._get_roll_func(cfunc, check_minp, index_as_array, **kwargs)
+
+            # calculation function
+            if center:
+                offset = _offset(window, center)
+                additional_nans = np.array([np.NaN] * offset)
+
+                def calc(x):
+                    return func(
+                        np.concatenate((x, additional_nans)),
+                        window,
+                        min_periods=self.min_periods,
+                        closed=self.closed,
+                    )
+
+            else:
+
+                def calc(x):
+                    return func(
+                        x, window, min_periods=self.min_periods, closed=self.closed
+                    )
+
+            with np.errstate(all="ignore"):
+                if values.ndim > 1:
+                    result = np.apply_along_axis(calc, self.axis, values)
+                else:
+                    result = calc(values)
+                    result = np.asarray(result)
+
+            if center:
+                result = self._center_window(result, window)
+
+            results.append(result)
+
+        return self._wrap_results(results, block_list, obj, exclude)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = self._aggregate(func, *args, **kwargs)
@@ -490,8 +617,6 @@ class Window(_Window):
     """
     Provide rolling window calculations.
 
-    .. versionadded:: 0.18.0
-
     Parameters
     ----------
     window : int, or offset
@@ -500,8 +625,7 @@ class Window(_Window):
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
-        the time-period. This is only valid for datetimelike indexes. This is
-        new in 0.19.0
+        the time-period. This is only valid for datetimelike indexes.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -661,13 +785,23 @@ class Window(_Window):
         else:
             raise ValueError("Invalid window {0}".format(window))
 
-    def _prep_window(self, **kwargs):
+    def _get_window(self, other=None, **kwargs) -> np.ndarray:
         """
-        Provide validation for our window type, return the window
-        we have already been validated.
+        Provide validation for the window type, return the window
+        which has already been validated.
+
+        Parameters
+        ----------
+        other:
+            ignored, exists for compatibility
+
+        Returns
+        -------
+        window : ndarray
+            the window, weights
         """
 
-        window = self._get_window()
+        window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
@@ -707,63 +841,14 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _apply_window(self, mean=True, **kwargs):
-        """
-        Applies a moving window of type ``window_type`` on the data.
+    def _get_roll_func(
+        self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
+    ) -> Callable:
+        def func(arg, window, min_periods=None, closed=None):
+            minp = check_minp(min_periods, len(window))
+            return cfunc(arg, window, minp)
 
-        Parameters
-        ----------
-        mean : bool, default True
-            If True computes weighted mean, else weighted sum
-
-        Returns
-        -------
-        y : same type as input argument
-
-        """
-        window = self._prep_window(**kwargs)
-        center = self.center
-
-        blocks, obj, index = self._create_blocks()
-        block_list = list(blocks)
-
-        results = []
-        exclude = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError):
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate")
-
-            if values.size == 0:
-                results.append(values.copy())
-                continue
-
-            offset = _offset(window, center)
-            additional_nans = np.array([np.NaN] * offset)
-
-            def f(arg, *args, **kwargs):
-                minp = _use_window(self.min_periods, len(window))
-                return libwindow.roll_window(
-                    np.concatenate((arg, additional_nans)) if center else arg,
-                    window,
-                    minp,
-                    avg=mean,
-                )
-
-            result = np.apply_along_axis(f, self.axis, values)
-
-            if center:
-                result = self._center_window(result, window)
-            results.append(result)
-
-        return self._wrap_results(results, block_list, obj, exclude)
+        return func
 
     _agg_see_also_doc = dedent(
         """
@@ -831,156 +916,19 @@ class Window(_Window):
     @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        return self._apply_window(mean=False, **kwargs)
+        return self._apply("roll_weighted_sum", **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply_window(mean=True, **kwargs)
-
-
-class _GroupByMixin(GroupByMixin):
-    """
-    Provide the groupby facilities.
-    """
-
-    def __init__(self, obj, *args, **kwargs):
-        parent = kwargs.pop("parent", None)  # noqa
-        groupby = kwargs.pop("groupby", None)
-        if groupby is None:
-            groupby, obj = obj, obj.obj
-        self._groupby = groupby
-        self._groupby.mutated = True
-        self._groupby.grouper.mutated = True
-        super().__init__(obj, *args, **kwargs)
-
-    count = GroupByMixin._dispatch("count")
-    corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
-    cov = GroupByMixin._dispatch("cov", other=None, pairwise=None)
-
-    def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
-    ):
-        """
-        Dispatch to apply; we are stripping all of the _apply kwargs and
-        performing the original function call on the grouped object.
-        """
-
-        def f(x, name=name, *args):
-            x = self._shallow_copy(x)
-
-            if isinstance(name, str):
-                return getattr(x, name)(*args, **kwargs)
-
-            return x.apply(name, *args, **kwargs)
-
-        return self._groupby.apply(f)
+        return self._apply("roll_weighted_mean", **kwargs)
 
 
 class _Rolling(_Window):
     @property
     def _constructor(self):
         return Rolling
-
-    def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
-    ):
-        """
-        Rolling statistical measure using supplied function.
-
-        Designed to be used with passed-in Cython array-based functions.
-
-        Parameters
-        ----------
-        func : str/callable to apply
-        name : str, optional
-           name of this function
-        window : int/array, default to _get_window()
-        center : bool, default to self.center
-        check_minp : function, default to _use_window
-
-        Returns
-        -------
-        y : type of input
-        """
-        if center is None:
-            center = self.center
-        if window is None:
-            window = self._get_window()
-
-        if check_minp is None:
-            check_minp = _use_window
-
-        blocks, obj, index = self._create_blocks()
-        block_list = list(blocks)
-        index, indexi = self._get_index(index=index)
-
-        results = []
-        exclude = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError):
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate")
-
-            if values.size == 0:
-                results.append(values.copy())
-                continue
-
-            # if we have a string function name, wrap it
-            if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
-                    )
-
-                def func(arg, window, min_periods=None, closed=None):
-                    minp = check_minp(min_periods, window)
-                    # ensure we are only rolling on floats
-                    arg = ensure_float64(arg)
-                    return cfunc(arg, window, minp, indexi, closed, **kwargs)
-
-            # calculation function
-            if center:
-                offset = _offset(window, center)
-                additional_nans = np.array([np.NaN] * offset)
-
-                def calc(x):
-                    return func(
-                        np.concatenate((x, additional_nans)),
-                        window,
-                        min_periods=self.min_periods,
-                        closed=self.closed,
-                    )
-
-            else:
-
-                def calc(x):
-                    return func(
-                        x, window, min_periods=self.min_periods, closed=self.closed
-                    )
-
-            with np.errstate(all="ignore"):
-                if values.ndim > 1:
-                    result = np.apply_along_axis(calc, self.axis, values)
-                else:
-                    result = calc(values)
-
-            if center:
-                result = self._center_window(result, window)
-
-            results.append(result)
-
-        return self._wrap_results(results, block_list, obj, exclude)
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -1027,9 +975,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     def count(self):
 
-        blocks, obj, index = self._create_blocks()
+        blocks, obj = self._create_blocks()
         # Validate the index
-        self._get_index(index=index)
+        self._get_index()
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1088,11 +1036,10 @@ class _Rolling_and_Expanding(_Rolling):
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
 
-        # TODO: _level is unused?
-        _level = kwargs.pop("_level", None)  # noqa
+        kwargs.pop("_level", None)
         window = self._get_window()
         offset = _offset(window, self.center)
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         # TODO: default is for backward compat
         # change to False in the future
@@ -1113,7 +1060,16 @@ class _Rolling_and_Expanding(_Rolling):
             if not raw:
                 arg = Series(arg, index=self.obj.index)
             return libwindow.roll_generic(
-                arg, window, minp, indexi, closed, offset, func, raw, args, kwargs
+                arg,
+                window,
+                minp,
+                index_as_array,
+                closed,
+                offset,
+                func,
+                raw,
+                args,
+                kwargs,
             )
 
         return self._apply(f, func, args=args, kwargs=kwargs, center=False, raw=raw)
@@ -1285,12 +1241,12 @@ class _Rolling_and_Expanding(_Rolling):
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         window = self._get_window()
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(
-                libwindow.roll_var(arg, window, minp, indexi, self.closed, ddof)
+                libwindow.roll_var(arg, window, minp, index_as_array, self.closed, ddof)
             )
 
         return self._apply(
@@ -1474,17 +1430,27 @@ class _Rolling_and_Expanding(_Rolling):
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
         window = self._get_window()
-        index, indexi = self._get_index()
+        index_as_array = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             if quantile == 1.0:
-                return libwindow.roll_max(arg, window, minp, indexi, self.closed)
+                return libwindow.roll_max(
+                    arg, window, minp, index_as_array, self.closed
+                )
             elif quantile == 0.0:
-                return libwindow.roll_min(arg, window, minp, indexi, self.closed)
+                return libwindow.roll_min(
+                    arg, window, minp, index_as_array, self.closed
+                )
             else:
                 return libwindow.roll_quantile(
-                    arg, window, minp, indexi, self.closed, quantile, interpolation
+                    arg,
+                    window,
+                    minp,
+                    index_as_array,
+                    self.closed,
+                    quantile,
+                    interpolation,
                 )
 
         return self._apply(f, "quantile", quantile=quantile, **kwargs)
@@ -1689,8 +1655,6 @@ class Rolling(_Rolling_and_Expanding):
         if self.on is None:
             return self.obj.index
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
-            from pandas import Index
-
             return Index(self.obj[self.on])
         else:
             raise ValueError(
@@ -1734,7 +1698,7 @@ class Rolling(_Rolling_and_Expanding):
 
         if not self.is_datetimelike and self.closed is not None:
             raise ValueError(
-                "closed only implemented for datetimelike " "and offset based windows"
+                "closed only implemented for datetimelike and offset based windows"
             )
 
     def _validate_monotonic(self):
@@ -1743,7 +1707,7 @@ class Rolling(_Rolling_and_Expanding):
         """
         if not self._on.is_monotonic:
             formatted = self.on or "index"
-            raise ValueError("{0} must be " "monotonic".format(formatted))
+            raise ValueError("{0} must be monotonic".format(formatted))
 
     def _validate_freq(self):
         """
@@ -1943,12 +1907,12 @@ class Rolling(_Rolling_and_Expanding):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
+Rolling.__doc__ = Window.__doc__
+
+
 class RollingGroupby(_GroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
-
-    .. versionadded:: 0.18.1
-
     """
 
     @property
@@ -1973,893 +1937,3 @@ class RollingGroupby(_GroupByMixin, Rolling):
         level.
         """
         pass
-
-
-class Expanding(_Rolling_and_Expanding):
-    """
-    Provide expanding transformations.
-
-    .. versionadded:: 0.18.0
-
-    Parameters
-    ----------
-    min_periods : int, default 1
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    center : bool, default False
-        Set the labels at the center of the window.
-    axis : int or str, default 0
-
-    Returns
-    -------
-    a Window sub-classed for the particular operation
-
-    See Also
-    --------
-    rolling : Provides rolling window calculations.
-    ewm : Provides exponential weighted functions.
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    Examples
-    --------
-
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
-         B
-    0  0.0
-    1  1.0
-    2  2.0
-    3  NaN
-    4  4.0
-
-    >>> df.expanding(2).sum()
-         B
-    0  NaN
-    1  1.0
-    2  3.0
-    3  3.0
-    4  7.0
-    """
-
-    _attributes = ["min_periods", "center", "axis"]
-
-    def __init__(self, obj, min_periods=1, center=False, axis=0, **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
-
-    @property
-    def _constructor(self):
-        return Expanding
-
-    def _get_window(self, other=None):
-        """
-        Get the window length over which to perform some operation.
-
-        Parameters
-        ----------
-        other : object, default None
-            The other object that is involved in the operation.
-            Such an object is involved for operations like covariance.
-
-        Returns
-        -------
-        window : int
-            The window length.
-        """
-        axis = self.obj._get_axis(self.axis)
-        length = len(axis) + (other is not None) * len(axis)
-
-        other = self.min_periods or -1
-        return max(length, other)
-
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    DataFrame.expanding.aggregate
-    DataFrame.rolling.aggregate
-    DataFrame.aggregate
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
-    >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
-
-    >>> df.ewm(alpha=0.5).mean()
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.464856  0.569633 -0.490089
-    2 -0.207700  0.149687 -1.135379
-    3 -0.471677 -0.645305 -0.906555
-    4 -0.355635 -0.203033 -0.904111
-    5  1.076417  1.503943 -1.146293
-    6 -0.041654  1.925562 -0.588728
-    7  0.680292  0.132049  0.548693
-    8  0.067236  0.948257  0.163353
-    9 -0.286980  0.618493 -0.694496
-    """
-    )
-
-    @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="Series/Dataframe",
-        axis="",
-    )
-    @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
-
-    agg = aggregate
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["count"])
-    def count(self, **kwargs):
-        return super().count(**kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
-        nv.validate_expanding_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_doc_template)
-    @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
-        nv.validate_expanding_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
-        nv.validate_expanding_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
-        nv.validate_expanding_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
-        nv.validate_expanding_func("std", args, kwargs)
-        return super().std(ddof=ddof, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
-        nv.validate_expanding_func("var", args, kwargs)
-        return super().var(ddof=ddof, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_doc_template)
-    @Appender(_shared_docs["skew"])
-    def skew(self, **kwargs):
-        return super().skew(**kwargs)
-
-    _agg_doc = dedent(
-        """
-    Examples
-    --------
-
-    The example below will show an expanding calculation with a window size of
-    four matching the equivalent function call using `scipy.stats`.
-
-    >>> arr = [1, 2, 3, 4, 999]
-    >>> import scipy.stats
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
-    -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr, bias=False)))
-    4.999874
-    >>> s = pd.Series(arr)
-    >>> s.expanding(4).kurt()
-    0         NaN
-    1         NaN
-    2         NaN
-    3   -1.200000
-    4    4.999874
-    dtype: float64
-    """
-    )
-
-    @Appender(_agg_doc)
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["kurt"])
-    def kurt(self, **kwargs):
-        return super().kurt(**kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["quantile"])
-    def quantile(self, quantile, interpolation="linear", **kwargs):
-        return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
-        )
-
-    @Substitution(name="expanding")
-    @Appender(_doc_template)
-    @Appender(_shared_docs["cov"])
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
-
-    @Substitution(name="expanding")
-    @Appender(_shared_docs["corr"])
-    def corr(self, other=None, pairwise=None, **kwargs):
-        return super().corr(other=other, pairwise=pairwise, **kwargs)
-
-
-class ExpandingGroupby(_GroupByMixin, Expanding):
-    """
-    Provide a expanding groupby implementation.
-
-    .. versionadded:: 0.18.1
-
-    """
-
-    @property
-    def _constructor(self):
-        return Expanding
-
-
-_bias_template = """
-        Parameters
-        ----------
-        bias : bool, default False
-            Use a standard estimation bias correction.
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-"""
-
-_pairwise_template = """
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
-            If not supplied then will default to self and produce pairwise
-            output.
-        pairwise : bool, default None
-            If False then only matching columns between self and other will be
-            used and the output will be a DataFrame.
-            If True then all pairwise combinations will be calculated and the
-            output will be a MultiIndex DataFrame in the case of DataFrame
-            inputs. In the case of missing elements, only complete pairwise
-            observations will be used.
-        bias : bool, default False
-           Use a standard estimation bias correction.
-        **kwargs
-           Keyword arguments to be passed into func.
-"""
-
-
-class EWM(_Rolling):
-    r"""
-    Provide exponential weighted functions.
-
-    .. versionadded:: 0.18.0
-
-    Parameters
-    ----------
-    com : float, optional
-        Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
-    span : float, optional
-        Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
-    halflife : float, optional
-        Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{for} halflife > 0`.
-    alpha : float, optional
-        Specify smoothing factor :math:`\alpha` directly,
-        :math:`0 < \alpha \leq 1`.
-
-        .. versionadded:: 0.18.0
-
-    min_periods : int, default 0
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    adjust : bool, default True
-        Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings
-        (viewing EWMA as a moving average).
-    ignore_na : bool, default False
-        Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior.
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        The axis to use. The value 0 identifies the rows, and 1
-        identifies the columns.
-
-    Returns
-    -------
-    DataFrame
-        A Window sub-classed for the particular operation.
-
-    See Also
-    --------
-    rolling : Provides rolling window calculations.
-    expanding : Provides expanding transformations.
-
-    Notes
-    -----
-    Exactly one of center of mass, span, half-life, and alpha must be provided.
-    Allowed values and relationship between the parameters are specified in the
-    parameter descriptions above; see the link at the end of this section for
-    a detailed explanation.
-
-    When adjust is True (default), weighted averages are calculated using
-    weights (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
-
-    When adjust is False, weighted averages are calculated recursively as:
-       weighted_average[0] = arg[0];
-       weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
-
-    When ignore_na is False (default), weights are based on absolute positions.
-    For example, the weights of x and y used in calculating the final weighted
-    average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
-    (1-alpha)**2 and alpha (if adjust is False).
-
-    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based
-    on relative positions. For example, the weights of x and y used in
-    calculating the final weighted average of [x, None, y] are 1-alpha and 1
-    (if adjust is True), and 1-alpha and alpha (if adjust is False).
-
-    More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
-
-    Examples
-    --------
-
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
-    >>> df
-         B
-    0  0.0
-    1  1.0
-    2  2.0
-    3  NaN
-    4  4.0
-
-    >>> df.ewm(com=0.5).mean()
-              B
-    0  0.000000
-    1  0.750000
-    2  1.615385
-    3  1.615385
-    4  3.670213
-    """
-    _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
-
-    def __init__(
-        self,
-        obj,
-        com=None,
-        span=None,
-        halflife=None,
-        alpha=None,
-        min_periods=0,
-        adjust=True,
-        ignore_na=False,
-        axis=0,
-    ):
-        self.obj = obj
-        self.com = _get_center_of_mass(com, span, halflife, alpha)
-        self.min_periods = min_periods
-        self.adjust = adjust
-        self.ignore_na = ignore_na
-        self.axis = axis
-        self.on = None
-
-    @property
-    def _constructor(self):
-        return EWM
-
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
-    >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
-
-    >>> df.ewm(alpha=0.5).mean()
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.464856  0.569633 -0.490089
-    2 -0.207700  0.149687 -1.135379
-    3 -0.471677 -0.645305 -0.906555
-    4 -0.355635 -0.203033 -0.904111
-    5  1.076417  1.503943 -1.146293
-    6 -0.041654  1.925562 -0.588728
-    7  0.680292  0.132049  0.548693
-    8  0.067236  0.948257  0.163353
-    9 -0.286980  0.618493 -0.694496
-    """
-    )
-
-    @Substitution(
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
-        klass="Series/Dataframe",
-        axis="",
-    )
-    @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
-
-    agg = aggregate
-
-    def _apply(self, func, **kwargs):
-        """
-        Rolling statistical measure using supplied function. Designed to be
-        used with passed-in Cython array-based functions.
-
-        Parameters
-        ----------
-        func : str/callable to apply
-
-        Returns
-        -------
-        y : same type as input argument
-        """
-        blocks, obj, index = self._create_blocks()
-        block_list = list(blocks)
-
-        results = []
-        exclude = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError):
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate")
-
-            if values.size == 0:
-                results.append(values.copy())
-                continue
-
-            # if we have a string function name, wrap it
-            if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
-                    )
-
-                def func(arg):
-                    return cfunc(
-                        arg,
-                        self.com,
-                        int(self.adjust),
-                        int(self.ignore_na),
-                        int(self.min_periods),
-                    )
-
-            results.append(np.apply_along_axis(func, self.axis, values))
-
-        return self._wrap_results(results, block_list, obj, exclude)
-
-    @Substitution(name="ewm")
-    @Appender(_doc_template)
-    def mean(self, *args, **kwargs):
-        """
-        Exponential weighted moving average.
-
-        Parameters
-        ----------
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-        """
-        nv.validate_window_func("mean", args, kwargs)
-        return self._apply("ewma", **kwargs)
-
-    @Substitution(name="ewm")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
-    def std(self, bias=False, *args, **kwargs):
-        """
-        Exponential weighted moving stddev.
-        """
-        nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(bias=bias, **kwargs))
-
-    vol = std
-
-    @Substitution(name="ewm")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
-    def var(self, bias=False, *args, **kwargs):
-        """
-        Exponential weighted moving variance.
-        """
-        nv.validate_window_func("var", args, kwargs)
-
-        def f(arg):
-            return libwindow.ewmcov(
-                arg,
-                arg,
-                self.com,
-                int(self.adjust),
-                int(self.ignore_na),
-                int(self.min_periods),
-                int(bias),
-            )
-
-        return self._apply(f, **kwargs)
-
-    @Substitution(name="ewm")
-    @Appender(_doc_template)
-    @Appender(_pairwise_template)
-    def cov(self, other=None, pairwise=None, bias=False, **kwargs):
-        """
-        Exponential weighted sample covariance.
-        """
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
-
-        def _get_cov(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
-            cov = libwindow.ewmcov(
-                X._prep_values(),
-                Y._prep_values(),
-                self.com,
-                int(self.adjust),
-                int(self.ignore_na),
-                int(self.min_periods),
-                int(bias),
-            )
-            return X._wrap_result(cov)
-
-        return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
-        )
-
-    @Substitution(name="ewm")
-    @Appender(_doc_template)
-    @Appender(_pairwise_template)
-    def corr(self, other=None, pairwise=None, **kwargs):
-        """
-        Exponential weighted sample correlation.
-        """
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
-
-        def _get_corr(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
-
-            def _cov(x, y):
-                return libwindow.ewmcov(
-                    x,
-                    y,
-                    self.com,
-                    int(self.adjust),
-                    int(self.ignore_na),
-                    int(self.min_periods),
-                    1,
-                )
-
-            x_values = X._prep_values()
-            y_values = Y._prep_values()
-            with np.errstate(all="ignore"):
-                cov = _cov(x_values, y_values)
-                x_var = _cov(x_values, x_values)
-                y_var = _cov(y_values, y_values)
-                corr = cov / _zsqrt(x_var * y_var)
-            return X._wrap_result(corr)
-
-        return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
-        )
-
-
-# Helper Funcs
-
-
-def _flex_binary_moment(arg1, arg2, f, pairwise=False):
-
-    if not (
-        isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
-        and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
-    ):
-        raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
-        )
-
-    if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
-        arg2, (np.ndarray, ABCSeries)
-    ):
-        X, Y = _prep_binary(arg1, arg2)
-        return f(X, Y)
-
-    elif isinstance(arg1, ABCDataFrame):
-        from pandas import DataFrame
-
-        def dataframe_from_int_dict(data, frame_template):
-            result = DataFrame(data, index=frame_template.index)
-            if len(result.columns) > 0:
-                result.columns = frame_template.columns[result.columns]
-            return result
-
-        results = {}
-        if isinstance(arg2, ABCDataFrame):
-            if pairwise is False:
-                if arg1 is arg2:
-                    # special case in order to handle duplicate column names
-                    for i, col in enumerate(arg1.columns):
-                        results[i] = f(arg1.iloc[:, i], arg2.iloc[:, i])
-                    return dataframe_from_int_dict(results, arg1)
-                else:
-                    if not arg1.columns.is_unique:
-                        raise ValueError("'arg1' columns are not unique")
-                    if not arg2.columns.is_unique:
-                        raise ValueError("'arg2' columns are not unique")
-                    with warnings.catch_warnings(record=True):
-                        warnings.simplefilter("ignore", RuntimeWarning)
-                        X, Y = arg1.align(arg2, join="outer")
-                    X = X + 0 * Y
-                    Y = Y + 0 * X
-
-                    with warnings.catch_warnings(record=True):
-                        warnings.simplefilter("ignore", RuntimeWarning)
-                        res_columns = arg1.columns.union(arg2.columns)
-                    for col in res_columns:
-                        if col in X and col in Y:
-                            results[col] = f(X[col], Y[col])
-                    return DataFrame(results, index=X.index, columns=res_columns)
-            elif pairwise is True:
-                results = defaultdict(dict)
-                for i, k1 in enumerate(arg1.columns):
-                    for j, k2 in enumerate(arg2.columns):
-                        if j < i and arg2 is arg1:
-                            # Symmetric case
-                            results[i][j] = results[j][i]
-                        else:
-                            results[i][j] = f(
-                                *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
-                            )
-
-                from pandas import MultiIndex, concat
-
-                result_index = arg1.index.union(arg2.index)
-                if len(result_index):
-
-                    # construct result frame
-                    result = concat(
-                        [
-                            concat(
-                                [results[i][j] for j, c in enumerate(arg2.columns)],
-                                ignore_index=True,
-                            )
-                            for i, c in enumerate(arg1.columns)
-                        ],
-                        ignore_index=True,
-                        axis=1,
-                    )
-                    result.columns = arg1.columns
-
-                    # set the index and reorder
-                    if arg2.columns.nlevels > 1:
-                        result.index = MultiIndex.from_product(
-                            arg2.columns.levels + [result_index]
-                        )
-                        result = result.reorder_levels([2, 0, 1]).sort_index()
-                    else:
-                        result.index = MultiIndex.from_product(
-                            [range(len(arg2.columns)), range(len(result_index))]
-                        )
-                        result = result.swaplevel(1, 0).sort_index()
-                        result.index = MultiIndex.from_product(
-                            [result_index] + [arg2.columns]
-                        )
-                else:
-
-                    # empty result
-                    result = DataFrame(
-                        index=MultiIndex(
-                            levels=[arg1.index, arg2.columns], codes=[[], []]
-                        ),
-                        columns=arg2.columns,
-                        dtype="float64",
-                    )
-
-                # reset our index names to arg1 names
-                # reset our column names to arg2 names
-                # careful not to mutate the original names
-                result.columns = result.columns.set_names(arg1.columns.names)
-                result.index = result.index.set_names(
-                    result_index.names + arg2.columns.names
-                )
-
-                return result
-
-            else:
-                raise ValueError("'pairwise' is not True/False")
-        else:
-            results = {
-                i: f(*_prep_binary(arg1.iloc[:, i], arg2))
-                for i, col in enumerate(arg1.columns)
-            }
-            return dataframe_from_int_dict(results, arg1)
-
-    else:
-        return _flex_binary_moment(arg2, arg1, f)
-
-
-def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com.count_not_none(comass, span, halflife, alpha)
-    if valid_count > 1:
-        raise ValueError("comass, span, halflife, and alpha " "are mutually exclusive")
-
-    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
-    if comass is not None:
-        if comass < 0:
-            raise ValueError("comass must satisfy: comass >= 0")
-    elif span is not None:
-        if span < 1:
-            raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
-    elif halflife is not None:
-        if halflife <= 0:
-            raise ValueError("halflife must satisfy: halflife > 0")
-        decay = 1 - np.exp(np.log(0.5) / halflife)
-        comass = 1 / decay - 1
-    elif alpha is not None:
-        if alpha <= 0 or alpha > 1:
-            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
-    else:
-        raise ValueError("Must pass one of comass, span, halflife, or alpha")
-
-    return float(comass)
-
-
-def _offset(window, center):
-    if not is_integer(window):
-        window = len(window)
-    offset = (window - 1) / 2.0 if center else 0
-    try:
-        return int(offset)
-    except TypeError:
-        return offset.astype(int)
-
-
-def _require_min_periods(p):
-    def _check_func(minp, window):
-        if minp is None:
-            return window
-        else:
-            return max(p, minp)
-
-    return _check_func
-
-
-def _use_window(minp, window):
-    if minp is None:
-        return window
-    else:
-        return minp
-
-
-def _zsqrt(x):
-    with np.errstate(all="ignore"):
-        result = np.sqrt(x)
-        mask = x < 0
-
-    if isinstance(x, ABCDataFrame):
-        if mask.values.any():
-            result[mask] = 0
-    else:
-        if mask.any():
-            result[mask] = 0
-
-    return result
-
-
-def _prep_binary(arg1, arg2):
-    if not isinstance(arg2, type(arg1)):
-        raise Exception("Input arrays must be of the same type!")
-
-    # mask out values, this also makes a common index...
-    X = arg1 + 0 * arg2
-    Y = arg2 + 0 * arg1
-
-    return X, Y
-
-
-# Top-level exports
-
-
-def rolling(obj, win_type=None, **kwds):
-    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-        raise TypeError("invalid type: %s" % type(obj))
-
-    if win_type is not None:
-        return Window(obj, win_type=win_type, **kwds)
-
-    return Rolling(obj, **kwds)
-
-
-rolling.__doc__ = Window.__doc__
-
-
-def expanding(obj, **kwds):
-    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-        raise TypeError("invalid type: %s" % type(obj))
-
-    return Expanding(obj, **kwds)
-
-
-expanding.__doc__ = Expanding.__doc__
-
-
-def ewm(obj, **kwds):
-    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-        raise TypeError("invalid type: %s" % type(obj))
-
-    return EWM(obj, **kwds)
-
-
-ewm.__doc__ = EWM.__doc__

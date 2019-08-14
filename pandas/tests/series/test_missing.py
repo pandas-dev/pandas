@@ -437,6 +437,17 @@ class TestSeriesMissingData:
         )
         assert_series_equal(df.fillna(method="bfill"), exp)
 
+    def test_datetime64_non_nano_fillna(self):
+        # GH#27419
+        ser = Series([Timestamp("2010-01-01"), pd.NaT, Timestamp("2000-01-01")])
+        val = np.datetime64("1975-04-05", "ms")
+
+        result = ser.fillna(val)
+        expected = Series(
+            [Timestamp("2010-01-01"), Timestamp("1975-04-05"), Timestamp("2000-01-01")]
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_fillna_consistency(self):
         # GH 16402
         # fillna with a tz aware to a tz-naive, should result in object
@@ -780,9 +791,11 @@ class TestSeriesMissingData:
         td1[0] = td[0]
         assert not isna(td1[0])
 
+        # GH#16674 iNaT is treated as an integer when given by the user
         td1[1] = iNaT
-        assert isna(td1[1])
-        assert td1[1].value == iNaT
+        assert not isna(td1[1])
+        assert td1.dtype == np.object_
+        assert td1[1] == iNaT
         td1[1] = td[1]
         assert not isna(td1[1])
 
@@ -792,6 +805,7 @@ class TestSeriesMissingData:
         td1[2] = td[2]
         assert not isna(td1[2])
 
+        # FIXME: don't leave commented-out
         # boolean setting
         # this doesn't work, not sure numpy even supports it
         # result = td[(td>np.timedelta64(timedelta(days=3))) &
@@ -1507,11 +1521,28 @@ class TestSeriesInterpolateData:
             s.interpolate(method="krogh")
 
     @td.skip_if_no_scipy
-    def test_interp_datetime64(self):
-        df = Series([1, np.nan, 3], index=date_range("1/1/2000", periods=3))
-        result = df.interpolate(method="nearest")
-        expected = Series([1.0, 1.0, 3.0], index=date_range("1/1/2000", periods=3))
+    @pytest.mark.parametrize("method", ["nearest", "pad"])
+    def test_interp_datetime64(self, method, tz_naive_fixture):
+        df = Series(
+            [1, np.nan, 3], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture)
+        )
+        result = df.interpolate(method=method)
+        expected = Series(
+            [1.0, 1.0, 3.0],
+            index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture),
+        )
         assert_series_equal(result, expected)
+
+    def test_interp_pad_datetime64tz_values(self):
+        # GH#27628 missing.interpolate_2d should handle datetimetz values
+        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        ser = pd.Series(dti)
+        ser[1] = pd.NaT
+        result = ser.interpolate(method="pad")
+
+        expected = pd.Series(dti)
+        expected[1] = expected[0]
+        tm.assert_series_equal(result, expected)
 
     def test_interp_limit_no_nans(self):
         # GH 7173

@@ -7,7 +7,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
+from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sparse,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -532,7 +532,7 @@ class BlockManager(PandasObject):
             return self.__class__(blocks, new_axes)
 
         # single block, i.e. ndim == {1}
-        values = _concat._concat_compat([b.values for b in blocks])
+        values = concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data
         if len(self.blocks) > 1:
@@ -602,9 +602,10 @@ class BlockManager(PandasObject):
             """
             if isna(s):
                 return isna(values)
-            if hasattr(s, "asm8"):
+            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
+
                 return _compare_or_regex_search(
-                    maybe_convert_objects(values), getattr(s, "asm8"), regex
+                    maybe_convert_objects(values), s.asm8, regex
                 )
             return _compare_or_regex_search(values, s, regex)
 
@@ -908,7 +909,7 @@ class BlockManager(PandasObject):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+                result[rl] = blk.iget((i, loc))
 
         if is_extension_array_dtype(dtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
@@ -975,8 +976,6 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if values.ndim != 1:
-            return values
 
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
@@ -1061,7 +1060,7 @@ class BlockManager(PandasObject):
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
-                    "Shape of new values must be compatible " "with manager shape"
+                    "Shape of new values must be compatible with manager shape"
                 )
 
         try:
@@ -1154,7 +1153,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc, item, value, allow_duplicates=False):
+    def insert(self, loc: int, item, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1389,9 +1388,7 @@ class BlockManager(PandasObject):
 
         if verify:
             if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception(
-                    "Indices must be nonzero and less than " "the axis length"
-                )
+                raise Exception("Indices must be nonzero and less than the axis length")
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1478,7 +1475,7 @@ class SingleBlockManager(BlockManager):
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
-                    "cannot create SingleBlockManager with more " "than 1 axis"
+                    "cannot create SingleBlockManager with more than 1 axis"
                 )
             axis = axis[0]
 
@@ -1492,7 +1489,7 @@ class SingleBlockManager(BlockManager):
                     block = [np.array([])]
                 elif len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
         else:
@@ -1509,7 +1506,7 @@ class SingleBlockManager(BlockManager):
 
                 if len(block) != 1:
                     raise ValueError(
-                        "Cannot create SingleBlockManager with " "more than 1 block"
+                        "Cannot create SingleBlockManager with more than 1 block"
                     )
                 block = block[0]
 
@@ -1553,7 +1550,6 @@ class SingleBlockManager(BlockManager):
 
     def convert(self, **kwargs):
         """ convert the whole block as one """
-        kwargs["by_item"] = False
         return self.apply("convert", **kwargs)
 
     @property
@@ -1585,10 +1581,6 @@ class SingleBlockManager(BlockManager):
 
     def internal_values(self):
         return self._block.internal_values()
-
-    def formatting_values(self):
-        """Return the internal values used by the DataFrame/SeriesFormatter"""
-        return self._block.formatting_values()
 
     def get_values(self):
         """ return a dense type view """
@@ -1650,11 +1642,11 @@ class SingleBlockManager(BlockManager):
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
-                values = _concat._concat_compat(values)
+                values = concat_compat(values)
                 new_block = make_block(values, placement=slice(0, len(values), 1))
         else:
             values = [x._block.values for x in to_concat]
-            values = _concat._concat_compat(values)
+            values = concat_compat(values)
             new_block = make_block(values, placement=slice(0, len(values), 1))
 
         mgr = SingleBlockManager(new_block, new_axis)
@@ -1827,7 +1819,7 @@ def _simple_blockify(tuples, dtype):
     """
     values, placement = _stack_arrays(tuples, dtype)
 
-    # CHECK DTYPE?
+    # TODO: CHECK DTYPE?
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 

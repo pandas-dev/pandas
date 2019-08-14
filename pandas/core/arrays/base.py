@@ -14,14 +14,17 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core import ops
+from pandas.core.algorithms import _factorize_array, unique
+from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
@@ -38,6 +41,39 @@ class ExtensionArray:
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
     .. versionadded:: 0.23.0
+
+    Attributes
+    ----------
+    dtype
+    nbytes
+    ndim
+    shape
+
+    Methods
+    -------
+    argsort
+    astype
+    copy
+    dropna
+    factorize
+    fillna
+    isna
+    ravel
+    repeat
+    searchsorted
+    shift
+    take
+    unique
+    view
+    _concat_same_type
+    _formatter
+    _from_factorized
+    _from_sequence
+    _from_sequence_of_strings
+    _ndarray_values
+    _reduce
+    _values_for_argsort
+    _values_for_factorize
 
     Notes
     -----
@@ -111,7 +147,7 @@ class ExtensionArray:
     If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
     that
 
-    1. You defer by raising ``NotImplemented`` when any Series are present
+    1. You defer by returning ``NotImplemented`` when any Series are present
        in `inputs`. Pandas will extract the arrays and call the ufunc again.
     2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
        Pandas inspect this to determine whether the ufunc is valid for the
@@ -170,7 +206,6 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-
         """
         raise AbstractMethodError(cls)
 
@@ -188,7 +223,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize
+        factorize
         ExtensionArray.factorize
         """
         raise AbstractMethodError(cls)
@@ -452,10 +487,6 @@ class ExtensionArray:
         -------
         filled : ExtensionArray with NA/NaN filled
         """
-        from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
-
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
@@ -552,8 +583,6 @@ class ExtensionArray:
         -------
         uniques : ExtensionArray
         """
-        from pandas import unique
-
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
@@ -654,7 +683,7 @@ class ExtensionArray:
 
         See Also
         --------
-        pandas.factorize : Top-level factorize method that dispatches here.
+        factorize : Top-level factorize method that dispatches here.
 
         Notes
         -----
@@ -668,8 +697,6 @@ class ExtensionArray:
         #    original ExtensionArray.
         # 2. ExtensionArray.factorize.
         #    Complete control over factorization.
-        from pandas.core.algorithms import _factorize_array
-
         arr, na_value = self._values_for_factorize()
 
         labels, uniques = _factorize_array(
@@ -778,17 +805,17 @@ class ExtensionArray:
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
 
+        See Also
+        --------
+        numpy.take
+        api.extensions.take
+
         Notes
         -----
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when `indices` is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
-
-        See Also
-        --------
-        numpy.take
-        pandas.api.extensions.take
 
         Examples
         --------
@@ -835,6 +862,27 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+        """
+        Return a view on the array.
+
+        Parameters
+        ----------
+        dtype : str, np.dtype, or ExtensionDtype, optional
+            Default None
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
+
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
@@ -842,7 +890,7 @@ class ExtensionArray:
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}" "{data}\n" "Length: {length}, dtype: {dtype}"
+        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
@@ -862,7 +910,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        boxed: bool, default False
+        boxed : bool, default False
             An indicated for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
@@ -881,17 +929,6 @@ class ExtensionArray:
             return str
         return repr
 
-    def _formatting_values(self) -> np.ndarray:
-        # At the moment, this has to be an array since we use result.dtype
-        """
-        An array of values to be printed in, e.g. the Series repr
-
-        .. deprecated:: 0.24.0
-
-           Use :meth:`ExtensionArray._formatter` instead.
-        """
-        return np.array(self)
-
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
@@ -903,6 +940,10 @@ class ExtensionArray:
         Parameters
         ----------
         order : {None, 'C', 'F', 'A', 'K'}, default 'C'
+
+        Returns
+        -------
+        ExtensionArray
 
         Notes
         -----
@@ -944,6 +985,10 @@ class ExtensionArray:
 
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
+
+        Returns
+        -------
+        array : ndarray
         """
         return np.array(self)
 

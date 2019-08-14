@@ -1084,7 +1084,7 @@ class TestDataFrameAlterAxes:
 
         # Missing levels - for both MultiIndex and single-level Index:
         for idx_lev in ["A", "B"], ["A"]:
-            with pytest.raises(KeyError, match="Level E "):
+            with pytest.raises(KeyError, match=r"(L|l)evel \(?E\)?"):
                 df.set_index(idx_lev).reset_index(level=["A", "E"])
             with pytest.raises(IndexError, match="Too many levels"):
                 df.set_index(idx_lev).reset_index(level=[0, 1, 2])
@@ -1516,30 +1516,23 @@ class TestIntervalIndex:
         expected["columns"] = expected[1]
 
         for axis in expected:
-            # inplace=True
-            # The FutureWarning comes from the fact that we would like to have
-            # inplace default to False some day
-            for inplace, warn in (None, FutureWarning), (True, None):
-                kwargs = {"inplace": inplace}
-
-                result = df.copy()
-                with tm.assert_produces_warning(warn):
-                    result.set_axis(list("abc"), axis=axis, **kwargs)
-                tm.assert_frame_equal(result, expected[axis])
+            result = df.copy()
+            result.set_axis(list("abc"), axis=axis, inplace=True)
+            tm.assert_frame_equal(result, expected[axis])
 
             # inplace=False
-            result = df.set_axis(list("abc"), axis=axis, inplace=False)
+            result = df.set_axis(list("abc"), axis=axis)
             tm.assert_frame_equal(expected[axis], result)
 
         # omitting the "axis" parameter
         with tm.assert_produces_warning(None):
-            result = df.set_axis(list("abc"), inplace=False)
+            result = df.set_axis(list("abc"))
         tm.assert_frame_equal(result, expected[0])
 
         # wrong values for the "axis" parameter
         for axis in 3, "foo":
             with pytest.raises(ValueError, match="No axis named"):
-                df.set_axis(list("abc"), axis=axis, inplace=False)
+                df.set_axis(list("abc"), axis=axis)
 
     def test_set_axis_prior_to_deprecation_signature(self):
         df = DataFrame(

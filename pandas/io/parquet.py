@@ -184,12 +184,14 @@ class FastParquetImpl(BaseImpl):
 
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
+            from pandas.io.s3 import get_file_and_filesystem
+
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
-            s3, _, _, should_close = get_filepath_or_buffer(path)
+            s3, filesystem = get_file_and_filesystem(path)
             try:
-                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+                parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
             finally:
                 s3.close()
         else:
@@ -231,7 +233,7 @@ def to_parquet(
         ``False``, they will not be written to the file. If ``None``, the
         engine's default behavior will be used.
 
-        .. versionadded 0.24.0
+        .. versionadded:: 0.24.0
 
     partition_cols : list, optional, default None
         Column names by which to partition the dataset
@@ -257,12 +259,22 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded 0.21.0
+    .. versionadded:: 0.21.0
 
     Parameters
     ----------
-    path : string
-        File path
+    path : str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.parquet``.
+
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -271,7 +283,7 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
     columns : list, default=None
         If not None, only these columns will be read from the file.
 
-        .. versionadded 0.21.1
+        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 

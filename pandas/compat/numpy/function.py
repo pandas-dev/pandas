@@ -59,7 +59,7 @@ class CompatValidator:
                 )
             else:
                 raise ValueError(
-                    "invalid validation method " "'{method}'".format(method=method)
+                    "invalid validation method '{method}'".format(method=method)
                 )
 
 

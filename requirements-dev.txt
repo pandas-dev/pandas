@@ -1,4 +1,5 @@
 numpy>=1.15
+python==3.7.3
 python-dateutil>=2.6.1
 pytz
 asv
@@ -45,7 +46,7 @@ html5lib
 lxml
 openpyxl
 pyarrow>=0.9.0
-pyqt
+pyqt5>=5.9.2
 tables>=3.4.2
 python-snappy
 s3fs

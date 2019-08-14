@@ -375,7 +375,7 @@ def boxplot(
         >>> type(boxplot)
         <class 'numpy.ndarray'>
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
         column=column,
@@ -586,6 +586,8 @@ class PlotAccessor(PandasObject):
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
+    include_bool : bool, default is False
+        If True, boolean values can be plotted
     `**kwds` : keywords
         Options to pass to matplotlib plotting method
 
@@ -1533,7 +1535,54 @@ class PlotAccessor(PandasObject):
         return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
-def _get_plot_backend():
+_backends = {}
+
+
+def _find_backend(backend: str):
+    """
+    Find a pandas plotting backend>
+
+    Parameters
+    ----------
+    backend : str
+        The identifier for the backend. Either an entrypoint item registered
+        with pkg_resources, or a module name.
+
+    Notes
+    -----
+    Modifies _backends with imported backends as a side effect.
+
+    Returns
+    -------
+    types.ModuleType
+        The imported backend.
+    """
+    import pkg_resources  # Delay import for performance.
+
+    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
+        if entry_point.name == "matplotlib":
+            # matplotlib is an optional dependency. When
+            # missing, this would raise.
+            continue
+        _backends[entry_point.name] = entry_point.load()
+
+    try:
+        return _backends[backend]
+    except KeyError:
+        # Fall back to unregisted, module name approach.
+        try:
+            module = importlib.import_module(backend)
+        except ImportError:
+            # We re-raise later on.
+            pass
+        else:
+            _backends[backend] = module
+            return module
+
+    raise ValueError("No backend {}".format(backend))
+
+
+def _get_plot_backend(backend=None):
     """
     Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
 
@@ -1546,7 +1595,18 @@ def _get_plot_backend():
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    backend_str = pandas.get_option("plotting.backend")
-    if backend_str == "matplotlib":
-        backend_str = "pandas.plotting._matplotlib"
-    return importlib.import_module(backend_str)
+    backend = backend or pandas.get_option("plotting.backend")
+
+    if backend == "matplotlib":
+        # Because matplotlib is an optional dependency and first-party backend,
+        # we need to attempt an import here to raise an ImportError if needed.
+        import pandas.plotting._matplotlib as module
+
+        _backends["matplotlib"] = module
+
+    if backend in _backends:
+        return _backends[backend]
+
+    module = _find_backend(backend)
+    _backends[backend] = module
+    return module

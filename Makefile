@@ -1,5 +1,7 @@
 .PHONY : develop build clean clean_pyc doc lint-diff black
 
+all: develop
+
 clean:
 	-python setup.py clean
 
@@ -13,7 +15,7 @@ lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
 
 black:
-	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)'
+	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
 
 develop: build
 	python setup.py develop

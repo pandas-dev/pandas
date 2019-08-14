@@ -25,6 +25,8 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
+from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
@@ -41,9 +43,8 @@ class Grouper:
     level and/or axis parameters are given, a level of the index of the target
     object.
 
-    These are local specifications and will override 'global' settings,
-    that is the parameters axis and level which are passed to the groupby
-    itself.
+    If `axis` and/or `level` are passed as keywords to both `Grouper` and
+    `groupby`, the values passed to `Grouper` take precedence.
 
     Parameters
     ----------
@@ -311,8 +312,6 @@ class Grouping:
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                from pandas.core.groupby.categorical import recode_for_groupby
-
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
                 )
@@ -362,13 +361,10 @@ class Grouping:
         # Timestamps like
         if getattr(self.grouper, "dtype", None) is not None:
             if is_datetime64_dtype(self.grouper):
-                from pandas import to_datetime
-
-                self.grouper = to_datetime(self.grouper)
+                self.grouper = self.grouper.astype("datetime64[ns]")
             elif is_timedelta64_dtype(self.grouper):
-                from pandas import to_timedelta
 
-                self.grouper = to_timedelta(self.grouper)
+                self.grouper = self.grouper.astype("timedelta64[ns]")
 
     def __repr__(self):
         return "Grouping({0})".format(self.name)
@@ -401,8 +397,6 @@ class Grouping:
     @cache_readonly
     def result_index(self):
         if self.all_grouper is not None:
-            from pandas.core.groupby.categorical import recode_from_groupby
-
             return recode_from_groupby(self.all_grouper, self.sort, self.group_index)
         return self.group_index
 
@@ -430,7 +424,7 @@ class Grouping:
 
 
 def _get_grouper(
-    obj,
+    obj: NDFrame,
     key=None,
     axis=0,
     level=None,
@@ -494,12 +488,12 @@ def _get_grouper(
                 elif nlevels == 0:
                     raise ValueError("No group keys passed!")
                 else:
-                    raise ValueError("multiple levels only valid with " "MultiIndex")
+                    raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {} is not the name of the " "index".format(level)
+                        "level name {} is not the name of the index".format(level)
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
@@ -613,10 +607,10 @@ def _get_grouper(
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr)
+                    obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif obj._is_level_reference(gpr):
+            elif obj._is_level_reference(gpr, axis=axis):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)

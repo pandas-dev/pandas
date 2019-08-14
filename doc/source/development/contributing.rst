@@ -133,22 +133,11 @@ Installing a C compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guide
-<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
-compiler installed. You don't need to do any of the ``./configure`` or ``make``
-steps; you only need to install the compiler.
+platform you're using.
 
-For Windows developers, when using Python 3.5 and later, it is sufficient to
-install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
-**Python development workload** and the **Python native development tools**
-option. Otherwise, the following links may be helpful.
-
-* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
-* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-* https://cowboyprogrammer.org/building-python-wheels-for-windows/
-* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+* Windows: https://devguide.python.org/setup/#windows-compiling
+* Mac: https://devguide.python.org/setup/#macos
+* Unix: https://devguide.python.org/setup/#unix-compiling
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -288,7 +277,7 @@ complex changes to the documentation as well.
 Some other important things to know about the docs:
 
 * The *pandas* documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``pandas/doc/``.
+  itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
   functions, while the documentation in this folder consists of tutorial-like
@@ -404,11 +393,11 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local
-``pandas/doc/`` directory in the console and run::
+``doc/`` directory in the console and run::
 
     python make.py html
 
-Then you can find the HTML output in the folder ``pandas/doc/build/html/``.
+Then you can find the HTML output in the folder ``doc/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
 all the code examples and build all the generated docstring pages. In subsequent
@@ -448,7 +437,7 @@ You can also specify to use multiple cores to speed up the documentation build::
 Open the following file in a web browser to see the full documentation you
 just built::
 
-    pandas/docs/build/html/index.html
+    doc/build/html/index.html
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
