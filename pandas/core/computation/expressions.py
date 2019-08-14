@@ -76,7 +76,6 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
 
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
-
             # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
@@ -181,7 +180,7 @@ def _has_bool_dtype(x):
 
 
 def _bool_arith_check(
-        op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
+    op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
 ):
     if unsupported is None:
         unsupported = {"+": "|", "*": "&", "-": "^"}
