@@ -80,16 +80,14 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
-                if hasattr(o, "dtypes"):
-                    # Series implements dtypes, check for dimension count
-                    if o.ndim > 1:
-                        s = o.dtypes.value_counts()
-                        if len(s) > 1:
-                            return False
-                        dtypes |= set(s.index.astype(str))
-                    else:
-                        dtypes |= {o.dtypes.name}
-                elif isinstance(o, np.ndarray):
+                # Series implements dtypes, check for dimension count as well
+                if hasattr(o, "dtypes") and o.ndim > 1:
+                    s = o.dtypes.value_counts()
+                    if len(s) > 1:
+                        return False
+                    dtypes |= set(s.index.astype(str))
+                # ndarray and Series Case
+                elif hasattr(o, "dtype"):
                     dtypes |= {o.dtype.name}
 
             # allowed are a superset
@@ -183,7 +181,7 @@ def _has_bool_dtype(x):
 
 
 def _bool_arith_check(
-    op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
+        op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
 ):
     if unsupported is None:
         unsupported = {"+": "|", "*": "&", "-": "^"}
