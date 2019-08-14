@@ -25,6 +25,7 @@ def test_read_with_bad_header(all_parsers):
 
 
 def test_negative_header(all_parsers):
+    # see gh-27779
     parser = all_parsers
     data = """1,2,3,4,5
 6,7,8,9,10
