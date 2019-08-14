@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import warnings
+import weakref
 
 import numpy as np
 
@@ -441,7 +442,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+        # To avoid a reference cycle, pass a weakref of self to _engine_type.
+        period = weakref.ref(self)
+        return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
     def __contains__(self, key):

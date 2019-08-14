@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 
@@ -908,3 +910,10 @@ class Base:
         # multiple NA should not be unique
         index_na_dup = index_na.insert(0, np.nan)
         assert index_na_dup.is_unique is False
+
+    def test_engine_reference_cycle(self):
+        # GH27585
+        index = self.create_index()
+        nrefs_pre = len(gc.get_referrers(index))
+        index._engine
+        assert len(gc.get_referrers(index)) == nrefs_pre
