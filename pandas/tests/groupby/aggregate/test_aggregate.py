@@ -562,6 +562,7 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     def test_agg_lambda(self):
+        # GH 25719
         df = pd.DataFrame(
             {
                 "kind": ["cat", "dog", "cat", "dog"],
@@ -569,6 +570,18 @@ class TestLambdaMangling:
                 "weight": [7.9, 7.5, 9.9, 198.0],
             }
         )
+
+        expected = pd.DataFrame(
+            {
+                "height_sqr_min": [82.81, 36.00],
+                "height_max": [9.5, 34.0],
+                "weight_max": [9.9, 198.0],
+            },
+            index=pd.Index(["cat", "dog"], name="kind"),
+            columns=["height_sqr_min", "height_max", "weight_max"],
+        )
+
+        # check pd.NameAgg case
         result1 = df.groupby(by="kind").agg(
             height_sqr_min=pd.NamedAgg(
                 column="height", aggfunc=lambda x: np.min(x ** 2)
@@ -576,9 +589,12 @@ class TestLambdaMangling:
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
         )
+        tm.assert_frame_equal(result1, expected)
+
+        # check agg('A' = tuple) case
         result2 = df.groupby(by="kind").agg(
             height_sqr_min=("height", lambda x: np.min(x ** 2)),
             height_max=("height", "max"),
             weight_max=("weight", "max"),
         )
-        tm.assert_frame_equal(result1, result2)
+        tm.assert_frame_equal(result2, expected)

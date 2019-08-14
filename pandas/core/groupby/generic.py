@@ -1761,6 +1761,9 @@ def _normalize_keyword_aggregation(kwargs):
             aggspec[column] = [aggfunc]
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
+    # GH 25719, due to aggspec will change the order of assigned columns in aggregation
+    # reordered_pairs will store this reorder and will compare it with order
+    # based on index, it will obtain new order in index
     for column, aggfuncs in aggspec.items():
         for aggfunc in aggfuncs:
             reordered_pairs.append((column, com.get_callable_name(aggfunc) or aggfunc))
