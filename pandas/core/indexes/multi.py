@@ -508,9 +508,9 @@ class MultiIndex(Index):
             Level of sortedness (must be lexicographically sorted by that
             level).
         names : list / sequence of str, optional
-            Names for the levels in the index. If not provided, these
-            will be inferred from iterables if the iterable has a
-            name attribute.
+            Names for the levels in the index. If not provided, names
+            will be inferred from iterables if the elements of iterables
+            have a name attribute.
 
         Returns
         -------

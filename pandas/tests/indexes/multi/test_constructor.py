@@ -481,6 +481,7 @@ def test_from_product_datetimeindex():
             pd.Series(["a", "b"], name="bar"),
             ["foo", "bar"],
         ),
+        (pd.Series([1, 2, 3]), pd.Series(["a", "b"]), None),
         (pd.Series([1, 2, 3], name="foo"), ["a", "b"], ["foo", None]),
         ([1, 2, 3], ["a", "b"], None),
     ],
