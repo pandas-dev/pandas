@@ -665,7 +665,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _engine(self):
         # property, for now, slow to look up
 
-        # to avoid a refernce cycle, bind `_ndarray_values` to a local variable, so
+        # to avoid a reference cycle, bind `_ndarray_values` to a local variable, so
         # `self` is not passed into the lambda.
         _ndarray_values = self._ndarray_values
         return self._engine_type(lambda: _ndarray_values, len(self))
@@ -5341,16 +5341,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return attrs
 
-    def _validate_for_numeric_unaryop(self, op, opstr):
-        """
-        Validate if we can perform a numeric unary operation.
-        """
-        if not self._is_numeric_dtype:
-            raise TypeError(
-                "cannot evaluate a numeric op "
-                "{opstr} for type: {typ}".format(opstr=opstr, typ=type(self).__name__)
-            )
-
     @classmethod
     def _add_numeric_methods_binary(cls):
         """
@@ -5383,7 +5373,6 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_unary(op, opstr):
             def _evaluate_numeric_unary(self):
 
-                self._validate_for_numeric_unaryop(op, opstr)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
