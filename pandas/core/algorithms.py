@@ -28,13 +28,11 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -183,8 +181,6 @@ def _reconstruct_data(values, dtype, original):
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
-    elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
-        values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype)
 
@@ -1645,19 +1641,13 @@ def take_nd(
         May be the same type as the input, or cast to an ndarray.
     """
 
-    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
-    # dispatch to internal type takes
     if is_extension_array_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetime64tz_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if is_sparse(arr):
         arr = arr.to_dense()
     elif isinstance(arr, (ABCIndexClass, ABCSeries)):
-        arr = arr.values
+        arr = arr._values
 
     arr = np.asarray(arr)
 
