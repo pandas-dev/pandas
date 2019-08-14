@@ -21,7 +21,11 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_convert_objects, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects,
+    maybe_downcast_numeric,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -180,10 +184,8 @@ class NDFrameGroupBy(GroupBy):
                     continue
             finally:
                 if result is not no_result:
-                    dtype = block.values.dtype
-
                     # see if we can cast the block back to the original dtype
-                    result = block._try_coerce_and_cast_result(result, dtype=dtype)
+                    result = maybe_downcast_numeric(result, block.dtype)
                     newb = block.make_block(result)
 
             new_items.append(locs)
@@ -363,7 +365,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 
@@ -673,7 +675,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns

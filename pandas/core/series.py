@@ -562,13 +562,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    def _formatting_values(self):
-        """
-        Return the values that can be formatted (used by SeriesFormatter
-        and DataFrameFormatter).
-        """
-        return self._data.formatting_values()
-
     def get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
@@ -1182,7 +1175,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if com._any_none(*key):
+        if com.any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
@@ -1688,7 +1681,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.items : Equivalent to Series.items for DataFrame.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
 
         Examples
         --------

@@ -106,6 +106,7 @@ class MPLPlot:
         colormap=None,
         table=False,
         layout=None,
+        include_bool=False,
         **kwds
     ):
 
@@ -191,6 +192,7 @@ class MPLPlot:
             self.colormap = colormap
 
         self.table = table
+        self.include_bool = include_bool
 
         self.kwds = kwds
 
@@ -400,9 +402,20 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
-        numeric_data = data.select_dtypes(
-            include=[np.number, "datetime", "datetimetz", "timedelta"]
-        )
+        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+
+        # GH23719, allow plotting boolean
+        if self.include_bool is True:
+            include_type.append(np.bool_)
+
+        # GH22799, exclude datatime-like type for boxplot
+        exclude_type = None
+        if self._kind == "box":
+            # TODO: change after solving issue 27881
+            include_type = [np.number]
+            exclude_type = ["timedelta"]
+
+        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
             is_empty = numeric_data.empty
@@ -654,7 +667,7 @@ class MPLPlot:
     def _get_index_name(self):
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
-            if com._any_not_none(*name):
+            if com.any_not_none(*name):
                 name = ",".join(pprint_thing(x) for x in name)
             else:
                 name = None
@@ -1054,7 +1067,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = com._any_not_none(*self.errors.values())
+        is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):

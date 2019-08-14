@@ -280,7 +280,7 @@ class TestArithmeticOps(BaseOpsUtil):
         other = 0.01
         self._check_op(s, op, other)
 
-    @pytest.mark.parametrize("other", [1.0, 1.0, np.array(1.0), np.array([1.0])])
+    @pytest.mark.parametrize("other", [1.0, np.array(1.0)])
     def test_arithmetic_conversion(self, all_arithmetic_operators, other):
         # if we have a float operand we should have a float result
         # if that is equal to an integer
@@ -289,6 +289,15 @@ class TestArithmeticOps(BaseOpsUtil):
         s = pd.Series([1, 2, 3], dtype="Int64")
         result = op(s, other)
         assert result.dtype is np.dtype("float")
+
+    def test_arith_len_mismatch(self, all_arithmetic_operators):
+        # operating with a list-like with non-matching length raises
+        op = self.get_op_from_name(all_arithmetic_operators)
+        other = np.array([1.0])
+
+        s = pd.Series([1, 2, 3], dtype="Int64")
+        with pytest.raises(ValueError, match="Lengths must match"):
+            op(s, other)
 
     @pytest.mark.parametrize("other", [0, 0.5])
     def test_arith_zero_dim_ndarray(self, other):
@@ -322,8 +331,9 @@ class TestArithmeticOps(BaseOpsUtil):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
         # 2d
-        with pytest.raises(NotImplementedError):
-            opa(pd.DataFrame({"A": s}))
+        result = opa(pd.DataFrame({"A": s}))
+        assert result is NotImplemented
+
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
@@ -379,8 +389,6 @@ class TestComparisonOps(BaseOpsUtil):
 
 
 class TestCasting:
-    pass
-
     @pytest.mark.parametrize("dropna", [True, False])
     def test_construct_index(self, all_data, dropna):
         # ensure that we do not coerce to Float64Index, rather
