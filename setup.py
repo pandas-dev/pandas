@@ -831,9 +831,7 @@ setup(
         ]
     },
     entry_points={
-        "pandas_plotting_backends": [
-            "matplotlib = pandas:plotting._matplotlib",
-        ],
+        "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
     },
     **setuptools_kwargs
 )
