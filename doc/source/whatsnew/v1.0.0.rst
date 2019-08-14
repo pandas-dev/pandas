@@ -173,6 +173,7 @@ Groupby/resample/rolling
 -
 -
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
+- Bug in :meth:`DataFrameGroupby.agg` not able to use lambdas (:issue:`27519`)
 
 Reshaping
 ^^^^^^^^^
