@@ -211,7 +211,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform"):
+        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
             ser + data
 
     def test_divmod_series_array(self):
