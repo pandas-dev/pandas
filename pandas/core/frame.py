@@ -775,7 +775,8 @@ class DataFrame(NDFrame):
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        %s
+        Yields
+        ------
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -816,7 +817,7 @@ class DataFrame(NDFrame):
         Name: population, dtype: int64
         """
 
-    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    @Appender(_shared_docs["items"])
     def items(self):
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
@@ -825,9 +826,9 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    @Appender(_shared_docs["items"])
     def iteritems(self):
-        return self.items()
+        yield from self.items()
 
     def iterrows(self):
         """
