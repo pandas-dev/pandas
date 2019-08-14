@@ -557,7 +557,7 @@ class MultiIndex(Index):
 
         # Infer names from iterable if attribute is available
         if names is None:
-            names = [idx.name if hasattr(idx, "name") else None for idx in iterables]
+            names = [getattr(idx, "name", None) for idx in iterables]
 
             if all(name is None for name in names):
                 names = None

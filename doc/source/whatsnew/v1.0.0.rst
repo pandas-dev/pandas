@@ -29,7 +29,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`MultiIndex.from_product` infers level names from inputs when not explicitly provided (:issue:`27292`)
 -
 
 .. _whatsnew_1000.api_breaking:

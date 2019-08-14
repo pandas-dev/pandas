@@ -12,7 +12,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Changed :meth:`MultiIndex.from_product` to infer level names from inputs if possible
+-
 -
 -
 
