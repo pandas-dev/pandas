@@ -41,11 +41,11 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_cast_to_datetime,
+    maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    maybe_casted_values,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
