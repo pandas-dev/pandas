@@ -560,3 +560,25 @@ class TestLambdaMangling:
         result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
         expected = pd.DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
+
+    def test_agg_lambda(self):
+        df = pd.DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0],
+                "weight": [7.9, 7.5, 9.9, 198.0],
+            }
+        )
+        result1 = df.groupby(by="kind").agg(
+            height_sqr_min=pd.NamedAgg(
+                column="height", aggfunc=lambda x: np.min(x ** 2)
+            ),
+            height_max=pd.NamedAgg(column="height", aggfunc="max"),
+            weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
+        )
+        result2 = df.groupby(by="kind").agg(
+            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_max=("height", "max"),
+            weight_max=("weight", "max"),
+        )
+        tm.assert_frame_equal(result1, result2)

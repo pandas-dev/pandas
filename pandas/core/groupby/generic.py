@@ -266,7 +266,9 @@ class NDFrameGroupBy(GroupBy):
             result.index = np.arange(len(result))
 
         if relabeling:
-            result = result[order]
+
+            # used reordered index of columns
+            result = result.iloc[:, order]
             result.columns = columns
 
         return result._convert(datetime=True)
@@ -1729,8 +1731,8 @@ def _normalize_keyword_aggregation(kwargs):
         The transformed kwargs.
     columns : List[str]
         The user-provided keys.
-    order : List[Tuple[str, str]]
-        Pairs of the input and output column names.
+    order : List[int]
+        List of reordered index of columns.
 
     Examples
     --------
@@ -1750,6 +1752,7 @@ def _normalize_keyword_aggregation(kwargs):
     aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
+    reordered_pairs = []
 
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
@@ -1757,7 +1760,13 @@ def _normalize_keyword_aggregation(kwargs):
         else:
             aggspec[column] = [aggfunc]
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
-    return aggspec, columns, order
+
+    for column, aggfuncs in aggspec.items():
+        for aggfunc in aggfuncs:
+            reordered_pairs.append((column, com.get_callable_name(aggfunc) or aggfunc))
+
+    col_idx_order = [reordered_pairs.index(o) for o in order]
+    return aggspec, columns, col_idx_order
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
