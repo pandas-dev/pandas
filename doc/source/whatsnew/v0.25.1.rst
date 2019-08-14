@@ -93,9 +93,7 @@ Indexing
 Missing
 ^^^^^^^
 
-- Bug in :func:`pandas.isnull` or :func:`pandas.isna` when the input is a type e.g. `type(pandas.Series())` (:issue:27482)
-
-
+- Bug in :func:`pandas.isnull` or :func:`pandas.isna` when the input is a type e.g. `type(pandas.Series())` (:issue:`27482`)
 -
 -
 
