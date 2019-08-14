@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -32,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_scalar,
     is_timedelta64_dtype,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -758,7 +756,6 @@ def _comp_method_SERIES(cls, op, special):
     code duplication.
     """
     op_name = _get_op_name(op, special)
-    masker = _gen_eval_kwargs(op_name).get("masker", False)
 
     def na_op(x, y):
         # TODO:
@@ -777,31 +774,11 @@ def _comp_method_SERIES(cls, op, special):
 
         else:
 
-            # we want to compare like types
-            # we only want to convert to integer like if
-            # we are not NotImplemented, otherwise
-            # we would allow datetime64 (but viewed as i8) against
-            # integer comparisons
-
-            # we have a datetime/timedelta and may need to convert
-            assert not needs_i8_conversion(x)
-            mask = None
-            if not is_scalar(y) and needs_i8_conversion(y):
-                mask = isna(x) | isna(y)
-                y = y.view("i8")
-                x = x.view("i8")
-
             method = getattr(x, op_name, None)
-            if method is not None:
-                with np.errstate(all="ignore"):
-                    result = method(y)
-                if result is NotImplemented:
-                    return invalid_comparison(x, y, op)
-            else:
-                result = op(x, y)
-
-            if mask is not None and mask.any():
-                result[mask] = masker
+            with np.errstate(all="ignore"):
+                result = method(y)
+            if result is NotImplemented:
+                return invalid_comparison(x, y, op)
 
         return result
 
