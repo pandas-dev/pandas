@@ -2027,11 +2027,12 @@ def test_file_handles_with_open(all_parsers, csv1):
 
 
 @pytest.mark.parametrize(
-    "fname,encoding", [
+    "fname,encoding",
+    [
         ("test1.csv", "utf-8"),
         ("unicode_series.csv", "latin-1"),
-        ("sauron.SHIFT_JIS.csv", "shiftjis")
-    ]
+        ("sauron.SHIFT_JIS.csv", "shiftjis"),
+    ],
 )
 def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.

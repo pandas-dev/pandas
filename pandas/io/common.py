@@ -346,7 +346,7 @@ def _get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, BytesIO)
 
-    no_close = (BufferedIOBase)
+    no_close = BufferedIOBase
 
     handles = list()
     f = path_or_buf
