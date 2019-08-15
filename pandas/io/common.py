@@ -344,7 +344,7 @@ def _get_handle(
 
         need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:
-        need_text_wrapping = (BufferedIOBase)
+        need_text_wrapping = BufferedIOBase
 
     no_close = BufferedIOBase
 
