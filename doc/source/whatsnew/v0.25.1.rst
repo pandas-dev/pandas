@@ -25,7 +25,6 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
-- Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
 -
 -
 
