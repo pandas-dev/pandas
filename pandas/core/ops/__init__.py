@@ -766,12 +766,8 @@ def _comp_method_SERIES(cls, op, special):
 
     def na_op(x, y):
         # TODO:
-        # should have guarantess on what x, y can be type-wise
+        # should have guarantees on what x, y can be type-wise
         # Extension Dtypes are not called here
-
-        # Checking that cases that were once handled here are no longer
-        # reachable.
-        assert not (is_categorical_dtype(y) and not is_scalar(y))
 
         if is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
@@ -780,8 +776,7 @@ def _comp_method_SERIES(cls, op, special):
             return invalid_comparison(x, y, op)
 
         else:
-
-            method = getattr(x, op_name, None)
+            method = getattr(x, op_name)
             with np.errstate(all="ignore"):
                 result = method(y)
             if result is NotImplemented:
