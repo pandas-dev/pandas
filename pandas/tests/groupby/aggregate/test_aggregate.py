@@ -606,7 +606,10 @@ class TestLambdaMangling:
     def test_agg_multiple_lambda(self):
         # GH25719, write test for DataFrameGroupby.agg with multiple lambdas
         df = pd.DataFrame({"A": [1, 2]})
-        expected = pd.DataFrame({"foo": [2], "bar": [2]}, index=pd.Index([1]))
+        expected_dict = {"foo": [2], "bar": [2]}
+        if compat.PY35:
+            expected_dict = {"foo": [1], "bar": [2]}
+        expected = pd.DataFrame(expected_dict, index=pd.Index([1]))
 
         # check agg(key=(col, aggfunc)) case
         result1 = df.groupby([1, 1]).agg(
