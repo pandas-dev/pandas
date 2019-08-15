@@ -38,28 +38,37 @@ class TestCategoricalAnalytics:
         cat = Categorical(
             [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
+        _min = cat.min(skipna=False)
+        _max = cat.max(skipna=False)
         assert np.isnan(_min)
-        assert _max == "b"
+        assert np.isnan(_max)
 
-        _min = cat.min(numeric_only=True)
+        _min = cat.min()
         assert _min == "c"
-        _max = cat.max(numeric_only=True)
+        _max = cat.max()
         assert _max == "b"
 
         cat = Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
+        _min = cat.min(skipna=False)
+        _max = cat.max(skipna=False)
         assert np.isnan(_min)
+        assert np.isnan(_max)
+
+        _min = cat.min()
+        assert _min == 2
+        _max = cat.max()
         assert _max == 1
 
-        _min = cat.min(numeric_only=True)
-        assert _min == 2
-        _max = cat.max(numeric_only=True)
-        assert _max == 1
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_deprecate_numeric_only_min_max(self, method):
+        # GH 25303
+        cat = Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
+        )
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            getattr(cat, method)(numeric_only=False)
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",

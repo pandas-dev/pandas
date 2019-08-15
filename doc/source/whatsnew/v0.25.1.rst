@@ -16,6 +16,11 @@ For example, on MacOS installing Python with `pyenv` may lead to an incomplete P
 
 .. _whatsnew_0251.bug_fixes:
 
+Other deprecations
+^^^^^^^^^^^^^^^^^^
+
+- The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
+
 Bug fixes
 ~~~~~~~~~
 

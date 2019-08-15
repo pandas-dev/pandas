@@ -1028,7 +1028,7 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == "c"
         assert _max == "b"
 
         cat = Series(
@@ -1038,30 +1038,24 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == 2
         assert _max == 1
 
-    def test_min_max_numeric_only(self):
-        # TODO deprecate numeric_only argument for Categorical and use
-        # skipna as well, see GH25303
+    def test_min_max_skipna(self):
+        # GH 25303
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
         )
 
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "a"
-
-        _min = cat.min(numeric_only=True)
-        _max = cat.max(numeric_only=True)
         assert _min == "b"
         assert _max == "a"
 
-        _min = cat.min(numeric_only=False)
-        _max = cat.max(numeric_only=False)
+        _min = cat.min(skipna=False)
+        _max = cat.max(skipna=False)
         assert np.isnan(_min)
-        assert _max == "a"
+        assert np.isnan(_max)
 
 
 class TestSeriesMode:

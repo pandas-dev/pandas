@@ -2196,7 +2196,8 @@ class Categorical(ExtensionArray, PandasObject):
             raise TypeError(msg.format(op=name))
         return func(**kwargs)
 
-    def min(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def min(self, skipna=True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2212,17 +2213,18 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].min(**kwargs)
+        good = self._codes != -1
+        if good.any():
+            if skipna:
+                pointer = self._codes[good].min(**kwargs)
+            else:
+                return np.nan
         else:
             pointer = self._codes.min(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+        return self.categories[pointer]
 
-    def max(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def max(self, skipna=True, **kwargs):
         """
         The maximum value of the object.
 
@@ -2238,15 +2240,15 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].max(**kwargs)
+        good = self._codes != -1
+        if good.any():
+            if skipna:
+                pointer = self._codes[good].max(**kwargs)
+            else:
+                return np.nan
         else:
             pointer = self._codes.max(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+        return self.categories[pointer]
 
     def mode(self, dropna=True):
         """

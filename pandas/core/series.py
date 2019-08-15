@@ -3980,9 +3980,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._get_axis_number(axis)
 
         if isinstance(delegate, Categorical):
-            # TODO deprecate numeric_only argument for Categorical and use
-            # skipna as well, see GH25303
-            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+            return delegate._reduce(name, skipna=skipna, **kwds)
         elif isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
