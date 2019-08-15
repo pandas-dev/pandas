@@ -606,8 +606,7 @@ def dispatch_to_extension_op(op, left, right):
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
-            with np.errstate(invalid="raise"):
-                res_values = op(new_left, new_right)
+            res_values = op(new_left, new_right)
     except NullFrequencyError:
         # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
         # on add/sub of integers (or int-like).  We re-raise as a TypeError.
@@ -615,7 +614,7 @@ def dispatch_to_extension_op(op, left, right):
             "incompatible type for a datetime/timedelta "
             "operation [{name}]".format(name=op.__name__)
         )
-    except TypeError:
+    if isinstance(res_values, bool):
         # numpy returned False instead of operating pointwise
         assert op.__name__ in ["eq", "ne", "ge", "gt", "le", "lt"], op
         return invalid_comparison(new_left, new_right, op)
