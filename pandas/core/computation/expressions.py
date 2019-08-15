@@ -201,17 +201,18 @@ def _bool_arith_check(
 
 
 def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
-    """ evaluate and return the expression of the op on a and b
+    """
+    Evaluate and return the expression of the op on a and b.
 
-        Parameters
-        ----------
-
-        op :    the actual operand
-        op_str: the string version of the op
-        a :     left operand
-        b :     right operand
-        use_numexpr : whether to try to use numexpr (default True)
-        """
+    Parameters
+    ----------
+    op : the actual operand
+    op_str : the string version of the op
+    a : left operand
+    b : right operand
+    use_numexpr : bool, default True
+        Whether to try to use numexpr.
+    """
 
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
@@ -220,16 +221,17 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
 
 
 def where(cond, a, b, use_numexpr=True):
-    """ evaluate the where condition cond on a and b
+    """
+    Evaluate the where condition cond on a and b
 
-        Parameters
-        ----------
-
-        cond : a boolean array
-        a :    return if cond is True
-        b :    return if cond is False
-        use_numexpr : whether to try to use numexpr (default True)
-        """
+    Parameters
+    ----------
+    cond : ndarray[bool]
+    a : return if cond is True
+    b : return if cond is False
+    use_numexpr : bool, default True
+        Whether to try to use numexpr.
+    """
 
     if use_numexpr:
         return _where(cond, a, b)
