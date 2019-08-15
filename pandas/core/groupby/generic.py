@@ -1755,24 +1755,62 @@ def _normalize_keyword_aggregation(kwargs):
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
+    repeat_num = 0
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
             aggspec[column].append(aggfunc)
         else:
             aggspec[column] = [aggfunc]
-        order.append((column, com.get_callable_name(aggfunc) or aggfunc))
+
+        # In case for same column, it uses multiple lambda functions,
+        # assign them different names to distinguish
+        if (column, _get_aggfunc_name(aggfunc)) in order:
+            repeat_num += 1
+            order.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
+        else:
+            order.append((column, _get_aggfunc_name(aggfunc)))
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
     # based on index, it will obtain new order in index
-    reordered_pairs = [
-        (column, com.get_callable_name(aggfunc) or aggfunc)
-        for column, aggfuncs in aggspec.items()
-        for aggfunc in aggfuncs
-    ]
+    reordered_pairs = []
+    repeat_num = 0
+    for column, aggfuncs in aggspec.items():
+        for aggfunc in aggfuncs:
+            if (column, _get_aggfunc_name(aggfunc)) not in reordered_pairs:
+                reordered_pairs.append((column, _get_aggfunc_name(aggfunc)))
+            else:
+                repeat_num += 1
+                reordered_pairs.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
 
     col_idx_order = [reordered_pairs.index(o) for o in order]
     return aggspec, columns, col_idx_order
+
+
+def _get_aggfunc_name(aggfunc, repeat_num=0):
+    """
+    Return aggfunc name given repeat_num. If aggfunc appears before, then repeat_num
+    will be given different value, and output aggfunc name will be different
+
+    Parameters:
+    ----------
+    aggfunc: aggfunc
+    repeat_num: int
+        How many time the aggfunc used to the same column,
+        default is 0
+
+    Returns:
+    -------
+    aggfunc name in string
+
+    """
+    if repeat_num == 0:
+        return com.get_callable_name(aggfunc) or aggfunc
+    else:
+        suffix = "_{}".format(repeat_num)
+        if com.get_callable_name(aggfunc):
+            return com.get_callable_name(aggfunc) + suffix
+        return aggfunc + suffix
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
