@@ -69,6 +69,8 @@ def is_platform_32bit():
 
 
 def _import_lzma():
+    """Attempts to import lzma, warning the user when lzma is not available.
+    """
     try:
         import lzma
 
@@ -83,6 +85,9 @@ def _import_lzma():
 
 
 def _get_lzma_file(lzma):
+    """Returns the lzma method LZMAFile when the module was correctly imported.
+    Otherwise, raises a RuntimeError.
+    """
     if lzma is None:
         raise RuntimeError(
             "lzma module not available. "
