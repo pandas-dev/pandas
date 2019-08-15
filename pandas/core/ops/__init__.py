@@ -37,6 +37,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
@@ -804,7 +805,9 @@ def _comp_method_SERIES(cls, op, special):
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
-        elif isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+        elif isinstance(
+            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
+        ):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
@@ -855,8 +858,6 @@ def _comp_method_SERIES(cls, op, special):
 
         result = self._constructor(res_values, index=self.index)
         result = finalizer(result)
-
-        # pin name for case res_name is None and result.name is not.
         result.name = res_name
         return result
 
