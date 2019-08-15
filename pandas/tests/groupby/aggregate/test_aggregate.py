@@ -571,6 +571,10 @@ class TestLambdaMangling:
             }
         )
 
+        # sort for 35 and earlier
+        columns = ["height_sqr_min", "height_max", "weight_max"]
+        if compat.PY35:
+            columns = ["height_max", "height_sqr_min", "weight_max"]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],
@@ -578,7 +582,7 @@ class TestLambdaMangling:
                 "weight_max": [9.9, 198.0],
             },
             index=pd.Index(["cat", "dog"], name="kind"),
-            columns=["height_sqr_min", "height_max", "weight_max"],
+            columns=columns,
         )
 
         # check pd.NameAgg case
