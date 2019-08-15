@@ -5,7 +5,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, Index, isna, Series
+from pandas import Categorical, Index, Series, isna
 import pandas.util.testing as tm
 
 
