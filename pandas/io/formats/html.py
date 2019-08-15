@@ -420,6 +420,10 @@ class HTMLFormatter(TableFormatter):
                     tags=None,
                     nindex_levels=self.row_levels,
                 )
+            j = get_option("display.repeating_row_index")
+            
+            if j > 0 and i % j == 0 and i > 0 :
+                row.append(self._write_col_header(indent))
 
             row = []
             if self.fmt.index:

@@ -343,6 +343,8 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
     cf.register_option("max_colwidth", 50, max_colwidth_doc, validator=is_int)
+    cf.register_option("repeating_row_index", 0, validator=is_int)
+
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
     else:
