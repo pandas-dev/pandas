@@ -5,6 +5,7 @@ import pytest
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
+    maybe_cast_to_datetime,
     infer_dtype_from_array,
     infer_dtype_from_scalar,
 )
@@ -169,3 +170,14 @@ def test_cast_scalar_to_array(obj, dtype):
 
     arr = cast_scalar_to_array(shape, obj, dtype=dtype)
     tm.assert_numpy_array_equal(arr, exp)
+
+
+@pytest.mark.parametrize(
+    "obj,dtype",
+    [
+        (np.datetime64("2017-01-01 01:00:00"), "datetime64[D]"),
+        (np.datetime64("2017-01-01 02:00:00"), "datetime64[D]"),
+    ],
+)
+def test_maybe_cast_to_datetime(obj, dtype):
+    maybe_cast_to_datetime(obj, dtype)

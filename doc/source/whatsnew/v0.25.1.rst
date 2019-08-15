@@ -32,7 +32,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
--
+- Bug in :func:`maybe_cast_to_datetime` where converting a `np.datetime64` to `datetime64[D]` raise `TypeError` (:issue: `27395`)
 -
 -
 
