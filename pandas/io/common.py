@@ -346,6 +346,8 @@ def _get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, BytesIO)
 
+    no_close = (BufferedIOBase)
+
     handles = list()
     f = path_or_buf
 
@@ -420,8 +422,10 @@ def _get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        f = TextIOWrapper(f, encoding=encoding, newline="")
-        handles.append(f)
+        g = TextIOWrapper(f, encoding=encoding, newline="")
+        if not isinstance(f, no_close):
+            handles.append(g)
+        f = g
 
     if memory_map and hasattr(f, "fileno"):
         try:
