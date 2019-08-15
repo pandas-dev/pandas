@@ -5,7 +5,7 @@ import codecs
 import csv
 import gzip
 from http.client import HTTPException  # noqa
-from io import BytesIO
+from io import BufferedIOBase, BytesIO
 import lzma
 import mmap
 import os
@@ -342,9 +342,9 @@ def _get_handle(
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BytesIO, S3File)
+        need_text_wrapping = (BufferedIOBase, BytesIO, S3File)
     except ImportError:
-        need_text_wrapping = (BytesIO,)
+        need_text_wrapping = (BufferedIOBase, BytesIO)
 
     handles = list()
     f = path_or_buf

@@ -296,3 +296,10 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+def test_binary_buffer(python_parser_only, csv1):
+    # see gh-23779
+    parser = python_parser_only
+    with open(csv1, "rb") as f:
+        parser.read_csv(f)
