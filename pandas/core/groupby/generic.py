@@ -1755,6 +1755,18 @@ def _normalize_keyword_aggregation(kwargs):
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
+    def _append_order_list(order, aggfunc, column, repeat_num):
+        """
+        Append the order list given the pair of (column, _get_aggfunc_name)
+        is in the list or not
+        """
+        if (column, _get_aggfunc_name(aggfunc)) in order:
+            repeat_num += 1
+            order.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
+        else:
+            order.append((column, _get_aggfunc_name(aggfunc)))
+        return order
+
     repeat_num = 0
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
@@ -1764,11 +1776,7 @@ def _normalize_keyword_aggregation(kwargs):
 
         # In case for same column, it uses multiple lambda functions,
         # assign them different names to distinguish
-        if (column, _get_aggfunc_name(aggfunc)) in order:
-            repeat_num += 1
-            order.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
-        else:
-            order.append((column, _get_aggfunc_name(aggfunc)))
+        order = _append_order_list(order, aggfunc, column, repeat_num)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
@@ -1777,11 +1785,9 @@ def _normalize_keyword_aggregation(kwargs):
     repeat_num = 0
     for column, aggfuncs in aggspec.items():
         for aggfunc in aggfuncs:
-            if (column, _get_aggfunc_name(aggfunc)) not in reordered_pairs:
-                reordered_pairs.append((column, _get_aggfunc_name(aggfunc)))
-            else:
-                repeat_num += 1
-                reordered_pairs.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
+            reordered_pairs = _append_order_list(
+                reordered_pairs, aggfunc, column, repeat_num
+            )
 
     col_idx_order = [reordered_pairs.index(o) for o in order]
     return aggspec, columns, col_idx_order
