@@ -583,6 +583,14 @@ class TestSeriesMissingData:
         [
             (Series(["a", "b", "c", "d", "e"]), ["a", "b", "b", "d", "e"]),
             (Series(["b", "d", "a", "d", "a"]), ["a", "d", "b", "d", "a"]),
+            (
+                Series(
+                    Categorical(
+                        ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
+                    )
+                ),
+                ["a", "d", "b", "d", "a"],
+            ),
         ],
     )
     def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):
