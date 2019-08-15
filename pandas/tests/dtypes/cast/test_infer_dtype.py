@@ -5,9 +5,9 @@ import pytest
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
-    maybe_cast_to_datetime,
     infer_dtype_from_array,
     infer_dtype_from_scalar,
+    maybe_cast_to_datetime,
 )
 from pandas.core.dtypes.common import is_dtype_equal
 
