@@ -6,7 +6,6 @@ This is not a public API.
 import datetime
 import operator
 from typing import Any, Callable, Tuple
-import warnings
 
 import numpy as np
 
@@ -22,7 +21,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
@@ -37,6 +35,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
@@ -604,9 +603,7 @@ def dispatch_to_extension_op(op, left, right):
     new_right = extract_array(right, extract_numpy=True)
 
     try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            res_values = op(new_left, new_right)
+        res_values = op(new_left, new_right)
     except NullFrequencyError:
         # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
         # on add/sub of integers (or int-like).  We re-raise as a TypeError.
@@ -614,10 +611,6 @@ def dispatch_to_extension_op(op, left, right):
             "incompatible type for a datetime/timedelta "
             "operation [{name}]".format(name=op.__name__)
         )
-    if isinstance(res_values, bool):
-        # numpy returned False instead of operating pointwise
-        assert op.__name__ in ["eq", "ne", "ge", "gt", "le", "lt"], op
-        return invalid_comparison(new_left, new_right, op)
     return res_values
 
 
@@ -811,7 +804,9 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+        elif isinstance(
+            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
+        ):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
