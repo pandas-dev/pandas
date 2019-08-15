@@ -130,7 +130,7 @@ def test_compression_warning(compression_only):
 
 
 def test_with_missing_lzma():
-    """Tests if import pandas fails when lzma is not present."""
+    """Tests if import pandas works when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
     code = textwrap.dedent(
         """\
@@ -148,8 +148,12 @@ def test_with_missing_lzma_runtime():
     code = textwrap.dedent(
         """
         import sys
-        from pandas.compat import _import_lzma, _get_lzma_file
-        lzma = _import_lzma()
-        _get_lzma_file(lzma)"""
+        import pytest
+        sys.modules['lzma'] = None
+        import pandas
+        df = pandas.DataFrame()
+        with pytest.raises(RuntimeError, match='lzma module'):
+            df.to_csv('foo.csv', compression='xz')
+        """
     )
     subprocess.check_output(["python", "-c", code])
