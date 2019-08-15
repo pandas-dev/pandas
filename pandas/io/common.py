@@ -342,9 +342,9 @@ def _get_handle(
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BufferedIOBase, BytesIO, S3File)
+        need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:
-        need_text_wrapping = (BufferedIOBase, BytesIO)
+        need_text_wrapping = (BufferedIOBase)
 
     no_close = BufferedIOBase
 
