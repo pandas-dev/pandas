@@ -9,6 +9,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
+from pandas.core.dtypes.cast import maybe_cast_to_datetime
 from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm
 
@@ -689,6 +690,24 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             [1380, 720, 840, 2160.0], index=df.index, name=("Respondent", "Duration")
         )
         tm.assert_series_equal(df[("Respondent", "Duration")], expected)
+
+    @pytest.mark.parametrize(
+        "obj,dtype",
+        [
+            (np.datetime64("2017-01-01 01:00:00"), "datetime64"),
+            (np.datetime64("2017-01-01 02:00:00"), "datetime64[ns]"),
+            (np.datetime64("2017-01-02 01:00:00"), "datetime64[Y]"),
+            (np.datetime64("2017-01-03 02:00:00"), "datetime64[M]"),
+            (np.datetime64("2017-01-04 02:00:00"), "datetime64[D]"),
+            (np.datetime64("2017-01-05 02:00:00"), "datetime64[h]"),
+            (np.datetime64("2017-01-06 02:10:00"), "datetime64[m]"),
+            (np.datetime64("2017-01-07 02:20:10"), "datetime64[s]"),
+            (np.datetime64("2017-01-08 02:40:20"), "datetime64[ms]"),
+            (np.datetime64("2017-01-09 02:50:30"), "datetime64[ns]"),
+        ],
+    )
+    def test_maybe_cast_to_datetime(obj, dtype):
+        maybe_cast_to_datetime(obj, dtype)
 
     def test_loc_setitem_frame(self):
         df = self.frame_labels

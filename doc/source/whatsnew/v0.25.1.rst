@@ -32,7 +32,6 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
-- Bug in :func:`maybe_cast_to_datetime` where converting a `np.datetime64` to `datetime64[D]` raise `TypeError` (:issue: `27395`)
 -
 -
 
@@ -85,6 +84,7 @@ Indexing
 - Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
 - Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)
 - Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`).
+- Fix assignment of column via `.loc` with numpy `non-ns datetime` type (:issue: `27395`)
 -
 
 Missing
