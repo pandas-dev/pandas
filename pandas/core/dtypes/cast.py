@@ -1055,7 +1055,7 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     )
 
             if is_scalar(value):
-                if value == iNaT or isna(value):
+                if value is iNaT or isna(value):
                     value = iNaT
             else:
                 value = np.array(value, copy=False)
