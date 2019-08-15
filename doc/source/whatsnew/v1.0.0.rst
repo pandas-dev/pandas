@@ -21,26 +21,26 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_1000.enhancements.other:
+-
+-
 
--
--
+.. _whatsnew_1000.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_1000.api_breaking:
+-
+-
 
--
--
+.. _whatsnew_1000.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_1000.api.other:
-
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 -
+
+.. _whatsnew_1000.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
