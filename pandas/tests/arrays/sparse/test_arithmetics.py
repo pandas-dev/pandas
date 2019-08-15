@@ -441,6 +441,23 @@ def test_with_list(op):
     tm.assert_sp_array_equal(result, expected)
 
 
+def test_with_dataframe():
+    # GH#27910
+    arr = pd.SparseArray([0, 1], fill_value=0)
+    df = pd.DataFrame([[1, 2], [3, 4]])
+    result = arr.__add__(df)
+    assert result is NotImplemented
+
+
+def test_with_zerodim_ndarray():
+    # GH#27910
+    arr = pd.SparseArray([0, 1], fill_value=0)
+
+    result = arr * np.array(2)
+    expected = arr * 2
+    tm.assert_sp_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("ufunc", [np.abs, np.exp])
 @pytest.mark.parametrize(
     "arr", [pd.SparseArray([0, 0, -1, 1]), pd.SparseArray([None, None, -1, 1])]
