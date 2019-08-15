@@ -583,6 +583,7 @@ class NDFrameGroupBy(GroupBy):
             if not (func in base.transform_kernel_whitelist):
                 msg = "'{func}' is not a valid function name for transform(name)"
                 raise ValueError(msg.format(func=func))
+
             # transformation are added as well since they are broadcasted already
             if func in base.cythonized_kernels or func in base.transformation_kernels:
                 # cythonized transformation or canned "reduction+broadcast"

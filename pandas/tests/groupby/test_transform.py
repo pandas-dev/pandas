@@ -20,7 +20,11 @@ from pandas import (
 )
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (
+    assert_frame_equal,
+    assert_series_equal,
+    assert_index_equal,
+)
 
 
 def assert_fp_equal(a, b):
@@ -1107,7 +1111,8 @@ def test_transform_cumcount_ngroup():
         "shift",
         "ngroup",
         pytest.param(
-            "fillna", marks=pytest.mark.xfail(reason="GH27905: potential bug")
+            "fillna",
+            marks=pytest.mark.xfail(reason="GH27905: 'fillna' get empty DataFrame now"),
         ),
         pytest.param(
             "tshift", marks=pytest.mark.xfail(reason="GH27905: Should apply to ts data")
@@ -1125,4 +1130,4 @@ def test_transformation_kernels_length(func):
     g = df.groupby(np.repeat([0, 1], 3))
 
     result = g.transform(func)
-    assert (result.index == df.index).all()
+    assert_index_equal(result.index, df.index)
