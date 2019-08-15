@@ -125,12 +125,6 @@ def _validate_header_arg(header) -> None:
             "the row(s) making up the column names"
         )
 
-    # In version 0.24, this would have worked.
-    if header == -1:
-        raise ValueError(
-            "Passing -1 to header is invalid. For no header, use header=None instead"
-        )
-
 
 def _stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr]
