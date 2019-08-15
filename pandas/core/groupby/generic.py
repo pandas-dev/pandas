@@ -1734,7 +1734,7 @@ def _normalize_keyword_aggregation(kwargs):
     columns : List[str]
         The user-provided keys.
     order : List[int]
-        List of reordered index of columns.
+        List of columns indices.
 
     Examples
     --------
@@ -1754,7 +1754,6 @@ def _normalize_keyword_aggregation(kwargs):
     aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
-    reordered_pairs = []
 
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
@@ -1766,9 +1765,11 @@ def _normalize_keyword_aggregation(kwargs):
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
     # based on index, it will obtain new order in index
-    for column, aggfuncs in aggspec.items():
-        for aggfunc in aggfuncs:
-            reordered_pairs.append((column, com.get_callable_name(aggfunc) or aggfunc))
+    reordered_pairs = [
+        (column, com.get_callable_name(aggfunc) or aggfunc)
+        for column, aggfuncs in aggspec.items()
+        for aggfunc in aggfuncs
+    ]
 
     col_idx_order = [reordered_pairs.index(o) for o in order]
     return aggspec, columns, col_idx_order

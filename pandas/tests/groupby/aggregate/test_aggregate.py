@@ -561,8 +561,8 @@ class TestLambdaMangling:
         expected = pd.DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
-    def test_agg_lambda(self):
-        # GH 25719
+    def test_agg_one_lambda(self):
+        # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
         df = pd.DataFrame(
             {
                 "kind": ["cat", "dog", "cat", "dog"],
@@ -595,10 +595,28 @@ class TestLambdaMangling:
         )
         tm.assert_frame_equal(result1, expected)
 
-        # check agg('A' = tuple) case
+        # check agg(key=(col, aggfunc)) case
         result2 = df.groupby(by="kind").agg(
             height_sqr_min=("height", lambda x: np.min(x ** 2)),
             height_max=("height", "max"),
             weight_max=("weight", "max"),
+        )
+        tm.assert_frame_equal(result2, expected)
+
+    def test_agg_multiple_lambda(self):
+        # GH25719, write test for DataFrameGroupby.agg with multiple lambdas
+        df = pd.DataFrame({"A": [1, 2]})
+        expected = pd.DataFrame({"foo": [2], "bar": [2]}, index=pd.Index([1]))
+
+        # check agg(key=(col, aggfunc)) case
+        result1 = df.groupby([1, 1]).agg(
+            foo=("A", lambda x: x.max()), bar=("A", lambda x: x.min())
+        )
+        tm.assert_frame_equal(result1, expected)
+
+        # check pd.NamedAgg case
+        result2 = df.groupby([1, 1]).agg(
+            foo=pd.NamedAgg(column="A", aggfunc=lambda x: x.max()),
+            bar=pd.NamedAgg(column="A", aggfunc=lambda x: x.min()),
         )
         tm.assert_frame_equal(result2, expected)
