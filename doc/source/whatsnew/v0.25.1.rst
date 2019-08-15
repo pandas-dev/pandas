@@ -105,7 +105,7 @@ I/O
 ^^^
 
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
--
+- read_csv now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 -
 
 Plotting
