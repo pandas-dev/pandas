@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, lib, tslib, tslibs
+from pandas._libs import NaT, Timestamp, lib, tslib
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -1365,7 +1365,8 @@ class Block(PandasObject):
 
             if not (
                 (self.is_integer or self.is_bool)
-                and lib.is_scalar(other) and lib.is_float(other)
+                and lib.is_scalar(other)
+                and lib.is_float(other)
                 and np.isnan(other)
             ):
                 # np.where will cast integer array to floats in this case
