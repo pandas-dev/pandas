@@ -44,7 +44,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # which we we dont' want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + ["_box_values"]
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        "_box_values",
+        "__neg__",
+        "__pos__",
+        "__abs__",
+    ]
     _raw_properties = {"components"}
     _raw_methods = {"to_pytimedelta"}
 
@@ -56,7 +61,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     TimedeltaArray,
     TimedeltaDelegateMixin._delegated_methods,
     typ="method",
-    overwrite=False,
+    overwrite=True,
 )
 class TimedeltaIndex(
     DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin
@@ -278,14 +283,6 @@ class TimedeltaIndex(
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
 
     # -------------------------------------------------------------------
     # Rendering Methods
@@ -689,7 +686,6 @@ class TimedeltaIndex(
 
 
 TimedeltaIndex._add_comparison_ops()
-TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
