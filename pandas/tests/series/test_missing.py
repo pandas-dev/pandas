@@ -578,6 +578,28 @@ class TestSeriesMissingData:
         exp = Series(Categorical(expected_output, categories=["a", "b"]))
         tm.assert_series_equal(s.fillna(fill_value), exp)
 
+    @pytest.mark.parametrize(
+        "new_categories, fill_value, expected_output",
+        [
+            (
+                ["c", "d", "e"],
+                Series(["a", "b", "c", "d", "e"]),
+                ["a", "b", "b", "d", "e"],
+            )
+        ],
+    )
+    def test_fillna_categorical_with_new_categories(
+        self, new_categories, fill_value, expected_output
+    ):
+        # GH 26215
+        data = ["a", np.nan, "b", np.nan, np.nan]
+        s = Series(Categorical(data, categories=["a", "b"]))
+        s.cat.add_categories(new_categories, inplace=True)
+        exp = Series(
+            Categorical(expected_output, categories=["a", "b"] + new_categories)
+        )
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
     def test_fillna_categorical_raise(self):
         data = ["a", np.nan, "b", np.nan, np.nan]
         s = Series(Categorical(data, categories=["a", "b"]))

@@ -1824,7 +1824,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         # pad / bfill
         if method is not None:
-
             values = self.to_dense().reshape(-1, len(self))
             values = interpolate_2d(values, method, 0, None, value).astype(
                 self.categories.dtype
@@ -1838,10 +1837,9 @@ class Categorical(ExtensionArray, PandasObject):
             if isinstance(value, ABCSeries):
                 if not value[~value.isin(self.categories)].isna().all():
                     raise ValueError("fill value must be in categories")
-
                 values_codes = _get_codes_for_values(value, self.categories)
-                indexer = np.where(values_codes != -1)
-                codes[indexer] = values_codes[values_codes != -1]
+                indexer = np.where(codes == -1)
+                codes[indexer] = values_codes[codes == -1]
 
             # If value is not a dict or Series it should be a scalar
             elif is_hashable(value):
