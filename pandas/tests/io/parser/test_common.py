@@ -2020,9 +2020,31 @@ def test_file_handles_with_open(all_parsers, csv1):
     # Don't close user provided file handles.
     parser = all_parsers
 
-    with open(csv1, "r") as f:
-        parser.read_csv(f)
-        assert not f.closed
+    for mode in ["r", "rb"]:
+        with open(csv1, mode) as f:
+            parser.read_csv(f)
+            assert not f.closed
+
+
+@pytest.mark.parametrize(
+    "fname,encoding", [
+        ("test1.csv", "utf-8"),
+        ("unicode_series.csv", "latin-1"),
+        ("sauron.SHIFT_JIS.csv", "shiftjis")
+    ]
+)
+def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
+    # gh-23779: Python csv engine shouldn't error on files opened in binary.
+    parser = all_parsers
+
+    fpath = os.path.join(csv_dir_path, fname)
+
+    with open(fpath, mode="r", encoding=encoding) as fa:
+        df_a = parser.read_csv(fa)
+    with open(fpath, mode="rb") as fb:
+        df_b = parser.read_csv(fb, encoding=encoding)
+
+    tm.assert_frame_equal(df_b, df_a)
 
 
 def test_invalid_file_buffer_class(all_parsers):
