@@ -1754,41 +1754,50 @@ def _normalize_keyword_aggregation(kwargs):
     aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
+    reordered_pairs = []
 
-    def _append_order_list(order, aggfunc, column, repeat_num):
+    def _append_order_list(order, aggfunc, column, column_dict):
         """
         Append the order list given the pair of (column, _get_aggfunc_name)
         is in the list or not
         """
-        if (column, _get_aggfunc_name(aggfunc)) in order:
-            repeat_num += 1
-            order.append((column, _get_aggfunc_name(aggfunc, repeat_num)))
+        col_aggfunc_pair = (column, _get_aggfunc_name(aggfunc))
+        # check if the pair not in the order list, if yes, append to order list
+        # and mark it to 0
+        if col_aggfunc_pair not in order:
+            order.append(col_aggfunc_pair)
+            column_dict[col_aggfunc_pair] = 0
         else:
-            order.append((column, _get_aggfunc_name(aggfunc)))
-        return order
 
-    repeat_num = 0
+            # if pair already in order list, then add the marker by 1, and append
+            # the aggfunc name by the marker number
+            column_dict[col_aggfunc_pair] += 1
+            order.append(
+                (column, _get_aggfunc_name(aggfunc, column_dict[col_aggfunc_pair]))
+            )
+
+        return order, column_dict
+
+    column_dict = {}
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
             aggspec[column].append(aggfunc)
         else:
             aggspec[column] = [aggfunc]
 
-        # In case for same column, it uses multiple lambda functions,
-        # assign them different names to distinguish
-        order = _append_order_list(order, aggfunc, column, repeat_num)
+        order, column_dict = _append_order_list(order, aggfunc, column, column_dict)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
     # based on index, it will obtain new order in index
-    reordered_pairs = []
-    repeat_num = 0
+    column_dict = {}
     for column, aggfuncs in aggspec.items():
         for aggfunc in aggfuncs:
-            reordered_pairs = _append_order_list(
-                reordered_pairs, aggfunc, column, repeat_num
+            reordered_pairs, column_dict = _append_order_list(
+                reordered_pairs, aggfunc, column, column_dict
             )
 
+    # get the new indice of columns by comparison
     col_idx_order = [reordered_pairs.index(o) for o in order]
     return aggspec, columns, col_idx_order
 
