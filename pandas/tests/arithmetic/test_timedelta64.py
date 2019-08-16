@@ -1391,15 +1391,14 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_with_offset_series(self, names, box_df_fail):
         # GH#18849
         box = box_df_fail
-        if box is tm.to_array:
-            return
         box2 = Series if box in [pd.Index, tm.to_array] else box
+        exname = names[2] if box is not tm.to_array else names[1]
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
 
         expected_add = Series(
-            [tdi[n] + other[n] for n in range(len(tdi))], name=names[2]
+            [tdi[n] + other[n] for n in range(len(tdi))], name=exname
         )
         tdi = tm.box_expected(tdi, box)
         expected_add = tm.box_expected(expected_add, box2)
@@ -1414,7 +1413,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # TODO: separate/parametrize add/sub test?
         expected_sub = Series(
-            [tdi[n] - other[n] for n in range(len(tdi))], name=names[2]
+            [tdi[n] - other[n] for n in range(len(tdi))], name=exname
         )
         expected_sub = tm.box_expected(expected_sub, box2)
 
@@ -2016,8 +2015,8 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_int_series(self, box_df_fail, names):
         # GH#19042 test for correct name attachment
         box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
-        if box is tm.to_array:
-            return
+        exname = names[2] if box is not tm.to_array else names[1]
+
         tdi = TimedeltaIndex(
             ["0days", "1day", "2days", "3days", "4days"], name=names[0]
         )
@@ -2027,7 +2026,7 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = Series(
             ["0days", "1day", "4days", "9days", "16days"],
             dtype="timedelta64[ns]",
-            name=names[2],
+            name=exname,
         )
 
         tdi = tm.box_expected(tdi, box)
