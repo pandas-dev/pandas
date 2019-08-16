@@ -9,6 +9,7 @@ import numpy as np
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 
@@ -34,7 +35,7 @@ def _zip_axes_from_type(typ, new_axes):
 
 def _any_pandas_objects(terms):
     """Check a sequence of terms for instances of PandasObject."""
-    return any(isinstance(term.value, pd.core.generic.PandasObject) for term in terms)
+    return any(isinstance(term.value, PandasObject) for term in terms)
 
 
 def _filter_special_cases(f):
@@ -132,7 +133,8 @@ def _align(terms):
 
 
 def _reconstruct_object(typ, obj, axes, dtype):
-    """Reconstruct an object given its type, raw value, and possibly empty
+    """
+    Reconstruct an object given its type, raw value, and possibly empty
     (None) axes.
 
     Parameters
@@ -157,7 +159,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
 
     res_t = np.result_type(obj.dtype, dtype)
 
-    if not isinstance(typ, partial) and issubclass(typ, pd.core.generic.PandasObject):
+    if not isinstance(typ, partial) and issubclass(typ, PandasObject):
         return typ(obj, dtype=res_t, **axes)
 
     # special case for pathological things like ~True/~False
