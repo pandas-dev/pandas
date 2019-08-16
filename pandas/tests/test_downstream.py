@@ -103,7 +103,6 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 

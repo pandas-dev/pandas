@@ -48,5 +48,5 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
-    - pandas-datareader
+    - pandas-datareader>=0.7.4
     - python-dateutil
