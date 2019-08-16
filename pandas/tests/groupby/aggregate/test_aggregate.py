@@ -561,7 +561,7 @@ class TestLambdaMangling:
         expected = pd.DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
-    def test_agg_one_lambda(self):
+    def test_agg_with_one_lambda(self):
         # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
         df = pd.DataFrame(
             {
@@ -604,22 +604,60 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result2, expected)
 
     def test_agg_multiple_lambda(self):
-        # GH25719, write test for DataFrameGroupby.agg with multiple lambdas
-        df = pd.DataFrame({"A": [1, 2]})
-        expected_dict = {"foo": [2], "bar": [1]}
+        # GH25719, write test for DataFrameGroupby.agg with multiple lambdas with mixed aggfunc
+        df = pd.DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0],
+                "weight": [7.9, 7.5, 9.9, 198.0],
+            }
+        )
+        # sort for 35 and earlier
+        columns = [
+            "height_sqr_min",
+            "height_max",
+            "weight_max",
+            "height_max_2",
+            "weight_min",
+        ]
         if compat.PY35:
-            expected_dict = {"bar": [1], "foo": [2]}
-        expected = pd.DataFrame(expected_dict, index=pd.Index([1]))
+            columns = [
+                "height_max",
+                "height_max_2",
+                "height_sqr_min",
+                "weight_max",
+                "weight_min",
+            ]
+        expected = pd.DataFrame(
+            {
+                "height_sqr_min": [82.81, 36.00],
+                "height_max": [9.5, 34.0],
+                "weight_max": [9.9, 198.0],
+                "height_max_2": [9.5, 34.0],
+                "weight_min": [7.9, 7.5],
+            },
+            index=pd.Index(["cat", "dog"], name="kind"),
+            columns=columns,
+        )
 
-        # check agg(key=(col, aggfunc)) case
-        result1 = df.groupby([1, 1]).agg(
-            foo=("A", lambda x: x.max()), bar=("A", lambda x: x.min())
+        # check pd.NamedAgg case
+        result1 = df.groupby(by="kind").agg(
+            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_max=("height", "max"),
+            weight_max=("weight", "max"),
+            height_max_2=("height", lambda x: np.max(x)),
+            weight_min=("weight", lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result1, expected)
 
-        # check pd.NamedAgg case
-        result2 = df.groupby([1, 1]).agg(
-            foo=pd.NamedAgg(column="A", aggfunc=lambda x: x.max()),
-            bar=pd.NamedAgg(column="A", aggfunc=lambda x: x.min()),
+        # check agg(key=(col, aggfunc)) case
+        result2 = df.groupby(by="kind").agg(
+            height_sqr_min=pd.NamedAgg(
+                column="height", aggfunc=lambda x: np.min(x ** 2)
+            ),
+            height_max=pd.NamedAgg(column="height", aggfunc="max"),
+            weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
+            height_max_2=pd.NamedAgg(column="height", aggfunc=lambda x: np.max(x)),
+            weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
