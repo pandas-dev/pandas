@@ -2039,13 +2039,15 @@ def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
     parser = all_parsers
 
     fpath = os.path.join(csv_dir_path, fname)
+    expected = parser.read_csv(fpath, encoding=encoding)
 
     with open(fpath, mode="r", encoding=encoding) as fa:
-        df_a = parser.read_csv(fa)
-    with open(fpath, mode="rb") as fb:
-        df_b = parser.read_csv(fb, encoding=encoding)
+        result = parser.read_csv(fa)
+    tm.assert_frame_equal(expected, result)
 
-    tm.assert_frame_equal(df_b, df_a)
+    with open(fpath, mode="rb") as fb:
+        result = parser.read_csv(fb, encoding=encoding)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_invalid_file_buffer_class(all_parsers):

@@ -346,8 +346,6 @@ def _get_handle(
     except ImportError:
         need_text_wrapping = BufferedIOBase
 
-    no_close = BufferedIOBase
-
     handles = list()
     f = path_or_buf
 
@@ -423,7 +421,7 @@ def _get_handle(
         from io import TextIOWrapper
 
         g = TextIOWrapper(f, encoding=encoding, newline="")
-        if not isinstance(f, no_close):
+        if not isinstance(f, BufferedIOBase):
             handles.append(g)
         f = g
 
