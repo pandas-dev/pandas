@@ -1,8 +1,11 @@
 from collections import OrderedDict
 from datetime import datetime
+import sys
 
 import numpy as np
 import pytest
+
+from pandas.compat import PY37
 
 import pandas as pd
 from pandas import (
@@ -208,6 +211,9 @@ def test_level_get_group(observed):
 
 
 # GH#21636 previously flaky on py37
+@pytest.mark.xfail(
+    sys.platform.startswith("win") and PY37, reason="Flaky, GH-27902", strict=False
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
