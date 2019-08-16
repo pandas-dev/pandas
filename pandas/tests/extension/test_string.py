@@ -16,7 +16,8 @@ def dtype():
 
 @pytest.fixture
 def data():
-    strings = random.choices(string.ascii_letters, k=100)
+    # strings = random.choices(string.ascii_letters, k=100)
+    strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
         strings = random.choices(string.ascii_letters, k=100)
 
