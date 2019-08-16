@@ -877,10 +877,10 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 taken = values.take(indices)
             except IndexError:
-                if not values.all():
+                if not values.tolist():
                     return []
                 else:
-                    raise 
+                    raise
         return taken
 
     _index_shared_docs[
