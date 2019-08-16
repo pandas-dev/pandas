@@ -41,7 +41,7 @@ class StringDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string: str):
-        if string in {"string", "str"}:
+        if string == "string":
             return cls()
         return super().construct_from_string(string)
 

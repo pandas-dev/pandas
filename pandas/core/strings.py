@@ -1024,8 +1024,16 @@ def str_extractall(arr, pat, flags=0):
 
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
 
+    # workaround #27953
+    from pandas import StringDtype
+
+    if isinstance(arr.dtype, StringDtype):
+        dtype = arr.dtype
+    else:
+        dtype = None
+
     result = arr._constructor_expanddim(
-        match_list, index=index, columns=columns, dtype=arr.dtype
+        match_list, index=index, columns=columns, dtype=dtype
     )
     return result
 
@@ -1079,7 +1087,7 @@ def str_get_dummies(arr, sep="|"):
 
     for i, t in enumerate(tags):
         pat = sep + t + sep
-        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
+        dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
     return dummies, tags
 
 
@@ -2370,9 +2378,12 @@ class StringMethods(NoNewAttributesMixin):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            result = Series(
-                result, dtype=self._orig.dtype, index=data.index, name=self._orig.name
-            )
+            if is_categorical_dtype(self._orig.dtype):
+                # We need to infer the new categories.
+                dtype = None
+            else:
+                dtype = self._orig.dtype
+            result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
         return result
 
     _shared_docs[
