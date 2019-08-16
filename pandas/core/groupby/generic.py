@@ -1760,7 +1760,7 @@ def _normalize_keyword_aggregation(kwargs):
             aggspec[column].append(aggfunc)
         else:
             aggspec[column] = [aggfunc]
-        order.append(_get_aggfunc_column_pair(column, aggfunc))
+        order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
     # uniquify aggfunc name if duplicated in order list
     mangled_order = _uniquify_aggfunc(order)
@@ -1769,7 +1769,7 @@ def _normalize_keyword_aggregation(kwargs):
     # reordered_pairs will store this reorder and will compare it with order
     # based on index, it will obtain new order in index
     aggspec_order = [
-        _get_aggfunc_column_pair(column, aggfunc)
+        (column, com.get_callable_name(aggfunc) or aggfunc)
         for column, aggfuncs in aggspec.items()
         for aggfunc in aggfuncs
     ]
@@ -1778,11 +1778,6 @@ def _normalize_keyword_aggregation(kwargs):
     # get the new indice of columns by comparison
     col_idx_order = [reordered.index(o) for o in mangled_order]
     return aggspec, columns, col_idx_order
-
-
-def _get_aggfunc_column_pair(column, aggfunc):
-    """Return (column, aggfunc name) pair"""
-    return column, com.get_callable_name(aggfunc) or aggfunc
 
 
 def _uniquify_aggfunc(seq):
