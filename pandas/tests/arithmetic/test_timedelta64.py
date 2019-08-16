@@ -968,17 +968,20 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Operations with int-like others
 
-    @pytest.mark.parametrize("other", [
-        # GH#19123
-        1,
-        Series([20, 30, 40], dtype="uint8"),
-        np.array([20, 30, 40], dtype="uint8"),
-        pd.UInt64Index([20, 30, 40]),
-        pd.Int64Index([20, 30, 40]),
-        Series([2, 3, 4]),
-        1.5,
-        np.array(2),
-    ])
+    @pytest.mark.parametrize(
+        "other",
+        [
+            # GH#19123
+            1,
+            Series([20, 30, 40], dtype="uint8"),
+            np.array([20, 30, 40], dtype="uint8"),
+            pd.UInt64Index([20, 30, 40]),
+            pd.Int64Index([20, 30, 40]),
+            Series([2, 3, 4]),
+            1.5,
+            np.array(2),
+        ],
+    )
     def test_td64arr_addsub_numeric_invalid(self, box_with_array, other):
         box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
@@ -1397,9 +1400,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
 
-        expected_add = Series(
-            [tdi[n] + other[n] for n in range(len(tdi))], name=exname
-        )
+        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))], name=exname)
         tdi = tm.box_expected(tdi, box)
         expected_add = tm.box_expected(expected_add, box2)
 
@@ -1412,9 +1413,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(res2, expected_add)
 
         # TODO: separate/parametrize add/sub test?
-        expected_sub = Series(
-            [tdi[n] - other[n] for n in range(len(tdi))], name=exname
-        )
+        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))], name=exname)
         expected_sub = tm.box_expected(expected_sub, box2)
 
         with tm.assert_produces_warning(PerformanceWarning):
