@@ -21,6 +21,11 @@ class StringDtype(ExtensionDtype):
 
     .. versionadded:: 1.0.0
 
+    Attributes
+    ----------
+    na_value
+    name
+
     Examples
     --------
     >>> pd.StringDtype()
@@ -29,6 +34,9 @@ class StringDtype(ExtensionDtype):
 
     @property
     def na_value(self):
+        """
+        StringDtype uses :attr:`numpy.nan` as the missing NA value.
+        """
         return np.nan
 
     @property
@@ -37,6 +45,9 @@ class StringDtype(ExtensionDtype):
 
     @property
     def name(self) -> str:
+        """
+        The alias for StringDtype is ``'string'``.
+        """
         return "string"
 
     @classmethod
