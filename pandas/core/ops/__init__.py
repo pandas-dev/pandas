@@ -818,6 +818,12 @@ def _bool_method_SERIES(cls, op, special):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
+        elif is_extension_array_dtype(self):
+            # e.g. SparseArray
+            res_values = op(self._values, other)
+            return self._constructor(res_values, index=self.index, name=res_name)
+            # TODO: finalize?
+
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
