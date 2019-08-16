@@ -13,11 +13,7 @@ from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
-    find_common_type,
-    maybe_upcast_putmask,
-)
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -27,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -36,7 +31,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCSparseSeries,
@@ -46,7 +40,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
-from pandas.core.ops import missing
+from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY, define_na_arithmetic_op
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -397,63 +391,6 @@ def mask_cmp_op(x, y, op):
     return result
 
 
-def masked_arith_op(x, y, op):
-    """
-    If the given arithmetic operation fails, attempt it again on
-    only the non-null elements of the input array(s).
-
-    Parameters
-    ----------
-    x : np.ndarray
-    y : np.ndarray, Series, Index
-    op : binary operator
-    """
-    # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
-    # the logic valid for both Series and DataFrame ops.
-    xrav = x.ravel()
-    assert isinstance(x, np.ndarray), type(x)
-    if isinstance(y, np.ndarray):
-        dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
-
-        # PeriodIndex.ravel() returns int64 dtype, so we have
-        # to work around that case.  See GH#19956
-        yrav = y if is_period_dtype(y) else y.ravel()
-        mask = notna(xrav) & notna(yrav)
-
-        if yrav.shape != mask.shape:
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only = an issue in DataFrame case
-            raise ValueError("Cannot broadcast operands together.")
-
-        if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], yrav[mask])
-
-    else:
-        assert is_scalar(y), type(y)
-        assert isinstance(x, np.ndarray), type(x)
-        # mask is only meaningful for x
-        result = np.empty(x.size, dtype=x.dtype)
-        mask = notna(xrav)
-
-        # 1 ** np.nan is 1. So we have to unmask those.
-        if op == pow:
-            mask = np.where(x == 1, False, mask)
-        elif op == rpow:
-            mask = np.where(y == 1, False, mask)
-
-        if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], y)
-
-    result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
-    result = result.reshape(x.shape)  # 2D compat
-    return result
-
-
 # -----------------------------------------------------------------------------
 # Dispatch logic
 
@@ -672,33 +609,7 @@ def _arith_method_SERIES(cls, op, special):
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
 
-    def na_op(x, y):
-        """
-        Return the result of evaluating op on the passed in values.
-
-        If native types are not compatible, try coersion to object dtype.
-
-        Parameters
-        ----------
-        x : array-like
-        y : array-like or scalar
-
-        Returns
-        -------
-        array-like
-
-        Raises
-        ------
-        TypeError : invalid operation
-        """
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
-        except TypeError:
-            result = masked_arith_op(x, y, op)
-
-        return missing.dispatch_fill_zeros(op, x, y, result)
+    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -734,22 +645,6 @@ def _arith_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _comp_method_OBJECT_ARRAY(op, x, y):
-    if isinstance(y, list):
-        y = construct_1d_object_array_from_listlike(y)
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        if not is_object_dtype(y.dtype):
-            y = y.astype(np.object_)
-
-        if isinstance(y, (ABCSeries, ABCIndex)):
-            y = y.values
-
-        result = libops.vec_compare(x, y, op)
-    else:
-        result = libops.scalar_compare(x, y, op)
-    return result
-
-
 def _comp_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -763,7 +658,7 @@ def _comp_method_SERIES(cls, op, special):
         # Extension Dtypes are not called here
 
         if is_object_dtype(x.dtype):
-            result = _comp_method_OBJECT_ARRAY(op, x, y)
+            result = comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
             return invalid_comparison(x, y, op)
@@ -1065,15 +960,7 @@ def _arith_method_FRAME(cls, op, special):
     eval_kwargs = _gen_eval_kwargs(op_name)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
-        except TypeError:
-            result = masked_arith_op(x, y, op)
-
-        return missing.dispatch_fill_zeros(op, x, y, result)
+    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
