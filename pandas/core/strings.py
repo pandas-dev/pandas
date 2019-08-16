@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
-    is_extension_array_dtype,
     is_integer,
     is_list_like,
     is_re,
@@ -1984,6 +1983,8 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
+        from pandas import StringDtype
+
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -1995,8 +1996,9 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        if is_extension_array_dtype(values.dtype):
-            return str(values.dtype)
+        # explicitly allow StringDtype
+        if isinstance(values.dtype, StringDtype):
+            return "string"
 
         try:
             inferred_dtype = lib.infer_dtype(values, skipna=True)
