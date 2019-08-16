@@ -1766,8 +1766,8 @@ def _normalize_keyword_aggregation(kwargs):
     uniquified_order = _uniquify_aggfunc(order)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
-    # reordered_pairs will store this reorder and will compare it with order
-    # based on index, it will obtain new order in index
+    # uniquified_aggspec will store uniquified order list and will compare it with order
+    # based on index
     aggspec_order = [
         (column, com.get_callable_name(aggfunc) or aggfunc)
         for column, aggfuncs in aggspec.items()
