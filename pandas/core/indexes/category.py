@@ -446,9 +446,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @cache_readonly
     def _engine(self):
-
-        # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes, len(self))
+        # we are going to look things up with the codes themselves.
+        # To avoid a reference cycle, bind `codes` to a local variable, so
+        # `self` is not passed into the lambda.
+        codes = self.codes
+        return self._engine_type(lambda: codes, len(self))
 
     # introspection
     @cache_readonly
@@ -899,31 +901,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             opname = "__{op}__".format(op=op.__name__)
 
             def _evaluate_compare(self, other):
-
-                # if we have a Categorical type, then must have the same
-                # categories
-                if isinstance(other, CategoricalIndex):
-                    other = other._values
-                elif isinstance(other, Index):
-                    other = self._create_categorical(other._values, dtype=self.dtype)
-
-                if isinstance(other, (ABCCategorical, np.ndarray, ABCSeries)):
-                    if len(self.values) != len(other):
-                        raise ValueError("Lengths must match to compare")
-
-                if isinstance(other, ABCCategorical):
-                    if not self.values.is_dtype_equal(other):
-                        raise TypeError(
-                            "categorical index comparisons must "
-                            "have the same categories and ordered "
-                            "attributes"
-                        )
-
-                result = op(self.values, other)
+                with np.errstate(all="ignore"):
+                    result = op(self.array, other)
                 if isinstance(result, ABCSeries):
                     # Dispatch to pd.Categorical returned NotImplemented
                     # and we got a Series back; down-cast to ndarray
-                    result = result.values
+                    result = result._values
                 return result
 
             return compat.set_function_name(_evaluate_compare, opname, cls)

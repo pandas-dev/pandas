@@ -25,8 +25,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
--
--
+- Bug in :meth:`Categorical.fillna` would replace all values, not just those that are ``NaN`` (:issue:`26215`)
 -
 
 Datetimelike
@@ -83,8 +82,8 @@ Indexing
 ^^^^^^^^
 
 - Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
-- Break reference cycle involving :class:`Index` to allow garbage collection of :class:`Index` objects without running the GC. (:issue:`27585`)
--
+- Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)
+- Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`).
 -
 
 Missing
@@ -104,8 +103,8 @@ MultiIndex
 I/O
 ^^^
 
--
--
+- Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
+- Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
 -
 
 Plotting
@@ -120,7 +119,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
--
+- Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
 -
 
 Reshaping
@@ -129,12 +128,13 @@ Reshaping
 - A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
 - Bug :meth:`merge_asof` could not merge :class:`Timedelta` objects when passing `tolerance` kwarg (:issue:`27642`)
 -  Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
+- Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
 - :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
--
+- Bug in :meth:`DataFrame.join` raising with readonly arrays (:issue:`27943`)
 
 Sparse
 ^^^^^^
-
+- Bug in reductions for :class:`Series` with Sparse dtypes (:issue:`27080`)
 -
 -
 -

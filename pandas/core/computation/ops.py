@@ -51,8 +51,9 @@ _LOCAL_TAG = "__pd_eval_local_"
 
 
 class UndefinedVariableError(NameError):
-
-    """NameError subclass for local variables."""
+    """
+    NameError subclass for local variables.
+    """
 
     def __init__(self, name, is_local):
         if is_local:
@@ -191,8 +192,8 @@ _bool_op_map = {"not": "~", "and": "&", "or": "|"}
 
 
 class Op:
-
-    """Hold an operator of arbitrary arity
+    """
+    Hold an operator of arbitrary arity.
     """
 
     def __init__(self, op, operands, *args, **kwargs):
@@ -204,8 +205,9 @@ class Op:
         return iter(self.operands)
 
     def __repr__(self):
-        """Print a generic n-ary operator and its operands using infix
-        notation"""
+        """
+        Print a generic n-ary operator and its operands using infix notation.
+        """
         # recurse over the operands
         parened = ("({0})".format(pprint_thing(opr)) for opr in self.operands)
         return pprint_thing(" {0} ".format(self.op).join(parened))
@@ -296,7 +298,8 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
 
 
 def _cast_inplace(terms, acceptable_dtypes, dtype):
-    """Cast an expression inplace.
+    """
+    Cast an expression inplace.
 
     Parameters
     ----------
@@ -304,7 +307,6 @@ def _cast_inplace(terms, acceptable_dtypes, dtype):
         The expression that should cast.
     acceptable_dtypes : list of acceptable numpy.dtype
         Will not cast if term's dtype in this list.
-
     dtype : str or numpy.dtype
         The dtype to cast to.
     """
@@ -325,8 +327,8 @@ def is_term(obj):
 
 
 class BinOp(Op):
-
-    """Hold a binary operator and its operands
+    """
+    Hold a binary operator and its operands.
 
     Parameters
     ----------
@@ -355,7 +357,8 @@ class BinOp(Op):
             )
 
     def __call__(self, env):
-        """Recursively evaluate an expression in Python space.
+        """
+        Recursively evaluate an expression in Python space.
 
         Parameters
         ----------
@@ -377,7 +380,8 @@ class BinOp(Op):
         return self.func(left, right)
 
     def evaluate(self, env, engine, parser, term_type, eval_in_python):
-        """Evaluate a binary operation *before* being passed to the engine.
+        """
+        Evaluate a binary operation *before* being passed to the engine.
 
         Parameters
         ----------
@@ -472,8 +476,8 @@ def isnumeric(dtype):
 
 
 class Div(BinOp):
-
-    """Div operator to special case casting.
+    """
+    Div operator to special case casting.
 
     Parameters
     ----------
@@ -504,8 +508,8 @@ _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 
 class UnaryOp(Op):
-
-    """Hold a unary operator and its operands
+    """
+    Hold a unary operator and its operands.
 
     Parameters
     ----------
