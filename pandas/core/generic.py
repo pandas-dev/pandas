@@ -5684,7 +5684,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         dict
-            Mapping dtype -> Constructor Types
+            Mapping dtype -> Constructor Types.
         """
         warnings.warn(
             "as_blocks is deprecated and will be removed in a future version",
