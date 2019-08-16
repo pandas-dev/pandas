@@ -1365,7 +1365,6 @@ class Block(PandasObject):
 
             if not (
                 (self.is_integer or self.is_bool)
-                and lib.is_scalar(other)
                 and lib.is_float(other)
                 and np.isnan(other)
             ):
