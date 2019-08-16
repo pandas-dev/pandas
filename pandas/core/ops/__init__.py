@@ -753,6 +753,9 @@ def _comp_method_SERIES(cls, op, special):
 
         result = self._constructor(res_values, index=self.index)
         result = finalizer(result)
+
+        # pin name for case where res_name is not and result.name is not
+        #  (because finalizer transferred self.name)
         result.name = res_name
         return result
 
