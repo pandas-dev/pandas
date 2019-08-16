@@ -2240,6 +2240,25 @@ class TestIndex(Base):
 
         tm.assert_dict_equal(result, expected)
 
+    def test_groupby_nan_index_value(self):
+        df = pd.DataFrame([["x", np.nan, 1]], columns=["A", "B", "C"]).set_index(
+            ["A", "B"]
+        )
+        result = df.groupby(level=["A", "B"]).C.sum()
+        s = Series([])
+        s.name = "C"
+        expected = s.astype("int64")
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(
+            [["x", np.nan, 1, 2], [None, "y", 3, 4]], columns=["A", "B", "C", "D"]
+        ).set_index(["A", "B", "C"])
+        result = df.groupby(level=["A", "B"]).D.sum()
+        s = Series([])
+        s.name = "D"
+        expected = s.astype("int64")
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "mi,expected",
         [

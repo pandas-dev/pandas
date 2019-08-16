@@ -873,7 +873,13 @@ class Index(IndexOpsMixin, PandasObject):
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
         else:
-            taken = values.take(indices)
+            try:
+                taken = values.take(indices)
+            except IndexError:
+                if not values.tolist():
+                    return []
+                else:
+                    raise
         return taken
 
     _index_shared_docs[
