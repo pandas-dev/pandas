@@ -968,72 +968,34 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Operations with int-like others
 
-    def test_td64arr_add_int_series_invalid(self, box_with_array):
-        box = box_with_array
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
-        tdser = tm.box_expected(tdser, box)
-        err = TypeError if box not in [pd.Index, tm.to_array] else NullFrequencyError
-        int_ser = Series([2, 3, 4])
-
-        with pytest.raises(err):
-            tdser + int_ser
-        with pytest.raises(err):
-            int_ser + tdser
-        with pytest.raises(err):
-            tdser - int_ser
-        with pytest.raises(err):
-            int_ser - tdser
-
-    def test_td64arr_add_intlike(self, box_with_array):
+    @pytest.mark.parametrize("other", [
         # GH#19123
-        tdi = TimedeltaIndex(["59 days", "59 days", "NaT"])
-        ser = tm.box_expected(tdi, box_with_array)
-
-        err = TypeError
-        if box_with_array in [pd.Index, tm.to_array]:
-            err = NullFrequencyError
-
-        other = Series([20, 30, 40], dtype="uint8")
-
-        # TODO: separate/parametrize
-        with pytest.raises(err):
-            ser + 1
-        with pytest.raises(err):
-            ser - 1
-
-        with pytest.raises(err):
-            ser + other
-        with pytest.raises(err):
-            ser - other
-
-        with pytest.raises(err):
-            ser + np.array(other)
-        with pytest.raises(err):
-            ser - np.array(other)
-
-        with pytest.raises(err):
-            ser + pd.Index(other)
-        with pytest.raises(err):
-            ser - pd.Index(other)
-
-    @pytest.mark.parametrize("scalar", [1, 1.5, np.array(2)])
-    def test_td64arr_add_sub_numeric_scalar_invalid(self, box_with_array, scalar):
+        1,
+        Series([20, 30, 40], dtype="uint8"),
+        np.array([20, 30, 40], dtype="uint8"),
+        pd.UInt64Index([20, 30, 40]),
+        pd.Int64Index([20, 30, 40]),
+        Series([2, 3, 4]),
+        1.5,
+        np.array(2),
+    ])
+    def test_td64arr_addsub_numeric_invalid(self, box_with_array, other):
         box = box_with_array
-
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
+
         err = TypeError
-        if box in [pd.Index, tm.to_array] and not isinstance(scalar, float):
+        if box in [pd.Index, tm.to_array] and not isinstance(other, float):
             err = NullFrequencyError
 
         with pytest.raises(err):
-            tdser + scalar
+            tdser + other
         with pytest.raises(err):
-            scalar + tdser
+            other + tdser
         with pytest.raises(err):
-            tdser - scalar
+            tdser - other
         with pytest.raises(err):
-            scalar - tdser
+            other - tdser
 
     @pytest.mark.parametrize(
         "dtype",

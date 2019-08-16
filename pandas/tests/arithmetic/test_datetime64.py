@@ -825,6 +825,7 @@ class TestDatetime64Arithmetic:
         rng -= two_hours
         tm.assert_equal(rng, expected)
 
+    # TODO: redundant with test_dt64arr_add_timedeltalike_scalar
     def test_dt64arr_add_td64_scalar(self, box_with_array):
         # scalar timedeltas/np.timedelta64 objects
         # operate with np.timedelta64 correctly
