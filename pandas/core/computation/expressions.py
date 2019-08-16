@@ -207,7 +207,8 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
     Parameters
     ----------
     op : the actual operand
-    op_str : the string version of the op
+    op_str : str
+        The string version of the op.
     a : left operand
     b : right operand
     use_numexpr : bool, default True
@@ -222,11 +223,11 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
 
 def where(cond, a, b, use_numexpr=True):
     """
-    Evaluate the where condition cond on a and b
+    Evaluate the where condition cond on a and b.
 
     Parameters
     ----------
-    cond : ndarray[bool]
+    cond : np.ndarray[bool]
     a : return if cond is True
     b : return if cond is False
     use_numexpr : bool, default True

@@ -110,7 +110,7 @@ def _make_comparison_op(op, cls):
         elif is_object_dtype(self):
             assert not isinstance(self, ABCMultiIndex)
             with np.errstate(all="ignore"):
-                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
             # TODO: define this on NumericIndex?
