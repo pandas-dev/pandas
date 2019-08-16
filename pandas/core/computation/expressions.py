@@ -99,15 +99,13 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False, **eval_kwa
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
+        if reversed:
+            # we were originally called by a reversed op method
+            a, b = b, a
+
+        a_value = getattr(a, "values", a)
+        b_value = getattr(b, "values", b)
         try:
-
-            # we were originally called by a reversed op
-            # method
-            if reversed:
-                a, b = b, a
-
-            a_value = getattr(a, "values", a)
-            b_value = getattr(b, "values", b)
             result = ne.evaluate(
                 "a_value {op} b_value".format(op=op_str),
                 local_dict={"a_value": a_value, "b_value": b_value},
@@ -138,11 +136,11 @@ def _where_numexpr(cond, a, b):
     result = None
 
     if _can_use_numexpr(None, "where", a, b, "where"):
+        cond_value = getattr(cond, "values", cond)
+        a_value = getattr(a, "values", a)
+        b_value = getattr(b, "values", b)
 
         try:
-            cond_value = getattr(cond, "values", cond)
-            a_value = getattr(a, "values", a)
-            b_value = getattr(b, "values", b)
             result = ne.evaluate(
                 "where(cond_value, a_value, b_value)",
                 local_dict={
@@ -209,7 +207,8 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
     Parameters
     ----------
     op : the actual operand
-    op_str : the string version of the op
+    op_str : str
+        The string version of the op.
     a : left operand
     b : right operand
     use_numexpr : bool, default True
@@ -224,11 +223,11 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
 
 def where(cond, a, b, use_numexpr=True):
     """
-    Evaluate the where condition cond on a and b
+    Evaluate the where condition cond on a and b.
 
     Parameters
     ----------
-    cond : ndarray[bool]
+    cond : np.ndarray[bool]
     a : return if cond is True
     b : return if cond is False
     use_numexpr : bool, default True

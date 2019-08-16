@@ -1340,6 +1340,18 @@ class TestMerge:
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_readonly(self):
+        # https://github.com/pandas-dev/pandas/issues/27943
+        data1 = pd.DataFrame(
+            np.arange(20).reshape((4, 5)) + 1, columns=["a", "b", "c", "d", "e"]
+        )
+        data2 = pd.DataFrame(
+            np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
+        )
+
+        data1._data.blocks[0].values.flags.writeable = False
+        data1.merge(data2)  # no error
+
 
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:
