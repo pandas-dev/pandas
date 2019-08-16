@@ -1044,14 +1044,6 @@ class TestTimedeltaArraylikeAddSubOps:
     # Operations with timedelta-like others
 
     # TODO: this was taken from tests.series.test_ops; de-duplicate
-    @pytest.mark.parametrize(
-        "scalar_td",
-        [
-            timedelta(minutes=5, seconds=4),
-            Timedelta(minutes=5, seconds=4),
-            Timedelta("5m4s").to_timedelta64(),
-        ],
-    )
     def test_operators_timedelta64_with_timedelta(self, scalar_td):
         # smoke tests
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
