@@ -1733,7 +1733,7 @@ def _normalize_keyword_aggregation(kwargs):
         The transformed kwargs.
     columns : List[str]
         The user-provided keys.
-    order : List[int]
+    col_idx_order : List[int]
         List of columns indices.
 
     Examples
@@ -1781,7 +1781,7 @@ def _normalize_keyword_aggregation(kwargs):
 
 
 def _uniquify_aggfunc(seq):
-    """Uniquify aggfunc name in the order list
+    """Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------
@@ -1789,8 +1789,10 @@ def _uniquify_aggfunc(seq):
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
     return [
-        (v[0], "_".join([v[1], str(seq[:i].count(v))])) if seq.count(v) > 1 else v
-        for i, v in enumerate(seq)
+        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
+        if seq.count(pair) > 1
+        else pair
+        for i, pair in enumerate(seq)
     ]
 
 
