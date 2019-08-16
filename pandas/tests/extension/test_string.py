@@ -1,4 +1,3 @@
-import random
 import string
 
 import numpy as np
@@ -16,10 +15,9 @@ def dtype():
 
 @pytest.fixture
 def data():
-    # strings = random.choices(string.ascii_letters, k=100)
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
-        strings = random.choices(string.ascii_letters, k=100)
+        strings = np.random.choice(list(string.ascii_letters), size=100)
 
     return StringArray._from_sequence(strings)
 

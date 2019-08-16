@@ -160,8 +160,8 @@ It is easy to expand this to return a DataFrame using ``expand``.
 
    s2.str.split('_', expand=True)
 
-When original ``Series`` has :ref:`StringDtype`, the output columns will all
-be :ref:`StringDtype` as well.
+When original ``Series`` has :class:`StringDtype`, the output columns will all
+be :class:`StringDtype` as well.
 
 It is also possible to limit the number of splits:
 

@@ -24,7 +24,7 @@ Enhancements
 Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added :ref:`StringDtype`, an extension type dedicated to string data.
+We've added :class:`StringDtype`, an extension type dedicated to string data.
 Previously, strings were typically stored in object-dtype NumPy arrays.
 
 .. ipython:: python
