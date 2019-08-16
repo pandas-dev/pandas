@@ -109,7 +109,7 @@ def _make_comparison_op(op, cls):
         elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
-                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
             with np.errstate(all="ignore"):
@@ -695,7 +695,6 @@ class Index(IndexOpsMixin, PandasObject):
             return result
 
         attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
         return Index(result, **attrs)
 
     @cache_readonly
@@ -5335,12 +5334,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__abs__ = make_invalid_op("__abs__")
         cls.__inv__ = make_invalid_op("__inv__")
 
-    def _maybe_update_attributes(self, attrs):
-        """
-        Update Index attributes (e.g. freq) depending on op.
-        """
-        return attrs
-
     @classmethod
     def _add_numeric_methods_binary(cls):
         """
@@ -5374,7 +5367,6 @@ class Index(IndexOpsMixin, PandasObject):
             def _evaluate_numeric_unary(self):
 
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
 
             _evaluate_numeric_unary.__name__ = opstr
