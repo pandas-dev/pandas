@@ -968,10 +968,11 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Operations with int-like others
 
-    def test_td64arr_add_int_series_invalid(self, box):
+    def test_td64arr_add_int_series_invalid(self, box_with_array):
+        box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
-        err = TypeError if box is not pd.Index else NullFrequencyError
+        err = TypeError if box not in [pd.Index, tm.to_array] else NullFrequencyError
         int_ser = Series([2, 3, 4])
 
         with pytest.raises(err):
@@ -1059,11 +1060,12 @@ class TestTimedeltaArraylikeAddSubOps:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype):
+    def test_td64arr_add_sub_numeric_arr_invalid(self, box_with_array, vec, dtype):
+        box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
         err = TypeError
-        if box is pd.Index and not dtype.startswith("float"):
+        if box in [pd.Index, tm.to_array] and not dtype.startswith("float"):
             err = NullFrequencyError
 
         vector = vec.astype(dtype)
@@ -1141,7 +1143,8 @@ class TestTimedeltaArraylikeAddSubOps:
         # roundtrip
         tm.assert_series_equal(result + td2, td1)
 
-    def test_td64arr_add_td64_array(self, box):
+    def test_td64arr_add_td64_array(self, box_with_array):
+        box = box_with_array
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         tdarr = tdi.values
@@ -1155,7 +1158,8 @@ class TestTimedeltaArraylikeAddSubOps:
         result = tdarr + tdi
         tm.assert_equal(result, expected)
 
-    def test_td64arr_sub_td64_array(self, box):
+    def test_td64arr_sub_td64_array(self, box_with_array):
+        box = box_with_array
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         tdarr = tdi.values
@@ -1229,8 +1233,9 @@ class TestTimedeltaArraylikeAddSubOps:
         else:
             assert result.dtypes[0] == "timedelta64[ns]"
 
-    def test_td64arr_add_sub_td64_nat(self, box):
+    def test_td64arr_add_sub_td64_nat(self, box_with_array):
         # GH#23320 special handling for timedelta64("NaT")
+        box = box_with_array
         tdi = pd.TimedeltaIndex([NaT, Timedelta("1s")])
         other = np.timedelta64("NaT")
         expected = pd.TimedeltaIndex(["NaT"] * 2)
@@ -1247,8 +1252,9 @@ class TestTimedeltaArraylikeAddSubOps:
         result = other - obj
         tm.assert_equal(result, expected)
 
-    def test_td64arr_sub_NaT(self, box):
+    def test_td64arr_sub_NaT(self, box_with_array):
         # GH#18808
+        box = box_with_array
         ser = Series([NaT, Timedelta("1s")])
         expected = Series([NaT, NaT], dtype="timedelta64[ns]")
 
@@ -1258,8 +1264,9 @@ class TestTimedeltaArraylikeAddSubOps:
         res = ser - pd.NaT
         tm.assert_equal(res, expected)
 
-    def test_td64arr_add_timedeltalike(self, two_hours, box):
+    def test_td64arr_add_timedeltalike(self, two_hours, box_with_array):
         # only test adding/sub offsets as + is now numeric
+        box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
         rng = tm.box_expected(rng, box)
@@ -1268,8 +1275,9 @@ class TestTimedeltaArraylikeAddSubOps:
         result = rng + two_hours
         tm.assert_equal(result, expected)
 
-    def test_td64arr_sub_timedeltalike(self, two_hours, box):
+    def test_td64arr_sub_timedeltalike(self, two_hours, box_with_array):
         # only test adding/sub offsets as - is now numeric
+        box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
 
@@ -1352,8 +1360,9 @@ class TestTimedeltaArraylikeAddSubOps:
 
     # TODO: combine with test_td64arr_add_offset_index by parametrizing
     # over second box?
-    def test_td64arr_add_offset_array(self, box):
+    def test_td64arr_add_offset_array(self, box_with_array):
         # GH#18849
+        box = box_with_array
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"])
         other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
 
@@ -1428,6 +1437,8 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_with_offset_series(self, names, box_df_fail):
         # GH#18849
         box = box_df_fail
+        if box is tm.to_array:
+            return
         box2 = Series if box in [pd.Index, tm.to_array] else box
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
@@ -2051,6 +2062,8 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_int_series(self, box_df_fail, names):
         # GH#19042 test for correct name attachment
         box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
+        if box is tm.to_array:
+            return
         tdi = TimedeltaIndex(
             ["0days", "1day", "2days", "3days", "4days"], name=names[0]
         )
@@ -2064,7 +2077,7 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        box = Series if (box is pd.Index and type(ser) is Series) else box
+        box = Series if (box is pd.Index or box is tm.to_array) else box
         expected = tm.box_expected(expected, box)
 
         result = ser * tdi
@@ -2115,7 +2128,11 @@ class TestTimedeltaArraylikeMulDivOps:
             tm.assert_equal(result, expected)
 
 
-class TestTimedeltaArraylikeInvalidArithmeticOps:
+class TestTimedelta64ArrayLikeArithmetic:
+    # Arithmetic tests for timedelta64[ns] vectors fully parametrized over
+    #  DataFrame/Series/TimedeltaIndex/TimedeltaArray.  Ideally all arithmetic
+    #  tests will eventually end up here.
+
     def test_td64arr_pow_invalid(self, scalar_td, box_with_array):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan

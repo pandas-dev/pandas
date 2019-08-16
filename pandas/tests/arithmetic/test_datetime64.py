@@ -348,28 +348,6 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([False, False], xbox)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat(self, op):
-        # GH#18162
-        dr = pd.date_range("2016-01-01", periods=6)
-        dz = dr.tz_localize("US/Pacific")
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        naive_series = Series(dr)
-        aware_series = Series(dz)
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            op(dz, naive_series)
-        with pytest.raises(TypeError, match=msg):
-            op(dr, aware_series)
-
-        # TODO: implement _assert_tzawareness_compat for the reverse
-        # comparison with the Series on the left-hand side
-
 
 class TestDatetimeIndexComparisons:
 
@@ -599,15 +577,18 @@ class TestDatetimeIndexComparisons:
         with pytest.raises(TypeError, match=msg):
             op(dz, np.array(list(dr), dtype=object))
 
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
+        # Check that there isn't a problem aware-aware and naive-naive do not raise
         assert_all(dr == dr)
-        assert_all(dz == dz)
+        assert_all(dr == list(dr))
+        assert_all(list(dr) == dr)
+        assert_all(np.array(list(dr), dtype=object) == dr)
+        assert_all(dr == np.array(list(dr), dtype=object))
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
-        assert (dr == list(dr)).all()
-        assert (dz == list(dz)).all()
+        assert_all(dz == dz)
+        assert_all(dz == list(dz))
+        assert_all(list(dz) == dz)
+        assert_all(np.array(list(dz), dtype=object) == dz)
+        assert_all(dz == np.array(list(dz), dtype=object))
 
     @pytest.mark.parametrize(
         "op",
