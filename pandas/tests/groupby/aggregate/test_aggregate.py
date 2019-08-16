@@ -604,7 +604,8 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result2, expected)
 
     def test_agg_multiple_lambda(self):
-        # GH25719, write test for DataFrameGroupby.agg with multiple lambdas with mixed aggfunc
+        # GH25719, test for DataFrameGroupby.agg with multiple lambdas
+        # with mixed aggfunc
         df = pd.DataFrame(
             {
                 "kind": ["cat", "dog", "cat", "dog"],
