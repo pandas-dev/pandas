@@ -27,7 +27,6 @@ Categorical
 
 - Bug in :meth:`Categorical.fillna` would replace all values, not just those that are ``NaN`` (:issue:`26215`)
 -
--
 
 Datetimelike
 ^^^^^^^^^^^^
