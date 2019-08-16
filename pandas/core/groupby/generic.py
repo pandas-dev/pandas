@@ -1763,7 +1763,7 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
     # uniquify aggfunc name if duplicated in order list
-    mangled_order = _uniquify_aggfunc(order)
+    uniquified_order = _uniquify_aggfunc(order)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
@@ -1773,10 +1773,10 @@ def _normalize_keyword_aggregation(kwargs):
         for column, aggfuncs in aggspec.items()
         for aggfunc in aggfuncs
     ]
-    reordered = _uniquify_aggfunc(aggspec_order)
+    uniquified_aggspec = _uniquify_aggfunc(aggspec_order)
 
     # get the new indice of columns by comparison
-    col_idx_order = [reordered.index(o) for o in mangled_order]
+    col_idx_order = [uniquified_aggspec.index(o) for o in uniquified_order]
     return aggspec, columns, col_idx_order
 
 
