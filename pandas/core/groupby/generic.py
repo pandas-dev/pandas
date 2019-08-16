@@ -1754,78 +1754,49 @@ def _normalize_keyword_aggregation(kwargs):
     aggspec = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
-    reordered_pairs = []
 
-    def _append_order_list(order, aggfunc, column, column_dict):
-        """
-        Append the order list given the pair of (column, _get_aggfunc_name)
-        is in the list or not
-        """
-        col_aggfunc_pair = (column, _get_aggfunc_name(aggfunc))
-        # check if the pair not in the order list, if yes, append to order list
-        # and mark it to 0
-        if col_aggfunc_pair not in order:
-            order.append(col_aggfunc_pair)
-            column_dict[col_aggfunc_pair] = 0
-        else:
-
-            # if pair already in order list, then add the marker by 1, and append
-            # the aggfunc name by the marker number
-            column_dict[col_aggfunc_pair] += 1
-            order.append(
-                (column, _get_aggfunc_name(aggfunc, column_dict[col_aggfunc_pair]))
-            )
-
-        return order, column_dict
-
-    column_dict = {}
     for name, (column, aggfunc) in zip(columns, pairs):
         if column in aggspec:
             aggspec[column].append(aggfunc)
         else:
             aggspec[column] = [aggfunc]
+        order.append(_get_aggfunc_column_pair(column, aggfunc))
 
-        order, column_dict = _append_order_list(order, aggfunc, column, column_dict)
+    # uniquify aggfunc name if duplicated in order list
+    mangled_order = _uniquify_aggfunc(order)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # reordered_pairs will store this reorder and will compare it with order
     # based on index, it will obtain new order in index
-    column_dict = {}
-    for column, aggfuncs in aggspec.items():
-        for aggfunc in aggfuncs:
-            reordered_pairs, column_dict = _append_order_list(
-                reordered_pairs, aggfunc, column, column_dict
-            )
+    aggspec_order = [
+        _get_aggfunc_column_pair(column, aggfunc)
+        for column, aggfuncs in aggspec.items()
+        for aggfunc in aggfuncs
+    ]
+    reordered = _uniquify_aggfunc(aggspec_order)
 
     # get the new indice of columns by comparison
-    col_idx_order = [reordered_pairs.index(o) for o in order]
+    col_idx_order = [reordered.index(o) for o in mangled_order]
     return aggspec, columns, col_idx_order
 
 
-def _get_aggfunc_name(aggfunc, repeat_num=0):
+def _get_aggfunc_column_pair(column, aggfunc):
+    """Return (column, aggfunc name) pair"""
+    return column, com.get_callable_name(aggfunc) or aggfunc
+
+
+def _uniquify_aggfunc(seq):
+    """Uniquify aggfunc name in the order list
+
+    Examples:
+    --------
+    >>> _uniquify_aggfunc([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
+    [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
-    Return aggfunc name given repeat_num. If aggfunc appears before, then repeat_num
-    will be given different value, and output aggfunc name will be different
-
-    Parameters:
-    ----------
-    aggfunc: aggfunc
-    repeat_num: int
-        How many time the aggfunc used to the same column,
-        default is 0
-
-    Returns:
-    -------
-    aggfunc name in string
-
-    """
-    if repeat_num == 0:
-        return com.get_callable_name(aggfunc) or aggfunc
-    else:
-        suffix = "_{}".format(repeat_num)
-        if com.get_callable_name(aggfunc):
-            return com.get_callable_name(aggfunc) + suffix
-        return aggfunc + suffix
+    return [
+        (v[0], "_".join([v[1], str(seq[:i].count(v))])) if seq.count(v) > 1 else v
+        for i, v in enumerate(seq)
+    ]
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
