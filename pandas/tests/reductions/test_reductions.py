@@ -1041,21 +1041,21 @@ class TestCategoricalSeriesReductions:
         assert _min == 2
         assert _max == 1
 
-    def test_min_max_skipna(self):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_skipna(self, skipna):
         # GH 25303
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
         )
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min()
-        _max = cat.max()
-        assert _min == "b"
-        assert _max == "a"
-
-        _min = cat.min(skipna=False)
-        _max = cat.max(skipna=False)
-        assert np.isnan(_min)
-        assert np.isnan(_max)
+        if skipna is True:
+            assert _min == "b"
+            assert _max == "a"
+        else:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
 
 
 class TestSeriesMode:
