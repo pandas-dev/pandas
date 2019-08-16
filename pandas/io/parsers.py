@@ -1401,6 +1401,10 @@ class ParserBase:
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
+            if any(i < 0 for i in self.header):
+                raise ValueError(
+                    "cannot specify multi-index header with negative integers"
+                )
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when " "specifying a multi-index header"
@@ -1426,6 +1430,13 @@ class ParserBase:
         # GH 16338
         elif self.header is not None and not is_integer(self.header):
             raise ValueError("header must be integer or list of integers")
+
+        # GH 27779
+        elif self.header is not None and self.header < 0:
+            raise ValueError(
+                "Passing negative integer to header is invalid. "
+                "For no header, use header=None instead"
+            )
 
         self._name_processed = False
 
