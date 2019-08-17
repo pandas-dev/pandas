@@ -269,6 +269,10 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
 
+        A file path can also be a directory name that contains multiple(partitioned)
+        parquet files (in addition to single file path). A directory path could be:
+        ``directory://usr/path/to/folder``.
+
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
