@@ -1074,3 +1074,33 @@ def test_transform_lambda_with_datetimetz():
         name="time",
     )
     assert_series_equal(result, expected)
+
+@pytest.mark.parametrize(
+   "inputDF, expectedDF",
+   [
+       (
+           DataFrame(
+               {
+                   "A": [1, 1, 1, 1, '', 1],
+                   "B": [2, 3, '', 5, 6, 7],
+                   "C": [3, '', 4, '', 3, 2]
+               }
+           ),
+           1,
+       ),
+       (
+           DataFrame(
+               {
+                   "A": [1, 1, 1, 1, 1, 1],
+                   "B": [2, 3, 4, 5, 6, 7],
+                   "C": [3, 3, 4, 3, 3, 2]
+               }
+           ),
+           1,
+       ),
+   ],
+)
+def test_transform_fillna(inputDF, expectedDF):
+    # GH 27905 - Test fillna
+   input1 = inputDF.transform(lambda x: (sum(x)/len(x)))
+   assert input1 == expectedDF
