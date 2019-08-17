@@ -3572,7 +3572,7 @@ Closing a Store and using a context manager:
 Read/write API
 ''''''''''''''
 
-``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
+``HDFStore`` supports a top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
 similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
@@ -3687,7 +3687,7 @@ Hierarchical keys
 Keys to a store can be specified as a string. These can be in a
 hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
 generate a hierarchy of sub-stores (or ``Groups`` in PyTables
-parlance). Keys can be specified with out the leading '/' and are **always**
+parlance). Keys can be specified without the leading '/' and are **always**
 absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
 everything in the sub-store and **below**, so be *careful*.
 
@@ -3825,7 +3825,7 @@ data.
 
 A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
-* ``index`` and ``columns`` are supported indexers of a ``DataFrames``.
+* ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
 
 Valid comparison operators are:
@@ -3917,7 +3917,7 @@ Use boolean expressions, with in-line function evaluation.
 
     store.select('dfq', "index>pd.Timestamp('20130104') & columns=['A', 'B']")
 
-Use and inline column reference
+Use inline column reference.
 
 .. ipython:: python
 
@@ -4593,8 +4593,8 @@ Performance
   write chunksize (default is 50000). This will significantly lower
   your memory usage on writing.
 * You can pass ``expectedrows=<int>`` to the first ``append``,
-  to set the TOTAL number of expected rows that ``PyTables`` will
-  expected. This will optimize read/write performance.
+  to set the TOTAL number of rows that ``PyTables`` will expect.
+  This will optimize read/write performance.
 * Duplicate rows can be written to tables, but are filtered out in
   selection (with the last items being selected; thus a table is
   unique on major, minor pairs)
