@@ -172,6 +172,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
+    name: str, default None
+        Sets the name of the array/ series. Can be called with Series.name
+    fastpath: bool, default False
+        Internally used to prevent the over-parsing data format/ type which
+        is otherwise required by external calls (such as user calls)
     """
 
     _metadata = ["name"]
