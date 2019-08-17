@@ -34,7 +34,6 @@ from pandas.errors import (  # noqa
 from pandas.core.dtypes.common import is_file_like
 
 from pandas._typing import FilePathOrBuffer
-
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 

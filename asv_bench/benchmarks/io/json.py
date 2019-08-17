@@ -4,6 +4,8 @@ from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
 from ..pandas_vb_common import BaseIO
 
+def loads(*args, **kwargs):
+    print("LOADS")
 
 class ReadJSON(BaseIO):
 

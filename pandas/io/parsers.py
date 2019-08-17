@@ -422,8 +422,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
-    elif encoding is None and kwds.get("auto_encode"):
-        kwds["encoding"] = 'auto'
 
     compression = kwds.get("compression", "infer")
     compression = _infer_compression(filepath_or_buffer, compression)
@@ -581,7 +579,6 @@ def _make_parser_function(name, default_sep=","):
         escapechar=None,
         comment=None,
         encoding=None,
-        auto_encode=True,
         dialect=None,
         # Error Handling
         error_bad_lines=True,
@@ -668,7 +665,6 @@ def _make_parser_function(name, default_sep=","):
             usecols=usecols,
             verbose=verbose,
             encoding=encoding,
-            auto_encode=auto_encode,
             squeeze=squeeze,
             memory_map=memory_map,
             float_precision=float_precision,
