@@ -172,8 +172,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See the :ref:`user guide <basics.dtypes>` for more usages.
     copy : bool, default False
         Copy input data.
+    name : str, optional
+        The name argument allows to give name to a Series object, i.e. to the column.
+        If name isn't given, it will be named automatically.
+    fastpath : optional
+        Will be deprecated soon
     """
-
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
