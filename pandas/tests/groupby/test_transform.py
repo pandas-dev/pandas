@@ -1102,4 +1102,4 @@ def test_transform_lambda_with_datetimetz():
 def test_groupby_transform_fillna(inputDF, expectedDF):
     # GH 27905 - Test fillna in groupby.transform
     input1 = inputDF.groupby('A').transform(lambda x: x.fillna(x.mean()))
-    assert input1 == expectedDF
+    assert all(input1 == expectedDF)
