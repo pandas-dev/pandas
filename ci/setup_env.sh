@@ -116,7 +116,7 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace -j 2
+python setup.py build_ext -q --inplace -j 4
 python -m pip install -e .
 
 echo
