@@ -1103,5 +1103,5 @@ def test_transform_lambda_with_datetimetz():
 )
 def test_transform_fillna(inputDF, expectedDF):
     # GH 27905 - Test fillna
-    input1 = inputDF.transform(lambda x: (sum(x) / len(x)))
+    input1 = inputDF.transform(lambda x: x.fillna(x.mean()))
     assert input1 == expectedDF
