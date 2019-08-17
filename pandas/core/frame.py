@@ -6182,7 +6182,7 @@ class DataFrame(NDFrame):
         .. versionadded:: 0.25.0
 
         Parameters
-        ----------%s
+        ----------
         column : str or tuple
             Column(s) to explode.
 
