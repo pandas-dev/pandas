@@ -170,13 +170,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    copy : bool, default False
-        Copy input data.
     name : str, optional
         The name argument allows to give name to a Series object, i.e. to the column.
         If name isn't given, it will be named automatically.
-    fastpath : optional
-        Will be deprecated soon
+    copy : bool, default False
+        Copy input data.
+    fastpath : str, optional
+        Will be deprecated soon.
     """
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
