@@ -590,8 +590,6 @@ def _make_parser_function(name, default_sep=","):
         float_precision=None,
     ):
 
-
-
         # gh-23761
         #
         # When a dialect is passed, it overrides any of the overlapping
