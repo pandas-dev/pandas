@@ -26,7 +26,9 @@ def mask_missing(arr, values_to_mask):
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
     """
+
     dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
+
 
     try:
         values_to_mask = np.array(values_to_mask, dtype=dtype)
@@ -34,24 +36,35 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
+
     na_mask = isna(values_to_mask)
+
     nonna = values_to_mask[~na_mask]
 
+
     mask = None
+    print('nonna', nonna)
     for x in nonna:
         if mask is None:
 
+
             # numpy elementwise comparison warning
+
             if is_numeric_v_string_like(arr, x):
+                #print('is_numeric_v_string_like', is_numeric_v_string_like(arr,x))
+
                 mask = False
             else:
+
                 mask = arr == x
+
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
+            print ('goes here?')
 
             # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
@@ -59,7 +72,9 @@ def mask_missing(arr, values_to_mask):
             else:
                 mask |= arr == x
 
+
     if na_mask.any():
+        print('or here?')
         if mask is None:
             mask = isna(arr)
         else:
@@ -67,8 +82,10 @@ def mask_missing(arr, values_to_mask):
 
     # GH 21977
     if mask is None:
+        print('or or here?')
         mask = np.zeros(arr.shape, dtype=bool)
 
+    print (mask)
     return mask
 
 
@@ -78,6 +95,7 @@ def clean_fill_method(method, allow_nearest=False):
         return None
 
     if isinstance(method, str):
+        print('is method str?')
         method = method.lower()
         if method == "ffill":
             method = "pad"
@@ -94,6 +112,7 @@ def clean_fill_method(method, allow_nearest=False):
             expecting=expecting, method=method
         )
         raise ValueError(msg)
+    print (method)
     return method
 
 
@@ -536,7 +555,9 @@ def _fillna_prep(values, mask=None, dtype=None):
 
 def pad_1d(values, limit=None, mask=None, dtype=None):
     values, mask = _fillna_prep(values, mask, dtype)
+    print ('values', values)
     algos.pad_inplace(values, mask, limit=limit)
+    print ('values after', values)
     return values
 
 
@@ -573,6 +594,7 @@ _fill_methods = {"pad": pad_1d, "backfill": backfill_1d}
 
 def get_fill_func(method):
     method = clean_fill_method(method)
+
     return _fill_methods[method]
 
 

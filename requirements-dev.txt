@@ -31,7 +31,6 @@ ipywidgets
 nbformat
 notebook>=5.7.5
 pip
-blosc
 bottleneck>=1.2.1
 ipykernel
 ipython>=5.6.0

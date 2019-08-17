@@ -463,6 +463,7 @@ def pad_inplace(algos_t[:] values,
                 continue
             fill_count += 1
             values[i] = val
+
         else:
             fill_count = 0
             val = values[i]
