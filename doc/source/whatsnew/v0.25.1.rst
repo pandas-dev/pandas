@@ -89,7 +89,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Fixed bug where object with no data attribute were not being caught (:issue:`27482`)
 -
 -
 

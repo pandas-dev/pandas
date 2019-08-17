@@ -2,7 +2,6 @@
 missing types & inference
 """
 import numpy as np
-
 from pandas._config import get_option
 
 from pandas._libs import lib
@@ -45,7 +44,6 @@ from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
-
 
 def isna(obj):
     """
@@ -128,6 +126,12 @@ isnull = isna
 
 
 def _isna_new(obj):
+    try:
+        # If any object doesn't have an attribute data 
+        if obj._data == None: 
+            return False
+    except:
+        pass
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
@@ -152,6 +156,7 @@ def _isna_new(obj):
     elif hasattr(obj, "__array__"):
         return _isna_ndarraylike(np.asarray(obj))
     else:
+        print("Test")
         return obj is None
 
 
@@ -222,7 +227,9 @@ def _isna_ndarraylike(obj):
     else:
         values = obj
 
+
     dtype = values.dtype
+
 
     if is_extension:
         if isinstance(obj, (ABCIndexClass, ABCSeries)):
@@ -254,7 +261,6 @@ def _isna_ndarraylike(obj):
     # box
     if isinstance(obj, ABCSeries):
         result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
-
     return result
 
 
