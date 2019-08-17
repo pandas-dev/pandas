@@ -3130,9 +3130,9 @@ class NDFrame(PandasObject, SelectionMixin):
                'infer' option added and set to default.
 
         quoting : optional constant from csv module
-            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric.
+            Defaults to csv.QUOTE_NONNUMERIC will treat values as non-numeric.
+            If set to csv.QUOTE_MINIMAL, then if you have set a `float_format`
+            then floats are converted to strings.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
         line_terminator : str, optional
