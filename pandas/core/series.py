@@ -675,8 +675,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    4
         dtype: int64
 
-        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
         # same return although index of s is different
+        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
         >>> s.nonzero()
         (array([1, 3]),)
         >>> s.iloc[s.nonzero()[0]]
@@ -1681,7 +1681,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.items : Equivalent to Series.items for DataFrame.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
 
         Examples
         --------
