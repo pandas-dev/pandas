@@ -264,8 +264,9 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
     Parameters
     ----------
     path : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        Any valid string path is acceptable. Path to directory of partitioned
+        parquet files is acceptable. The string could be a URL. Valid URL 
+        schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
 
