@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -39,7 +40,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.index import (
     Index,
     _get_objs_combined_axis,
