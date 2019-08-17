@@ -67,7 +67,13 @@ def register(explicit=True):
         converter = cls()
         if type_ in units.registry:
             previous = units.registry[type_]
-            _mpl_units[type_] = previous
+            # Exclude our converters from caching to make this idempotent.
+            if type(previous) not in {
+                DatetimeConverter,
+                PeriodConverter,
+                TimeConverter,
+            }:
+                _mpl_units[type_] = previous
         units.registry[type_] = converter
 
 
@@ -80,9 +86,7 @@ def deregister():
 
     # restore the old keys
     for unit, formatter in _mpl_units.items():
-        if type(formatter) not in {DatetimeConverter, PeriodConverter, TimeConverter}:
-            # make it idempotent by excluding ours.
-            units.registry[unit] = formatter
+        units.registry[unit] = formatter
 
 
 def _check_implicitly_registered():
