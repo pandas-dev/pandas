@@ -1628,3 +1628,19 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
+
+Examples
+~~~~~~~~
+
+In order to understand how two variables are correlated, the best fit line
+is a good way. You can use ``seaborn.lmplot()`` method that combines ``regplot()``
+and ``FacetGrid`` to plot data and regression model fits across a FacetGrid.
+
+.. ipython:: python
+   :suppress:
+
+   import seaborn as sns
+   df4 = pd.DataFrame({'a': np.random.randn(100) + 1, 'b': np.random.randn(100) ,
+                     'c': np.random.randn(100) - 1 }, columns=['a', 'b', 'c'])
+
+   sns.lmplot(x="a", y="b", data = df4)
