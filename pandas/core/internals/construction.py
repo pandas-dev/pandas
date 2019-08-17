@@ -223,10 +223,13 @@ def init_dict(data, index, columns, dtype=None):
 
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
-            if dtype is None or np.issubdtype(dtype, np.flexible):
-                # GH#1783
-                nan_dtype = object
-            else:
+            try:
+                if dtype is None or np.issubdtype(dtype, np.flexible):
+                    # GH#1783
+                    nan_dtype = object
+                else:
+                    nan_dtype = dtype
+            except(TypeError):
                 nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
