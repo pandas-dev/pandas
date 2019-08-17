@@ -759,6 +759,8 @@ class TestDatetimeIndex:
         assert result == expected
 
     # This is the desired future behavior
+    # Note: this xfail is not strict because the test passes with
+    #  None or any of the UTC variants for tz_naive_fixture
     @pytest.mark.xfail(reason="Future behavior", strict=False)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
@@ -766,7 +768,7 @@ class TestDatetimeIndex:
         # TODO(GH-24559): Remove xfail
         tz = tz_naive_fixture
         result = 1293858000000000000
-        expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]
+        expected = DatetimeIndex([result], tz=tz).asi8[0]
         assert result == expected
 
     def test_construction_from_replaced_timestamps_with_dst(self):
@@ -821,6 +823,12 @@ class TestDatetimeIndex:
     def test_constructor_wrong_precision_raises(self):
         with pytest.raises(ValueError):
             pd.DatetimeIndex(["2000"], dtype="datetime64[us]")
+
+    def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
+        # GH 27011
+        result = Index(np.array([Timestamp("2019", tz="UTC"), np.nan], dtype=object))
+        expected = DatetimeIndex([Timestamp("2019", tz="UTC"), pd.NaT])
+        tm.assert_index_equal(result, expected)
 
 
 class TestTimeSeries:

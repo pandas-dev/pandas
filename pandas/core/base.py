@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
@@ -32,40 +33,17 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",
     unique="IndexOpsMixin",
     duplicated="IndexOpsMixin",
 )
-
-
-class StringMixin:
-    """
-    Implements string methods so long as object defines a `__str__` method.
-    """
-
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
-
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-        """
-        raise AbstractMethodError(self)
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        return str(self)
 
 
 class PandasObject(DirNamesMixin):
@@ -435,7 +413,7 @@ class SelectionMixin:
                 colg = self._gotitem(name, ndim=1, subset=subset)
                 if colg.ndim != 1:
                     raise SpecificationError(
-                        "nested dictionary is ambiguous " "in aggregation"
+                        "nested dictionary is ambiguous in aggregation"
                     )
                 return colg.aggregate(how, _level=(_level or 0) + 1)
 
@@ -565,7 +543,7 @@ class SelectionMixin:
         else:
             result = None
 
-        f = self._is_cython_func(arg)
+        f = self._get_cython_func(arg)
         if f and not args and not kwargs:
             return getattr(self, f)(), None
 
@@ -632,9 +610,7 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError(
-                    "cannot combine transform and " "aggregation operations"
-                )
+                raise ValueError("cannot combine transform and aggregation operations")
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
@@ -652,7 +628,7 @@ class SelectionMixin:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
 
-    def _is_cython_func(self, arg):
+    def _get_cython_func(self, arg: str) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -687,8 +663,9 @@ class IndexOpsMixin:
 
     T = property(
         transpose,
-        doc="""\nReturn the transpose, which is by
-                                definition self.\n""",
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
     )
 
     @property
@@ -725,7 +702,7 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
 
         Returns
         -------
@@ -733,7 +710,7 @@ class IndexOpsMixin:
             The first element of %(klass)s.
         """
         warnings.warn(
-            "`item` has been deprecated and will be removed in a " "future version",
+            "`item` has been deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -1381,8 +1358,6 @@ class IndexOpsMixin:
         1.0    1
         dtype: int64
         """
-        from pandas.core.algorithms import value_counts
-
         result = value_counts(
             self,
             sort=sort,
@@ -1400,8 +1375,6 @@ class IndexOpsMixin:
 
             result = values.unique()
         else:
-            from pandas.core.algorithms import unique1d
-
             result = unique1d(values)
 
         return result
@@ -1463,8 +1436,6 @@ class IndexOpsMixin:
         Return boolean if values in the object are
         monotonic_increasing.
 
-        .. versionadded:: 0.19.0
-
         Returns
         -------
         bool
@@ -1480,8 +1451,6 @@ class IndexOpsMixin:
         """
         Return boolean if values in the object are
         monotonic_decreasing.
-
-        .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -1565,7 +1534,7 @@ class IndexOpsMixin:
             A scalar or array of insertion points with the
             same shape as `value`.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                 If `value` is a scalar, an int is now always returned.
                 Previously, scalar inputs returned an 1-item array for
                 :class:`Series` and :class:`Categorical`.
@@ -1631,8 +1600,6 @@ class IndexOpsMixin:
             return result
 
     def duplicated(self, keep="first"):
-        from pandas.core.algorithms import duplicated
-
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return np.zeros(len(self), dtype=np.bool)

@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
@@ -30,25 +30,11 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
-    maybe_unwrap_index,
-    wrap_arithmetic_op,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
-
-
-def _make_wrapped_arith_op(opname):
-
-    meth = getattr(TimedeltaArray, opname)
-
-    def method(self, other):
-        result = meth(self._data, maybe_unwrap_index(other))
-        return wrap_arithmetic_op(self, other, result)
-
-    method.__name__ = opname
-    return method
 
 
 class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
@@ -58,7 +44,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # which we we dont' want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + ["_box_values"]
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        "_box_values",
+        "__neg__",
+        "__pos__",
+        "__abs__",
+    ]
     _raw_properties = {"components"}
     _raw_methods = {"to_pytimedelta"}
 
@@ -70,7 +61,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     TimedeltaArray,
     TimedeltaDelegateMixin._delegated_methods,
     typ="method",
-    overwrite=False,
+    overwrite=True,
 )
 class TimedeltaIndex(
     DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin
@@ -293,14 +284,6 @@ class TimedeltaIndex(
 
     _unpickle_compat = __setstate__
 
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
-
     # -------------------------------------------------------------------
     # Rendering Methods
 
@@ -313,23 +296,14 @@ class TimedeltaIndex(
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
 
-        return Timedelta64Formatter(
-            values=self, nat_rep=na_rep, justify="all"
-        ).get_result()
+        return np.asarray(
+            Timedelta64Formatter(
+                values=self, nat_rep=na_rep, justify="all"
+            ).get_result()
+        )
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    __mul__ = _make_wrapped_arith_op("__mul__")
-    __rmul__ = _make_wrapped_arith_op("__rmul__")
-    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = _make_wrapped_arith_op("__mod__")
-    __rmod__ = _make_wrapped_arith_op("__rmod__")
-    __divmod__ = _make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = _make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -487,7 +461,7 @@ class TimedeltaIndex(
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
-            dates = _concat._concat_compat((left.values, right_chunk))
+            dates = concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         else:
             return left
@@ -712,7 +686,6 @@ class TimedeltaIndex(
 
 
 TimedeltaIndex._add_comparison_ops()
-TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
@@ -727,6 +700,7 @@ def _is_convertible_to_index(other):
         "floating",
         "mixed-integer",
         "integer",
+        "integer-na",
         "mixed-integer-float",
         "mixed",
     ):
@@ -802,7 +776,7 @@ def timedelta_range(
                 '5 days 00:00:00'],
                dtype='timedelta64[ns]', freq=None)
     """
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)

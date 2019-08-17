@@ -20,7 +20,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import generic
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.index import Index
 from pandas.core.internals import SingleBlockManager
 import pandas.core.ops as ops
 from pandas.core.series import Series
@@ -56,7 +55,7 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -113,6 +112,11 @@ class SparseSeries(Series):
 
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
+
+        if isinstance(data, SingleBlockManager):
+            # SparseArray doesn't accept SingleBlockManager
+            index = data.index
+            data = data.blocks[0].values
 
         super().__init__(
             SparseArray(
@@ -310,23 +314,26 @@ class SparseSeries(Series):
         else:
             object.__setattr__(self, "_subtyp", "sparse_series")
 
-    def _ixs(self, i, axis=0):
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
+    def _ixs(self, i: int, axis: int = 0):
         """
         Return the i-th value or values in the SparseSeries by location
 
         Parameters
         ----------
-        i : int, slice, or sequence of integers
+        i : int
+        axis : int
+            default 0, ignored
 
         Returns
         -------
         value : scalar (int) or Series (slice, sequence)
         """
-        label = self.index[i]
-        if isinstance(label, Index):
-            return self.take(i, axis=axis)
-        else:
-            return self._get_val_at(i)
+        assert is_integer(i), i
+        # equiv: self._get_val_at(i) since we have an integer
+        return self.values[i]
 
     def _get_val_at(self, loc):
         """ forward to the array """
@@ -340,6 +347,24 @@ class SparseSeries(Series):
         else:
             return super().__getitem__(key)
 
+    def _get_value(self, label, takeable=False):
+        """
+        Retrieve single value at passed index label
+
+        Please use .at[] or .iat[] accessors.
+
+        Parameters
+        ----------
+        index : label
+        takeable : interpret the index as indexers, default False
+
+        Returns
+        -------
+        value : scalar value
+        """
+        loc = label if takeable is True else self.index.get_loc(label)
+        return self._get_val_at(loc)
+
     def _get_values(self, indexer):
         try:
             return self._constructor(
@@ -350,6 +375,62 @@ class SparseSeries(Series):
 
     def _set_with_engine(self, key, value):
         return self._set_value(key, value)
+
+    def _set_value(self, label, value, takeable=False):
+        """
+        Quickly set single value at passed label. If label is not contained, a
+        new object is created with the label placed at the end of the result
+        index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
+        Parameters
+        ----------
+        label : object
+            Partial indexing with MultiIndex not allowed
+        value : object
+            Scalar value
+        takeable : interpret the index as indexers, default False
+
+        Notes
+        -----
+        This method *always* returns a new object. It is not particularly
+        efficient but is provided for API compatibility with Series
+
+        Returns
+        -------
+        series : SparseSeries
+        """
+        values = self.to_dense()
+
+        # if the label doesn't exist, we will create a new object here
+        # and possibly change the index
+        new_values = values._set_value(label, value, takeable=takeable)
+        if new_values is not None:
+            values = new_values
+        new_index = values.index
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, new_index)
+        self._index = new_index
+
+    def _set_values(self, key, value):
+
+        # this might be inefficient as we have to recreate the sparse array
+        # rather than setting individual elements, but have to convert
+        # the passed slice/boolean that's in dense space into a sparse indexer
+        # not sure how to do that!
+        if isinstance(key, Series):
+            key = key.values
+
+        values = self.values.to_dense()
+        values[key] = libindex.convert_scalar(values, value)
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, self.index)
+
+    # ----------------------------------------------------------------------
+    # Unsorted
 
     def abs(self):
         """
@@ -385,104 +466,6 @@ class SparseSeries(Series):
             return self._get_val_at(loc)
         else:
             return default
-
-    def get_value(self, label, takeable=False):
-        """
-        Retrieve single value at passed index label
-
-        .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
-
-        Parameters
-        ----------
-        index : label
-        takeable : interpret the index as indexers, default False
-
-        Returns
-        -------
-        value : scalar value
-        """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._get_value(label, takeable=takeable)
-
-    def _get_value(self, label, takeable=False):
-        loc = label if takeable is True else self.index.get_loc(label)
-        return self._get_val_at(loc)
-
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, label, value, takeable=False):
-        """
-        Quickly set single value at passed label. If label is not contained, a
-        new object is created with the label placed at the end of the result
-        index
-
-        .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
-
-        Parameters
-        ----------
-        label : object
-            Partial indexing with MultiIndex not allowed
-        value : object
-            Scalar value
-        takeable : interpret the index as indexers, default False
-
-        Notes
-        -----
-        This method *always* returns a new object. It is not particularly
-        efficient but is provided for API compatibility with Series
-
-        Returns
-        -------
-        series : SparseSeries
-        """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(label, value, takeable=takeable)
-
-    def _set_value(self, label, value, takeable=False):
-        values = self.to_dense()
-
-        # if the label doesn't exist, we will create a new object here
-        # and possibly change the index
-        new_values = values._set_value(label, value, takeable=takeable)
-        if new_values is not None:
-            values = new_values
-        new_index = values.index
-        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
-        self._data = SingleBlockManager(values, new_index)
-        self._index = new_index
-
-    _set_value.__doc__ = set_value.__doc__
-
-    def _set_values(self, key, value):
-
-        # this might be inefficient as we have to recreate the sparse array
-        # rather than setting individual elements, but have to convert
-        # the passed slice/boolean that's in dense space into a sparse indexer
-        # not sure how to do that!
-        if isinstance(key, Series):
-            key = key.values
-
-        values = self.values.to_dense()
-        values[key] = libindex.convert_scalar(values, value)
-        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
-        self._data = SingleBlockManager(values, self.index)
 
     def to_dense(self):
         """
@@ -607,7 +590,7 @@ class SparseSeries(Series):
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError(
-                "Cannot perform inplace dropna" " operations on a SparseSeries"
+                "Cannot perform inplace dropna operations on a SparseSeries"
             )
         if isna(self.fill_value):
             return dense_valid
