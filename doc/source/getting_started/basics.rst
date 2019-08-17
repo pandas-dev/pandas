@@ -762,6 +762,13 @@ Compare the following
 .. code-block:: python
 
    # f, g, and h are functions taking and returning ``DataFrames``
+   >>> def h(df):
+   ...     return df * df
+   >>> def g(df, arg1):
+   ...     return df + arg1
+   >>> def f(df, arg2, arg3):
+   ...     return df * (arg2 + arg3)
+   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
    >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
 
 with the equivalent
