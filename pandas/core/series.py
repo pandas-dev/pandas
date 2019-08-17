@@ -170,8 +170,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
+    name : str
+        This is the variable name of the series. If it in a DataFrame, the column 
+        will be named according to this name parameter. 
+        
     copy : bool, default False
         Copy input data.
+        
+    fastpath: internal paraemter    
     """
 
     _metadata = ["name"]
