@@ -1,3 +1,4 @@
+import csv
 import collections
 from datetime import timedelta
 import functools
@@ -3062,7 +3063,7 @@ class NDFrame(PandasObject, SelectionMixin):
         mode="w",
         encoding=None,
         compression="infer",
-        quoting=None,
+        quoting=csv.QUOTE_NONNUMERIC,
         quotechar='"',
         line_terminator=None,
         chunksize=None,
