@@ -140,10 +140,14 @@ def execute(sql, con, cur=None, params=None):
     ----------
     sql : string
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection) or sqlite3 connection
-        Using SQLAlchemy makes it possible to use any DB supported by the
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+    con : SQLAlchemy connectable (engine/connection) or database string URI
+        or DBAPI2 connection (fallback mode)
+        Using SQLAlchemy makes it possible to use any DB supported by that
+        library. Legacy support is provided for sqlite3.Connection objects.
+        Note: The user is responsible for engine disposal and connection
+        closure for the SQLAlchemy connectable. See `EngineDisposal
+        <https://docs.sqlalchemy.org/en/13/core/connections.html?highlight=engine#engine-disposal>`_.
+
     cur : deprecated, cursor is obtained from connection, default: None
     params : list or tuple, optional, default: None
         List of parameters to pass to execute method.
@@ -187,6 +191,9 @@ def read_sql_table(
     con : SQLAlchemy connectable or str
         A database URI could be provided as as str.
         SQLite DBAPI connection mode not supported.
+        Note: The user is responsible for engine disposal and connection
+        closure for the SQLAlchemy connectable. See `EngineDisposal
+        <https://docs.sqlalchemy.org/en/13/core/connections.html?highlight=engine#engine-disposal>`_.
     schema : str, default None
         Name of SQL schema in database to query (if database flavor
         supports this). Uses default schema if None (default).
@@ -279,11 +286,15 @@ def read_sql_query(
     ----------
     sql : string SQL query or SQLAlchemy Selectable (select or text object)
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection), database string URI,
+    con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        Using SQLAlchemy makes it possible to use any DB supported by
+        that library. Legacy support is provided for sqlite3.Connection
+        objects.
+        Note: The user is responsible for engine disposal and connection
+        closure for the SQLAlchemy connectable. See `EngineDisposal
+        <https://docs.sqlalchemy.org/en/13/core/connections.html?highlight=engine#engine-disposal>`_.
+
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -359,9 +370,12 @@ def read_sql(
         SQL query to be executed or a table name.
     con : SQLAlchemy connectable (engine/connection) or database string URI
         or DBAPI2 connection (fallback mode)
-
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library. If a DBAPI2 object, only sqlite3 is supported.
+        library. Legacy support is provided for sqlite3.Connection objects.
+        Note: The user is responsible for engine disposal and connection
+        closure for the SQLAlchemy connectable. See `EngineDisposal
+        <https://docs.sqlalchemy.org/en/13/core/connections.html?highlight=engine#engine-disposal>`_.
+
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -459,9 +473,13 @@ def to_sql(
         Name of SQL table.
     con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        Using SQLAlchemy makes it possible to use any DB supported by
+        that library. Legacy support is provided for sqlite3.Connection
+        objects.
+        Note: The user is responsible for engine disposal and connection
+        closure for the SQLAlchemy connectable. See `EngineDisposal
+        <https://docs.sqlalchemy.org/en/13/core/connections.html?highlight=engine#engine-disposal>`_.
+
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
