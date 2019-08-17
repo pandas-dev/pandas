@@ -177,6 +177,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     fastpath : str, optional
         Will be deprecated soon.
+        
     """
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
