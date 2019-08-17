@@ -53,7 +53,7 @@ def hist_series(
         rotation of y axis labels
     figsize : tuple, default None
         figure size in inches by default
-    bins : integer or sequence, default 10
+    bins : int or sequence, default 10
         Number of histogram bins to be used. If an integer is given, bins + 1
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
@@ -116,7 +116,7 @@ def hist_frame(
     ----------
     data : DataFrame
         The pandas object holding the data.
-    column : string or sequence
+    column : str or sequence
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
@@ -148,7 +148,7 @@ def hist_frame(
         `matplotlib.rcParams` by default.
     layout : tuple, optional
         Tuple of (rows, columns) for the layout of the histograms.
-    bins : integer or sequence, default 10
+    bins : int or sequence, default 10
         Number of histogram bins to be used. If an integer is given, bins + 1
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
@@ -177,7 +177,7 @@ def hist_frame(
         >>> df = pd.DataFrame({
         ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
         ...     'width': [0.7, 0.2, 0.15, 0.2, 1.1]
-        ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        ...     }, index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
     plot_backend = _get_plot_backend()
@@ -370,8 +370,8 @@ def boxplot(
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
 
-        >>> boxplot =  df.boxplot(column=['Col1', 'Col2'], by='X',
-        ...                       return_type=None)
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      return_type=None)
         >>> type(boxplot)
         <class 'numpy.ndarray'>
     """
@@ -446,7 +446,7 @@ def boxplot_frame_groupby(
         * ``True`` - create a subplot for each group
     column : column name or list of names, or vector
         Can be any valid input to groupby
-    fontsize : int or string
+    fontsize : int or str
     rot : label rotation angle
     grid : Setting this to True will show the grid
     ax : Matplotlib axis object, default None
@@ -530,7 +530,7 @@ class PlotAccessor(PandasObject):
     figsize : a tuple (width, height) in inches
     use_index : bool, default True
         Use index as ticks for x axis
-    title : string or list
+    title : str or list
         Title to use for the plot. If a string is passed, print the string
         at the top of the figure. If a list is passed and `subplots` is
         True, print each item in the list above the corresponding subplot.
@@ -553,16 +553,16 @@ class PlotAccessor(PandasObject):
         .. versionchanged:: 0.25.0
 
     xticks : sequence
-        Values to use for the xticks
+        Values to use for the xticks.
     yticks : sequence
-        Values to use for the yticks
+        Values to use for the yticks.
     xlim : 2-tuple/list
     ylim : 2-tuple/list
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots)
     fontsize : int, default None
-        Font size for xticks and yticks
+        Font size for xticks and yticks.
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
@@ -586,8 +586,10 @@ class PlotAccessor(PandasObject):
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
+    include_bool : bool, default is False
+        If True, boolean values can be plotted.
     `**kwds` : keywords
-        Options to pass to matplotlib plotting method
+        Options to pass to matplotlib plotting method.
 
     Returns
     -------
@@ -983,7 +985,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
             >>> ax = df.plot.barh(x='lab', y='val')
 
         Plot a whole DataFrame to a horizontal bar plot
@@ -1047,7 +1049,7 @@ class PlotAccessor(PandasObject):
 
         Parameters
         ----------
-        by : string or sequence
+        by : str or sequence
             Column in the DataFrame to group by.
         **kwds : optional
             Additional keywords are documented in
