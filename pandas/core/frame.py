@@ -6177,14 +6177,14 @@ class DataFrame(NDFrame):
 
     def explode(self, column: Union[str, Tuple]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row, replicating index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
-        ----------
+        ----------%s
         column : str or tuple
+            Column(s) to explode.
 
         Returns
         -------
@@ -6200,8 +6200,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
-            index labels
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+            index labels.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         Series.explode : Explode a DataFrame from list-like columns to long format.
 
         Notes
