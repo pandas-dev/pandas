@@ -1082,54 +1082,22 @@ def test_transform_lambda_with_datetimetz():
         (
             DataFrame(
                 {
-                    "A": [1, 1, 1, 1, '', 1],
-                    "B": [2, 3, '', 5, 6, 7],
-                    "C": [3, '', 4, '', 3, 2]
+                    "A": [121, 121, 121, 121, 231, 231, 676],
+                    "B": [1, 2, np.nan, 3, 3, np.nan, 4]
                 }
-            ),
-            1,
+            )
         ),
         (
             DataFrame(
                 {
-                    "A": [1, 1, 1, 1, 1, 1],
-                    "B": [2, 3, 4, 5, 6, 7],
-                    "C": [3, 3, 4, 3, 3, 2]
+                    "A": [121, 121, 121, 121, 231, 231, 676],
+                    "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]
                 }
-            ),
-            1,
-        ),
-    ],
-)
-def test_transform_fillna(inputDF, expectedDF):
-    # GH 27905 - Test fillna
-    input1 = inputDF.transform(lambda x: x.fillna(x.mean()))
-    assert input1 == expectedDF
-
-@pytest.mark.parametrize(
-    "inputDF, expectedDF",
-    [
-        (
-            DataFrame(
-                {
-                    "Integer": [1121, 1121, 1121, 1121, 3456, 3456, 7678],
-                    "String": ['Kapil', 'Kapil', np.nan, 'Yash', 'Kapil', np.nan, 'Apoorv']
-                }
-            ),
-            1,
-        ),
-        (
-            DataFrame(
-                {
-                    "Integer": [1121, 1121, 1121, 1121, 3456, 3456, 7678],
-                    "String": ['Kapil', 'Kapil', 'Kapil', 'Yash', 'Kapil', 'Kapil', 'Apoorv']
-                }
-            ),
-            1,
-        ),
+            )
+        )
     ],
 )
 def test_groupby_transform_fillna(inputDF, expectedDF):
     # GH 27905 - Test fillna in groupby.transform
-    input1 = inputDF.groupby('Integer').transform(lambda x: x.fillna(x.value_counts().index[0]))
+    input1 = inputDF.groupby('A').transform(lambda x: x.fillna(x.mean()))
     assert input1 == expectedDF
