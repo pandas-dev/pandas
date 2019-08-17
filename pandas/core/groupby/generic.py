@@ -1143,6 +1143,11 @@ class SeriesGroupBy(GroupBy):
 
         val = self.obj._internal_get_values()
 
+        if dropna:
+            idx = notna(val)
+            val = val[idx]
+            ids = ids[idx]
+
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
