@@ -1085,7 +1085,8 @@ def test_transform_lambda_with_datetimetz():
                     "A": [121, 121, 121, 121, 231, 231, 676],
                     "B": [1, 2, np.nan, 3, 3, np.nan, 4]
                 }
-            )
+            ),
+            1,
         ),
         (
             DataFrame(
@@ -1093,7 +1094,8 @@ def test_transform_lambda_with_datetimetz():
                     "A": [121, 121, 121, 121, 231, 231, 676],
                     "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]
                 }
-            )
+            ),
+            1,
         )
     ],
 )
