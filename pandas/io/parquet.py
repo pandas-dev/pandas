@@ -244,6 +244,8 @@ def to_parquet(
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
     return impl.write(
         df,
