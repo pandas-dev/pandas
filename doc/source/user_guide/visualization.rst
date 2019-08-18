@@ -1633,8 +1633,8 @@ Examples
 ~~~~~~~~
 
 .. ipython:: python
-   
-   import seaborn as sns
+
+    import seaborn as sns
 
 In order to understand how two variables are correlated, the best fit line
 is a good way. You can use ``seaborn.lmplot()`` method that combines ``regplot()``
@@ -1657,7 +1657,7 @@ bivariate analysis, we can use ``seaborn.pairplot()`` method for a pairwise plot
 
     df = sns.load_dataset('iris')
 
-    plt.figure(figsize=(10,8), dpi=80)
-    sns.pairplot(df, kind='scatter', hue='species', plot_kws=dict(s=80, edgecolor="white",
-    linewidth=2.5))
+    plt.figure(figsize=(10, 8), dpi=80)
+    sns.pairplot(df, kind='scatter', hue='species', plot_kws=dict(s=80,
+                edgecolor="white", linewidth=2.5))
     plt.show()
