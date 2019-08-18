@@ -16,7 +16,6 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
-import dataclasses
 
 import warnings
 
@@ -110,6 +109,7 @@ from pandas.core.internals.construction import (
     reorder_arrays,
     sanitize_index,
     to_arrays,
+    _dataclasses_to_dicts,
 )
 from pandas.core.series import Series
 
@@ -441,7 +441,7 @@ class DataFrame(NDFrame):
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
             if is_dataclass_instance(data[0]):
-                data = map(dataclasses.asdict, data)
+                data = _dataclasses_to_dicts(data)
             if not isinstance(data, abc.Sequence):
                 data = list(data)
             if len(data) > 0:

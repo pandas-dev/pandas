@@ -421,6 +421,9 @@ def _get_axes(N, K, index, columns):
         columns = ensure_index(columns)
     return index, columns
 
+def _dataclasses_to_dicts(data):
+    from dataclasses import asdict
+    return map(asdict, data)
 
 # ---------------------------------------------------------------------
 # Conversion of Inputs to Arrays

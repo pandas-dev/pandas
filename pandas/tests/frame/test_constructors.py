@@ -1338,7 +1338,10 @@ class TestDataFrameConstructors:
 
     def test_constructor_dataclasses(self):
         # GH21910
-        from dataclasses import dataclass
+        try:
+            from dataclasses import dataclass
+        except ImportError:
+            return;
 
         @dataclass
         class Point:

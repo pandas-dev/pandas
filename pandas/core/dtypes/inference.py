@@ -2,7 +2,6 @@
 
 from collections import abc
 from numbers import Number
-import dataclasses
 import re
 from typing import Pattern
 
@@ -453,7 +452,7 @@ def is_sequence(obj):
         return False
 
 
-def is_dataclass_instance(item) -> bool:
+def is_dataclass_instance(item):
     """
     Checks if the object is a data-class instance
 
@@ -480,5 +479,9 @@ def is_dataclass_instance(item) -> bool:
     True
 
     """
-    return dataclasses.is_dataclass(item) and not isinstance(item, type)
+    try:
+        from dataclasses import is_dataclass
+        return is_dataclass(item) and not isinstance(item, type)
+    except ImportError:
+        return False
 
