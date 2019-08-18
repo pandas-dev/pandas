@@ -1335,6 +1335,22 @@ class TestDataFrameConstructors:
         expected = DataFrame({"y": [1, 2], "z": [3, 4]})
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
+    
+    def test_constructor_dataclasses(self):
+        from dataclasses import dataclass
+
+        @dataclass
+        class Point:
+            x: int
+            y: int
+        
+        datas = [Point(0,3), Point(1,3)]
+        expected = DataFrame({
+            "x": [0,1],
+            "y": [3,3],
+        })
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dict_order(self):
         # GH10056
