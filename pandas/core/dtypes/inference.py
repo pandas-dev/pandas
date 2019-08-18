@@ -452,18 +452,20 @@ def is_sequence(obj):
     except (TypeError, AttributeError):
         return False
 
+
 def is_dataclass_instance(item) -> bool:
     """
     Checks if the object is a data-class instance
-    
+
     Parameters
     ----------
     item : the object to check
-    
+
     Returns
     --------
-        is_dataclass_instance : bool  
-        True if the item is an instance of a data-class, will return false if you pass the data class itself
+    is_dataclass_instance : bool  
+        True if the item is an instance of a data-class, 
+        will return false if you pass the data class itself
 
     Examples
     --------
@@ -480,4 +482,3 @@ def is_dataclass_instance(item) -> bool:
     """
     return dataclasses.is_dataclass(item) and not isinstance(item, type)
 
-    
