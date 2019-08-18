@@ -1,4 +1,6 @@
-"""Test Unpacker's read_array_header and read_map_header methods"""
+"""
+Test Unpacker's read_array_header and read_map_header methods.
+"""
 from pandas.io.msgpack import OutOfData, Unpacker, packb
 
 UnexpectedTypeException = ValueError

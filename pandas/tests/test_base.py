@@ -112,7 +112,9 @@ class TestPandasDelegate:
         foo = property(_get_foo, _set_foo, doc="foo property")
 
         def bar(self, *args, **kwargs):
-            """ a test bar method """
+            """
+            A test bar method.
+            """
             pass
 
     class Delegate(PandasDelegate, PandasObject):
@@ -158,7 +160,9 @@ class TestPandasDelegate:
 
 class Ops:
     def _allow_na_ops(self, obj):
-        """Whether to skip test cases including NaN"""
+        """
+        Whether to skip test cases including NaN.
+        """
         if isinstance(obj, Index) and (obj.is_boolean() or not obj._can_hold_na):
             # don't test boolean / int64 index
             return False

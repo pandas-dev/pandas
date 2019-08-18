@@ -17,7 +17,9 @@ import pandas.io.common as icom
 
 
 class CustomFSPath:
-    """For testing fspath on unknown objects"""
+    """
+    For testing fspath on unknown objects.
+    """
 
     def __init__(self, path):
         self.path = path

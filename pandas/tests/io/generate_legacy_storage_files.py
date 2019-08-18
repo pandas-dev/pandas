@@ -131,7 +131,9 @@ def _create_sp_frame():
 
 
 def create_data():
-    """ create the pickle/msgpack data """
+    """
+    Create the pickle/msgpack data.
+    """
 
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],

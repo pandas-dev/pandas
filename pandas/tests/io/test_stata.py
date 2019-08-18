@@ -1769,10 +1769,11 @@ The repeated labels are:\n-+\nwolof
     def test_encoding_latin1_118(self):
         # GH 25960
         msg = """
-One or more strings in the dta file could not be decoded using utf-8, and
-so the fallback encoding of latin-1 is being used.  This can happen when a file
-has been incorrectly encoded by Stata or some other software. You should verify
-the string values returned are correct."""
+            One or more strings in the dta file could not be decoded using utf-8, and
+            so the fallback encoding of latin-1 is being used.  This can happen when a file
+            has been incorrectly encoded by Stata or some other software. You should verify
+            the string values returned are correct.
+        """
         with tm.assert_produces_warning(UnicodeWarning) as w:
             encoded = read_stata(self.dta_encoding_118)
             assert len(w) == 151

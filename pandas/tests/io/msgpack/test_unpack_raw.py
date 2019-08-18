@@ -1,4 +1,6 @@
-"""Tests for cases where the user seeks to obtain packed msgpack objects"""
+"""
+Tests for cases where the user seeks to obtain packed msgpack objects.
+"""
 
 import io
 

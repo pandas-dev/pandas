@@ -111,7 +111,8 @@ def df(request):
 
 @pytest.fixture
 def mock_clipboard(monkeypatch, request):
-    """Fixture mocking clipboard IO.
+    """
+    Fixture mocking clipboard IO.
 
     This mocks pandas.io.clipboard.clipboard_get and
     pandas.io.clipboard.clipboard_set.

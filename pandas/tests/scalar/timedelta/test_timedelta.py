@@ -1,4 +1,6 @@
-""" test the scalar Timedelta """
+"""
+Test the scalar Timedelta.
+"""
 from datetime import timedelta
 import re
 

@@ -9,25 +9,32 @@ from pandas.io.parsers import read_csv
 
 @pytest.fixture
 def tips_file(datapath):
-    """Path to the tips dataset"""
+    """
+    Path to the tips dataset.
+    """
     return datapath("io", "parser", "data", "tips.csv")
 
 
 @pytest.fixture
 def jsonl_file(datapath):
-    """Path a JSONL dataset"""
+    """
+    Path a JSONL dataset.
+    """
     return datapath("io", "parser", "data", "items.jsonl")
 
 
 @pytest.fixture
 def salaries_table(datapath):
-    """DataFrame with the salaries dataset"""
+    """
+    DataFrame with the salaries dataset.
+    """
     return read_csv(datapath("io", "parser", "data", "salaries.csv"), sep="\t")
 
 
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file):
-    """Fixture for mocking S3 interaction.
+    """
+    Fixture for mocking S3 interaction.
 
     The primary bucket name is "pandas-test". The following datasets
     are loaded.
