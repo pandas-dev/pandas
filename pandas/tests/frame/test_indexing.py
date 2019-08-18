@@ -208,46 +208,28 @@ class TestDataFrameIndexing(TestData):
         expected = Series(tuples, index=float_frame.index, name="tuples")
         assert_series_equal(result, expected)
 
-    def test_setitem_list_all_missing_columns_scalar(self, float_frame):
+    @pytest.mark.parametrize("columns", [["A", "E"], ["E", "F"]])
+    @pytest.mark.parametrize(
+        "box",
+        [
+            lambda x: 1,
+            lambda x: [1, 2],
+            lambda x: np.array([1, 2]),
+            lambda x: x[["B", "C"]],
+            lambda x: x[["B", "A"]].values,
+            lambda x: x[["A", "C"]].values.tolist(),
+        ],
+    )
+    def test_setitem_list_missing_columns(self, float_frame, columns, box):
         # GH 26534
         result = float_frame.copy()
-        result[["E", "F"]] = 1
+        result[columns] = box(float_frame)
         expected = float_frame.copy()
-        # force the dtypes to be float as currently multcolumn assignment does not
-        # change column dtype from float to int even when it's being assigned an int
-        expected["E"] = 1.0
-        expected["F"] = 1.0
+        for col in columns:
+            if col not in expected.columns:
+                expected[col] = np.nan
+        expected[columns] = box(float_frame)
         assert_frame_equal(result, expected)
-
-    def test_setitem_list_some_missing_columns_list(self, float_frame):
-        # GH 26534
-        result = float_frame.copy()
-        result[["A", "E"]] = [1, 2]
-        expected = float_frame.copy()
-        # force the dtypes to be float as currently multcolumn assignment does not
-        # change column dtype from float to int even when it's being assigned an int
-        expected["A"] = 1.0
-        expected["E"] = 2.0
-        assert_frame_equal(result, expected)
-
-    def test_setitem_list_some_missing_columns_dataframe(self, float_frame):
-        # GH 26534
-        result = float_frame.copy()
-        result[["A", "E"]] = float_frame[["B", "C"]]
-        expected = float_frame.copy()
-        expected["A"] = float_frame["B"]
-        expected["E"] = float_frame["C"]
-        assert_frame_equal(result, expected)
-
-    def test_setitem_list_some_missing_columns_2dlist(self):
-        # GH 26534
-        result = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        result[["B", "C", "D"]] = [[7, 8, 9], [10, 11, 12], [13, 14, 15]]
-        expected = pd.DataFrame(
-            [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
-            columns=["A", "B", "C", "D"],
-        )
-        tm.assert_frame_equal(result, expected)
 
     def test_setitem_mulit_index(self):
         # GH7655, test that assigning to a sub-frame of a frame

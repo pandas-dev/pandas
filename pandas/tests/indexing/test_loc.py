@@ -808,45 +808,29 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
-    def test_loc_setitem_missing_columns_scalar_index_list_value(self):
+    @pytest.mark.parametrize(
+        "index,box",
+        [
+            ((1, ["C", "D"]), [7, 8]),
+            (
+                (slice(None, None, None), ["A", "C"]),
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+            ),
+            (([0, 2], ["B", "C", "D"]), 9),
+            ((slice(1, 3, None), ["B", "C", "D"]), [[7, 8, 9], [10, 11, 12]]),
+        ],
+    )
+    def test_loc_setitem_missing_columns(self, index, box):
         # GH 26534
         df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df.loc[1, ["C", "D"]] = [7, 8]
-        expected = pd.DataFrame(
-            [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
-            columns=["A", "B", "C", "D"],
-        )
-        tm.assert_frame_equal(df, expected)
-
-    def test_loc_setitem_missing_columns_full_index_dataframe_value(self):
-        # GH 26534
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df2 = pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"])
-        df.loc[:, ["A", "C"]] = df2
-        expected = pd.DataFrame(
-            [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
-        )
-        tm.assert_frame_equal(df, expected)
-
-    def test_loc_setitem_missing_columns_list_index_scalar_value(self):
-        # GH 26534
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df.loc[[0, 2], ["B", "C", "D"]] = 9
-        expected = pd.DataFrame(
-            [[1, 9, 9, 9], [3, 4, np.nan, np.nan], [5, 9, 9, 9]],
-            columns=["A", "B", "C", "D"],
-        )
-        tm.assert_frame_equal(df, expected)
-
-    def test_loc_setitem_missing_columns_range_index_2dlist_value(self):
-        # GH 26534
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df.loc[1:3, ["B", "C", "D"]] = [[7, 8, 9], [10, 11, 12]]
-        expected = pd.DataFrame(
-            [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
-            columns=["A", "B", "C", "D"],
-        )
-        tm.assert_frame_equal(df, expected)
+        result = df.copy()
+        result.loc[index] = box
+        expected = df.copy()
+        for col in index[1]:
+            if col not in expected.columns:
+                expected[col] = np.nan
+        expected.loc[index] = box
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_coercion(self):
 
