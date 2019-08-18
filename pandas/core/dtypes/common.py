@@ -46,6 +46,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
     is_string_like,
+    is_dataclass_instance,
 )
 
 from pandas._typing import ArrayLike

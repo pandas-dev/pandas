@@ -2,6 +2,7 @@
 
 from collections import abc
 from numbers import Number
+import dataclasses
 import re
 from typing import Pattern
 
@@ -450,3 +451,33 @@ def is_sequence(obj):
         return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False
+
+def is_dataclass_instance(item) -> bool:
+    """
+    Checks if the object is a data-class instance
+    
+    Parameters
+    ----------
+    item : the object to check
+    
+    Returns
+    --------
+        is_dataclass_instance : bool  
+        True if the item is an instance of a data-class, will return false if you pass the data class itself
+
+    Examples
+    --------
+    >>> @dataclass
+    >>> class Point:
+    >>>     x: int
+    >>>     y: int
+
+    >>> is_dataclass_instance(Point)
+    False
+    >>> is_dataclass_instance(Point(0,2))
+    True
+
+    """
+    return dataclasses.is_dataclass(item) and not isinstance(item, type)
+
+    
