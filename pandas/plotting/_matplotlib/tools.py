@@ -355,15 +355,6 @@ def _get_all_lines(ax):
     return lines
 
 
-def _get_xlim(lines):
-    left, right = np.inf, -np.inf
-    for l in lines:
-        x = l.get_xdata(orig=False)
-        left = min(np.nanmin(x), left)
-        right = max(np.nanmax(x), right)
-    return left, right
-
-
 def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
     import matplotlib.pyplot as plt
 
