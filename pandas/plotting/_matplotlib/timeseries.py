@@ -169,7 +169,9 @@ def _replot_ax(ax, freq, kwargs):
 
 
 def _decorate_axes(ax, freq, kwargs):
-    """Initialize axes for time-series plotting"""
+    """
+    Initialize axes for time-series plotting.
+    """
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
 

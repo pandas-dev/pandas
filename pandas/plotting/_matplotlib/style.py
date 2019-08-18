@@ -43,7 +43,9 @@ def _get_standard_colors(
         elif color_type == "random":
 
             def random_color(column):
-                """ Returns a random color represented as a list of length 3"""
+                """
+                Returns a random color represented as a list of length 3.
+                """
                 # GH17525 use common._random_state to avoid resetting the seed
                 rs = com.random_state(column)
                 return rs.rand(3).tolist()
