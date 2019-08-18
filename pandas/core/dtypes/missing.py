@@ -131,7 +131,7 @@ def _isna_new(obj):
     try:
         if obj._data is None:
             return False
-    except:
+    except Exception:
         if is_scalar(obj):
             return libmissing.checknull(obj)
         # hack (for now) because MI registers as ndarray
