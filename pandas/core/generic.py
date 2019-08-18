@@ -6670,71 +6670,67 @@ class NDFrame(PandasObject, SelectionMixin):
                 to_replace, value, inplace=inplace, limit=limit, regex=regex
             )
 
-
         if value is None and not replace_by_none:
 
                 # passing a single value that is scalar like
                 # when value is None (GH5319), for compat
 
-                if not is_dict_like(to_replace) and not is_dict_like(regex):
+            if not is_dict_like(to_replace) and not is_dict_like(regex):
 
-                    to_replace = [to_replace]
-
-
-                if isinstance(to_replace, (tuple, list)):
+                to_replace = [to_replace]
 
 
-                    if isinstance(self, ABCDataFrame):
-                        return self.apply(
-                            _single_replace, args=(to_replace, method, inplace, limit)
+            if isinstance(to_replace, (tuple, list)):
+                if isinstance(self, ABCDataFrame):
+                    return self.apply(
+                        _single_replace, args=(to_replace, method, inplace, limit)
+                    )
+                return _single_replace(self, to_replace, method, inplace, limit)
+
+            if not is_dict_like(to_replace):
+
+                if not is_dict_like(regex):
+                    raise TypeError(
+                        'If "to_replace" and "value" are both None'
+                        ' and "to_replace" is not a list, then '
+                        "regex must be a mapping"
+                    )
+                to_replace = regex
+                regex = True
+
+            items = list(to_replace.items())
+            keys, values = zip(*items) if items else ([], [])
+
+            are_mappings = [is_dict_like(v) for v in values]
+
+            if any(are_mappings):
+                if not all(are_mappings):
+                    raise TypeError(
+                        "If a nested mapping is passed, all values"
+                        " of the top level mapping must be "
+                        "mappings"
+                    )
+                # passed a nested dict/Series
+                to_rep_dict = {}
+                value_dict = {}
+
+                for k, v in items:
+                    keys, values = list(zip(*v.items())) or ([], [])
+                    if set(keys) & set(values):
+                        raise ValueError(
+                            "Replacement not allowed with "
+                            "overlapping keys and values"
                         )
+                    to_rep_dict[k] = list(keys)
+                    value_dict[k] = list(values)
 
-                    return _single_replace(self, to_replace, method, inplace, limit)
+                to_replace, value = to_rep_dict, value_dict
+            else:
+                to_replace, value = keys, values
 
-                if not is_dict_like(to_replace):
-
-                    if not is_dict_like(regex):
-                        raise TypeError(
-                            'If "to_replace" and "value" are both None'
-                            ' and "to_replace" is not a list, then '
-                            "regex must be a mapping"
-                        )
-                    to_replace = regex
-                    regex = True
-
-                items = list(to_replace.items())
-                keys, values = zip(*items) if items else ([], [])
-
-                are_mappings = [is_dict_like(v) for v in values]
-
-                if any(are_mappings):
-                    if not all(are_mappings):
-                        raise TypeError(
-                            "If a nested mapping is passed, all values"
-                            " of the top level mapping must be "
-                            "mappings"
-                        )
-                    # passed a nested dict/Series
-                    to_rep_dict = {}
-                    value_dict = {}
-
-                    for k, v in items:
-                        keys, values = list(zip(*v.items())) or ([], [])
-                        if set(keys) & set(values):
-                            raise ValueError(
-                                "Replacement not allowed with "
-                                "overlapping keys and values"
-                            )
-                        to_rep_dict[k] = list(keys)
-                        value_dict[k] = list(values)
-
-                    to_replace, value = to_rep_dict, value_dict
-                else:
-                    to_replace, value = keys, values
-
-                return self.replace(
-                    to_replace, value, inplace=inplace, limit=limit, regex=regex
-                )
+            return self.replace(
+                to_replace, value, inplace=inplace, limit=limit, regex=regex
+            )
         else:
 
             # need a non-zero len on all axes
