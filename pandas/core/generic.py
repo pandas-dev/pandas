@@ -6672,8 +6672,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if value is None and not replace_by_none:
 
-                # passing a single value that is scalar like
-                # when value is None (GH5319), for compat
+            # passing a single value that is scalar like
+            # when value is None (GH5319), for compat
 
             if not is_dict_like(to_replace) and not is_dict_like(regex):
 
