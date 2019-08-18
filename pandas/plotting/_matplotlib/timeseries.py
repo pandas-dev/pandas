@@ -270,7 +270,8 @@ def _get_index_freq(data):
             weekdays = np.unique(data.index.dayofweek)
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
-    # This is a hack introduced to avoid tick resolution adjustment issue - Locators off by one day #24784
+    # This is a hack introduced to avoid tick resolution adjustment issue -
+    # Locators off by one day #24784
         elif freq == "D":
             freq = None
     elif freq.name == "D":
