@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works, _check_plot_works_with_continuous_dates
 import pandas.util.testing as tm
 
 import pandas.plotting as plotting
@@ -730,6 +730,28 @@ class TestSeriesPlots(TestPlotBase):
         values = randn(index.size)
         s = Series(values, index=index)
         _check_plot_works(s.plot)
+
+    @pytest.mark.slow
+    def test_continuous_dates(self):
+        s = Series(np.arange(10), name="x")
+        s_err = np.random.randn(10)
+
+        ix = date_range("1/1/2018", "1/10/2018", freq="D")
+        ts = Series(np.arange(10), index=ix, name="x")
+        ts_err = Series(np.random.randn(10), index=ix)
+        td_err = DataFrame(randn(10, 2), index=ix, columns=["x", "y"])
+        ax = _check_plot_works_with_continuous_dates(ts.plot, yerr=ts_err)
+
+        self._check_text_labels(ax.get_xticklabels(), ["\nJan01", "\nJan02", "\nJan03", "\nJan04", "\nJan05",
+                                                       "\nJan06", "\nJan07", "\nJan08", "\nJan09", "\nJan10"])
+
+        # check incorrect lengths and types
+        with pytest.raises(ValueError):
+            s.plot(yerr=np.arange(11))
+
+        s_err = ["zzz"] * 10
+        with pytest.raises(TypeError):
+            s.plot(yerr=s_err)
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
