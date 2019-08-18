@@ -3,7 +3,8 @@
 v0.12.0 (July 24, 2013)
 ------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
@@ -46,7 +47,7 @@ API changes
 
     .. ipython:: python
 
-        p = DataFrame({ 'first' : [4,5,8], 'second' : [0,0,3] })
+        p = pd.DataFrame({'first': [4, 5, 8], 'second': [0, 0, 3]})
         p % 0
         p % p
         p / p
@@ -60,10 +61,13 @@ API changes
 
     .. ipython:: python
 
-        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
-                         {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
+        df2 = pd.DataFrame([{"val1": 1, "val2": 20},
+                            {"val1": 1, "val2": 19},
+                            {"val1": 1, "val2": 27},
+                            {"val1": 1, "val2": 12}])
+
         def func(dataf):
-            return dataf["val2"]  - dataf["val2"].mean()
+            return dataf["val2"] - dataf["val2"].mean()
 
         # squeezing the result frame to a series (because we have unique groups)
         df2.groupby("val1", squeeze=True).apply(func)
@@ -79,14 +83,9 @@ API changes
     ``iloc`` API to be *purely* positional based.
 
     .. ipython:: python
-       :suppress:
 
-       from pandas.compat import lrange
-
-    .. ipython:: python
-
-       df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
-       mask = (df.a%2 == 0)
+       df = pd.DataFrame(range(5), index=list('ABCDE'), columns=['a'])
+       mask = (df.a % 2 == 0)
        mask
 
        # this is what you should use
@@ -146,7 +145,7 @@ API changes
       .. code-block:: python
 
          from pandas.io.sql import read_frame
-         read_frame(....)
+         read_frame(...)
 
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
     their first argument (:issue:`3702`)
@@ -178,7 +177,7 @@ API changes
     ``__repr__``). Plus string safety throughout. Now employed in many places
     throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-I/O Enhancements
+I/O enhancements
 ~~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
@@ -187,10 +186,10 @@ I/O Enhancements
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
-    .. ipython :: python
+    .. ipython:: python
        :okwarning:
 
-        df = DataFrame({'a': range(3), 'b': list('abc')})
+        df = pd.DataFrame({'a': range(3), 'b': list('abc')})
         print(df)
         html = df.to_html()
         alist = pd.read_html(html, index_col=0)
@@ -241,7 +240,7 @@ I/O Enhancements
          df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
          df.to_csv('mi.csv')
          print(open('mi.csv').read())
-         pd.read_csv('mi.csv', header=[0,1,2,3], index_col=[0,1])
+         pd.read_csv('mi.csv', header=[0, 1, 2, 3], index_col=[0, 1])
 
       .. ipython:: python
          :suppress:
@@ -258,10 +257,10 @@ I/O Enhancements
 
         In [25]: path = 'store_iterator.h5'
 
-        In [26]: DataFrame(randn(10,2)).to_hdf(path,'df',table=True)
+        In [26]: pd.DataFrame(np.random.randn(10, 2)).to_hdf(path, 'df', table=True)
 
-        In [27]: for df in read_hdf(path,'df', chunksize=3):
-           ....:    print df
+        In [27]: for df in pd.read_hdf(path, 'df', chunksize=3):
+           ....:     print(df)
            ....:
                   0         1
         0  0.713216 -0.778461
@@ -283,7 +282,7 @@ I/O Enhancements
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
 
-Other Enhancements
+Other enhancements
 ~~~~~~~~~~~~~~~~~~
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
@@ -292,9 +291,9 @@ Other Enhancements
 
     For example you can do
 
-    .. ipython :: python
+    .. ipython:: python
 
-        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
+        df = pd.DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
         df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
@@ -302,7 +301,7 @@ Other Enhancements
 
     Regular string replacement still works as expected. For example, you can do
 
-    .. ipython :: python
+    .. ipython:: python
 
         df.replace('.', np.nan)
 
@@ -313,22 +312,24 @@ Other Enhancements
 
   - ``pd.set_option()`` now allows N option, value pairs (:issue:`3667`).
 
-      Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
-      We can set them at the same time:
+    Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
+    We can set them at the same time:
 
-      .. ipython:: python
-         :suppress:
+    .. code-block:: ipython
 
-         pd.core.config.register_option('a.b', 2, 'ay dot bee')
-         pd.core.config.register_option('b.c', 3, 'bee dot cee')
+        In [31]: pd.get_option('a.b')
+        Out[31]: 2
 
-      .. ipython:: python
+        In [32]: pd.get_option('b.c')
+        Out[32]: 3
 
-         pd.get_option('a.b')
-         pd.get_option('b.c')
-         pd.set_option('a.b', 1, 'b.c', 4)
-         pd.get_option('a.b')
-         pd.get_option('b.c')
+        In [33]: pd.set_option('a.b', 1, 'b.c', 4)
+
+        In [34]: pd.get_option('a.b')
+        Out[34]: 1
+
+        In [35]: pd.get_option('b.c')
+        Out[35]: 4
 
   - The ``filter`` method for group objects returns a subset of the original
     object. Suppose we want to take only elements that belong to groups with a
@@ -336,7 +337,7 @@ Other Enhancements
 
     .. ipython:: python
 
-       sf = Series([1, 1, 2, 3, 3, 3])
+       sf = pd.Series([1, 1, 2, 3, 3, 3])
        sf.groupby(sf).filter(lambda x: x.sum() > 2)
 
     The argument of ``filter`` must a function that, applied to the group as a
@@ -347,7 +348,7 @@ Other Enhancements
 
     .. ipython:: python
 
-       dff = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
+       dff = pd.DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
        dff.groupby('B').filter(lambda x: len(x) > 2)
 
     Alternatively, instead of dropping the offending groups, we can return a
@@ -370,7 +371,7 @@ Other Enhancements
     is detected (:issue:`4214`)
 
 
-Experimental Features
+Experimental features
 ~~~~~~~~~~~~~~~~~~~~~
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
@@ -394,10 +395,10 @@ Experimental Features
       bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
       dt = datetime(2013, 4, 30)
       print(dt + 2 * bday_egypt)
-      dts = date_range(dt, periods=5, freq=bday_egypt)
-      print(Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
+      dts = pd.date_range(dt, periods=5, freq=bday_egypt)
+      print(pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
@@ -418,7 +419,7 @@ Bug Fixes
     .. ipython:: python
 
         strs = 'go', 'bow', 'joe', 'slow'
-        ds = Series(strs)
+        ds = pd.Series(strs)
 
         for s in ds.str:
             print(s)

@@ -3,7 +3,8 @@
 v0.15.0 (October 18, 2014)
 --------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a major release from 0.14.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -66,12 +67,13 @@ methods to manipulate. Thanks to Jan Schulz for much of this API/implementation.
 :issue:`8075`, :issue:`8076`, :issue:`8143`, :issue:`8453`, :issue:`8518`).
 
 For full docs, see the :ref:`categorical introduction <categorical>` and the
-:ref:`API documentation <api.categorical>`.
+:ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
     :okwarning:
 
-    df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+    df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
+                       "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
 
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
@@ -80,7 +82,8 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
     # Reorder the categories and simultaneously add the missing categories
-    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
+    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad",
+                                                  "medium", "good", "very good"])
     df["grade"]
     df.sort_values("grade")
     df.groupby("grade").size()
@@ -95,7 +98,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 - The ``Categorical.labels`` attribute was renamed to ``Categorical.codes`` and is read
   only. If you want to manipulate codes, please use one of the
-  :ref:`API methods on Categoricals <api.categorical>`.
+  :ref:`API methods on Categoricals <api.arrays.categorical>`.
 
 - The ``Categorical.levels`` attribute is renamed to ``Categorical.categories``.
 
@@ -117,7 +120,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
    .. code-block:: ipython
 
       # Timedelta accessor
-      In [9]: tds = Timedelta('31 days 5 min 3 sec')
+      In [9]: tds = pd.Timedelta('31 days 5 min 3 sec')
 
       In [10]: tds.minutes
       Out[10]: 5L
@@ -145,22 +148,22 @@ Construct a scalar
 
 .. ipython:: python
 
-   Timedelta('1 days 06:05:01.00003')
-   Timedelta('15.5us')
-   Timedelta('1 hour 15.5us')
+   pd.Timedelta('1 days 06:05:01.00003')
+   pd.Timedelta('15.5us')
+   pd.Timedelta('1 hour 15.5us')
 
    # negative Timedeltas have this string repr
    # to be more consistent with datetime.timedelta conventions
-   Timedelta('-1us')
+   pd.Timedelta('-1us')
 
    # a NaT
-   Timedelta('nan')
+   pd.Timedelta('nan')
 
 Access fields for a ``Timedelta``
 
 .. ipython:: python
 
-   td = Timedelta('1 hour 3m 15.5us')
+   td = pd.Timedelta('1 hour 3m 15.5us')
    td.seconds
    td.microseconds
    td.nanoseconds
@@ -171,26 +174,26 @@ Construct a ``TimedeltaIndex``
    :suppress:
 
    import datetime
-   from datetime import timedelta
 
 .. ipython:: python
 
-   TimedeltaIndex(['1 days','1 days, 00:00:05',
-                   np.timedelta64(2,'D'),timedelta(days=2,seconds=2)])
+   pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
+                      np.timedelta64(2, 'D'),
+                      datetime.timedelta(days=2, seconds=2)])
 
 Constructing a ``TimedeltaIndex`` with a regular range
 
 .. ipython:: python
 
-   timedelta_range('1 days',periods=5,freq='D')
-   timedelta_range(start='1 days',end='2 days',freq='30T')
+   pd.timedelta_range('1 days', periods=5, freq='D')
+   pd.timedelta_range(start='1 days', end='2 days', freq='30T')
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 
 .. ipython:: python
 
-   s = Series(np.arange(5),
-              index=timedelta_range('1 days',periods=5,freq='s'))
+   s = pd.Series(np.arange(5),
+                 index=pd.timedelta_range('1 days', periods=5, freq='s'))
    s
 
 You can select with partial string selections
@@ -204,9 +207,9 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. ipython:: python
 
-   tdi = TimedeltaIndex(['1 days',pd.NaT,'2 days'])
+   tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
    tdi.tolist()
-   dti = date_range('20130101',periods=3)
+   dti = pd.date_range('20130101', periods=3)
    dti.tolist()
 
    (dti + tdi).tolist()
@@ -217,7 +220,7 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. _whatsnew_0150.memory:
 
-Memory Usage
+Memory usage
 ^^^^^^^^^^^^
 
 Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-memory-usage>` for more. (:issue:`6852`).
@@ -229,9 +232,8 @@ A new display option ``display.memory_usage`` (see :ref:`options`) sets the defa
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
               'complex128', 'object', 'bool']
     n = 5000
-    data = dict([ (t, np.random.randint(100, size=n).astype(t))
-                    for t in dtypes])
-    df = DataFrame(data)
+    data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
+    df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
     df.info()
@@ -254,7 +256,7 @@ This will return a Series, indexed like the existing Series. See the :ref:`docs 
 .. ipython:: python
 
    # datetime
-   s = Series(date_range('20130101 09:10:12',periods=4))
+   s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
    s
    s.dt.hour
    s.dt.second
@@ -265,7 +267,7 @@ This enables nice expressions like this:
 
 .. ipython:: python
 
-   s[s.dt.day==2]
+   s[s.dt.day == 2]
 
 You can easily produce tz aware transformations:
 
@@ -286,7 +288,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # period
-   s = Series(period_range('20130101',periods=4,freq='D'))
+   s = pd.Series(pd.period_range('20130101', periods=4, freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -294,7 +296,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # timedelta
-   s = Series(timedelta_range('1 day 00:00:05',periods=4,freq='s'))
+   s = pd.Series(pd.timedelta_range('1 day 00:00:05', periods=4, freq='s'))
    s
    s.dt.days
    s.dt.seconds
@@ -310,12 +312,14 @@ Timezone handling improvements
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
+     :okwarning:
 
-     ts = Timestamp('2014-08-01 09:00', tz='US/Eastern')
+     ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts
      ts.tz_localize(None)
 
-     didx = DatetimeIndex(start='2014-08-01 09:00', freq='H', periods=10, tz='US/Eastern')
+     didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
+                             periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
 
@@ -335,7 +339,7 @@ Timezone handling improvements
 
 .. _whatsnew_0150.roll:
 
-Rolling/Expanding Moments improvements
+Rolling/expanding moments improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
@@ -346,11 +350,11 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-     s = Series([10, 11, 12, 13])
+     s = pd.Series([10, 11, 12, 13])
 
   .. code-block:: ipython
 
-     In [15]: rolling_min(s, window=10, min_periods=5)
+     In [15]: pd.rolling_min(s, window=10, min_periods=5)
      ValueError: min_periods (5) must be <= window (4)
 
   New behavior
@@ -379,7 +383,7 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-    In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+    In [7]: pd.rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
     Out[7]:
     0     1
     1     3
@@ -391,7 +395,8 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+     In [7]: pd.rolling_sum(pd.Series(range(4)), window=3,
+       ....:                min_periods=0, center=True)
      Out[7]:
      0    1
      1    3
@@ -405,13 +410,13 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-    s = Series([10.5, 8.8, 11.4, 9.7, 9.3])
+    s = pd.Series([10.5, 8.8, 11.4, 9.7, 9.3])
 
   Behavior prior to 0.15.0:
 
   .. code-block:: ipython
 
-     In [39]: rolling_window(s, window=3, win_type='triang', center=True)
+     In [39]: pd.rolling_window(s, window=3, win_type='triang', center=True)
      Out[39]:
      0         NaN
      1    6.583333
@@ -454,7 +459,7 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-    s  = Series([1, None, None, None, 2, 3])
+    s  = pd.Series([1, None, None, None, 2, 3])
 
   .. code-block:: ipython
 
@@ -496,21 +501,23 @@ Rolling/Expanding Moments improvements
 
   .. code-block:: ipython
 
-     In [7]: pd.ewma(Series([None, 1., 8.]), com=2.)
+     In [7]: pd.ewma(pd.Series([None, 1., 8.]), com=2.)
      Out[7]:
      0    NaN
      1    1.0
      2    5.2
      dtype: float64
 
-     In [8]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     In [8]: pd.ewma(pd.Series([1., None, 8.]), com=2.,
+       ....:         ignore_na=True)  # pre-0.15.0 behavior
      Out[8]:
      0    1.0
      1    1.0
      2    5.2
      dtype: float64
 
-     In [9]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     In [9]: pd.ewma(pd.Series([1., None, 8.]), com=2.,
+       ....:         ignore_na=False)  # new default
      Out[9]:
      0    1.000000
      1    1.000000
@@ -547,7 +554,7 @@ Rolling/Expanding Moments improvements
 
   .. ipython:: python
 
-     s = Series([1., 2., 0., 4.])
+     s = pd.Series([1., 2., 0., 4.])
 
   .. code-block:: ipython
 
@@ -605,8 +612,8 @@ Improvements in the sql io module
 
   .. code-block:: python
 
-         df.to_sql('table', engine, schema='other_schema')
-         pd.read_sql_table('table', engine, schema='other_schema')
+         df.to_sql('table', engine, schema='other_schema')  # noqa F821
+         pd.read_sql_table('table', engine, schema='other_schema')  # noqa F821
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).
@@ -661,7 +668,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     df = DataFrame([['a'],['b']],index=[1,2])
+     df = pd.DataFrame([['a'], ['b']], index=[1, 2])
      df
 
   In prior versions there was a difference in these two constructs:
@@ -680,13 +687,13 @@ Other notable API changes:
 
   .. code-block:: ipython
 
-     In [3]: df.loc[[1,3]]
+     In [3]: df.loc[[1, 3]]
      Out[3]:
           0
      1    a
      3  NaN
 
-     In [4]: df.loc[[1,3],:]
+     In [4]: df.loc[[1, 3], :]
      Out[4]:
           0
      1    a
@@ -694,13 +701,19 @@ Other notable API changes:
 
   This can also be seen in multi-axis indexing with a ``Panel``.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     p = Panel(np.arange(2*3*4).reshape(2,3,4),
-               items=['ItemA','ItemB'],
-               major_axis=[1,2,3],
-               minor_axis=['A','B','C','D'])
-     p
+     >>> p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+     ...              items=['ItemA', 'ItemB'],
+     ...              major_axis=[1, 2, 3],
+     ...              minor_axis=['A', 'B', 'C', 'D'])
+     >>> p
+     <class 'pandas.core.panel.Panel'>
+     Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+     Items axis: ItemA to ItemB
+     Major_axis axis: 1 to 3
+     Minor_axis axis: A to D
+
 
   The following would raise ``KeyError`` prior to 0.15.0:
 
@@ -718,15 +731,16 @@ Other notable API changes:
   .. ipython:: python
      :okexcept:
 
-     s = Series(np.arange(3,dtype='int64'),
-                index=MultiIndex.from_product([['A'],['foo','bar','baz']],
-                                              names=['one','two'])
-               ).sort_index()
+     s = pd.Series(np.arange(3, dtype='int64'),
+                   index=pd.MultiIndex.from_product([['A'],
+                                                    ['foo', 'bar', 'baz']],
+                                                    names=['one', 'two'])
+                   ).sort_index()
      s
      try:
-        s.loc[['D']]
+         s.loc[['D']]
      except KeyError as e:
-        print("KeyError: " + str(e))
+         print("KeyError: " + str(e))
 
 - Assigning values to ``None`` now considers the dtype when choosing an 'empty' value (:issue:`7941`).
 
@@ -736,7 +750,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     s = Series([1, 2, 3])
+     s = pd.Series([1, 2, 3])
      s.loc[0] = None
      s
 
@@ -747,7 +761,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     s = Series(["a", "b", "c"])
+     s = pd.Series(["a", "b", "c"])
      s.loc[0] = None
      s
 
@@ -757,7 +771,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     s = Series([1, 2, 3])
+     s = pd.Series([1, 2, 3])
      s2 = s
      s += 1.5
 
@@ -809,9 +823,9 @@ Other notable API changes:
 
   .. ipython:: python
 
-        i = date_range('1/1/2011', periods=3, freq='10s', tz = 'US/Eastern')
+        i = pd.date_range('1/1/2011', periods=3, freq='10s', tz='US/Eastern')
         i
-        df = DataFrame( {'a' : i } )
+        df = pd.DataFrame({'a': i})
         df
         df.dtypes
 
@@ -830,7 +844,7 @@ Other notable API changes:
 
   .. code-block:: python
 
-     In [1]: df = DataFrame(np.arange(0,9), columns=['count'])
+     In [1]: df = pd.DataFrame(np.arange(0, 9), columns=['count'])
 
      In [2]: df['group'] = 'b'
 
@@ -848,8 +862,8 @@ Other notable API changes:
 
   .. ipython:: python
 
-     df = DataFrame([[True, 1],[False, 2]],
-                    columns=["female","fitness"])
+     df = pd.DataFrame([[True, 1], [False, 2]],
+                       columns=["female", "fitness"])
      df
      df.dtypes
 
@@ -870,7 +884,7 @@ Other notable API changes:
 
 .. _whatsnew_0150.refactoring:
 
-Internal Refactoring
+Internal refactoring
 ^^^^^^^^^^^^^^^^^^^^
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
@@ -909,18 +923,18 @@ Deprecations
   .. code-block:: python
 
      # +
-     Index(['a','b','c']) + Index(['b','c','d'])
+     pd.Index(['a', 'b', 'c']) + pd.Index(['b', 'c', 'd'])
 
      # should be replaced by
-     Index(['a','b','c']).union(Index(['b','c','d']))
+     pd.Index(['a', 'b', 'c']).union(pd.Index(['b', 'c', 'd']))
 
   .. code-block:: python
 
      # -
-     Index(['a','b','c']) - Index(['b','c','d'])
+     pd.Index(['a', 'b', 'c']) - pd.Index(['b', 'c', 'd'])
 
      # should be replaced by
-     Index(['a','b','c']).difference(Index(['b','c','d']))
+     pd.Index(['a', 'b', 'c']).difference(pd.Index(['b', 'c', 'd']))
 
 - The ``infer_types`` argument to :func:`~pandas.read_html` now has no
   effect and is deprecated (:issue:`7762`, :issue:`7032`).
@@ -972,10 +986,10 @@ Other:
 
   .. ipython:: python
 
-    df = DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
-                    'catB': ['a', 'b', 'c', 'd'] * 6,
-                    'numC': np.arange(24),
-                    'numD': np.arange(24.) + .5})
+    df = pd.DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+                       'catB': ['a', 'b', 'c', 'd'] * 6,
+                       'numC': np.arange(24),
+                       'numD': np.arange(24.) + .5})
     df.describe(include=["object"])
     df.describe(include=["number", "object"], exclude=["float"])
 
@@ -995,7 +1009,7 @@ Other:
 
   .. ipython:: python
 
-    df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
+    df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
                     'C': [1, 2, 3]})
     pd.get_dummies(df)
 
@@ -1007,8 +1021,8 @@ Other:
 
   .. ipython:: python
 
-    business_dates = date_range(start='4/1/2014', end='6/30/2014', freq='B')
-    df = DataFrame(1, index=business_dates, columns=['a', 'b'])
+    business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
+    df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
     # get the first, 4th, and last date index for each month
     df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
@@ -1018,14 +1032,14 @@ Other:
 
   .. ipython:: python
 
-    idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
-    idx
-    idx + pd.offsets.Hour(2)
-    idx + Timedelta('120m')
+     idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
+     idx
+     idx + pd.offsets.Hour(2)
+     idx + pd.Timedelta('120m')
 
-    idx = pd.period_range('2014-07', periods=5, freq='M')
-    idx
-    idx + pd.offsets.MonthEnd(3)
+     idx = pd.period_range('2014-07', periods=5, freq='M')
+     idx
+     idx + pd.offsets.MonthEnd(3)
 
 - Added experimental compatibility with ``openpyxl`` for versions >= 2.0. The ``DataFrame.to_excel``
   method ``engine`` keyword now recognizes ``openpyxl1`` and ``openpyxl2``
@@ -1044,18 +1058,19 @@ Other:
 
   .. ipython:: python
 
-      idx = MultiIndex.from_product([['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
+      idx = pd.MultiIndex.from_product([['a'], range(3), list("pqr")],
+                                       names=['foo', 'bar', 'baz'])
       idx.set_names('qux', level=0)
-      idx.set_names(['qux','corge'], level=[0,1])
-      idx.set_levels(['a','b','c'], level='bar')
-      idx.set_levels([['a','b','c'],[1,2,3]], level=[1,2])
+      idx.set_names(['qux', 'corge'], level=[0, 1])
+      idx.set_levels(['a', 'b', 'c'], level='bar')
+      idx.set_levels([['a', 'b', 'c'], [1, 2, 3]], level=[1, 2])
 
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
 
   .. code-block:: ipython
 
-     In [1]: idx = MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
+     In [1]: idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
 
      In [2]: idx.values
      Out[2]: array([(0, 'a'), (0, 'b'), (0, 'c'), (1, 'a'), (1, 'b'), (1, 'c')], dtype=object)
@@ -1067,7 +1082,7 @@ Other:
 
   .. ipython:: python
 
-     idx = Index([1, 2, 3, 4, 1, 2])
+     idx = pd.Index([1, 2, 3, 4, 1, 2])
      idx
      idx.duplicated()
      idx.drop_duplicates()
@@ -1099,7 +1114,7 @@ Performance
 
 .. _whatsnew_0150.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)

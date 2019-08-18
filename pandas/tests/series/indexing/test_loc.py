@@ -1,31 +1,21 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import Series, Timestamp
 from pandas.util.testing import assert_series_equal
 
 
-@pytest.mark.parametrize("val,expected", [
-    (2**63 - 1, 3),
-    (2**63, 4),
-])
+@pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
 def test_loc_uint64(val, expected):
     # see gh-19399
-    s = Series({2**63 - 1: 3, 2**63: 4})
+    s = Series({2 ** 63 - 1: 3, 2 ** 63: 4})
     assert s.loc[val] == expected
 
 
 def test_loc_getitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
-    assert_series_equal(
-        test_data.series.loc[inds],
-        test_data.series.reindex(inds))
+    assert_series_equal(test_data.series.loc[inds], test_data.series.reindex(inds))
     assert_series_equal(test_data.series.iloc[5::2], test_data.series[5::2])
 
     # slice with indices
@@ -48,12 +38,15 @@ def test_loc_getitem_not_monotonic(test_data):
 
     ts2 = test_data.ts[::2][[1, 2, 0]]
 
-    pytest.raises(KeyError, ts2.loc.__getitem__, slice(d1, d2))
-    pytest.raises(KeyError, ts2.loc.__setitem__, slice(d1, d2), 0)
+    msg = r"Timestamp\('2000-01-10 00:00:00'\)"
+    with pytest.raises(KeyError, match=msg):
+        ts2.loc[d1:d2]
+    with pytest.raises(KeyError, match=msg):
+        ts2.loc[d1:d2] = 0
 
 
 def test_loc_getitem_setitem_integer_slice_keyerrors():
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
 
     # this is OK
     cp = s.copy()
@@ -73,9 +66,11 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
     assert_series_equal(result2, expected)
 
     # non-monotonic, raise KeyError
-    s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-    pytest.raises(KeyError, s2.loc.__getitem__, slice(3, 11))
-    pytest.raises(KeyError, s2.loc.__setitem__, slice(3, 11), 0)
+    s2 = s.iloc[list(range(5)) + list(range(9, 4, -1))]
+    with pytest.raises(KeyError, match=r"^3$"):
+        s2.loc[3:11]
+    with pytest.raises(KeyError, match=r"^3$"):
+        s2.loc[3:11] = 0
 
 
 def test_loc_getitem_iterator(test_data):
@@ -97,8 +92,9 @@ def test_loc_setitem_boolean(test_data):
 def test_loc_setitem_corner(test_data):
     inds = list(test_data.series.index[[5, 8, 12]])
     test_data.series.loc[inds] = 5
-    pytest.raises(Exception, test_data.series.loc.__setitem__,
-                  inds + ['foo'], 5)
+    msg = r"\['foo'\] not in index"
+    with pytest.raises(KeyError, match=msg):
+        test_data.series.loc[inds + ["foo"]] = 5
 
 
 def test_basic_setitem_with_labels(test_data):
@@ -112,12 +108,12 @@ def test_basic_setitem_with_labels(test_data):
 
     cp = test_data.ts.copy()
     exp = test_data.ts.copy()
-    cp[indices[0]:indices[2]] = 0
-    exp.loc[indices[0]:indices[2]] = 0
+    cp[indices[0] : indices[2]] = 0
+    exp.loc[indices[0] : indices[2]] = 0
     assert_series_equal(cp, exp)
 
     # integer indexes, be careful
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 4, 6]
     arr_inds = np.array([0, 4, 6])
 
@@ -135,17 +131,21 @@ def test_basic_setitem_with_labels(test_data):
 
     inds_notfound = [0, 4, 5, 6]
     arr_inds_notfound = np.array([0, 4, 5, 6])
-    pytest.raises(Exception, s.__setitem__, inds_notfound, 0)
-    pytest.raises(Exception, s.__setitem__, arr_inds_notfound, 0)
+    msg = r"\[5\] not contained in the index"
+    with pytest.raises(ValueError, match=msg):
+        s[inds_notfound] = 0
+    with pytest.raises(Exception, match=msg):
+        s[arr_inds_notfound] = 0
 
     # GH12089
     # with tz for values
-    s = Series(pd.date_range("2011-01-01", periods=3, tz="US/Eastern"),
-               index=['a', 'b', 'c'])
+    s = Series(
+        pd.date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
+    )
     s2 = s.copy()
-    expected = Timestamp('2011-01-03', tz='US/Eastern')
-    s2.loc['a'] = expected
-    result = s2.loc['a']
+    expected = Timestamp("2011-01-03", tz="US/Eastern")
+    s2.loc["a"] = expected
+    result = s2.loc["a"]
     assert result == expected
 
     s2 = s.copy()
@@ -154,6 +154,6 @@ def test_basic_setitem_with_labels(test_data):
     assert result == expected
 
     s2 = s.copy()
-    s2['a'] = expected
-    result = s2['a']
+    s2["a"] = expected
+    result = s2["a"]
     assert result == expected

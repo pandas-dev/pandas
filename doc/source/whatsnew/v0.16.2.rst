@@ -3,7 +3,8 @@
 v0.16.2 (June 12, 2015)
 -----------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor bug-fix release from 0.16.1 and includes a a large number of
 bug fixes along some new features (:meth:`~DataFrame.pipe` method), enhancements, and performance improvements.
@@ -40,16 +41,16 @@ The goal is to avoid confusing nested function calls like
 
    # df is a DataFrame
    # f, g, and h are functions that take and return DataFrames
-   f(g(h(df), arg1=1), arg2=2, arg3=3)
+   f(g(h(df), arg1=1), arg2=2, arg3=3)  # noqa F821
 
 The logic flows from inside out, and function names are separated from their keyword arguments.
 This can be rewritten as
 
 .. code-block:: python
 
-   (df.pipe(h)
-      .pipe(g, arg1=1)
-      .pipe(f, arg2=2, arg3=3)
+   (df.pipe(h)                   # noqa F821
+      .pipe(g, arg1=1)           # noqa F821
+      .pipe(f, arg2=2, arg3=3)   # noqa F821
    )
 
 Now both the code and the logic flow from top to bottom. Keyword arguments are next to
@@ -67,11 +68,11 @@ of ``(function, keyword)`` indicating where the DataFrame should flow. For examp
 
    # sm.ols takes (formula, data)
    (bb.query('h > 0')
-      .assign(ln_h = lambda df: np.log(df.h))
+      .assign(ln_h=lambda df: np.log(df.h))
       .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
-   )
+    )
 
 The pipe method is inspired by unix pipes, which stream text through
 processes. More recently dplyr_ and magrittr_ have introduced the
@@ -85,7 +86,7 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 
 .. _whatsnew_0162.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
@@ -104,7 +105,7 @@ Other Enhancements
 
 .. _whatsnew_0162.api:
 
-API Changes
+API changes
 ~~~~~~~~~~~
 
 - ``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in the constructor instead of returning an incorrect result (:issue:`10217`).
@@ -112,7 +113,7 @@ API Changes
 
 .. _whatsnew_0162.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved ``Series.resample`` performance with ``dtype=datetime64[ns]`` (:issue:`7754`)
@@ -120,7 +121,7 @@ Performance Improvements
 
 .. _whatsnew_0162.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``Series.hist`` raises an error when a one row ``Series`` was given (:issue:`10214`)

@@ -1,29 +1,45 @@
-from pandas import (DataFrame, Series, Period, PeriodIndex, date_range,
-                    period_range)
+from pandas import DataFrame, Period, PeriodIndex, Series, date_range, period_range
+from pandas.tseries.frequencies import to_offset
 
 
-class PeriodProperties(object):
+class PeriodProperties:
 
-    params = (['M', 'min'],
-              ['year', 'month', 'day', 'hour', 'minute', 'second',
-               'is_leap_year', 'quarter', 'qyear', 'week', 'daysinmonth',
-               'dayofweek', 'dayofyear', 'start_time', 'end_time'])
-    param_names = ['freq', 'attr']
+    params = (
+        ["M", "min"],
+        [
+            "year",
+            "month",
+            "day",
+            "hour",
+            "minute",
+            "second",
+            "is_leap_year",
+            "quarter",
+            "qyear",
+            "week",
+            "daysinmonth",
+            "dayofweek",
+            "dayofyear",
+            "start_time",
+            "end_time",
+        ],
+    )
+    param_names = ["freq", "attr"]
 
     def setup(self, freq, attr):
-        self.per = Period('2012-06-01', freq=freq)
+        self.per = Period("2012-06-01", freq=freq)
 
     def time_property(self, freq, attr):
         getattr(self.per, attr)
 
 
-class PeriodUnaryMethods(object):
+class PeriodUnaryMethods:
 
-    params = ['M', 'min']
-    param_names = ['freq']
+    params = ["M", "min"]
+    param_names = ["freq"]
 
     def setup(self, freq):
-        self.per = Period('2012-06-01', freq=freq)
+        self.per = Period("2012-06-01", freq=freq)
 
     def time_to_timestamp(self, freq):
         self.per.to_timestamp()
@@ -32,52 +48,83 @@ class PeriodUnaryMethods(object):
         self.per.now(freq)
 
     def time_asfreq(self, freq):
-        self.per.asfreq('A')
+        self.per.asfreq("A")
 
 
-class PeriodIndexConstructor(object):
+class PeriodConstructor:
+    params = [["D"], [True, False]]
+    param_names = ["freq", "is_offset"]
 
-    params = ['D']
-    param_names = ['freq']
+    def setup(self, freq, is_offset):
+        if is_offset:
+            self.freq = to_offset(freq)
+        else:
+            self.freq = freq
 
-    def setup(self, freq):
-        self.rng = date_range('1985', periods=1000)
-        self.rng2 = date_range('1985', periods=1000).to_pydatetime()
+    def time_period_constructor(self, freq, is_offset):
+        Period("2012-06-01", freq=freq)
 
-    def time_from_date_range(self, freq):
+
+class PeriodIndexConstructor:
+
+    params = [["D"], [True, False]]
+    param_names = ["freq", "is_offset"]
+
+    def setup(self, freq, is_offset):
+        self.rng = date_range("1985", periods=1000)
+        self.rng2 = date_range("1985", periods=1000).to_pydatetime()
+        self.ints = list(range(2000, 3000))
+        self.daily_ints = (
+            date_range("1/1/2000", periods=1000, freq=freq).strftime("%Y%m%d").map(int)
+        )
+        if is_offset:
+            self.freq = to_offset(freq)
+        else:
+            self.freq = freq
+
+    def time_from_date_range(self, freq, is_offset):
         PeriodIndex(self.rng, freq=freq)
 
-    def time_from_pydatetime(self, freq):
+    def time_from_pydatetime(self, freq, is_offset):
         PeriodIndex(self.rng2, freq=freq)
 
+    def time_from_ints(self, freq, is_offset):
+        PeriodIndex(self.ints, freq=freq)
 
-class DataFramePeriodColumn(object):
+    def time_from_ints_daily(self, freq, is_offset):
+        PeriodIndex(self.daily_ints, freq=freq)
 
+
+class DataFramePeriodColumn:
     def setup(self):
-        self.rng = period_range(start='1/1/1990', freq='S', periods=20000)
+        self.rng = period_range(start="1/1/1990", freq="S", periods=20000)
         self.df = DataFrame(index=range(len(self.rng)))
 
     def time_setitem_period_column(self):
-        self.df['col'] = self.rng
+        self.df["col"] = self.rng
 
     def time_set_index(self):
         # GH#21582 limited by comparisons of Period objects
-        self.df['col2'] = self.rng
-        self.df.set_index('col2', append=True)
+        self.df["col2"] = self.rng
+        self.df.set_index("col2", append=True)
 
 
-class Algorithms(object):
+class Algorithms:
 
-    params = ['index', 'series']
-    param_names = ['typ']
+    params = ["index", "series"]
+    param_names = ["typ"]
 
     def setup(self, typ):
-        data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
-                Period('2011-03', freq='M'), Period('2011-04', freq='M')]
+        data = [
+            Period("2011-01", freq="M"),
+            Period("2011-02", freq="M"),
+            Period("2011-03", freq="M"),
+            Period("2011-04", freq="M"),
+        ]
 
-        if typ == 'index':
-            self.vector = PeriodIndex(data * 1000, freq='M')
-        elif typ == 'series':
+        if typ == "index":
+            self.vector = PeriodIndex(data * 1000, freq="M")
+        elif typ == "series":
             self.vector = Series(data * 1000)
 
     def time_drop_duplicates(self, typ):
@@ -87,10 +134,9 @@ class Algorithms(object):
         self.vector.value_counts()
 
 
-class Indexing(object):
-
+class Indexing:
     def setup(self):
-        self.index = PeriodIndex(start='1985', periods=1000, freq='D')
+        self.index = period_range(start="1985", periods=1000, freq="D")
         self.series = Series(range(1000), index=self.index)
         self.period = self.index[500]
 
@@ -107,7 +153,7 @@ class Indexing(object):
         self.series.loc[self.period]
 
     def time_align(self):
-        DataFrame({'a': self.series, 'b': self.series[:500]})
+        DataFrame({"a": self.series, "b": self.series[:500]})
 
     def time_intersection(self):
         self.index[:750].intersection(self.index[250:])

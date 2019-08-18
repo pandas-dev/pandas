@@ -1,9 +1,9 @@
 .. _whatsnew_0233:
 
-What's New in 0.23.3 (July 7, 2018)
+What's new in 0.23.3 (July 7, 2018)
 -----------------------------------
 
-{{ common_imports }}
+{{ header }}
 
 This release fixes a build issue with the sdist for Python 3.7 (:issue:`21785`)
 There are no other changes.

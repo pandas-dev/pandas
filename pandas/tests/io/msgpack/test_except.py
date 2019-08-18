@@ -1,19 +1,19 @@
 # coding: utf-8
 
 from datetime import datetime
-from pandas.io.msgpack import packb, unpackb
 
 import pytest
+
+from pandas.io.msgpack import packb, unpackb
 
 
 class DummyException(Exception):
     pass
 
 
-class TestExceptions(object):
-
+class TestExceptions:
     def test_raise_on_find_unsupported_value(self):
-        msg = "can\'t serialize datetime"
+        msg = "can't serialize datetime"
         with pytest.raises(TypeError, match=msg):
             packb(datetime.now())
 
@@ -21,16 +21,16 @@ class TestExceptions(object):
         def hook(_):
             raise DummyException()
 
-        pytest.raises(DummyException, unpackb, packb({}), object_hook=hook)
-        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                      object_hook=hook)
-        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                      object_pairs_hook=hook)
-        pytest.raises(DummyException, unpackb,
-                      packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
-        pytest.raises(DummyException, unpackb,
-                      packb({'fizz': {'buzz': 'spam'}}),
-                      object_pairs_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({"fizz": "buzz"}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({"fizz": "buzz"}), object_pairs_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({"fizz": {"buzz": "spam"}}), object_hook=hook)
+        with pytest.raises(DummyException):
+            unpackb(packb({"fizz": {"buzz": "spam"}}), object_pairs_hook=hook)
 
     def test_invalid_value(self):
         msg = "Unpack failed: error"

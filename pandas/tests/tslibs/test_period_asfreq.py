@@ -1,82 +1,78 @@
-# -*- coding: utf-8 -*-
+import pytest
 
 from pandas._libs.tslibs.frequencies import get_freq
 from pandas._libs.tslibs.period import period_asfreq, period_ordinal
 
 
-class TestPeriodFreqConversion(object):
+@pytest.mark.parametrize(
+    "freq1,freq2,expected",
+    [
+        ("D", "H", 24),
+        ("D", "T", 1440),
+        ("D", "S", 86400),
+        ("D", "L", 86400000),
+        ("D", "U", 86400000000),
+        ("D", "N", 86400000000000),
+        ("H", "T", 60),
+        ("H", "S", 3600),
+        ("H", "L", 3600000),
+        ("H", "U", 3600000000),
+        ("H", "N", 3600000000000),
+        ("T", "S", 60),
+        ("T", "L", 60000),
+        ("T", "U", 60000000),
+        ("T", "N", 60000000000),
+        ("S", "L", 1000),
+        ("S", "U", 1000000),
+        ("S", "N", 1000000000),
+        ("L", "U", 1000),
+        ("L", "N", 1000000),
+        ("U", "N", 1000),
+    ],
+)
+def test_intra_day_conversion_factors(freq1, freq2, expected):
+    assert period_asfreq(1, get_freq(freq1), get_freq(freq2), False) == expected
 
-    def test_intraday_conversion_factors(self):
-        assert period_asfreq(1, get_freq('D'), get_freq('H'), False) == 24
-        assert period_asfreq(1, get_freq('D'), get_freq('T'), False) == 1440
-        assert period_asfreq(1, get_freq('D'), get_freq('S'), False) == 86400
-        assert period_asfreq(1, get_freq('D'),
-                             get_freq('L'), False) == 86400000
-        assert period_asfreq(1, get_freq('D'),
-                             get_freq('U'), False) == 86400000000
-        assert period_asfreq(1, get_freq('D'),
-                             get_freq('N'), False) == 86400000000000
 
-        assert period_asfreq(1, get_freq('H'), get_freq('T'), False) == 60
-        assert period_asfreq(1, get_freq('H'), get_freq('S'), False) == 3600
-        assert period_asfreq(1, get_freq('H'),
-                             get_freq('L'), False) == 3600000
-        assert period_asfreq(1, get_freq('H'),
-                             get_freq('U'), False) == 3600000000
-        assert period_asfreq(1, get_freq('H'),
-                             get_freq('N'), False) == 3600000000000
+@pytest.mark.parametrize(
+    "freq,expected", [("A", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
+)
+def test_period_ordinal_start_values(freq, expected):
+    # information for Jan. 1, 1970.
+    assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq(freq)) == expected
 
-        assert period_asfreq(1, get_freq('T'), get_freq('S'), False) == 60
-        assert period_asfreq(1, get_freq('T'), get_freq('L'), False) == 60000
-        assert period_asfreq(1, get_freq('T'),
-                             get_freq('U'), False) == 60000000
-        assert period_asfreq(1, get_freq('T'),
-                             get_freq('N'), False) == 60000000000
 
-        assert period_asfreq(1, get_freq('S'), get_freq('L'), False) == 1000
-        assert period_asfreq(1, get_freq('S'),
-                             get_freq('U'), False) == 1000000
-        assert period_asfreq(1, get_freq('S'),
-                             get_freq('N'), False) == 1000000000
+@pytest.mark.parametrize(
+    "dt,expected",
+    [
+        ((1970, 1, 4, 0, 0, 0, 0, 0), 1),
+        ((1970, 1, 5, 0, 0, 0, 0, 0), 2),
+        ((2013, 10, 6, 0, 0, 0, 0, 0), 2284),
+        ((2013, 10, 7, 0, 0, 0, 0, 0), 2285),
+    ],
+)
+def test_period_ordinal_week(dt, expected):
+    args = dt + (get_freq("W"),)
+    assert period_ordinal(*args) == expected
 
-        assert period_asfreq(1, get_freq('L'), get_freq('U'), False) == 1000
-        assert period_asfreq(1, get_freq('L'),
-                             get_freq('N'), False) == 1000000
 
-        assert period_asfreq(1, get_freq('U'), get_freq('N'), False) == 1000
-
-    def test_period_ordinal_start_values(self):
-        # information for 1.1.1970
-        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('A')) == 0
-        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('M')) == 0
-        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('W')) == 1
-        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('D')) == 0
-        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('B')) == 0
-
-    def test_period_ordinal_week(self):
-        assert period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0, get_freq('W')) == 1
-        assert period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0, get_freq('W')) == 2
-        assert period_ordinal(2013, 10, 6, 0,
-                              0, 0, 0, 0, get_freq('W')) == 2284
-        assert period_ordinal(2013, 10, 7, 0,
-                              0, 0, 0, 0, get_freq('W')) == 2285
-
-    def test_period_ordinal_business_day(self):
-        # Thursday
-        assert period_ordinal(2013, 10, 3, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11415
-        # Friday
-        assert period_ordinal(2013, 10, 4, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11416
-        # Saturday
-        assert period_ordinal(2013, 10, 5, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11417
-        # Sunday
-        assert period_ordinal(2013, 10, 6, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11417
-        # Monday
-        assert period_ordinal(2013, 10, 7, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11417
-        # Tuesday
-        assert period_ordinal(2013, 10, 8, 0,
-                              0, 0, 0, 0, get_freq('B')) == 11418
+@pytest.mark.parametrize(
+    "day,expected",
+    [
+        # Thursday (Oct. 3, 2013).
+        (3, 11415),
+        # Friday (Oct. 4, 2013).
+        (4, 11416),
+        # Saturday (Oct. 5, 2013).
+        (5, 11417),
+        # Sunday (Oct. 6, 2013).
+        (6, 11417),
+        # Monday (Oct. 7, 2013).
+        (7, 11417),
+        # Tuesday (Oct. 8, 2013).
+        (8, 11418),
+    ],
+)
+def test_period_ordinal_business_day(day, expected):
+    args = (2013, 10, day, 0, 0, 0, 0, 0, get_freq("B"))
+    assert period_ordinal(*args) == expected

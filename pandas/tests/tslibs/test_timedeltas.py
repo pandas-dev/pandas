@@ -1,41 +1,31 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 import pandas as pd
+from pandas import Timedelta
 
 
-def test_delta_to_nanoseconds():
-    obj = np.timedelta64(14, 'D')
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        (np.timedelta64(14, "D"), 14 * 24 * 3600 * 1e9),
+        (Timedelta(minutes=-7), -7 * 60 * 1e9),
+        (Timedelta(minutes=-7).to_pytimedelta(), -7 * 60 * 1e9),
+        (pd.offsets.Nano(125), 125),
+        (1, 1),
+        (np.int64(2), 2),
+        (np.int32(3), 3),
+    ],
+)
+def test_delta_to_nanoseconds(obj, expected):
     result = delta_to_nanoseconds(obj)
-    assert result == 14 * 24 * 3600 * 1e9
+    assert result == expected
 
-    obj = pd.Timedelta(minutes=-7)
-    result = delta_to_nanoseconds(obj)
-    assert result == -7 * 60 * 1e9
 
-    obj = pd.Timedelta(minutes=-7).to_pytimedelta()
-    result = delta_to_nanoseconds(obj)
-    assert result == -7 * 60 * 1e9
+def test_delta_to_nanoseconds_error():
+    obj = np.array([123456789], dtype="m8[ns]")
 
-    obj = pd.offsets.Nano(125)
-    result = delta_to_nanoseconds(obj)
-    assert result == 125
-
-    obj = 1
-    result = delta_to_nanoseconds(obj)
-    assert obj == 1
-
-    obj = np.int64(2)
-    result = delta_to_nanoseconds(obj)
-    assert obj == 2
-
-    obj = np.int32(3)
-    result = delta_to_nanoseconds(obj)
-    assert result == 3
-
-    obj = np.array([123456789], dtype='m8[ns]')
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="<class 'numpy.ndarray'>"):
         delta_to_nanoseconds(obj)

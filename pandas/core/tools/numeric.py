@@ -4,14 +4,19 @@ from pandas._libs import lib
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_object, is_datetime_or_timedelta_dtype, is_decimal, is_number,
-    is_numeric_dtype, is_scalar)
+    ensure_object,
+    is_datetime_or_timedelta_dtype,
+    is_decimal,
+    is_number,
+    is_numeric_dtype,
+    is_scalar,
+)
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 import pandas as pd
 
 
-def to_numeric(arg, errors='raise', downcast=None):
+def to_numeric(arg, errors="raise", downcast=None):
     """
     Convert argument to a numeric type.
 
@@ -19,9 +24,17 @@ def to_numeric(arg, errors='raise', downcast=None):
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
+    Please note that precision loss may occur if really large numbers
+    are passed in. Due to the internal limitations of `ndarray`, if
+    numbers smaller than `-9223372036854775808` (np.iinfo(np.int64).min)
+    or larger than `18446744073709551615` (np.iinfo(np.uint64).max) are
+    passed in, it is very likely they will be converted to float so that
+    they can stored in an `ndarray`. These warnings apply similarly to
+    `Series` since it internally leverages `ndarray`.
+
     Parameters
     ----------
-    arg : list, tuple, 1-d array, or Series
+    arg : scalar, list, tuple, 1-d array, or Series
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaN
@@ -46,12 +59,17 @@ def to_numeric(arg, errors='raise', downcast=None):
         checked satisfy that specification, no downcasting will be
         performed on the data.
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     ret : numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray
+        Return type depends on input.  Series if Series, otherwise ndarray.
+
+    See Also
+    --------
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_datetime : Convert argument to datetime.
+    to_timedelta : Convert argument to timedelta.
+    numpy.ndarray.astype : Cast a numpy array to a specified type.
 
     Examples
     --------
@@ -86,16 +104,12 @@ def to_numeric(arg, errors='raise', downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
-
-    See Also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
-    pandas.to_timedelta : Convert argument to timedelta.
-    numpy.ndarray.astype : Cast a numpy array to a specified type.
     """
-    if downcast not in (None, 'integer', 'signed', 'unsigned', 'float'):
-        raise ValueError('invalid downcasting method provided')
+    if downcast not in (None, "integer", "signed", "unsigned", "float"):
+        raise ValueError("invalid downcasting method provided")
+
+    if errors not in ("ignore", "raise", "coerce"):
+        raise ValueError("invalid error value specified")
 
     is_series = False
     is_index = False
@@ -110,16 +124,16 @@ def to_numeric(arg, errors='raise', downcast=None):
         if values is None:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
-        values = np.array(arg, dtype='O')
+        values = np.array(arg, dtype="O")
     elif is_scalar(arg):
         if is_decimal(arg):
             return float(arg)
         if is_number(arg):
             return arg
         is_scalars = True
-        values = np.array([arg], dtype='O')
-    elif getattr(arg, 'ndim', 1) > 1:
-        raise TypeError('arg must be a list, tuple, 1-d array, or Series')
+        values = np.array([arg], dtype="O")
+    elif getattr(arg, "ndim", 1) > 1:
+        raise TypeError("arg must be a list, tuple, 1-d array, or Series")
     else:
         values = arg
 
@@ -130,12 +144,13 @@ def to_numeric(arg, errors='raise', downcast=None):
             values = values.astype(np.int64)
         else:
             values = ensure_object(values)
-            coerce_numeric = False if errors in ('ignore', 'raise') else True
-            values = lib.maybe_convert_numeric(values, set(),
-                                               coerce_numeric=coerce_numeric)
+            coerce_numeric = errors not in ("ignore", "raise")
+            values = lib.maybe_convert_numeric(
+                values, set(), coerce_numeric=coerce_numeric
+            )
 
     except Exception:
-        if errors == 'raise':
+        if errors == "raise":
             raise
 
     # attempt downcast only if the data has been successfully converted
@@ -143,12 +158,12 @@ def to_numeric(arg, errors='raise', downcast=None):
     if downcast is not None and is_numeric_dtype(values):
         typecodes = None
 
-        if downcast in ('integer', 'signed'):
-            typecodes = np.typecodes['Integer']
-        elif downcast == 'unsigned' and np.min(values) >= 0:
-            typecodes = np.typecodes['UnsignedInteger']
-        elif downcast == 'float':
-            typecodes = np.typecodes['Float']
+        if downcast in ("integer", "signed"):
+            typecodes = np.typecodes["Integer"]
+        elif downcast == "unsigned" and np.min(values) >= 0:
+            typecodes = np.typecodes["UnsignedInteger"]
+        elif downcast == "float":
+            typecodes = np.typecodes["Float"]
 
             # pandas support goes only to np.float32,
             # as float dtypes smaller than that are

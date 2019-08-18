@@ -1,6 +1,6 @@
 .. _install:
 
-.. currentmodule:: pandas
+{{ header }}
 
 ============
 Installation
@@ -15,35 +15,10 @@ Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
-.. _install.dropping-27:
-
-Plan for dropping Python 2.7
-----------------------------
-
-The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
-In line with `NumPy's plans`_, all pandas releases through December 31, 2018
-will support Python 2.
-
-The final release before **December 31, 2018** will be the last release to
-support Python 2. The released package will continue to be available on
-PyPI and through conda.
-
-Starting **January 1, 2019**, all releases will be Python 3 only.
-
-If there are people interested in continued support for Python 2.7 past December
-31, 2018 (either backporting bug fixes or funding) please reach out to the
-maintainers on the issue tracker.
-
-For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
-
-.. _NumPy's plans: https://github.com/numpy/numpy/blob/master/doc/neps/nep-0014-dropping-python2.7-proposal.rst#plan-for-dropping-python-27-support
-.. _Python 3 statement: http://python3statement.org/
-.. _Porting to Python 3 guide: https://docs.python.org/3/howto/pyporting.html
-
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, 3.6, and 3.7.
+Officially Python 3.5.3 and above, 3.6, and 3.7.
 
 Installing pandas
 -----------------
@@ -193,7 +168,7 @@ methods described above.
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
 ----------------------
@@ -202,12 +177,11 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 3.6 and `Hypothesis
+<http://docs.pytest.org/en/latest/>`__ >= 4.0.2 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 
-    >>> import pandas as pd
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================
@@ -221,26 +195,32 @@ installed), make sure you have `pytest
 
     ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
 
+.. _install.dependencies:
+
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
-* `NumPy <http://www.numpy.org>`__: 1.12.0 or higher
-* `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
-* `pytz <http://pytz.sourceforge.net/>`__
+================================================================ ==========================
+Package                                                          Minimum supported version
+================================================================ ==========================
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
+`NumPy <http://www.numpy.org>`__                                 1.13.3
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.6.1
+`pytz <http://pytz.sourceforge.net/>`__                          2017.2
+================================================================ ==========================
 
 .. _install.recommended_dependencies:
 
-Recommended Dependencies
+Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.6.1 or higher.
+  If installed, must be Version 2.6.2 or higher.
 
 * `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.2.0 or higher.
+  must be Version 1.2.1 or higher.
 
 .. note::
 
@@ -250,93 +230,74 @@ Recommended Dependencies
 
 .. _install.optional_dependencies:
 
-Optional Dependencies
+Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-* `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.28.2 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.18.1 or higher
-* `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
-* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage, Version 3.4.2 or higher
-* `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0): necessary for feather-based storage.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.1.2) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
-* `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
+Pandas has many optional dependencies that are only used for specific methods.
+For example, :func:`pandas.read_hdf` requires the ``pytables`` package. If the
+optional dependency is not installed, pandas will raise an ``ImportError`` when
+the method requiring that dependency is called.
 
-    * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-    * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-    * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+Jinja2                                       Conditional formatting with DataFrame.style
+PyQt4                                        Clipboard I/O
+PyQt5                                        Clipboard I/O
+PyTables                  3.4.2              HDF5-based reading / writing
+SQLAlchemy                1.1.4              SQL support for databases other than sqlite
+SciPy                     0.19.0             Miscellaneous statistical functions
+XLsxWriter                0.9.8              Excel writing
+blosc                                        Compression for msgpack
+fastparquet               0.2.1              Parquet reading / writing
+gcsfs                     0.2.2              Google Cloud Storage access
+html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+matplotlib                2.2.2              Visualization
+openpyxl                  2.4.8              Reading / writing for xlsx files
+pandas-gbq                0.8.0              Google Big Query access
+psycopg2                                     PostgreSQL engine for sqlalchemy
+pyarrow                   0.9.0              Parquet and feather reading / writing
+pymysql                   0.7.11             MySQL engine for sqlalchemy
+pyreadstat                                   SPSS files (.sav) reading
+pytables                  3.4.2              HDF5 reading / writing
+qtpy                                         Clipboard I/O
+s3fs                      0.0.8              Amazon S3 access
+xarray                    0.8.2              pandas-like API for N-dimensional data
+xclip                                        Clipboard I/O on linux
+xlrd                      1.1.0              Excel reading
+xlwt                      1.2.0              Excel writing
+xsel                                         Clipboard I/O on linux
+zlib                                         Compression for msgpack
+========================= ================== =============================================================
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
-* For Excel I/O:
+.. _optional_html:
 
-    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd), version 1.0.0 or higher required, and writing (xlwt)
-    * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
-      for writing .xlsx files (xlrd >= 0.9.0)
-    * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
+Optional dependencies for parsing HTML
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
-* `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
-* `blosc <https://pypi.org/project/blosc>`__: for msgpack compression using ``blosc``
-* `gcsfs <http://gcsfs.readthedocs.io/>`__: necessary for Google Cloud Storage access (gcsfs >= 0.1.0).
-* One of
-  `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
-  `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
-  `PyQt4 <http://www.riverbankcomputing.com/software/pyqt/download>`__,
-  `pygtk <http://www.pygtk.org/>`__,
-  `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
-  `xclip <https://github.com/astrand/xclip/>`__: necessary to use
-  :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* `pandas-gbq
-  <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__:
-  for Google BigQuery I/O. (pandas-gbq >= 0.8.0)
+One of the following combinations of libraries is needed to use the
+top-level :func:`~pandas.read_html` function:
 
+.. versionchanged:: 0.23.0
 
-* `Backports.lzma <https://pypi.org/project/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
-* One of the following combinations of libraries is needed to use the
-  top-level :func:`~pandas.read_html` function:
+* `BeautifulSoup4`_ and `html5lib`_
+* `BeautifulSoup4`_ and `lxml`_
+* `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
+* Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
+  for reasons as to why you should probably **not** take this approach.
 
-  .. versionchanged:: 0.23.0
+.. warning::
 
-  .. note::
-
-     If using BeautifulSoup4 a minimum version of 4.2.1 is required
-
-  * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
-    okay.)
-  * `BeautifulSoup4`_ and `lxml`_
-  * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
-    for reasons as to why you should probably **not** take this approach.
-
-  .. warning::
-
-     * if you install `BeautifulSoup4`_ you must install either
-       `lxml`_ or `html5lib`_ or both.
-       :func:`~pandas.read_html` will **not** work with *only*
-       `BeautifulSoup4`_ installed.
-     * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
-       It explains issues surrounding the installation and
-       usage of the above three libraries.
-
-  .. note::
-
-     * if you're on a system with ``apt-get`` you can do
-
-       .. code-block:: sh
-
-          sudo apt-get build-dep python-lxml
-
-       to get the necessary dependencies for installation of `lxml`_. This
-       will prevent further headaches down the line.
-
+    * if you install `BeautifulSoup4`_ you must install either
+      `lxml`_ or `html5lib`_ or both.
+      :func:`~pandas.read_html` will **not** work with *only*
+      `BeautifulSoup4`_ installed.
+    * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
+      It explains issues surrounding the installation and
+      usage of the above three libraries.
 
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
-
-.. note::
-
-   Without the optional dependencies, many useful features will not
-   work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__  (version 2.7 or 3.5), or `Enthought Canopy
-   <http://enthought.com/products/canopy>`__ may be worth considering.

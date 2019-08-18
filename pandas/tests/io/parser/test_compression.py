@@ -1,75 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
-import bz2
-import gzip
 import os
 import zipfile
 
 import pytest
 
-import pandas.compat as compat
-
 import pandas as pd
 import pandas.util.testing as tm
-
-
-def lzma_file():
-    """
-    Try to load the `LZMAFile` class from `backports.lzma`.
-
-    Returns
-    -------
-    klass : type or None
-    """
-    try:
-        lzma = compat.import_lzma()
-    except ImportError:
-        lzma = None
-
-    return getattr(lzma, "LZMAFile", None)
-
-
-def write_to_compressed(compress_type, path, data, dest="test"):
-    """
-    Write data to a compressed file.
-
-    Parameters
-    ----------
-    compress_type : type
-        The compression type (or class) to use.
-    path : str
-        The file path to write the data.
-    data : str
-        The data to write.
-    dest : str, default "test"
-        The destination file (for ZIP only)
-    """
-    # compression --> compression_method
-    compression_mappings = {
-        "zip": zipfile.ZipFile,
-        "gzip": gzip.GzipFile,
-        "bz2": bz2.BZ2File,
-        "xz": lzma_file(),
-    }
-
-    compress_method = compression_mappings[compress_type]
-
-    if compress_type == "zip":
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    else:
-        mode = "wb"
-        args = (data,)
-        method = "write"
-
-    with compress_method(path, mode=mode) as f:
-        getattr(f, method)(*args)
 
 
 @pytest.fixture(params=[True, False])
@@ -136,8 +76,7 @@ def test_zip_error_invalid_zip(parser_and_data):
 
     with tm.ensure_clean() as path:
         with open(path, "wb") as f:
-            with pytest.raises(zipfile.BadZipfile,
-                               match="File is not a zip file"):
+            with pytest.raises(zipfile.BadZipfile, match="File is not a zip file"):
                 parser.read_csv(f, compression="zip")
 
 
@@ -150,11 +89,10 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
-        pytest.skip("Cannot deduce compression from "
-                    "buffer of compressed data.")
+        pytest.skip("Cannot deduce compression from buffer of compressed data.")
 
     with tm.ensure_clean(filename=filename) as path:
-        write_to_compressed(compress_type, path, data)
+        tm.write_to_compressed(compress_type, path, data)
         compression = "infer" if filename else compress_type
 
         if buffer:
@@ -190,12 +128,13 @@ def test_compression_utf16_encoding(all_parsers, csv_dir_path):
     parser = all_parsers
     path = os.path.join(csv_dir_path, "utf16_ex_small.zip")
 
-    result = parser.read_csv(path, encoding="utf-16",
-                             compression="zip", sep="\t")
-    expected = pd.DataFrame({
-        u"Country": [u"Venezuela", u"Venezuela"],
-        u"Twitter": [u"Hugo Chávez Frías", u"Henrique Capriles R."]
-    })
+    result = parser.read_csv(path, encoding="utf-16", compression="zip", sep="\t")
+    expected = pd.DataFrame(
+        {
+            "Country": ["Venezuela", "Venezuela"],
+            "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
+        }
+    )
 
     tm.assert_frame_equal(result, expected)
 
@@ -205,8 +144,7 @@ def test_invalid_compression(all_parsers, invalid_compression):
     parser = all_parsers
     compress_kwargs = dict(compression=invalid_compression)
 
-    msg = ("Unrecognized compression "
-           "type: {compression}".format(**compress_kwargs))
+    msg = "Unrecognized compression type: {compression}".format(**compress_kwargs)
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv("test_file.zip", **compress_kwargs)

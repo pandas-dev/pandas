@@ -3,7 +3,13 @@
 v0.22.0 (December 29, 2017)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a major release from 0.21.1 and includes a single, API-breaking change.
 We recommend that all users upgrade to this version after carefully reading the
@@ -31,7 +37,7 @@ time, we changed the sum and prod of an empty ``Series`` to also be ``NaN``.
 
 Based on feedback, we've partially reverted those changes.
 
-Arithmetic Operations
+Arithmetic operations
 ^^^^^^^^^^^^^^^^^^^^^
 
 The default sum for empty or all-*NA* ``Series`` is now ``0``.
@@ -87,7 +93,7 @@ returning ``1`` instead.
 These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
 Finally, a few less obvious places in pandas are affected by this change.
 
-Grouping by a Categorical
+Grouping by a categorical
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Grouping by a ``Categorical`` and summing now returns ``0`` instead of
@@ -131,8 +137,8 @@ sum and ``1`` for product.
 .. code-block:: ipython
 
    In [11]: s = pd.Series([1, 1, np.nan, np.nan],
-      ...:                index=pd.date_range('2017', periods=4))
-      ...:  s
+      ....:               index=pd.date_range('2017', periods=4))
+      ....: s
    Out[11]:
    2017-01-01    1.0
    2017-01-02    1.0
@@ -190,7 +196,7 @@ Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
 
    pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
 
-Rolling and Expanding
+Rolling and expanding
 ^^^^^^^^^^^^^^^^^^^^^
 
 Rolling and expanding already have a ``min_periods`` keyword that behaves

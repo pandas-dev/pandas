@@ -56,6 +56,17 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
 
+    ctypedef struct kh_str_starts_t:
+        kh_str_t *table
+        int starts[256]
+
+    kh_str_starts_t* kh_init_str_starts() nogil
+    khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key,
+                                   int* ret) nogil
+    khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) nogil
+    void kh_destroy_str_starts(kh_str_starts_t*) nogil
+    void kh_resize_str_starts(kh_str_starts_t*, khint_t) nogil
+
     ctypedef struct kh_int64_t:
         khint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags

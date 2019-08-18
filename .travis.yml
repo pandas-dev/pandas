@@ -1,6 +1,4 @@
-sudo: false
 language: python
-# Default Python version is usually 2.7
 python: 3.5
 
 # To turn off cached cython files and compiler cache
@@ -23,7 +21,7 @@ env:
 
 git:
     # for cloning
-    depth: 1500
+    depth: false
 
 matrix:
     fast_finish: true
@@ -34,49 +32,25 @@ matrix:
     include:
     - dist: trusty
       env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" TEST_ARGS="--skip-slow --skip-network"
+        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network)"
 
     - dist: trusty
       env:
-        - JOB="2.7, locale, slow, old NumPy" ENV_FILE="ci/deps/travis-27-locale.yaml" LOCALE_OVERRIDE="zh_CN.UTF-8" SLOW=true
-      addons:
-        apt:
-          packages:
-          - language-pack-zh-hans
+        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8"
+
     - dist: trusty
       env:
-        - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" TEST_ARGS="--skip-slow"
-      addons:
-        apt:
-          packages:
-          - python-gtk2
-    - dist: trusty
-      env:
-        - JOB="3.6, lint, coverage" ENV_FILE="ci/deps/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true LINT=true
-    - dist: trusty
-      env:
-        - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
-      addons:
-        apt:
-          packages:
-          - xsel
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
 
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" SLOW=true
+        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
 
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
     allow_failures:
       - dist: trusty
         env:
-          - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" SLOW=true
-      - dist: trusty
-        env:
-          - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
+          - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
 
 before_install:
   - echo "before_install"
@@ -89,38 +63,36 @@ before_install:
   - pwd
   - uname -a
   - git --version
-  - git tag
+  - ./ci/check_git_tags.sh
+  # Because travis runs on Google Cloud and has a /etc/boto.cfg,
+  # it breaks moto import, see:
+  # https://github.com/spulec/moto/issues/1771
+  # https://github.com/boto/boto/issues/3741
+  # This overrides travis and tells it to look nowhere.
+  - export BOTO_CONFIG=/dev/null
 
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
-  - ci/install_travis.sh
+  - ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
 
 before_script:
-  - ci/install_db_travis.sh
+  # display server (for clipboard functionality) needs to be started here,
+  # does not work if done in install:setup_env.sh (GH-26103)
   - export DISPLAY=":99.0"
-  - ci/before_script_travis.sh
+  - echo "sh -e /etc/init.d/xvfb start"
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
 
 script:
   - echo "script start"
   - source activate pandas-dev
-  - ci/run_build_docs.sh
-  - ci/script_single.sh
-  - ci/script_multi.sh
-  - ci/code_checks.sh
-
-after_success:
-  -  ci/upload_coverage.sh
+  - ci/run_tests.sh
 
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - if [ -e test-data-single.xml ]; then
-    ci/print_skipped.py test-data-single.xml;
-    fi
-  - if [ -e test-data-multiple.xml ]; then
-    ci/print_skipped.py test-data-multiple.xml;
-    fi
+  - ci/print_skipped.py 
   - echo "after_script done"

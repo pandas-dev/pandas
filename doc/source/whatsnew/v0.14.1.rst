@@ -3,7 +3,8 @@
 v0.14.1 (July 11, 2014)
 -----------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor release from 0.14.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -52,13 +53,13 @@ API changes
 
   .. code-block:: ipython
 
-     In [6]: from pandas.tseries import offsets
+    In [6]: from pandas.tseries import offsets
 
-     In [7]: d = pd.Timestamp('2014-01-01 09:00')
+    In [7]: d = pd.Timestamp('2014-01-01 09:00')
 
-     # old behaviour < 0.14.1
-     In [8]: d + offsets.MonthEnd()
-     Out[8]: Timestamp('2014-01-31 00:00:00')
+    # old behaviour < 0.14.1
+    In [8]: d + offsets.MonthEnd()
+    Out[8]: pd.Timestamp('2014-01-31 00:00:00')
 
   Starting from 0.14.1 all offsets preserve time by default. The old
   behaviour can be obtained with ``normalize=True``
@@ -99,10 +100,10 @@ Enhancements
      import pandas.tseries.offsets as offsets
 
      day = offsets.Day()
-     day.apply(Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp('2014-01-01 09:00'))
 
      day = offsets.Day(normalize=True)
-     day.apply(Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp('2014-01-01 09:00'))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
@@ -122,8 +123,8 @@ Enhancements
 
   .. ipython:: python
 
-     rng = date_range('3/6/2012 00:00', periods=10, freq='D',
-                      tz='dateutil/Europe/London')
+     rng = pd.date_range('3/6/2012 00:00', periods=10, freq='D',
+                         tz='dateutil/Europe/London')
      rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
@@ -168,7 +169,7 @@ Experimental
 
 .. _whatsnew_0141.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
 - Bug in Panel indexing with a MultiIndex axis (:issue:`7516`)
@@ -246,7 +247,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` comparison doesn't handle ``NaT`` properly (:issue:`7529`)
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
-- Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
+- Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` handle ``NaT`` incorrectly (:issue:`7228`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
 - Bug in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)

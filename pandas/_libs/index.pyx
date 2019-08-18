@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
 import cython
@@ -15,11 +14,11 @@ from numpy cimport (ndarray, intp_t,
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 
-from hashtable cimport HashTable
+from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
@@ -46,10 +45,6 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
-
-
-def get_value_box(arr: ndarray, loc: object) -> object:
-    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -226,7 +221,13 @@ cdef class IndexEngine:
         return self.vgetter()
 
     def _call_monotonic(self, values):
-        raise NotImplementedError
+        return algos.is_monotonic(values, timelike=False)
+
+    def get_backfill_indexer(self, other, limit=None):
+        return algos.backfill(self._get_index_values(), other, limit=limit)
+
+    def get_pad_indexer(self, other, limit=None):
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, n):
         raise NotImplementedError
@@ -347,10 +348,10 @@ cdef class IndexEngine:
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
-        Py_ssize_t mid, lo = 0, hi = len(values) - 1
+        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi >= 0 and val > util.get_value_at(values, hi):
+    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
         return len(values)
 
     while lo < hi:
@@ -369,6 +370,14 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid
     else:
         return mid + 1
+
+
+cdef class ObjectEngine(IndexEngine):
+    """
+    Index Engine for use with object-dtype Index, namely the base class Index
+    """
+    cdef _make_hash_table(self, n):
+        return _hash.PyObjectHashTable(n)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -392,7 +401,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values, timelike=True)
+        return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -451,14 +460,13 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other, limit=limit)
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.backfill_int64(self._get_index_values(), other,
-                                    limit=limit)
+        return algos.backfill(self._get_index_values(), other, limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
@@ -492,15 +500,15 @@ cdef class PeriodEngine(Int64Engine):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.pad_int64(self._get_index_values(),
-                               np.asarray(ordinal), limit=limit)
+        return algos.pad(self._get_index_values(),
+                         np.asarray(ordinal), limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.backfill_int64(self._get_index_values(),
-                                    np.asarray(ordinal), limit=limit)
+        return algos.backfill(self._get_index_values(),
+                              np.asarray(ordinal), limit=limit)
 
     def get_indexer_non_unique(self, targets):
         freq = super(PeriodEngine, self).vgetter().freq
@@ -521,20 +529,27 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
+        elif util.is_timedelta64_object(value):
+            # exclude np.timedelta64("NaT") from value != value below
+            pass
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
-        elif isinstance(value, timedelta):
+        elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
             return Timedelta(value).value
+        elif util.is_datetime64_object(value):
+            # exclude np.datetime64("NaT") which would otherwise be picked up
+            #  by the `value != value check below
+            pass
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")
 

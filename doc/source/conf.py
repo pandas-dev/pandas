@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pandas documentation build configuration file, created by
 #
@@ -13,19 +12,15 @@
 
 import sys
 import os
-import re
 import inspect
 import importlib
 import logging
-import warnings
+import jinja2
 from sphinx.ext.autosummary import _import_by_name
+from numpydoc.docscrape import NumpyDocString
+
 
 logger = logging.getLogger(__name__)
-
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
@@ -39,19 +34,13 @@ sys.setrecursionlimit(5000)
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../sphinxext'))
-sys.path.extend([
-
-    # numpy standard doc extensions
-    os.path.join(os.path.dirname(__file__),
-                 '..', '../..',
-                 'sphinxext')
-
-])
-
-# numpydoc is available in the sphinxext directory, and can't be imported
-# until sphinxext is available in the Python path
-from numpydoc.docscrape import NumpyDocString
+sys.path.insert(0, os.path.abspath("../sphinxext"))
+sys.path.extend(
+    [
+        # numpy standard doc extensions
+        os.path.join(os.path.dirname(__file__), "..", "../..", "sphinxext")
+    ]
+)
 
 # -- General configuration -----------------------------------------------
 
@@ -59,53 +48,68 @@ from numpydoc.docscrape import NumpyDocString
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # sphinxext.
 
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.doctest',
-              'sphinx.ext.extlinks',
-              'sphinx.ext.todo',
-              'numpydoc',
-              'IPython.sphinxext.ipython_directive',
-              'IPython.sphinxext.ipython_console_highlighting',
-              'matplotlib.sphinxext.plot_directive',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.coverage',
-              'sphinx.ext.mathjax',
-              'sphinx.ext.ifconfig',
-              'sphinx.ext.linkcode',
-              'nbsphinx',
-              'contributors',  # custom pandas extension
-              ]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.todo",
+    "numpydoc",  # handle NumPy documentation formatted docstrings
+    "IPython.sphinxext.ipython_directive",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.linkcode",
+    "nbsphinx",
+    "contributors",  # custom pandas extension
+]
 
+exclude_patterns = ["**.ipynb_checkpoints"]
 try:
-    import sphinxcontrib.spelling  # noqa
-except ImportError as err:
-    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
-                '`spellcheck` command is not available.'.format(err)))
+    import nbconvert
+except ImportError:
+    logger.warn("nbconvert not installed. Skipping notebooks.")
+    exclude_patterns.append("**/*.ipynb")
 else:
-    extensions.append('sphinxcontrib.spelling')
+    try:
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except nbconvert.utils.pandoc.PandocMissing:
+        logger.warn("Pandoc not installed. Skipping notebooks.")
+        exclude_patterns.append("**/*.ipynb")
 
-exclude_patterns = ['**.ipynb_checkpoints']
+# sphinx_pattern can be '-api' to exclude the API pages,
+# the path to a file, or a Python object
+# (e.g. '10min.rst' or 'pandas.DataFrame.head')
+source_path = os.path.dirname(os.path.abspath(__file__))
+pattern = os.environ.get("SPHINX_PATTERN")
+if pattern:
+    for dirname, dirs, fnames in os.walk(source_path):
+        for fname in fnames:
+            if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
+                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
 
-spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
-spelling_ignore_pypi_package_names = True
+                if fname == "index.rst" and os.path.abspath(dirname) == source_path:
+                    continue
+                elif pattern == "-api" and dirname == "reference":
+                    exclude_patterns.append(fname)
+                elif pattern != "-api" and fname != pattern:
+                    exclude_patterns.append(fname)
 
-with open("index.rst") as f:
-    index_rst_lines = f.readlines()
-
-# only include the slow autosummary feature if we're building the API section
-# of the docs
-
-# JP: added from sphinxdocs
-autosummary_generate = False
-
-if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
-    autosummary_generate = True
+with open(os.path.join(source_path, "index.rst.template")) as f:
+    t = jinja2.Template(f.read())
+with open(os.path.join(source_path, "index.rst"), "w") as f:
+    f.write(
+        t.render(
+            include_api=pattern is None,
+            single_doc=(pattern if pattern is not None and pattern != "-api" else None),
+        )
+    )
+autosummary_generate = True if pattern is None else ["index"]
 
 # numpydoc
-# for now use old parameter listing (styling + **kwargs problem)
-numpydoc_use_blockquotes = True
-# use member listing for attributes
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
@@ -117,22 +121,20 @@ plot_pre_code = """import numpy as np
 import pandas as pd"""
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['../_templates']
+templates_path = ["../_templates"]
 
 # The suffix of source filenames.
-source_suffix = [
-    '.rst',
-]
+source_suffix = [".rst"]
 
 # The encoding of source files.
-source_encoding = 'utf-8'
+source_encoding = "utf-8"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'pandas'
-copyright = u'2008-2014, the pandas development team'
+project = "pandas"
+copyright = "2008-2014, the pandas development team"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -179,7 +181,7 @@ exclude_trees = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -189,7 +191,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'nature_with_gtoc'
+html_theme = "nature_with_gtoc"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -202,7 +204,7 @@ html_theme = 'nature_with_gtoc'
 # html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ['themes']
+html_theme_path = ["themes"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -218,12 +220,12 @@ html_theme_path = ['themes']
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
+html_favicon = os.path.join(html_static_path[0], "favicon.ico")
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -245,81 +247,89 @@ html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
 # https://github.com/pandas-dev/pandas/issues/16186
 
 moved_api_pages = [
-    ('pandas.core.common.isnull', 'pandas.isna'),
-    ('pandas.core.common.notnull', 'pandas.notna'),
-    ('pandas.core.reshape.get_dummies', 'pandas.get_dummies'),
-    ('pandas.tools.merge.concat', 'pandas.concat'),
-    ('pandas.tools.merge.merge', 'pandas.merge'),
-    ('pandas.tools.pivot.pivot_table', 'pandas.pivot_table'),
-    ('pandas.tseries.tools.to_datetime', 'pandas.to_datetime'),
-    ('pandas.io.clipboard.read_clipboard', 'pandas.read_clipboard'),
-    ('pandas.io.excel.ExcelFile.parse', 'pandas.ExcelFile.parse'),
-    ('pandas.io.excel.read_excel', 'pandas.read_excel'),
-    ('pandas.io.gbq.read_gbq', 'pandas.read_gbq'),
-    ('pandas.io.html.read_html', 'pandas.read_html'),
-    ('pandas.io.json.read_json', 'pandas.read_json'),
-    ('pandas.io.parsers.read_csv', 'pandas.read_csv'),
-    ('pandas.io.parsers.read_fwf', 'pandas.read_fwf'),
-    ('pandas.io.parsers.read_table', 'pandas.read_table'),
-    ('pandas.io.pickle.read_pickle', 'pandas.read_pickle'),
-    ('pandas.io.pytables.HDFStore.append', 'pandas.HDFStore.append'),
-    ('pandas.io.pytables.HDFStore.get', 'pandas.HDFStore.get'),
-    ('pandas.io.pytables.HDFStore.put', 'pandas.HDFStore.put'),
-    ('pandas.io.pytables.HDFStore.select', 'pandas.HDFStore.select'),
-    ('pandas.io.pytables.read_hdf', 'pandas.read_hdf'),
-    ('pandas.io.sql.read_sql', 'pandas.read_sql'),
-    ('pandas.io.sql.read_frame', 'pandas.read_frame'),
-    ('pandas.io.sql.write_frame', 'pandas.write_frame'),
-    ('pandas.io.stata.read_stata', 'pandas.read_stata'),
+    ("pandas.core.common.isnull", "pandas.isna"),
+    ("pandas.core.common.notnull", "pandas.notna"),
+    ("pandas.core.reshape.get_dummies", "pandas.get_dummies"),
+    ("pandas.tools.merge.concat", "pandas.concat"),
+    ("pandas.tools.merge.merge", "pandas.merge"),
+    ("pandas.tools.pivot.pivot_table", "pandas.pivot_table"),
+    ("pandas.tseries.tools.to_datetime", "pandas.to_datetime"),
+    ("pandas.io.clipboard.read_clipboard", "pandas.read_clipboard"),
+    ("pandas.io.excel.ExcelFile.parse", "pandas.ExcelFile.parse"),
+    ("pandas.io.excel.read_excel", "pandas.read_excel"),
+    ("pandas.io.gbq.read_gbq", "pandas.read_gbq"),
+    ("pandas.io.html.read_html", "pandas.read_html"),
+    ("pandas.io.json.read_json", "pandas.read_json"),
+    ("pandas.io.parsers.read_csv", "pandas.read_csv"),
+    ("pandas.io.parsers.read_fwf", "pandas.read_fwf"),
+    ("pandas.io.parsers.read_table", "pandas.read_table"),
+    ("pandas.io.pickle.read_pickle", "pandas.read_pickle"),
+    ("pandas.io.pytables.HDFStore.append", "pandas.HDFStore.append"),
+    ("pandas.io.pytables.HDFStore.get", "pandas.HDFStore.get"),
+    ("pandas.io.pytables.HDFStore.put", "pandas.HDFStore.put"),
+    ("pandas.io.pytables.HDFStore.select", "pandas.HDFStore.select"),
+    ("pandas.io.pytables.read_hdf", "pandas.read_hdf"),
+    ("pandas.io.sql.read_sql", "pandas.read_sql"),
+    ("pandas.io.sql.read_frame", "pandas.read_frame"),
+    ("pandas.io.sql.write_frame", "pandas.write_frame"),
+    ("pandas.io.stata.read_stata", "pandas.read_stata"),
 ]
 
 # Again, tuples of (from_old, to_new)
 moved_classes = [
-    ('pandas.tseries.resample.Resampler', 'pandas.core.resample.Resampler'),
-    ('pandas.formats.style.Styler', 'pandas.io.formats.style.Styler'),
+    ("pandas.tseries.resample.Resampler", "pandas.core.resample.Resampler"),
+    ("pandas.formats.style.Styler", "pandas.io.formats.style.Styler"),
 ]
 
 for old, new in moved_classes:
     # the class itself...
     moved_api_pages.append((old, new))
 
-    mod, classname = new.rsplit('.', 1)
+    mod, classname = new.rsplit(".", 1)
     klass = getattr(importlib.import_module(mod), classname)
-    methods = [x for x in dir(klass)
-               if not x.startswith('_') or x in ('__iter__', '__array__')]
+    methods = [
+        x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
+    ]
 
     for method in methods:
         # ... and each of its public methods
         moved_api_pages.append(
-            ("{old}.{method}".format(old=old, method=method),
-             "{new}.{method}".format(new=new, method=method))
+            (
+                "{old}.{method}".format(old=old, method=method),
+                "{new}.{method}".format(new=new, method=method),
+            )
         )
 
-html_additional_pages = {
-    'generated/' + page[0]: 'api_redirect.html'
-    for page in moved_api_pages
-}
+if pattern is None:
+    html_additional_pages = {
+        "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
+    }
 
 
-common_imports = """\
+header = """\
 .. currentmodule:: pandas
 
 .. ipython:: python
    :suppress:
 
    import numpy as np
-   from pandas import *
    import pandas as pd
+
    randn = np.random.randn
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
-   options.display.max_rows = 15
-   from pandas.compat import StringIO
-"""
+   pd.options.display.max_rows = 15
+
+   import os
+   os.chdir(r'{}')
+""".format(
+    os.path.dirname(os.path.dirname(__file__))
+)
 
 
 html_context = {
-    'redirects': {old: new for old, new in moved_api_pages},
-    'common_imports': common_imports,
+    "redirects": {old: new for old, new in moved_api_pages},
+    "header": header,
 }
 
 # If false, no module index is generated.
@@ -343,13 +353,15 @@ html_use_modindex = True
 # html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pandas'
+htmlhelp_basename = "pandas"
 
 # -- Options for nbsphinx ------------------------------------------------
 
 nbsphinx_allow_errors = True
 
 # -- Options for LaTeX output --------------------------------------------
+
+latex_elements = {}
 
 # The paper size ('letter' or 'a4').
 # latex_paper_size = 'letter'
@@ -360,9 +372,13 @@ nbsphinx_allow_errors = True
 # Grouping the document tree into LaTeX files. List of tuples (source start
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('index', 'pandas.tex',
-     'pandas: powerful Python data analysis toolkit',
-     r'Wes McKinney\n\& PyData Development Team', 'manual'),
+    (
+        "index",
+        "pandas.tex",
+        "pandas: powerful Python data analysis toolkit",
+        r"Wes McKinney\n\& PyData Development Team",
+        "manual",
+    )
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -383,40 +399,34 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-intersphinx_mapping = {
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None)
-}
-import glob
-autosummary_generate = glob.glob("*.rst")
+if pattern is None:
+    intersphinx_mapping = {
+        "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
+        "matplotlib": ("https://matplotlib.org/", None),
+        "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+        "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
+        "py": ("https://pylib.readthedocs.io/en/latest/", None),
+        "python": ("https://docs.python.org/3/", None),
+        "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+        "statsmodels": ("http://www.statsmodels.org/devel/", None),
+    }
 
 # extlinks alias
-extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
-                      'GH'),
-            'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
-                     'wiki ')}
-
-
-# ignore all deprecation warnings from Panel during doc build
-# (to avoid the need to add :okwarning: in many places)
-warnings.filterwarnings("ignore", message="\nPanel is deprecated",
-                        category=FutureWarning)
+extlinks = {
+    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
+    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
+}
 
 
 ipython_warning_is_error = False
 ipython_exec_lines = [
-    'import numpy as np',
-    'import pandas as pd',
+    "import numpy as np",
+    "import pandas as pd",
     # This ensures correct rendering on system with console encoding != utf8
     # (windows). It forces pandas to encode its output reprs using utf8
     # wherever the docs are built. The docs' target is the browser, not
     # the console, so this is fine.
-    'pd.options.display.encoding="utf8"'
+    'pd.options.display.encoding="utf8"',
 ]
 
 
@@ -425,8 +435,7 @@ ipython_exec_lines = [
 
 import sphinx
 from sphinx.util import rpartition
-from sphinx.ext.autodoc import (
-    Documenter, MethodDocumenter, AttributeDocumenter)
+from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
 from sphinx.ext.autosummary import Autosummary
 
 
@@ -434,8 +443,9 @@ class AccessorDocumenter(MethodDocumenter):
     """
     Specialized Documenter subclass for accessors.
     """
-    objtype = 'accessor'
-    directivetype = 'method'
+
+    objtype = "accessor"
+    directivetype = "method"
 
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
@@ -443,7 +453,7 @@ class AccessorDocumenter(MethodDocumenter):
     def format_signature(self):
         # this method gives an error/warning for the accessors, therefore
         # overriding it (accessor has no arguments)
-        return ''
+        return ""
 
 
 class AccessorLevelDocumenter(Documenter):
@@ -451,6 +461,7 @@ class AccessorLevelDocumenter(Documenter):
     Specialized Documenter subclass for objects on accessor level (methods,
     attributes).
     """
+
     # This is the simple straightforward version
     # modname is None, base the last elements (eg 'hour')
     # and path the part before (eg 'Series.dt')
@@ -463,41 +474,40 @@ class AccessorLevelDocumenter(Documenter):
     def resolve_name(self, modname, parents, path, base):
         if modname is None:
             if path:
-                mod_cls = path.rstrip('.')
+                mod_cls = path.rstrip(".")
             else:
                 mod_cls = None
                 # if documenting a class-level object without path,
                 # there must be a current class, either from a parent
                 # auto directive ...
-                mod_cls = self.env.temp_data.get('autodoc:class')
+                mod_cls = self.env.temp_data.get("autodoc:class")
                 # ... or from a class directive
                 if mod_cls is None:
-                    mod_cls = self.env.temp_data.get('py:class')
+                    mod_cls = self.env.temp_data.get("py:class")
                 # ... if still None, there's no way to know
                 if mod_cls is None:
                     return None, []
             # HACK: this is added in comparison to ClassLevelDocumenter
             # mod_cls still exists of class.accessor, so an extra
             # rpartition is needed
-            modname, accessor = rpartition(mod_cls, '.')
-            modname, cls = rpartition(modname, '.')
+            modname, accessor = rpartition(mod_cls, ".")
+            modname, cls = rpartition(modname, ".")
             parents = [cls, accessor]
             # if the module name is still missing, get it like above
             if not modname:
-                modname = self.env.temp_data.get('autodoc:module')
+                modname = self.env.temp_data.get("autodoc:module")
             if not modname:
-                if sphinx.__version__ > '1.3':
-                    modname = self.env.ref_context.get('py:module')
+                if sphinx.__version__ > "1.3":
+                    modname = self.env.ref_context.get("py:module")
                 else:
-                    modname = self.env.temp_data.get('py:module')
+                    modname = self.env.temp_data.get("py:module")
             # ... else, it stays None, which means invalid
         return modname, parents + [base]
 
 
-class AccessorAttributeDocumenter(AccessorLevelDocumenter,
-                                  AttributeDocumenter):
-    objtype = 'accessorattribute'
-    directivetype = 'attribute'
+class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
+    objtype = "accessorattribute"
+    directivetype = "attribute"
 
     # lower than AttributeDocumenter so this is not chosen for normal
     # attributes
@@ -505,8 +515,8 @@ class AccessorAttributeDocumenter(AccessorLevelDocumenter,
 
 
 class AccessorMethodDocumenter(AccessorLevelDocumenter, MethodDocumenter):
-    objtype = 'accessormethod'
-    directivetype = 'method'
+    objtype = "accessormethod"
+    directivetype = "method"
 
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
@@ -517,14 +527,15 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     This documenter lets us removes .__call__ from the method signature for
     callable accessors like Series.plot
     """
-    objtype = 'accessorcallable'
-    directivetype = 'method'
+
+    objtype = "accessorcallable"
+    directivetype = "method"
 
     # lower than MethodDocumenter; otherwise the doc build prints warnings
     priority = 0.5
 
     def format_name(self):
-        return MethodDocumenter.format_name(self).rstrip('.__call__')
+        return MethodDocumenter.format_name(self).rstrip(".__call__")
 
 
 class PandasAutosummary(Autosummary):
@@ -532,15 +543,16 @@ class PandasAutosummary(Autosummary):
     This alternative autosummary class lets us override the table summary for
     Series.plot and DataFrame.plot in the API docs.
     """
+
     def _replace_pandas_items(self, display_name, sig, summary, real_name):
         # this a hack: ideally we should extract the signature from the
         # .__call__ method instead of hard coding this
-        if display_name == 'DataFrame.plot':
-            sig = '([x, y, kind, ax, ....])'
-            summary = 'DataFrame plotting accessor and method'
-        elif display_name == 'Series.plot':
-            sig = '([kind, ax, figsize, ....])'
-            summary = 'Series plotting accessor and method'
+        if display_name == "DataFrame.plot":
+            sig = "([x, y, kind, ax, ....])"
+            summary = "DataFrame plotting accessor and method"
+        elif display_name == "Series.plot":
+            sig = "([kind, ax, figsize, ....])"
+            summary = "Series plotting accessor and method"
         return (display_name, sig, summary, real_name)
 
     @staticmethod
@@ -549,15 +561,15 @@ class PandasAutosummary(Autosummary):
             obj, parent, modname = _import_by_name(real_name)
         except ImportError:
             return False
-        doc = NumpyDocString(obj.__doc__ or '')
-        summary = ''.join(doc['Summary'] + doc['Extended Summary'])
-        return '.. deprecated::' in summary
+        doc = NumpyDocString(obj.__doc__ or "")
+        summary = "".join(doc["Summary"] + doc["Extended Summary"])
+        return ".. deprecated::" in summary
 
     def _add_deprecation_prefixes(self, items):
         for item in items:
             display_name, sig, summary, real_name = item
             if self._is_deprecated(real_name):
-                summary = '(DEPRECATED) %s' % summary
+                summary = "(DEPRECATED) %s" % summary
             yield display_name, sig, summary, real_name
 
     def get_items(self, names):
@@ -572,18 +584,18 @@ def linkcode_resolve(domain, info):
     """
     Determine the URL corresponding to Python object
     """
-    if domain != 'py':
+    if domain != "py":
         return None
 
-    modname = info['module']
-    fullname = info['fullname']
+    modname = info["module"]
+    fullname = info["fullname"]
 
     submod = sys.modules.get(modname)
     if submod is None:
         return None
 
     obj = submod
-    for part in fullname.split('.'):
+    for part in fullname.split("."):
         try:
             obj = getattr(obj, part)
         except AttributeError:
@@ -612,12 +624,14 @@ def linkcode_resolve(domain, info):
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    if '+' in pandas.__version__:
-        return ("http://github.com/pandas-dev/pandas/blob/master/pandas/"
-                "{}{}".format(fn, linespec))
+    if "+" in pandas.__version__:
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
+            fn, linespec
+        )
     else:
-        return ("http://github.com/pandas-dev/pandas/blob/"
-                "v{}/pandas/{}{}".format(pandas.__version__, fn, linespec))
+        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
+            pandas.__version__, fn, linespec
+        )
 
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
@@ -641,7 +655,7 @@ def process_class_docstrings(app, what, name, obj, options, lines):
 
     """
     if what == "class":
-        joined = '\n'.join(lines)
+        joined = "\n".join(lines)
 
         templates = [
             """.. rubric:: Attributes
@@ -657,21 +671,25 @@ def process_class_docstrings(app, what, name, obj, options, lines):
    :toctree:
 
    None
-"""
+""",
         ]
 
         for template in templates:
             if template in joined:
-                joined = joined.replace(template, '')
-        lines[:] = joined.split('\n')
+                joined = joined.replace(template, "")
+        lines[:] = joined.split("\n")
 
 
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
     # suppress this warning.
-    'app.add_directive'
+    "app.add_directive"
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append("ref.ref")
 
 
 def rstjinja(app, docname, source):
@@ -680,12 +698,10 @@ def rstjinja(app, docname, source):
     """
     # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
     # Make sure we're outputting HTML
-    if app.builder.format != 'html':
+    if app.builder.format != "html":
         return
     src = source[0]
-    rendered = app.builder.templates.render_string(
-        src, app.config.html_context
-    )
+    rendered = app.builder.templates.render_string(src, app.config.html_context)
     source[0] = rendered
 
 
@@ -697,4 +713,4 @@ def setup(app):
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
-    app.add_directive('autosummary', PandasAutosummary)
+    app.add_directive("autosummary", PandasAutosummary)

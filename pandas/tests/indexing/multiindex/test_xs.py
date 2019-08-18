@@ -1,164 +1,249 @@
+from itertools import product
+
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, product as cart_product
-
-from pandas import DataFrame, Index, MultiIndex, concat, read_csv
+from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-class TestMultiIndexXs(object):
-
-    def test_xs_multiindex(self):
-
-        # GH2903
-        columns = MultiIndex.from_tuples(
-            [('a', 'foo'), ('a', 'bar'), ('b', 'hello'),
-             ('b', 'world')], names=['lvl0', 'lvl1'])
-        df = DataFrame(np.random.randn(4, 4), columns=columns)
-        df.sort_index(axis=1, inplace=True)
-        result = df.xs('a', level='lvl0', axis=1)
-        expected = df.iloc[:, 0:2].loc[:, 'a']
-        tm.assert_frame_equal(result, expected)
-
-        result = df.xs('foo', level='lvl1', axis=1)
-        expected = df.iloc[:, 1:2].copy()
-        expected.columns = expected.columns.droplevel('lvl1')
-        tm.assert_frame_equal(result, expected)
-
-    def test_xs(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-        xs = frame.xs(('bar', 'two'))
-        xs2 = frame.loc[('bar', 'two')]
-
-        tm.assert_series_equal(xs, xs2)
-        tm.assert_almost_equal(xs.values, frame.values[4])
-
-        # GH 6574
-        # missing values in returned index should be preserrved
-        acc = [
-            ('a', 'abcde', 1),
-            ('b', 'bbcde', 2),
-            ('y', 'yzcde', 25),
-            ('z', 'xbcde', 24),
-            ('z', None, 26),
-            ('z', 'zbcde', 25),
-            ('z', 'ybcde', 26),
+@pytest.fixture
+def four_level_index_dataframe():
+    arr = np.array(
+        [
+            [-0.5109, -2.3358, -0.4645, 0.05076, 0.364],
+            [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
+            [-0.6662, -0.5243, -0.358, 0.89145, 2.5838],
         ]
-        df = DataFrame(acc,
-                       columns=['a1', 'a2', 'cnt']).set_index(['a1', 'a2'])
-        expected = DataFrame({'cnt': [24, 26, 25, 26]}, index=Index(
-            ['xbcde', np.nan, 'zbcde', 'ybcde'], name='a2'))
+    )
+    index = MultiIndex(
+        levels=[["a", "x"], ["b", "q"], [10.0032, 20.0, 30.0], [3, 4, 5]],
+        codes=[[0, 0, 1], [0, 1, 1], [0, 1, 2], [2, 1, 0]],
+        names=["one", "two", "three", "four"],
+    )
+    return DataFrame(arr, index=index, columns=list("ABCDE"))
 
-        result = df.xs('z', level='a1')
-        tm.assert_frame_equal(result, expected)
 
-    def test_xs_with_duplicates(self, multiindex_dataframe_random_data):
-        # Issue #13719
-        frame = multiindex_dataframe_random_data
-        df_dup = concat([frame] * 2)
-        assert df_dup.index.is_unique is False
-        expected = concat([frame.xs('one', level='second')] * 2)
-        tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
-        tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
+@pytest.mark.parametrize(
+    "key, level, exp_arr, exp_index",
+    [
+        ("a", "lvl0", lambda x: x[:, 0:2], Index(["bar", "foo"], name="lvl1")),
+        ("foo", "lvl1", lambda x: x[:, 1:2], Index(["a"], name="lvl0")),
+    ],
+)
+def test_xs_named_levels_axis_eq_1(key, level, exp_arr, exp_index):
+    # see gh-2903
+    arr = np.random.randn(4, 4)
+    index = MultiIndex(
+        levels=[["a", "b"], ["bar", "foo", "hello", "world"]],
+        codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
+        names=["lvl0", "lvl1"],
+    )
+    df = DataFrame(arr, columns=index)
+    result = df.xs(key, level=level, axis=1)
+    expected = DataFrame(exp_arr(arr), columns=exp_index)
+    tm.assert_frame_equal(result, expected)
 
-    def test_xs_level(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-        result = frame.xs('two', level='second')
-        expected = frame[frame.index.get_level_values(1) == 'two']
-        expected.index = expected.index.droplevel(1)
 
-        tm.assert_frame_equal(result, expected)
+def test_xs_values(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.xs(("bar", "two")).values
+    expected = df.values[4]
+    tm.assert_almost_equal(result, expected)
 
-        index = MultiIndex.from_tuples([('x', 'y', 'z'), ('a', 'b', 'c'), (
-            'p', 'q', 'r')])
-        df = DataFrame(np.random.randn(3, 5), index=index)
-        result = df.xs('c', level=2)
-        expected = df[1:2]
-        expected.index = expected.index.droplevel(2)
-        tm.assert_frame_equal(result, expected)
 
-        # this is a copy in 0.14
-        result = frame.xs('two', level='second')
+def test_xs_loc_equality(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.xs(("bar", "two"))
+    expected = df.loc[("bar", "two")]
+    tm.assert_series_equal(result, expected)
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
 
-        pytest.raises(com.SettingWithCopyError, f, result)
+def test_xs_missing_values_in_index():
+    # see gh-6574
+    # missing values in returned index should be preserved
+    acc = [
+        ("a", "abcde", 1),
+        ("b", "bbcde", 2),
+        ("y", "yzcde", 25),
+        ("z", "xbcde", 24),
+        ("z", None, 26),
+        ("z", "zbcde", 25),
+        ("z", "ybcde", 26),
+    ]
+    df = DataFrame(acc, columns=["a1", "a2", "cnt"]).set_index(["a1", "a2"])
+    expected = DataFrame(
+        {"cnt": [24, 26, 25, 26]},
+        index=Index(["xbcde", np.nan, "zbcde", "ybcde"], name="a2"),
+    )
 
-    def test_xs_level_multiple(self):
-        text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+    result = df.xs("z", level="a1")
+    tm.assert_frame_equal(result, expected)
 
-        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
-        result = df.xs(('a', 4), level=['one', 'four'])
-        expected = df.xs('a').xs(4, level='four')
-        tm.assert_frame_equal(result, expected)
+@pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])
+def test_xs_with_duplicates(key, level, multiindex_dataframe_random_data):
+    # see gh-13719
+    frame = multiindex_dataframe_random_data
+    df = concat([frame] * 2)
+    assert df.index.is_unique is False
+    expected = concat([frame.xs("one", level="second")] * 2)
 
-        # this is a copy in 0.14
-        result = df.xs(('a', 4), level=['one', 'four'])
+    result = df.xs(key, level=level)
+    tm.assert_frame_equal(result, expected)
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
 
-        pytest.raises(com.SettingWithCopyError, f, result)
+def test_xs_level(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    result = df.xs("two", level="second")
+    expected = df[df.index.get_level_values(1) == "two"]
+    expected.index = Index(["foo", "bar", "baz", "qux"], name="first")
+    tm.assert_frame_equal(result, expected)
 
-        # GH2107
-        dates = lrange(20111201, 20111205)
-        ids = 'abcde'
-        idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
-        idx.names = ['date', 'secid']
-        df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
 
-        rs = df.xs(20111201, level='date')
-        xp = df.loc[20111201, :]
-        tm.assert_frame_equal(rs, xp)
+def test_xs_level_eq_2():
+    arr = np.random.randn(3, 5)
+    index = MultiIndex(
+        levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
+        codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
+    )
+    df = DataFrame(arr, index=index)
+    expected = DataFrame(arr[1:2], index=[["a"], ["b"]])
+    result = df.xs("c", level=2)
+    tm.assert_frame_equal(result, expected)
 
-    def test_xs_level0(self):
-        text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
+@pytest.mark.parametrize(
+    "indexer",
+    [
+        lambda df: df.xs(("a", 4), level=["one", "four"]),
+        lambda df: df.xs("a").xs(4, level="four"),
+    ],
+)
+def test_xs_level_multiple(indexer, four_level_index_dataframe):
+    df = four_level_index_dataframe
+    expected_values = [[0.4473, 1.4152, 0.2834, 1.00661, 0.1744]]
+    expected_index = MultiIndex(
+        levels=[["q"], [20.0]], codes=[[0], [0]], names=["two", "three"]
+    )
+    expected = DataFrame(expected_values, index=expected_index, columns=list("ABCDE"))
+    result = indexer(df)
+    tm.assert_frame_equal(result, expected)
 
-        result = df.xs('a', level=0)
-        expected = df.xs('a')
-        assert len(result) == 2
-        tm.assert_frame_equal(result, expected)
 
-    def test_xs_level_series(self, multiindex_dataframe_random_data,
-                             multiindex_year_month_day_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-        ymd = multiindex_year_month_day_dataframe_random_data
-        s = frame['A']
-        result = s[:, 'two']
-        expected = frame.xs('two', level=1)['A']
-        tm.assert_series_equal(result, expected)
+def test_xs_setting_with_copy_error(multiindex_dataframe_random_data):
+    # this is a copy in 0.14
+    df = multiindex_dataframe_random_data
+    result = df.xs("two", level="second")
 
-        s = ymd['A']
-        result = s[2000, 5]
-        expected = ymd.loc[2000, 5]['A']
-        tm.assert_series_equal(result, expected)
+    # setting this will give a SettingWithCopyError
+    # as we are trying to write a view
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        result[:] = 10
 
-        # not implementing this for now
 
-        pytest.raises(TypeError, s.__getitem__, (2000, slice(3, 4)))
+def test_xs_setting_with_copy_error_multiple(four_level_index_dataframe):
+    # this is a copy in 0.14
+    df = four_level_index_dataframe
+    result = df.xs(("a", 4), level=["one", "four"])
 
-        # result = s[2000, 3:4]
-        # lv =s.index.get_level_values(1)
-        # expected = s[(lv == 3) | (lv == 4)]
-        # expected.index = expected.index.droplevel(0)
-        # tm.assert_series_equal(result, expected)
+    # setting this will give a SettingWithCopyError
+    # as we are trying to write a view
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
+        result[:] = 10
 
-        # can do this though
+
+def test_xs_integer_key():
+    # see gh-2107
+    dates = range(20111201, 20111205)
+    ids = "abcde"
+    index = MultiIndex.from_tuples(
+        [x for x in product(dates, ids)], names=["date", "secid"]
+    )
+    df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
+
+    result = df.xs(20111201, level="date")
+    expected = df.loc[20111201, :]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "indexer", [lambda df: df.xs("a", level=0), lambda df: df.xs("a")]
+)
+def test_xs_level0(indexer, four_level_index_dataframe):
+    df = four_level_index_dataframe
+    expected_values = [
+        [-0.5109, -2.3358, -0.4645, 0.05076, 0.364],
+        [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
+    ]
+    expected_index = MultiIndex(
+        levels=[["b", "q"], [10.0032, 20.0], [4, 5]],
+        codes=[[0, 1], [0, 1], [1, 0]],
+        names=["two", "three", "four"],
+    )
+    expected = DataFrame(expected_values, index=expected_index, columns=list("ABCDE"))
+
+    result = indexer(df)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_xs_level_series(multiindex_dataframe_random_data):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
+    df = multiindex_dataframe_random_data
+    s = df["A"]
+    result = s[:, "two"]
+    expected = df.xs("two", level=1)["A"]
+    tm.assert_series_equal(result, expected)
+
+
+def test_xs_level_series_ymd(multiindex_year_month_day_dataframe_random_data):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
+    df = multiindex_year_month_day_dataframe_random_data
+    s = df["A"]
+    result = s[2000, 5]
+    expected = df.loc[2000, 5]["A"]
+    tm.assert_series_equal(result, expected)
+
+
+def test_xs_level_series_slice_not_implemented(
+    multiindex_year_month_day_dataframe_random_data
+):
+    # this test is not explicitly testing .xs functionality
+    # TODO: move to another module or refactor
+    # not implementing this for now
+    df = multiindex_year_month_day_dataframe_random_data
+    s = df["A"]
+
+    msg = r"\(2000, slice\(3, 4, None\)\)"
+    with pytest.raises(TypeError, match=msg):
+        s[2000, 3:4]
+
+
+def test_series_getitem_multiindex_xs():
+    # GH6258
+    dt = list(date_range("20130903", periods=3))
+    idx = MultiIndex.from_product([list("AB"), dt])
+    s = Series([1, 3, 4, 1, 3, 4], index=idx)
+    expected = Series([1, 1], index=list("AB"))
+
+    result = s.xs("20130903", level=1)
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_getitem_multiindex_xs_by_label():
+    # GH5684
+    idx = MultiIndex.from_tuples(
+        [("a", "one"), ("a", "two"), ("b", "one"), ("b", "two")]
+    )
+    s = Series([1, 2, 3, 4], index=idx)
+    s.index.set_names(["L1", "L2"], inplace=True)
+    expected = Series([1, 3], index=["a", "b"])
+    expected.index.set_names(["L1"], inplace=True)
+
+    result = s.xs("one", level="L2")
+    tm.assert_series_equal(result, expected)

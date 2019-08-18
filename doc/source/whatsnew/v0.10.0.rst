@@ -3,7 +3,8 @@
 v0.10.0 (December 17, 2012)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a major release from 0.9.1 and includes many new features and
 enhancements along with a large number of bug fixes. There are also a number of
@@ -54,7 +55,7 @@ talking about:
    # deprecated now
    df - df[0]
    # Change your code to
-   df.sub(df[0], axis=0) # align on axis 0 (rows)
+   df.sub(df[0], axis=0)  # align on axis 0 (rows)
 
 You will get a deprecation warning in the 0.10.x series, and the deprecated
 functionality will be removed in 0.11 or later.
@@ -71,7 +72,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
    In [1]: dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
 
-   In [2]: series = Series(np.arange(len(dates)), index=dates)
+   In [2]: series = pd.Series(np.arange(len(dates)), index=dates)
 
    In [3]: series
    Out[3]:
@@ -181,10 +182,14 @@ labeled the aggregated group with the end of the interval: the next day).
 
 .. ipython:: python
 
-    data= 'a,b,c\n1,Yes,2\n3,No,4'
+    import io
+
+    data = ('a,b,c\n'
+            '1,Yes,2\n'
+            '3,No,4')
     print(data)
-    pd.read_csv(StringIO(data), header=None)
-    pd.read_csv(StringIO(data), header=None, prefix='X')
+    pd.read_csv(io.StringIO(data), header=None)
+    pd.read_csv(io.StringIO(data), header=None, prefix='X')
 
 - Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
   though this can be controlled by new ``true_values`` and ``false_values``
@@ -193,8 +198,8 @@ labeled the aggregated group with the end of the interval: the next day).
 .. ipython:: python
 
     print(data)
-    pd.read_csv(StringIO(data))
-    pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
+    pd.read_csv(io.StringIO(data))
+    pd.read_csv(io.StringIO(data), true_values=['Yes'], false_values=['No'])
 
 - The file parsers will not recognize non-string values arising from a
   converter function as NA if passed in the ``na_values`` argument. It's better
@@ -205,7 +210,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
 .. ipython:: python
 
-   s = Series([np.nan, 1., 2., np.nan, 4])
+   s = pd.Series([np.nan, 1., 2., np.nan, 4])
    s
    s.fillna(0)
    s.fillna(method='pad')
@@ -224,9 +229,9 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   .. ipython:: python
 
       def f(x):
-          return Series([ x, x**2 ], index = ['x', 'x^2'])
+          return pd.Series([x, x**2], index=['x', 'x^2'])
 
-      s = Series(np.random.rand(5))
+      s = pd.Series(np.random.rand(5))
       s
       s.apply(f)
 
@@ -243,14 +248,14 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
 
   .. ipython:: python
 
-     get_option("display.max_rows")
+     pd.get_option("display.max_rows")
 
 - to_string() methods now always return unicode strings  (:issue:`2224`).
 
 New features
 ~~~~~~~~~~~~
 
-Wide DataFrame Printing
+Wide DataFrame printing
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Instead of printing the summary information, pandas now splits the string
@@ -258,7 +263,7 @@ representation across multiple rows by default:
 
 .. ipython:: python
 
-   wide_frame = DataFrame(randn(5, 16))
+   wide_frame = pd.DataFrame(np.random.randn(5, 16))
 
    wide_frame
 
@@ -285,84 +290,179 @@ The width of each line can be changed via 'line_width' (80 by default):
    wide_frame
 
 
-Updated PyTables Support
+Updated PyTables support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Docs <io.hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
 
-.. ipython:: python
-   :suppress:
-   :okexcept:
+.. code-block:: ipython
 
-   os.remove('store.h5')
+    In [41]: store = pd.HDFStore('store.h5')
 
-.. ipython:: python
+    In [42]: df = pd.DataFrame(np.random.randn(8, 3),
+       ....:                   index=pd.date_range('1/1/2000', periods=8),
+       ....:                   columns=['A', 'B', 'C'])
 
-   store = HDFStore('store.h5')
-   df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
-              columns=['A', 'B', 'C'])
-   df
+    In [43]: df
+    Out[43]:
+                       A         B         C
+    2000-01-01 -2.036047  0.000830 -0.955697
+    2000-01-02 -0.898872 -0.725411  0.059904
+    2000-01-03 -0.449644  1.082900 -1.221265
+    2000-01-04  0.361078  1.330704  0.855932
+    2000-01-05 -1.216718  1.488887  0.018993
+    2000-01-06 -0.877046  0.045976  0.437274
+    2000-01-07 -0.567182 -0.888657 -0.556383
+    2000-01-08  0.655457  1.117949 -2.782376
 
-   # appending data frames
-   df1 = df[0:4]
-   df2 = df[4:]
-   store.append('df', df1)
-   store.append('df', df2)
-   store
+    [8 rows x 3 columns]
 
-   # selecting the entire store
-   store.select('df')
+    # appending data frames
+    In [44]: df1 = df[0:4]
 
-.. ipython:: python
-   :okwarning:
+    In [45]: df2 = df[4:]
 
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-          major_axis=date_range('1/1/2000', periods=5),
-          minor_axis=['A', 'B', 'C', 'D'])
-   wp
+    In [46]: store.append('df', df1)
 
-   # storing a panel
-   store.append('wp',wp)
+    In [47]: store.append('df', df2)
 
-   # selecting via A QUERY
-   store.select('wp', "major_axis>20000102 and minor_axis=['A','B']")
+    In [48]: store
+    Out[48]:
+    <class 'pandas.io.pytables.HDFStore'>
+    File path: store.h5
+    /df            frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
 
-   # removing data from tables
-   store.remove('wp', "major_axis>20000103")
-   store.select('wp')
+    # selecting the entire store
+    In [49]: store.select('df')
+    Out[49]:
+                       A         B         C
+    2000-01-01 -2.036047  0.000830 -0.955697
+    2000-01-02 -0.898872 -0.725411  0.059904
+    2000-01-03 -0.449644  1.082900 -1.221265
+    2000-01-04  0.361078  1.330704  0.855932
+    2000-01-05 -1.216718  1.488887  0.018993
+    2000-01-06 -0.877046  0.045976  0.437274
+    2000-01-07 -0.567182 -0.888657 -0.556383
+    2000-01-08  0.655457  1.117949 -2.782376
 
-   # deleting a store
-   del store['df']
-   store
+    [8 rows x 3 columns]
+
+.. code-block:: ipython
+
+    In [50]: wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+       ....:               major_axis=pd.date_range('1/1/2000', periods=5),
+       ....:               minor_axis=['A', 'B', 'C', 'D'])
+
+    In [51]: wp
+    Out[51]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 5 (major_axis) x 4 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-01 00:00:00 to 2000-01-05 00:00:00
+    Minor_axis axis: A to D
+
+    # storing a panel
+    In [52]: store.append('wp', wp)
+
+    # selecting via A QUERY
+    In [53]: store.select('wp', [pd.Term('major_axis>20000102'),
+       ....:                     pd.Term('minor_axis', '=', ['A', 'B'])])
+       ....:
+    Out[53]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 3 (major_axis) x 2 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-03 00:00:00 to 2000-01-05 00:00:00
+    Minor_axis axis: A to B
+
+    # removing data from tables
+    In [54]: store.remove('wp', pd.Term('major_axis>20000103'))
+    Out[54]: 8
+
+    In [55]: store.select('wp')
+    Out[55]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-01 00:00:00 to 2000-01-03 00:00:00
+    Minor_axis axis: A to D
+
+    # deleting a store
+    In [56]: del store['df']
+
+    In [57]: store
+    Out[57]:
+    <class 'pandas.io.pytables.HDFStore'>
+    File path: store.h5
+    /wp            wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
+
 
 **Enhancements**
 
 - added ability to hierarchical keys
 
-   .. ipython:: python
+   .. code-block:: ipython
 
-     store.put('foo/bar/bah', df)
-     store.append('food/orange', df)
-     store.append('food/apple',  df)
-     store
+        In [58]: store.put('foo/bar/bah', df)
 
-     # remove all nodes under this level
-     store.remove('food')
-     store
+        In [59]: store.append('food/orange', df)
+
+        In [60]: store.append('food/apple', df)
+
+        In [61]: store
+        Out[61]:
+        <class 'pandas.io.pytables.HDFStore'>
+        File path: store.h5
+        /foo/bar/bah            frame        (shape->[8,3])
+        /food/apple             frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
+        /food/orange            frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
+        /wp                     wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
+
+        # remove all nodes under this level
+        In [62]: store.remove('food')
+
+        In [63]: store
+        Out[63]:
+        <class 'pandas.io.pytables.HDFStore'>
+        File path: store.h5
+        /foo/bar/bah            frame        (shape->[8,3])
+        /wp                     wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
 
 - added mixed-dtype support!
 
-   .. ipython:: python
+   .. code-block:: ipython
 
-      df['string'] = 'string'
-      df['int']    = 1
-      store.append('df',df)
-      df1 = store.select('df')
-      df1
-      df1.get_dtype_counts()
+        In [64]: df['string'] = 'string'
+
+        In [65]: df['int'] = 1
+
+        In [66]: store.append('df', df)
+
+        In [67]: df1 = store.select('df')
+
+        In [68]: df1
+        Out[68]:
+                           A         B         C  string  int
+        2000-01-01 -2.036047  0.000830 -0.955697  string    1
+        2000-01-02 -0.898872 -0.725411  0.059904  string    1
+        2000-01-03 -0.449644  1.082900 -1.221265  string    1
+        2000-01-04  0.361078  1.330704  0.855932  string    1
+        2000-01-05 -1.216718  1.488887  0.018993  string    1
+        2000-01-06 -0.877046  0.045976  0.437274  string    1
+        2000-01-07 -0.567182 -0.888657 -0.556383  string    1
+        2000-01-08  0.655457  1.117949 -2.782376  string    1
+
+        [8 rows x 5 columns]
+
+        In [69]: df1.get_dtype_counts()
+        Out[69]:
+        float64    3
+        int64      1
+        object     1
+        dtype: int64
 
 - performance improvements on table writing
-- support for arbitrarly indexed dimensions
+- support for arbitrarily indexed dimensions
 - ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
   to strip arbitrary characters (:issue:`2411`)
@@ -384,20 +484,13 @@ Updated PyTables Support
 - minor change to select and remove: require a table ONLY if where is also
   provided (and not None)
 
-.. ipython:: python
-   :suppress:
-
-   store.close()
-   import os
-   os.remove('store.h5')
-
 **Compatibility**
 
 0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
 however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
 file and write it out using the new format to take advantage of the updates.
 
-N Dimensional Panels (Experimental)
+N dimensional Panels (experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.

@@ -21,7 +21,6 @@ dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
           ('UInt32', 'uint32', 'uint32_t', 'UInt64', 'uint64'),
           ('UInt16', 'uint16', 'uint16_t', 'UInt64', 'uint64'),
           ('UInt8', 'uint8', 'uint8_t', 'UInt64', 'uint64'),
-          ('Object', 'object', 'object', 'PyObject', 'object'),
           ]
 }}
 
@@ -30,32 +29,15 @@ dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
 
 cdef class {{name}}Engine(IndexEngine):
 
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_{{dtype}}(values, timelike=False)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_{{dtype}}(self._get_index_values(),
-                                        other, limit=limit)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_{{dtype}}(self._get_index_values(),
-                                   other, limit=limit)
-
     cdef _make_hash_table(self, n):
         return _hash.{{hashtable_name}}HashTable(n)
 
-    {{if name not in {'Float64', 'Float32', 'Object'} }}
+    {{if name not in {'Float64', 'Float32'} }}
     cdef _check_type(self, object val):
-        hash(val)
-        if util.is_bool_object(val):
-            raise KeyError(val)
-        elif util.is_float_object(val):
-            raise KeyError(val)
-        elif not util.is_integer_object(val):
+        if not util.is_integer_object(val):
             raise KeyError(val)
     {{endif}}
 
-    {{if name != 'Object'}}
     cpdef _call_map_locations(self, values):
         # self.mapping is of type {{hashtable_name}}HashTable,
         # so convert dtype of values
@@ -88,7 +70,5 @@ cdef class {{name}}Engine(IndexEngine):
             return int(found[0])
 
         raise KeyError(val)
-
-    {{endif}}
 
 {{endfor}}

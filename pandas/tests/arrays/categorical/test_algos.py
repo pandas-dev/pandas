@@ -5,45 +5,42 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-@pytest.mark.parametrize('ordered', [True, False])
-@pytest.mark.parametrize('categories', [
-    ['b', 'a', 'c'],
-    ['a', 'b', 'c', 'd'],
-])
+@pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.parametrize("categories", [["b", "a", "c"], ["a", "b", "c", "d"]])
 def test_factorize(categories, ordered):
-    cat = pd.Categorical(['b', 'b', 'a', 'c', None],
-                         categories=categories,
-                         ordered=ordered)
+    cat = pd.Categorical(
+        ["b", "b", "a", "c", None], categories=categories, ordered=ordered
+    )
     labels, uniques = pd.factorize(cat)
     expected_labels = np.array([0, 0, 1, 2, -1], dtype=np.intp)
-    expected_uniques = pd.Categorical(['b', 'a', 'c'],
-                                      categories=categories,
-                                      ordered=ordered)
+    expected_uniques = pd.Categorical(
+        ["b", "a", "c"], categories=categories, ordered=ordered
+    )
 
     tm.assert_numpy_array_equal(labels, expected_labels)
     tm.assert_categorical_equal(uniques, expected_uniques)
 
 
 def test_factorized_sort():
-    cat = pd.Categorical(['b', 'b', None, 'a'])
+    cat = pd.Categorical(["b", "b", None, "a"])
     labels, uniques = pd.factorize(cat, sort=True)
     expected_labels = np.array([1, 1, -1, 0], dtype=np.intp)
-    expected_uniques = pd.Categorical(['a', 'b'])
+    expected_uniques = pd.Categorical(["a", "b"])
 
     tm.assert_numpy_array_equal(labels, expected_labels)
     tm.assert_categorical_equal(uniques, expected_uniques)
 
 
 def test_factorized_sort_ordered():
-    cat = pd.Categorical(['b', 'b', None, 'a'],
-                         categories=['c', 'b', 'a'],
-                         ordered=True)
+    cat = pd.Categorical(
+        ["b", "b", None, "a"], categories=["c", "b", "a"], ordered=True
+    )
 
     labels, uniques = pd.factorize(cat, sort=True)
     expected_labels = np.array([0, 0, -1, 1], dtype=np.intp)
-    expected_uniques = pd.Categorical(['b', 'a'],
-                                      categories=['c', 'b', 'a'],
-                                      ordered=True)
+    expected_uniques = pd.Categorical(
+        ["b", "a"], categories=["c", "b", "a"], ordered=True
+    )
 
     tm.assert_numpy_array_equal(labels, expected_labels)
     tm.assert_categorical_equal(uniques, expected_uniques)
@@ -71,53 +68,56 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
-class TestTake(object):
+class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
     def test_take_warns(self):
-        cat = pd.Categorical(['a', 'b'])
+        cat = pd.Categorical(["a", "b"])
         with tm.assert_produces_warning(FutureWarning):
             cat.take([0, -1])
 
     def test_take_positive_no_warning(self):
-        cat = pd.Categorical(['a', 'b'])
+        cat = pd.Categorical(["a", "b"])
         with tm.assert_produces_warning(None):
             cat.take([0, 0])
 
     def test_take_bounds(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
-        cat = pd.Categorical(['a', 'b', 'a'])
+        cat = pd.Categorical(["a", "b", "a"])
         with pytest.raises(IndexError):
             cat.take([4, 5], allow_fill=allow_fill)
 
     def test_take_empty(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
-        cat = pd.Categorical([], categories=['a', 'b'])
+        cat = pd.Categorical([], categories=["a", "b"])
         with pytest.raises(IndexError):
             cat.take([0], allow_fill=allow_fill)
 
-    def test_positional_take(self, ordered):
-        cat = pd.Categorical(['a', 'a', 'b', 'b'], categories=['b', 'a'],
-                             ordered=ordered)
+    def test_positional_take(self, ordered_fixture):
+        cat = pd.Categorical(
+            ["a", "a", "b", "b"], categories=["b", "a"], ordered=ordered_fixture
+        )
         result = cat.take([0, 1, 2], allow_fill=False)
-        expected = pd.Categorical(['a', 'a', 'b'], categories=cat.categories,
-                                  ordered=ordered)
+        expected = pd.Categorical(
+            ["a", "a", "b"], categories=cat.categories, ordered=ordered_fixture
+        )
         tm.assert_categorical_equal(result, expected)
 
-    def test_positional_take_unobserved(self, ordered):
-        cat = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'],
-                             ordered=ordered)
+    def test_positional_take_unobserved(self, ordered_fixture):
+        cat = pd.Categorical(
+            ["a", "b"], categories=["a", "b", "c"], ordered=ordered_fixture
+        )
         result = cat.take([1, 0], allow_fill=False)
-        expected = pd.Categorical(['b', 'a'], categories=cat.categories,
-                                  ordered=ordered)
+        expected = pd.Categorical(
+            ["b", "a"], categories=cat.categories, ordered=ordered_fixture
+        )
         tm.assert_categorical_equal(result, expected)
 
     def test_take_allow_fill(self):
         # https://github.com/pandas-dev/pandas/issues/23296
-        cat = pd.Categorical(['a', 'a', 'b'])
+        cat = pd.Categorical(["a", "a", "b"])
         result = cat.take([0, -1, -1], allow_fill=True)
-        expected = pd.Categorical(['a', np.nan, np.nan],
-                                  categories=['a', 'b'])
+        expected = pd.Categorical(["a", np.nan, np.nan], categories=["a", "b"])
         tm.assert_categorical_equal(result, expected)
 
     def test_take_fill_with_negative_one(self):
@@ -129,14 +129,14 @@ class TestTake(object):
 
     def test_take_fill_value(self):
         # https://github.com/pandas-dev/pandas/issues/23296
-        cat = pd.Categorical(['a', 'b', 'c'])
-        result = cat.take([0, 1, -1], fill_value='a', allow_fill=True)
-        expected = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
+        cat = pd.Categorical(["a", "b", "c"])
+        result = cat.take([0, 1, -1], fill_value="a", allow_fill=True)
+        expected = pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"])
         tm.assert_categorical_equal(result, expected)
 
     def test_take_fill_value_new_raises(self):
         # https://github.com/pandas-dev/pandas/issues/23296
-        cat = pd.Categorical(['a', 'b', 'c'])
+        cat = pd.Categorical(["a", "b", "c"])
         xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
         with pytest.raises(TypeError, match=xpr):
-            cat.take([0, 1, -1], fill_value='d', allow_fill=True)
+            cat.take([0, 1, -1], fill_value="d", allow_fill=True)

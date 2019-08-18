@@ -57,8 +57,9 @@ cdef class IndexableSkiplist:
         return self.get(i)
 
     cpdef get(self, Py_ssize_t i):
-        cdef Py_ssize_t level
-        cdef Node node
+        cdef:
+            Py_ssize_t level
+            Node node
 
         node = self.head
         i += 1
@@ -71,9 +72,10 @@ cdef class IndexableSkiplist:
         return node.value
 
     cpdef insert(self, double value):
-        cdef Py_ssize_t level, steps, d
-        cdef Node node, prevnode, newnode, next_at_level, tmp
-        cdef list chain, steps_at_level
+        cdef:
+            Py_ssize_t level, steps, d
+            Node node, prevnode, newnode, next_at_level, tmp
+            list chain, steps_at_level
 
         # find first node on each level where node.next[levels].value > value
         chain = [None] * self.maxlevels
@@ -110,9 +112,10 @@ cdef class IndexableSkiplist:
         self.size += 1
 
     cpdef remove(self, double value):
-        cdef Py_ssize_t level, d
-        cdef Node node, prevnode, tmpnode, next_at_level
-        cdef list chain
+        cdef:
+            Py_ssize_t level, d
+            Node node, prevnode, tmpnode, next_at_level
+            list chain
 
         # find first node on each level where node.next[levels].value >= value
         chain = [None] * self.maxlevels

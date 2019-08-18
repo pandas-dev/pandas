@@ -24,11 +24,19 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
-from numpy cimport int64_t
+    # Note that following functions can potentially raise an exception,
+    # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
+    # potentially allocate memory inside in unlikely case of when underlying
+    # unicode object was stored as non-utf8 and utf8 wasn't requested before.
+    bint PyBytes_AsStringAndSize(object obj, char** buf,
+                                 Py_ssize_t* length) except -1
+    const char* PyUnicode_AsUTF8AndSize(object obj,
+                                        Py_ssize_t* length) except NULL
+
+from numpy cimport int64_t, float64_t
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
-    int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyTimedeltaArrType_Type
@@ -47,27 +55,8 @@ cdef inline int64_t get_nat():
     return NPY_MIN_INT64
 
 
-cdef inline int import_array() except -1:
-    _import_array()
-
-
 # --------------------------------------------------------------------
 # Type Checking
-
-cdef inline bint is_string_object(object obj) nogil:
-    """
-    Cython equivalent of `isinstance(val, compat.string_types)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_string : bool
-    """
-    return PyString_Check(obj) or PyUnicode_Check(obj)
-
 
 cdef inline bint is_integer_object(object obj) nogil:
     """
@@ -87,7 +76,8 @@ cdef inline bint is_integer_object(object obj) nogil:
     -----
     This counts np.timedelta64 objects as integers.
     """
-    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+    return (not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+            and not is_timedelta64_object(obj))
 
 
 cdef inline bint is_float_object(object obj) nogil:
@@ -215,7 +205,8 @@ cdef inline bint is_offset_object(object val):
 
 cdef inline bint is_nan(object val):
     """
-    Check if val is a Not-A-Number float, including float('NaN') and np.nan.
+    Check if val is a Not-A-Number float or complex, including
+    float('NaN') and np.nan.
 
     Parameters
     ----------
@@ -225,4 +216,42 @@ cdef inline bint is_nan(object val):
     -------
     is_nan : bool
     """
-    return is_float_object(val) and val != val
+    cdef float64_t fval
+    if is_float_object(val):
+        fval = val
+        return fval != fval
+    return is_complex_object(val) and val != val
+
+
+cdef inline const char* get_c_string_buf_and_size(object py_string,
+                                                  Py_ssize_t *length):
+    """
+    Extract internal char* buffer of unicode or bytes object `py_string` with
+    getting length of this internal buffer saved in `length`.
+
+    Notes
+    -----
+    Python object owns memory, thus returned char* must not be freed.
+    `length` can be NULL if getting buffer length is not needed.
+
+    Parameters
+    ----------
+    py_string : object
+    length : Py_ssize_t*
+
+    Returns
+    -------
+    buf : const char*
+    """
+    cdef:
+        const char *buf
+
+    if PyUnicode_Check(py_string):
+        buf = PyUnicode_AsUTF8AndSize(py_string, length)
+    else:
+        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
+    return buf
+
+
+cdef inline const char* get_c_string(object py_string):
+    return get_c_string_buf_and_size(py_string, NULL)

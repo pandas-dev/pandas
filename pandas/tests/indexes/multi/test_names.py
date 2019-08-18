@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import pytest
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def check_level_names(index, names):
@@ -11,22 +10,19 @@ def check_level_names(index, names):
 
 
 def test_slice_keep_name():
-    x = MultiIndex.from_tuples([('a', 'b'), (1, 2), ('c', 'd')],
-                               names=['x', 'y'])
+    x = MultiIndex.from_tuples([("a", "b"), (1, 2), ("c", "d")], names=["x", "y"])
     assert x[1:].names == x.names
 
 
 def test_index_name_retained():
     # GH9857
-    result = pd.DataFrame({'x': [1, 2, 6],
-                           'y': [2, 2, 8],
-                           'z': [-5, 0, 5]})
-    result = result.set_index('z')
+    result = pd.DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]})
+    result = result.set_index("z")
     result.loc[10] = [9, 10]
-    df_expected = pd.DataFrame({'x': [1, 2, 6, 9],
-                                'y': [2, 2, 8, 10],
-                                'z': [-5, 0, 5, 10]})
-    df_expected = df_expected.set_index('z')
+    df_expected = pd.DataFrame(
+        {"x": [1, 2, 6, 9], "y": [2, 2, 8, 10], "z": [-5, 0, 5, 10]}
+    )
+    df_expected = df_expected.set_index("z")
     tm.assert_frame_equal(result, df_expected)
 
 
@@ -63,24 +59,24 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    multi_idx = pd.Index([(1, 2), (3, 4)], names=['MyName1', 'MyName2'])
+    multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
-    assert multi_idx.names == ['MyName1', 'MyName2']
-    assert multi_idx1.names == ['MyName1', 'MyName2']
+    assert multi_idx.names == ["MyName1", "MyName2"]
+    assert multi_idx1.names == ["MyName1", "MyName2"]
 
-    multi_idx2 = multi_idx.copy(names=['NewName1', 'NewName2'])
+    multi_idx2 = multi_idx.copy(names=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx2)
-    assert multi_idx.names == ['MyName1', 'MyName2']
-    assert multi_idx2.names == ['NewName1', 'NewName2']
+    assert multi_idx.names == ["MyName1", "MyName2"]
+    assert multi_idx2.names == ["NewName1", "NewName2"]
 
-    multi_idx3 = multi_idx.copy(name=['NewName1', 'NewName2'])
+    multi_idx3 = multi_idx.copy(name=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx3)
-    assert multi_idx.names == ['MyName1', 'MyName2']
-    assert multi_idx3.names == ['NewName1', 'NewName2']
+    assert multi_idx.names == ["MyName1", "MyName2"]
+    assert multi_idx3.names == ["NewName1", "NewName2"]
 
 
 def test_names(idx, index_names):
@@ -99,15 +95,19 @@ def test_names(idx, index_names):
 
     # initializing with bad names (should always be equivalent)
     major_axis, minor_axis = idx.levels
-    major_labels, minor_labels = idx.labels
+    major_codes, minor_codes = idx.codes
     with pytest.raises(ValueError, match="^Length of names"):
-        MultiIndex(levels=[major_axis, minor_axis],
-                   labels=[major_labels, minor_labels],
-                   names=['first'])
+        MultiIndex(
+            levels=[major_axis, minor_axis],
+            codes=[major_codes, minor_codes],
+            names=["first"],
+        )
     with pytest.raises(ValueError, match="^Length of names"):
-        MultiIndex(levels=[major_axis, minor_axis],
-                   labels=[major_labels, minor_labels],
-                   names=['first', 'second', 'third'])
+        MultiIndex(
+            levels=[major_axis, minor_axis],
+            codes=[major_codes, minor_codes],
+            names=["first", "second", "third"],
+        )
 
     # names are assigned
     index.names = ["a", "b"]
@@ -118,6 +118,6 @@ def test_names(idx, index_names):
 
 def test_duplicate_level_names_access_raises(idx):
     # GH19029
-    idx.names = ['foo', 'foo']
-    with pytest.raises(ValueError, match='name foo occurs multiple times'):
-        idx._get_level_number('foo')
+    idx.names = ["foo", "foo"]
+    with pytest.raises(ValueError, match="name foo occurs multiple times"):
+        idx._get_level_number("foo")

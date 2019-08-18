@@ -3,7 +3,13 @@
 v0.20.3 (July 7, 2017)
 -----------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -14,7 +20,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 
 .. _whatsnew_0203.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)
@@ -52,7 +58,7 @@ Plotting
 Reshaping
 ^^^^^^^^^
 
-- ``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`) 
+- ``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`)
 - Bug in joining on a ``MultiIndex`` with a ``category`` dtype for a level (:issue:`16627`).
 - Bug in :func:`merge` when merging/joining with multiple categorical columns (:issue:`16767`)
 

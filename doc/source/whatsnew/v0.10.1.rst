@@ -3,7 +3,8 @@
 v0.10.1 (January 22, 2013)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor release from 0.10.0 and includes new features, enhancements,
 and bug fixes. In particular, there is substantial new HDFStore functionality
@@ -42,6 +43,8 @@ You may need to upgrade your existing data files. Please visit the
    :suppress:
    :okexcept:
 
+   import os
+
    os.remove('store.h5')
 
 You can designate (and index) certain columns that you want to be able to
@@ -49,9 +52,10 @@ perform queries on a table, by passing a list to ``data_columns``
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
-   df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
-              columns=['A', 'B', 'C'])
+   store = pd.HDFStore('store.h5')
+   df = pd.DataFrame(np.random.randn(8, 3),
+                     index=pd.date_range('1/1/2000', periods=8),
+                     columns=['A', 'B', 'C'])
    df['string'] = 'foo'
    df.loc[df.index[4:6], 'string'] = np.nan
    df.loc[df.index[7:9], 'string'] = 'bar'
@@ -59,7 +63,7 @@ perform queries on a table, by passing a list to ``data_columns``
    df
 
    # on-disk operations
-   store.append('df', df, data_columns = ['B','C','string','string2'])
+   store.append('df', df, data_columns=['B', 'C', 'string', 'string2'])
    store.select('df', "B>0 and string=='foo'")
 
    # this is in-memory version of this type of selection
@@ -71,21 +75,21 @@ Retrieving unique values in an indexable or data column.
 
    # note that this is deprecated as of 0.14.0
    # can be replicated by: store.select_column('df','index').unique()
-   store.unique('df','index')
-   store.unique('df','string')
+   store.unique('df', 'index')
+   store.unique('df', 'string')
 
 You can now store ``datetime64`` in data columns
 
 .. ipython:: python
 
-    df_mixed               = df.copy()
-    df_mixed['datetime64'] = Timestamp('20010102')
-    df_mixed.loc[df_mixed.index[3:4], ['A','B']] = np.nan
+    df_mixed = df.copy()
+    df_mixed['datetime64'] = pd.Timestamp('20010102')
+    df_mixed.loc[df_mixed.index[3:4], ['A', 'B']] = np.nan
 
     store.append('df_mixed', df_mixed)
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.get_dtype_counts()
+    df_mixed1.dtypes.value_counts()
 
 You can pass ``columns`` keyword to select to filter a list of the return
 columns, this is equivalent to passing a
@@ -93,26 +97,62 @@ columns, this is equivalent to passing a
 
 .. ipython:: python
 
-   store.select('df',columns = ['A','B'])
+   store.select('df', columns=['A', 'B'])
 
 ``HDFStore`` now serializes MultiIndex dataframes when appending tables.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                              ['one', 'two', 'three']],
-                      labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                      names=['foo', 'bar'])
-   df = DataFrame(np.random.randn(10, 3), index=index,
-                  columns=['A', 'B', 'C'])
-   df
+    In [19]: index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+       ....:                               ['one', 'two', 'three']],
+       ....:                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+       ....:                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+       ....:                       names=['foo', 'bar'])
+       ....:
 
-   store.append('mi',df)
-   store.select('mi')
+    In [20]: df = pd.DataFrame(np.random.randn(10, 3), index=index,
+       ....:                   columns=['A', 'B', 'C'])
+       ....:
 
-   # the levels are automatically included as data columns
-   store.select('mi', "foo='bar'")
+    In [21]: df
+    Out[21]:
+                      A         B         C
+    foo bar
+    foo one   -0.116619  0.295575 -1.047704
+        two    1.640556  1.905836  2.772115
+        three  0.088787 -1.144197 -0.633372
+    bar one    0.925372 -0.006438 -0.820408
+        two   -0.600874 -1.039266  0.824758
+    baz two   -0.824095 -0.337730 -0.927764
+        three -0.840123  0.248505 -0.109250
+    qux one    0.431977 -0.460710  0.336505
+        two   -3.207595 -1.535854  0.409769
+        three -0.673145 -0.741113 -0.110891
+
+    In [22]: store.append('mi', df)
+
+    In [23]: store.select('mi')
+    Out[23]:
+                      A         B         C
+    foo bar
+    foo one   -0.116619  0.295575 -1.047704
+        two    1.640556  1.905836  2.772115
+        three  0.088787 -1.144197 -0.633372
+    bar one    0.925372 -0.006438 -0.820408
+        two   -0.600874 -1.039266  0.824758
+    baz two   -0.824095 -0.337730 -0.927764
+        three -0.840123  0.248505 -0.109250
+    qux one    0.431977 -0.460710  0.336505
+        two   -3.207595 -1.535854  0.409769
+        three -0.673145 -0.741113 -0.110891
+
+    # the levels are automatically included as data columns
+    In [24]: store.select('mi', "foo='bar'")
+    Out[24]:
+                    A         B         C
+    foo bar
+    bar one  0.925372 -0.006438 -0.820408
+        two -0.600874 -1.039266  0.824758
 
 Multi-table creation via ``append_to_multiple`` and selection via
 ``select_as_multiple`` can create/select from multiple tables and return a
@@ -120,26 +160,28 @@ combined result, by using ``where`` on a selector table.
 
 .. ipython:: python
 
-   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
-                                  columns=['A', 'B', 'C', 'D', 'E', 'F'])
+   df_mt = pd.DataFrame(np.random.randn(8, 6),
+                        index=pd.date_range('1/1/2000', periods=8),
+                        columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
 
    # you can also create the tables individually
-   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None }, df_mt, selector = 'df1_mt')
+   store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None},
+                            df_mt, selector='df1_mt')
    store
 
-   # indiviual tables were created
+   # individual tables were created
    store.select('df1_mt')
    store.select('df2_mt')
 
    # as a multiple
-   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
+   store.select_as_multiple(['df1_mt', 'df2_mt'], where=['A>0', 'B>0'],
+                            selector='df1_mt')
 
 .. ipython:: python
    :suppress:
 
    store.close()
-   import os
    os.remove('store.h5')
 
 **Enhancements**

@@ -3,7 +3,8 @@
 v0.18.1 (May 3, 2016)
 ---------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor bug-fix release from 0.18.0 and includes a large number of
 bug fixes along with several new features, enhancements, and performance improvements.
@@ -30,7 +31,7 @@ New features
 
 .. _whatsnew_0181.enhancements.custombusinesshour:
 
-Custom Business Hour
+Custom business hour
 ^^^^^^^^^^^^^^^^^^^^
 
 The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
@@ -47,7 +48,8 @@ Friday before MLK Day
 
 .. ipython:: python
 
-    dt = datetime(2014, 1, 17, 15)
+    import datetime
+    dt = datetime.datetime(2014, 1, 17, 15)
 
     dt + bhour_us
 
@@ -165,8 +167,7 @@ without using temporary variable.
    bb = pd.read_csv('data/baseball.csv', index_col='id')
    (bb.groupby(['year', 'team'])
       .sum()
-      .loc[lambda df: df.r > 100]
-   )
+      .loc[lambda df: df.r > 100])
 
 .. _whatsnew_0181.partial_string_indexing:
 
@@ -177,12 +178,13 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 
 .. ipython:: python
 
-   dft2 = pd.DataFrame(np.random.randn(20, 1),
-                       columns=['A'],
-                       index=pd.MultiIndex.from_product([pd.date_range('20130101',
-                                                                       periods=10,
-                                                                       freq='12H'),
-                                                        ['a', 'b']]))
+   dft2 = pd.DataFrame(
+       np.random.randn(20, 1),
+       columns=['A'],
+       index=pd.MultiIndex.from_product([pd.date_range('20130101',
+                                                       periods=10,
+                                                       freq='12H'),
+                                         ['a', 'b']]))
    dft2
    dft2.loc['2013-01-05']
 
@@ -197,7 +199,7 @@ On other levels
 
 .. _whatsnew_0181.enhancements.assembling:
 
-Assembling Datetimes
+Assembling datetimes
 ^^^^^^^^^^^^^^^^^^^^
 
 ``pd.to_datetime()`` has gained the ability to assemble datetimes from a passed in ``DataFrame`` or a dict. (:issue:`8158`).
@@ -224,7 +226,7 @@ You can pass only the columns that you need to assemble.
 
 .. _whatsnew_0181.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_csv()`` now supports ``delim_whitespace=True`` for the Python engine (:issue:`12958`)
@@ -311,11 +313,11 @@ The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['a', 'b', 'a'],
-                   'B' : [1, 2, 3]})
+   df = pd.DataFrame({'A': ['a', 'b', 'a'],
+                      'B': [1, 2, 3]})
    df
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -331,7 +333,7 @@ Previous Behavior:
    1    2
    Name: B, dtype: int64
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -346,7 +348,7 @@ Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=
    df = pd.DataFrame(np.random.randn(100, 2), columns=['a', 'b'])
    df['c'] = np.random.randint(0, 4, 100)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -368,7 +370,7 @@ Previous Behavior:
    2 -0.720589  0.887163
    3  0.859588 -0.636524
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -392,6 +394,7 @@ used in the ``pandas`` implementation (:issue:`12644`, :issue:`12638`, :issue:`1
 An example of this signature augmentation is illustrated below:
 
 .. ipython:: python
+   :okwarning:
 
    sp = pd.SparseDataFrame([1, 2, 3])
    sp
@@ -407,6 +410,7 @@ Previous behaviour:
 New behaviour:
 
 .. ipython:: python
+   :okwarning:
 
    np.cumsum(sp, axis=0)
 
@@ -427,25 +431,28 @@ Previous behavior:
 
 .. code-block:: ipython
 
-    In [1]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    In [1]: df.groupby(pd.TimeGrouper(key='date',
+       ...:                           freq='M')).apply(lambda x: x.value.sum())
     Out[1]:
     ...
     TypeError: cannot concatenate a non-NDFrame object
 
     # Output is a Series
-    In [2]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    In [2]: df.groupby(pd.TimeGrouper(key='date',
+       ...:                           freq='M')).apply(lambda x: x[['value']].sum())
     Out[2]:
     date
     2000-10-31  value    10
     2000-11-30  value    13
     dtype: int64
 
-New Behavior:
+New behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
     # Output is a Series
-    In [55]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    In [55]: df.groupby(pd.TimeGrouper(key='date',
+        ...:                           freq='M')).apply(lambda x: x.value.sum())
     Out[55]:
     date
     2000-10-31    10
@@ -453,7 +460,8 @@ New Behavior:
     Freq: M, dtype: int64
 
     # Output is a DataFrame
-    In [56]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    In [56]: df.groupby(pd.TimeGrouper(key='date',
+        ...:                           freq='M')).apply(lambda x: x[['value']].sum())
     Out[56]:
                 value
     date
@@ -465,6 +473,7 @@ New Behavior:
 Changes in ``read_csv`` exceptions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
 In order to standardize the ``read_csv`` API for both the ``c`` and ``python`` engines, both will now raise an
 ``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
 
@@ -472,11 +481,13 @@ Previous behaviour:
 
 .. code-block:: ipython
 
-   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   In [1]: import io
+
+   In [2]: df = pd.read_csv(io.StringIO(''), engine='c')
    ...
    ValueError: No columns to parse from file
 
-   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   In [3]: df = pd.read_csv(io.StringIO(''), engine='python')
    ...
    StopIteration
 
@@ -484,11 +495,11 @@ New behaviour:
 
 .. code-block:: ipython
 
-   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   In [1]: df = pd.read_csv(io.StringIO(''), engine='c')
    ...
    pandas.io.common.EmptyDataError: No columns to parse from file
 
-   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   In [2]: df = pd.read_csv(io.StringIO(''), engine='python')
    ...
    pandas.io.common.EmptyDataError: No columns to parse from file
 
@@ -569,7 +580,7 @@ Deprecations
 
 .. _whatsnew_0181.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved speed of SAS reader (:issue:`12656`, :issue:`12961`)
@@ -590,7 +601,7 @@ Performance Improvements
 
 .. _whatsnew_0181.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - ``usecols`` parameter in ``pd.read_csv`` is now respected even when the lines of a CSV file are not even (:issue:`12203`)
 - Bug in ``groupby.transform(..)`` when ``axis=1`` is specified with a non-monotonic ordered index (:issue:`12713`)

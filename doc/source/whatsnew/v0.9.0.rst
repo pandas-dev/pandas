@@ -1,6 +1,7 @@
 .. _whatsnew_0900:
 
-{{ common_imports }}
+{{ header }}
+
 
 v0.9.0 (October 7, 2012)
 ------------------------
@@ -38,8 +39,12 @@ API changes
 
 .. ipython:: python
 
-   data = '0,0,1\n1,1,0\n0,1,0'
-   df = read_csv(StringIO(data), header=None)
+   import io
+
+   data = ('0,0,1\n'
+           '1,1,0\n'
+           '0,1,0')
+   df = pd.read_csv(io.StringIO(data), header=None)
    df
 
 
@@ -51,10 +56,10 @@ API changes
 
 .. ipython:: python
 
-   s1 = Series([1, 2, 3])
+   s1 = pd.Series([1, 2, 3])
    s1
 
-   s2 = Series(s1, index=['foo', 'bar', 'baz'])
+   s2 = pd.Series(s1, index=['foo', 'bar', 'baz'])
    s2
 
 - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``

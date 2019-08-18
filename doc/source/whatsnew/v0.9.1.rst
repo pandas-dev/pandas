@@ -3,7 +3,8 @@
 v0.9.1 (November 14, 2012)
 --------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a bug fix release from 0.9.0 and includes several new features and
 enhancements along with a large number of bug fixes. The new features include
@@ -19,7 +20,8 @@ New features
 
     .. code-block:: ipython
 
-       In [2]:  df = DataFrame(np.random.randint(0, 2, (6, 3)), columns=['A', 'B', 'C'])
+       In [2]: df = pd.DataFrame(np.random.randint(0, 2, (6, 3)),
+          ...:                   columns=['A', 'B', 'C'])
 
        In [3]: df.sort(['A', 'B'], ascending=[1, 0])
 
@@ -38,7 +40,7 @@ New features
 
     .. ipython:: python
 
-        df = DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
+        df = pd.DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
 
         df.loc[2:4] = np.nan
 
@@ -95,7 +97,7 @@ New features
 
     .. ipython:: python
 
-        xl = ExcelFile('data/test.xls')
+        xl = pd.ExcelFile('data/test.xls')
         xl.parse('Sheet1', index_col=0, parse_dates=True,
                  parse_cols='A:D')
 
@@ -118,9 +120,9 @@ API changes
 
     .. code-block:: ipython
 
-       In [1]: prng = period_range('2012Q1', periods=2, freq='Q')
+       In [1]: prng = pd.period_range('2012Q1', periods=2, freq='Q')
 
-       In [2]: s = Series(np.random.randn(len(prng)), prng)
+       In [2]: s = pd.Series(np.random.randn(len(prng)), prng)
 
        In [4]: s.resample('M')
        Out[4]:
@@ -137,7 +139,7 @@ API changes
 
     .. ipython:: python
 
-        p = Period('2012')
+        p = pd.Period('2012')
 
         p.end_time
 
@@ -147,9 +149,12 @@ API changes
 
     .. ipython:: python
 
-        data = 'A,B,C\n00001,001,5\n00002,002,6'
+        import io
 
-        read_csv(StringIO(data), converters={'A' : lambda x: x.strip()})
+        data = ('A,B,C\n'
+                '00001,001,5\n'
+                '00002,002,6')
+        pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
 
 
 See the :ref:`full release notes

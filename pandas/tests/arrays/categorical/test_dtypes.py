@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
-
-from pandas.compat import long
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -10,25 +7,23 @@ from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
 import pandas.util.testing as tm
 
 
-class TestCategoricalDtypes(object):
-
+class TestCategoricalDtypes:
     def test_is_equal_dtype(self):
 
         # test dtype comparisons between cats
 
-        c1 = Categorical(list('aabca'), categories=list('abc'), ordered=False)
-        c2 = Categorical(list('aabca'), categories=list('cab'), ordered=False)
-        c3 = Categorical(list('aabca'), categories=list('cab'), ordered=True)
+        c1 = Categorical(list("aabca"), categories=list("abc"), ordered=False)
+        c2 = Categorical(list("aabca"), categories=list("cab"), ordered=False)
+        c3 = Categorical(list("aabca"), categories=list("cab"), ordered=True)
         assert c1.is_dtype_equal(c1)
         assert c2.is_dtype_equal(c2)
         assert c3.is_dtype_equal(c3)
         assert c1.is_dtype_equal(c2)
         assert not c1.is_dtype_equal(c3)
-        assert not c1.is_dtype_equal(Index(list('aabca')))
+        assert not c1.is_dtype_equal(Index(list("aabca")))
         assert not c1.is_dtype_equal(c1.astype(object))
         assert c1.is_dtype_equal(CategoricalIndex(c1))
-        assert (c1.is_dtype_equal(
-            CategoricalIndex(c1, categories=list('cab'))))
+        assert c1.is_dtype_equal(CategoricalIndex(c1, categories=list("cab")))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
 
         # GH 16659
@@ -43,83 +38,87 @@ class TestCategoricalDtypes(object):
         assert not c1.is_dtype_equal(s1.astype(object))
 
     def test_set_dtype_same(self):
-        c = Categorical(['a', 'b', 'c'])
-        result = c._set_dtype(CategoricalDtype(['a', 'b', 'c']))
+        c = Categorical(["a", "b", "c"])
+        result = c._set_dtype(CategoricalDtype(["a", "b", "c"]))
         tm.assert_categorical_equal(result, c)
 
     def test_set_dtype_new_categories(self):
-        c = Categorical(['a', 'b', 'c'])
-        result = c._set_dtype(CategoricalDtype(list('abcd')))
+        c = Categorical(["a", "b", "c"])
+        result = c._set_dtype(CategoricalDtype(list("abcd")))
         tm.assert_numpy_array_equal(result.codes, c.codes)
-        tm.assert_index_equal(result.dtype.categories, Index(list('abcd')))
+        tm.assert_index_equal(result.dtype.categories, Index(list("abcd")))
 
-    @pytest.mark.parametrize('values, categories, new_categories', [
-        # No NaNs, same cats, same order
-        (['a', 'b', 'a'], ['a', 'b'], ['a', 'b'],),
-        # No NaNs, same cats, different order
-        (['a', 'b', 'a'], ['a', 'b'], ['b', 'a'],),
-        # Same, unsorted
-        (['b', 'a', 'a'], ['a', 'b'], ['a', 'b'],),
-        # No NaNs, same cats, different order
-        (['b', 'a', 'a'], ['a', 'b'], ['b', 'a'],),
-        # NaNs
-        (['a', 'b', 'c'], ['a', 'b'], ['a', 'b']),
-        (['a', 'b', 'c'], ['a', 'b'], ['b', 'a']),
-        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
-        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
-        # Introduce NaNs
-        (['a', 'b', 'c'], ['a', 'b'], ['a']),
-        (['a', 'b', 'c'], ['a', 'b'], ['b']),
-        (['b', 'a', 'c'], ['a', 'b'], ['a']),
-        (['b', 'a', 'c'], ['a', 'b'], ['a']),
-        # No overlap
-        (['a', 'b', 'c'], ['a', 'b'], ['d', 'e']),
-    ])
-    @pytest.mark.parametrize('ordered', [True, False])
-    def test_set_dtype_many(self, values, categories, new_categories,
-                            ordered):
+    @pytest.mark.parametrize(
+        "values, categories, new_categories",
+        [
+            # No NaNs, same cats, same order
+            (["a", "b", "a"], ["a", "b"], ["a", "b"]),
+            # No NaNs, same cats, different order
+            (["a", "b", "a"], ["a", "b"], ["b", "a"]),
+            # Same, unsorted
+            (["b", "a", "a"], ["a", "b"], ["a", "b"]),
+            # No NaNs, same cats, different order
+            (["b", "a", "a"], ["a", "b"], ["b", "a"]),
+            # NaNs
+            (["a", "b", "c"], ["a", "b"], ["a", "b"]),
+            (["a", "b", "c"], ["a", "b"], ["b", "a"]),
+            (["b", "a", "c"], ["a", "b"], ["a", "b"]),
+            (["b", "a", "c"], ["a", "b"], ["a", "b"]),
+            # Introduce NaNs
+            (["a", "b", "c"], ["a", "b"], ["a"]),
+            (["a", "b", "c"], ["a", "b"], ["b"]),
+            (["b", "a", "c"], ["a", "b"], ["a"]),
+            (["b", "a", "c"], ["a", "b"], ["a"]),
+            # No overlap
+            (["a", "b", "c"], ["a", "b"], ["d", "e"]),
+        ],
+    )
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_set_dtype_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)
         result = c._set_dtype(expected.dtype)
         tm.assert_categorical_equal(result, expected)
 
     def test_set_dtype_no_overlap(self):
-        c = Categorical(['a', 'b', 'c'], ['d', 'e'])
-        result = c._set_dtype(CategoricalDtype(['a', 'b']))
-        expected = Categorical([None, None, None], categories=['a', 'b'])
+        c = Categorical(["a", "b", "c"], ["d", "e"])
+        result = c._set_dtype(CategoricalDtype(["a", "b"]))
+        expected = Categorical([None, None, None], categories=["a", "b"])
         tm.assert_categorical_equal(result, expected)
 
     def test_codes_dtypes(self):
 
         # GH 8453
-        result = Categorical(['foo', 'bar', 'baz'])
-        assert result.codes.dtype == 'int8'
+        result = Categorical(["foo", "bar", "baz"])
+        assert result.codes.dtype == "int8"
 
-        result = Categorical(['foo%05d' % i for i in range(400)])
-        assert result.codes.dtype == 'int16'
+        result = Categorical(["foo{i:05d}".format(i=i) for i in range(400)])
+        assert result.codes.dtype == "int16"
 
-        result = Categorical(['foo%05d' % i for i in range(40000)])
-        assert result.codes.dtype == 'int32'
+        result = Categorical(["foo{i:05d}".format(i=i) for i in range(40000)])
+        assert result.codes.dtype == "int32"
 
         # adding cats
-        result = Categorical(['foo', 'bar', 'baz'])
-        assert result.codes.dtype == 'int8'
-        result = result.add_categories(['foo%05d' % i for i in range(400)])
-        assert result.codes.dtype == 'int16'
+        result = Categorical(["foo", "bar", "baz"])
+        assert result.codes.dtype == "int8"
+        result = result.add_categories(["foo{i:05d}".format(i=i) for i in range(400)])
+        assert result.codes.dtype == "int16"
 
         # removing cats
-        result = result.remove_categories(['foo%05d' % i for i in range(300)])
-        assert result.codes.dtype == 'int8'
+        result = result.remove_categories(
+            ["foo{i:05d}".format(i=i) for i in range(300)]
+        )
+        assert result.codes.dtype == "int8"
 
-    @pytest.mark.parametrize('ordered', [True, False])
+    @pytest.mark.parametrize("ordered", [True, False])
     def test_astype(self, ordered):
         # string
-        cat = Categorical(list('abbaaccc'), ordered=ordered)
+        cat = Categorical(list("abbaaccc"), ordered=ordered)
         result = cat.astype(object)
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = 'could not convert string to float'
+        msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
@@ -137,41 +136,46 @@ class TestCategoricalDtypes(object):
         expected = np.array(cat, dtype=np.float)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('dtype_ordered', [True, False])
-    @pytest.mark.parametrize('cat_ordered', [True, False])
+    @pytest.mark.parametrize("dtype_ordered", [True, False])
+    @pytest.mark.parametrize("cat_ordered", [True, False])
     def test_astype_category(self, dtype_ordered, cat_ordered):
         # GH 10696/18593
-        data = list('abcaacbab')
-        cat = Categorical(data, categories=list('bac'), ordered=cat_ordered)
+        data = list("abcaacbab")
+        cat = Categorical(data, categories=list("bac"), ordered=cat_ordered)
 
         # standard categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
         result = cat.astype(dtype)
-        expected = Categorical(
-            data, categories=cat.categories, ordered=dtype_ordered)
+        expected = Categorical(data, categories=cat.categories, ordered=dtype_ordered)
         tm.assert_categorical_equal(result, expected)
 
         # non-standard categories
-        dtype = CategoricalDtype(list('adc'), dtype_ordered)
+        dtype = CategoricalDtype(list("adc"), dtype_ordered)
         result = cat.astype(dtype)
         expected = Categorical(data, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:
             # dtype='category' can't specify ordered, so only test once
-            result = cat.astype('category')
+            result = cat.astype("category")
             expected = cat
             tm.assert_categorical_equal(result, expected)
 
+    def test_astype_category_ordered_none_deprecated(self):
+        # GH 26336
+        cdt1 = CategoricalDtype(categories=list("cdab"), ordered=True)
+        cdt2 = CategoricalDtype(categories=list("cedafb"))
+        cat = Categorical(list("abcdaba"), dtype=cdt1)
+        with tm.assert_produces_warning(FutureWarning):
+            cat.astype(cdt2)
+
     def test_iter_python_types(self):
         # GH-19909
-        # TODO(Py2): Remove long
         cat = Categorical([1, 2])
-        assert isinstance(list(cat)[0], (int, long))
-        assert isinstance(cat.tolist()[0], (int, long))
+        assert isinstance(list(cat)[0], int)
+        assert isinstance(cat.tolist()[0], int)
 
     def test_iter_python_types_datetime(self):
-        cat = Categorical([Timestamp('2017-01-01'),
-                           Timestamp('2017-01-02')])
+        cat = Categorical([Timestamp("2017-01-01"), Timestamp("2017-01-02")])
         assert isinstance(list(cat)[0], Timestamp)
         assert isinstance(cat.tolist()[0], Timestamp)

@@ -20,13 +20,17 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
     if len(args) > len(compat_args):
         max_arg_count = len(compat_args) + max_fname_arg_count
         actual_arg_count = len(args) + max_fname_arg_count
-        argument = 'argument' if max_arg_count == 1 else 'arguments'
+        argument = "argument" if max_arg_count == 1 else "arguments"
 
         raise TypeError(
             "{fname}() takes at most {max_arg} {argument} "
             "({given_arg} given)".format(
-                fname=fname, max_arg=max_arg_count,
-                argument=argument, given_arg=actual_arg_count))
+                fname=fname,
+                max_arg=max_arg_count,
+                argument=argument,
+                given_arg=actual_arg_count,
+            )
+        )
 
 
 def _check_for_default_values(fname, arg_val_dict, compat_args):
@@ -48,11 +52,10 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
             # check for None-ness otherwise we could end up
             # comparing a numpy array vs None
-            if (v1 is not None and v2 is None) or \
-               (v1 is None and v2 is not None):
+            if (v1 is not None and v2 is None) or (v1 is None and v2 is not None):
                 match = False
             else:
-                match = (v1 == v2)
+                match = v1 == v2
 
             if not is_bool(match):
                 raise ValueError("'match' is not a boolean")
@@ -60,13 +63,16 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
         # could not compare them directly, so try comparison
         # using the 'is' operator
         except ValueError:
-            match = (arg_val_dict[key] is compat_args[key])
+            match = arg_val_dict[key] is compat_args[key]
 
         if not match:
-            raise ValueError(("the '{arg}' parameter is not "
-                              "supported in the pandas "
-                              "implementation of {fname}()".
-                              format(fname=fname, arg=key)))
+            raise ValueError(
+                (
+                    "the '{arg}' parameter is not "
+                    "supported in the pandas "
+                    "implementation of {fname}()".format(fname=fname, arg=key)
+                )
+            )
 
 
 def validate_args(fname, args, max_fname_arg_count, compat_args):
@@ -122,9 +128,12 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
 
     if diff:
         bad_arg = list(diff)[0]
-        raise TypeError(("{fname}() got an unexpected "
-                         "keyword argument '{arg}'".
-                         format(fname=fname, arg=bad_arg)))
+        raise TypeError(
+            (
+                "{fname}() got an unexpected "
+                "keyword argument '{arg}'".format(fname=fname, arg=bad_arg)
+            )
+        )
 
 
 def validate_kwargs(fname, kwargs, compat_args):
@@ -157,9 +166,7 @@ def validate_kwargs(fname, kwargs, compat_args):
     _check_for_default_values(fname, kwds, compat_args)
 
 
-def validate_args_and_kwargs(fname, args, kwargs,
-                             max_fname_arg_count,
-                             compat_args):
+def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_args):
     """
     Checks whether parameters passed to the *args and **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -202,8 +209,9 @@ def validate_args_and_kwargs(fname, args, kwargs,
     """
     # Check that the total number of arguments passed in (i.e.
     # args and kwargs) does not exceed the length of compat_args
-    _check_arg_length(fname, args + tuple(kwargs.values()),
-                      max_fname_arg_count, compat_args)
+    _check_arg_length(
+        fname, args + tuple(kwargs.values()), max_fname_arg_count, compat_args
+    )
 
     # Check there is no overlap with the positional and keyword
     # arguments, similar to what is done in actual Python functions
@@ -211,8 +219,10 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     for key in args_dict:
         if key in kwargs:
-            raise TypeError("{fname}() got multiple values for keyword "
-                            "argument '{arg}'".format(fname=fname, arg=key))
+            raise TypeError(
+                "{fname}() got multiple values for keyword "
+                "argument '{arg}'".format(fname=fname, arg=key)
+            )
 
     kwargs.update(args_dict)
     validate_kwargs(fname, kwargs, compat_args)
@@ -221,9 +231,10 @@ def validate_args_and_kwargs(fname, args, kwargs,
 def validate_bool_kwarg(value, arg_name):
     """ Ensures that argument passed in arg_name is of type bool. """
     if not (is_bool(value) or value is None):
-        raise ValueError('For argument "{arg}" expected type bool, received '
-                         'type {typ}.'.format(arg=arg_name,
-                                              typ=type(value).__name__))
+        raise ValueError(
+            'For argument "{arg}" expected type bool, received '
+            "type {typ}.".format(arg=arg_name, typ=type(value).__name__)
+        )
     return value
 
 
@@ -236,8 +247,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Parameters
     ----------
-    data : DataFrame or Panel
-    arg : tuple
+    data : DataFrame
+    args : tuple
         All positional arguments from the user
     kwargs : dict
         All keyword arguments from the user
@@ -261,25 +272,26 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     ...                              'mapper', 'rename')
     {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
     """
-    # TODO(PY3): Change to keyword-only args and remove all this
+    # TODO: Change to keyword-only args and remove all this
 
     out = {}
     # Goal: fill 'out' with index/columns-style arguments
     # like out = {'index': foo, 'columns': bar}
 
     # Start by validating for consistency
-    if 'axis' in kwargs and any(x in kwargs for x in data._AXIS_NUMBERS):
+    if "axis" in kwargs and any(x in kwargs for x in data._AXIS_NUMBERS):
         msg = "Cannot specify both 'axis' and any of 'index' or 'columns'."
         raise TypeError(msg)
 
     # First fill with explicit values provided by the user...
     if arg_name in kwargs:
         if args:
-            msg = ("{} got multiple values for argument "
-                   "'{}'".format(method_name, arg_name))
+            msg = "{} got multiple values for argument " "'{}'".format(
+                method_name, arg_name
+            )
             raise TypeError(msg)
 
-        axis = data._get_axis_name(kwargs.get('axis', 0))
+        axis = data._get_axis_name(kwargs.get("axis", 0))
         out[axis] = kwargs[arg_name]
 
     # More user-provided arguments, now from kwargs
@@ -298,22 +310,22 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     if len(args) == 0:
         pass  # It's up to the function to decide if this is valid
     elif len(args) == 1:
-        axis = data._get_axis_name(kwargs.get('axis', 0))
+        axis = data._get_axis_name(kwargs.get("axis", 0))
         out[axis] = args[0]
     elif len(args) == 2:
-        if 'axis' in kwargs:
+        if "axis" in kwargs:
             # Unambiguously wrong
-            msg = ("Cannot specify both 'axis' and any of 'index' "
-                   "or 'columns'")
+            msg = "Cannot specify both 'axis' and any of 'index' " "or 'columns'"
             raise TypeError(msg)
 
-        msg = ("Interpreting call\n\t'.{method_name}(a, b)' as "
-               "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-               "arguments to remove any ambiguity. In the future, using "
-               "positional arguments for 'index' or 'columns' will raise "
-               " a 'TypeError'.")
-        warnings.warn(msg.format(method_name=method_name,), FutureWarning,
-                      stacklevel=4)
+        msg = (
+            "Interpreting call\n\t'.{method_name}(a, b)' as "
+            "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
+            "arguments to remove any ambiguity. In the future, using "
+            "positional arguments for 'index' or 'columns' will raise "
+            " a 'TypeError'."
+        )
+        warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
         out[data._AXIS_NAMES[0]] = args[0]
         out[data._AXIS_NAMES[1]] = args[1]
     else:
@@ -349,8 +361,10 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
 
     elif value is not None and method is None:
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
-            raise TypeError('"value" parameter must be a scalar or dict, but '
-                            'you passed a "{0}"'.format(type(value).__name__))
+            raise TypeError(
+                '"value" parameter must be a scalar or dict, but '
+                'you passed a "{0}"'.format(type(value).__name__)
+            )
 
     elif value is not None and method is not None:
         raise ValueError("Cannot specify both 'value' and 'method'.")

@@ -3,7 +3,13 @@
 v0.19.1 (November 3, 2016)
 --------------------------
 
-{{ common_imports }}
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import * # noqa F401, F403
+
 
 This is a minor bug-fix release from 0.19.0 and includes some small regression fixes,
 bug fixes and performance improvements.
@@ -16,7 +22,7 @@ We recommend that all users upgrade to this version.
 
 .. _whatsnew_0191.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
@@ -28,7 +34,7 @@ Performance Improvements
 
 .. _whatsnew_0191.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Source installs from PyPI will now again work without ``cython`` installed, as in previous versions (:issue:`14204`)

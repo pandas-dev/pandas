@@ -3,7 +3,8 @@
 v0.15.2 (December 12, 2014)
 ---------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor release from 0.15.1 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
@@ -73,7 +74,7 @@ API changes
 
   .. ipython:: python
 
-     data = pd.DataFrame({'x':[1, 2, 3]})
+     data = pd.DataFrame({'x': [1, 2, 3]})
      data.y = 2
      data['y'] = [2, 4, 6]
      data
@@ -148,7 +149,7 @@ Other enhancements:
   .. code-block:: python
 
      from sqlalchemy.types import String
-     data.to_sql('data_dtype', engine, dtype={'Col_1': String})
+     data.to_sql('data_dtype', engine, dtype={'Col_1': String})  # noqa F821
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
@@ -159,10 +160,16 @@ Other enhancements:
 
 - ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
 
-  .. ipython:: python
+  .. code-block:: python
 
-     p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
-     p.all()
+     >>> p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
+     >>> p.all()
+            0      1      2     3
+     0   True   True   True  True
+     1   True  False   True  True
+     2   True   True   True  True
+     3  False   True  False  True
+     4   True   True   True  True
 
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <http://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
@@ -189,7 +196,7 @@ Performance
 
 .. _whatsnew_0152.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)

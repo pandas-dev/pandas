@@ -3,7 +3,8 @@
 v0.16.1 (May 11, 2015)
 ----------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor bug-fix release from 0.16.0 and includes a a large number of
 bug fixes along several new features, enhancements, and performance improvements.
@@ -45,10 +46,10 @@ setting the index of a ``DataFrame/Series`` with a ``category`` dtype would conv
 
 .. code-block:: ipython
 
-    In [1]: df = DataFrame({'A' : np.arange(6),
-       ...:                 'B' : Series(list('aabbca')).astype('category',
-       ...:                                                     categories=list('cab'))
-       ...:                })
+    In [1]: df = pd.DataFrame({'A': np.arange(6),
+       ...:                    'B': pd.Series(list('aabbca'))
+       ...:                           .astype('category', categories=list('cab'))
+       ...:                    })
        ...:
 
     In [2]: df
@@ -135,12 +136,12 @@ groupby operations on the index will preserve the index nature as well
 reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. code-block:: ipython
 
-    In [12]: df2.reindex(['a','e'])
+    In [12]: df2.reindex(['a', 'e'])
     Out[12]:
          A
     B
@@ -149,10 +150,10 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
     a  5.0
     e  NaN
 
-    In [13]: df2.reindex(['a','e']).index
-    Out[13]: Index(['a', 'a', 'a', 'e'], dtype='object', name='B')
+    In [13]: df2.reindex(['a', 'e']).index
+    Out[13]: pd.Index(['a', 'a', 'a', 'e'], dtype='object', name='B')
 
-    In [14]: df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+    In [14]: df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde')))
     Out[14]:
          A
     B
@@ -161,8 +162,11 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
     a  5.0
     e  NaN
 
-    In [15]: df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
-    Out[15]: CategoricalIndex(['a', 'a', 'a', 'e'], categories=['a', 'b', 'c', 'd', 'e'], ordered=False, name='B', dtype='category')
+    In [15]: df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde'))).index
+    Out[15]: pd.CategoricalIndex(['a', 'a', 'a', 'e'],
+                                 categories=['a', 'b', 'c', 'd', 'e'],
+                                 ordered=False, name='B',
+                                 dtype='category')
 
 See the :ref:`documentation <indexing.categoricalindex>` for more. (:issue:`7629`, :issue:`10038`, :issue:`10039`)
 
@@ -177,9 +181,9 @@ total number or rows or columns. It also has options for sampling with or withou
 for passing in a column for weights for non-uniform sampling, and for setting seed values to
 facilitate replication. (:issue:`2419`)
 
-.. ipython :: python
+.. ipython:: python
 
-   example_series = Series([0,1,2,3,4,5])
+   example_series = pd.Series([0, 1, 2, 3, 4, 5])
 
    # When no arguments are passed, returns 1
    example_series.sample()
@@ -203,15 +207,16 @@ facilitate replication. (:issue:`2419`)
 When applied to a DataFrame, one may pass the name of a column to specify sampling weights
 when sampling from rows.
 
-.. ipython :: python
+.. ipython:: python
 
-   df = DataFrame({'col1':[9,8,7,6], 'weight_column':[0.5, 0.4, 0.1, 0]})
+   df = pd.DataFrame({'col1': [9, 8, 7, 6],
+                      'weight_column': [0.5, 0.4, 0.1, 0]})
    df.sample(n=3, weights='weight_column')
 
 
 .. _whatsnew_0161.enhancements.string:
 
-String Methods Enhancements
+String methods enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, the following
@@ -224,7 +229,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx = pd.Index([' jack', 'jill ', ' jesse ', 'frank'])
      idx.str.strip()
 
   One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
@@ -233,8 +238,8 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     idx = Index(['a1', 'a2', 'b1', 'b2'])
-     s = Series(range(4), index=idx)
+     idx = pd.Index(['a1', 'a2', 'b1', 'b2'])
+     s = pd.Series(range(4), index=idx)
      s
      idx.str.startswith('a')
      s[s.index.str.startswith('a')]
@@ -252,7 +257,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     s = Series(['a,b', 'a,c', 'b,c'])
+     s = pd.Series(['a,b', 'a,c', 'b,c'])
 
      # return Series
      s.str.split(',')
@@ -260,7 +265,7 @@ enhancements make string operations easier and more consistent with standard pyt
      # return DataFrame
      s.str.split(',', expand=True)
 
-     idx = Index(['a,b', 'a,c', 'b,c'])
+     idx = pd.Index(['a,b', 'a,c', 'b,c'])
 
      # return Index
      idx.str.split(',')
@@ -274,17 +279,16 @@ enhancements make string operations easier and more consistent with standard pyt
 
 .. _whatsnew_0161.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
 
   .. ipython:: python
 
-     from pandas.tseries.offsets import BusinessHour
-     Timestamp('2014-08-01 09:00') + BusinessHour()
-     Timestamp('2014-08-01 07:00') + BusinessHour()
-     Timestamp('2014-08-01 16:30') + BusinessHour()
+     pd.Timestamp('2014-08-01 09:00') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 07:00') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 16:30') + pd.tseries.offsets.BusinessHour()
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 
@@ -296,7 +300,7 @@ Other Enhancements
 
   .. ipython:: python
 
-    df = DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
     df.drop(['A', 'X'], axis=1, errors='ignore')
 
 - Add support for separating years and quarters using dashes, for
@@ -347,34 +351,34 @@ Deprecations
 
 .. _whatsnew_0161.index_repr:
 
-Index Representation
+Index representation
 ~~~~~~~~~~~~~~~~~~~~
 
 The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
-   In [2]: pd.Index(range(4),name='foo')
+   In [2]: pd.Index(range(4), name='foo')
    Out[2]: Int64Index([0, 1, 2, 3], dtype='int64')
 
-   In [3]: pd.Index(range(104),name='foo')
+   In [3]: pd.Index(range(104), name='foo')
    Out[3]: Int64Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, ...], dtype='int64')
 
-   In [4]: pd.date_range('20130101',periods=4,name='foo',tz='US/Eastern')
+   In [4]: pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
    Out[4]:
    <class 'pandas.tseries.index.DatetimeIndex'>
    [2013-01-01 00:00:00-05:00, ..., 2013-01-04 00:00:00-05:00]
    Length: 4, Freq: D, Timezone: US/Eastern
 
-   In [5]: pd.date_range('20130101',periods=104,name='foo',tz='US/Eastern')
+   In [5]: pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
    Out[5]:
    <class 'pandas.tseries.index.DatetimeIndex'>
    [2013-01-01 00:00:00-05:00, ..., 2013-04-14 00:00:00-04:00]
    Length: 104, Freq: D, Timezone: US/Eastern
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -382,17 +386,20 @@ New Behavior
    pd.Index(range(4), name='foo')
    pd.Index(range(30), name='foo')
    pd.Index(range(104), name='foo')
-   pd.CategoricalIndex(['a','bb','ccc','dddd'], ordered=True, name='foobar')
-   pd.CategoricalIndex(['a','bb','ccc','dddd']*10, ordered=True, name='foobar')
-   pd.CategoricalIndex(['a','bb','ccc','dddd']*100, ordered=True, name='foobar')
-   pd.date_range('20130101',periods=4, name='foo', tz='US/Eastern')
-   pd.date_range('20130101',periods=25, freq='D')
-   pd.date_range('20130101',periods=104, name='foo', tz='US/Eastern')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'],
+                       ordered=True, name='foobar')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 10,
+                       ordered=True, name='foobar')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 100,
+                       ordered=True, name='foobar')
+   pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
+   pd.date_range('20130101', periods=25, freq='D')
+   pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
 
 
 .. _whatsnew_0161.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
@@ -402,7 +409,7 @@ Performance Improvements
 
 .. _whatsnew_0161.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug where labels did not appear properly in the legend of ``DataFrame.plot()``, passing ``label=`` arguments works, and Series indices are no longer mutated. (:issue:`9542`)

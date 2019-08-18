@@ -1,7 +1,8 @@
 # coding: utf-8
 
-from pandas.io.msgpack import packb
 from collections import namedtuple
+
+from pandas.io.msgpack import packb
 
 
 class MyList(list):
@@ -16,7 +17,7 @@ class MyTuple(tuple):
     pass
 
 
-MyNamedTuple = namedtuple('MyNamedTuple', 'x y')
+MyNamedTuple = namedtuple("MyNamedTuple", "x y")
 
 
 def test_types():

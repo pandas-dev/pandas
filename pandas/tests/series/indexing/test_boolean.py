@@ -1,10 +1,5 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pytest
-
-from pandas.compat import lrange, range
 
 from pandas.core.dtypes.common import is_integer
 
@@ -30,34 +25,34 @@ def test_getitem_boolean(test_data):
 
 def test_getitem_boolean_empty():
     s = Series([], dtype=np.int64)
-    s.index.name = 'index_name'
+    s.index.name = "index_name"
     s = s[s.isna()]
-    assert s.index.name == 'index_name'
+    assert s.index.name == "index_name"
     assert s.dtype == np.int64
 
     # GH5877
     # indexing with empty series
-    s = Series(['A', 'B'])
-    expected = Series(np.nan, index=['C'], dtype=object)
-    result = s[Series(['C'], dtype=object)]
+    s = Series(["A", "B"])
+    expected = Series(np.nan, index=["C"], dtype=object)
+    result = s[Series(["C"], dtype=object)]
     assert_series_equal(result, expected)
 
-    s = Series(['A', 'B'])
-    expected = Series(dtype=object, index=Index([], dtype='int64'))
+    s = Series(["A", "B"])
+    expected = Series(dtype=object, index=Index([], dtype="int64"))
     result = s[Series([], dtype=object)]
     assert_series_equal(result, expected)
 
     # invalid because of the boolean indexer
     # that's empty or not-aligned
-    def f():
+    msg = (
+        r"Unalignable boolean Series provided as indexer \(index of"
+        r" the boolean Series and of the indexed object do not match"
+    )
+    with pytest.raises(IndexingError, match=msg):
         s[Series([], dtype=bool)]
 
-    pytest.raises(IndexingError, f)
-
-    def f():
+    with pytest.raises(IndexingError, match=msg):
         s[Series([True], dtype=bool)]
-
-    pytest.raises(IndexingError, f)
 
 
 def test_getitem_boolean_object(test_data):
@@ -81,8 +76,11 @@ def test_getitem_boolean_object(test_data):
 
     # nans raise exception
     omask[5:10] = np.nan
-    pytest.raises(Exception, s.__getitem__, omask)
-    pytest.raises(Exception, s.__setitem__, omask, 5)
+    msg = "cannot index with vector containing NA / NaN values"
+    with pytest.raises(ValueError, match=msg):
+        s[omask]
+    with pytest.raises(ValueError, match=msg):
+        s[omask] = 5
 
 
 def test_getitem_setitem_boolean_corner(test_data):
@@ -91,15 +89,19 @@ def test_getitem_setitem_boolean_corner(test_data):
 
     # these used to raise...??
 
-    pytest.raises(Exception, ts.__getitem__, mask_shifted)
-    pytest.raises(Exception, ts.__setitem__, mask_shifted, 1)
-    # ts[mask_shifted]
-    # ts[mask_shifted] = 1
+    msg = (
+        r"Unalignable boolean Series provided as indexer \(index of"
+        r" the boolean Series and of the indexed object do not match"
+    )
+    with pytest.raises(IndexingError, match=msg):
+        ts[mask_shifted]
+    with pytest.raises(IndexingError, match=msg):
+        ts[mask_shifted] = 1
 
-    pytest.raises(Exception, ts.loc.__getitem__, mask_shifted)
-    pytest.raises(Exception, ts.loc.__setitem__, mask_shifted, 1)
-    # ts.loc[mask_shifted]
-    # ts.loc[mask_shifted] = 2
+    with pytest.raises(IndexingError, match=msg):
+        ts.loc[mask_shifted]
+    with pytest.raises(IndexingError, match=msg):
+        ts.loc[mask_shifted] = 1
 
 
 def test_setitem_boolean(test_data):
@@ -141,8 +143,8 @@ def test_where_unsafe_int(sint_dtype):
     s = Series(np.arange(10), dtype=sint_dtype)
     mask = s < 5
 
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype=sint_dtype)
+    s[mask] = range(2, 7)
+    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
 
     assert_series_equal(s, expected)
 
@@ -151,35 +153,32 @@ def test_where_unsafe_float(float_dtype):
     s = Series(np.arange(10), dtype=float_dtype)
     mask = s < 5
 
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype=float_dtype)
+    s[mask] = range(2, 7)
+    data = list(range(2, 7)) + list(range(5, 10))
+    expected = Series(data, dtype=float_dtype)
 
     assert_series_equal(s, expected)
 
 
-@pytest.mark.parametrize("dtype", [np.int64, np.float64])
-def test_where_unsafe_upcast(dtype):
+@pytest.mark.parametrize(
+    "dtype,expected_dtype",
+    [
+        (np.int8, np.float64),
+        (np.int16, np.float64),
+        (np.int32, np.float64),
+        (np.int64, np.float64),
+        (np.float32, np.float32),
+        (np.float64, np.float64),
+    ],
+)
+def test_where_unsafe_upcast(dtype, expected_dtype):
+    # see gh-9743
     s = Series(np.arange(10), dtype=dtype)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
-
     mask = s < 5
-    expected = Series(values + lrange(5, 10), dtype="float64")
-
+    expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
     s[mask] = values
     assert_series_equal(s, expected)
-
-
-@pytest.mark.parametrize("dtype", [
-    np.int8, np.int16, np.int32, np.float32
-])
-def test_where_unsafe_itemsize_fail(dtype):
-    # Can't do these, as we are forced to change the
-    # item size of the input to something we cannot.
-    s = Series(np.arange(10), dtype=dtype)
-    mask = s < 5
-
-    values = [2.5, 3.5, 4.5, 5.5, 6.5]
-    pytest.raises(Exception, s.__setitem__, tuple(mask), values)
 
 
 def test_where_unsafe():
@@ -188,37 +187,34 @@ def test_where_unsafe():
     values = [2.5, 3.5, 4.5, 5.5]
 
     mask = s > 5
-    expected = Series(lrange(6) + values, dtype="float64")
+    expected = Series(list(range(6)) + values, dtype="float64")
 
     s[mask] = values
     assert_series_equal(s, expected)
 
     # see gh-3235
-    s = Series(np.arange(10), dtype='int64')
+    s = Series(np.arange(10), dtype="int64")
     mask = s < 5
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype='int64')
+    s[mask] = range(2, 7)
+    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype="int64")
     assert_series_equal(s, expected)
     assert s.dtype == expected.dtype
 
-    s = Series(np.arange(10), dtype='int64')
+    s = Series(np.arange(10), dtype="int64")
     mask = s > 5
     s[mask] = [0] * 4
-    expected = Series([0, 1, 2, 3, 4, 5] + [0] * 4, dtype='int64')
+    expected = Series([0, 1, 2, 3, 4, 5] + [0] * 4, dtype="int64")
     assert_series_equal(s, expected)
 
     s = Series(np.arange(10))
     mask = s > 5
 
-    def f():
+    msg = "cannot assign mismatch length to masked array"
+    with pytest.raises(ValueError, match=msg):
         s[mask] = [5, 4, 3, 2, 1]
 
-    pytest.raises(ValueError, f)
-
-    def f():
+    with pytest.raises(ValueError, match=msg):
         s[mask] = [0] * 5
-
-    pytest.raises(ValueError, f)
 
     # dtype changes
     s = Series([1, 2, 3, 4])
@@ -240,17 +236,6 @@ def test_where_unsafe():
     assert_series_equal(result, expected)
 
 
-def test_where_raise_on_error_deprecation():
-    # gh-14968
-    # deprecation of raise_on_error
-    s = Series(np.random.randn(5))
-    cond = s > 0
-    with tm.assert_produces_warning(FutureWarning):
-        s.where(cond, raise_on_error=True)
-    with tm.assert_produces_warning(FutureWarning):
-        s.mask(cond, raise_on_error=True)
-
-
 def test_where():
     s = Series(np.random.randn(5))
     cond = s > 0
@@ -263,8 +248,8 @@ def test_where():
     assert_series_equal(rs, s.abs())
 
     rs = s.where(cond)
-    assert (s.shape == rs.shape)
-    assert (rs is not s)
+    assert s.shape == rs.shape
+    assert rs is not s
 
     # test alignment
     cond = Series([True, False, False, True, False], index=s.index)
@@ -284,8 +269,11 @@ def test_where_error():
     s = Series(np.random.randn(5))
     cond = s > 0
 
-    pytest.raises(ValueError, s.where, 1)
-    pytest.raises(ValueError, s.where, cond[:3].values, -s)
+    msg = "Array conditional must be same shape as self"
+    with pytest.raises(ValueError, match=msg):
+        s.where(1)
+    with pytest.raises(ValueError, match=msg):
+        s.where(cond[:3].values, -s)
 
     # GH 2745
     s = Series([1, 2])
@@ -294,13 +282,18 @@ def test_where_error():
     assert_series_equal(s, expected)
 
     # failures
-    pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                  [0, 2, 3])
-    pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                  [])
+    msg = "cannot assign mismatch length to masked array"
+    with pytest.raises(ValueError, match=msg):
+        s[[True, False]] = [0, 2, 3]
+    msg = (
+        "NumPy boolean array indexing assignment cannot assign 0 input"
+        " values to the 1 output values where the mask is true"
+    )
+    with pytest.raises(ValueError, match=msg):
+        s[[True, False]] = []
 
 
-@pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+@pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
 def test_where_array_like(klass):
     # see gh-15414
     s = Series([1, 2, 3])
@@ -311,12 +304,15 @@ def test_where_array_like(klass):
     assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('cond', [
-    [1, 0, 1],
-    Series([2, 5, 7]),
-    ["True", "False", "True"],
-    [Timestamp("2017-01-01"), pd.NaT, Timestamp("2017-01-02")]
-])
+@pytest.mark.parametrize(
+    "cond",
+    [
+        [1, 0, 1],
+        Series([2, 5, 7]),
+        ["True", "False", "True"],
+        [Timestamp("2017-01-01"), pd.NaT, Timestamp("2017-01-02")],
+    ],
+)
 def test_where_invalid_input(cond):
     # see gh-15414: only boolean arrays accepted
     s = Series([1, 2, 3])
@@ -357,81 +353,69 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
+    msg = "cannot set using a {} indexer with a different length than the value"
+
     # slice
-    s = Series(list('abc'))
+    s = Series(list("abc"))
 
-    def f():
+    with pytest.raises(ValueError, match=msg.format("slice")):
         s[0:3] = list(range(27))
-
-    pytest.raises(ValueError, f)
 
     s[0:3] = list(range(3))
     expected = Series([0, 1, 2])
-    assert_series_equal(s.astype(np.int64), expected, )
+    assert_series_equal(s.astype(np.int64), expected)
 
     # slice with step
-    s = Series(list('abcdef'))
+    s = Series(list("abcdef"))
 
-    def f():
+    with pytest.raises(ValueError, match=msg.format("slice")):
         s[0:4:2] = list(range(27))
 
-    pytest.raises(ValueError, f)
-
-    s = Series(list('abcdef'))
+    s = Series(list("abcdef"))
     s[0:4:2] = list(range(2))
-    expected = Series([0, 'b', 1, 'd', 'e', 'f'])
+    expected = Series([0, "b", 1, "d", "e", "f"])
     assert_series_equal(s, expected)
 
     # neg slices
-    s = Series(list('abcdef'))
+    s = Series(list("abcdef"))
 
-    def f():
+    with pytest.raises(ValueError, match=msg.format("slice")):
         s[:-1] = list(range(27))
 
-    pytest.raises(ValueError, f)
-
     s[-3:-1] = list(range(2))
-    expected = Series(['a', 'b', 'c', 0, 1, 'f'])
+    expected = Series(["a", "b", "c", 0, 1, "f"])
     assert_series_equal(s, expected)
 
     # list
-    s = Series(list('abc'))
+    s = Series(list("abc"))
 
-    def f():
+    with pytest.raises(ValueError, match=msg.format("list-like")):
         s[[0, 1, 2]] = list(range(27))
 
-    pytest.raises(ValueError, f)
+    s = Series(list("abc"))
 
-    s = Series(list('abc'))
-
-    def f():
+    with pytest.raises(ValueError, match=msg.format("list-like")):
         s[[0, 1, 2]] = list(range(2))
 
-    pytest.raises(ValueError, f)
-
     # scalar
-    s = Series(list('abc'))
+    s = Series(list("abc"))
     s[0] = list(range(10))
-    expected = Series([list(range(10)), 'b', 'c'])
+    expected = Series([list(range(10)), "b", "c"])
     assert_series_equal(s, expected)
 
 
-@pytest.mark.parametrize('size', range(2, 6))
-@pytest.mark.parametrize('mask', [
-    [True, False, False, False, False],
-    [True, False],
-    [False]
-])
-@pytest.mark.parametrize('item', [
-    2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min
-])
+@pytest.mark.parametrize("size", range(2, 6))
+@pytest.mark.parametrize(
+    "mask", [[True, False, False, False, False], [True, False], [False]]
+)
+@pytest.mark.parametrize(
+    "item", [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]
+)
 # Test numpy arrays, lists and tuples as the input to be
 # broadcast
-@pytest.mark.parametrize('box', [
-    lambda x: np.array([x]),
-    lambda x: [x],
-    lambda x: (x,)
-])
+@pytest.mark.parametrize(
+    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
+)
 def test_broadcast(size, mask, item, box):
     selection = np.resize(mask, size)
 
@@ -439,8 +423,9 @@ def test_broadcast(size, mask, item, box):
 
     # Construct the expected series by taking the source
     # data or item based on the selection
-    expected = Series([item if use_item else data[
-        i] for i, use_item in enumerate(selection)])
+    expected = Series(
+        [item if use_item else data[i] for i, use_item in enumerate(selection)]
+    )
 
     s = Series(data)
     s[selection] = box(item)
@@ -477,8 +462,7 @@ def test_where_dups():
     s2 = Series(list(range(3)))
     comb = pd.concat([s1, s2])
     result = comb.where(comb < 2)
-    expected = Series([0, 1, np.nan, 0, 1, np.nan],
-                      index=[0, 1, 2, 0, 1, 2])
+    expected = Series([0, 1, np.nan, 0, 1, np.nan], index=[0, 1, 2, 0, 1, 2])
     assert_series_equal(result, expected)
 
     # GH 4548
@@ -495,31 +479,31 @@ def test_where_dups():
 def test_where_numeric_with_string():
     # GH 9280
     s = pd.Series([1, 2, 3])
-    w = s.where(s > 1, 'X')
+    w = s.where(s > 1, "X")
 
     assert not is_integer(w[0])
     assert is_integer(w[1])
     assert is_integer(w[2])
     assert isinstance(w[0], str)
-    assert w.dtype == 'object'
+    assert w.dtype == "object"
 
-    w = s.where(s > 1, ['X', 'Y', 'Z'])
+    w = s.where(s > 1, ["X", "Y", "Z"])
     assert not is_integer(w[0])
     assert is_integer(w[1])
     assert is_integer(w[2])
     assert isinstance(w[0], str)
-    assert w.dtype == 'object'
+    assert w.dtype == "object"
 
-    w = s.where(s > 1, np.array(['X', 'Y', 'Z']))
+    w = s.where(s > 1, np.array(["X", "Y", "Z"]))
     assert not is_integer(w[0])
     assert is_integer(w[1])
     assert is_integer(w[2])
     assert isinstance(w[0], str)
-    assert w.dtype == 'object'
+    assert w.dtype == "object"
 
 
 def test_where_timedelta_coerce():
-    s = Series([1, 2], dtype='timedelta64[ns]')
+    s = Series([1, 2], dtype="timedelta64[ns]")
     expected = Series([10, 10])
     mask = np.array([False, False])
 
@@ -536,12 +520,12 @@ def test_where_timedelta_coerce():
     assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype='object')
+    expected = Series([10, None], dtype="object")
     assert_series_equal(rs, expected)
 
 
 def test_where_datetime_conversion():
-    s = Series(date_range('20130102', periods=2))
+    s = Series(date_range("20130102", periods=2))
     expected = Series([10, 10])
     mask = np.array([False, False])
 
@@ -558,12 +542,11 @@ def test_where_datetime_conversion():
     assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype='object')
+    expected = Series([10, None], dtype="object")
     assert_series_equal(rs, expected)
 
     # GH 15701
-    timestamps = ['2016-12-31 12:00:04+00:00',
-                  '2016-12-31 12:00:04.010000+00:00']
+    timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
     s = Series([pd.Timestamp(t) for t in timestamps])
     rs = s.where(Series([False, True]))
     expected = Series([pd.NaT, s[1]])
@@ -571,14 +554,17 @@ def test_where_datetime_conversion():
 
 
 def test_where_dt_tz_values(tz_naive_fixture):
-    ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
-                                      tz=tz_naive_fixture))
-    ser2 = pd.Series(pd.DatetimeIndex(['20160514', '20160515', '20160516'],
-                                      tz=tz_naive_fixture))
+    ser1 = pd.Series(
+        pd.DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture)
+    )
+    ser2 = pd.Series(
+        pd.DatetimeIndex(["20160514", "20160515", "20160516"], tz=tz_naive_fixture)
+    )
     mask = pd.Series([True, True, False])
     result = ser1.where(mask, ser2)
-    exp = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20160516'],
-                                     tz=tz_naive_fixture))
+    exp = pd.Series(
+        pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
+    )
     assert_series_equal(exp, result)
 
 
@@ -608,8 +594,11 @@ def test_mask():
     rs2 = s2.mask(cond[:3], -s2)
     assert_series_equal(rs, rs2)
 
-    pytest.raises(ValueError, s.mask, 1)
-    pytest.raises(ValueError, s.mask, cond[:3].values, -s)
+    msg = "Array conditional must be same shape as self"
+    with pytest.raises(ValueError, match=msg):
+        s.mask(1)
+    with pytest.raises(ValueError, match=msg):
+        s.mask(cond[:3].values, -s)
 
     # dtype changes
     s = Series([1, 2, 3, 4])

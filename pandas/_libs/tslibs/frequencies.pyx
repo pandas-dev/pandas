@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 import re
 
 cimport numpy as cnp
 cnp.import_array()
 
-from util cimport is_integer_object, is_string_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
-from ccalendar import MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
 # ----------------------------------------------------------------------
 # Constants
@@ -22,7 +21,7 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # Period codes
 
 
-class FreqGroup(object):
+class FreqGroup:
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000
@@ -316,7 +315,7 @@ cpdef object get_freq(object freq):
     >>> get_freq('3A')
     1000
     """
-    if is_string_object(freq):
+    if isinstance(freq, str):
         base, mult = get_freq_code(freq)
         freq = base
     return freq

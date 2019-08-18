@@ -1,116 +1,104 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG, _period_str_to_code, get_rule_month, is_subperiod,
-    is_superperiod)
+    INVALID_FREQ_ERR_MSG,
+    _period_str_to_code,
+    get_rule_month,
+    is_subperiod,
+    is_superperiod,
+)
 
 from pandas.tseries import offsets
 
 
-def assert_aliases_deprecated(freq, expected, aliases):
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        ("W", "DEC"),
+        (offsets.Week(), "DEC"),
+        ("D", "DEC"),
+        (offsets.Day(), "DEC"),
+        ("Q", "DEC"),
+        (offsets.QuarterEnd(startingMonth=12), "DEC"),
+        ("Q-JAN", "JAN"),
+        (offsets.QuarterEnd(startingMonth=1), "JAN"),
+        ("A-DEC", "DEC"),
+        ("Y-DEC", "DEC"),
+        (offsets.YearEnd(), "DEC"),
+        ("A-MAY", "MAY"),
+        ("Y-MAY", "MAY"),
+        (offsets.YearEnd(month=5), "MAY"),
+    ],
+)
+def test_get_rule_month(obj, expected):
+    result = get_rule_month(obj)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        ("A", 1000),
+        ("A-DEC", 1000),
+        ("A-JAN", 1001),
+        ("Y", 1000),
+        ("Y-DEC", 1000),
+        ("Y-JAN", 1001),
+        ("Q", 2000),
+        ("Q-DEC", 2000),
+        ("Q-FEB", 2002),
+        ("W", 4000),
+        ("W-SUN", 4000),
+        ("W-FRI", 4005),
+        ("Min", 8000),
+        ("ms", 10000),
+        ("US", 11000),
+        ("NS", 12000),
+    ],
+)
+def test_period_str_to_code(obj, expected):
+    assert _period_str_to_code(obj) == expected
+
+
+@pytest.mark.parametrize(
+    "p1,p2,expected",
+    [
+        # Input validation.
+        (offsets.MonthEnd(), None, False),
+        (offsets.YearEnd(), None, False),
+        (None, offsets.YearEnd(), False),
+        (None, offsets.MonthEnd(), False),
+        (None, None, False),
+        (offsets.YearEnd(), offsets.MonthEnd(), True),
+        (offsets.Hour(), offsets.Minute(), True),
+        (offsets.Second(), offsets.Milli(), True),
+        (offsets.Milli(), offsets.Micro(), True),
+        (offsets.Micro(), offsets.Nano(), True),
+    ],
+)
+def test_super_sub_symmetry(p1, p2, expected):
+    assert is_superperiod(p1, p2) is expected
+    assert is_subperiod(p2, p1) is expected
+
+
+@pytest.mark.parametrize(
+    "freq,expected,aliases",
+    [
+        ("D", 6000, ["DAY", "DLY", "DAILY"]),
+        ("M", 3000, ["MTH", "MONTH", "MONTHLY"]),
+        ("N", 12000, ["NANOSECOND", "NANOSECONDLY"]),
+        ("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"]),
+        ("T", 8000, ["minute", "MINUTE", "MINUTELY"]),
+        ("L", 10000, ["MILLISECOND", "MILLISECONDLY"]),
+        ("U", 11000, ["MICROSECOND", "MICROSECONDLY"]),
+        ("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"]),
+        ("B", 5000, ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"]),
+    ],
+)
+def test_assert_aliases_deprecated(freq, expected, aliases):
     assert isinstance(aliases, list)
-    assert (_period_str_to_code(freq) == expected)
+    assert _period_str_to_code(freq) == expected
 
     for alias in aliases:
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             _period_str_to_code(alias)
-
-
-def test_get_rule_month():
-    result = get_rule_month('W')
-    assert (result == 'DEC')
-    result = get_rule_month(offsets.Week())
-    assert (result == 'DEC')
-
-    result = get_rule_month('D')
-    assert (result == 'DEC')
-    result = get_rule_month(offsets.Day())
-    assert (result == 'DEC')
-
-    result = get_rule_month('Q')
-    assert (result == 'DEC')
-    result = get_rule_month(offsets.QuarterEnd(startingMonth=12))
-
-    result = get_rule_month('Q-JAN')
-    assert (result == 'JAN')
-    result = get_rule_month(offsets.QuarterEnd(startingMonth=1))
-    assert (result == 'JAN')
-
-    result = get_rule_month('A-DEC')
-    assert (result == 'DEC')
-    result = get_rule_month('Y-DEC')
-    assert (result == 'DEC')
-    result = get_rule_month(offsets.YearEnd())
-    assert (result == 'DEC')
-
-    result = get_rule_month('A-MAY')
-    assert (result == 'MAY')
-    result = get_rule_month('Y-MAY')
-    assert (result == 'MAY')
-    result = get_rule_month(offsets.YearEnd(month=5))
-    assert (result == 'MAY')
-
-
-def test_period_str_to_code():
-    assert (_period_str_to_code('A') == 1000)
-    assert (_period_str_to_code('A-DEC') == 1000)
-    assert (_period_str_to_code('A-JAN') == 1001)
-    assert (_period_str_to_code('Y') == 1000)
-    assert (_period_str_to_code('Y-DEC') == 1000)
-    assert (_period_str_to_code('Y-JAN') == 1001)
-
-    assert (_period_str_to_code('Q') == 2000)
-    assert (_period_str_to_code('Q-DEC') == 2000)
-    assert (_period_str_to_code('Q-FEB') == 2002)
-
-    assert_aliases_deprecated("M", 3000, ["MTH", "MONTH", "MONTHLY"])
-
-    assert (_period_str_to_code('W') == 4000)
-    assert (_period_str_to_code('W-SUN') == 4000)
-    assert (_period_str_to_code('W-FRI') == 4005)
-
-    assert_aliases_deprecated("B", 5000, ["BUS", "BUSINESS",
-                                          "BUSINESSLY", "WEEKDAY"])
-    assert_aliases_deprecated("D", 6000, ["DAY", "DLY", "DAILY"])
-    assert_aliases_deprecated("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
-
-    assert_aliases_deprecated("T", 8000, ["minute", "MINUTE", "MINUTELY"])
-    assert (_period_str_to_code('Min') == 8000)
-
-    assert_aliases_deprecated("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
-    assert_aliases_deprecated("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
-    assert (_period_str_to_code('ms') == 10000)
-
-    assert_aliases_deprecated("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
-    assert (_period_str_to_code('US') == 11000)
-
-    assert_aliases_deprecated("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
-    assert (_period_str_to_code('NS') == 12000)
-
-
-def test_is_superperiod_subperiod():
-
-    # input validation
-    assert not (is_superperiod(offsets.YearEnd(), None))
-    assert not (is_subperiod(offsets.MonthEnd(), None))
-    assert not (is_superperiod(None, offsets.YearEnd()))
-    assert not (is_subperiod(None, offsets.MonthEnd()))
-    assert not (is_superperiod(None, None))
-    assert not (is_subperiod(None, None))
-
-    assert (is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
-    assert (is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
-
-    assert (is_superperiod(offsets.Hour(), offsets.Minute()))
-    assert (is_subperiod(offsets.Minute(), offsets.Hour()))
-
-    assert (is_superperiod(offsets.Second(), offsets.Milli()))
-    assert (is_subperiod(offsets.Milli(), offsets.Second()))
-
-    assert (is_superperiod(offsets.Milli(), offsets.Micro()))
-    assert (is_subperiod(offsets.Micro(), offsets.Milli()))
-
-    assert (is_superperiod(offsets.Micro(), offsets.Nano()))
-    assert (is_subperiod(offsets.Nano(), offsets.Micro()))

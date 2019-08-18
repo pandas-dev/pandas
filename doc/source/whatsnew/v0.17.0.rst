@@ -3,7 +3,8 @@
 v0.17.0 (October 9, 2015)
 -------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -79,9 +80,9 @@ The new implementation allows for having a single-timezone across all rows, with
 
 .. ipython:: python
 
-   df = DataFrame({'A' : date_range('20130101',periods=3),
-                   'B' : date_range('20130101',periods=3,tz='US/Eastern'),
-                   'C' : date_range('20130101',periods=3,tz='CET')})
+   df = pd.DataFrame({'A': pd.date_range('20130101', periods=3),
+                      'B': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'C': pd.date_range('20130101', periods=3, tz='CET')})
    df
    df.dtypes
 
@@ -102,24 +103,24 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
    There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
    functionally these are the same.
 
-   Previous Behavior:
+   Previous behavior:
 
    .. code-block:: ipython
 
-      In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
+      In [1]: pd.date_range('20130101', periods=3, tz='US/Eastern')
       Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
                              '2013-01-03 00:00:00-05:00'],
                             dtype='datetime64[ns]', freq='D', tz='US/Eastern')
 
-      In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      In [2]: pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
       Out[2]: dtype('<M8[ns]')
 
-   New Behavior:
+   New behavior:
 
    .. ipython:: python
 
-      pd.date_range('20130101',periods=3,tz='US/Eastern')
-      pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      pd.date_range('20130101', periods=3, tz='US/Eastern')
+      pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
 
 .. _whatsnew_0170.gil:
 
@@ -137,8 +138,8 @@ as well as the ``.sum()`` operation.
 
    N = 1000000
    ngroups = 10
-   df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
-                   'data' : np.random.randn(N) })
+   df = DataFrame({'key': np.random.randint(0, ngroups, size=N),
+                   'data': np.random.randn(N)})
    df.groupby('key')['data'].sum()
 
 Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
@@ -169,7 +170,7 @@ As a result of this change, these methods are now all discoverable via tab-compl
 .. ipython::
     :verbatim:
 
-    In [15]: df.plot.<TAB>
+    In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -215,7 +216,7 @@ total_seconds
 
 .. _whatsnew_0170.periodfreq:
 
-Period Frequency Enhancement
+Period frequency enhancement
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Period``, ``PeriodIndex`` and ``period_range`` can now accept multiplied freq. Also, ``Period.freq`` and ``PeriodIndex.freq`` are now stored as a ``DateOffset`` instance like ``DatetimeIndex``, and not as ``str`` (:issue:`7811`)
@@ -255,14 +256,14 @@ incrementally.
 
 .. code-block:: python
 
-    for df in pd.read_sas('sas_xport.xpt', chunksize=10000)
+    for df in pd.read_sas('sas_xport.xpt', chunksize=10000):
         do_something(df)
 
 See the :ref:`docs <io.sas>` for more details.
 
 .. _whatsnew_0170.matheval:
 
-Support for Math Functions in .eval()
+Support for math functions in .eval()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`~pandas.eval` now supports calling math functions (:issue:`4893`)
@@ -291,16 +292,16 @@ See the :ref:`documentation <io.excel>` for more details.
 
 .. ipython:: python
 
-   df = pd.DataFrame([[1,2,3,4], [5,6,7,8]],
-                     columns = pd.MultiIndex.from_product([['foo','bar'],['a','b']],
-                                                          names = ['col1', 'col2']),
-                     index = pd.MultiIndex.from_product([['j'], ['l', 'k']],
-                                                        names = ['i1', 'i2']))
+   df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                     columns=pd.MultiIndex.from_product(
+                     [['foo', 'bar'], ['a', 'b']], names=['col1', 'col2']),
+                     index=pd.MultiIndex.from_product([['j'], ['l', 'k']],
+                                                      names=['i1', 'i2']))
 
    df
    df.to_excel('test.xlsx')
 
-   df = pd.read_excel('test.xlsx', header=[0,1], index_col=[0,1])
+   df = pd.read_excel('test.xlsx', header=[0, 1], index_col=[0, 1])
    df
 
 .. ipython:: python
@@ -328,7 +329,7 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
 .. _whatsnew_0170.gbq:
 
-Google BigQuery Enhancements
+Google BigQuery enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - Added ability to automatically create a table/dataset using the :func:`pandas.io.gbq.to_gbq` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
 - Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/writing.html>`__ for more details (:issue:`8325`).
@@ -338,7 +339,7 @@ Google BigQuery Enhancements
 
 .. _whatsnew_0170.east_asian_width:
 
-Display Alignment with Unicode East Asian Width
+Display alignment with Unicode East Asian width
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
@@ -406,21 +407,21 @@ Other enhancements
 
   .. ipython:: python
 
-     foo = pd.Series([1,2], name='foo')
-     bar = pd.Series([1,2])
-     baz = pd.Series([4,5])
+     foo = pd.Series([1, 2], name='foo')
+     bar = pd.Series([1, 2])
+     baz = pd.Series([4, 5])
 
-  Previous Behavior:
+  Previous behavior:
 
   .. code-block:: ipython
 
-     In [1] pd.concat([foo, bar, baz], 1)
+     In [1]: pd.concat([foo, bar, baz], 1)
      Out[1]:
            0  1  2
         0  1  1  4
         1  2  2  5
 
-  New Behavior:
+  New behavior:
 
   .. ipython:: python
 
@@ -437,17 +438,18 @@ Other enhancements
 
 - Added a ``DataFrame.round`` method to round the values to a variable number of decimal places (:issue:`10568`).
 
-  .. ipython :: python
+  .. ipython:: python
 
-     df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
-     index=['first', 'second', 'third'])
+     df = pd.DataFrame(np.random.random([3, 3]),
+                       columns=['A', 'B', 'C'],
+                       index=['first', 'second', 'third'])
      df
      df.round(2)
      df.round({'A': 0, 'C': 2})
 
 - ``drop_duplicates`` and ``duplicated`` now accept a ``keep`` keyword to target first, last, and all duplicates. The ``take_last`` keyword is deprecated, see :ref:`here <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
-  .. ipython :: python
+  .. ipython:: python
 
      s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
      s.drop_duplicates()
@@ -607,38 +609,36 @@ In prior versions it was ``errors='ignore'``. Furthermore, the ``coerce`` argume
 has been deprecated in favor of ``errors='coerce'``. This means that invalid parsing
 will raise rather that return the original input as in previous versions. (:issue:`10636`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
    In [2]: pd.to_datetime(['2009-07-31', 'asd'])
    Out[2]: array(['2009-07-31', 'asd'], dtype=object)
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
    In [3]: pd.to_datetime(['2009-07-31', 'asd'])
    ValueError: Unknown string format
 
-.. ipython:: python
-
 Of course you can coerce this as well.
 
 .. ipython:: python
 
-   to_datetime(['2009-07-31', 'asd'], errors='coerce')
+   pd.to_datetime(['2009-07-31', 'asd'], errors='coerce')
 
 To keep the previous behavior, you can use ``errors='ignore'``:
 
 .. ipython:: python
 
-   to_datetime(['2009-07-31', 'asd'], errors='ignore')
+   pd.to_datetime(['2009-07-31', 'asd'], errors='ignore')
 
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
-Consistent Parsing
+Consistent parsing
 """"""""""""""""""
 
 The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has
@@ -648,28 +648,28 @@ Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime
 uses the beginning of the year. ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex``
 can parse, such as a quarterly string.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
-   In [1]: Timestamp('2012Q2')
+   In [1]: pd.Timestamp('2012Q2')
    Traceback
       ...
    ValueError: Unable to parse 2012Q2
 
    # Results in today's date.
-   In [2]: Timestamp('2014')
+   In [2]: pd.Timestamp('2014')
    Out [2]: 2014-08-12 00:00:00
 
 v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
-   Timestamp('2012Q2')
-   Timestamp('2014')
-   DatetimeIndex(['2012Q2', '2014'])
+   pd.Timestamp('2012Q2')
+   pd.Timestamp('2014')
+   pd.DatetimeIndex(['2012Q2', '2014'])
 
 .. note::
 
@@ -678,10 +678,10 @@ New Behavior:
    .. ipython:: python
 
       import pandas.tseries.offsets as offsets
-      Timestamp.now()
-      Timestamp.now() + offsets.DateOffset(years=1)
+      pd.Timestamp.now()
+      pd.Timestamp.now() + offsets.DateOffset(years=1)
 
-Changes to Index Comparisons
+Changes to Index comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`9947`, :issue:`10637`)
@@ -689,7 +689,7 @@ Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`994
 Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
 a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -702,7 +702,7 @@ Previous Behavior:
    In [4]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
    Out[4]: False
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -729,29 +729,29 @@ or it can return False if broadcasting can not be done:
 
    np.array([1, 2, 3]) == np.array([1, 2])
 
-Changes to Boolean Comparisons vs. None
+Changes to boolean comparisons vs. None
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).
 
 .. ipython:: python
 
-   s = Series(range(3))
+   s = pd.Series(range(3))
    s.iloc[1] = None
    s
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
-   In [5]: s==None
+   In [5]: s == None
    TypeError: Could not compare <type 'NoneType'> type with Series
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
-   s==None
+   s == None
 
 Usually you simply want to know which values are null.
 
@@ -776,12 +776,12 @@ HDFStore dropna behavior
 
 The default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
 
-Previous Behavior:
+Previous behavior:
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2],
-                                   'col2':[1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame({'col1': [0, np.nan, 2],
+                                   'col2': [1, np.nan, np.nan]})
 
    df_with_missing
 
@@ -802,25 +802,21 @@ Previous Behavior:
      2     2   NaN
 
 
-New Behavior:
-
-.. ipython:: python
-   :suppress:
-
-   import os
+New behavior:
 
 .. ipython:: python
 
    df_with_missing.to_hdf('file.h5',
                           'df_with_missing',
-                           format='table',
-                           mode='w')
+                          format='table',
+                          mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove('file.h5')
 
 See the :ref:`docs <io.hdf5>` for more details.
@@ -873,7 +869,7 @@ Changes to ``Categorical.unique``
 - unordered category: values and categories are sorted by appearance order.
 - ordered category: values are sorted by appearance order, categories keep existing order.
 
-.. ipython :: python
+.. ipython:: python
 
    cat = pd.Categorical(['C', 'A', 'B', 'C'],
                         categories=['A', 'B', 'C'],
@@ -886,7 +882,7 @@ Changes to ``Categorical.unique``
    cat
    cat.unique()
 
-Changes to ``bool`` passed as ``header`` in Parsers
+Changes to ``bool`` passed as ``header`` in parsers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In earlier versions of pandas, if a bool was passed the ``header`` argument of
@@ -896,7 +892,7 @@ an integer, resulting in ``header=0`` for ``False`` and ``header=1`` for ``True`
 
 A ``bool`` input to ``header`` will now raise a ``TypeError``
 
-.. code-block :: python
+.. code-block:: ipython
 
    In [29]: df = pd.read_csv('data.csv', header=False)
    TypeError: Passing a bool to header is invalid. Use header=None for no header or
@@ -905,7 +901,7 @@ A ``bool`` input to ``header`` will now raise a ``TypeError``
 
 .. _whatsnew_0170.api_breaking.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
@@ -981,10 +977,12 @@ Removal of prior version deprecations/changes
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
 - Removal of automatic time-series broadcasting (:issue:`2304`)
 
-  .. ipython :: python
+  .. ipython:: python
 
      np.random.seed(1234)
-     df = DataFrame(np.random.randn(5,2),columns=list('AB'),index=date_range('20130101',periods=5))
+     df = pd.DataFrame(np.random.randn(5, 2),
+                       columns=list('AB'),
+                       index=pd.date_range('2013-01-01', periods=5))
      df
 
   Previously
@@ -1005,9 +1003,9 @@ Removal of prior version deprecations/changes
 
   Current
 
-  .. ipython :: python
+  .. ipython:: python
 
-     df.add(df.A,axis='index')
+     df.add(df.A, axis='index')
 
 
 - Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
@@ -1018,7 +1016,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0170.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
@@ -1041,7 +1039,7 @@ Performance Improvements
 
 .. _whatsnew_0170.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in incorrect computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)

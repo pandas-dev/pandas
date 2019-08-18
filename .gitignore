@@ -61,9 +61,14 @@ dist
 .coverage
 coverage.xml
 coverage_html_report
+.mypy_cache
 *.pytest_cache
 # hypothesis test database
 .hypothesis/
+__pycache__
+# pytest-monkeytype
+monkeytype.sqlite3
+
 
 # OS generated files #
 ######################
@@ -101,6 +106,8 @@ asv_bench/pandas/
 # Documentation generated files #
 #################################
 doc/source/generated
+doc/source/user_guide/styled.xlsx
+doc/source/reference/api
 doc/source/_static
 doc/source/vbench
 doc/source/vbench.rst
@@ -108,6 +115,5 @@ doc/source/index.rst
 doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
-doc/source/styled.xlsx
 env/
 doc/source/savefig/
