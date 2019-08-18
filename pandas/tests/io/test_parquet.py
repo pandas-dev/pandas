@@ -330,7 +330,7 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
-            check_round_trip(df, engine, check_names=chetest_partition_cols_supportedck_names)
+            check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
         df.index = [0, 1, 2]
@@ -416,7 +416,7 @@ class TestParquetPyArrow(Base):
         # GH18628
 
         df = df_full
-        # additional supported types for pyarrowtest_partition_cols_supported
+        # additional supported types for pyarrow
         df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
 
         check_round_trip(
