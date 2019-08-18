@@ -1410,7 +1410,9 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in np.arange(10)]
+        expected_labels = [
+            "00:00:00.0000000{:0>2d}".format(i) for i in np.arange(0, 10, 2)
+        ]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
