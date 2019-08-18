@@ -1083,7 +1083,7 @@ def test_transform_lambda_with_datetimetz():
             DataFrame(
                 {
                     "A": [121, 121, 121, 121, 231, 231, 676],
-                    "B": [1, 2, np.nan, 3, 3, np.nan, 4]
+                    "B": [1, 2, np.nan, 3, 3, np.nan, 4],
                 }
             ),
             1,
@@ -1092,14 +1092,14 @@ def test_transform_lambda_with_datetimetz():
             DataFrame(
                 {
                     "A": [121, 121, 121, 121, 231, 231, 676],
-                    "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]
+                    "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
                 }
             ),
             1,
-        )
+        ),
     ],
 )
 def test_groupby_transform_fillna(inputDF, expectedDF):
     # GH 27905 - Test fillna in groupby.transform
-    input1 = inputDF.groupby('A').transform(lambda x: x.fillna(x.mean()))
+    input1 = inputDF.groupby("A").transform(lambda x: x.fillna(x.mean()))
     assert all(input1 == expectedDF)
