@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -224,7 +223,7 @@ def init_dict(data, index, columns, dtype=None):
 
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
-            if isinstance(dtype, CategoricalDtype):
+            if is_categorical_dtype(dtype):
                 nan_dtype = dtype
             elif dtype is None or np.issubdtype(dtype, np.flexible):
                 # GH#1783
