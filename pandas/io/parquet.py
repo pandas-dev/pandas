@@ -235,9 +235,10 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    partition_cols : list, optional, default None
-        Column names by which to partition the dataset
-        Columns are partitioned in the order they are given
+    partition_cols : list or string, optional, default None
+        Column names by which to partition the dataset.
+        Columns are partitioned in the order they are given.
+        String identifies a single column to be partitioned.
 
         .. versionadded:: 0.24.0
 
