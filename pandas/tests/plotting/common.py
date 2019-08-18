@@ -556,6 +556,35 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
         return ret
 
+def _check_plot_works_with_continuous_dates(f, filterwarnings="always", **kwargs):
+    ''' first version of the test for - BUG 24784'''
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    ret = None
+    with warnings.catch_warnings():
+        warnings.simplefilter(filterwarnings)
+        try:
+            try:
+                fig = kwargs["figure"]
+            except KeyError:
+                fig = plt.gcf()
+
+            plt.clf()
+
+            ax = kwargs.get("ax", fig.add_subplot(211))  # noqa
+            ret = f(**kwargs)
+            ret.xaxis.set_major_locator(mdates.DayLocator())
+            ret.xaxis.set_major_formatter(mdates.DateFormatter("\n%b%d"))
+
+            assert_is_valid_plot_return_object(ret)
+
+            with ensure_clean(return_filelike=True) as path:
+                plt.savefig(path)
+        finally:
+            tm.close(fig)
+
+        return ret
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
