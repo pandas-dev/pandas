@@ -483,7 +483,7 @@ class TestParquetPyArrow(Base):
 
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1
-            assert dataset.partitions.partition_names == set((partition_cols))
+            assert dataset.partitions.partition_names == [partition_cols]
 
     def test_empty_dataframe(self, pa):
         # GH #27339
