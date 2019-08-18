@@ -1337,6 +1337,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
     
     def test_constructor_dataclasses(self):
+        # GH21910
         from dataclasses import dataclass
 
         @dataclass
