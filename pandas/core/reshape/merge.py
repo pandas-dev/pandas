@@ -217,8 +217,6 @@ def merge_ordered(
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
 
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     merged : DataFrame
@@ -328,8 +326,6 @@ def merge_asof(
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     left : DataFrame
@@ -345,26 +341,14 @@ def merge_asof(
         Field name to join on in right DataFrame.
     left_index : boolean
         Use the index of the left DataFrame as the join key.
-
-        .. versionadded:: 0.19.2
-
     right_index : boolean
         Use the index of the right DataFrame as the join key.
-
-        .. versionadded:: 0.19.2
-
     by : column name or list of column names
         Match on these columns before performing merge operation.
     left_by : column name
         Field names to match on in the left DataFrame.
-
-        .. versionadded:: 0.19.2
-
     right_by : column name
         Field names to match on in the right DataFrame.
-
-        .. versionadded:: 0.19.2
-
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively.
@@ -1292,8 +1276,6 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
         indexers into the left_keys, right_keys
 
     """
-    from functools import partial
-
     assert len(left_keys) == len(
         right_keys
     ), "left_key and right_keys must be the same length"
@@ -1574,7 +1556,7 @@ class _AsOfMerge(_OrderedMerge):
         # set 'by' columns
         if self.by is not None:
             if self.left_by is not None or self.right_by is not None:
-                raise MergeError("Can only pass by OR left_by " "and right_by")
+                raise MergeError("Can only pass by OR left_by and right_by")
             self.left_by = self.right_by = self.by
         if self.left_by is None and self.right_by is not None:
             raise MergeError("missing left_by")
@@ -1767,7 +1749,6 @@ class _AsOfMerge(_OrderedMerge):
 
 
 def _get_multiindex_indexer(join_keys, index, sort):
-    from functools import partial
 
     # bind `sort` argument
     fkeys = partial(_factorize_keys, sort=sort)
@@ -1977,7 +1958,7 @@ def _should_fill(lname, rname):
 
 
 def _any(x):
-    return x is not None and com._any_not_none(*x)
+    return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):

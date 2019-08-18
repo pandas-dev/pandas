@@ -7,6 +7,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
+from pandas._libs.hashtable import duplicated_int64
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -25,7 +26,7 @@ from pandas.core.dtypes.missing import isna
 from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import Categorical, contains
+from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -290,7 +291,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 other = other._values
             if not other.is_dtype_equal(self):
                 raise TypeError(
-                    "categories must match existing categories " "when appending"
+                    "categories must match existing categories when appending"
                 )
         else:
             values = other
@@ -299,7 +300,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = CategoricalIndex(self._create_categorical(other, dtype=self.dtype))
             if not other.isin(values).all():
                 raise TypeError(
-                    "cannot append a non-category item to a " "CategoricalIndex"
+                    "cannot append a non-category item to a CategoricalIndex"
                 )
 
         return other
@@ -445,9 +446,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @cache_readonly
     def _engine(self):
-
-        # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes, len(self))
+        # we are going to look things up with the codes themselves.
+        # To avoid a reference cycle, bind `codes` to a local variable, so
+        # `self` is not passed into the lambda.
+        codes = self.codes
+        return self._engine_type(lambda: codes, len(self))
 
     # introspection
     @cache_readonly
@@ -473,8 +476,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
-        from pandas._libs.hashtable import duplicated_int64
-
         codes = self.codes.astype("i8")
         return duplicated_int64(codes, keep)
 
@@ -581,15 +582,15 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         if method is not None:
             raise NotImplementedError(
-                "argument method is not implemented for " "CategoricalIndex.reindex"
+                "argument method is not implemented for CategoricalIndex.reindex"
             )
         if level is not None:
             raise NotImplementedError(
-                "argument level is not implemented for " "CategoricalIndex.reindex"
+                "argument level is not implemented for CategoricalIndex.reindex"
             )
         if limit is not None:
             raise NotImplementedError(
-                "argument limit is not implemented for " "CategoricalIndex.reindex"
+                "argument limit is not implemented for CategoricalIndex.reindex"
             )
 
         target = ibase.ensure_index(target)
@@ -657,8 +658,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        from pandas.core.arrays.categorical import _recode_for_categories
-
         method = missing.clean_reindex_fill_method(method)
         target = ibase.ensure_index(target)
 
@@ -672,7 +671,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             )
         elif method == "nearest":
             raise NotImplementedError(
-                "method='nearest' not implemented yet " "for CategoricalIndex"
+                "method='nearest' not implemented yet for CategoricalIndex"
             )
 
         if isinstance(target, CategoricalIndex) and self.values.is_dtype_equal(target):
@@ -902,31 +901,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             opname = "__{op}__".format(op=op.__name__)
 
             def _evaluate_compare(self, other):
-
-                # if we have a Categorical type, then must have the same
-                # categories
-                if isinstance(other, CategoricalIndex):
-                    other = other._values
-                elif isinstance(other, Index):
-                    other = self._create_categorical(other._values, dtype=self.dtype)
-
-                if isinstance(other, (ABCCategorical, np.ndarray, ABCSeries)):
-                    if len(self.values) != len(other):
-                        raise ValueError("Lengths must match to compare")
-
-                if isinstance(other, ABCCategorical):
-                    if not self.values.is_dtype_equal(other):
-                        raise TypeError(
-                            "categorical index comparisons must "
-                            "have the same categories and ordered "
-                            "attributes"
-                        )
-
-                result = op(self.values, other)
+                with np.errstate(all="ignore"):
+                    result = op(self.array, other)
                 if isinstance(result, ABCSeries):
                     # Dispatch to pd.Categorical returned NotImplemented
                     # and we got a Series back; down-cast to ndarray
-                    result = result.values
+                    result = result._values
                 return result
 
             return compat.set_function_name(_evaluate_compare, opname, cls)

@@ -9,6 +9,7 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    Period,
     Timedelta,
     Timestamp,
     ccalendar,
@@ -33,7 +34,6 @@ from pandas._libs.tslibs.offsets import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.dtypes.inference import is_list_like
 
 from pandas.core.tools.datetimes import to_datetime
@@ -1075,8 +1075,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
 class CustomBusinessHour(_CustomMixin, BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days.
-
-    .. versionadded:: 0.18.1
     """
 
     _prefix = "CBH"
@@ -1398,8 +1396,6 @@ class SemiMonthEnd(SemiMonthOffset):
     Two DateOffset's per month repeating on the last
     day of the month and day_of_month.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     n : int
@@ -1458,8 +1454,6 @@ class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first
     day of the month and day_of_month.
-
-    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -2539,7 +2533,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, ABCPeriod):
+        elif isinstance(other, Period):
             return other + self
         try:
             return self.apply(other)

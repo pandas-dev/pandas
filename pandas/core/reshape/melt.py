@@ -5,6 +5,7 @@ import numpy as np
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_extension_type, is_list_like
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
@@ -39,7 +40,7 @@ def melt(
             id_vars = [id_vars]
         elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):
             raise ValueError(
-                "id_vars must be a list of tuples when columns" " are a MultiIndex"
+                "id_vars must be a list of tuples when columns are a MultiIndex"
             )
         else:
             # Check that `id_vars` are in frame
@@ -61,7 +62,7 @@ def melt(
             value_vars, list
         ):
             raise ValueError(
-                "value_vars must be a list of tuples when" " columns are a MultiIndex"
+                "value_vars must be a list of tuples when columns are a MultiIndex"
             )
         else:
             value_vars = list(value_vars)
@@ -171,9 +172,7 @@ def lreshape(data, groups, dropna=True, label=None):
     for target, names in zip(keys, values):
         to_concat = [data[col].values for col in names]
 
-        import pandas.core.dtypes.concat as _concat
-
-        mdata[target] = _concat._concat_compat(to_concat)
+        mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:

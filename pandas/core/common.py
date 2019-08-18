@@ -165,51 +165,39 @@ def cast_scalar_indexer(val):
     return val
 
 
-def _not_none(*args):
+def not_none(*args):
     """
     Returns a generator consisting of the arguments that are not None.
     """
     return (arg for arg in args if arg is not None)
 
 
-def _any_none(*args):
+def any_none(*args):
     """
     Returns a boolean indicating if any argument is None.
     """
-    for arg in args:
-        if arg is None:
-            return True
-    return False
+    return any(arg is None for arg in args)
 
 
-def _all_none(*args):
+def all_none(*args):
     """
     Returns a boolean indicating if all arguments are None.
     """
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
+    return all(arg is None for arg in args)
 
 
-def _any_not_none(*args):
+def any_not_none(*args):
     """
     Returns a boolean indicating if any argument is not None.
     """
-    for arg in args:
-        if arg is not None:
-            return True
-    return False
+    return any(arg is not None for arg in args)
 
 
-def _all_not_none(*args):
+def all_not_none(*args):
     """
     Returns a boolean indicating if all arguments are not None.
     """
-    for arg in args:
-        if arg is None:
-            return False
-    return True
+    return all(arg is not None for arg in args)
 
 
 def count_not_none(*args):
@@ -254,7 +242,6 @@ def asarray_tuplesafe(values, dtype=None):
 
     if result.ndim == 2:
         # Avoid building an array of arrays:
-        # TODO: verify whether any path hits this except #18819 (invalid)
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
 
@@ -444,11 +431,11 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, a numpy " "RandomState, or None"
+            "random_state must be an integer, a numpy RandomState, or None"
         )
 
 
-def _pipe(obj, func, *args, **kwargs):
+def pipe(obj, func, *args, **kwargs):
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -483,7 +470,7 @@ def _pipe(obj, func, *args, **kwargs):
         return func(obj, *args, **kwargs)
 
 
-def _get_rename_function(mapper):
+def get_rename_function(mapper):
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.

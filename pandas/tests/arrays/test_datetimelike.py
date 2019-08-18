@@ -462,6 +462,13 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_datetime_array_equal(result, expected)
 
+    def test_strftime(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        result = arr.strftime("%Y %b")
+        expected = np.array(datetime_index.strftime("%Y %b"))
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
@@ -652,6 +659,13 @@ class TestPeriodArray(SharedTests):
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_strftime(self, period_index):
+        arr = PeriodArray(period_index)
+
+        result = arr.strftime("%Y")
+        expected = np.array(period_index.strftime("%Y"))
+        tm.assert_numpy_array_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "array,casting_nats",
@@ -682,15 +696,15 @@ def test_casting_nat_setitem_array(array, casting_nats):
     [
         (
             pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"),),
+            (np.datetime64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"),),
+            (np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
     ],
     ids=lambda x: type(x).__name__,

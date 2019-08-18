@@ -14,7 +14,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas.core.base import StringMixin
 from pandas.core.index import MultiIndex
 import pandas.util.testing as tm
 
@@ -226,11 +225,11 @@ class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
         # see gh-21002
 
-        class County(StringMixin):
+        class County:
             name = "San Sebastián"
             state = "PR"
 
-            def __str__(self):
+            def __repr__(self):
                 return self.name + ", " + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])

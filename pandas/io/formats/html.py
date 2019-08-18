@@ -4,11 +4,11 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple, Union
+from typing import IO, Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
@@ -16,6 +16,7 @@ from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
+    buffer_put_lines,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -37,7 +38,7 @@ class HTMLFormatter(TableFormatter):
         self,
         formatter: DataFrameFormatter,
         classes: Optional[Union[str, List, Tuple]] = None,
-        border: Optional[bool] = None,
+        border: Optional[int] = None,
     ) -> None:
         self.fmt = formatter
         self.classes = classes
@@ -79,23 +80,24 @@ class HTMLFormatter(TableFormatter):
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> ABCIndex:
+    def _get_columns_formatted_values(self) -> Iterable:
         return self.columns
 
+    # https://github.com/python/mypy/issues/1237
     @property
-    def is_truncated(self) -> bool:
+    def is_truncated(self) -> bool:  # type: ignore
         return self.fmt.is_truncated
 
     @property
     def ncols(self) -> int:
         return len(self.fmt.tr_frame.columns)
 
-    def write(self, s: str, indent: int = 0) -> None:
+    def write(self, s: Any, indent: int = 0) -> None:
         rs = pprint_thing(s)
         self.elements.append(" " * indent + rs)
 
     def write_th(
-        self, s: str, header: bool = False, indent: int = 0, tags: Optional[str] = None
+        self, s: Any, header: bool = False, indent: int = 0, tags: Optional[str] = None
     ) -> None:
         """
         Method for writting a formatted <th> cell.
@@ -125,11 +127,11 @@ class HTMLFormatter(TableFormatter):
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
-    def write_td(self, s: str, indent: int = 0, tags: Optional[str] = None) -> None:
+    def write_td(self, s: Any, indent: int = 0, tags: Optional[str] = None) -> None:
         self._write_cell(s, kind="td", indent=indent, tags=tags)
 
     def _write_cell(
-        self, s: str, kind: str = "td", indent: int = 0, tags: Optional[str] = None
+        self, s: Any, kind: str = "td", indent: int = 0, tags: Optional[str] = None
     ) -> None:
         if tags is not None:
             start_tag = "<{kind} {tags}>".format(kind=kind, tags=tags)
@@ -162,7 +164,7 @@ class HTMLFormatter(TableFormatter):
 
     def write_tr(
         self,
-        line: List[str],
+        line: Iterable,
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
@@ -201,6 +203,9 @@ class HTMLFormatter(TableFormatter):
             )
 
         return self.elements
+
+    def write_result(self, buf: IO[str]) -> None:
+        buffer_put_lines(buf, self.render())
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
@@ -458,6 +463,8 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
+                # cast here since if truncate_v is True, self.fmt.tr_row_num is not None
+                ins_row = cast(int, ins_row)
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
