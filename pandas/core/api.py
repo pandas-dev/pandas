@@ -20,14 +20,24 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     DatetimeTZDtype,
 )
-from pandas.core.arrays import Categorical, array
-from pandas.core.groupby import Grouper
+from pandas.core.arrays import Categorical
+from pandas.core.construction import array
+from pandas.core.groupby import Grouper, NamedAgg
 from pandas.io.formats.format import set_eng_float_format
-from pandas.core.index import (Index, CategoricalIndex, Int64Index,
-                               UInt64Index, RangeIndex, Float64Index,
-                               MultiIndex, IntervalIndex,
-                               TimedeltaIndex, DatetimeIndex,
-                               PeriodIndex, NaT)
+from pandas.core.index import (
+    Index,
+    CategoricalIndex,
+    Int64Index,
+    UInt64Index,
+    RangeIndex,
+    Float64Index,
+    MultiIndex,
+    IntervalIndex,
+    TimedeltaIndex,
+    DatetimeIndex,
+    PeriodIndex,
+    NaT,
+)
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
 from pandas.core.indexes.datetimes import Timestamp, date_range, bdate_range
@@ -35,7 +45,6 @@ from pandas.core.indexes.interval import Interval, interval_range
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel
 
 # TODO: Remove import when statsmodels updates #18264
 from pandas.core.reshape.reshape import get_dummies

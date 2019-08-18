@@ -5,7 +5,7 @@ v.0.4.1 through v0.4.3 (September 25 - October 9, 2011)
 
 {{ header }}
 
-New Features
+New features
 ~~~~~~~~~~~~
 
 - Added Python 3 support using 2to3 (:issue:`200`)
@@ -32,7 +32,7 @@ New Features
 - :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)
 - :ref:`Enable <advanced.sortlevel_byname>` ``sortlevel`` to work by level (:issue:`141`)
 
-Performance Enhancements
+Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Altered binary operations on differently-indexed SparseSeries objects

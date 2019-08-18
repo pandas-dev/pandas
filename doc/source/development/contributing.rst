@@ -127,35 +127,24 @@ to build the documentation locally before pushing your changes.
 
 .. _contributing.dev_c:
 
-Installing a C Compiler
+Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guide
-<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
-compiler installed. You don't need to do any of the ``./configure`` or ``make``
-steps; you only need to install the compiler.
+platform you're using.
 
-For Windows developers, when using Python 3.5 and later, it is sufficient to
-install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
-**Python development workload** and the **Python native development tools**
-option. Otherwise, the following links may be helpful.
-
-* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
-* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-* https://cowboyprogrammer.org/building-python-wheels-for-windows/
-* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+* Windows: https://devguide.python.org/setup/#windows-compiling
+* Mac: https://devguide.python.org/setup/#macos
+* Unix: https://devguide.python.org/setup/#unix-compiling
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
 
 .. _contributing.dev_python:
 
-Creating a Python Environment
+Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have a C compiler, create an isolated pandas development
@@ -178,7 +167,6 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
-   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -209,7 +197,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
-Creating a Python Environment (pip)
+Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
@@ -221,7 +209,7 @@ You'll need to have at least python3.5 installed on your system.
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
-   # Activate the virtulaenv
+   # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
@@ -289,7 +277,7 @@ complex changes to the documentation as well.
 Some other important things to know about the docs:
 
 * The *pandas* documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``pandas/doc/``.
+  itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
   functions, while the documentation in this folder consists of tutorial-like
@@ -405,11 +393,11 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local
-``pandas/doc/`` directory in the console and run::
+``doc/`` directory in the console and run::
 
     python make.py html
 
-Then you can find the HTML output in the folder ``pandas/doc/build/html/``.
+Then you can find the HTML output in the folder ``doc/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
 all the code examples and build all the generated docstring pages. In subsequent
@@ -449,7 +437,7 @@ You can also specify to use multiple cores to speed up the documentation build::
 Open the following file in a web browser to see the full documentation you
 just built::
 
-    pandas/docs/build/html/index.html
+    doc/build/html/index.html
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
@@ -460,7 +448,7 @@ Building master branch documentation
 
 When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<http://pandas-docs.github.io/pandas-docs-travis>`__, see also
+<https://dev.pandas.io>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
 .. _contributing.code:
@@ -498,6 +486,21 @@ as possible to avoid mass breakages.
 
 Additional standards are outlined on the `code style wiki
 page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+
+Optional dependencies
+---------------------
+
+Optional dependencies (e.g. matplotlib) should be imported with the private helper
+``pandas.compat._optional.import_optional_dependency``. This ensures a
+consistent error message when the dependency is not met.
+
+All methods using an optional dependency should include a test asserting that an
+``ImportError`` is raised when the optional dependency is not found. This test
+should be skipped if the library is present.
+
+All optional dependencies should be documented in
+:ref:`install.optional_dependencies` and the minimum required version should be
+set in the ``pandas.compat._optional.VERSIONS`` dict.
 
 C (cpplint)
 ~~~~~~~~~~~
@@ -548,22 +551,37 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
-Python (PEP8)
-~~~~~~~~~~~~~
+Python (PEP8 / black)
+~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
-There are several tools to ensure you abide by this standard. Here are *some* of
-the more common ``PEP8`` issues:
+*pandas* follows the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard
+and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
+`Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
+format throughout the project.
 
-* we restrict line-length to 79 characters to promote readability
-* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+:ref:`Continuous Integration <contributing.ci>` will run those tools and
+report any stylistic errors in your code. Therefore, it is helpful before
+submitting code to run the check yourself::
 
-:ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <https://pypi.org/project/flake8>`_ tool
-and report any stylistic errors in your code. Therefore, it is helpful before
-submitting code to run the check yourself on the diff::
-
+   black pandas
    git diff upstream/master -u -- "*.py" | flake8 --diff
+
+to auto-format your code. Additionally, many editors have plugins that will
+apply ``black`` as you edit files.
+
+Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
+to automatically run ``black`` and ``flake8`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+   pip install pre-commit
+
+and then running::
+
+   pre-commit install
+
+from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
+each time you commit changes. You can skip these checks with
+``git commit --no-verify``.
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -590,7 +608,7 @@ and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 
-Import Formatting
+Import formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
@@ -636,7 +654,7 @@ The `--recursive` flag can be passed to sort all files in a directory.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
-Backwards Compatibility
+Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
@@ -684,7 +702,7 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.ci:
 
-Testing With Continuous Integration
+Testing with continuous integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
@@ -915,7 +933,7 @@ options or subtle interactions to test (or think of!) all of them.
 
 .. _contributing.warnings:
 
-Testing Warnings
+Testing warnings
 ~~~~~~~~~~~~~~~~
 
 By default, one of pandas CI workers will fail if any unhandled warnings are emitted.

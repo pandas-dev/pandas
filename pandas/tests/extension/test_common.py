@@ -14,7 +14,6 @@ class DummyDtype(dtypes.ExtensionDtype):
 
 
 class DummyArray(ExtensionArray):
-
     def __init__(self, data):
         self.data = data
 
@@ -36,21 +35,20 @@ class DummyArray(ExtensionArray):
 
 
 class TestExtensionArrayDtype:
-
-    @pytest.mark.parametrize('values', [
-        pd.Categorical([]),
-        pd.Categorical([]).dtype,
-        pd.Series(pd.Categorical([])),
-        DummyDtype(),
-        DummyArray(np.array([1, 2])),
-    ])
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.Categorical([]),
+            pd.Categorical([]).dtype,
+            pd.Series(pd.Categorical([])),
+            DummyDtype(),
+            DummyArray(np.array([1, 2])),
+        ],
+    )
     def test_is_extension_array_dtype(self, values):
         assert is_extension_array_dtype(values)
 
-    @pytest.mark.parametrize('values', [
-        np.array([]),
-        pd.Series(np.array([])),
-    ])
+    @pytest.mark.parametrize("values", [np.array([]), pd.Series(np.array([]))])
     def test_is_not_extension_array_dtype(self, values):
         assert not is_extension_array_dtype(values)
 
@@ -63,7 +61,7 @@ def test_astype():
     result = arr.astype(object)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = arr.astype('object')
+    result = arr.astype("object")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -77,10 +75,7 @@ def test_astype_no_copy():
     assert arr is not result
 
 
-@pytest.mark.parametrize('dtype', [
-    dtypes.CategoricalDtype(),
-    dtypes.IntervalDtype(),
-])
+@pytest.mark.parametrize("dtype", [dtypes.CategoricalDtype(), dtypes.IntervalDtype()])
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
