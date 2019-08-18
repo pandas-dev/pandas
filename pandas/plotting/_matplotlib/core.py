@@ -33,8 +33,6 @@ from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
-    _get_all_lines,
-    _get_xlim,
     _handle_shared_axes,
     _subplots,
     format_date_labels,
