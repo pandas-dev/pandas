@@ -769,7 +769,7 @@ Compare the following
    >>> def f(df, arg2, arg3):
    ...     return df * (arg2 + arg3)
    >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
-   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
+
 
 with the equivalent
 
