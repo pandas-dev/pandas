@@ -150,7 +150,6 @@ def _isna_new(obj):
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
     elif isinstance(obj, list):
-        print("List")
         return _isna_ndarraylike(np.asarray(obj, dtype=object))
     elif hasattr(obj, "__array__"):
         return _isna_ndarraylike(np.asarray(obj))
