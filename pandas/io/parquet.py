@@ -235,15 +235,18 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    partition_cols : list, optional, default None
-        Column names by which to partition the dataset
-        Columns are partitioned in the order they are given
+    partition_cols : list or string, optional, default None
+        Column names by which to partition the dataset.
+        Columns are partitioned in the order they are given.
+        String identifies a single column to be partitioned.
 
         .. versionadded:: 0.24.0
 
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
     return impl.write(
         df,
