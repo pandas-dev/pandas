@@ -10,6 +10,8 @@ labeling information
 """
 import collections
 from collections import OrderedDict, abc
+import pandas
+from pandas import Series
 import functools
 from io import StringIO
 import itertools
@@ -7187,21 +7189,30 @@ class DataFrame(NDFrame):
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(
-                self,
-                other,
-                left_on=on,
-                how=how,
-                left_index=on is None,
-                right_index=True,
-                suffixes=(lsuffix, rsuffix),
-                sort=sort,
-            )
-        else:
-            if on is not None:
-                raise ValueError(
-                    "Joining multiple DataFrames only supported for joining on index"
+            if on is None:
+                return merge(
+                    self,
+                    other,
+                    left_on=on,
+                    how=how,
+                    left_index=True,
+                    right_index=True,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort
                 )
+        else:
+            result = merge(
+                    self,
+                    other,
+                    left_on=on,
+                    how=how,
+                    left_index=False,
+                    right_index=True,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort
+                    )
+            result.set_index([pandas.Series([i for i in range(len(result))])], inplace=True)
+            return result
 
             frames = [self] + list(other)
 
