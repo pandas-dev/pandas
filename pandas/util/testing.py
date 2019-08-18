@@ -931,7 +931,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
     msg = """
         {obj} are different
-        
+
         {message}
         [left]:  {left}
         [right]: {right}
