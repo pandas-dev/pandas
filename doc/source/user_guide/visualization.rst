@@ -1659,5 +1659,5 @@ bivariate analysis, we can use ``seaborn.pairplot()`` method for a pairwise plot
 
     plt.figure(figsize=(10, 8), dpi=80)
     sns.pairplot(df, kind='scatter', hue='species', plot_kws=dict(s=80,
-                edgecolor="white", linewidth=2.5))
+                 edgecolor="white", linewidth=2.5))
     plt.show()
