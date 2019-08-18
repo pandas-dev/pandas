@@ -577,7 +577,7 @@ class TestDatetimeIndexComparisons:
         with pytest.raises(TypeError, match=msg):
             op(dz, np.array(list(dr), dtype=object))
 
-        # Check that there isn't a problem aware-aware and naive-naive do not raise
+        # The aware==aware and naive==naive comparisons should *not* raise
         assert_all(dr == dr)
         assert_all(dr == list(dr))
         assert_all(list(dr) == dr)
