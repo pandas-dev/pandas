@@ -96,7 +96,7 @@ from pandas.util.testing import assert_frame_equal
     ],
 )
 def test_shift_bfill_ffill_tz(data, expected_shift, expected_bfill, expected_ffill):
-    # GHxxxxx: Check that timezone does not drop in shift, bfill, and ffill
+    # GH27992: Check that timezone does not drop in shift, bfill, and ffill
     df = DataFrame(data)
 
     result = df.groupby("id").shift()
