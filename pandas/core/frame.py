@@ -9,6 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
+import pandas
 from collections import OrderedDict, abc
 import functools
 from io import StringIO
@@ -4382,7 +4383,7 @@ class DataFrame(NDFrame):
                         len_self=len(self), len_col=len(arrays[-1])
                     )
                 )
-
+            
         index = ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
@@ -7187,24 +7188,33 @@ class DataFrame(NDFrame):
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(
-                self,
-                other,
-                left_on=on,
-                how=how,
-                left_index=on is None,
-                right_index=True,
-                suffixes=(lsuffix, rsuffix),
-                sort=sort,
-            )
-        else:
-            if on is not None:
-                raise ValueError(
-                    "Joining multiple DataFrames only supported for joining on index"
+            if on is None:
+                return merge(
+                    self,
+                    other,
+                    left_on=on,
+                    how=how,
+                    left_index=True,
+                    right_index=True,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort
                 )
-
+            else:
+                result = merge(
+                    self,
+                    other,
+                    left_on=on,
+                    how=how,
+                    left_index=False,
+                    right_index=True,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort
+                    )
+                #Range123
+                result.set_index([pandas.Series([i for i in range(len(result))])], inplace=True)
+                
+                return result
             frames = [self] + list(other)
-
             can_concat = all(df.index.is_unique for df in frames)
 
             # join indexes only using concat
