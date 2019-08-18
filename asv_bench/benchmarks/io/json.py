@@ -4,10 +4,6 @@ from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
 from ..pandas_vb_common import BaseIO
 
-<<<<<<< HEAD
-=======
-
->>>>>>> parent of 73a750b90... added test_read_csv test for issue 27655, appears that encoding is already determined automatically if left empty.
 class ReadJSON(BaseIO):
 
     fname = "__test__.json"
