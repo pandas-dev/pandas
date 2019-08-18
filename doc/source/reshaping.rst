@@ -303,11 +303,11 @@ For instance,
 
    cheese = pd.DataFrame({'first': ['John', 'Mary'],
                           'last': ['Doe', 'Bo'],
-                          'height': [5.5, 6.0],
-                          'weight': [130, 150]})
+                          'A': [5.5, 6.0],
+                          'B': [7, 9]})
    cheese
    cheese.melt(id_vars=['first', 'last'])
-   cheese.melt(id_vars=['first', 'last'], var_name='quantity')
+   cheese.melt(id_vars=['first', 'last'], var_name='treatment')
 
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
