@@ -475,7 +475,7 @@ class TestParquetPyArrow(Base):
 
     def test_partition_cols_string(self, pa, df_full):
         # GH #23283
-        partition_cols = 'bool'
+        partition_cols = "bool"
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
@@ -557,7 +557,7 @@ class TestParquetFastParquet(Base):
 
     def test_partition_cols_string(self, fp, df_full):
         # GH #23283
-        partition_cols = 'bool'
+        partition_cols = "bool"
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(
