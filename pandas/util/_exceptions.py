@@ -3,7 +3,9 @@ import contextlib
 
 @contextlib.contextmanager
 def rewrite_exception(old_name, new_name):
-    """Rewrite the message of an exception."""
+    """
+    Rewrite the message of an exception.
+    """
     try:
         yield
     except Exception as e:
