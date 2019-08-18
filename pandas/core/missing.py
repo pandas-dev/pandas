@@ -43,7 +43,6 @@ def mask_missing(arr, values_to_mask):
 
 
     mask = None
-    print('nonna', nonna)
     for x in nonna:
         if mask is None:
 
@@ -51,7 +50,7 @@ def mask_missing(arr, values_to_mask):
             # numpy elementwise comparison warning
 
             if is_numeric_v_string_like(arr, x):
-                #print('is_numeric_v_string_like', is_numeric_v_string_like(arr,x))
+
 
                 mask = False
             else:
@@ -64,7 +63,7 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            print ('goes here?')
+
 
             # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
@@ -74,7 +73,7 @@ def mask_missing(arr, values_to_mask):
 
 
     if na_mask.any():
-        print('or here?')
+
         if mask is None:
             mask = isna(arr)
         else:
@@ -82,10 +81,10 @@ def mask_missing(arr, values_to_mask):
 
     # GH 21977
     if mask is None:
-        print('or or here?')
+
         mask = np.zeros(arr.shape, dtype=bool)
 
-    print (mask)
+
     return mask
 
 
@@ -95,7 +94,7 @@ def clean_fill_method(method, allow_nearest=False):
         return None
 
     if isinstance(method, str):
-        print('is method str?')
+
         method = method.lower()
         if method == "ffill":
             method = "pad"
@@ -112,7 +111,7 @@ def clean_fill_method(method, allow_nearest=False):
             expecting=expecting, method=method
         )
         raise ValueError(msg)
-    print (method)
+
     return method
 
 
@@ -555,9 +554,7 @@ def _fillna_prep(values, mask=None, dtype=None):
 
 def pad_1d(values, limit=None, mask=None, dtype=None):
     values, mask = _fillna_prep(values, mask, dtype)
-    print ('values', values)
     algos.pad_inplace(values, mask, limit=limit)
-    print ('values after', values)
     return values
 
 

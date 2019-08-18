@@ -4314,6 +4314,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         limit=None,
         regex=False,
         method="pad",
+        replace_by_none=False
     ):
         return super().replace(
             to_replace=to_replace,
@@ -4322,6 +4323,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             limit=limit,
             regex=regex,
             method=method,
+            replace_by_none=replace_by_none
         )
 
     @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)

@@ -519,6 +519,7 @@ class Generic:
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
+
             with pytest.raises(ValueError):
                 super(DataFrame, df).rename_axis(
                     mapper={"a": "x", "b": "y"}, axis=1, inplace=value

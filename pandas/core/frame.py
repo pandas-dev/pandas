@@ -4186,15 +4186,16 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
     def replace(
-        self,
-        to_replace=None,
-        value=None,
-        inplace=False,
-        limit=None,
-        regex=False,
-        method="pad",
-        replace_by_none=False
+            self,
+            to_replace=None,
+            value=None,
+            inplace=False,
+            limit=None,
+            regex=False,
+            method="pad",
+            replace_by_none=False
     ):
+
         return super().replace(
             to_replace=to_replace,
             value=value,
