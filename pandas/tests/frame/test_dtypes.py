@@ -69,6 +69,10 @@ class TestDataFrameDataTypes:
         norows_df = pd.DataFrame(columns=list("abc"))
         assert_series_equal(norows_df.dtypes, pd.Series(np.object, index=list("abc")))
 
+        cat = pd.CategoricalDtype()
+        norows_cat_df = pd.DataFrame(columns=list("abc"), dtype=cat)
+        assert_series_equal(norows_cat_df.dtypes, pd.Series(cat, index=list("abc")))
+
         # GH 26705 - Assert .ftypes is deprecated
         with tm.assert_produces_warning(FutureWarning):
             assert_series_equal(
