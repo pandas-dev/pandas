@@ -476,8 +476,8 @@ def isnumeric(dtype):
 
 
 class Div(BinOp):
-
-    """Div operator to special case casting.
+    """
+    Div operator to special case casting.
 
     Parameters
     ----------
@@ -508,8 +508,8 @@ _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 
 class UnaryOp(Op):
-
-    """Hold a unary operator and its operands
+    """
+    Hold a unary operator and its operands.
 
     Parameters
     ----------
