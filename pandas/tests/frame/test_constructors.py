@@ -1336,12 +1336,11 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_dataclasses(self):
+    @pytest.mark.skipif(not compat.PY36, reason="Requires Python >= 3.6")
+    def test_constructor_list_of_dataclasses(self):
         # GH21910
-        try:
-            from dataclasses import make_dataclass
-        except ImportError:
-            return
+        from dataclasses import make_dataclass
+
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         datas = [Point(0, 3), Point(1, 3)]
