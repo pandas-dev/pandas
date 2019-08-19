@@ -1,13 +1,12 @@
-Pandas ecosystem
-================
+# Pandas ecosystem
 
 Increasingly, packages are being built on top of pandas to address
 specific needs in data preparation, analysis and visualization. This is
 encouraging because it means pandas is not only helping users to handle
 their data tasks but also that it provides a better starting point for
 developers to build powerful and more focused data tools. The creation
-of libraries that complement pandas\' functionality also allows pandas
-development to remain focused around it\'s original requirements.
+of libraries that complement pandas' functionality also allows pandas
+development to remain focused around it's original requirements.
 
 This is an inexhaustive list of projects that build on pandas in order
 to provide tools in the PyData space. For a list of projects that depend
@@ -15,19 +14,18 @@ on pandas, see the [libraries.io usage page for
 pandas](https://libraries.io/pypi/pandas/usage) or [search pypi for
 pandas](https://pypi.org/search/?q=pandas).
 
-We\'d like to make it easier for users to find these projects, if you
+We'd like to make it easier for users to find these projects, if you
 know of other substantial projects that you feel should be on this list,
 please let us know.
 
-Statistics and machine learning 
--------------------------------
+## Statistics and machine learning
 
 ### [Statsmodels](https://www.statsmodels.org/)
 
-Statsmodels is the prominent Python \"statistics and econometrics
-library\" and it has a long-standing special relationship with pandas.
+Statsmodels is the prominent Python "statistics and econometrics
+library" and it has a long-standing special relationship with pandas.
 Statsmodels provides powerful statistics, econometrics, analysis and
-modeling functionality that is out of pandas\' scope. Statsmodels
+modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
@@ -41,17 +39,16 @@ ML pipeline.
 Featuretools is a Python library for automated feature engineering built
 on top of pandas. It excels at transforming temporal and relational
 datasets into feature matrices for machine learning using reusable
-feature engineering \"primitives\". Users can contribute their own
+feature engineering "primitives". Users can contribute their own
 primitives in Python and share them with the rest of the community.
 
-Visualization 
--------------
+## Visualization
 
 ### [Altair](https://altair-viz.github.io/)
 
 Altair is a declarative statistical visualization library for Python.
 With Altair, you can spend more time understanding your data and its
-meaning. Altair\'s API is simple, friendly and consistent and built on
+meaning. Altair's API is simple, friendly and consistent and built on
 top of the powerful Vega-Lite JSON specification. This elegant
 simplicity produces beautiful and effective visualizations with a
 minimal amount of code. Altair works with Pandas DataFrames.
@@ -68,7 +65,7 @@ data to thin clients.
 high level API for Bokeh that can be loaded as a native Pandas plotting
 backend via
 
-``` 
+```
 pd.set_option("plotting.backend", "pandas_bokeh")
 ```
 
@@ -132,8 +129,7 @@ Spun off from the main pandas library, the
 DataFrame visualization and manipulation in PyQt4 and PySide
 applications.
 
-IDE 
----
+## IDE
 
 ### [IPython](https://ipython.org/documentation.html)
 
@@ -148,7 +144,7 @@ Jupyter notebook is a JSON document containing an ordered list of
 input/output cells which can contain code, text, mathematics, plots and
 rich media. Jupyter notebooks can be converted to a number of open
 standard output formats (HTML, HTML presentation slides, LaTeX, PDF,
-ReStructuredText, Markdown, Python) through \'Download As\' in the web
+ReStructuredText, Markdown, Python) through 'Download As' in the web
 interface and `jupyter convert` in a shell.
 
 Pandas DataFrames implement `_repr_html_`and `_repr_latex` methods which
@@ -191,8 +187,7 @@ Console](https://docs.spyder-ide.org/ipythonconsole.html), and Spyder\'s
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
-API 
----
+## API
 
 ### [pandas-datareader](https://github.com/pydata/pandas-datareader)
 
@@ -204,22 +199,22 @@ docs](https://pandas-datareader.readthedocs.io/en/latest/):
 
 The following data feeds are available:
 
-> -   Google Finance
-> -   Tiingo
-> -   Morningstar
-> -   IEX
-> -   Robinhood
-> -   Enigma
-> -   Quandl
-> -   FRED
-> -   Fama/French
-> -   World Bank
-> -   OECD
-> -   Eurostat
-> -   TSP Fund Data
-> -   Nasdaq Trader Symbol Definitions
-> -   Stooq Index Data
-> -   MOEX Data
+- Google Finance
+- Tiingo
+- Morningstar
+- IEX
+- Robinhood
+- Enigma
+- Quandl
+- FRED
+- Fama/French
+- World Bank
+- OECD
+- Eurostat
+- TSP Fund Data
+- Nasdaq Trader Symbol Definitions
+- Stooq Index Data
+- MOEX Data
 
 ### [quandl/Python](https://github.com/quandl/Python)
 
@@ -255,8 +250,7 @@ point-in-time data from ALFRED. fredapi makes use of pandas and returns
 data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
-Domain specific 
----------------
+## Domain specific
 
 ### [Geopandas](https://github.com/kjordahl/geopandas)
 
@@ -273,8 +267,7 @@ It aims to provide a pandas-like and pandas-compatible toolkit for
 analytics on multi-dimensional arrays, rather than the tabular data for
 which pandas excels.
 
-Out-of-core 
------------
+## Out-of-core
 
 ### [Blaze](http://blaze.pydata.org/)
 
@@ -320,7 +313,7 @@ modification of the import statement is needed, as we demonstrate below.
 Once you've changed your import statement, you're ready to use Pandas on
 Ray just like you would Pandas.
 
-``` 
+```
 # import pandas as pd
 import ray.dataframe as pd
 ```
@@ -338,24 +331,22 @@ interactive exploration of big data. Vaex uses memory mapping, zero
 memory copy policy and lazy computations for best performance (no memory
 wasted).
 
-> -   vaex.from\_pandas
-> -   vaex.to\_pandas\_df
+- ``vaex.from_pandas``
+- ``vaex.to_pandas_df``
 
-Data validation 
----------------
+## Data validation
 
 ### [Engarde](https://engarde.readthedocs.io/en/latest/)
 
 Engarde is a lightweight library used to explicitly state your
-assumptions about your datasets and check that they\'re *actually* true.
+assumptions about your datasets and check that they're *actually* true.
 
-Extension data types 
---------------------
+## Extension data types
 
 Pandas provides an interface for defining
-`extension types <extending.extension-types>` to extend NumPy\'s type system. The following libraries
+`extension types <extending.extension-types>` to extend NumPy's type system. The following libraries
 implement that interface to provide types not found in NumPy or pandas,
-which work well with pandas\' data containers.
+which work well with pandas' data containers.
 
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
 
@@ -363,8 +354,7 @@ Cyberpandas provides an extension type for storing arrays of IP
 Addresses. These arrays can be stored inside pandas\' Series and
 DataFrame.
 
-Accessors 
----------
+## Accessors
 
 A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library

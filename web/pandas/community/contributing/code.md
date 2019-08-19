@@ -3,7 +3,7 @@
 ## Code standards
 
 Writing good code is not just about what you write. It is also about
-*how* you write it. During Continuous Integration 
+*how* you write it. During Continuous Integration
 testing, several tools will be run to check your code for stylistic
 errors. Generating any warnings will cause the test to fail. Thus, good
 style is a requirement for submitting code to *pandas*.

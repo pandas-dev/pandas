@@ -50,6 +50,7 @@ class Preprocessors:
     The original context is obtained by parsing ``pysuerga.yml``, and
     anything else needed just be added with context preprocessors.
     """
+
     @staticmethod
     def navbar_add_info(context):
         """
@@ -58,12 +59,12 @@ class Preprocessors:
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        for i, item in enumerate(context['navbar']):
-            context['navbar'][i] = dict(item,
-                                        has_subitems=isinstance(item['target'],
-                                                                list),
-                                        slug=(item['name'].replace(' ', '-')
-                                                          .lower()))
+        for i, item in enumerate(context["navbar"]):
+            context["navbar"][i] = dict(
+                item,
+                has_subitems=isinstance(item["target"], list),
+                slug=(item["name"].replace(" ", "-").lower()),
+            )
         return context
 
     @staticmethod
@@ -74,20 +75,25 @@ class Preprocessors:
         information for them (sorted from newest to oldest).
         """
         posts = []
-        for feed_url in context['blog']['feed']:
+        for feed_url in context["blog"]["feed"]:
             feed_data = feedparser.parse(feed_url)
             for entry in feed_data.entries:
                 published = datetime.datetime.fromtimestamp(
-                    time.mktime(entry.published_parsed))
-                posts.append({'title': entry.title,
-                              'author': entry.author,
-                              'published': published,
-                              'feed': feed_data['feed']['title'],
-                              'link': entry.link,
-                              'description': entry.description,
-                              'summary': entry.summary})
-        posts.sort(key=operator.itemgetter('published'), reverse=True)
-        context['blog']['posts'] = posts[:context['blog']['num_posts']]
+                    time.mktime(entry.published_parsed)
+                )
+                posts.append(
+                    {
+                        "title": entry.title,
+                        "author": entry.author,
+                        "published": published,
+                        "feed": feed_data["feed"]["title"],
+                        "link": entry.link,
+                        "description": entry.description,
+                        "summary": entry.summary,
+                    }
+                )
+        posts.sort(key=operator.itemgetter("published"), reverse=True)
+        context["blog"]["posts"] = posts[: context["blog"]["num_posts"]]
         return context
 
     @staticmethod
@@ -96,37 +102,43 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
-        context['maintainers']['people'] = []
-        for user in context['maintainers']['active']:
-            resp = requests.get(f'https://api.github.com/users/{user}')
-            if context['ignore_io_errors'] and resp.status_code == 403:
+        context["maintainers"]["people"] = []
+        for user in context["maintainers"]["active"]:
+            resp = requests.get(f"https://api.github.com/users/{user}")
+            if context["ignore_io_errors"] and resp.status_code == 403:
                 return context
             resp.raise_for_status()
-            context['maintainers']['people'].append(resp.json())
+            context["maintainers"]["people"].append(resp.json())
         return context
 
     @staticmethod
     def home_add_releases(context):
-        context['releases'] = []
+        context["releases"] = []
 
-        github_repo_url = context['pysuerga']['github_repo_url']
-        resp = requests.get(
-            f'https://api.github.com/repos/{github_repo_url}/releases')
-        if context['ignore_io_errors'] and resp.status_code == 403:
+        github_repo_url = context["pysuerga"]["github_repo_url"]
+        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
 
         for release in resp.json():
-            if release['prerelease']:
+            if release["prerelease"]:
                 continue
-            published = datetime.datetime.strptime(release['published_at'],
-                                                   '%Y-%m-%dT%H:%M:%SZ')
-            context['releases'].append({
-                'name': release['tag_name'].lstrip('v'),
-                'tag': release['tag_name'],
-                'published': published,
-                'url': (release['assets'][0]['browser_download_url']
-                        if release['assets'] else '')})
+            published = datetime.datetime.strptime(
+                release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
+            )
+            context["releases"].append(
+                {
+                    "name": release["tag_name"].lstrip("v"),
+                    "tag": release["tag_name"],
+                    "published": published,
+                    "url": (
+                        release["assets"][0]["browser_download_url"]
+                        if release["assets"]
+                        else ""
+                    ),
+                }
+            )
         return context
 
 
@@ -137,11 +149,11 @@ def get_callable(obj_as_str: str) -> object:
     For example, for ``sys.stdout.write`` would import the module ``sys``
     and return the ``write`` function.
     """
-    components = obj_as_str.split('.')
+    components = obj_as_str.split(".")
     attrs = []
     while components:
         try:
-            obj = importlib.import_module('.'.join(components))
+            obj = importlib.import_module(".".join(components))
         except ImportError:
             attrs.insert(0, components.pop())
         else:
@@ -164,14 +176,16 @@ def get_context(config_fname: str, ignore_io_errors: bool, **kwargs):
     with open(config_fname) as f:
         context = yaml.safe_load(f)
 
-    context['ignore_io_errors'] = ignore_io_errors
+    context["ignore_io_errors"] = ignore_io_errors
     context.update(kwargs)
 
-    preprocessors = (get_callable(context_prep) for context_prep
-                     in context['pysuerga']['context_preprocessors'])
+    preprocessors = (
+        get_callable(context_prep)
+        for context_prep in context["pysuerga"]["context_preprocessors"]
+    )
     for preprocessor in preprocessors:
         context = preprocessor(context)
-        msg = f'{preprocessor.__name__} is missing the return statement'
+        msg = f"{preprocessor.__name__} is missing the return statement"
         assert context is not None, msg
 
     return context
@@ -193,80 +207,82 @@ def extend_base_template(content: str, base_template: str) -> str:
     Jinja2.
     """
     result = '{% extends "' + base_template + '" %}'
-    result += '{% block body %}'
+    result += "{% block body %}"
     result += content
-    result += '{% endblock %}'
+    result += "{% endblock %}"
     return result
 
 
-def main(source_path: str,
-         target_path: str,
-         base_url: str,
-         ignore_io_errors: bool) -> int:
+def main(
+    source_path: str, target_path: str, base_url: str, ignore_io_errors: bool
+) -> int:
     """
     Copy every file in the source directory to the target directory.
 
     For ``.md`` and ``.html`` files, render them with the context
     before copyings them. ``.md`` files are transformed to HTML.
     """
-    config_fname = os.path.join(source_path, 'pysuerga.yml')
+    config_fname = os.path.join(source_path, "pysuerga.yml")
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
 
-    sys.stderr.write('Generating context...\n')
+    sys.stderr.write("Generating context...\n")
     context = get_context(config_fname, ignore_io_errors, base_url=base_url)
-    sys.stderr.write('Context generated\n')
+    sys.stderr.write("Context generated\n")
 
-    templates_path = os.path.join(source_path,
-                                  context['pysuerga']['templates_path'])
-    jinja_env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(templates_path))
+    templates_path = os.path.join(source_path, context["pysuerga"]["templates_path"])
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if fname in context['pysuerga']['ignore']:
+        if fname in context["pysuerga"]["ignore"]:
             continue
 
-        sys.stderr.write(f'Processing {fname}\n')
+        sys.stderr.write(f"Processing {fname}\n")
         dirname = os.path.dirname(fname)
         os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
 
         extension = os.path.splitext(fname)[-1]
-        if extension in ('.html', '.md'):
+        if extension in (".html", ".md"):
             with open(os.path.join(source_path, fname)) as f:
                 content = f.read()
-            if extension == '.md':
+            if extension == ".md":
                 body = markdown.markdown(
-                    content,
-                    extensions=context['pysuerga']['markdown_extensions'])
+                    content, extensions=context["pysuerga"]["markdown_extensions"]
+                )
                 content = extend_base_template(
-                    body,
-                    context['pysuerga']['base_template'])
-            content = (jinja_env.from_string(content).render(**context))
-            fname = os.path.splitext(fname)[0] + '.html'
-            with open(os.path.join(target_path, fname), 'w') as f:
+                    body, context["pysuerga"]["base_template"]
+                )
+            content = jinja_env.from_string(content).render(**context)
+            fname = os.path.splitext(fname)[0] + ".html"
+            with open(os.path.join(target_path, fname), "w") as f:
                 f.write(content)
         else:
-            shutil.copy(os.path.join(source_path, fname),
-                        os.path.join(target_path, dirname))
+            shutil.copy(
+                os.path.join(source_path, fname), os.path.join(target_path, dirname)
+            )
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Documentation builder.')
-    parser.add_argument('source_path',
-                        help='path to the source directory '
-                             '(must contain pysuerga.yml)')
-    parser.add_argument('--target-path', default='build',
-                        help='directory where to write the output')
-    parser.add_argument('--base-url', default='',
-                        help='base url where the website is served from')
-    parser.add_argument('--ignore-io-errors', action='store_true',
-                        help='do not fail if errors happen when fetching '
-                             'data from http sources, and those fail '
-                             '(mostly useful to allow github quota errors '
-                             'when running the script locally)')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Documentation builder.")
+    parser.add_argument(
+        "source_path", help="path to the source directory (must contain pysuerga.yml)"
+    )
+    parser.add_argument(
+        "--target-path", default="build", help="directory where to write the output"
+    )
+    parser.add_argument(
+        "--base-url", default="", help="base url where the website is served from"
+    )
+    parser.add_argument(
+        "--ignore-io-errors",
+        action="store_true",
+        help="do not fail if errors happen when fetching "
+        "data from http sources, and those fail "
+        "(mostly useful to allow github quota errors "
+        "when running the script locally)",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.source_path,
-                  args.target_path,
-                  args.base_url,
-                  args.ignore_io_errors))
+    sys.exit(
+        main(args.source_path, args.target_path, args.base_url, args.ignore_io_errors)
+    )
