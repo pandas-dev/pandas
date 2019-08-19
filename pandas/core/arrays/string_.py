@@ -21,13 +21,13 @@ class StringDtype(ExtensionDtype):
 
     .. versionadded:: 1.0.0
 
-    Parameters
-    ----------
-    None
-
     Attributes
     ----------
     name
+
+    Methods
+    -------
+    None
 
     Examples
     --------
@@ -75,8 +75,16 @@ class StringArray(PandasArray):
 
     Parameters
     ----------
-    values : ndarray
+    values : array-like
+        The array of data.
+
+        .. warning::
+
+           Currently, this expects an object-dtype ndarray
+           where the elements are Python strings. This may
+           change without warning in the future.
     copy : bool, default False
+        Whether to copy the array of data.
 
     Attributes
     ----------
@@ -86,10 +94,16 @@ class StringArray(PandasArray):
     -------
     None
 
+    See Also
+    --------
+    Series.str
+        The string methods are available on Series backed by
+        a StringArray.
+
     Examples
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
-    <PandasArray>
+    <StringArray>
     ['This is', 'some text', nan, 'data.']
     Length: 4, dtype: string
 
