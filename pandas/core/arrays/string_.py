@@ -23,7 +23,6 @@ class StringDtype(ExtensionDtype):
 
     Attributes
     ----------
-    na_value
     name
 
     Examples
