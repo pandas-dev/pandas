@@ -6,7 +6,6 @@ import csv
 import gzip
 from http.client import HTTPException  # noqa
 from io import BytesIO
-import lzma
 import mmap
 import os
 import pathlib
@@ -22,6 +21,7 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
+from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -31,6 +31,8 @@ from pandas.errors import (  # noqa
 )
 
 from pandas.core.dtypes.common import is_file_like
+
+lzma = _import_lzma()
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -382,7 +384,7 @@ def _get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            f = lzma.LZMAFile(path_or_buf, mode)
+            f = _get_lzma_file(lzma)(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
