@@ -17,9 +17,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -32,6 +30,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
     ABCSparseSeries,
@@ -696,42 +695,17 @@ def _comp_method_SERIES(cls, op, special):
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
-        elif (
-            is_list_like(other)
-            and len(other) != len(self)
-            and not isinstance(other, (set, frozenset))
-        ):
-            raise ValueError("Lengths must match")
 
-        elif isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+        elif isinstance(
+            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
+        ):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_categorical_dtype(self):
-            # Dispatch to Categorical implementation; CategoricalIndex
-            # behavior is non-canonical GH#19513
-            res_values = dispatch_to_extension_op(op, self, other)
-
-        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
-            # Dispatch to DatetimeIndex to ensure identical
-            # Series/Index behavior
-            from pandas.core.arrays import DatetimeArray
-
-            res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
-
-        elif is_timedelta64_dtype(self):
-            from pandas.core.arrays import TimedeltaArray
-
-            res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
-
-        elif is_extension_array_dtype(self) or (
-            is_extension_array_dtype(other) and not is_scalar(other)
-        ):
-            # Note: the `not is_scalar(other)` condition rules out
-            #  e.g. other == "category"
+        if should_extension_dispatch(self, other):
             res_values = dispatch_to_extension_op(op, self, other)
 
         elif is_scalar(other) and isna(other):
