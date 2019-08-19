@@ -53,7 +53,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
 - Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
--
+- Bug where :class:`DataFrame` arithmetic operators such as :meth:`DataFrame.mul` with a :class:`Series` with axis=1 would raise an ``AttributeError`` on :class:`DataFrame` larger than the minimum threshold to invoke numexpr (:issue:`27636`)
 -
 
 Conversion
@@ -84,6 +84,7 @@ Indexing
 - Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
 - Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)
 - Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`).
+- Fix regression in ``.ix`` fallback with an ``IntervalIndex`` (:issue:`27865`).
 -
 
 Missing
@@ -102,7 +103,6 @@ MultiIndex
 
 I/O
 ^^^
-
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 - Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
 -
@@ -158,6 +158,14 @@ Other
 -
 -
 -
+
+I/O and LZMA
+~~~~~~~~~~~~
+
+Some users may unknowingly have an incomplete Python installation, which lacks the `lzma` module from the standard library. In this case, `import pandas` failed due to an `ImportError` (:issue: `27575`).
+Pandas will now warn, rather than raising an `ImportError` if the `lzma` module is not present. Any subsequent attempt to use `lzma` methods will raise a `RuntimeError`.
+A possible fix for the lack of the `lzma` module is to ensure you have the necessary libraries and then re-install Python.
+For example, on MacOS installing Python with `pyenv` may lead to an incomplete Python installation due to unmet system dependencies at compilation time (like `xz`). Compilation will succeed, but Python might fail at run time. The issue can be solved by installing the necessary dependencies and then re-installing Python.
 
 .. _whatsnew_0.251.contributors:
 
