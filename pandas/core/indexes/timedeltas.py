@@ -68,7 +68,7 @@ class TimedeltaIndex(
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
-    which can be boxed to timedelta objects
+    which can be boxed to timedelta objects.
 
     Parameters
     ----------
