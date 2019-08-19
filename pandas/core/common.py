@@ -28,34 +28,6 @@ from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
 
-def pin_method_names(cls):
-    for attr in dir(cls):
-        if attr.startswith("__"):
-            if attr in ["__base__", "__call__", "__class__", "__delattr__", "__dir__"]:
-                continue
-            try:
-                meth = getattr(cls, attr)
-            except AttributeError:
-                # e.g. __abstractmethods__
-                continue
-            if callable(meth):
-                if meth.__name__ != attr:
-                    meth.__name__ = attr
-
-                if getattr(meth, "__module__", None) != cls.__module__:
-                    try:
-                        meth.__module__ = cls.__module__
-                    except AttributeError:
-                        pass
-
-                if meth.__qualname__ != cls.__name__ + "." + attr:
-                    try:
-                        meth.__qualname__ = cls.__name__ + "." + attr
-                    except AttributeError:
-                        pass
-    return cls
-
-
 class SettingWithCopyError(ValueError):
     pass
 
