@@ -1158,7 +1158,7 @@ default 'raise'
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects
+        objects.
 
         Returns
         -------
