@@ -376,7 +376,7 @@ class TestPeriodConverter:
 
 
 class TestTimeDeltaConverter:
-    def setup_method(self, method):
+    def timedelta_converter_method(self, method):
         self.tdc = converter.TimeSeries_TimedeltaFormatter
 
     @pytest.mark.parametrize(
