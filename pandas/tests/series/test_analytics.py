@@ -1520,7 +1520,7 @@ class TestCategoricalSeriesAnalytics:
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(input2, categories=cat_array, ordered=ordered_fixture))
         if dtype == "datetime64[D]":
-            # pre-empty flaky xfail, tc1 values are seemingly-random
+            # pre-empty flaky xfail, tc2 values are seemingly-random
             if not (np.array(tc2) == input2).all():
                 pytest.xfail(reason="GH#7996")
 
