@@ -5,7 +5,7 @@ import codecs
 import csv
 import gzip
 from http.client import HTTPException  # noqa
-from io import BytesIO
+from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
@@ -344,9 +344,9 @@ def _get_handle(
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BytesIO, S3File)
+        need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:
-        need_text_wrapping = (BytesIO,)
+        need_text_wrapping = BufferedIOBase
 
     handles = list()
     f = path_or_buf
@@ -422,8 +422,10 @@ def _get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        f = TextIOWrapper(f, encoding=encoding, newline="")
-        handles.append(f)
+        g = TextIOWrapper(f, encoding=encoding, newline="")
+        if not isinstance(f, BufferedIOBase):
+            handles.append(g)
+        f = g
 
     if memory_map and hasattr(f, "fileno"):
         try:
