@@ -661,7 +661,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def to_series(self, keep_tz=None, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
