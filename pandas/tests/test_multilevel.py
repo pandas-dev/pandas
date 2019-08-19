@@ -524,6 +524,22 @@ Thur,Lunch,Yes,51.51,17"""
         restacked = unstacked.stack()
         assert restacked.index.names == self.frame.index.names
 
+    @pytest.mark.parametrize("method", ["stack", "unstack"])
+    def test_stack_unstack_wrong_level_name(self, method):
+        # GH 18303 - wrong level name should raise
+
+        # A DataFrame with flat axes:
+        df = self.frame.loc["foo"]
+
+        with pytest.raises(KeyError, match="does not match index name"):
+            getattr(df, method)("mistake")
+
+        if method == "unstack":
+            # Same on a Series:
+            s = df.iloc[:, 0]
+            with pytest.raises(KeyError, match="does not match index name"):
+                getattr(s, method)("mistake")
+
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
         expected = self.frame.unstack(level=1)

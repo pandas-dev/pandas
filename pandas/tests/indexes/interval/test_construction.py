@@ -421,32 +421,3 @@ class TestClassConstructors(Base):
         result = Index(intervals)
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
-
-
-class TestFromIntervals(TestClassConstructors):
-    """
-    Tests for IntervalIndex.from_intervals, which is deprecated in favor of the
-    IntervalIndex constructor.  Same tests as the IntervalIndex constructor,
-    plus deprecation test.  Should only need to delete this class when removed.
-    """
-
-    @pytest.fixture
-    def constructor(self):
-        def from_intervals_ignore_warnings(*args, **kwargs):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                return IntervalIndex.from_intervals(*args, **kwargs)
-
-        return from_intervals_ignore_warnings
-
-    def test_deprecated(self):
-        ivs = [Interval(0, 1), Interval(1, 2)]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            IntervalIndex.from_intervals(ivs)
-
-    @pytest.mark.skip(reason="parent class test that is not applicable")
-    def test_index_object_dtype(self):
-        pass
-
-    @pytest.mark.skip(reason="parent class test that is not applicable")
-    def test_index_mixed_closed(self):
-        pass

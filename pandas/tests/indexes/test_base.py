@@ -2004,7 +2004,7 @@ class TestIndex(Base):
             msg = "'Level {} not found'"
         else:
             index = index.rename("foo")
-            msg = r"'Level {} must be same as name \(foo\)'"
+            msg = r"Requested level \({}\) does not match index name \(foo\)"
         with pytest.raises(KeyError, match=msg.format(label)):
             index.isin([], level=label)
 
@@ -2805,3 +2805,17 @@ def test_deprecated_fastpath():
 
     expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
     tm.assert_index_equal(idx, expected)
+
+
+def test_shape_of_invalid_index():
+    # Currently, it is possible to create "invalid" index objects backed by
+    # a multi-dimensional array (see https://github.com/pandas-dev/pandas/issues/27125
+    # about this). However, as long as this is not solved in general,this test ensures
+    # that the returned shape is consistent with this underlying array for
+    # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
+    a = np.arange(8).reshape(2, 2, 2)
+    idx = pd.Index(a)
+    assert idx.shape == a.shape
+
+    idx = pd.Index([0, 1, 2, 3])
+    assert idx[:, None].shape == (4, 1)

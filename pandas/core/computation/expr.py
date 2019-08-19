@@ -13,7 +13,6 @@ import numpy as np
 
 import pandas as pd
 from pandas.core import common as com
-from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
     _remove_spaces_column_name,
@@ -42,7 +41,8 @@ import pandas.io.formats.printing as printing
 
 
 def tokenize_string(source):
-    """Tokenize a Python source code string.
+    """
+    Tokenize a Python source code string.
 
     Parameters
     ----------
@@ -296,7 +296,7 @@ def _node_not_implemented(node_name, cls):
 
     def f(self, *args, **kwargs):
         raise NotImplementedError(
-            "{name!r} nodes are not " "implemented".format(name=node_name)
+            "{name!r} nodes are not implemented".format(name=node_name)
         )
 
     return f
@@ -433,7 +433,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 from keyword import iskeyword
 
                 if any(iskeyword(x) for x in clean.split()):
-                    e.msg = "Python keyword not valid identifier" " in numexpr query"
+                    e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
         method = "visit_" + node.__class__.__name__
@@ -642,9 +642,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if len(node.targets) != 1:
             raise SyntaxError("can only assign a single expression")
         if not isinstance(node.targets[0], ast.Name):
-            raise SyntaxError(
-                "left hand side of an assignment must be a " "single name"
-            )
+            raise SyntaxError("left hand side of an assignment must be a single name")
         if self.env.target is None:
             raise ValueError("cannot assign without a target object")
 
@@ -656,7 +654,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.assigner = getattr(assigner, "name", assigner)
         if self.assigner is None:
             raise SyntaxError(
-                "left hand side of an assignment must be a " "single resolvable name"
+                "left hand side of an assignment must be a single resolvable name"
             )
 
         return self.visit(node.value, **kwargs)
@@ -801,7 +799,7 @@ class PythonExprVisitor(BaseExprVisitor):
         super().__init__(env, engine, parser, preparser=preparser)
 
 
-class Expr(StringMixin):
+class Expr:
 
     """Object encapsulating an expression.
 
@@ -833,7 +831,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __str__(self):
+    def __repr__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):
