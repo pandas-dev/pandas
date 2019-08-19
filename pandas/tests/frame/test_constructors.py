@@ -1339,14 +1339,10 @@ class TestDataFrameConstructors:
     def test_constructor_dataclasses(self):
         # GH21910
         try:
-            from dataclasses import dataclass
+            from dataclasses import make_dataclass
         except ImportError:
             return
-
-        @dataclass
-        class Point:
-            x: int
-            y: int
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         datas = [Point(0, 3), Point(1, 3)]
         expected = DataFrame({"x": [0, 1], "y": [3, 3]})
