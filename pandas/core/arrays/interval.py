@@ -378,7 +378,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     _interval_shared_docs[
         "from_tuples"
-    ] = """
+    ] = textwrap.dedent("""
     Construct an %(klass)s from an array-like of tuples
 
     Parameters
@@ -408,7 +408,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                                 splits.
 
     %(examples)s\
-    """
+    """)
 
     @classmethod
     @Appender(

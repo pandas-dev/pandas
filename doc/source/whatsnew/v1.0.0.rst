@@ -38,7 +38,28 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
--
+- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])                   
+   Out[1]: 
+   IntervalArray([(0, 1], (2, 3]],
+                 closed='right',
+                 dtype='interval[int64]')
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   In [2]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])                   
+   Out[2]: 
+   <IntervalArray>
+   [(0, 1], (2, 3]]
+   Length: 2, closed: right, dtype: interval[int64]
+
 
 .. _whatsnew_1000.api.other:
 
