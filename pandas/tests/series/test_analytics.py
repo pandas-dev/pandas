@@ -1482,16 +1482,7 @@ class TestCategoricalSeriesAnalytics:
 
     @pytest.mark.parametrize(
         "dtype",
-        [
-            "int_",
-            "uint",
-            "float_",
-            "unicode_",
-            "timedelta64[h]",
-            pytest.param(
-                "datetime64[D]", marks=pytest.mark.xfail(reason="GH#7996", strict=True)
-            ),
-        ],
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"],
     )
     def test_drop_duplicates_categorical_non_bool(self, dtype, ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
@@ -1499,6 +1490,10 @@ class TestCategoricalSeriesAnalytics:
         # Test case 1
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
         tc1 = Series(Categorical(input1, categories=cat_array, ordered=ordered_fixture))
+        if dtype == "datetime64[D]":
+            # pre-empty flaky xfail, tc1 values are seemingly-random
+            if not (np.array(tc1) == input1).all():
+                pytest.xfail(reason="GH#7996")
 
         expected = Series([False, False, False, True])
         tm.assert_series_equal(tc1.duplicated(), expected)
@@ -1524,6 +1519,10 @@ class TestCategoricalSeriesAnalytics:
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(input2, categories=cat_array, ordered=ordered_fixture))
+        if dtype == "datetime64[D]":
+            # pre-empty flaky xfail, tc1 values are seemingly-random
+            if not (np.array(tc2) == input2).all():
+                pytest.xfail(reason="GH#7996")
 
         expected = Series([False, False, False, False, True, True, False])
         tm.assert_series_equal(tc2.duplicated(), expected)
