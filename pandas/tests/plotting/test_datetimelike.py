@@ -420,7 +420,7 @@ class TestTSPlot(TestPlotBase):
         assert conv.get_finder("W") == conv._daily_finder
 
     # TODO: The finder should be retested due to wrong xlim values on x-axis
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason="TODO: check details in GH28021")
     @pytest.mark.slow
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
@@ -445,7 +445,7 @@ class TestTSPlot(TestPlotBase):
         assert rs2 == xpl2
 
     # TODO: The finder should be retested due to wrong xlim values on x-axis
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason="TODO: check details in GH28021")
     @pytest.mark.slow
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
@@ -470,7 +470,7 @@ class TestTSPlot(TestPlotBase):
         assert rs2 == xpl2
 
     # TODO: The finder should be retested due to wrong xlim values on x-axis
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason="TODO: check details in GH28021")
     @pytest.mark.slow
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
@@ -505,7 +505,7 @@ class TestTSPlot(TestPlotBase):
         assert rs == xp
 
     # TODO: The finder should be retested due to wrong xlim values on x-axis
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason="TODO: check details in GH28021")
     @pytest.mark.slow
     def test_finder_annual(self):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
