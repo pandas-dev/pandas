@@ -425,7 +425,7 @@ def _get_axes(N, K, index, columns):
 def _dataclasses_to_dicts(data):
     from dataclasses import asdict
 
-    return map(asdict, data)
+    return list(map(asdict, data))
 
 
 # ---------------------------------------------------------------------
