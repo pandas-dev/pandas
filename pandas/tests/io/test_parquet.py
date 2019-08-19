@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -166,6 +167,7 @@ def check_round_trip(
             df.to_parquet(path, **write_kwargs)
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
+
             tm.assert_frame_equal(expected, actual, check_names=check_names)
 
     if path is None:
@@ -453,9 +455,12 @@ class TestParquetPyArrow(Base):
         # supported in >= 0.7.0
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
 
-        # de-serialized as object
-        expected = df.assign(a=df.a.astype(object))
-        check_round_trip(df, pa, expected=expected)
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+            check_round_trip(df, pa)
+        else:
+            # de-serialized as object for pyarrow < 0.15
+            expected = df.assign(a=df.a.astype(object))
+            check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
