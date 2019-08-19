@@ -514,7 +514,7 @@ class ExtensionArray:
 
     def dropna(self):
         """
-        Return ExtensionArray without NA values
+        Return ExtensionArray without NA values.
 
         Returns
         -------
