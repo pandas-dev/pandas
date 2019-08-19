@@ -1776,7 +1776,7 @@ def _normalize_keyword_aggregation(kwargs):
     uniquified_aggspec = _uniquify_aggfunc(aggspec_order)
 
     # get the new indice of columns by comparison
-    col_idx_order = [uniquified_aggspec.index(o) for o in uniquified_order]
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
 
