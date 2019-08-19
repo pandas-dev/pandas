@@ -1378,8 +1378,12 @@ class TestTimedeltaArraylikeAddSubOps:
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
     )
-    def test_td64arr_sub_offset_index(self, names, box):
+    def test_td64arr_sub_offset_index(self, names, box_with_array):
         # GH#18824, GH#19744
+        box = box_with_array
+        xbox = box if box is not tm.to_array else pd.Index
+        exname = names[2] if box is not tm.to_array else names[1]
+
         if box is pd.DataFrame and names[1] == "bar":
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
@@ -1390,11 +1394,11 @@ class TestTimedeltaArraylikeAddSubOps:
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
 
         expected = TimedeltaIndex(
-            [tdi[n] - other[n] for n in range(len(tdi))], freq="infer", name=names[2]
+            [tdi[n] - other[n] for n in range(len(tdi))], freq="infer", name=exname
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning

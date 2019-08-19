@@ -74,8 +74,9 @@ def masked_arith_op(x, y, op):
                 result[mask] = op(xrav[mask], yrav[mask])
 
     else:
-        assert is_scalar(y), type(y)
-        assert isinstance(x, np.ndarray), type(x)
+        if not is_scalar(y):
+            raise TypeError(type(y))
+
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
         mask = notna(xrav)

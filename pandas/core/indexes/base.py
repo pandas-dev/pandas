@@ -2325,7 +2325,10 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(np.array(self) - other)
 
     def __rsub__(self, other):
-        return Index(other - np.array(self))
+        # wrap Series to ensure we pin name correctly
+        from pandas import Series
+
+        return Index(other - Series(self))
 
     def __and__(self, other):
         return self.intersection(other)
