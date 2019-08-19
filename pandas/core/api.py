@@ -23,8 +23,11 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.core.construction import array
-from pandas.core.frame import DataFrame
+
 from pandas.core.groupby import Grouper, NamedAgg
+
+# DataFrame needs to be imported after NamedAgg to avoid a circular import
+from pandas.core.frame import DataFrame  # isort:skip
 from pandas.core.index import (
     CategoricalIndex,
     DatetimeIndex,
