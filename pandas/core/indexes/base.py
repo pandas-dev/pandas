@@ -72,7 +72,6 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.ops.common import unpack_and_defer
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
@@ -107,16 +106,14 @@ def _make_comparison_op(op, cls):
         if is_object_dtype(self) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
-        elif is_object_dtype(self):
-            assert not isinstance(self, ABCMultiIndex)
+        elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+            # don't pass MultiIndex
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
-            # TODO: define this on NumericIndex?
             with np.errstate(all="ignore"):
-                result = op(self._values, np.asarray(other))
-
+                result = op(self.values, np.asarray(other))
 
         if is_bool_dtype(result):
             return result
@@ -127,10 +124,9 @@ def _make_comparison_op(op, cls):
 
 
 def _make_arithmetic_op(op, cls):
-    op_name = "__{name}__".format(name=op.__name__)
-
-    @unpack_and_defer(op.__name__)
     def index_arithmetic_method(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
+            return NotImplemented
 
         from pandas import Series
 
@@ -139,7 +135,9 @@ def _make_arithmetic_op(op, cls):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
-    return set_function_name(index_arithmetic_method, op_name, cls)
+    name = "__{name}__".format(name=op.__name__)
+    # TODO: docstring?
+    return set_function_name(index_arithmetic_method, name, cls)
 
 
 class InvalidIndexError(Exception):
