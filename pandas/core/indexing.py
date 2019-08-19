@@ -123,7 +123,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except (KeyError, TypeError, InvalidIndexError):
+            except (KeyError, TypeError, InvalidIndexError, AttributeError):
                 # TypeError occurs here if the key has non-hashable entries,
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
@@ -131,6 +131,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # The InvalidIndexError is only catched for compatibility
                 #  with geopandas, see
                 #  https://github.com/pandas-dev/pandas/issues/27258
+                # TODO: The AttributeError is for IntervalIndex which
+                #  incorrectly implements get_value, see
+                #  https://github.com/pandas-dev/pandas/issues/27865
                 pass
             else:
                 if is_scalar(values):
