@@ -2246,7 +2246,7 @@ class MultiIndex(Index):
 
     def reorder_levels(self, order):
         """
-        Rearrange levels using input order. May not drop or duplicate levels
+        Rearrange levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
