@@ -343,3 +343,13 @@ class TestIX:
             r = df.ix[0.2, "a"]
         e = df.loc[0.2, "a"]
         tm.assert_series_equal(r, e)
+
+    def test_ix_intervalindex(self):
+        # https://github.com/pandas-dev/pandas/issues/27865
+        df = DataFrame(
+            np.random.randn(5, 2),
+            index=pd.IntervalIndex.from_breaks([-np.inf, 0, 1, 2, 3, np.inf]),
+        )
+        result = df.ix[0:2, 0]
+        expected = df.iloc[0:2, 0]
+        tm.assert_series_equal(result, expected)

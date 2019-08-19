@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import operator
 from textwrap import dedent
 from typing import Union
@@ -48,8 +48,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
+    ABCCategorical,
     ABCDataFrame,
-    ABCDateOffset,
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCIndexClass,
@@ -99,30 +99,27 @@ _index_shared_docs = dict()
 
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
-        if isinstance(other, (np.ndarray, Index, ABCSeries)):
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
+        if is_object_dtype(self) and isinstance(other, ABCCategorical):
+            left = type(other)(self._values, dtype=other.dtype)
+            return op(left, other)
+        elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
-                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
 
         else:
             with np.errstate(all="ignore"):
                 result = op(self.values, np.asarray(other))
 
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
         if is_bool_dtype(result):
             return result
-        try:
-            return Index(result)
-        except TypeError:
-            return result
+        return ops.invalid_comparison(self, other, op)
 
     name = "__{name}__".format(name=op.__name__)
-    # TODO: docstring?
     return set_function_name(cmp_method, name, cls)
 
 
@@ -309,12 +306,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif (
             is_datetime64_any_dtype(data)
-            or (dtype is not None and is_datetime64_any_dtype(dtype))
+            or is_datetime64_any_dtype(dtype)
             or "tz" in kwargs
         ):
             from pandas import DatetimeIndex
 
-            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+            if is_dtype_equal(_o_dtype, dtype):
                 # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
                 #  will raise in the where `data` is already tz-aware.  So
                 #  we leave it out of this step and cast to object-dtype after
@@ -329,12 +326,10 @@ class Index(IndexOpsMixin, PandasObject):
                 )
                 return result
 
-        elif is_timedelta64_dtype(data) or (
-            dtype is not None and is_timedelta64_dtype(dtype)
-        ):
+        elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
-            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+            if is_dtype_equal(_o_dtype, dtype):
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
                 result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
@@ -355,11 +350,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
-
                 # coerce to the provided dtype
-                data = dtype.construct_array_type()._from_sequence(
-                    data, dtype=dtype, copy=False
-                )
+                ea_cls = dtype.construct_array_type()
+                data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
 
             # coerce to the object dtype
             data = data.astype(object)
@@ -368,58 +361,48 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
             if dtype is not None:
-                try:
+                # we need to avoid having numpy coerce
+                # things that look like ints/floats to ints unless
+                # they are actually ints, e.g. '0' and 0.0
+                # should not be coerced
+                # GH 11836
+                if is_integer_dtype(dtype):
+                    inferred = lib.infer_dtype(data, skipna=False)
+                    if inferred == "integer":
+                        data = maybe_cast_to_integer_array(data, dtype, copy=copy)
+                    elif inferred in ["floating", "mixed-integer-float"]:
+                        if isna(data).any():
+                            raise ValueError("cannot convert float NaN to integer")
 
-                    # we need to avoid having numpy coerce
-                    # things that look like ints/floats to ints unless
-                    # they are actually ints, e.g. '0' and 0.0
-                    # should not be coerced
-                    # GH 11836
-                    if is_integer_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=False)
-                        if inferred == "integer":
-                            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-                        elif inferred in ["floating", "mixed-integer-float"]:
-                            if isna(data).any():
-                                raise ValueError("cannot convert float NaN to integer")
+                        if inferred == "mixed-integer-float":
+                            data = maybe_cast_to_integer_array(data, dtype)
 
-                            if inferred == "mixed-integer-float":
-                                data = maybe_cast_to_integer_array(data, dtype)
-
-                            # If we are actually all equal to integers,
-                            # then coerce to integer.
-                            try:
-                                return cls._try_convert_to_int_index(
-                                    data, copy, name, dtype
-                                )
-                            except ValueError:
-                                pass
-
-                            # Return an actual float index.
-                            from .numeric import Float64Index
-
-                            return Float64Index(data, copy=copy, dtype=dtype, name=name)
-
-                        elif inferred == "string":
+                        # If we are actually all equal to integers,
+                        # then coerce to integer.
+                        try:
+                            return cls._try_convert_to_int_index(
+                                data, copy, name, dtype
+                            )
+                        except ValueError:
                             pass
-                        else:
-                            data = data.astype(dtype)
-                    elif is_float_dtype(dtype):
-                        inferred = lib.infer_dtype(data, skipna=False)
-                        if inferred == "string":
-                            pass
-                        else:
-                            data = data.astype(dtype)
+
+                        # Return an actual float index.
+                        from .numeric import Float64Index
+
+                        return Float64Index(data, copy=copy, dtype=dtype, name=name)
+
+                    elif inferred == "string":
+                        pass
                     else:
-                        data = np.array(data, dtype=dtype, copy=copy)
-
-                except (TypeError, ValueError) as e:
-                    msg = str(e)
-                    if (
-                        "cannot convert float" in msg
-                        or "Trying to coerce float values to integer" in msg
-                    ):
-                        raise
+                        data = data.astype(dtype)
+                elif is_float_dtype(dtype):
+                    inferred = lib.infer_dtype(data, skipna=False)
+                    if inferred == "string":
+                        pass
+                    else:
+                        data = data.astype(dtype)
+                else:
+                    data = np.array(data, dtype=dtype, copy=copy)
 
             # maybe coerce to a sub-class
             from pandas.core.indexes.period import PeriodIndex, IncompatibleFrequency
@@ -555,16 +538,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        if not hasattr(values, "dtype"):
-            if (values is None or not len(values)) and dtype is not None:
-                values = np.empty(0, dtype=dtype)
-            else:
-                values = np.array(values, copy=False)
-                if is_object_dtype(values):
-                    values = cls(
-                        values, name=name, dtype=dtype, **kwargs
-                    )._ndarray_values
-
         if isinstance(values, (ABCSeries, ABCIndexClass)):
             # Index._data must always be an ndarray.
             # This is no-copy for when _values is an ndarray,
@@ -692,7 +665,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _engine(self):
         # property, for now, slow to look up
 
-        # to avoid a refernce cycle, bind `_ndarray_values` to a local variable, so
+        # to avoid a reference cycle, bind `_ndarray_values` to a local variable, so
         # `self` is not passed into the lambda.
         _ndarray_values = self._ndarray_values
         return self._engine_type(lambda: _ndarray_values, len(self))
@@ -722,7 +695,6 @@ class Index(IndexOpsMixin, PandasObject):
             return result
 
         attrs = self._get_attributes_dict()
-        attrs = self._maybe_update_attributes(attrs)
         return Index(result, **attrs)
 
     @cache_readonly
@@ -1862,8 +1834,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_all_dates(self):
-        if self._data is None:
-            return False
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------
@@ -3134,12 +3104,8 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind=None):
         assert kind in ["ix", "loc", "getitem", "iloc", None]
-
-        # if we are not a slice, then we are done
-        if not isinstance(key, slice):
-            return key
 
         # validate iloc
         if kind == "iloc":
@@ -5368,67 +5334,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__abs__ = make_invalid_op("__abs__")
         cls.__inv__ = make_invalid_op("__inv__")
 
-    def _maybe_update_attributes(self, attrs):
-        """
-        Update Index attributes (e.g. freq) depending on op.
-        """
-        return attrs
-
-    def _validate_for_numeric_unaryop(self, op, opstr):
-        """
-        Validate if we can perform a numeric unary operation.
-        """
-        if not self._is_numeric_dtype:
-            raise TypeError(
-                "cannot evaluate a numeric op "
-                "{opstr} for type: {typ}".format(opstr=opstr, typ=type(self).__name__)
-            )
-
-    def _validate_for_numeric_binop(self, other, op):
-        """
-        Return valid other; evaluate or raise TypeError if we are not of
-        the appropriate type.
-
-        Notes
-        -----
-        This is an internal method called by ops.
-        """
-        opstr = "__{opname}__".format(opname=op.__name__)
-        # if we are an inheritor of numeric,
-        # but not actually numeric (e.g. DatetimeIndex/PeriodIndex)
-        if not self._is_numeric_dtype:
-            raise TypeError(
-                "cannot evaluate a numeric op {opstr} "
-                "for type: {typ}".format(opstr=opstr, typ=type(self).__name__)
-            )
-
-        if isinstance(other, Index):
-            if not other._is_numeric_dtype:
-                raise TypeError(
-                    "cannot evaluate a numeric op "
-                    "{opstr} with type: {typ}".format(opstr=opstr, typ=type(other))
-                )
-        elif isinstance(other, np.ndarray) and not other.ndim:
-            other = other.item()
-
-        if isinstance(other, (Index, ABCSeries, np.ndarray)):
-            if len(self) != len(other):
-                raise ValueError("cannot evaluate a numeric op with unequal lengths")
-            other = com.values_from_object(other)
-            if other.dtype.kind not in ["f", "i", "u"]:
-                raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
-        elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
-            # higher up to handle
-            pass
-        elif isinstance(other, (datetime, np.datetime64)):
-            # higher up to handle
-            pass
-        else:
-            if not (is_float(other) or is_integer(other)):
-                raise TypeError("can only perform ops with scalar values")
-
-        return other
-
     @classmethod
     def _add_numeric_methods_binary(cls):
         """
@@ -5461,9 +5366,7 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_unary(op, opstr):
             def _evaluate_numeric_unary(self):
 
-                self._validate_for_numeric_unaryop(op, opstr)
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
 
             _evaluate_numeric_unary.__name__ = opstr
