@@ -28,6 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`TXT <https://www.oracle.com/webfolder/technetwork/data-quality/edqhelp/Content/introduction/getting_started/configuring_fixed_width_text_file_formats.htm>`__;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
@@ -1372,6 +1373,7 @@ should pass the ``escapechar`` option:
    print(data)
    pd.read_csv(StringIO(data), escapechar='\\')
 
+.. _io.fwf_reader:
 .. _io.fwf:
 
 Files with fixed width columns
