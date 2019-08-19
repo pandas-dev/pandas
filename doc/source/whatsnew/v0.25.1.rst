@@ -54,7 +54,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
 - Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
--
+- Bug where :class:`DataFrame` arithmetic operators such as :meth:`DataFrame.mul` with a :class:`Series` with axis=1 would raise an ``AttributeError`` on :class:`DataFrame` larger than the minimum threshold to invoke numexpr (:issue:`27636`)
 -
 
 Conversion
