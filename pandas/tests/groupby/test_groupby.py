@@ -1884,21 +1884,12 @@ def test_groupby_axis_1(group_name):
     assert_frame_equal(results, expected)
 
 
+@pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
 @pytest.mark.parametrize(
-    "data, expected_shift, expected_bfill, expected_ffill",
+    "op, expected",
     [
         (
-            {
-                "id": ["A", "B", "A", "B", "A", "B"],
-                "time": [
-                    Timestamp("2019-01-01 12:00:00"),
-                    Timestamp("2019-01-01 12:30:00"),
-                    None,
-                    None,
-                    Timestamp("2019-01-01 14:00:00"),
-                    Timestamp("2019-01-01 14:30:00"),
-                ],
-            },
+            "shift",
             {
                 "time": [
                     None,
@@ -1909,84 +1900,51 @@ def test_groupby_axis_1(group_name):
                     None,
                 ]
             },
+        ),
+        (
+            "bfill",
             {
                 "time": [
                     Timestamp("2019-01-01 12:00:00"),
                     Timestamp("2019-01-01 12:30:00"),
                     Timestamp("2019-01-01 14:00:00"),
                     Timestamp("2019-01-01 14:30:00"),
-                    Timestamp("2019-01-01 14:00:00"),
-                    Timestamp("2019-01-01 14:30:00"),
-                ]
-            },
-            {
-                "time": [
-                    Timestamp("2019-01-01 12:00:00"),
-                    Timestamp("2019-01-01 12:30:00"),
-                    Timestamp("2019-01-01 12:00:00"),
-                    Timestamp("2019-01-01 12:30:00"),
                     Timestamp("2019-01-01 14:00:00"),
                     Timestamp("2019-01-01 14:30:00"),
                 ]
             },
         ),
         (
-            {
-                "id": ["A", "B", "A", "B", "A", "B"],
-                "time": [
-                    Timestamp("2019-01-01 12:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:30:00", tz="Asia/Tokyo"),
-                    None,
-                    None,
-                    Timestamp("2019-01-01 14:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:30:00", tz="Asia/Tokyo"),
-                ],
-            },
+            "ffill",
             {
                 "time": [
-                    None,
-                    None,
-                    Timestamp("2019-01-01 12:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:30:00", tz="Asia/Tokyo"),
-                    None,
-                    None,
-                ]
-            },
-            {
-                "time": [
-                    Timestamp("2019-01-01 12:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:30:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:30:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:30:00", tz="Asia/Tokyo"),
-                ]
-            },
-            {
-                "time": [
-                    Timestamp("2019-01-01 12:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:30:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 12:30:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:00:00", tz="Asia/Tokyo"),
-                    Timestamp("2019-01-01 14:30:00", tz="Asia/Tokyo"),
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
                 ]
             },
         ),
     ],
 )
-def test_shift_bfill_ffill_tz(data, expected_shift, expected_bfill, expected_ffill):
+def test_shift_bfill_ffill_tz(tz, op, expected):
     # GH27992: Check that timezone does not drop in shift, bfill, and ffill
-    df = DataFrame(data)
+    data = {
+        "id": ["A", "B", "A", "B", "A", "B"],
+        "time": [
+            Timestamp("2019-01-01 12:00:00"),
+            Timestamp("2019-01-01 12:30:00"),
+            None,
+            None,
+            Timestamp("2019-01-01 14:00:00"),
+            Timestamp("2019-01-01 14:30:00"),
+        ],
+    }
+    df = DataFrame(data).assign(time=lambda x: x.time.dt.tz_localize(tz))
 
-    result = df.groupby("id").shift()
-    expected = DataFrame(expected_shift)
-    assert_frame_equal(result, expected)
-
-    result = df.groupby("id").bfill()
-    expected = DataFrame(expected_bfill)
-    assert_frame_equal(result, expected)
-
-    result = df.groupby("id").ffill()
-    expected = DataFrame(expected_ffill)
+    grouped = df.groupby("id")
+    result = getattr(grouped, op)()
+    expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
     assert_frame_equal(result, expected)
