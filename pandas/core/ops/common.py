@@ -3,54 +3,63 @@ Boilerplate functions used in defining binary operations.
 """
 from functools import wraps
 
-import numpy as np
-
 from pandas._libs.lib import item_from_zerodim
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import is_list_like
 
 
-def unpack_arraylike(obj, match_len: int):
-	obj = item_from_zerodim(obj)
+def unpack_and_defer(name: str):
+    """
+    Boilerplate for pandas conventions in arithmetic and comparison methods.
 
-	if is_list_like(obj) and len(obj) != match_len:
-		# NB: we must have already checked for if we need to
-		#  return NotImplemented for DataFrame
-		raise ValueError("Lengths must match")
+    Parameters
+    ----------
+    name : str
 
-	if isinstance(obj, list):
-		# TODO: what about tuple?
-		obj = np.asarray(obj)
-	return obj
+    Returns
+    -------
+    decorator
+    """
+    def wrapper(method):
+        return _unpack_and_defer(method, name)
 
-
-def unpack_and_defer(name):
-	def wrapper(method):
-		return _unpack_and_defer(method, name)
-
-	return wrapper
+    return wrapper
 
 
 def _unpack_and_defer(method, name):
+    """
+    Boilerplate for pandas conventions in arithmetic and comparison methods.
 
-	is_cmp = name.strip('__') in {'eq', 'ne', 'lt', 'le', 'gt', 'ge'}
+    Ensure method returns NotImplemented when operating against "senior"
+    classes.  Ensure zero-dimensional ndarrays are always unpacked.
 
-	@wraps(method)
-	def new_method(self, other):
+    Parameters
+    ----------
+    method : binary method
+    name : str
 
-		for cls in [ABCDataFrame, ABCSeries, ABCIndexClass]:
-			if isinstance(self, cls):
-				break
-			if isinstance(other, cls):
-				if is_cmp and cls is ABCSeries and isinstance(self, ABCIndexClass):
-					# For comparison ops, Index does *not* defer to Series
-					break
-				else:
-					return NotImplemented
+    Returns
+    -------
+    method
+    """
 
-		other = item_from_zerodim(other)
+    is_cmp = name.strip('__') in {'eq', 'ne', 'lt', 'le', 'gt', 'ge'}
 
-		return method(self, other)
+    @wraps(method)
+    def new_method(self, other):
 
-	return new_method
+        if is_cmp and isinstance(self, ABCIndexClass) and isinstance(other, ABCSeries):
+            # For comparison ops, Index does *not* defer to Series
+            pass
+        else:
+            for cls in [ABCDataFrame, ABCSeries, ABCIndexClass]:
+                if isinstance(self, cls):
+                    break
+                if isinstance(other, cls):
+                    return NotImplemented
+
+        other = item_from_zerodim(other)
+
+        return method(self, other)
+
+    return new_method
