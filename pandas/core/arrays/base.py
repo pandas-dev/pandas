@@ -957,7 +957,7 @@ class ExtensionArray:
         cls, to_concat: Sequence[ABCExtensionArray]
     ) -> ABCExtensionArray:
         """
-        Concatenate multiple array
+        Concatenate multiple array.
 
         Parameters
         ----------
