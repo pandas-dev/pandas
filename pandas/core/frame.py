@@ -6262,10 +6262,10 @@ class DataFrame(NDFrame):
         result = self[column].explode()
         return (
             self.drop([column], axis=1)
-            .reset_index(drop=True)  # GH 28005
+            .reset_index(drop=True)
             .join(self[column].reset_index(drop=True).explode())
             .reindex(columns=self.columns, copy=False)
-            .set_index(result.index)  # GH 28005
+            .set_index(result.index)
         )
 
     def unstack(self, level=-1, fill_value=None):
