@@ -23,7 +23,7 @@ class StringDtype(ExtensionDtype):
 
     Attributes
     ----------
-    name
+    None
 
     Methods
     -------
