@@ -481,7 +481,7 @@ def is_dataclass_instance(item):
     """
     try:
         from dataclasses import is_dataclass
+
         return is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False
-

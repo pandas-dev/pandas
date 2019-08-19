@@ -1341,7 +1341,7 @@ class TestDataFrameConstructors:
         try:
             from dataclasses import dataclass
         except ImportError:
-            return;
+            return
 
         @dataclass
         class Point:
@@ -1349,10 +1349,7 @@ class TestDataFrameConstructors:
             y: int
 
         datas = [Point(0, 3), Point(1, 3)]
-        expected = DataFrame({
-            "x": [0,1], 
-            "y": [3,3], 
-        })
+        expected = DataFrame({"x": [0, 1], "y": [3, 3]})
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 

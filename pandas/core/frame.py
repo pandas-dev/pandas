@@ -445,7 +445,7 @@ class DataFrame(NDFrame):
             if not isinstance(data, abc.Sequence):
                 data = list(data)
             if len(data) > 0:
-                if (is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1):
+                if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
                     arrays, columns = to_arrays(data, columns, dtype=dtype)
