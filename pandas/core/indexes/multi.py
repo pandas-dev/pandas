@@ -1762,7 +1762,7 @@ class MultiIndex(Index):
 
     def is_lexsorted(self):
         """
-        Return True if the codes are lexicographically sorted
+        Return True if the codes are lexicographically sorted.
 
         Returns
         -------
