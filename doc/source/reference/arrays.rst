@@ -467,7 +467,7 @@ Text data
 ---------
 
 When working with text data, where each valid element is a string, we recommend using
-:ref:`StringDtype` (with the alias ``"string"``).
+:class:`StringDtype` (with the alias ``"string"``).
 
 .. autosummary::
    :toctree: api/
@@ -481,7 +481,7 @@ When working with text data, where each valid element is a string, we recommend 
 
    StringDtype
 
-The ``Series.str`` accessor is available for ``Series`` backed by a :ref:`arrays.StringArray`.
+The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.StringArray`.
 See :ref:`api.series.str` for more.
 
 

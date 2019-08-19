@@ -21,6 +21,10 @@ class StringDtype(ExtensionDtype):
 
     .. versionadded:: 1.0.0
 
+    Parameters
+    ----------
+    None
+
     Attributes
     ----------
     name
@@ -73,6 +77,14 @@ class StringArray(PandasArray):
     ----------
     values : ndarray
     copy : bool, default False
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
 
     Examples
     --------
