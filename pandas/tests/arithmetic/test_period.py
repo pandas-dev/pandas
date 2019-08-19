@@ -573,12 +573,19 @@ class TestPeriodIndexArithmetic:
     @pytest.mark.parametrize(
         "other",
         [
+            # datetime scalars
             pd.Timestamp.now(),
             pd.Timestamp.now().to_pydatetime(),
             pd.Timestamp.now().to_datetime64(),
+            # datetime-like arrays
+            pd.date_range("2016-01-01", periods=3, freq="H"),
+            pd.date_range("2016-01-01", periods=3, tz="Europe/Brussels"),
+            pd.date_range("2016-01-01", periods=3, freq="S")._data,
+            pd.date_range("2016-01-01", periods=3, tz="Asia/Tokyo")._data,
+            # Miscellaneous invalid types
         ],
     )
-    def test_parr_add_sub_datetime_scalar(self, other, box_with_array):
+    def test_parr_add_sub_invalid(self, other, box_with_array):
         # GH#23215
         rng = pd.period_range("1/1/2000", freq="D", periods=3)
         rng = tm.box_expected(rng, box_with_array)
@@ -594,23 +601,6 @@ class TestPeriodIndexArithmetic:
 
     # -----------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
-
-    def test_parr_add_sub_dt64_array_raises(self, box_with_array):
-        rng = pd.period_range("1/1/2000", freq="D", periods=3)
-        dti = pd.date_range("2016-01-01", periods=3)
-        dtarr = dti.values
-
-        rng = tm.box_expected(rng, box_with_array)
-
-        with pytest.raises(TypeError):
-            rng + dtarr
-        with pytest.raises(TypeError):
-            dtarr + rng
-
-        with pytest.raises(TypeError):
-            rng - dtarr
-        with pytest.raises(TypeError):
-            dtarr - rng
 
     def test_pi_add_sub_td64_array_non_tick_raises(self):
         rng = pd.period_range("1/1/2000", freq="Q", periods=3)
