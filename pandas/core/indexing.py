@@ -49,7 +49,7 @@ _NS = slice(None, None)
 # the public IndexSlicerMaker
 class _IndexSlice:
     """
-    Create an object to more easily perform multi-index slicing
+    Create an object to more easily perform multi-index slicing.
 
     See Also
     --------
