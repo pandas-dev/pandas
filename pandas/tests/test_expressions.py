@@ -66,7 +66,7 @@ class TestExpressions:
                 operator_name = "truediv"
 
             if test_flex:
-                op = lambda x, y: getattr(df, arith)(y)
+                op = lambda x, y: getattr(x, arith)(y)
                 op.__name__ = arith
             else:
                 op = getattr(operator, operator_name)
@@ -318,7 +318,6 @@ class TestExpressions:
             for f in [self.frame, self.frame2, self.mixed, self.mixed2]:
 
                 for cond in [True, False]:
-
                     c = np.empty(f.shape, dtype=np.bool_)
                     c.fill(cond)
                     result = expr.where(c, f.values, f.values + 1)
@@ -431,3 +430,29 @@ class TestExpressions:
         # GH 22383 - .ne fails if columns containing column name 'dtype'
         result = test_input.loc[:, ["a", "dtype"]].ne(test_input.loc[:, ["a", "dtype"]])
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "arith", ("add", "sub", "mul", "mod", "truediv", "floordiv")
+    )
+    @pytest.mark.parametrize("axis", (0, 1))
+    def test_frame_series_axis(self, axis, arith):
+        # GH#26736 Dataframe.floordiv(Series, axis=1) fails
+        if axis == 1 and arith == "floordiv":
+            pytest.xfail("'floordiv' does not succeed with axis=1 #27636")
+
+        df = self.frame
+        if axis == 1:
+            other = self.frame.iloc[0, :]
+        else:
+            other = self.frame.iloc[:, 0]
+
+        expr._MIN_ELEMENTS = 0
+
+        op_func = getattr(df, arith)
+
+        expr.set_use_numexpr(False)
+        expected = op_func(other, axis=axis)
+        expr.set_use_numexpr(True)
+
+        result = op_func(other, axis=axis)
+        assert_frame_equal(expected, result)
