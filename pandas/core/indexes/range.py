@@ -11,7 +11,6 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -26,6 +25,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaInde
 
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
@@ -75,7 +75,7 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
     _range = None  # type: range
 
-    # check whether self._data has benn called
+    # check whether self._data has been called
     _cached_data = None  # type: np.ndarray
     # --------------------------------------------------------------------
     # Constructors
@@ -110,7 +110,7 @@ class RangeIndex(Int64Index):
             return cls._simple_new(start, dtype=dtype, name=name)
 
         # validate the arguments
-        if com._all_none(start, stop, step):
+        if com.all_none(start, stop, step):
             raise TypeError("RangeIndex(...) must be called with integers")
 
         start = ensure_python_int(start) if start is not None else 0
@@ -647,7 +647,53 @@ class RangeIndex(Int64Index):
         return super().join(other, how, level, return_indexers, sort)
 
     def _concat_same_dtype(self, indexes, name):
-        return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
+        """
+        Concatenates multiple RangeIndex instances. All members of "indexes" must
+        be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+        otherwise. E.g.:
+        indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
+        indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+        """
+        start = step = next_ = None
+
+        # Filter the empty indexes
+        non_empty_indexes = [obj for obj in indexes if len(obj)]
+
+        for obj in non_empty_indexes:
+            rng = obj._range  # type: range
+
+            if start is None:
+                # This is set by the first non-empty index
+                start = rng.start
+                if step is None and len(rng) > 1:
+                    step = rng.step
+            elif step is None:
+                # First non-empty index had only one element
+                if rng.start == start:
+                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    return result.rename(name)
+
+                step = rng.start - start
+
+            non_consecutive = (step != rng.step and len(rng) > 1) or (
+                next_ is not None and rng.start != next_
+            )
+            if non_consecutive:
+                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                return result.rename(name)
+
+            if step is not None:
+                next_ = rng[-1] + step
+
+        if non_empty_indexes:
+            # Get the stop value from "next" or alternatively
+            # from the last non-empty index
+            stop = non_empty_indexes[-1].stop if next_ is None else next_
+            return RangeIndex(start, stop, step).rename(name)
+
+        # Here all "indexes" had 0 length, i.e. were empty.
+        # In this case return an empty range index.
+        return RangeIndex(0, 0).rename(name)
 
     def __len__(self):
         """
@@ -737,9 +783,8 @@ class RangeIndex(Int64Index):
                     # Must be an np.ndarray; GH#22390
                     return op(self._int64index, other)
 
-                other = self._validate_for_numeric_binop(other, op)
+                other = extract_array(other, extract_numpy=True)
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
 
                 left, right = self, other
 
