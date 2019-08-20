@@ -108,6 +108,7 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
+from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -5304,7 +5305,9 @@ class DataFrame(NDFrame):
             # iterate over columns
             new_data = ops.dispatch_to_series(this, other, _arith_op)
         else:
-            new_data = _arith_op(this.values, other.values)
+            with np.errstate(all="ignore"):
+                res_values = _arith_op(this.values, other.values)
+            new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
         return this._construct_result(other, new_data, _arith_op)
 
     def _combine_match_index(self, other, func, level=None):
