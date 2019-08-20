@@ -5291,8 +5291,7 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join="outer", level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
+        # Assumes we already have matching alignment
 
         def _arith_op(left, right):
             # for the mixed_type case where we iterate over columns,
@@ -5301,14 +5300,12 @@ class DataFrame(NDFrame):
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
-        if ops.should_series_dispatch(this, other, func):
+        if ops.should_series_dispatch(self, other, func):
             # iterate over columns
-            return ops.dispatch_to_series(this, other, _arith_op)
+            return ops.dispatch_to_series(self, other, _arith_op)
         else:
-            result = _arith_op(this.values, other.values)
-            return self._constructor(
-                result, index=new_index, columns=new_columns, copy=False
-            )
+            res_values = _arith_op(self.values, other.values)
+            return self._construct_result(other, res_values, _arith_op)
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
@@ -5321,9 +5318,7 @@ class DataFrame(NDFrame):
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
                 new_data = func(left.values.T, right.values).T
-            return self._constructor(
-                new_data, index=left.index, columns=self.columns, copy=False
-            )
+            return left._construct_result(other, new_data, func)
 
     def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
@@ -5334,6 +5329,20 @@ class DataFrame(NDFrame):
     def _combine_const(self, other, func):
         assert lib.is_scalar(other) or np.ndim(other) == 0
         return ops.dispatch_to_series(self, other, func)
+
+    def _construct_result(self, other, result, func):
+        """
+        Compat for DataFrame/SparseDataFrame op result wrapping.
+
+        `func` is included for compat with SparseDataFrame signature, is not
+        needed here.
+        """
+        out = self._constructor(result, index=self.index, copy=False)
+        # Pin columns instead of passing to constructor for compat with
+        #  non-unique columns case
+        out.columns = self.columns
+        return out
+        # TODO: finalize?  we do for SparseDataFrame
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

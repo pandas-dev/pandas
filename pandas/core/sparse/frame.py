@@ -534,59 +534,43 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
+        # assumes we already have matching alignment
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        this, other = self.align(other, join="outer", level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
-
         if self.empty and other.empty:
-            return self._constructor(index=new_index).__finalize__(self)
+            return self._constructor(index=self.index).__finalize__(self)
 
         new_data = {}
         if fill_value is not None:
             # TODO: be a bit more intelligent here
-            for col in new_columns:
-                if col in this and col in other:
-                    dleft = this[col].to_dense()
+            for col in self.columns:
+                if col in self and col in other:
+                    dleft = self[col].to_dense()
                     dright = other[col].to_dense()
                     result = dleft._binop(dright, func, fill_value=fill_value)
-                    result = result.to_sparse(fill_value=this[col].fill_value)
+                    result = result.to_sparse(fill_value=self[col].fill_value)
                     new_data[col] = result
         else:
 
-            for col in new_columns:
-                if col in this and col in other:
-                    new_data[col] = func(this[col], other[col])
+            for col in self.columns:
+                if col in self and col in other:
+                    new_data[col] = func(self[col], other[col])
 
-        new_fill_value = self._get_op_result_fill_value(other, func)
-
-        return self._constructor(
-            data=new_data,
-            index=new_index,
-            columns=new_columns,
-            default_fill_value=new_fill_value,
-        ).__finalize__(self)
+        return self._construct_result(other, new_data, func)
 
     def _combine_match_index(self, other, func, level=None):
-        new_data = {}
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
+        new_data = {}
         for col, series in this.items():
             new_data[col] = func(series.values, other.values)
 
-        fill_value = self._get_op_result_fill_value(other, func)
-
-        return self._constructor(
-            new_data,
-            index=this.index,
-            columns=self.columns,
-            default_fill_value=fill_value,
-        ).__finalize__(self)
+        return this._construct_result(other, new_data, func)
 
     def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
@@ -601,19 +585,27 @@ class SparseDataFrame(DataFrame):
         assert left.columns.equals(right.index)
 
         new_data = {}
-
         for col in left.columns:
             new_data[col] = func(left[col], float(right[col]))
 
-        return self._constructor(
-            new_data,
-            index=left.index,
-            columns=left.columns,
-            default_fill_value=self.default_fill_value,
-        ).__finalize__(self)
+        # TODO: using this changed some behavior, see GH#28025
+        return left._construct_result(other, new_data, func)
 
     def _combine_const(self, other, func):
         return self._apply_columns(lambda x: func(x, other))
+
+    def _construct_result(self, other, result, func):
+        """
+        Compat for DataFrame/SparseDataFrame op result wrapping.
+        """
+        fill_value = self._get_op_result_fill_value(other, func)
+
+        return self._constructor(
+            result,
+            index=self.index,
+            columns=self.columns,
+            default_fill_value=fill_value,
+        ).__finalize__(self)
 
     def _get_op_result_fill_value(self, other, func):
         own_default = self.default_fill_value
@@ -643,6 +635,11 @@ class SparseDataFrame(DataFrame):
             else:
                 fill_value = func(np.float64(own_default), np.float64(other.fill_value))
                 fill_value = item_from_zerodim(fill_value)
+
+        elif isinstance(other, Series):
+            # reached via _combine_match_columns
+            fill_value = self.default_fill_value
+
         else:
             raise NotImplementedError(type(other))
 
