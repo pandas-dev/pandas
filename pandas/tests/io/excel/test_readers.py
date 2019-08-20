@@ -486,6 +486,7 @@ class TestReaders:
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
     def test_nonexistent_sheetname_raises(self, read_ext):
+        # GH-27676
         # Specifying a non-existent sheet_name parameter should throw an error
         # with the sheet name.
         with pytest.raises(ValueError, match="sheet xyz not found"):
