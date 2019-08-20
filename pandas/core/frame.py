@@ -6270,12 +6270,14 @@ class DataFrame(NDFrame):
         )
 
         if isinstance(self.index, MultiIndex):
-            result.index = pandas.MultiIndex.from_frame(result.iloc[:, :self.index.nlevels])
+            result.index = pandas.MultiIndex.from_frame(
+                result.iloc[:, : self.index.nlevels]
+            )
         else:
             result.index = result.iloc[:, 0]
 
         if not named_index:
-            result.index.names = [None]*self.index.nlevels
+            result.index.names = [None] * self.index.nlevels
 
         result = result.reindex(columns=self.columns, copy=False)
 
