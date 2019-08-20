@@ -5306,7 +5306,8 @@ class DataFrame(NDFrame):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
-            result = _arith_op(this.values, other.values)
+            with np.errstate(all="ignore"):
+                result = _arith_op(this.values, other.values)
             result = dispatch_fill_zeros(func, this.values, other.values, result)
             return self._constructor(
                 result, index=new_index, columns=new_columns, copy=False
