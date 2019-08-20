@@ -1323,11 +1323,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return -(self - other)
 
     # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115
-    def __iadd__(self, other):
+    def __iadd__(self, other):  # type: ignore
         # alias for __add__
         return self.__add__(other)
 
-    def __isub__(self, other):
+    def __isub__(self, other):  # type: ignore
         # alias for __sub__
         return self.__sub__(other)
 
