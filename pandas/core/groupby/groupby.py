@@ -29,14 +29,16 @@ from pandas.util._validators import validate_kwargs
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.api.types import is_datetime64_dtype, is_integer_dtype, is_object_dtype
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.base import (
@@ -343,7 +345,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: NDFrame,
         keys=None,
         axis=0,
         level=None,
@@ -360,8 +362,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         self._selection = selection
 
-        if isinstance(obj, NDFrame):
-            obj._consolidate_inplace()
+        assert isinstance(obj, NDFrame), type(obj)
+        obj._consolidate_inplace()
 
         self.level = level
 
@@ -590,7 +592,7 @@ b  2""",
     )
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
-        return com._pipe(self, func, *args, **kwargs)
+        return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
 
@@ -928,7 +930,7 @@ b  2""",
         def reset_identity(values):
             # reset the identities of the components
             # of the values to prevent aliasing
-            for v in com._not_none(*values):
+            for v in com.not_none(*values):
                 ax = v._get_axis(self.axis)
                 ax._reset_identity()
             return values
@@ -1206,7 +1208,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
             with _group_selection_context(self):
                 f = lambda x: x.mean(axis=self.axis, **kwargs)
                 return self._python_agg_general(f)
@@ -1232,7 +1234,7 @@ class GroupBy(_GroupBy):
             )
         except GroupByError:
             raise
-        except Exception:  # pragma: no cover
+        except Exception:
 
             def f(x):
                 if isinstance(x, np.ndarray):
@@ -1771,7 +1773,11 @@ class GroupBy(_GroupBy):
             if not self.as_index:
                 return out
 
-            out.index = self.grouper.result_index[ids[mask]]
+            result_index = self.grouper.result_index
+            out.index = result_index[ids[mask]]
+
+            if not self.observed and isinstance(result_index, CategoricalIndex):
+                out = out.reindex(result_index)
 
             return out.sort_index() if self.sort else out
 
@@ -2470,7 +2476,7 @@ def groupby(obj, by, **kwds):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
-    else:  # pragma: no cover
+    else:
         raise TypeError("invalid type: {}".format(obj))
 
     return klass(obj, by, **kwds)

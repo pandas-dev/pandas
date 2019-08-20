@@ -1442,6 +1442,12 @@ def str_slice(arr, start=None, stop=None, step=None):
     2    hameleon
     dtype: object
 
+    >>> s.str.slice(start=-1)
+    0           a
+    1           x
+    2           n
+    dtype: object
+
     >>> s.str.slice(stop=2)
     0    ko
     1    fo
@@ -1961,8 +1967,11 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # missing values obfuscate type inference -> skip
-        inferred_dtype = lib.infer_dtype(values, skipna=True)
+        try:
+            inferred_dtype = lib.infer_dtype(values, skipna=True)
+        except ValueError:
+            # GH#27571 mostly occurs with ExtensionArray
+            inferred_dtype = None
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")

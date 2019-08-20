@@ -46,30 +46,6 @@ _indexops_doc_kwargs = dict(
 )
 
 
-class StringMixin:
-    """
-    Implements string methods so long as object defines a `__str__` method.
-    """
-
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
-
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-        """
-        raise AbstractMethodError(self)
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        return str(self)
-
-
 class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
@@ -687,8 +663,9 @@ class IndexOpsMixin:
 
     T = property(
         transpose,
-        doc="""\nReturn the transpose, which is by
-                                definition self.\n""",
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
     )
 
     @property
