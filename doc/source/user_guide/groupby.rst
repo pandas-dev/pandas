@@ -321,7 +321,7 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
-Grouping DataFrame with Index Levels and Columns
+Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
 specifying the column names as strings and the index levels as ``pd.Grouper``
@@ -568,9 +568,32 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
                             'mean': 'bar',
                             'std': 'baz'}))
 
+.. note::
+
+   In general, the output column names should be unique. You can't apply
+   the same function (or two functions with the same name) to the same
+   column.
+
+   .. ipython:: python
+      :okexcept:
+
+      grouped['C'].agg(['sum', 'sum'])
+
+
+   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
+   will mangle the name of the (nameless) lambda functions, appending ``_<i>``
+   to each subsequent lambda.
+
+   .. ipython:: python
+
+      grouped['C'].agg([lambda x: x.max() - x.min(),
+                        lambda x: x.median() - x.mean()])
+
+
+
 .. _groupby.aggregate.named:
 
-Named Aggregation
+Named aggregation
 ~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.25.0
@@ -595,7 +618,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
        max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+       average_weight=pd.NamedAgg(column='weight', aggfunc=np.mean),
    )
 
 
@@ -606,7 +629,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    animals.groupby("kind").agg(
        min_height=('height', 'min'),
        max_height=('height', 'max'),
-       average_weight=('height', np.mean),
+       average_weight=('weight', np.mean),
    )
 
 
@@ -629,6 +652,16 @@ requires additional arguments, partially apply them with :meth:`functools.partia
    preserved. This means that the output column ordering would not be
    consistent. To ensure consistent ordering, the keys (and so output columns)
    will always be sorted for Python 3.5.
+
+Named aggregation is also valid for Series groupby aggregations. In this case there's
+no column selection, so the values are just the functions.
+
+.. ipython:: python
+
+   animals.groupby("kind").height.agg(
+       min_height='min',
+       max_height='max',
+   )
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -794,13 +827,10 @@ and that the transformed data contains no NAs.
 
 .. _groupby.transform.window_resample:
 
-New syntax to window and resample operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. versionadded:: 0.18.1
+Window and resample operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Working with the resample, expanding or rolling operations on the groupby
-level used to require the application of helper functions. However,
-now it is possible to use ``resample()``, ``expanding()`` and
+It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
 
 The example below will apply the ``rolling()`` method on the samples of
@@ -1112,7 +1142,7 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
 .. _groupby.specify:
 
-Grouping with a Grouper specification
+Grouping with a grouper specification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may need to specify a bit more data to properly group. You can
@@ -1394,7 +1424,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by Indexer to 'resample' data
+Groupby by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.

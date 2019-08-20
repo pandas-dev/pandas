@@ -1,5 +1,12 @@
-from .json import to_json, read_json, loads, dumps  # noqa
-from .normalize import json_normalize  # noqa
-from .table_schema import build_table_schema  # noqa
+from pandas.io.json._json import dumps, loads, read_json, to_json
+from pandas.io.json._normalize import json_normalize
+from pandas.io.json._table_schema import build_table_schema
 
-del json, normalize, table_schema  # noqa
+__all__ = [
+    "dumps",
+    "loads",
+    "read_json",
+    "to_json",
+    "json_normalize",
+    "build_table_schema",
+]

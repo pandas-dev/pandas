@@ -1,14 +1,12 @@
-:orphan:
-
 .. _whatsnew_0242:
 
-Whats New in 0.24.2 (March 12, 2019)
+Whats new in 0.24.2 (March 12, 2019)
 ------------------------------------
 
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+   releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 {{ header }}
 
@@ -17,7 +15,7 @@ including other versions of pandas.
 
 .. _whatsnew_0242.regressions:
 
-Fixed Regressions
+Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
@@ -39,7 +37,7 @@ Fixed Regressions
 
 .. _whatsnew_0242.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 **I/O**
