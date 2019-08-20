@@ -86,6 +86,10 @@ class TestIsNA:
         assert not isna_f(np.inf)
         assert not isna_f(-np.inf)
 
+        # type
+        assert not isna_f(type(pd.Series()))
+        assert not isna_f(type(pd.DataFrame()))
+
         # series
         for s in [
             tm.makeFloatSeries(),
