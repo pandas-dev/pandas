@@ -105,6 +105,7 @@ I/O
 ^^^
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 - Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
+- Follow the ``min_rows`` display option (introduced in v0.25.0) correctly in the html repr in the notebook (:issue:`27991`).
 -
 
 Plotting
