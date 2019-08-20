@@ -120,6 +120,9 @@ partners:
     url: https://ursalabs.org/
     logo: /static/img/partners/ursa_labs.png
     employs: "Wes McKinney, Joris Van den Bossche"
+  - name: "Tidelift"
+    url: https://tidelift.com
+    logo: /static/img/partners/tidelift.svg
   past:
   - name: "Paris-Saclay Center for Data Science"
     url: https://www.datascience-paris-saclay.fr/
