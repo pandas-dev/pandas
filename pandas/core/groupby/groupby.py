@@ -1771,7 +1771,11 @@ class GroupBy(_GroupBy):
             if not self.as_index:
                 return out
 
-            out.index = self.grouper.result_index[ids[mask]]
+            result_index = self.grouper.result_index
+            out.index = result_index[ids[mask]]
+
+            if not self.observed and isinstance(result_index, CategoricalIndex):
+                out = out.reindex(result_index)
 
             return out.sort_index() if self.sort else out
 
