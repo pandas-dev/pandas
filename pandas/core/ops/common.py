@@ -20,6 +20,7 @@ def unpack_and_defer(name: str):
     -------
     decorator
     """
+
     def wrapper(method):
         return _unpack_and_defer(method, name)
 
@@ -43,7 +44,7 @@ def _unpack_and_defer(method, name):
     method
     """
 
-    is_cmp = name.strip('__') in {'eq', 'ne', 'lt', 'le', 'gt', 'ge'}
+    is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
     def new_method(self, other):
