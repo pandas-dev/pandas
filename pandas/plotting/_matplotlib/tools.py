@@ -343,27 +343,6 @@ def _flatten(axes):
     return np.array(axes)
 
 
-def _get_all_lines(ax):
-    lines = ax.get_lines()
-
-    if hasattr(ax, "right_ax"):
-        lines += ax.right_ax.get_lines()
-
-    if hasattr(ax, "left_ax"):
-        lines += ax.left_ax.get_lines()
-
-    return lines
-
-
-def _get_xlim(lines):
-    left, right = np.inf, -np.inf
-    for l in lines:
-        x = l.get_xdata(orig=False)
-        left = min(np.nanmin(x), left)
-        right = max(np.nanmax(x), right)
-    return left, right
-
-
 def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
     import matplotlib.pyplot as plt
 
