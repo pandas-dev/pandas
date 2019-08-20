@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import OutOfBoundsDatetime
+
 import pandas as pd
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
@@ -607,6 +609,15 @@ class TestPeriodArray(SharedTests):
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    def test_to_timestamp_out_of_bounds(self):
+        # GH#19643 previously overflowed silently
+        pi = pd.period_range("1500", freq="Y", periods=3)
+        with pytest.raises(OutOfBoundsDatetime):
+            pi.to_timestamp()
+
+        with pytest.raises(OutOfBoundsDatetime):
+            pi._data.to_timestamp()
 
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
     def test_bool_properties(self, period_index, propname):
