@@ -504,9 +504,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from .multi import MultiIndex
 
-                    return MultiIndex.from_tuples(
-                        data, names=names or name
-                    )
+                    return MultiIndex.from_tuples(data, names=names or name)
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
