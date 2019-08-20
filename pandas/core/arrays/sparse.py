@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
@@ -1693,6 +1694,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
+            elif is_scalar(sp_values):
+                # e.g. reductions
+                return sp_values
 
             return self._simple_new(
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
@@ -1732,12 +1736,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
-        def sparse_arithmetic_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+        def sparse_arithmetic_method(self, other):
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to dispatch to us.
                 return NotImplemented
+
+            other = lib.item_from_zerodim(other)
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)

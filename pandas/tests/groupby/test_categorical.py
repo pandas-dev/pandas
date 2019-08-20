@@ -4,6 +4,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat import PY37, is_platform_windows
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -208,6 +210,9 @@ def test_level_get_group(observed):
 
 
 # GH#21636 previously flaky on py37
+@pytest.mark.xfail(
+    is_platform_windows() and PY37, reason="Flaky, GH-27902", strict=False
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -427,6 +432,21 @@ def test_observed_groups_with_nan(observed):
             "d": Index([], dtype="int64"),
         }
     tm.assert_dict_equal(result, expected)
+
+
+def test_observed_nth():
+    # GH 26385
+    cat = pd.Categorical(["a", np.nan, np.nan], categories=["a", "b", "c"])
+    ser = pd.Series([1, 2, 3])
+    df = pd.DataFrame({"cat": cat, "ser": ser})
+
+    result = df.groupby("cat", observed=False)["ser"].nth(0)
+
+    index = pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"])
+    expected = pd.Series([1, np.nan, np.nan], index=index, name="ser")
+    expected.index.name = "cat"
+
+    tm.assert_series_equal(result, expected)
 
 
 def test_dataframe_categorical_with_nan(observed):
