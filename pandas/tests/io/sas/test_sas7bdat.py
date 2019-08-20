@@ -1,3 +1,4 @@
+from datetime import date, datetime
 import io
 import os
 
@@ -217,3 +218,33 @@ def test_zero_variables(datapath):
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
     with pytest.raises(EmptyDataError):
         pd.read_sas(fname)
+
+
+def test_max_sas_date(datapath):
+    # GH 20927
+    # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
+    #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
+    #    sas7bdat module
+    fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
+    df = pd.read_sas(fname, encoding="iso-8859-1")
+    # SAS likes to left pad strings with spaces - lstrip before comparing
+    df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
+    # GH 19732: Timestamps imported from sas will incur floating point errors
+    df = df.applymap(
+        lambda x: x.replace(microsecond=round(x.microsecond, -3))
+        if isinstance(x, datetime)
+        else x
+    )
+    expected = pd.DataFrame(
+        {
+            "text": ["max", "normal"],
+            "dt_as_float": [253717747199.999, 1880323199.999],
+            "dt_as_dt": [
+                datetime.strptime("9999-12-29 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
+                datetime.strptime("2019-08-01 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
+            ],
+            "date_as_float": [float(2936547), float(21762)],
+            "date_as_date": [date(9999, 12, 29), date(2019, 8, 1)],
+        }
+    )
+    tm.assert_frame_equal(df, expected)

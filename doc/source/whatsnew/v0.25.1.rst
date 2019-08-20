@@ -105,6 +105,7 @@ I/O
 ^^^
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 - Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
+- :func:`read_sas()` now handles dates and datetimes larger pd.Timestamp.max returning them as datetime.date/datetime objects (:issue:`20927`)
 -
 
 Plotting
