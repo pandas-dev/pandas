@@ -176,8 +176,10 @@ class Index(IndexOpsMixin, PandasObject):
         Otherwise, an error will be raised.
     copy : bool
         Make a copy of input ndarray
-    name : object
+    name : object, optional
         Name to be stored in the index
+    names: tuple of objects, optional
+        Names to be stored in the index (only accepts tuple of length 1)
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
 
@@ -259,12 +261,22 @@ class Index(IndexOpsMixin, PandasObject):
         dtype=None,
         copy=False,
         name=None,
+        names=None,
         fastpath=None,
         tupleize_cols=True,
         **kwargs
     ):
 
-        if name is None and hasattr(data, "name"):
+        if names is not None:
+            if name is not None:
+                raise TypeError("Using name and names is unsupported")
+            elif names is not None and not is_list_like(names):
+                raise TypeError("names must be list-like")
+            elif len(names) > 1:
+                raise TypeError("names must be list-like of size 1")
+            # infer name from names when MultiIndex cannot be created
+            name = names[0]
+        elif hasattr(data, "name") and name is None:
             name = data.name
 
         if fastpath is not None:
@@ -493,7 +505,7 @@ class Index(IndexOpsMixin, PandasObject):
                     from .multi import MultiIndex
 
                     return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get("names")
+                        data, names=names or name
                     )
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)

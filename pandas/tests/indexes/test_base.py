@@ -371,6 +371,29 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
+    def test_constructor_names(self):
+        # test both `name` and `names`
+        with pytest.raises(TypeError):
+            idx = Index([1, 2, 3], name='a', names=('a',))
+
+        # test non-list-like `names`
+        with pytest.raises(TypeError):
+            idx = Index([1, 2, 3], names='a')
+
+        # test list-like with length > 1
+        with pytest.raises(TypeError):
+            idx = Index([1, 2, 3], names=('a', 'b'))
+
+        # test using `name` for a flat `Index`
+        idx = Index([1, 2, 3], name='a')
+        assert idx.name == 'a'
+        assert idx.names == ('a',)
+
+        # test using `names` for a flat `Index`
+        idx = Index([1, 2, 3], names=('a',))
+        assert idx.name == 'a'
+        assert idx.names == ('a',)
+
     @pytest.mark.parametrize(
         "vals",
         [
