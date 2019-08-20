@@ -24,9 +24,9 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
-from pandas.core.ops.common import unpack_and_defer
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.ops.common import unpack_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 

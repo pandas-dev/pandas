@@ -41,6 +41,7 @@ import pandas as pd
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY, define_na_arithmetic_op
+from pandas.core.ops.common import unpack_and_defer
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -66,8 +67,6 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
-from pandas.core.ops.common import unpack_and_defer
-
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities

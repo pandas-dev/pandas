@@ -5,7 +5,7 @@ from functools import wraps
 
 from pandas._libs.lib import item_from_zerodim
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
 def unpack_and_defer(name: str):

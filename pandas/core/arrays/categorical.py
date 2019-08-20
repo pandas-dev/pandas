@@ -59,8 +59,8 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
-from pandas.core.sorting import nargsort
 from pandas.core.ops.common import unpack_and_defer
+from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 

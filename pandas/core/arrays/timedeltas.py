@@ -43,8 +43,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
-from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
