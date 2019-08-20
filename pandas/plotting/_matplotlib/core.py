@@ -33,8 +33,6 @@ from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
-    _get_all_lines,
-    _get_xlim,
     _handle_shared_axes,
     _subplots,
     format_date_labels,
@@ -1101,9 +1099,8 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            # GH27686 set_xlim will truncate xaxis to fixed space
+            ax.relim()
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
