@@ -8,7 +8,7 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian
+from pandas.compat import PY36, PY37, is_platform_little_endian
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1347,6 +1347,22 @@ class TestDataFrameConstructors:
         expected = DataFrame({"x": [0, 1], "y": [3, 3]})
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
+
+        # varying types
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+        HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
+
+        datas = [Point(0, 3), HLine(1, 3, 3)]
+
+        expected = DataFrame(
+            {"x": [0, np.nan], "y": [3, 3], "x0": [np.nan, 1], "x1": [np.nan, 3]}
+        )
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
+
+        # expect TypeError
+        with pytest.raises(TypeError):
+            DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
     def test_constructor_list_of_dict_order(self):
         # GH10056
