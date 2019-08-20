@@ -988,10 +988,10 @@ def _arith_method_FRAME(cls, op, special):
                 self, other, pass_op, fill_value=fill_value, axis=axis, level=level
             )
         else:
+            # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            assert np.ndim(other) == 0
             return self._combine_const(other, op)
 
     f.__name__ = op_name
@@ -1032,7 +1032,7 @@ def _flex_comp_method_FRAME(cls, op, special):
                 self, other, na_op, fill_value=None, axis=axis, level=level
             )
         else:
-            assert np.ndim(other) == 0, other
+            # in this case we always have `np.ndim(other) == 0`
             return self._combine_const(other, na_op)
 
     f.__name__ = op_name
