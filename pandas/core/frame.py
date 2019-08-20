@@ -6261,7 +6261,7 @@ class DataFrame(NDFrame):
 
         if isinstance(self.index, MultiIndex):
             index_names = [
-                f"level_{num}" if val is None else val
+                "level_{num}".format(num=num) if val is None else val
                 for num, val in enumerate(self.index.names)
             ]
         else:
