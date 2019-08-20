@@ -64,11 +64,12 @@ def register(explicit=True):
 
     pairs = get_pairs()
     for type_, cls in pairs:
-        converter = cls()
-        if type_ in units.registry:
+        # Cache previous converter if present
+        if type_ in units.registry and not isinstance(units.registry[type_], cls):
             previous = units.registry[type_]
             _mpl_units[type_] = previous
-        units.registry[type_] = converter
+        # Replace with pandas converter
+        units.registry[type_] = cls()
 
 
 def deregister():

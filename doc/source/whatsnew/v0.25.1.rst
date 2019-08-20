@@ -31,7 +31,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
--
+- Bug in :meth:`Period.to_timestamp` where a :class:`Period` outside the :class:`Timestamp` implementation bounds (roughly 1677-09-21 to 2262-04-11) would return an incorrect :class:`Timestamp` instead of raising ``OutOfBoundsDatetime`` (:issue:`19643`)
 -
 -
 
@@ -90,7 +90,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Bug in :func:`pandas.isnull` or :func:`pandas.isna` when the input is a type e.g. `type(pandas.Series())` (:issue:`27482`)
 -
 -
 
@@ -111,6 +111,9 @@ Plotting
 ^^^^^^^^
 
 - Added a pandas_plotting_backends entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
+- Fixed the re-instatement of Matplotlib datetime converters after calling
+  `pandas.plotting.deregister_matplotlib_converters()` (:issue:`27481`).
+-
 - Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`).
 -
 
