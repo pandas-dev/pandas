@@ -534,35 +534,27 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        # assumes we already have matching alignment
-        if level is not None:
-            raise NotImplementedError("'level' argument is not supported")
-
-        if self.empty and other.empty:
-            return self._constructor(index=self.index).__finalize__(self)
+        this, other = self.align(other, join="outer", level=level, copy=False)
 
         new_data = {}
         if fill_value is not None:
             # TODO: be a bit more intelligent here
-            for col in self.columns:
-                if col in self and col in other:
-                    dleft = self[col].to_dense()
+            for col in this.columns:
+                if col in this and col in other:
+                    dleft = this[col].to_dense()
                     dright = other[col].to_dense()
                     result = dleft._binop(dright, func, fill_value=fill_value)
-                    result = result.to_sparse(fill_value=self[col].fill_value)
+                    result = result.to_sparse(fill_value=this[col].fill_value)
                     new_data[col] = result
         else:
 
-            for col in self.columns:
-                if col in self and col in other:
-                    new_data[col] = func(self[col], other[col])
+            for col in this.columns:
+                if col in this and col in other:
+                    new_data[col] = func(this[col], other[col])
 
-        return self._construct_result(other, new_data, func)
+        return this._construct_result(other, new_data, func)
 
     def _combine_match_index(self, other, func, level=None):
-
-        if level is not None:
-            raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
@@ -577,9 +569,6 @@ class SparseDataFrame(DataFrame):
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
         # possible for this to happen, which is bothersome
-
-        if level is not None:
-            raise NotImplementedError("'level' argument is not supported")
 
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
         assert left.columns.equals(right.index)

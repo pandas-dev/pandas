@@ -512,13 +512,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    return left._construct_result(right, new_data, func)
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
+    return new_data
 
 
 def dispatch_to_extension_op(op, left, right):
@@ -976,9 +970,8 @@ def _arith_method_FRAME(cls, op, special):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            left, other = self.align(other, join="outer", level=level, copy=False)
             pass_op = op if should_series_dispatch(self, other, op) else na_op
-            return left._combine_frame(other, pass_op, fill_value, level)
+            return self._combine_frame(other, pass_op, fill_value, level)
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
@@ -1024,7 +1017,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            return dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            return self._construct_result(other, new_data, na_op)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1054,7 +1048,8 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            return dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep)
+            return self._construct_result(other, new_data, func)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
