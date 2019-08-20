@@ -2110,7 +2110,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
-            **kwargs,
+            **kwargs
         )
         writer.write_file()
 
@@ -2136,7 +2136,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
-        **kwargs,
+        **kwargs
     ):
         """
         Write a DataFrame to the binary parquet format.
@@ -2212,7 +2212,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
-            **kwargs,
+            **kwargs
         )
 
     @Substitution(
@@ -4186,7 +4186,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
+        **kwargs
     ):
         return super().fillna(
             value=value,
@@ -4195,7 +4195,7 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
+            **kwargs
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
