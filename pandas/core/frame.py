@@ -5293,8 +5293,6 @@ class DataFrame(NDFrame):
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join="outer", level=level, copy=False)
 
-        # TODO: if fill_value is None, just set _arith_op=func?  costly since
-        #  called in a loop
         def _arith_op(left, right):
             # for the mixed_type case where we iterate over columns,
             # _arith_op(left, right) is equivalent to
