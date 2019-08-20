@@ -687,10 +687,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 behaviour and silence the warning.
 
         index : Index, optional
-            index of resulting Series. If None, defaults to original index
-        name : string, optional
-            name of resulting Series. If None, defaults to name of original
-            index
+            Index of resulting Series. If None, defaults to original index.
+        name : str, optional
+            Name of resulting Series. If None, defaults to name of original
+            index.
 
         Returns
         -------
