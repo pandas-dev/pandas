@@ -376,8 +376,7 @@ class TestPeriodConverter:
 
 
 class TestTimeDeltaConverter:
-    def timedelta_converter_method(self, method):
-        self.tdc = converter.TimeSeries_TimedeltaFormatter
+    """Test timedelta converter"""
 
     @pytest.mark.parametrize(
         "x, decimal, format_expected",
@@ -389,6 +388,6 @@ class TestTimeDeltaConverter:
         ],
     )
     def test_format_timedelta_ticks(self, x, decimal, format_expected):
-
-        result = self.tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
+        tdc = converter.TimeSeries_TimedeltaFormatter
+        result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
         assert result == format_expected
