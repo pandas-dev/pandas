@@ -1927,8 +1927,12 @@ class GroupBy(_GroupBy):
                 )
                 for qi in q
             ]
-            # fix levels to place quantiles on the inside
             result = concat(results, axis=0, keys=q)
+            # fix levels to place quantiles on the inside
+            # TODO(GH-10710): Ideally, we could write this as
+            #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
+            #  but this hits https://github.com/pandas-dev/pandas/issues/10710
+            #  which doesn't reorder the list-like `q` on the inner level.
             order = np.roll(list(range(result.index.nlevels)), -1)
             result = result.reorder_levels(order)
             result = result.reindex(q, level=-1)
