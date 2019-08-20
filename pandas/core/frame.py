@@ -2110,7 +2110,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
-            **kwargs
+            **kwargs,
         )
         writer.write_file()
 
@@ -2136,7 +2136,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Write a DataFrame to the binary parquet format.
@@ -2212,7 +2212,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(
@@ -4186,7 +4186,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         return super().fillna(
             value=value,
@@ -4195,7 +4195,7 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -6259,14 +6259,30 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        result = self[column].explode()
-        return (
+        if isinstance(self.index, MultiIndex):
+            index_names = [
+                f"level_{num}" if val is None else val
+                for num, val in enumerate(self.index.names)
+            ]
+        else:
+            index_names = [i if i else "index" for i in [self.index.name]]
+
+        column_with_index = self[column].reset_index()
+
+        result = (
             self.drop([column], axis=1)
-            .reset_index(drop=True)
-            .join(self[column].reset_index(drop=True).explode())
+            .reset_index()
+            .join(column_with_index[column].explode())
+            .set_index(index_names)
             .reindex(columns=self.columns, copy=False)
-            .set_index(result.index)
         )
+
+        if isinstance(self.index, MultiIndex):
+            result.index.names = self.index.names
+        else:
+            result.index.name = self.index.name
+
+        return result
 
     def unstack(self, level=-1, fill_value=None):
         """
@@ -6639,7 +6655,7 @@ class DataFrame(NDFrame):
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs
+        **_shared_doc_kwargs,
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
@@ -6681,7 +6697,7 @@ class DataFrame(NDFrame):
         reduce=None,
         result_type=None,
         args=(),
-        **kwds
+        **kwds,
     ):
         """
         Apply a function along an axis of the DataFrame.

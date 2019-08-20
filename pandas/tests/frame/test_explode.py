@@ -137,6 +137,19 @@ def test_usecase():
                 dtype=object,
             ),
         ),
+        (
+            pd.DataFrame(
+                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"], "my_index": [0, 0]}
+            ).set_index("my_index"),
+            pd.DataFrame(
+                {
+                    "col": [1, 2, 3, 4],
+                    "other_col": ["a", "a", "b", "b"],
+                    "my_index": [0, 0, 0, 0],
+                },
+                dtype=object,
+            ).set_index("my_index"),
+        ),
     ],
 )
 def test_duplicate_index(df, expected):
