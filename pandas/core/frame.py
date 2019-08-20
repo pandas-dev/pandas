@@ -6259,13 +6259,7 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        if isinstance(self.index, MultiIndex):
-            index_names = [
-                "level_{num}".format(num=num) if val is None else val
-                for num, val in enumerate(self.index.names)
-            ]
-        else:
-            index_names = [i if i else "index" for i in [self.index.name]]
+        named_index = any(i for i in self.index.names)
 
         column_with_index = self[column].reset_index()
 
@@ -6273,14 +6267,17 @@ class DataFrame(NDFrame):
             self.drop([column], axis=1)
             .reset_index()
             .join(column_with_index[column].explode())
-            .set_index(index_names)
-            .reindex(columns=self.columns, copy=False)
         )
 
         if isinstance(self.index, MultiIndex):
-            result.index.names = self.index.names
+            result.index = pandas.MultiIndex.from_frame(result.iloc[:, :self.index.nlevels])
         else:
-            result.index.name = self.index.name
+            result.index = result.iloc[:, 0]
+
+        if not named_index:
+            result.index.names = [None]*self.index.nlevels
+
+        result = result.reindex(columns=self.columns, copy=False)
 
         return result
 
