@@ -105,6 +105,7 @@ I/O
 ^^^
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 - Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
+- Follow the ``min_rows`` display option (introduced in v0.25.0) correctly in the html repr in the notebook (:issue:`27991`).
 -
 
 Plotting
@@ -121,6 +122,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
 - Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
 -
