@@ -2167,6 +2167,11 @@ class DataFrame(NDFrame):
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
 
+            .. versionchanged:: 1.0.0
+
+        partition_cols
+            Added ability to pass in a string for a single column name
+
         See Also
         --------
         read_parquet : Read a parquet file.

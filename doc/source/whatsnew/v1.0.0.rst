@@ -29,7 +29,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- String support for paramater partition_cols in the :func:`pandas.to_parquet` (:issue:`27117`)
 -
 
 .. _whatsnew_1000.api_breaking:

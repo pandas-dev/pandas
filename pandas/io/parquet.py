@@ -244,6 +244,11 @@ def to_parquet(
 
     kwargs
         Additional keyword arguments passed to the engine
+
+        .. versionchanged:: 1.0.0
+
+    partition_cols
+        Added ability to pass in a string for a single column name
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
