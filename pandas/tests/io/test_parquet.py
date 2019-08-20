@@ -453,7 +453,12 @@ class TestParquetPyArrow(Base):
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
-        df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
+        df = pd.DataFrame()
+        df["a"] = pd.Categorical(list("abcdef"))
+
+        # test for null, out-of-order values, and unobserved category
+        dtype = pd.CategoricalDtype(["foo", "bar", "baz"])
+        df["b"] = pd.Categorical.from_codes(codes=[1, 0, 0, 1, -1, 1], dtype=dtype)
 
         if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
             check_round_trip(df, pa)
