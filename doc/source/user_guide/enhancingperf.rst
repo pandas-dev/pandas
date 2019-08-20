@@ -243,8 +243,8 @@ We've gotten another big improvement. Let's check again where the time is spent:
 
 .. ipython:: python
 
-   %%prun -l 4 apply_integrate_f(df['a'].to_numpy(), 
-                                 df['b'].to_numpy(), 
+   %%prun -l 4 apply_integrate_f(df['a'].to_numpy(),
+                                 df['b'].to_numpy(),
                                  df['N'].to_numpy())
 
 As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
