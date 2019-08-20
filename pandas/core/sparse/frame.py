@@ -540,9 +540,6 @@ class SparseDataFrame(DataFrame):
         this, other = self.align(other, join="outer", level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
-        if self.empty and other.empty:
-            return self._constructor(index=new_index).__finalize__(self)
-
         new_data = {}
         if fill_value is not None:
             # TODO: be a bit more intelligent here
@@ -569,13 +566,13 @@ class SparseDataFrame(DataFrame):
         ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None):
-        new_data = {}
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
+        new_data = {}
         for col, series in this.items():
             new_data[col] = func(series.values, other.values)
 

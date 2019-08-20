@@ -169,7 +169,7 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
+    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
         # timedelta64 when operating with timedelta64
@@ -755,7 +755,7 @@ def _bool_method_SERIES(cls, op, special):
             assert not isinstance(y, (list, ABCSeries, ABCIndexClass))
             if isinstance(y, np.ndarray):
                 # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x) and is_bool_dtype(y))
+                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
                 x = ensure_object(x)
                 y = ensure_object(y)
                 result = libops.vec_binop(x, y, op)
@@ -804,7 +804,7 @@ def _bool_method_SERIES(cls, op, special):
 
         else:
             # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
             if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong

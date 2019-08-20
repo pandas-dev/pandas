@@ -5294,12 +5294,19 @@ class DataFrame(NDFrame):
         this, other = self.align(other, join="outer", level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
-        def _arith_op(left, right):
-            # for the mixed_type case where we iterate over columns,
-            # _arith_op(left, right) is equivalent to
-            # left._binop(right, func, fill_value=fill_value)
-            left, right = ops.fill_binop(left, right, fill_value)
-            return func(left, right)
+        if fill_value is None:
+            # since _arith_op may be called in a loop, avoid function call
+            #  overhead if possible by doing this check once
+            _arith_op = func
+
+        else:
+
+            def _arith_op(left, right):
+                # for the mixed_type case where we iterate over columns,
+                # _arith_op(left, right) is equivalent to
+                # left._binop(right, func, fill_value=fill_value)
+                left, right = ops.fill_binop(left, right, fill_value)
+                return func(left, right)
 
         if ops.should_series_dispatch(this, other, func):
             # iterate over columns
@@ -5312,7 +5319,7 @@ class DataFrame(NDFrame):
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
-        assert left.index.equals(right.index)
+        # at this point we have `left.index.equals(right.index)`
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
@@ -5325,14 +5332,13 @@ class DataFrame(NDFrame):
                 new_data, index=left.index, columns=self.columns, copy=False
             )
 
-    def _combine_match_columns(self, other, func, level=None):
-        assert isinstance(other, Series)
+    def _combine_match_columns(self, other: Series, func, level=None):
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
-        assert left.columns.equals(right.index)
+        # at this point we have `left.columns.equals(right.index)`
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func):
-        assert lib.is_scalar(other) or np.ndim(other) == 0
+        # scalar other or np.ndim(other) == 0
         return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
