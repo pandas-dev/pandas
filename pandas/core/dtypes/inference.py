@@ -462,8 +462,8 @@ def is_dataclass_instance(item):
 
     Returns
     --------
-    is_dataclass_instance : bool  
-        True if the item is an instance of a data-class, 
+    is_dataclass_instance : bool
+        True if the item is an instance of a data-class,
         will return false if you pass the data class itself
 
     Examples

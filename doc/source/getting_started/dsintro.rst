@@ -397,6 +397,27 @@ The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
 
+From a list of dataclasses
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+dataclasses as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`,
+can be passed into the DataFrame constructor.
+Passing a list of dataclasses is equivilent to passing a list of dictionaries. However,
+it is imperative that all values in the list are dataclasses otherwise expect a TypeError.
+
+.. ipython:: python
+
+    from dataclasses import make_dataclass
+
+    Point = make_dataclass("Point", [("x", int), ("y", int)])
+    HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
+    
+    data = [Point(0,0), HLine(0,3,10), Point(2,3)]
+    df = pd.DataFrame(data)
+
+.. _basics.dataframe.from_list_dataclasses:
+
+
 **Missing data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
