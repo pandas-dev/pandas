@@ -133,6 +133,9 @@ common_docstring = """
             (when number of rows is above `max_rows`).
         max_cols : int, optional
             Maximum number of columns to display in the console.
+        max_colwidth : int, optional
+            Maximum number of characters to show in each cell before truncating.
+            If None, show the full content.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
         decimal : str, default '.'
@@ -239,6 +242,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
+        max_colwidth: Optional[int] = None,
     ):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
@@ -249,6 +253,7 @@ class SeriesFormatter:
         self.index = index
         self.max_rows = max_rows
         self.min_rows = min_rows
+        self.max_colwidth = max_colwidth
 
         if float_format is None:
             float_format = get_option("display.float_format")
@@ -336,6 +341,7 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self) -> List[str]:
+
         return format_array(
             self.tr_series._values,
             None,
@@ -1025,7 +1031,10 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=(self.col_space or 0), adj=self.adj
+                    list(x),
+                    justify="left",
+                    minimum=(self.col_space or 0),
+                    adj=self.adjddddd,
                 )
             )
             for x in fmt_index
@@ -1709,13 +1718,8 @@ def _make_fixed_width(
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("display.max_colwidth")
-    if conf_max is not None and max_len > conf_max:
-        max_len = conf_max
-
-    # override the default if provided
-    if max_colwidth is not None:
-        max_len = max(max_len, max_colwidth)
+    if max_colwidth is not None and max_len > conf_max:
+        max_len = max_colwidth
 
     def just(x):
         if conf_max is not None:
