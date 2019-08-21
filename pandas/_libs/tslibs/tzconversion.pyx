@@ -5,7 +5,7 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT, PyDelta_Check, datetime, tzinfo)
+    PyDateTime_IMPORT, PyDelta_Check, datetime, tzinfo, datetime_new)
 PyDateTime_IMPORT
 
 import pytz
@@ -468,8 +468,8 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
         datetime dt
 
     dt64_to_dtstruct(val, &dts)
-    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us)
+    dt = datetime_new(dts.year, dts.month, dts.day,
+                      dts.hour, dts.min, dts.sec, dts.us, None)
     # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
     # is _wall time_, so if val is a UTC timestamp convert to wall time
     if not to_utc:

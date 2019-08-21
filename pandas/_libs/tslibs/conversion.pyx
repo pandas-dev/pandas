@@ -10,6 +10,7 @@ import pytz
 # stdlib datetime imports
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime, tzinfo,
+                               datetime_new,
                                PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -432,9 +433,10 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         return obj
 
     # Keep the converter same as PyDateTime's
-    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                  obj.dts.us, obj.tzinfo)
+    # datetime_new is a cython-fastpath for the datetime constructor
+    dt = datetime_new(obj.dts.year, obj.dts.month, obj.dts.day,
+                      obj.dts.hour, obj.dts.min, obj.dts.sec,
+                      obj.dts.us, obj.tzinfo)
     obj = convert_datetime_to_tsobject(
         dt, tz, nanos=obj.dts.ps // 1000)
     return obj
@@ -684,7 +686,8 @@ def normalize_date(dt: object) -> datetime:
             return dt.replace(hour=0, minute=0, second=0, microsecond=0)
             # TODO: Make sure DST crossing is handled correctly here
     elif PyDate_Check(dt):
-        return datetime(dt.year, dt.month, dt.day)
+        # datetime_new is a cython-fastpath for the datetime constructor
+        return datetime_new(dt.year, dt.month, dt.day, 0, 0, 0, 0, None)
     else:
         raise TypeError('Unrecognized type: %s' % type(dt))
 
