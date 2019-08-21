@@ -406,9 +406,9 @@ From a list of dataclasses
 
 Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
-Passing a list of dataclasses is equivilent to passing a list of dictionaries. 
+Passing a list of dataclasses is equivilent to passing a list of dictionaries.
 
-Please be aware, that that all values in the list should be dataclasses, mixing 
+Please be aware, that that all values in the list should be dataclasses, mixing
 types in the list would result in a TypeError.
 
 .. ipython:: python
@@ -416,11 +416,9 @@ types in the list would result in a TypeError.
     from dataclasses import make_dataclass
 
     Point = make_dataclass("Point", [("x", int), ("y", int)])
-    
+
     data = [Point(0,0), Point(0,3), Point(2,3)]
     df = pd.DataFrame(data)
-
-
 
 **Missing data**
 
