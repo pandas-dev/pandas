@@ -6270,13 +6270,9 @@ class DataFrame(NDFrame):
             result.index = pandas.MultiIndex.from_frame(
                 result.iloc[:, : self.index.nlevels]
             )
-            result.index.rename(
-                [i or None for num, i in enumerate(self.index.names)], inplace=True
-            )
         else:
             result.index = result.iloc[:, 0]
-            result.index.rename(self.index.name or None, inplace=True)
-
+        result.index.names = self.index.names
         result = result.reindex(columns=self.columns, copy=False)
 
         return result
