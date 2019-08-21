@@ -755,18 +755,16 @@ class TestPeriodIndexArithmetic:
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
+    def test_pi_add_offset_n_gt1(self, box):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
-        box, transpose = box_transpose_fail
-
         per = pd.Period("2016-01", freq="2M")
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(["2016-03"], freq="2M")
 
-        pi = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        pi = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -780,9 +778,8 @@ class TestPeriodIndexArithmetic:
         pi = pd.PeriodIndex(["2016-01"], freq="2M")
         expected = pd.PeriodIndex(["2016-04"], freq="2M")
 
-        # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        pi = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = pi + to_offset("3M")
         tm.assert_equal(result, expected)
@@ -984,16 +981,15 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng -= other
 
-    def test_parr_add_sub_td64_nat(self, box_transpose_fail):
+    def test_parr_add_sub_td64_nat(self, box):
         # GH#23320 special handling for timedelta64("NaT")
-        box, transpose = box_transpose_fail
 
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        obj = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
 
         result = obj + other
         tm.assert_equal(result, expected)

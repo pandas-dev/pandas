@@ -725,7 +725,18 @@ class NDFrame(PandasObject, SelectionMixin):
             new_values = new_values.copy()
 
         nv.validate_transpose(tuple(), kwargs)
-        return self._constructor(new_values, **new_axes).__finalize__(self)
+        result = self._constructor(new_values, **new_axes).__finalize__(self)
+
+        if len(self.columns) and (self.dtypes == self.dtypes.iloc[0]).all():
+            # FIXME: self.dtypes[0] can fail in tests
+            if is_extension_array_dtype(self.dtypes.iloc[0]):
+                # Retain ExtensionArray dtypes through transpose;
+                # TODO: this can be made cleaner if/when (N, 1) EA are allowed
+                dtype = self.dtypes[0]
+                for col in result.columns:
+                    result[col] = result[col].astype(dtype)
+
+        return result
 
     def swapaxes(self, axis1, axis2, copy=True):
         """

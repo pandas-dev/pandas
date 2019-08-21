@@ -153,12 +153,10 @@ class TestDatetime64ArrayLikeComparisons:
         ts = pd.Timestamp.now(tz)
         ser = pd.Series([ts, pd.NaT])
 
-        # FIXME: Can't transpose because that loses the tz dtype on
-        #  the NaT column
-        obj = tm.box_expected(ser, box, transpose=False)
+        obj = tm.box_expected(ser, box)
 
         expected = pd.Series([True, False], dtype=np.bool_)
-        expected = tm.box_expected(expected, xbox, transpose=False)
+        expected = tm.box_expected(expected, xbox)
 
         result = obj == ts
         tm.assert_equal(result, expected)
@@ -879,10 +877,8 @@ class TestDatetime64Arithmetic:
         other = np.timedelta64("NaT")
         expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
 
-        # FIXME: fails with transpose=True due to tz-aware DataFrame
-        #  transpose bug
-        obj = tm.box_expected(dti, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        obj = tm.box_expected(dti, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = obj + other
         tm.assert_equal(result, expected)

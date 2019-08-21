@@ -844,6 +844,22 @@ class TestDataFrameOperators:
 
 
 class TestTranspose:
+    @pytest.mark.parametrize(
+        "ser",
+        [
+            pd.date_range("2016-04-05 04:30", periods=3, tz="UTC"),
+            pd.period_range("1994", freq="A", periods=3),
+            pd.period_range("1969", freq="9s", periods=1),
+            pd.date_range("2016-04-05 04:30", periods=3).astype("category"),
+            pd.date_range("2016-04-05 04:30", periods=3, tz="UTC").astype("category"),
+        ],
+    )
+    def test_transpose_retains_extension_dtype(self, ser):
+        # case with more than 1 column, must have same dtype
+        df = pd.DataFrame({"a": ser, "b": ser})
+        result = df.T
+        assert (result.dtypes == ser.dtype).all()
+
     def test_transpose_tzaware_1col_single_tz(self):
         # GH#26825
         dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
