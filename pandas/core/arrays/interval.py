@@ -361,7 +361,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "from_tuples"
     ] = """
-    Construct an %(klass)s from an array-like of tuples
+    Construct an %(klass)s from an array-like of tuples.
 
     Parameters
     ----------
@@ -854,7 +854,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def left(self):
         """
         Return the left endpoints of each Interval in the IntervalArray as
-        an Index
+        an Index.
         """
         return self._left
 
@@ -862,7 +862,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def right(self):
         """
         Return the right endpoints of each Interval in the IntervalArray as
-        an Index
+        an Index.
         """
         return self._right
 
@@ -870,7 +870,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def closed(self):
         """
         Whether the intervals are closed on the left-side, right-side, both or
-        neither
+        neither.
         """
         return self._closed
 
@@ -878,7 +878,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         "set_closed"
     ] = """
         Return an %(klass)s identical to the current one, but closed on the
-        specified side
+        specified side.
 
         .. versionadded:: 0.24.0
 
@@ -917,7 +917,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def length(self):
         """
         Return an Index with entries denoting the length of each Interval in
-        the IntervalArray
+        the IntervalArray.
         """
         try:
             return self.right - self.left
@@ -945,7 +945,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ] = """
         Return True if the %(klass)s is non-overlapping (no Intervals share
         points) and is either monotonic increasing or monotonic decreasing,
-        else False
+        else False.
         """
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
@@ -995,7 +995,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "to_tuples"
     ] = """
-        Return an %(return_type)s of tuples of the form (left, right)
+        Return an %(return_type)s of tuples of the form (left, right).
 
         Parameters
         ----------
