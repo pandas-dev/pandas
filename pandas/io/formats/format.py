@@ -545,6 +545,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
+        max_colwidth: Optional[int] = None,
         show_dimensions: bool = False,
         decimal: str = ".",
         table_id: Optional[str] = None,
@@ -570,6 +571,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows = max_rows
         self.min_rows = min_rows
         self.max_cols = max_cols
+        self.max_colwidth = max_colwidth
         self.max_rows_displayed = min(max_rows or len(self.frame), len(self.frame))
         self.show_dimensions = show_dimensions
         self.table_id = table_id
@@ -692,11 +694,12 @@ class DataFrameFormatter(TableFormatter):
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(
+                mt_values = _make_fixed_width(
                     fmt_values,
                     self.justify,
                     minimum=(self.col_space or 0),
                     adj=self.adj,
+                    max_colwidth=self.max_colwidth,
                 )
                 stringified.append(fmt_values)
         else:
@@ -728,7 +731,11 @@ class DataFrameFormatter(TableFormatter):
                 )
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
+                    fmt_values,
+                    self.justify,
+                    minimum=header_colwidth,
+                    max_colwidth=self.max_colwidth,
+                    adj=self.adj,
                 )
 
                 max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
@@ -1688,6 +1695,7 @@ def _make_fixed_width(
     justify: str = "right",
     minimum: Optional[int] = None,
     adj: Optional[TextAdjustment] = None,
+    max_colwidth: Optional[int] = None,
 ) -> List[str]:
 
     if len(strings) == 0 or justify == "all":
@@ -1704,6 +1712,10 @@ def _make_fixed_width(
     conf_max = get_option("display.max_colwidth")
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
+
+    # override the default if provided
+    if max_colwidth is not None:
+        max_len = max(max_len, max_colwidth)
 
     def just(x):
         if conf_max is not None:

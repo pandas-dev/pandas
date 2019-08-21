@@ -637,6 +637,7 @@ class DataFrame(NDFrame):
         max_rows = get_option("display.max_rows")
         min_rows = get_option("display.min_rows")
         max_cols = get_option("display.max_columns")
+        max_colwidth = get_option("display.max_colwidth")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = console.get_console_size()
@@ -648,6 +649,7 @@ class DataFrame(NDFrame):
             min_rows=min_rows,
             max_cols=max_cols,
             line_width=width,
+            max_colwidth=max_colwidth,
             show_dimensions=show_dimensions,
         )
 
@@ -707,11 +709,14 @@ class DataFrame(NDFrame):
         max_cols=None,
         show_dimensions=False,
         decimal=".",
+        max_colwidth=None,
         line_width=None,
     ):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
+        max_colwidth : int, optional
+            Max width to truncate each column in characters.
         line_width : int, optional
             Width to wrap a line in characters.
         %(returns)s
@@ -729,7 +734,6 @@ class DataFrame(NDFrame):
         1     2     5
         2     3     6
         """
-
         formatter = fmt.DataFrameFormatter(
             self,
             columns=columns,
@@ -747,6 +751,7 @@ class DataFrame(NDFrame):
             max_cols=max_cols,
             show_dimensions=show_dimensions,
             decimal=decimal,
+            max_colwidth=max_colwidth,
             line_width=line_width,
         )
         return formatter.to_string(buf=buf)
