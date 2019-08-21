@@ -22,7 +22,6 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._config import get_option
-
 from pandas._libs import algos as libalgos, lib
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
@@ -709,7 +708,7 @@ class DataFrame(NDFrame):
         max_cols=None,
         show_dimensions=False,
         decimal=".",
-        max_colwidth=None,
+        max_colwidth=0,
         line_width=None,
     ):
         """
@@ -734,27 +733,29 @@ class DataFrame(NDFrame):
         1     2     5
         2     3     6
         """
-        formatter = fmt.DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            formatters=formatters,
-            float_format=float_format,
-            sparsify=sparsify,
-            justify=justify,
-            index_names=index_names,
-            header=header,
-            index=index,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            max_cols=max_cols,
-            show_dimensions=show_dimensions,
-            decimal=decimal,
-            max_colwidth=max_colwidth,
-            line_width=line_width,
-        )
-        return formatter.to_string(buf=buf)
+
+        from pandas import option_context
+        with option_context('display.max_colwidth', max_colwidth):
+            formatter = fmt.DataFrameFormatter(
+                self,
+                columns=columns,
+                col_space=col_space,
+                na_rep=na_rep,
+                formatters=formatters,
+                float_format=float_format,
+                sparsify=sparsify,
+                justify=justify,
+                index_names=index_names,
+                header=header,
+                index=index,
+                min_rows=min_rows,
+                max_rows=max_rows,
+                max_cols=max_cols,
+                show_dimensions=show_dimensions,
+                decimal=decimal,
+                line_width=line_width,
+            )
+            return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 

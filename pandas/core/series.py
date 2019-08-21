@@ -1571,11 +1571,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if get_option("display.max_rows") == 0
             else get_option("display.min_rows")
         )
-        max_colwidth = (
-            None
-            if get_option("display.max_colwidth") == 0
-            else get_option("display.min_colwidth")
-        )
         show_dimensions = get_option("display.show_dimensions")
 
         self.to_string(
@@ -1584,7 +1579,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             dtype=self.dtype,
             min_rows=min_rows,
             max_rows=max_rows,
-            max_colwidth=max_colwidth,
             length=show_dimensions,
         )
         result = buf.getvalue()
@@ -1603,7 +1597,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         name=False,
         max_rows=None,
         min_rows=None,
-        max_colwidth=None,
     ):
         """
         Render a string representation of the Series.
@@ -1633,9 +1626,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         min_rows : int, optional
             The number of rows to display in a truncated repr (when number
             of rows is above `max_rows`).
-        max_colwidth : int, optional
-            Maximum number of characters to show in each cell before truncating.
-            If None, show the full content.
 
         Returns
         -------
@@ -1654,7 +1644,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             float_format=float_format,
             min_rows=min_rows,
             max_rows=max_rows,
-            max_colwidth=max_colwidth,
         )
         result = formatter.to_string()
 
