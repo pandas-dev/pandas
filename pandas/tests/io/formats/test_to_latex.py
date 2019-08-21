@@ -440,15 +440,13 @@ b &       b &     b \\
 
     def test_to_latex_caption_label(self):
         # GH 25436
-        the_caption = 'a table in a \\texttt{table/tabular} environment'
-        the_label = 'tab:table_tabular'
+        the_caption = "a table in a \\texttt{table/tabular} environment"
+        the_label = "tab:table_tabular"
 
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
         # test when only the caption is provided
-        result_c = df.to_latex(
-            caption=the_caption
-        )
+        result_c = df.to_latex(caption=the_caption)
 
         expected_c = r"""\begin{table}
 \centering
@@ -466,9 +464,7 @@ b &       b &     b \\
         assert result_c == expected_c
 
         # test when only the label is provided
-        result_l = df.to_latex(
-            label=the_label
-        )
+        result_l = df.to_latex(label=the_label)
 
         expected_l = r"""\begin{table}
 \centering
@@ -486,10 +482,7 @@ b &       b &     b \\
         assert result_l == expected_l
 
         # test when the caption and the label are provided
-        result_cl = df.to_latex(
-            caption=the_caption,
-            label=the_label
-        )
+        result_cl = df.to_latex(caption=the_caption, label=the_label)
 
         expected_cl = r"""\begin{table}
 \centering
@@ -509,16 +502,13 @@ b &       b &     b \\
 
     def test_to_latex_longtable_caption_label(self):
         # GH 25436
-        the_caption = 'a table in a \\texttt{longtable} environment'
-        the_label = 'tab:longtable'
+        the_caption = "a table in a \\texttt{longtable} environment"
+        the_label = "tab:longtable"
 
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
         # test when only the caption is provided
-        result_c = df.to_latex(
-            longtable=True,
-            caption=the_caption
-        )
+        result_c = df.to_latex(longtable=True, caption=the_caption)
 
         expected_c = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\\
@@ -540,10 +530,7 @@ b &       b &     b \\
         assert result_c == expected_c
 
         # test when only the label is provided
-        result_l = df.to_latex(
-            longtable=True,
-            label=the_label,
-        )
+        result_l = df.to_latex(longtable=True, label=the_label)
 
         expected_l = r"""\begin{longtable}{lrl}
 \label{tab:longtable}\\
@@ -565,11 +552,7 @@ b &       b &     b \\
         assert result_l == expected_l
 
         # test when the caption and the label are provided
-        result_cl = df.to_latex(
-            longtable=True,
-            caption=the_caption,
-            label=the_label,
-        )
+        result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
 
         expected_cl = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\

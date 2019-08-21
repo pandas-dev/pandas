@@ -121,7 +121,7 @@ class LatexFormatter(TableFormatter):
         else:
             self._write_tabular_begin(buf, column_format)
 
-        buf.write('\\toprule\n')
+        buf.write("\\toprule\n")
 
         ilevels = self.frame.index.nlevels
         clevels = self.frame.columns.nlevels
@@ -287,24 +287,21 @@ class LatexFormatter(TableFormatter):
         if self.caption is not None or self.label is not None:
             # then write output in a nested table/tabular environment
             if self.caption is None:
-                caption_ = ''
+                caption_ = ""
             else:
-                caption_ = '\n\\caption{{{}}}'.format(self.caption)
+                caption_ = "\n\\caption{{{}}}".format(self.caption)
 
             if self.label is None:
-                label_ = ''
+                label_ = ""
             else:
-                label_ = '\n\\label{{{}}}'.format(self.label)
+                label_ = "\n\\label{{{}}}".format(self.label)
 
-            buf.write('\\begin{{table}}\n\\centering{}{}\n'.format(
-                caption_,
-                label_
-            ))
+            buf.write("\\begin{{table}}\n\\centering{}{}\n".format(caption_, label_))
         else:
             # then write output only in a tabular environment
             pass
 
-        buf.write('\\begin{{tabular}}{{{fmt}}}\n'.format(fmt=column_format))
+        buf.write("\\begin{{tabular}}{{{fmt}}}\n".format(fmt=column_format))
 
     def _write_tabular_end(self, buf):
         """
@@ -318,10 +315,10 @@ class LatexFormatter(TableFormatter):
             a string.
 
         """
-        buf.write('\\bottomrule\n')
-        buf.write('\\end{tabular}\n')
+        buf.write("\\bottomrule\n")
+        buf.write("\\end{tabular}\n")
         if self.caption is not None or self.label is not None:
-            buf.write('\\end{table}\n')
+            buf.write("\\end{table}\n")
         else:
             pass
 
@@ -341,23 +338,23 @@ class LatexFormatter(TableFormatter):
             for 3 columns
 
         """
-        buf.write('\\begin{{longtable}}{{{fmt}}}\n'.format(fmt=column_format))
+        buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
 
         if self.caption is not None or self.label is not None:
             if self.caption is None:
                 pass
             else:
-                buf.write('\\caption{{{}}}'.format(self.caption))
+                buf.write("\\caption{{{}}}".format(self.caption))
 
             if self.label is None:
                 pass
             else:
-                buf.write('\\label{{{}}}'.format(self.label))
+                buf.write("\\label{{{}}}".format(self.label))
 
             # a double-backslash is required at the end of the line
             # as discussed here:
             # https://tex.stackexchange.com/questions/219138
-            buf.write('\\\\\n')
+            buf.write("\\\\\n")
         else:
             pass
 
@@ -373,4 +370,4 @@ class LatexFormatter(TableFormatter):
             a string.
 
         """
-        buf.write('\\end{longtable}\n')
+        buf.write("\\end{longtable}\n")
