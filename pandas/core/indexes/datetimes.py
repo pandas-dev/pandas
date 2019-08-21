@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
+from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
 import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -464,14 +464,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if self._has_same_tz(value):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
-
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -1281,7 +1273,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 raise ValueError("Passed item and index have different timezone")
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
-                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq

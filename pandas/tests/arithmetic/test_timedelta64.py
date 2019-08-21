@@ -18,6 +18,7 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
+from pandas.tests.arithmetic.test_datetime64 import assert_invalid_comparison
 import pandas.util.testing as tm
 
 
@@ -61,42 +62,33 @@ class TestTimedelta64ArrayLikeComparisons:
             # zero-dim of wrong dtype should still raise
             tdi >= np.array(4)
 
+    @pytest.mark.parametrize(
+        "td_scalar",
+        [timedelta(days=1), Timedelta(days=1), Timedelta(days=1).to_timedelta64()],
+    )
+    def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
+        # regression test for GH#5963
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+        ser = pd.Series([timedelta(days=1), timedelta(days=2)])
+        ser = tm.box_expected(ser, box)
+        actual = ser > td_scalar
+        expected = pd.Series([False, True])
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(actual, expected)
+
+    @pytest.mark.parametrize("invalid", [345600000000000, "a"])
+    def test_td64_comparisons_invalid(self, box_with_array, invalid):
+        # GH#13624 for str
+        box = box_with_array
+        rng = timedelta_range("1 days", periods=10)
+        obj = tm.box_expected(rng, box)
+
+        assert_invalid_comparison(obj, invalid, box)
+
 
 class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
-
-    def test_compare_timedelta_series(self):
-        # regression test for GH#5963
-        s = pd.Series([timedelta(days=1), timedelta(days=2)])
-        actual = s > timedelta(days=1)
-        expected = pd.Series([False, True])
-        tm.assert_series_equal(actual, expected)
-
-    def test_tdi_cmp_str_invalid(self, box_with_array):
-        # GH#13624
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
-        tdi = TimedeltaIndex(["1 day", "2 days"])
-        tdarr = tm.box_expected(tdi, box_with_array)
-
-        for left, right in [(tdarr, "a"), ("a", tdarr)]:
-            with pytest.raises(TypeError):
-                left > right
-            with pytest.raises(TypeError):
-                left >= right
-            with pytest.raises(TypeError):
-                left < right
-            with pytest.raises(TypeError):
-                left <= right
-
-            result = left == right
-            expected = np.array([False, False], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-            tm.assert_equal(result, expected)
-
-            result = left != right
-            expected = np.array([True, True], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_comp_nat(self, dtype):
@@ -190,10 +182,6 @@ class TestTimedelta64ArrayComparisons:
         result = rng < rng[3]
         expected = np.array([True, True, True] + [False] * 7)
         tm.assert_numpy_array_equal(result, expected)
-
-        # raise TypeError for now
-        with pytest.raises(TypeError):
-            rng < rng[3].value
 
         result = rng == list(rng)
         exp = rng == rng
@@ -835,19 +823,10 @@ class TestTimedeltaArraylikeAddSubOps:
     # -------------------------------------------------------------
     # Invalid Operations
 
-    def test_td64arr_add_str_invalid(self, box_with_array):
-        # GH#13624
+    @pytest.mark.parametrize("other", ["a", 3.14, np.array([2.0, 3.0])])
+    def test_td64arr_add_sub_invalid(self, box_with_array, other):
+        # GH#13624 for str
         tdi = TimedeltaIndex(["1 day", "2 days"])
-        tdi = tm.box_expected(tdi, box_with_array)
-
-        with pytest.raises(TypeError):
-            tdi + "a"
-        with pytest.raises(TypeError):
-            "a" + tdi
-
-    @pytest.mark.parametrize("other", [3.14, np.array([2.0, 3.0])])
-    def test_td64arr_add_sub_float(self, box_with_array, other):
-        tdi = TimedeltaIndex(["-1 days", "-1 days"])
         tdarr = tm.box_expected(tdi, box_with_array)
 
         with pytest.raises(TypeError):
@@ -1399,8 +1378,12 @@ class TestTimedeltaArraylikeAddSubOps:
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
     )
-    def test_td64arr_sub_offset_index(self, names, box):
+    def test_td64arr_sub_offset_index(self, names, box_with_array):
         # GH#18824, GH#19744
+        box = box_with_array
+        xbox = box if box is not tm.to_array else pd.Index
+        exname = names[2] if box is not tm.to_array else names[1]
+
         if box is pd.DataFrame and names[1] == "bar":
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
@@ -1411,11 +1394,11 @@ class TestTimedeltaArraylikeAddSubOps:
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
 
         expected = TimedeltaIndex(
-            [tdi[n] - other[n] for n in range(len(tdi))], freq="infer", name=names[2]
+            [tdi[n] - other[n] for n in range(len(tdi))], freq="infer", name=exname
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
@@ -1631,7 +1614,7 @@ class TestTimedeltaArraylikeMulDivOps:
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
 
-        with pytest.raises(TypeError, match="'?true_divide'? cannot use operands"):
+        with pytest.raises(TypeError, match="unsupported operand type"):
             rng / pd.NaT
         with pytest.raises(TypeError, match="Cannot divide NaTType by"):
             pd.NaT / rng
