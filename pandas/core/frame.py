@@ -6260,7 +6260,6 @@ class DataFrame(NDFrame):
             raise ValueError("columns must be unique")
 
         column_with_index = self[column].reset_index()
-
         result = (
             self.drop([column], axis=1)
             .reset_index()
