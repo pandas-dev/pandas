@@ -183,11 +183,13 @@ def test_usecase():
         (
             pd.DataFrame(
                 {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"]},
-                pd.MultiIndex.from_arrays([[0, 0], [1, 1]], names=['foo', None]),
+                pd.MultiIndex.from_arrays([[0, 0], [1, 1]], names=["foo", None]),
             ),
             pd.DataFrame(
                 {"col": [1, 2, 3, 4], "other_col": ["a", "a", "b", "b"]},
-                pd.MultiIndex.from_arrays([[0, 0, 0, 0], [1, 1, 1, 1]], names=['foo', None]),
+                pd.MultiIndex.from_arrays(
+                    [[0, 0, 0, 0], [1, 1, 1, 1]], names=["foo", None]
+                ),
                 dtype=object,
             ),
         ),
