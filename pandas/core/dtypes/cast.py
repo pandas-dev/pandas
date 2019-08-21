@@ -1026,7 +1026,7 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
             )
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
-                if (dtype.kind == "M") and (dtype.name != "datetime64[ps]"):
+                if dtype.kind == "M":
                     if dtype.name == "datetime64":
                         raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _NS_DTYPE
@@ -1044,7 +1044,7 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
-                if (dtype.kind == "m") and (dtype.name != "timedelta64[ps]"):
+                if dtype.kind == "m":
                     if dtype.name == "timedelta64":
                         raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _TD_DTYPE
@@ -1055,7 +1055,7 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     )
 
             if is_scalar(value):
-                if value is iNaT or isna(value):
+                if value == iNaT or isna(value):
                     value = iNaT
             else:
                 value = np.array(value, copy=False)
