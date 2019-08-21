@@ -149,6 +149,8 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
+    from pandas.core.arrays import TimedeltaArray
+
     if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
@@ -161,9 +163,6 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
             #  we broadcast and wrap in a TimedeltaArray
             obj = obj.astype("timedelta64[ns]")
             right = np.broadcast_to(obj, shape)
-
-            from pandas.core.arrays import TimedeltaArray
-
             return TimedeltaArray(right)
 
         # In particular non-nanosecond timedelta64 needs to be cast to
@@ -175,8 +174,6 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
         # timedelta64 when operating with timedelta64
-        from pandas.core.arrays import TimedeltaArray
-
         return TimedeltaArray._from_sequence(obj)
     return obj
 
