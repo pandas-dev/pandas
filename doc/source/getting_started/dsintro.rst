@@ -401,7 +401,7 @@ From a list of dataclasses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.0.0
-dataclasses as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`,
+Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivilent to passing a list of dictionaries. However,
 it is imperative that all values in the list are dataclasses otherwise expect a TypeError.
