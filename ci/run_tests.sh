@@ -51,8 +51,9 @@ do
     sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
 
     if [[ "$COVERAGE" && $? == 0 ]]; then
+        SHA=`git rev-parse HEAD`
         echo "uploading coverage for $TYPE tests"
-        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
+        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME -C $SHA"
+              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME -C `git rev-parse HEAD`
     fi
 done
