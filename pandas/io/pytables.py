@@ -998,7 +998,7 @@ class HDFStore:
                 return None
 
         # remove the node
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2634,7 +2634,7 @@ class Fixed:
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -3202,7 +3202,9 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(
                 "block{idx}_values".format(idx=i), start=_start, stop=_stop
             )
-            blk = make_block(values, placement=items.get_indexer(blk_items))
+            blk = make_block(
+                values, placement=items.get_indexer(blk_items), ndim=len(axes)
+            )
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
@@ -4462,7 +4464,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)))
+            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))
 

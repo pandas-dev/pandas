@@ -33,8 +33,6 @@ from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
-    _get_all_lines,
-    _get_xlim,
     _handle_shared_axes,
     _subplots,
     format_date_labels,
@@ -106,6 +104,7 @@ class MPLPlot:
         colormap=None,
         table=False,
         layout=None,
+        include_bool=False,
         **kwds
     ):
 
@@ -191,6 +190,7 @@ class MPLPlot:
             self.colormap = colormap
 
         self.table = table
+        self.include_bool = include_bool
 
         self.kwds = kwds
 
@@ -400,9 +400,20 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
-        numeric_data = data.select_dtypes(
-            include=[np.number, "datetime", "datetimetz", "timedelta"]
-        )
+        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+
+        # GH23719, allow plotting boolean
+        if self.include_bool is True:
+            include_type.append(np.bool_)
+
+        # GH22799, exclude datatime-like type for boxplot
+        exclude_type = None
+        if self._kind == "box":
+            # TODO: change after solving issue 27881
+            include_type = [np.number]
+            exclude_type = ["timedelta"]
+
+        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
             is_empty = numeric_data.empty
@@ -549,7 +560,7 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg = self._get_ax_legend(self.axes[0])
+        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
 
         handles = []
         labels = []
@@ -558,7 +569,8 @@ class MPLPlot:
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                handles = leg.legendHandles
+                # Replace leg.LegendHandles because it misses marker info
+                handles.extend(handle)
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -568,6 +580,7 @@ class MPLPlot:
 
                 handles += self.legend_handles
                 labels += self.legend_labels
+
                 if self.legend_title is not None:
                     title = self.legend_title
 
@@ -579,8 +592,14 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend(self, ax):
+    def _get_ax_legend_handle(self, ax):
+        """
+        Take in axes and return ax, legend and handle under different scenarios
+        """
         leg = ax.get_legend()
+
+        # Get handle from axes
+        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -588,7 +607,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg
+        return ax, leg, handle
 
     @cache_readonly
     def plt(self):
@@ -654,7 +673,7 @@ class MPLPlot:
     def _get_index_name(self):
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
-            if com._any_not_none(*name):
+            if com.any_not_none(*name):
                 name = ",".join(pprint_thing(x) for x in name)
             else:
                 name = None
@@ -1054,7 +1073,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = com._any_not_none(*self.errors.values())
+        is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -1080,9 +1099,8 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            # GH27686 set_xlim will truncate xaxis to fixed space
+            ax.relim()
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):

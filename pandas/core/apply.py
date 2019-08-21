@@ -221,7 +221,7 @@ class FrameApply:
         """ apply to the values as a numpy array """
 
         try:
-            result = reduction.reduce(self.values, self.f, axis=self.axis)
+            result = reduction.compute_reduction(self.values, self.f, axis=self.axis)
         except Exception:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
@@ -281,7 +281,7 @@ class FrameApply:
             dummy = Series(empty_arr, index=index, dtype=values.dtype)
 
             try:
-                result = reduction.reduce(
+                result = reduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
                 return self.obj._constructor_sliced(result, index=labels)
