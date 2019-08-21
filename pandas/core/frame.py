@@ -16,7 +16,6 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
-
 import warnings
 
 import numpy as np
@@ -54,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
+    is_dataclass_instance,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
@@ -72,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     needs_i8_conversion,
-    is_dataclass_instance,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -101,6 +100,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
+    _dataclasses_to_dicts,
     arrays_to_mgr,
     get_names_from_index,
     init_dict,
@@ -109,7 +109,6 @@ from pandas.core.internals.construction import (
     reorder_arrays,
     sanitize_index,
     to_arrays,
-    _dataclasses_to_dicts,
 )
 from pandas.core.series import Series
 
