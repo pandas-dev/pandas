@@ -33,6 +33,8 @@ from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
+    _get_all_lines,
+    _get_xlim,
     _handle_shared_axes,
     _subplots,
     format_date_labels,
@@ -1099,8 +1101,13 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            # GH27686 set_xlim will truncate xaxis to fixed space
-            ax.relim()
+            if self._is_ts_plot():
+
+                # reset of xlim should be used for ts data
+                # TODO: GH28021, should find a way to change view limit on xaxis
+                lines = _get_all_lines(ax)
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
