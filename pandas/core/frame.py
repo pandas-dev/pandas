@@ -708,14 +708,14 @@ class DataFrame(NDFrame):
         max_cols=None,
         show_dimensions=False,
         decimal=".",
-        max_colwidth=0,
+        max_colwidth=9999999,
         line_width=None,
     ):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
         max_colwidth : int, optional
-            Max width to truncate each column in characters.
+            Max width to truncate each column in characters. By default, no limit.
         line_width : int, optional
             Width to wrap a line in characters.
         %(returns)s
