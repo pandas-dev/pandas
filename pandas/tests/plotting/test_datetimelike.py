@@ -530,7 +530,7 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
-        rs = xaxis.get_majorticklocs()[1]
+        rs = xaxis.get_majorticklocs()[0]
         xp = Period("1/1/1999", freq="Min").ordinal
 
         assert rs == xp
@@ -542,7 +542,7 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
-        rs = xaxis.get_majorticklocs()[1]
+        rs = xaxis.get_majorticklocs()[0]
         xp = Period("1/1/1999", freq="H").ordinal
 
         assert rs == xp
@@ -1418,9 +1418,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        expected_labels = [
-            "00:00:00.0000000{:0>2d}".format(i) for i in np.arange(0, 10, 2)
-        ]
+        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
@@ -1430,8 +1428,8 @@ class TestTSPlot(TestPlotBase):
         labels = ax.get_xticklabels()
 
         result_labels = [x.get_text() for x in labels]
-        assert (len(result_labels) - 2) == len(expected_labels)
-        assert result_labels[1:-1] == expected_labels
+        assert len(result_labels) == len(expected_labels)
+        assert result_labels == expected_labels
 
     def test_format_timedelta_ticks_wide(self):
         expected_labels = [
@@ -1454,8 +1452,8 @@ class TestTSPlot(TestPlotBase):
         labels = ax.get_xticklabels()
 
         result_labels = [x.get_text() for x in labels]
-        assert (len(result_labels) - 2) == len(expected_labels)
-        assert result_labels[1:-1] == expected_labels
+        assert len(result_labels) == len(expected_labels)
+        assert result_labels == expected_labels
 
     def test_timedelta_plot(self):
         # test issue #8711
