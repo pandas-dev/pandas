@@ -415,7 +415,7 @@ def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
     ):
         return True
 
-    if is_extension_array_dtype(right) and not is_scalar(right):
+    if not is_scalar(right) and is_extension_array_dtype(right):
         # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
         return True
 
