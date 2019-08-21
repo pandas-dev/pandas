@@ -23,7 +23,7 @@ Enhancements
 
 .. _whatsnew_1000.enhancements.other:
 
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 -
 
 Other enhancements
