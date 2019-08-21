@@ -195,11 +195,11 @@ def _dt_array_cmp(cls, op):
                 return invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                # We have to use _comp_method_OBJECT_ARRAY instead of numpy
+                # We have to use comp_method_OBJECT_ARRAY instead of numpy
                 #  comparison otherwise it would fail to raise when
                 #  comparing tz-aware and tz-naive
                 with np.errstate(all="ignore"):
-                    result = ops._comp_method_OBJECT_ARRAY(
+                    result = ops.comp_method_OBJECT_ARRAY(
                         op, self.astype(object), other
                     )
                 o_mask = isna(other)

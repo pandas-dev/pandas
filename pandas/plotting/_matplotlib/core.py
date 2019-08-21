@@ -33,8 +33,6 @@ from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
-    _get_all_lines,
-    _get_xlim,
     _handle_shared_axes,
     _subplots,
     format_date_labels,
@@ -562,7 +560,7 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg = self._get_ax_legend(self.axes[0])
+        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
 
         handles = []
         labels = []
@@ -571,7 +569,8 @@ class MPLPlot:
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                handles = leg.legendHandles
+                # Replace leg.LegendHandles because it misses marker info
+                handles.extend(handle)
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -581,6 +580,7 @@ class MPLPlot:
 
                 handles += self.legend_handles
                 labels += self.legend_labels
+
                 if self.legend_title is not None:
                     title = self.legend_title
 
@@ -592,8 +592,14 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend(self, ax):
+    def _get_ax_legend_handle(self, ax):
+        """
+        Take in axes and return ax, legend and handle under different scenarios
+        """
         leg = ax.get_legend()
+
+        # Get handle from axes
+        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -601,7 +607,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg
+        return ax, leg, handle
 
     @cache_readonly
     def plt(self):
@@ -1093,9 +1099,8 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            # GH27686 set_xlim will truncate xaxis to fixed space
+            ax.relim()
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
