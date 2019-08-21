@@ -655,7 +655,7 @@ class TestDataFrameToCSV(TestData):
             df = _make_frame(True)
             df.to_csv(path, index=False)
             result = read_csv(path, header=[0, 1])
-            assert com._all_none(*result.columns.names)
+            assert com.all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 
