@@ -684,7 +684,8 @@ class DataFrame(NDFrame):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
             )
-            return formatter.to_html(notebook=True)
+            formatter.to_html(notebook=True)
+            return formatter.buf.getvalue()
         else:
             return None
 
