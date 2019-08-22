@@ -2,12 +2,11 @@
 
 .. currentmodule:: pandas
 
-
-{{ header }}
-
 .. ipython:: python
    :suppress:
 
+   import pandas as pd
+   pd.options.display.max_rows = 15
    clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
                          index=['x', 'y', 'z'])
 
@@ -363,6 +362,8 @@ columns:
 
 .. ipython:: python
 
+    import numpy as np
+    np.set_printoptions(precision=4, suppress=True)
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -447,7 +448,6 @@ worth trying.
    :suppress:
 
    import os
-
    os.remove('foo.csv')
 
 .. _io.categorical:
@@ -1579,6 +1579,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
    :suppress:
 
+   np.random.seed(123456)
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv('tmp.sv', sep='|')
    df.to_csv('tmp2.sv', sep=':')
@@ -5562,10 +5563,8 @@ Given the next test set:
 
 .. code-block:: python
 
-   from numpy.random import randn
-
    sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
 
    def test_sql_write(df):
