@@ -243,8 +243,8 @@ def test_max_sas_date(datapath):
                 datetime.strptime("9999-12-29 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
                 datetime.strptime("2019-08-01 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
             ],
-            "date_as_float": [float(2936547), float(21762)],
             "date_as_date": [date(9999, 12, 29), date(2019, 8, 1)],
-        }
+            "date_as_float": [float(2936547), float(21762)],
+        }, columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"]
     )
     tm.assert_frame_equal(df, expected)
