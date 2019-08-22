@@ -1175,7 +1175,9 @@ class HDFStore:
 
     def groups(self):
         """
-        Return a list of all the top-level nodes (that are not themselves a pandas storage object).
+        Return a list of all the top-level nodes.
+
+        Each node returned is not a pandas storage object.
 
         Returns
         -------
