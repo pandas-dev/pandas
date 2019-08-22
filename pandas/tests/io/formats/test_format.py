@@ -528,7 +528,7 @@ class TestDataFrameFormatting:
                     "a": "foo",
                     "b": "bar",
                     "c": "let's make this a very VERY long line that is longer "
-                         "than the default 50 character limit",
+                    "than the default 50 character limit",
                     "d": 1,
                 },
                 {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
