@@ -267,6 +267,25 @@ class TestSeriesAlterAxes:
         expected = Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
 
+    def test_rename_with_custom_indexer(self):
+        # GH 27814
+        class MyIndexer:
+            pass
+
+        ix = MyIndexer()
+        s = Series([1, 2, 3]).rename(ix)
+        assert s.name is ix
+
+    def test_rename_with_custom_indexer_inplace(self):
+        # GH 27814
+        class MyIndexer:
+            pass
+
+        ix = MyIndexer()
+        s = Series([1, 2, 3])
+        s.rename(ix, inplace=True)
+        assert s.name is ix
+
     def test_set_axis_inplace_axes(self, axis_series):
         # GH14636
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
