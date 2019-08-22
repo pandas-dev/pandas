@@ -2,14 +2,6 @@
 
 .. currentmodule:: pandas
 
-.. ipython:: python
-   :suppress:
-
-   import pandas as pd
-   pd.options.display.max_rows = 15
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
 
 ===============================
 IO tools (text, CSV, HDF5, ...)
@@ -136,7 +128,9 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from io import StringIO, BytesIO
+     import pandas as pd
+     pd.options.display.max_rows = 15
+     from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -757,6 +751,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
+   from io import BytesIO
    data = (b'word,length\n'
            b'Tr\xc3\xa4umen,7\n'
            b'Gr\xc3\xbc\xc3\x9fe,5')
@@ -3267,6 +3262,12 @@ clipboard (CTRL-C on many operating systems):
 
 And then import the data directly to a ``DataFrame`` by calling:
 
+.. ipython:: python
+   :suppress:
+
+   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
+                         index=['x', 'y', 'z'])
+
 .. code-block:: python
 
     >>> clipdf = pd.read_clipboard()
@@ -5562,6 +5563,8 @@ ignored.
 Given the next test set:
 
 .. code-block:: python
+
+   import os
 
    sz = 1000000
    df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
