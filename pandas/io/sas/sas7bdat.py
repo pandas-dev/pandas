@@ -705,7 +705,10 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
-                    warn_msg = "date > pandas.Timestamp.max, returning datetime.datetime objects instead"
+                    warn_msg = (
+                        "date > pandas.Timestamp.max, returning "
+                        "datetime.datetime objects instead"
+                    )
                     if self.column_formats[j] in const.sas_date_formats:
                         try:
                             rslt[name] = pd.to_datetime(
@@ -713,7 +716,8 @@ class SAS7BDATReader(BaseIterator):
                             )
                         except OutOfBoundsDatetime:
                             # convert to datetime.datetime rather than np.datetime64
-                            # nb generally better support in pandas for datetime than for date
+                            # nb generally better support in pandas for datetime than
+                            # date
                             warn(warn_msg)
                             rslt[name] = rslt[name].apply(
                                 lambda sas_date_float: datetime(1960, 1, 1)
