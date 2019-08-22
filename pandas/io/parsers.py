@@ -579,7 +579,6 @@ def _make_parser_function(name, default_sep=","):
         escapechar=None,
         comment=None,
         encoding=None,
-        auto_encode=True,
         dialect=None,
         # Error Handling
         error_bad_lines=True,
@@ -664,7 +663,6 @@ def _make_parser_function(name, default_sep=","):
             usecols=usecols,
             verbose=verbose,
             encoding=encoding,
-            auto_encode=auto_encode,
             squeeze=squeeze,
             memory_map=memory_map,
             float_precision=float_precision,
