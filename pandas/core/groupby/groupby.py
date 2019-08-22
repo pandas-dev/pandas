@@ -1872,6 +1872,7 @@ class GroupBy(_GroupBy):
         a    2.0
         b    3.0
         """
+        from pandas import concat
 
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
@@ -1899,18 +1900,57 @@ class GroupBy(_GroupBy):
 
             return vals
 
-        return self._get_cythonized_result(
-            "group_quantile",
-            self.grouper,
-            aggregate=True,
-            needs_values=True,
-            needs_mask=True,
-            cython_dtype=np.float64,
-            pre_processing=pre_processor,
-            post_processing=post_processor,
-            q=q,
-            interpolation=interpolation,
-        )
+        if is_scalar(q):
+            return self._get_cythonized_result(
+                "group_quantile",
+                self.grouper,
+                aggregate=True,
+                needs_values=True,
+                needs_mask=True,
+                cython_dtype=np.float64,
+                pre_processing=pre_processor,
+                post_processing=post_processor,
+                q=q,
+                interpolation=interpolation,
+            )
+        else:
+            results = [
+                self._get_cythonized_result(
+                    "group_quantile",
+                    self.grouper,
+                    aggregate=True,
+                    needs_values=True,
+                    needs_mask=True,
+                    cython_dtype=np.float64,
+                    pre_processing=pre_processor,
+                    post_processing=post_processor,
+                    q=qi,
+                    interpolation=interpolation,
+                )
+                for qi in q
+            ]
+            result = concat(results, axis=0, keys=q)
+            # fix levels to place quantiles on the inside
+            # TODO(GH-10710): Ideally, we could write this as
+            #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
+            #  but this hits https://github.com/pandas-dev/pandas/issues/10710
+            #  which doesn't reorder the list-like `q` on the inner level.
+            order = np.roll(list(range(result.index.nlevels)), -1)
+            result = result.reorder_levels(order)
+            result = result.reindex(q, level=-1)
+
+            # fix order.
+            hi = len(q) * self.ngroups
+            arr = np.arange(0, hi, self.ngroups)
+            arrays = []
+
+            for i in range(self.ngroups):
+                arr = arr + i
+                arrays.append(arr)
+
+            indices = np.concatenate(arrays)
+            assert len(indices) == len(result)
+            return result.take(indices)
 
     @Substitution(name="groupby")
     def ngroup(self, ascending=True):
