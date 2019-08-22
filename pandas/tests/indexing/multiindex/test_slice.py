@@ -1,3 +1,5 @@
+from warnings import catch_warnings
+
 import numpy as np
 import pytest
 
@@ -10,6 +12,7 @@ from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
 
@@ -634,6 +637,8 @@ class TestMultiIndexSlicers:
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
             tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
+            with catch_warnings(record=True):
+                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
 
         assert_slices_equivalent(SLC[::-1], SLC[::-1])
 

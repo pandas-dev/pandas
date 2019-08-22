@@ -1,6 +1,6 @@
 """ test positional based indexing with iloc """
 
-from warnings import catch_warnings, simplefilter
+from warnings import catch_warnings, filterwarnings, simplefilter
 
 import numpy as np
 import pytest
@@ -461,6 +461,71 @@ class TestiLoc(Base):
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
+
+    def test_iloc_getitem_frame(self):
+        df = DataFrame(
+            np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0, 8, 2)
+        )
+
+        result = df.iloc[2]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            exp = df.ix[4]
+        tm.assert_series_equal(result, exp)
+
+        result = df.iloc[2, 2]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            exp = df.ix[4, 4]
+        assert result == exp
+
+        # slice
+        result = df.iloc[4:8]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[8:14]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[:, 2:3]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[:, 4:5]
+        tm.assert_frame_equal(result, expected)
+
+        # list of integers
+        result = df.iloc[[0, 1, 3]]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[[0, 2, 6]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[[0, 1, 3], [0, 1]]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[[0, 2, 6], [0, 2]]
+        tm.assert_frame_equal(result, expected)
+
+        # neg indices
+        result = df.iloc[[-1, 1, 3], [-1, 1]]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[[18, 2, 6], [6, 2]]
+        tm.assert_frame_equal(result, expected)
+
+        # dups indices
+        result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[[18, 18, 2, 6], [6, 2]]
+        tm.assert_frame_equal(result, expected)
+
+        # with index-like
+        s = Series(index=range(1, 5))
+        result = df.iloc[s.index]
+        with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
+            expected = df.ix[[2, 4, 6, 8]]
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_labelled_frame(self):
         # try with labelled frame

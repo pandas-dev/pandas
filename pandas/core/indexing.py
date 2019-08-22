@@ -10,8 +10,10 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
+    ensure_platform_int,
     is_float,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_numeric_dtype,
@@ -32,6 +34,7 @@ from pandas.core.indexers import is_list_like_indexer, length_of_indexer
 def get_indexers_list():
 
     return [
+        ("ix", _IXIndexer),
         ("iloc", _iLocIndexer),
         ("loc", _LocIndexer),
         ("at", _AtIndexer),
@@ -110,7 +113,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    # TODO: remove once geopandas no longer needs this
+    def __iter__(self):
+        raise NotImplementedError("ix is not iterable")
+
     def __getitem__(self, key):
         # Used in ix and downstream in geopandas _CoordinateIndexer
         if type(key) is tuple:
@@ -142,42 +147,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
-
-    # TODO: remove once geopandas no longer needs __getitem__
-    def _getitem_axis(self, key, axis: int):
-        if is_iterator(key):
-            key = list(key)
-        self._validate_key(key, axis)
-
-        labels = self.obj._get_axis(axis)
-        if isinstance(key, slice):
-            return self._get_slice_axis(key, axis=axis)
-        elif is_list_like_indexer(key) and not (
-            isinstance(key, tuple) and isinstance(labels, MultiIndex)
-        ):
-
-            if hasattr(key, "ndim") and key.ndim > 1:
-                raise ValueError("Cannot index with multidimensional key")
-
-            return self._getitem_iterable(key, axis=axis)
-        else:
-
-            # maybe coerce a float scalar to integer
-            key = labels._maybe_cast_indexer(key)
-
-            if is_integer(key):
-                if axis == 0 and isinstance(labels, MultiIndex):
-                    try:
-                        return self._get_label(key, axis=axis)
-                    except (KeyError, TypeError):
-                        if self.obj.index.levels[0].is_integer():
-                            raise
-
-                # this is the fallback! (for a non-float, non-integer index)
-                if not labels.is_floating() and not labels.is_integer():
-                    return self._get_loc(key, axis=axis)
-
-            return self._get_label(key, axis=axis)
 
     def _get_label(self, label, axis: int):
         if self.ndim == 1:
@@ -943,6 +912,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
 
+        # to avoid wasted computation
+        # df.ix[d1:d2, 0] -> columns first (True)
+        # df.ix[0, ['C', 'B', A']] -> rows first (False)
         for i, key in enumerate(tup):
             if is_label_like(key) or isinstance(key, tuple):
                 section = self._getitem_axis(key, axis=i)
@@ -1022,6 +994,41 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 axis -= 1
 
         return obj
+
+    def _getitem_axis(self, key, axis: int):
+        if is_iterator(key):
+            key = list(key)
+        self._validate_key(key, axis)
+
+        labels = self.obj._get_axis(axis)
+        if isinstance(key, slice):
+            return self._get_slice_axis(key, axis=axis)
+        elif is_list_like_indexer(key) and not (
+            isinstance(key, tuple) and isinstance(labels, MultiIndex)
+        ):
+
+            if hasattr(key, "ndim") and key.ndim > 1:
+                raise ValueError("Cannot index with multidimensional key")
+
+            return self._getitem_iterable(key, axis=axis)
+        else:
+
+            # maybe coerce a float scalar to integer
+            key = labels._maybe_cast_indexer(key)
+
+            if is_integer(key):
+                if axis == 0 and isinstance(labels, MultiIndex):
+                    try:
+                        return self._get_label(key, axis=axis)
+                    except (KeyError, TypeError):
+                        if self.obj.index.levels[0].is_integer():
+                            raise
+
+                # this is the fallback! (for a non-float, non-integer index)
+                if not labels.is_floating() and not labels.is_integer():
+                    return self._get_loc(key, axis=axis)
+
+            return self._get_label(key, axis=axis)
 
     def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
         """
@@ -1277,6 +1284,102 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         indexer = self._convert_slice_indexer(slice_obj, axis)
         return self._slice(indexer, axis=axis, kind="iloc")
+
+
+class _IXIndexer(_NDFrameIndexer):
+    """
+    A primarily label-location based indexer, with integer position
+    fallback.
+
+    Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
+    favor of the more strict .iloc and .loc indexers.
+
+    ``.ix[]`` supports mixed integer and label based access. It is
+    primarily label based, but will fall back to integer positional
+    access unless the corresponding axis is of integer type.
+
+    ``.ix`` is the most general indexer and will support any of the
+    inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating
+    point label schemes. ``.ix`` is exceptionally useful when dealing
+    with mixed positional and label based hierarchical indexes.
+
+    However, when an axis is integer based, ONLY label based access
+    and not positional access is supported. Thus, in such cases, it's
+    usually better to be explicit and use ``.iloc`` or ``.loc``.
+
+    See more at :ref:`Advanced Indexing <advanced>`.
+    """
+
+    _ix_deprecation_warning = textwrap.dedent(
+        """
+        .ix is deprecated. Please use
+        .loc for label based indexing or
+        .iloc for positional indexing
+
+        See the documentation here:
+        http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#ix-indexer-is-deprecated"""  # noqa: E501
+    )
+
+    def __init__(self, name, obj):
+        warnings.warn(self._ix_deprecation_warning, FutureWarning, stacklevel=2)
+        super().__init__(name, obj)
+
+    @Appender(_NDFrameIndexer._validate_key.__doc__)
+    def _validate_key(self, key, axis: int):
+        if isinstance(key, slice):
+            return True
+
+        elif com.is_bool_indexer(key):
+            return True
+
+        elif is_list_like_indexer(key):
+            return True
+
+        else:
+
+            self._convert_scalar_indexer(key, axis)
+
+        return True
+
+    def _convert_for_reindex(self, key, axis: int):
+        """
+        Transform a list of keys into a new array ready to be used as axis of
+        the object we return (e.g. including NaNs).
+
+        Parameters
+        ----------
+        key : list-like
+            Target labels
+        axis: int
+            Where the indexing is being made
+
+        Returns
+        -------
+        list-like of labels
+        """
+        labels = self.obj._get_axis(axis)
+
+        if com.is_bool_indexer(key):
+            key = check_bool_indexer(labels, key)
+            return labels[key]
+
+        if isinstance(key, Index):
+            keyarr = labels._convert_index_indexer(key)
+        else:
+            # asarray can be unsafe, NumPy strings are weird
+            keyarr = com.asarray_tuplesafe(key)
+
+        if is_integer_dtype(keyarr):
+            # Cast the indexer to uint64 if possible so
+            # that the values returned from indexing are
+            # also uint64.
+            keyarr = labels._convert_arr_indexer(keyarr)
+
+            if not labels.is_integer():
+                keyarr = ensure_platform_int(keyarr)
+                return labels.take(keyarr)
+
+        return keyarr
 
 
 class _LocationIndexer(_NDFrameIndexer):
