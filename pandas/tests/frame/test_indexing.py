@@ -821,6 +821,14 @@ class TestDataFrameIndexing(TestData):
         df[df > df2] = 47
         assert_frame_equal(df, df2)
 
+    def test_setitem_with_empty_listlike(self):
+        # GH #17101
+        index = pd.Index([], name="idx")
+        result = pd.DataFrame(columns=["A"], index=index)
+        result["A"] = []
+        expected = pd.DataFrame(columns=["A"], index=index)
+        tm.assert_index_equal(result.index, expected.index)
+
     def test_setitem_scalars_no_index(self):
         # GH16823 / 17894
         df = DataFrame()

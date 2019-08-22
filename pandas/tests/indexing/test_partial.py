@@ -442,10 +442,10 @@ class TestPartialSetting:
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
+        expected = DataFrame(columns=["foo"], index=Index([], dtype="object"))
 
         def f():
-            df = DataFrame()
+            df = DataFrame(index=Index([], dtype="object"))
             df["foo"] = Series([], dtype="object")
             return df
 
@@ -469,22 +469,21 @@ class TestPartialSetting:
         expected["foo"] = expected["foo"].astype("float64")
 
         def f():
-            df = DataFrame()
+            df = DataFrame(index=Index([], dtype="int64"))
             df["foo"] = []
             return df
 
         tm.assert_frame_equal(f(), expected)
 
         def f():
-            df = DataFrame()
+            df = DataFrame(index=Index([], dtype="int64"))
             df["foo"] = Series(np.arange(len(df)), dtype="float64")
             return df
 
         tm.assert_frame_equal(f(), expected)
 
         def f():
-            df = DataFrame()
-            tm.assert_index_equal(df.index, Index([], dtype="object"))
+            df = DataFrame(index=Index([], dtype="int64"))
             df["foo"] = range(len(df))
             return df
 
