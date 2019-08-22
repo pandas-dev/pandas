@@ -341,6 +341,7 @@ class SeriesFormatter:
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            justify=self.justify,
         )
 
     def to_string(self) -> str:
@@ -912,6 +913,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space,
             decimal=self.decimal,
+            justify=self.justify,
         )
 
     def to_html(
@@ -1685,7 +1687,7 @@ def _get_format_timedelta64(
 
 def _make_fixed_width(
     strings: List[str],
-    justify: str = "right",
+    justify: str = "default",
     minimum: Optional[int] = None,
     adj: Optional[TextAdjustment] = None,
 ) -> List[str]:

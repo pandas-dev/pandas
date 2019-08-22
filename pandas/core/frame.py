@@ -709,7 +709,7 @@ class DataFrame(NDFrame):
         max_cols=None,
         show_dimensions=False,
         decimal=".",
-        max_colwidth=9999999,
+        max_colwidth=None,
         line_width=None,
     ):
         """
