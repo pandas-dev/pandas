@@ -808,6 +808,11 @@ class TestSparseArray:
         exp = SparseArray([-1, -1, -1, -1], fill_value=0, dtype=np.float64)
         tm.assert_sp_array_equal(res, exp)
 
+        s = SparseArray([1, np.nan, np.nan, np.nan], fill_value=0)
+        res = s.fillna(None, method="constant")
+        exp = s
+        tm.assert_sp_array_equal(res, exp)
+
         # float dtype's fill_value is np.nan, replaced by -1
         s = SparseArray([0.0, 0.0, 0.0, 0.0])
         res = s.fillna(-1)

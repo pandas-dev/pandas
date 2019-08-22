@@ -219,7 +219,7 @@ def test_fillna():
 
     msg = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill"
-        r" \(bfill\) or nearest\. Got 0"
+        r" \(bfill\), constant, or nearest\. Got 0"
     )
     with pytest.raises(ValueError, match=msg):
         r.fillna(0)

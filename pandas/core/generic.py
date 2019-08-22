@@ -6194,7 +6194,7 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        if value is None:
+        if value is None and method is not None:
 
             if self._is_mixed_type and axis == 1:
                 if inplace:

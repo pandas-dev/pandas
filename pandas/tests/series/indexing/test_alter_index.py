@@ -245,7 +245,7 @@ def test_reindex_corner(test_data):
     ts = test_data.ts[::2]
     msg = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill"
-        r" \(bfill\) or nearest\. Got foo"
+        r" \(bfill\), constant, or nearest\. Got foo"
     )
     with pytest.raises(ValueError, match=msg):
         ts.reindex(test_data.ts.index, method="foo")

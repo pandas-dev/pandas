@@ -401,6 +401,11 @@ class TestFloat64Index(Numeric):
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp)
 
+    def test_fillna_None(self):
+        idx = Index([1.0, np.nan, 3.0], dtype=float, name="x")
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
     def test_take_fill_value(self):
         # GH 12631
         idx = pd.Float64Index([1.0, 2.0, 3.0], name="xxx")

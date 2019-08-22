@@ -74,7 +74,7 @@ def mask_missing(arr, values_to_mask):
 
 def clean_fill_method(method, allow_nearest=False):
     # asfreq is compat for resampling
-    if method in [None, "asfreq"]:
+    if method in [None, "asfreq", "constant"]:
         return None
 
     if isinstance(method, str):
@@ -84,16 +84,17 @@ def clean_fill_method(method, allow_nearest=False):
         elif method == "bfill":
             method = "backfill"
 
-    valid_methods = ["pad", "backfill"]
-    expecting = "pad (ffill) or backfill (bfill)"
+    valid_methods = ["pad", "backfill", "constant"]
+    expecting = "pad (ffill), backfill (bfill), or constant"
     if allow_nearest:
         valid_methods.append("nearest")
-        expecting = "pad (ffill), backfill (bfill) or nearest"
+        expecting = "pad (ffill), backfill (bfill), constant, or nearest"
     if method not in valid_methods:
         msg = "Invalid fill method. Expecting {expecting}. Got {method}".format(
             expecting=expecting, method=method
         )
         raise ValueError(msg)
+
     return method
 
 

@@ -122,8 +122,8 @@ class TestSeriesReplace(TestData):
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
         msg = (
-            r"Invalid fill method\. Expecting pad \(ffill\) or backfill"
-            r" \(bfill\)\. Got crash_cymbal"
+            r"Invalid fill method\. Expecting pad \(ffill\), backfill"
+            r" \(bfill\), or constant\. Got crash_cymbal"
         )
         with pytest.raises(ValueError, match=msg):
             s.replace([1, 2, 3], inplace=True, method="crash_cymbal")

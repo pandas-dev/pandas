@@ -955,20 +955,20 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if (method is None and value is None) or (
-            method is not None and value is not None
+        if (method is None and value in (None, "constant")) or (
+            method is not None and value not in (None, "constant")
         ):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
-        elif method is not None:
+        elif method not in (None, "constant"):
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
             filled = interpolate_2d(np.asarray(self), method=method, limit=limit)
             return type(self)(filled, fill_value=self.fill_value)
 
         else:
-            new_values = np.where(isna(self.sp_values), value, self.sp_values)
-
+            new_values = self.sp_values.copy()
+            new_values[isna(self.sp_values)] = value
             if self._null_fill_value:
                 # This is essentially just updating the dtype.
                 new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)

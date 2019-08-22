@@ -721,6 +721,12 @@ class TestDataFrameMissingData:
         res = df.add(2, fill_value=0)
         assert_frame_equal(res, exp)
 
+    def test_fillna_None(self):
+        df = DataFrame({"a": [1, 2, np.nan], "b": ['a', None, 'c']})
+        exp = df.fillna(None, method="constant")
+        res = exp
+        assert_frame_equal(res, exp)
+
 
 class TestDataFrameInterpolate:
     def test_interp_basic(self):

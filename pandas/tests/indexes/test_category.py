@@ -985,6 +985,11 @@ class TestCategoricalIndex(Base):
         with pytest.raises(ValueError, match=msg):
             idx.fillna(2.0)
 
+        # fill by None
+        idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name="x")
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
     def test_take_fill_value(self):
         # GH 12631
 

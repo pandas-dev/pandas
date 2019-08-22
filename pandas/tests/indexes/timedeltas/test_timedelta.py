@@ -63,6 +63,18 @@ class TestTimedeltaIndex(DatetimeLike):
         )
         tm.assert_index_equal(idx.fillna("x"), exp)
 
+        # fill None
+        idx = pd.TimedeltaIndex(["1 day", pd.NaT, "3 day"])
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
+        # fill None on object
+        exp = pd.Index(
+            [pd.Timedelta("1 day"), None, pd.Timedelta("3 day")], dtype=object
+        )
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
     @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: Difference of TimedeltaIndex should not preserve frequency

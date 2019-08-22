@@ -1813,8 +1813,6 @@ class Categorical(ExtensionArray, PandasObject):
             value, method, validate_scalar_dict_value=False
         )
 
-        if value is None:
-            value = np.nan
         if limit is not None:
             raise NotImplementedError(
                 "specifying a limit for fillna has not been implemented yet"

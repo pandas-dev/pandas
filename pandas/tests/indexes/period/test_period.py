@@ -93,6 +93,24 @@ class TestPeriodIndex(DatetimeLike):
         )
         tm.assert_index_equal(idx.fillna(pd.Period("2011-01-01", freq="D")), exp)
 
+        # fill None
+        idx = pd.PeriodIndex(["2011-01-01 09:00", pd.NaT, "2011-01-01 11:00"], freq="H")
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
+        # fill None on object
+        idx = pd.Index(
+            [
+                pd.Period("2011-01-01 09:00", freq="H"),
+                None,
+                pd.Period("2011-01-01 11:00", freq="H"),
+                "x",
+            ],
+            dtype=object,
+        )
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
     def test_no_millisecond_field(self):
         msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):

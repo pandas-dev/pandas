@@ -356,17 +356,18 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
-    elif value is None and method is not None:
-        method = clean_fill_method(method)
+    elif value is None and method not in (None, "constant"):
+        pass
 
-    elif value is not None and method is None:
+    elif value is not None and method in (None, "constant"):
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
             raise TypeError(
                 '"value" parameter must be a scalar or dict, but '
                 'you passed a "{0}"'.format(type(value).__name__)
             )
 
-    elif value is not None and method is not None:
+    elif value is not None and method not in (None, "constant"):
         raise ValueError("Cannot specify both 'value' and 'method'.")
 
+    method = clean_fill_method(method)
     return value, method

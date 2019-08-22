@@ -60,3 +60,21 @@ class TestDatetimeIndex:
             dtype=object,
         )
         tm.assert_index_equal(idx.fillna("x"), exp)
+
+        # fill None
+        idx = pd.DatetimeIndex(["2011-01-01 09:00", pd.NaT, "2011-01-01 11:00"])
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
+
+        # fill None on object
+        idx = pd.Index(
+            [
+                pd.Timestamp("2011-01-01 09:00", tz=tz),
+                None,
+                pd.Timestamp("2011-01-01 11:00", tz=tz),
+                "x",
+            ],
+            dtype=object,
+        )
+        exp = idx
+        tm.assert_index_equal(idx.fillna(None), exp)
