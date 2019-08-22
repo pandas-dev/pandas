@@ -22,6 +22,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._config import get_option
+
 from pandas._libs import algos as libalgos, lib
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
