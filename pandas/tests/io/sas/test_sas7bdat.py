@@ -245,6 +245,7 @@ def test_max_sas_date(datapath):
             ],
             "date_as_date": [date(9999, 12, 29), date(2019, 8, 1)],
             "date_as_float": [float(2936547), float(21762)],
-        }, columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"]
+        },
+        columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
     tm.assert_frame_equal(df, expected)
