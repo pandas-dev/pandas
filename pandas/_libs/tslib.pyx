@@ -71,7 +71,7 @@ cdef inline object create_time_from_ts(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
+def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                        str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
