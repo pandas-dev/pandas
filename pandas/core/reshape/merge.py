@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetimelike,
     is_dtype_equal,
@@ -1653,7 +1652,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
+            if is_datetimelike(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
