@@ -30,11 +30,8 @@ class TestFreqConversion:
         assert week1.asfreq("D", "E") >= per1
         assert week2.asfreq("D", "S") <= per2
 
-    @pytest.mark.xfail(
-        reason="GH#19643 period_helper asfreq functions fail to check for overflows"
-    )
     def test_to_timestamp_out_of_bounds(self):
-        # GH#19643, currently gives Timestamp('1754-08-30 22:43:41.128654848')
+        # GH#19643, used to incorrectly give Timestamp in 1754
         per = Period("0001-01-01", freq="B")
         with pytest.raises(OutOfBoundsDatetime):
             per.to_timestamp()
