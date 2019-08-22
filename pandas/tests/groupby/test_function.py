@@ -1238,6 +1238,57 @@ def test_quantile(interpolation, a_vals, b_vals, q):
     tm.assert_frame_equal(result, expected)
 
 
+def test_quantile_array():
+    # https://github.com/pandas-dev/pandas/issues/27526
+    df = pd.DataFrame({"A": [0, 1, 2, 3, 4]})
+    result = df.groupby([0, 0, 1, 1, 1]).quantile([0.25])
+
+    index = pd.MultiIndex.from_product([[0, 1], [0.25]])
+    expected = pd.DataFrame({"A": [0.25, 2.50]}, index=index)
+    tm.assert_frame_equal(result, expected)
+
+    df = pd.DataFrame({"A": [0, 1, 2, 3], "B": [4, 5, 6, 7]})
+    index = pd.MultiIndex.from_product([[0, 1], [0.25, 0.75]])
+
+    result = df.groupby([0, 0, 1, 1]).quantile([0.25, 0.75])
+    expected = pd.DataFrame(
+        {"A": [0.25, 0.75, 2.25, 2.75], "B": [4.25, 4.75, 6.25, 6.75]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_array_no_sort():
+    df = pd.DataFrame({"A": [0, 1, 2], "B": [3, 4, 5]})
+    result = df.groupby([1, 0, 1], sort=False).quantile([0.25, 0.5, 0.75])
+    expected = pd.DataFrame(
+        {"A": [0.5, 1.0, 1.5, 1.0, 1.0, 1.0], "B": [3.5, 4.0, 4.5, 4.0, 4.0, 4.0]},
+        index=pd.MultiIndex.from_product([[1, 0], [0.25, 0.5, 0.75]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1, 0, 1], sort=False).quantile([0.75, 0.25])
+    expected = pd.DataFrame(
+        {"A": [1.5, 0.5, 1.0, 1.0], "B": [4.5, 3.5, 4.0, 4.0]},
+        index=pd.MultiIndex.from_product([[1, 0], [0.75, 0.25]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_array_multiple_levels():
+    df = pd.DataFrame(
+        {"A": [0, 1, 2], "B": [3, 4, 5], "c": ["a", "a", "a"], "d": ["a", "a", "b"]}
+    )
+    result = df.groupby(["c", "d"]).quantile([0.25, 0.75])
+    index = pd.MultiIndex.from_tuples(
+        [("a", "a", 0.25), ("a", "a", 0.75), ("a", "b", 0.25), ("a", "b", 0.75)],
+        names=["c", "d", None],
+    )
+    expected = pd.DataFrame(
+        {"A": [0.25, 0.75, 2.0, 2.0], "B": [3.25, 3.75, 5.0, 5.0]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_quantile_raises():
     df = pd.DataFrame(
         [["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"]
