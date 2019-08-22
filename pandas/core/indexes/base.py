@@ -178,7 +178,7 @@ class Index(IndexOpsMixin, PandasObject):
         Make a copy of input ndarray
     name : object, optional
         Name to be stored in the index
-    names: tuple of objects, optional
+    names : tuple of objects, optional
         Names to be stored in the index (only accepts tuple of length 1)
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
