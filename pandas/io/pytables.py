@@ -432,6 +432,7 @@ class HDFStore:
 
     """
     Dict-like IO interface for storing pandas objects in PyTables.
+
     Either Fixed or Table format.
 
     Parameters
@@ -564,7 +565,7 @@ class HDFStore:
 
     def keys(self):
         """
-        Return a (potentially unordered) list of the keys corresponding to the objects stored in the HDFStore.
+        Return a list of keys corresponding to objects stored in HDFStore.
 
         Returns
         -------
@@ -939,12 +940,12 @@ class HDFStore:
 
         Parameters
         ----------
-        key      : object
-        value    : {Series, DataFrame}
-        format   : 'Fixed(f)|Table(t)', default is 'fixed'
-            Fixed(f) : Fixed format
+        key : object
+        value : {Series, DataFrame}
+        format : 'fixed(f)|table(t)', default is 'fixed'
+            fixed(f) : Fixed format
                        Fast writing/reading. Not-appendable, nor searchable.
-            Table(t) : Table format
+            table(t) : Table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
                        / selecting subsets of the data.
@@ -1213,7 +1214,7 @@ class HDFStore:
 
         Parameters
         ----------
-        where : str, optional, default "/"
+        where : str, default "/"
             Group where to start walking.
 
         Yields

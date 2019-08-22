@@ -234,7 +234,11 @@ class DateOffset(BaseOffset):
 
     See Also
     --------
-    dateutil.relativedelta.relativedelta :     The relativedelta type is designed to be applied to an existing datetime an can replace specific components of that datetime, or represents an interval of time.
+    dateutil.relativedelta.relativedelta : The relativedelta type is designed
+
+    to be applied to an existing datetime an can replace specific components of
+
+    that datetime, or represents an interval of time.
 
     Examples
     --------

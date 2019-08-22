@@ -422,8 +422,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
-    elif encoding is None and kwds.get("auto_encode"):
-        kwds["encoding"] = 'auto'
 
     compression = kwds.get("compression", "infer")
     compression = _infer_compression(filepath_or_buffer, compression)
