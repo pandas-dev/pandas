@@ -1549,7 +1549,11 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    PY35, reason="Parsing as Period('0007-01-01', 'D') for reasons unknown", strict=True
+    # xpassing on MacPython with strict=False
+    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
+    PY35,
+    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
+    strict=False,
 )
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
