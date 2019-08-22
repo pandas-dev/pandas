@@ -13,7 +13,7 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import struct
 
 import numpy as np
@@ -25,6 +25,8 @@ import pandas as pd
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
+
+from warnings import warn
 
 
 class _subheader_pointer:
@@ -703,15 +705,18 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
+                    warn_msg = "date > pandas.Timestamp.max, returning datetime.datetime objects instead"
                     if self.column_formats[j] in const.sas_date_formats:
                         try:
                             rslt[name] = pd.to_datetime(
                                 rslt[name], unit="d", origin="1960-01-01"
                             )
                         except OutOfBoundsDatetime:
-                            # convert to datetime.date rather than np.datetime64
+                            # convert to datetime.datetime rather than np.datetime64
+                            # nb generally better support in pandas for datetime than for date
+                            warn(warn_msg)
                             rslt[name] = rslt[name].apply(
-                                lambda sas_date_float: date(1960, 1, 1)
+                                lambda sas_date_float: datetime(1960, 1, 1)
                                 + timedelta(days=sas_date_float)
                             )
                     elif self.column_formats[j] in const.sas_datetime_formats:
@@ -723,6 +728,7 @@ class SAS7BDATReader(BaseIterator):
                             # convert to datetime.date rather than np.datetime64
                             # SAS float64 lacks precision for more than ms
                             # resolution so the fit to datetime.datetime is ok
+                            warn(warn_msg)
                             rslt[name] = rslt[name].apply(
                                 lambda sas_date_float: datetime(1960, 1, 1)
                                 + timedelta(seconds=sas_date_float)

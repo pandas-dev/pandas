@@ -220,32 +220,83 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
+def round_datetime_to_ms(ts):
+    if isinstance(ts, datetime):
+        return ts.replace(microsecond=int(round(ts.microsecond, -3) / 1000) * 1000)
+    else:
+        return ts
+
+
 def test_max_sas_date(datapath):
     # GH 20927
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
     #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
     #    sas7bdat module
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
-    df = pd.read_sas(fname, encoding="iso-8859-1")
+    with pytest.warns(UserWarning):
+        df = pd.read_sas(fname, encoding="iso-8859-1")
     # SAS likes to left pad strings with spaces - lstrip before comparing
     df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
     # GH 19732: Timestamps imported from sas will incur floating point errors
-    df = df.applymap(
-        lambda x: x.replace(microsecond=round(x.microsecond, -3))
-        if isinstance(x, datetime)
-        else x
-    )
+    df = df.applymap(round_datetime_to_ms)
+    # if there are any date/times > pandas.Timestamp.max then ALL in that chunk
+    # are returned as datetime.datetime
     expected = pd.DataFrame(
         {
             "text": ["max", "normal"],
             "dt_as_float": [253717747199.999, 1880323199.999],
             "dt_as_dt": [
-                datetime.strptime("9999-12-29 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
-                datetime.strptime("2019-08-01 23:59:59.999", "%Y-%m-%d %H:%M:%S.%f"),
+                datetime(9999, 12, 29, 23, 59, 59, 999000),
+                datetime(2019, 8, 1, 23, 59, 59, 999000),
             ],
-            "date_as_date": [date(9999, 12, 29), date(2019, 8, 1)],
             "date_as_float": [float(2936547), float(21762)],
+            "date_as_date": [datetime(9999, 12, 29), datetime(2019, 8, 1)],
         },
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_max_sas_date_iterator(datapath):
+    # GH 20927
+    # when called as an iterator, only those chunks with a date > pd.Timestamp.max
+    # are returned as datetime.datetime, if this happens that whole chunk is returned
+    # as datetime.datetime
+    col_order = ["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"]
+    fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
+    results = []
+    with pytest.warns(UserWarning):
+        for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
+            # SAS likes to left pad strings with spaces - lstrip before comparing
+            df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
+            # GH 19732: Timestamps imported from sas will incur floating point errors
+            try:
+                df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
+            except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
+                df = df.applymap(round_datetime_to_ms)
+            df.reset_index(inplace=True, drop=True)
+            results.append(df)
+    expected = [
+        pd.DataFrame(
+            {
+                "text": ["max"],
+                "dt_as_float": [253717747199.999],
+                "dt_as_dt": [datetime(9999, 12, 29, 23, 59, 59, 999000)],
+                "date_as_float": [float(2936547)],
+                "date_as_date": [datetime(9999, 12, 29)],
+            },
+            columns=col_order,
+        ),
+        pd.DataFrame(
+            {
+                "text": ["normal"],
+                "dt_as_float": [1880323199.999],
+                "dt_as_dt": [np.datetime64("2019-08-01 23:59:59.999")],
+                "date_as_float": [float(21762)],
+                "date_as_date": [np.datetime64("2019-08-01")],
+            },
+            columns=col_order,
+        ),
+    ]
+    for r, e in zip(results, expected):
+        tm.assert_frame_equal(r, e)
