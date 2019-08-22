@@ -791,28 +791,33 @@ def _bool_method_SERIES(cls, op, special):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
+        # TODO: shouldn't we be applying finalize whenever
+        #  not isinstance(other, ABCSeries)?
+        finalizer = (
+            lambda x: x.__finalize__(self)
+            if not isinstance(other, (ABCSeries, ABCIndexClass))
+            else x
+        )
+
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = fill_int(other) if is_other_int_dtype else fill_bool(other)
-
-            ovalues = other.values
-            finalizer = lambda x: x
+            other = other if is_other_int_dtype else fill_bool(other)
 
         else:
             # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
             if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong
                 # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
                 other = construct_1d_object_array_from_listlike(other)
 
-            ovalues = other
-            finalizer = lambda x: x.__finalize__(self)
+        # TODO: use extract_array once we handle EA correctly, see GH#27959
+        ovalues = lib.values_from_object(other)
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
