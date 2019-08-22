@@ -108,6 +108,7 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
+from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -671,15 +672,18 @@ class DataFrame(NDFrame):
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
+            min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return self.to_html(
+            formatter = fmt.DataFrameFormatter(
+                self,
                 max_rows=max_rows,
+                min_rows=min_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
-                notebook=True,
             )
+            return formatter.to_html(notebook=True)
         else:
             return None
 
@@ -1198,7 +1202,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is a not a view on
             another array. Note that ``copy=False`` does not *ensure* that
@@ -3102,7 +3106,7 @@ class DataFrame(NDFrame):
         passed value.
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
@@ -5313,7 +5317,9 @@ class DataFrame(NDFrame):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
-            result = _arith_op(this.values, other.values)
+            with np.errstate(all="ignore"):
+                result = _arith_op(this.values, other.values)
+            result = dispatch_fill_zeros(func, this.values, other.values, result)
             return self._constructor(
                 result, index=new_index, columns=new_columns, copy=False
             )

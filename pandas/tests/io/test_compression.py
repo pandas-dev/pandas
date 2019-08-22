@@ -1,5 +1,7 @@
 import contextlib
 import os
+import subprocess
+import textwrap
 import warnings
 
 import pytest
@@ -125,3 +127,33 @@ def test_compression_warning(compression_only):
         with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)
+
+
+def test_with_missing_lzma():
+    """Tests if import pandas works when lzma is not present."""
+    # https://github.com/pandas-dev/pandas/issues/27575
+    code = textwrap.dedent(
+        """\
+        import sys
+        sys.modules['lzma'] = None
+        import pandas
+        """
+    )
+    subprocess.check_output(["python", "-c", code])
+
+
+def test_with_missing_lzma_runtime():
+    """Tests if RuntimeError is hit when calling lzma without
+    having the module available."""
+    code = textwrap.dedent(
+        """
+        import sys
+        import pytest
+        sys.modules['lzma'] = None
+        import pandas
+        df = pandas.DataFrame()
+        with pytest.raises(RuntimeError, match='lzma module'):
+            df.to_csv('foo.csv', compression='xz')
+        """
+    )
+    subprocess.check_output(["python", "-c", code])
