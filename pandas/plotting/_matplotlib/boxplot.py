@@ -9,6 +9,7 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 
+from pandas import IndexSlice, Index, MultiIndex
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
@@ -314,10 +315,21 @@ def boxplot(
             with plt.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
+
+        # if columns is None, use all numeric columns of data; if data columns
+        # is multiIndex, which means a groupby has been applied before, select
+        # data using new grouped column names; if data columns is Index, select
+        # data simply using columns
         if columns is None:
             columns = data.columns
-        else:
-            data = data[columns]
+        elif isinstance(data.columns, MultiIndex):
+
+            # reselect columns with after-groupby multi-index columns
+            data = data.loc[:, IndexSlice[:, columns]]
+            columns = data.columns
+        elif isinstance(data.columns, Index):
+            data = data.loc[:, columns]
+            columns = data.columns
 
         result = plot_group(columns, data.values.T, ax)
         ax.grid(grid)

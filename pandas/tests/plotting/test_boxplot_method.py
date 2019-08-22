@@ -412,3 +412,46 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_ticks_props(
             df.boxplot("a", by="b", fontsize=16), xlabelsize=16, ylabelsize=16
         )
+
+    @pytest.mark.parametrize(
+        "col, expected_xticklabel",
+        [
+            ("v", ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
+            (["v"], ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
+            ("v1", ["(a, v1)", "(b, v1)", "(c, v1)", "(d, v1)", "(e, v1)"]),
+            (
+                ["v", "v1"],
+                [
+                    "(a, v)",
+                    "(a, v1)",
+                    "(b, v)",
+                    "(b, v1)",
+                    "(c, v)",
+                    "(c, v1)",
+                    "(d, v)",
+                    "(d, v1)",
+                    "(e, v)",
+                    "(e, v1)",
+                ],
+            ),
+        ],
+    )
+    def test_groupby_boxplot_subplots_false(self, col, expected_xticklabel):
+        # GH 16748
+        df = DataFrame(
+            {
+                "cat": np.random.choice(list("abcde"), 100),
+                "v": np.random.rand(100),
+                "v1": np.random.rand(100),
+            }
+        )
+        grouped = df.groupby("cat")
+
+        # check is boxplot with subplots=False works
+        axes = _check_plot_works(
+            grouped.boxplot, subplots=False, column=col, return_type="axes"
+        )
+
+        # check if xticks labels are plotted correctly
+        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
+        assert expected_xticklabel == result_xticklabel
