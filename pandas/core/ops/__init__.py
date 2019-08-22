@@ -730,9 +730,12 @@ def _comp_method_SERIES(cls, op, special):
                 )
 
         result = self._constructor(res_values, index=self.index)
-        # rename is needed in case res_name is None and result.name
-        #  is not.
-        return finalizer(result).rename(res_name)
+        result = finalizer(result)
+
+        # Set the result's name after finalizer is called because finalizer
+        #  would set it back to self.name
+        result.name = res_name
+        return result
 
     wrapper.__name__ = op_name
     return wrapper
