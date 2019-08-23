@@ -1498,6 +1498,11 @@ class TestSparseDataFrameArithmetic:
         expected = df + df[0]
         tm.assert_frame_equal(result.to_dense(), expected)
 
+        # Make it explicit to be on the safe side
+        edata = {0: [4j, 5j], 1: [3j, 1 + 3j]}
+        expected = DataFrame(edata)
+        tm.assert_frame_equal(result.to_dense(), expected)
+
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
