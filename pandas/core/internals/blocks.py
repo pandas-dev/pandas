@@ -1276,7 +1276,7 @@ class Block(PandasObject):
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def diff(self, n: int, axis: int = 1):
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
@@ -2343,7 +2343,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # DatetimeArray handles this for us
         return other
 
-    def diff(self, n: int, axis: int = 0):
+    def diff(self, n: int, axis: int = 0) -> List["Block"]:
         """
         1st discrete difference.
 
