@@ -39,7 +39,7 @@ class ReplaceDict:
 class ReplaceList:
     # GH#28099
 
-    params = [True, False]
+    params = [(True, False)]
     param_names = ["inplace"]
 
     def setup_cache(self, inplace):
