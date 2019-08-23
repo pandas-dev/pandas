@@ -5,8 +5,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import compat
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -457,14 +456,3 @@ class TestExpressions:
 
         result = op_func(other, axis=axis)
         assert_frame_equal(expected, result)
-
-
-@pytest.mark.parametrize("other", [
-    "'x'",
-    pytest.param("...", marks=pytest.mark.xfail(not compat.PY38, reason="GH-28116")),
-])
-def test_equals_various(other):
-    df = DataFrame({"A": ['a', 'b', 'c']})
-    result = df.eval("A == {}".format(other))
-    expected = Series([False, False, False])
-    tm.assert_series_equal(result, expected)

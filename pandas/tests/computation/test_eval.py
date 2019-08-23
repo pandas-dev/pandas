@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, compat
+from pandas import DataFrame, Series, compat, date_range
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -1968,6 +1968,22 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     for ex in (ex1, ex2, ex3):
         with pytest.raises(NotImplementedError):
             pd.eval(ex, engine=engine, parser=parser)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        "'x'",
+        pytest.param(
+            "...", marks=pytest.mark.xfail(not compat.PY38, reason="GH-28116")
+        ),
+    ],
+)
+def test_equals_various(other):
+    df = DataFrame({"A": ["a", "b", "c"]})
+    result = df.eval("A == {}".format(other))
+    expected = Series([False, False, False])
+    tm.assert_series_equal(result, expected)
 
 
 def test_inf(engine, parser):

@@ -205,7 +205,6 @@ ExtensionArray
 Other
 ^^^^^
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
-- Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
 
 
 .. _whatsnew_1000.contributors:
