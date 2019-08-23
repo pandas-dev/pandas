@@ -53,6 +53,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
@@ -171,13 +172,13 @@ def _dt_array_cmp(cls, op):
                 other = _to_M8(other, tz=self.tz)
             except ValueError:
                 # string that cannot be parsed to Timestamp
-                return ops.invalid_comparison(self, other, op)
+                return invalid_comparison(self, other, op)
 
             result = op(self.asi8, other.view("i8"))
             if isna(other):
                 result.fill(nat_result)
         elif lib.is_scalar(other) or np.ndim(other) == 0:
-            return ops.invalid_comparison(self, other, op)
+            return invalid_comparison(self, other, op)
         elif len(other) != len(self):
             raise ValueError("Lengths must match")
         else:
@@ -191,20 +192,20 @@ def _dt_array_cmp(cls, op):
             ):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
-                return ops.invalid_comparison(self, other, op)
+                return invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                # We have to use _comp_method_OBJECT_ARRAY instead of numpy
+                # We have to use comp_method_OBJECT_ARRAY instead of numpy
                 #  comparison otherwise it would fail to raise when
                 #  comparing tz-aware and tz-naive
                 with np.errstate(all="ignore"):
-                    result = ops._comp_method_OBJECT_ARRAY(
+                    result = ops.comp_method_OBJECT_ARRAY(
                         op, self.astype(object), other
                     )
                 o_mask = isna(other)
             elif not (is_datetime64_dtype(other) or is_datetime64tz_dtype(other)):
                 # e.g. is_timedelta64_dtype(other)
-                return ops.invalid_comparison(self, other, op)
+                return invalid_comparison(self, other, op)
             else:
                 self._assert_tzawareness_compat(other)
                 if isinstance(other, (ABCIndexClass, ABCSeries)):
@@ -221,8 +222,6 @@ def _dt_array_cmp(cls, op):
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
-
-            result = com.values_from_object(result)
 
             if o_mask.any():
                 result[o_mask] = nat_result
@@ -328,7 +327,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Constructors
 
-    _attributes = ["freq", "tz"]
     _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
@@ -1160,7 +1158,7 @@ default 'raise'
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects
+        objects.
 
         Returns
         -------
@@ -1285,7 +1283,7 @@ default 'raise'
         """
         Calculate TimedeltaArray of difference between index
         values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets
+        freq. Used for vectorized offsets.
 
         Parameters
         ----------

@@ -161,7 +161,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
-    _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
 
@@ -427,7 +426,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @property
     def is_leap_year(self):
         """
-        Logical indicating if the date belongs to a leap year
+        Logical indicating if the date belongs to a leap year.
         """
         return isleapyear_arr(np.asarray(self.year))
 
