@@ -198,7 +198,7 @@ Build Changes
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`)
 -
 
 

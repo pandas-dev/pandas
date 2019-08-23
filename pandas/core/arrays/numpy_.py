@@ -8,6 +8,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like, is_list_like
@@ -236,7 +237,13 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             value = np.asarray(value)
 
         values = self._ndarray
-        t = np.result_type(value, values)
+        if isinstance(value, str):
+            if is_object_dtype(self.dtype._dtype):
+                t = np.dtype(object)
+            else:
+                t = self.dtype._dtype
+        else:
+            t = np.result_type(value, values)
         if t != self._ndarray.dtype:
             values = values.astype(t, casting="safe")
             values[key] = value
