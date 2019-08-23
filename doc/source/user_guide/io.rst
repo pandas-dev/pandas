@@ -3261,12 +3261,6 @@ clipboard (CTRL-C on many operating systems):
 
 And then import the data directly to a ``DataFrame`` by calling:
 
-.. ipython:: python
-   :suppress:
-
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
 .. code-block:: python
 
     >>> clipdf = pd.read_clipboard()
