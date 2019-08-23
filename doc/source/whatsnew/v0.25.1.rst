@@ -120,7 +120,6 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
 - Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
-- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where ``'cumcount'`` and ``'ngroup'`` fail (:issue:`27472`, :issue:`27468`)
 
 Reshaping
 ^^^^^^^^^
