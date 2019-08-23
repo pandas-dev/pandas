@@ -42,7 +42,7 @@ class ReplaceList:
     params = [True, False]
     param_names = ["inplace"]
 
-    def setup_cache(self):
+    def setup_cache(self, inplace):
         self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(4 * 10 ** 7))
 
     def time_replace_list(self, inplace):
