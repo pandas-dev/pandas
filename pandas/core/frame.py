@@ -6184,7 +6184,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         column : str or tuple
-            Column(s) to explode.
+            Column to explode.
 
         Returns
         -------
