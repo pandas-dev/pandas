@@ -117,6 +117,14 @@ class TestDataFrameSelectReindex:
         df.drop(labels=df[df.b > 0].index, inplace=True)
         assert_frame_equal(df, expected)
 
+        # Empty DatetimeIndex/list, GH 27994
+        df_index = pd.DataFrame(
+            {"a": [0, 1]},
+            index=[pd.Timestamp("2019-01-01"), pd.Timestamp("2019-01-01")],
+        )
+        assert_frame_equal(df_index.drop([]), df_index)
+        assert_frame_equal(df_index.drop(df_index[df_index["a"] > 2].index), df_index)
+
     def test_drop_multiindex_not_lexsorted(self):
         # GH 11640
 

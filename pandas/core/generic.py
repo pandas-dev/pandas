@@ -3888,6 +3888,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         for axis, labels in axes.items():
             if labels is not None:
+                if isinstance(labels, (list, Index)) and len(labels) == 0:
+                    continue
                 obj = obj._drop_axis(labels, axis, level=level, errors=errors)
 
         if inplace:
