@@ -85,6 +85,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Fixed regression in :meth:`pands.core.groupby.DataFrameGroupBy.quantile` raising when multiple quantiles are given (:issue:`27526`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
@@ -94,6 +95,7 @@ Reshaping
 ^^^^^^^^^
 
 - A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
+- Bug :meth:`merge_asof` could not merge :class:`Timedelta` objects when passing `tolerance` kwarg (:issue:`27642`)
 - Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
 - :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
 - Bug in :meth:`DataFrame.join` raising with readonly arrays (:issue:`27943`)
@@ -107,6 +109,7 @@ Other
 ^^^^^
 
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
+- Bug in :meth:`Series.rename` when using a custom type indexer. Now any value that isn't callable or dict-like is treated as a scalar. (:issue:`27814`)
 
 .. _whatsnew_0.251.contributors:
 

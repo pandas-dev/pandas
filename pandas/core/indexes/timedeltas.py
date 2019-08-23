@@ -68,20 +68,20 @@ class TimedeltaIndex(
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
-    which can be boxed to timedelta objects
+    which can be boxed to timedelta objects.
 
     Parameters
     ----------
     data  : array-like (1-dimensional), optional
-        Optional timedelta-like data to construct index with
+        Optional timedelta-like data to construct index with.
     unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
-        which is an integer/float number
-    freq : string or pandas offset object, optional
+        Which is an integer/float number.
+    freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
-        inferred frequency upon creation
+        inferred frequency upon creation.
     copy  : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     start : starting value, timedelta-like, optional
         If data is None, start is used as the start point in generating regular
         timedelta data.
@@ -90,24 +90,24 @@ class TimedeltaIndex(
 
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
+        over end argument.
 
         .. deprecated:: 0.24.0
 
     end : end time, timedelta-like, optional
         If periods is none, generated index will extend to first conforming
-        time on or just past end argument
+        time on or just past end argument.
 
         .. deprecated:: 0.24. 0
 
-    closed : string or None, default None
+    closed : str or None, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
         .. deprecated:: 0.24. 0
 
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
