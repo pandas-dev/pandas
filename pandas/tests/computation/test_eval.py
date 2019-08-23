@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series, date_range, compat
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -1267,7 +1267,10 @@ class TestOperationsNumExprPandas:
         msg = "left hand side of an assignment must be a single name"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
-        msg = "can't assign to function call"
+        if compat.PY38:
+            msg = "cannot assign to function call"
+        else:
+            msg = "can't assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
