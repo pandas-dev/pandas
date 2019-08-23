@@ -589,12 +589,9 @@ class SparseDataFrame(DataFrame):
         """
         fill_value = self._get_op_result_fill_value(other, func)
 
-        return self._constructor(
-            result,
-            index=self.index,
-            columns=self.columns,
-            default_fill_value=fill_value,
-        ).__finalize__(self)
+        out = self._constructor(result, index=self.index, default_fill_value=fill_value)
+        out.columns = self.columns
+        return out.__finalize__(self)
 
     def _get_op_result_fill_value(self, other, func):
         own_default = self.default_fill_value
