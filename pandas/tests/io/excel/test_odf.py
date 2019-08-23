@@ -37,6 +37,7 @@ def test_read_writer_table():
 
     tm.assert_frame_equal(result, expected)
 
+
 def test_nonexistent_sheetname_raises(self, read_ext):
     # GH-27676
     # Specifying a non-existent sheet_name parameter should throw an error
