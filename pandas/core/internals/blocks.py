@@ -669,7 +669,7 @@ class Block(PandasObject):
 
         return self.copy() if copy else self
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
         dtype = self.values.dtype.type
         tipo = maybe_infer_dtype_type(element)
@@ -1798,7 +1798,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         # XXX: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
@@ -1979,7 +1979,7 @@ class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
@@ -2043,7 +2043,7 @@ class ComplexBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_complex = True
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
@@ -2060,7 +2060,7 @@ class IntBlock(NumericBlock):
     is_integer = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return (
@@ -2150,7 +2150,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # delegate
         return super()._astype(dtype=dtype, **kwargs)
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             if self.is_datetimetz:
@@ -2453,7 +2453,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _holder(self):
         return TimedeltaArray
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.timedelta64)
@@ -2546,7 +2546,7 @@ class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.bool_)
@@ -2640,7 +2640,7 @@ class ObjectBlock(Block):
         # split and convert the blocks
         return _extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
-    def _can_hold_element(self, element) -> bool:
+    def _can_hold_element(self, element: Any) -> bool:
         return True
 
     def _try_coerce_args(self, other):
