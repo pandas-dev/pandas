@@ -1495,9 +1495,8 @@ class TestSparseDataFrameArithmetic:
         result = sdf + sdf[0]
 
         df = sdf.to_dense()
-        dresult = df + df[0]
-        expected = dresult.to_sparse(fill_value=1)
-        tm.assert_sp_frame_equal(result, expected)
+        expected = df + df[0]
+        tm.assert_frame_equal(result.to_dense(), expected)
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
