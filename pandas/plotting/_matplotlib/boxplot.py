@@ -8,8 +8,8 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
+from pandas import Index, IndexSlice, MultiIndex
 
-from pandas import IndexSlice, Index, MultiIndex
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
