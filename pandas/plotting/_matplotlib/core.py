@@ -106,6 +106,7 @@ class MPLPlot:
         colormap=None,
         table=False,
         layout=None,
+        include_bool=False,
         **kwds
     ):
 
@@ -191,6 +192,7 @@ class MPLPlot:
             self.colormap = colormap
 
         self.table = table
+        self.include_bool = include_bool
 
         self.kwds = kwds
 
@@ -400,9 +402,20 @@ class MPLPlot:
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
-        numeric_data = data.select_dtypes(
-            include=[np.number, "datetime", "datetimetz", "timedelta"]
-        )
+        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+
+        # GH23719, allow plotting boolean
+        if self.include_bool is True:
+            include_type.append(np.bool_)
+
+        # GH22799, exclude datatime-like type for boxplot
+        exclude_type = None
+        if self._kind == "box":
+            # TODO: change after solving issue 27881
+            include_type = [np.number]
+            exclude_type = ["timedelta"]
+
+        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
             is_empty = numeric_data.empty
@@ -549,7 +562,7 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg = self._get_ax_legend(self.axes[0])
+        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
 
         handles = []
         labels = []
@@ -558,7 +571,8 @@ class MPLPlot:
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                handles = leg.legendHandles
+                # Replace leg.LegendHandles because it misses marker info
+                handles.extend(handle)
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -568,6 +582,7 @@ class MPLPlot:
 
                 handles += self.legend_handles
                 labels += self.legend_labels
+
                 if self.legend_title is not None:
                     title = self.legend_title
 
@@ -579,8 +594,14 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend(self, ax):
+    def _get_ax_legend_handle(self, ax):
+        """
+        Take in axes and return ax, legend and handle under different scenarios
+        """
         leg = ax.get_legend()
+
+        # Get handle from axes
+        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -588,7 +609,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg
+        return ax, leg, handle
 
     @cache_readonly
     def plt(self):
@@ -1080,9 +1101,13 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            if self._is_ts_plot():
+
+                # reset of xlim should be used for ts data
+                # TODO: GH28021, should find a way to change view limit on xaxis
+                lines = _get_all_lines(ax)
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
