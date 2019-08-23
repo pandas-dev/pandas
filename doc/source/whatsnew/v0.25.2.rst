@@ -71,7 +71,6 @@ Plotting
 
 -
 -
-  :meth:`pandas.plotting.deregister_matplotlib_converters` (:issue:`27481`).
 -
 
 Groupby/resample/rolling
