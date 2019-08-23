@@ -1982,7 +1982,11 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
 def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval("A == {}".format(other))
-    expected = Series([False, False, False])
+    expected = Series([False, False, False], name="A")
+    if _USE_NUMEXPR:
+        # https://github.com/pandas-dev/pandas/issues/10239
+        # lose name with numexpr engine. Remove when that's fixed.
+        expected.name = None
     tm.assert_series_equal(result, expected)
 
 
