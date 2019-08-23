@@ -356,7 +356,6 @@ columns:
 .. ipython:: python
 
     import numpy as np
-    np.set_printoptions(precision=4, suppress=True)
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -1573,7 +1572,6 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
    :suppress:
 
-   np.random.seed(123456)
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv('tmp.sv', sep='|')
    df.to_csv('tmp2.sv', sep=':')
