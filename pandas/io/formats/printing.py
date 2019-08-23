@@ -3,11 +3,13 @@ printing tools
 """
 
 import sys
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
+
+EscapeChars = Union[Dict[str, str], Iterable[str]]
 
 
 def adjoin(space: int, *lists: List[str], **kwargs) -> str:
@@ -148,19 +150,16 @@ def _pprint_dict(
 
 
 def pprint_thing(
-    thing,
+    thing: Any,
     _nest_lvl: int = 0,
-    escape_chars: Optional[Union[Dict[str, str], Iterable[str]]] = None,
+    escape_chars: Optional[EscapeChars] = None,
     default_escapes: bool = False,
     quote_strings: bool = False,
     max_seq_items: Optional[int] = None,
 ) -> str:
     """
     This function is the sanctioned way of converting objects
-    to a unicode representation.
-
-    properly handles nested sequences containing unicode strings
-    (unicode(object) does not)
+    to a string representation and properly handles nested sequences.
 
     Parameters
     ----------
@@ -178,21 +177,13 @@ def pprint_thing(
 
     Returns
     -------
-    result - unicode str
+    str
 
     """
 
-    def as_escaped_unicode(thing, escape_chars=escape_chars):
-        # Unicode is fine, else we try to decode using utf-8 and 'replace'
-        # if that's not it either, we have no way of knowing and the user
-        # should deal with it himself.
-
-        try:
-            result = str(thing)  # we should try this first
-        except UnicodeDecodeError:
-            # either utf-8 or we replace errors
-            result = str(thing).decode("utf-8", "replace")
-
+    def as_escaped_string(
+        thing: Any, escape_chars: Optional[EscapeChars] = escape_chars
+    ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
             if default_escapes:
@@ -202,10 +193,11 @@ def pprint_thing(
             escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or tuple()
+
+        result = str(thing)
         for c in escape_chars:
             result = result.replace(c, translate[c])
-
-        return str(result)
+        return result
 
     if hasattr(thing, "__next__"):
         return str(thing)
@@ -224,11 +216,11 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     elif isinstance(thing, str) and quote_strings:
-        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
+        result = "'{thing}'".format(thing=as_escaped_string(thing))
     else:
-        result = as_escaped_unicode(thing)
+        result = as_escaped_string(thing)
 
-    return str(result)  # always unicode
+    return result
 
 
 def pprint_thing_encoded(
