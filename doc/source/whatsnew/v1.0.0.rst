@@ -169,7 +169,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
-- Bug in :meth:`DataFrameGroupby.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
+- Bug in :meth:`DataFrame.groupby.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

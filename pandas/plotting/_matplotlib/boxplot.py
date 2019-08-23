@@ -317,7 +317,7 @@ def boxplot(
         data = data._get_numeric_data()
 
         # if columns is None, use all numeric columns of data; if data columns
-        # is multiIndex, which means a groupby has been applied before, select
+        # is MultiIndex, which means a Groupby has been applied before, select
         # data using new grouped column names; if data columns is Index, select
         # data simply using columns
         if columns is None:
