@@ -129,7 +129,6 @@ usecols : list-like or callable, default ``None``
   .. ipython:: python
 
      import pandas as pd
-     pd.options.display.max_rows = 15
      from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
