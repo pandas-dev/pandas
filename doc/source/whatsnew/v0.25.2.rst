@@ -99,7 +99,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Bug in :meth:`DataFrame.drop` when passing empty :meth:`DatetimeIndex` or :meth:`list`
 -
 
 .. _whatsnew_0.252.contributors:
