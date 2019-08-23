@@ -572,6 +572,7 @@ class SparseDataFrame(DataFrame):
 
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
         assert left.columns.equals(right.index)
+        left._default_fill_value = self._default_fill_value
 
         new_data = {}
         for col in left.columns:
