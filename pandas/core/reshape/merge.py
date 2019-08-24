@@ -177,8 +177,8 @@ def merge_ordered(
 ):
     """
     Perform merge with optional filling/interpolation designed for ordered
-    data like time series data. Optionally perform group-wise merge.(see
-    examples)
+    data like time series data. Optionally perform group-wise merge(see
+    examples).
 
     Parameters
     ----------
