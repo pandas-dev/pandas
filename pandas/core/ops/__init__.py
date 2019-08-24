@@ -13,7 +13,7 @@ from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.corxe.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
