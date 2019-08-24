@@ -28,6 +28,7 @@ except ImportError:
 pytest.importorskip("matplotlib.pyplot")
 
 
+@pytest.mark.skip(reason="There is no warnings in some versions.")
 def test_initial_warning():
     code = (
         "import pandas as pd; import matplotlib.pyplot as plt; "
