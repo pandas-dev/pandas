@@ -1593,7 +1593,7 @@ def bdate_range(
     **kwargs
 ):
     """
-    Return a fixed frequency DatetimeIndex, with business day as the default
+    Return a fixed frequency DatetimeIndex, with business day as the default.
     frequency
 
     Parameters
