@@ -129,6 +129,11 @@ def _validate_header_arg(header) -> None:
         )
 
 
+# Overload *variants* for '_stringify_path'.
+# These variants give extra information to the type checker.
+# They are ignored at runtime.
+
+
 @overload
 def _stringify_path(filepath_or_buffer: Union[str, Path]) -> str:
     ...
@@ -137,6 +142,17 @@ def _stringify_path(filepath_or_buffer: Union[str, Path]) -> str:
 @overload
 def _stringify_path(filepath_or_buffer: IO[AnyStr]) -> IO[AnyStr]:
     ...
+
+
+# The actual *implementation* of '_stringify_path'.
+# The implementation contains the actual runtime logic.
+#
+# It may or may not have type hints. If it does, mypy
+# will check the body of the implementation against the
+# type hints.
+#
+# Mypy will also check and make sure the signature is
+# consistent with the provided variants.
 
 
 def _stringify_path(filepath_or_buffer):
@@ -185,6 +201,11 @@ def is_gcs_url(url) -> bool:
         return False
 
 
+# Overload *variants* for 'get_filepath_or_buffer'.
+# These variants give extra information to the type checker.
+# They are ignored at runtime.
+
+
 @overload
 def get_filepath_or_buffer(
     filepath_or_buffer: IO[AnyStr],
@@ -203,6 +224,17 @@ def get_filepath_or_buffer(
     mode: Optional[str] = None,
 ) -> Tuple[Union[str, IO], Optional[str], Optional[str], bool]:
     ...
+
+
+# The actual *implementation* of 'get_filepath_or_buffer'.
+# The implementation contains the actual runtime logic.
+#
+# It may or may not have type hints. If it does, mypy
+# will check the body of the implementation against the
+# type hints.
+#
+# Mypy will also check and make sure the signature is
+# consistent with the provided variants.
 
 
 def get_filepath_or_buffer(
