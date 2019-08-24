@@ -1,12 +1,12 @@
 .. _whatsnew_0250:
 
-What's new in 0.25.0 (April XX, 2019)
--------------------------------------
+What's new in 0.25.0 (July 18, 2019)
+------------------------------------
 
 .. warning::
 
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See :ref:`install.dropping-27` for more details.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
 
 .. warning::
 
@@ -182,6 +182,28 @@ The repr now looks like this:
     json_normalize(data, max_level=1)
 
 
+.. _whatsnew_0250.enhancements.explode:
+
+Series.explode to split list-like values to rows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` and :class:`DataFrame` have gained the :meth:`DataFrame.explode` methods to transform list-likes to individual rows. See :ref:`section on Exploding list-like column <reshaping.explode>` in docs for more information (:issue:`16538`, :issue:`10511`)
+
+
+Here is a typical usecase. You have comma separated string in a column.
+
+.. ipython:: python
+
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+                       {'var1': 'd,e,f', 'var2': 2}])
+    df
+
+Creating a long form ``DataFrame`` is now straightforward using chained operations
+
+.. ipython:: python
+
+    df.assign(var1=df.var1.str.split(',')).explode('var1')
+
 .. _whatsnew_0250.enhancements.other:
 
 Other enhancements
@@ -202,7 +224,6 @@ Other enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
 - Error message for missing required imports now includes the original import error's text (:issue:`23868`)
@@ -953,6 +974,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 - Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
 - Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take` (:issue:`17352`)
+- Removed the previously deprecated behavior of arithmetic operations with ``datetime.date`` objects (:issue:`21152`)
 
 .. _whatsnew_0250.performance:
 
@@ -982,6 +1004,7 @@ Performance improvements
 - For :meth:`to_datetime` changed default value of cache parameter to ``True`` (:issue:`26043`)
 - Improved performance of :class:`DatetimeIndex` and :class:`PeriodIndex` slicing given non-unique, monotonic data (:issue:`27136`).
 - Improved performance of :meth:`pd.read_json` for index-oriented data. (:issue:`26773`)
+- Improved performance of :meth:`MultiIndex.shape` (:issue:`27384`).
 
 .. _whatsnew_0250.bug_fixes:
 

@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
+    ABCIndexClass,
     ABCInterval,
     ABCIntervalIndex,
     ABCPeriodIndex,
@@ -32,10 +33,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, ensure_index
+from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
@@ -205,7 +207,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
-            msg = "must not have differing left [{ltype}] and right " "[{rtype}] types"
+            msg = "must not have differing left [{ltype}] and right [{rtype}] types"
             raise ValueError(
                 msg.format(ltype=type(left).__name__, rtype=type(right).__name__)
             )
@@ -357,53 +359,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     _interval_shared_docs[
-        "from_intervals"
-    ] = """
-    Construct an %(klass)s from a 1d array of Interval objects
-
-    .. deprecated:: 0.23.0
-
-    Parameters
-    ----------
-    data : array-like (1-dimensional)
-        Array of Interval objects. All intervals must be closed on the same
-        sides.
-    copy : boolean, default False
-        by-default copy the data, this is compat only and ignored
-    dtype : dtype or None, default None
-        If None, dtype will be inferred
-
-        ..versionadded:: 0.23.0
-
-    See Also
-    --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array.
-    %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits.
-    %(klass)s.from_tuples : Construct an %(klass)s from an
-                                array-like of tuples.
-
-    Examples
-    --------
-    >>> pd.%(qualname)s.from_intervals([pd.Interval(0, 1),
-    ...                                  pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]],
-                  closed='right', dtype='interval[int64]')
-
-    The generic Index constructor work identically when it infers an array
-    of all intervals:
-
-    >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]],
-                  closed='right', dtype='interval[int64]')
-    """
-
-    _interval_shared_docs[
         "from_tuples"
     ] = """
-    Construct an %(klass)s from an array-like of tuples
+    Construct an %(klass)s from an array-like of tuples.
 
     Parameters
     ----------
@@ -457,13 +415,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     lhs, rhs = d
                 except ValueError:
                     msg = (
-                        "{name}.from_tuples requires tuples of " "length 2, got {tpl}"
+                        "{name}.from_tuples requires tuples of length 2, got {tpl}"
                     ).format(name=name, tpl=d)
                     raise ValueError(msg)
                 except TypeError:
-                    msg = (
-                        "{name}.from_tuples received an invalid " "item, {tpl}"
-                    ).format(name=name, tpl=d)
+                    msg = ("{name}.from_tuples received an invalid item, {tpl}").format(
+                        name=name, tpl=d
+                    )
                     raise TypeError(msg)
             left.append(lhs)
             right.append(rhs)
@@ -510,7 +468,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = self.right[value]
 
         # scalar
-        if not isinstance(left, Index):
+        if not isinstance(left, ABCIndexClass):
             if isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
@@ -589,7 +547,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         filled : IntervalArray with NA/NaN filled
         """
         if method is not None:
-            raise TypeError("Filling by method is not supported for " "IntervalArray.")
+            raise TypeError("Filling by method is not supported for IntervalArray.")
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
@@ -737,17 +695,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isna(self.left)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.left.nbytes + self.right.nbytes
 
     @property
-    def size(self):
+    def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
-
-    @property
-    def shape(self):
-        return self.left.shape
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
@@ -795,8 +749,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
         """
-        from pandas.core.algorithms import take
-
         nv.validate_take(tuple(), kwargs)
 
         fill_left = fill_right = fill_value
@@ -842,8 +794,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        from pandas.core.algorithms import value_counts
-
         return value_counts(np.asarray(self), dropna=dropna)
 
     # Formatting
@@ -904,7 +854,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def left(self):
         """
         Return the left endpoints of each Interval in the IntervalArray as
-        an Index
+        an Index.
         """
         return self._left
 
@@ -912,7 +862,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def right(self):
         """
         Return the right endpoints of each Interval in the IntervalArray as
-        an Index
+        an Index.
         """
         return self._right
 
@@ -920,7 +870,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def closed(self):
         """
         Whether the intervals are closed on the left-side, right-side, both or
-        neither
+        neither.
         """
         return self._closed
 
@@ -928,7 +878,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         "set_closed"
     ] = """
         Return an %(klass)s identical to the current one, but closed on the
-        specified side
+        specified side.
 
         .. versionadded:: 0.24.0
 
@@ -967,7 +917,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def length(self):
         """
         Return an Index with entries denoting the length of each Interval in
-        the IntervalArray
+        the IntervalArray.
         """
         try:
             return self.right - self.left
@@ -995,7 +945,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ] = """
         Return True if the %(klass)s is non-overlapping (no Intervals share
         points) and is either monotonic increasing or monotonic decreasing,
-        else False
+        else False.
         """
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
@@ -1045,7 +995,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "to_tuples"
     ] = """
-        Return an %(return_type)s of tuples of the form (left, right)
+        Return an %(return_type)s of tuples of the form (left, right).
 
         Parameters
         ----------
@@ -1205,7 +1155,7 @@ def maybe_convert_platform_interval(values):
     """
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
-        # empty lists/tuples get object dtype by default, but this is not
+        # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif is_categorical_dtype(values):

@@ -161,7 +161,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
-    _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
 
@@ -286,13 +285,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if start is not None or end is not None:
             if field_count > 0:
                 raise ValueError(
-                    "Can either instantiate from fields " "or endpoints, but not both"
+                    "Can either instantiate from fields or endpoints, but not both"
                 )
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
         elif field_count > 0:
             subarr, freq = _range_from_fields(freq=freq, **fields)
         else:
-            raise ValueError("Not enough parameters to construct " "Period range")
+            raise ValueError("Not enough parameters to construct Period range")
 
         return subarr, freq
 
@@ -342,32 +341,92 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
 
-    year = _field_accessor("year", 0, "The year of the period")
-    month = _field_accessor("month", 3, "The month as January=1, December=12")
-    day = _field_accessor("day", 4, "The days of the period")
-    hour = _field_accessor("hour", 5, "The hour of the period")
-    minute = _field_accessor("minute", 6, "The minute of the period")
-    second = _field_accessor("second", 7, "The second of the period")
-    weekofyear = _field_accessor("week", 8, "The week ordinal of the year")
+    year = _field_accessor(
+        "year",
+        0,
+        """
+        The year of the period.
+        """,
+    )
+    month = _field_accessor(
+        "month",
+        3,
+        """
+        The month as January=1, December=12.
+        """,
+    )
+    day = _field_accessor(
+        "day",
+        4,
+        """
+        The days of the period.
+        """,
+    )
+    hour = _field_accessor(
+        "hour",
+        5,
+        """
+        The hour of the period.
+        """,
+    )
+    minute = _field_accessor(
+        "minute",
+        6,
+        """
+        The minute of the period.
+        """,
+    )
+    second = _field_accessor(
+        "second",
+        7,
+        """
+        The second of the period.
+        """,
+    )
+    weekofyear = _field_accessor(
+        "week",
+        8,
+        """
+        The week ordinal of the year.
+        """,
+    )
     week = weekofyear
     dayofweek = _field_accessor(
-        "dayofweek", 10, "The day of the week with Monday=0, Sunday=6"
+        "dayofweek",
+        10,
+        """
+        The day of the week with Monday=0, Sunday=6.
+        """,
     )
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
-        "dayofyear", 9, "The ordinal day of the year"
+        "dayofyear",
+        9,
+        """
+        The ordinal day of the year.
+        """,
     )
-    quarter = _field_accessor("quarter", 2, "The quarter of the date")
+    quarter = _field_accessor(
+        "quarter",
+        2,
+        """
+        The quarter of the date.
+        """,
+    )
     qyear = _field_accessor("qyear", 1)
     days_in_month = _field_accessor(
-        "days_in_month", 11, "The number of days in the month"
+        "days_in_month",
+        11,
+        """
+        The number of days in the month.
+        """,
     )
     daysinmonth = days_in_month
 
     @property
     def is_leap_year(self):
         """
-        Logical indicating if the date belongs to a leap year
+        Logical indicating if the date belongs to a leap year.
         """
         return isleapyear_arr(np.asarray(self.year))
 
@@ -654,7 +713,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if not np.all(isna(other)):
+            delta = self._check_timedeltalike_freq_compat(other)
+        else:
+            # all-NaT TimedeltaIndex is equivalent to a single scalar td64 NaT
+            return self + np.timedelta64("NaT")
+
         return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):
@@ -839,7 +903,7 @@ def period_array(
         dtype = None
 
     if is_float_dtype(data) and len(data) > 0:
-        raise TypeError("PeriodIndex does not allow " "floating point in construction")
+        raise TypeError("PeriodIndex does not allow floating point in construction")
 
     data = ensure_object(data)
 
@@ -875,7 +939,7 @@ def validate_dtype_freq(dtype, freq):
         if freq is None:
             freq = dtype.freq
         elif freq != dtype.freq:
-            raise IncompatibleFrequency("specified freq and dtype " "are different")
+            raise IncompatibleFrequency("specified freq and dtype are different")
     return freq
 
 

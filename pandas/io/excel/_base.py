@@ -120,14 +120,8 @@ converters : dict, default None
     content.
 true_values : list, default None
     Values to consider as True.
-
-    .. versionadded:: 0.19.0
-
 false_values : list, default None
     Values to consider as False.
-
-    .. versionadded:: 0.19.0
-
 skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None
@@ -303,7 +297,7 @@ def read_excel(
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
             raise TypeError(
-                "read_excel() got an unexpected keyword argument " "`{}`".format(arg)
+                "read_excel() got an unexpected keyword argument `{}`".format(arg)
             )
 
     if not isinstance(io, ExcelFile):
@@ -359,7 +353,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         else:
             raise ValueError(
-                "Must explicitly set engine if not passing in" " buffer or path for io."
+                "Must explicitly set engine if not passing in buffer or path for io."
             )
 
     @property
@@ -719,9 +713,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise ValueError(
-                "Must pass explicit sheet_name or set " "cur_sheet property"
-            )
+            raise ValueError("Must pass explicit sheet_name or set cur_sheet property")
         return sheet_name
 
     def _value_with_fmt(self, val):
@@ -857,7 +849,7 @@ class ExcelFile:
         """
         if "chunksize" in kwds:
             raise NotImplementedError(
-                "chunksize keyword of read_excel " "is not implemented"
+                "chunksize keyword of read_excel is not implemented"
             )
 
         return self._reader.parse(

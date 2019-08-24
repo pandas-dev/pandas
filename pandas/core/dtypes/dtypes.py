@@ -1,6 +1,6 @@
 """ define extension dtypes """
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -11,17 +11,16 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
 
+from pandas._typing import Ordered
+
 from .base import ExtensionDtype
-from .inference import is_list_like
+from .inference import is_bool, is_list_like
 
 str_type = str
 
 # GH26403: sentinel value used for the default value of ordered in the
 # CategoricalDtype constructor to detect when ordered=None is explicitly passed
 ordered_sentinel = object()  # type: object
-
-# TODO(GH26403): Replace with Optional[bool] or bool
-OrderedType = Union[None, bool, object]
 
 
 def register_extension_dtype(cls: Type[ExtensionDtype],) -> Type[ExtensionDtype]:
@@ -149,7 +148,7 @@ class PandasExtensionDtype(ExtensionDtype):
         return str(self)
 
     def __hash__(self) -> int:
-        raise NotImplementedError("sub-classes should implement an __hash__ " "method")
+        raise NotImplementedError("sub-classes should implement an __hash__ method")
 
     def __getstate__(self) -> Dict[str_type, Any]:
         # pickle support; we don't want to pickle the cache
@@ -222,7 +221,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ("categories", "ordered", "_ordered_from_sentinel")
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
-    def __init__(self, categories=None, ordered: OrderedType = ordered_sentinel):
+    def __init__(
+        self, categories=None, ordered: Union[Ordered, object] = ordered_sentinel
+    ):
+        # TODO(GH26403): Set type of ordered to Ordered
+        ordered = cast(Ordered, ordered)
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -235,7 +238,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def _from_categorical_dtype(
-        cls, dtype: "CategoricalDtype", categories=None, ordered: OrderedType = None
+        cls, dtype: "CategoricalDtype", categories=None, ordered: Ordered = None
     ) -> "CategoricalDtype":
         if categories is ordered is None:
             return dtype
@@ -320,7 +323,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     raise ValueError(msg.format(dtype=dtype))
             elif categories is not None or ordered is not None:
                 raise ValueError(
-                    "Cannot specify `categories` or `ordered` " "together with `dtype`."
+                    "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
@@ -336,9 +339,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return dtype
 
-    def _finalize(
-        self, categories, ordered: OrderedType, fastpath: bool = False
-    ) -> None:
+    def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
 
         if ordered is not None and ordered is not ordered_sentinel:
             self.validate_ordered(ordered)
@@ -406,6 +407,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # but same order is not necessary.  There is no distinction between
             # ordered=False and ordered=None: CDT(., False) and CDT(., None)
             # will be equal if they have the same categories.
+            if (
+                self.categories.dtype == other.categories.dtype
+                and self.categories.equals(other.categories)
+            ):
+                # Check and see if they happen to be identical categories
+                return True
             return hash(self) == hash(other)
 
     def __repr__(self):
@@ -417,7 +424,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return tpl.format(data, self._ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered: OrderedType = True) -> int:
+    def _hash_categories(categories, ordered: Ordered = True) -> int:
         from pandas.core.util.hashing import (
             hash_array,
             _combine_hash_arrays,
@@ -469,7 +476,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return Categorical
 
     @staticmethod
-    def validate_ordered(ordered: OrderedType) -> None:
+    def validate_ordered(ordered: Ordered) -> None:
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -484,8 +491,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         TypeError
             If 'ordered' is not a boolean.
         """
-        from pandas.core.dtypes.common import is_bool
-
         if not is_bool(ordered):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
@@ -525,7 +530,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return categories
 
-    def update_dtype(self, dtype: "CategoricalDtype") -> "CategoricalDtype":
+    def update_dtype(
+        self, dtype: Union[str_type, "CategoricalDtype"]
+    ) -> "CategoricalDtype":
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -547,6 +554,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 "got {dtype!r}"
             ).format(dtype=dtype)
             raise ValueError(msg)
+        else:
+            # from here on, dtype is a CategoricalDtype
+            dtype = cast(CategoricalDtype, dtype)
 
         # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
@@ -579,7 +589,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return self._categories
 
     @property
-    def ordered(self) -> OrderedType:
+    def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
         """

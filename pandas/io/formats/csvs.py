@@ -100,9 +100,7 @@ class CSVFormatter:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
-                raise TypeError(
-                    "cannot specify cols with a MultiIndex on the " "columns"
-                )
+                raise TypeError("cannot specify cols with a MultiIndex on the columns")
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
@@ -162,7 +160,7 @@ class CSVFormatter:
         """
         # GH21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, "write"):
-            msg = "compression has no effect when passing file-like " "object as input."
+            msg = "compression has no effect when passing file-like object as input."
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
         # when zip compression is called.

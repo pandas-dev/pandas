@@ -3,6 +3,8 @@ missing types & inference
 """
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
@@ -131,6 +133,8 @@ def _isna_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(
         obj,
         (
@@ -169,6 +173,8 @@ def _isna_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
@@ -203,8 +209,6 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas._config import get_option
-
     flag = get_option(key)
     if flag:
         globals()["_isna"] = _isna_old

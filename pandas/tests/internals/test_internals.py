@@ -338,7 +338,7 @@ class TestDatetimeBlock:
         vals = (np.datetime64("2010-10-10"), datetime(2010, 10, 10), date(2010, 10, 10))
         for val in vals:
             coerced = block._try_coerce_args(val)
-            assert np.int64 == type(coerced)
+            assert np.datetime64 == type(coerced)
             assert pd.Timestamp("2010-10-10") == pd.Timestamp(coerced)
 
 
@@ -581,10 +581,6 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
-        _compare(mgr, new_mgr)
-
-        mgr = create_mgr("a, b: object; f: i8; g: f8")
         new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 
