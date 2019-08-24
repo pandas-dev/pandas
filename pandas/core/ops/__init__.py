@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from pandas._libs import Timedelta, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.corxe.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -521,7 +521,12 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     return result
 
 
-def dispatch_to_extension_op(op, left, right, keep_null_freq: bool = False):
+def dispatch_to_extension_op(
+    op,
+    left: Union[ABCExtensionArray, np.ndarray],
+    right: Any,
+    keep_null_freq: bool = False,
+):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
     apply the operator defined by op.
