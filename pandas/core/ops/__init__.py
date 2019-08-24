@@ -648,7 +648,7 @@ def _arith_method_SERIES(cls, op, special):
 
         rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
-        if should_extension_dispatch(left, rvalues):
+        if should_extension_dispatch(lvalues, rvalues):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
         elif is_timedelta64_dtype(rvalues) or isinstance(rvalues, ABCDatetimeArray):
