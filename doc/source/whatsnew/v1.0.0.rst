@@ -54,7 +54,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
--
+- The ``notebook`` argument of :meth:`DataFrame.to_html` is deprecated (:issue:`23820`).
 -
 
 .. _whatsnew_1000.prior_deprecations:
