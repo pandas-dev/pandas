@@ -25,8 +25,6 @@ New features
    from pandas.tools.plotting import scatter_matrix
    scatter_matrix(df, alpha=0.2)        # noqa F821
 
-.. image:: ../savefig/scatter_matrix_kde.png
-   :width: 5in
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
   :ref:`stacked bar plots <visualization.barplot>`.
@@ -35,22 +33,18 @@ New features
 
    df.plot(kind='bar', stacked=True)    # noqa F821
 
-.. image:: ../savefig/bar_plot_stacked_ex.png
-   :width: 4in
 
 .. code-block:: python
 
    df.plot(kind='barh', stacked=True)   # noqa F821
 
-.. image:: ../savefig/barh_plot_stacked_ex.png
-   :width: 4in
 
 - Add log x and y :ref:`scaling options <visualization.basic>` to
   ``DataFrame.plot`` and ``Series.plot``
 - Add ``kurt`` methods to Series and DataFrame for computing kurtosis
 
 
-NA Boolean Comparison API Change
+NA Boolean comparison API change
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Reverted some changes to how NA values (represented typically as ``NaN`` or
@@ -79,7 +73,7 @@ in numerical arrays, would cause a large amount of problems for users. Thus, a
 "practicality beats purity" approach was taken. This issue may be revisited at
 some point in the future.
 
-Other API Changes
+Other API changes
 ~~~~~~~~~~~~~~~~~
 
 When calling ``apply`` on a grouped Series, the return value will also be a

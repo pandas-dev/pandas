@@ -71,7 +71,7 @@ cdef inline object create_time_from_ts(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
+def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                        str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
@@ -127,7 +127,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
         for i in range(n):
             value = arr[i]
             if value == NPY_NAT:
-                result[i] = NaT
+                result[i] = <object>NaT
             else:
                 dt64_to_dtstruct(value, &dts)
                 result[i] = func_create(value, dts, tz, freq)
@@ -135,7 +135,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
         for i in range(n):
             value = arr[i]
             if value == NPY_NAT:
-                result[i] = NaT
+                result[i] = <object>NaT
             else:
                 # Python datetime objects do not support nanosecond
                 # resolution (yet, PEP 564). Need to compute new value
@@ -152,7 +152,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = <object>NaT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     dt64_to_dtstruct(value + delta, &dts)
@@ -164,7 +164,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = <object>NaT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
@@ -175,7 +175,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = <object>NaT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
@@ -439,11 +439,11 @@ def array_with_unit_to_datetime(ndarray values, object unit,
         val = values[i]
 
         if checknull_with_nat(val):
-            oresult[i] = NaT
+            oresult[i] = <object>NaT
         elif is_integer_object(val) or is_float_object(val):
 
             if val != val or val == NPY_NAT:
-                oresult[i] = NaT
+                oresult[i] = <object>NaT
             else:
                 try:
                     oresult[i] = Timestamp(cast_from_unit(val, unit))
@@ -452,7 +452,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
 
         elif isinstance(val, str):
             if len(val) == 0 or val in nat_strings:
-                oresult[i] = NaT
+                oresult[i] = <object>NaT
 
             else:
                 oresult[i] = val
@@ -721,7 +721,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
     return result, tz_out
 
 
-cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
     and errors == "ignore"
@@ -816,7 +816,7 @@ cdef array_to_datetime_object(ndarray[object] values, str errors,
                 check_dts_bounds(&dts)
             except (ValueError, OverflowError):
                 if is_coerce:
-                    oresult[i] = NaT
+                    oresult[i] = <object>NaT
                     continue
                 if is_raise:
                     raise
