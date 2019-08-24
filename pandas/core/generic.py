@@ -6642,15 +6642,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 for k, v in items:
                     keys, values = list(zip(*v.items())) or ([], [])
-                    # add another check to avoid boolean being regarded
-                    # as binary in python set
-                    if set(keys) & set(values) and set(map(str, keys)) & set(
-                        map(str, values)
-                    ):
-                        raise ValueError(
-                            "Replacement not allowed with "
-                            "overlapping keys and values"
-                        )
+
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
 

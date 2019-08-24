@@ -1070,17 +1070,27 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(r, e)
 
     def test_replace_int_to_int_chain(self):
+        # GH 27660 keep behaviour consistent for simple dictionary and
+        # nested dictionary replacement
         df = DataFrame({"a": list(range(1, 5))})
-        with pytest.raises(ValueError, match="Replacement not allowed .+"):
-            df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
+
+        # nested dictionary replace
+        result1 = df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
+
+        # simple dictionary replace
+        result2 = df.replace(dict(zip(range(1, 5), range(2, 6))))
+
+        assert_frame_equal(result1, result2)
 
     def test_replace_str_to_str_chain(self):
+        # GH 27660
         a = np.arange(1, 5)
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({"a": astr})
-        with pytest.raises(ValueError, match="Replacement not allowed .+"):
-            df.replace({"a": dict(zip(astr, bstr))})
+        result1 = df.replace(dict(zip(astr, bstr)))
+        result2 = df.replace({"a": dict(zip(astr, bstr))})
+        assert_frame_equal(result1, result2)
 
     def test_replace_swapping_bug(self):
         df = pd.DataFrame({"a": [True, False, True]})

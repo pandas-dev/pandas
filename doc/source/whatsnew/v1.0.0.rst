@@ -206,6 +206,7 @@ ExtensionArray
 Other
 ^^^^^
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+- Keeping the consistency in :meth:`DataFrame.replace` behaviour between simple dictionary replacement and nested dictionary replacement (:issue:`27660`)
 
 
 .. _whatsnew_1000.contributors:
