@@ -1648,22 +1648,24 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = df.to_json(orient=orient)
         assert result == expected
 
-    def test_to_json_indent(self):
+    @pytest.mark.parametrize("indent", [1, 2, 4])
+    def test_to_json_indent(self, indent):
         # GH 12004
         df = pd.DataFrame([
             ['foo', 'bar'], ['baz', 'qux']
         ], columns=['a', 'b'])
 
-        result = df.to_json(indent=4)
-        expected = """{
-    "a":{
-        "0":"foo",
-        "1":"baz"
-    },
-    "b":{
-        "0":"bar",
-        "1":"qux"
-    }
-}"""
+        result = df.to_json(indent=indent)
+        spaces = " " * indent
+        expected = """{{
+"a":{{
+{spaces}"0":"foo",
+{spaces}"1":"baz"
+{spaces}}},
+"b":{{
+{spaces}"0":"bar",
+{spaces}"1":"qux"
+{spaces}}}
+}}""".format(spaces=spaces)
 
         assert result == expected
