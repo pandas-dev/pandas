@@ -133,7 +133,7 @@ class TestFloatIndexers:
                 elif s.index.inferred_type in ["datetime64", "timedelta64", "period"]:
 
                     # these should prob work
-                    # and are inconsisten between series/dataframe ATM
+                    # and are inconsistent between series/dataframe ATM
                     # for idxr in [lambda x: x]:
                     #    s2 = s.copy()
                     #

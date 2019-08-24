@@ -401,6 +401,10 @@ class TestDataFrameIndexing(TestData):
         expected = df.loc[df.index[:-1]]
         assert_frame_equal(result, expected)
 
+        result = df.loc[[1, 10]]
+        expected = df.loc[Index([1, 10])]
+        assert_frame_equal(result, expected)
+
         # 11320
         df = pd.DataFrame(
             {

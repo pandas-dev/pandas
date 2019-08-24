@@ -361,9 +361,14 @@ class TestChaining:
         result4 = df["A"].iloc[2]
         check(result4, expected)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
+
+        df = tm.makeDataFrame()
+        df["A"]  # cache series
+        df.loc["Hello Friend"] = df.iloc[0]
+        assert "Hello Friend" in df["A"].index
+        assert "Hello Friend" in df["B"].index
 
         # 10264
         df = DataFrame(

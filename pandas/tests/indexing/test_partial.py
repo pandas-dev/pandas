@@ -81,6 +81,33 @@ class TestPartialSetting:
         df.loc[3] = df.loc[2]
         tm.assert_frame_equal(df, expected)
 
+        # single dtype frame, overwrite
+        expected = DataFrame(dict({"A": [0, 2, 4], "B": [0, 2, 4]}))
+        df = df_orig.copy()
+        df.loc[:, "B"] = df.loc[:, "A"]
+        tm.assert_frame_equal(df, expected)
+
+        # mixed dtype frame, overwrite
+        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
+        df = df_orig.copy()
+        df["B"] = df["B"].astype(np.float64)
+        df.loc[:, "B"] = df.loc[:, "A"]
+        tm.assert_frame_equal(df, expected)
+
+        # single dtype frame, partial setting
+        expected = df_orig.copy()
+        expected["C"] = df["A"]
+        df = df_orig.copy()
+        df.loc[:, "C"] = df.loc[:, "A"]
+        tm.assert_frame_equal(df, expected)
+
+        # mixed frame, partial setting
+        expected = df_orig.copy()
+        expected["C"] = df["A"]
+        df = df_orig.copy()
+        df.loc[:, "C"] = df.loc[:, "A"]
+        tm.assert_frame_equal(df, expected)
+
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
@@ -329,6 +356,29 @@ class TestPartialSetting:
         expected = Series([0.2, 0.2, 0.1, 0.1], index=exp_idx, name="s")
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
+
+    def test_partial_set_invalid(self):
+
+        # GH 4940
+        # allow only setting of 'valid' values
+
+        orig = tm.makeTimeDataFrame()
+        df = orig.copy()
+
+        # don't allow not string inserts
+        with pytest.raises(TypeError):
+            df.loc[100.0, :] = df.iloc[0]
+
+        with pytest.raises(TypeError):
+            df.loc[100, :] = df.iloc[0]
+
+        # allow object conversion here
+        df = orig.copy()
+        df.loc["a", :] = df.iloc[0]
+        exp = orig.append(Series(df.iloc[0], name="a"))
+        tm.assert_frame_equal(df, exp)
+        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
+        assert df.index.dtype == "object"
 
     def test_partial_set_empty_series(self):
 
