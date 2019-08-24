@@ -9,7 +9,19 @@ from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
-from typing import IO, Any, AnyStr, BinaryIO, Dict, Optional, TextIO, Tuple, Type, Union
+from typing import (
+    IO,
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
@@ -396,9 +408,9 @@ def _get_handle(
 
         need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:
-        need_text_wrapping = BufferedIOBase
+        need_text_wrapping = BufferedIOBase  # type: ignore
 
-    handles = list()
+    handles = list()  # type: List[IO]
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
@@ -480,9 +492,9 @@ def _get_handle(
 
     if memory_map and hasattr(f, "fileno"):
         try:
-            g = MMapWrapper(f)
+            wrapped = MMapWrapper(f)
             f.close()
-            f = g
+            f = wrapped
         except Exception:
             # we catch any errors that may have occurred
             # because that is consistent with the lower-level
