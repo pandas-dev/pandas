@@ -2051,7 +2051,7 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "dropna"
     ] = """
-        Return Index without NA/NaN values
+        Return Index without NA/NaN values.
 
         Parameters
         ----------
