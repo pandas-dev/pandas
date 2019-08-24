@@ -259,14 +259,14 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
     def _stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
 
          .. deprecated:: 0.25.0
             Use ``stop`` instead.
