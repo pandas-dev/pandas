@@ -71,7 +71,7 @@ cdef inline object create_time_from_ts(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
+def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                        str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
@@ -721,7 +721,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
     return result, tz_out
 
 
-cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
     and errors == "ignore"
