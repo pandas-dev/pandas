@@ -236,7 +236,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter.(``0`` if this was not supplied)
         """
         # GH 25710
         return self._range.start
@@ -244,7 +244,7 @@ class RangeIndex(Int64Index):
     @property
     def _start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter.(``0`` if this was not supplied)
 
          .. deprecated:: 0.25.0
             Use ``start`` instead.
