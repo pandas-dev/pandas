@@ -475,8 +475,7 @@ def close(fignum=None):
 
 @contextmanager
 def ensure_clean(filename=None, return_filelike=False):
-    """
-    Gets a temporary path and agrees to remove on close.
+    """Gets a temporary path and agrees to remove on close.
 
     Parameters
     ----------
@@ -566,8 +565,7 @@ def ensure_safe_environment_variables():
 
 
 def equalContents(arr1, arr2):
-    """
-    Checks if the set of unique elements of arr1 and arr2 are equivalent.
+    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
     return frozenset(arr1) == frozenset(arr2)
 
@@ -582,8 +580,7 @@ def assert_index_equal(
     check_categorical: bool = True,
     obj: str = "Index",
 ) -> None:
-    """
-    Check that left and right Index are equal.
+    """Check that left and right Index are equal.
 
     Parameters
     ----------
@@ -605,7 +602,7 @@ def assert_index_equal(
         Whether to compare internal Categorical exactly.
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
-        assertion message.
+        assertion message
     """
     __tracebackhide__ = True
 
@@ -709,9 +706,7 @@ def assert_index_equal(
 
 
 def assert_class_equal(left, right, exact=True, obj="Input"):
-    """
-    Checks classes are equal.
-    """
+    """checks classes are equal."""
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -738,8 +733,7 @@ def assert_class_equal(left, right, exact=True, obj="Input"):
 
 
 def assert_attr_equal(attr, left, right, obj="Attributes"):
-    """
-    Checks attributes are equal. Both objects must have attribute.
+    """checks attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
@@ -806,9 +800,7 @@ def isiterable(obj):
 
 
 def assert_is_sorted(seq):
-    """
-    Assert that the sequence is sorted.
-    """
+    """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
@@ -818,8 +810,7 @@ def assert_is_sorted(seq):
 def assert_categorical_equal(
     left, right, check_dtype=True, check_category_order=True, obj="Categorical"
 ):
-    """
-    Test that Categoricals are equivalent.
+    """Test that Categoricals are equivalent.
 
     Parameters
     ----------
@@ -864,8 +855,7 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray"):
-    """
-    Test that two IntervalArrays are equivalent.
+    """Test that two IntervalArrays are equivalent.
 
     Parameters
     ----------
@@ -928,13 +918,11 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    msg = """
-        {obj} are different
+    msg = """{obj} are different
 
-        {message}
-        [left]:  {left}
-        [right]: {right}
-        """.format(
+{message}
+[left]:  {left}
+[right]: {right}""".format(
         obj=obj, message=message, left=left, right=right
     )
 
@@ -953,8 +941,7 @@ def assert_numpy_array_equal(
     check_same=None,
     obj="numpy array",
 ):
-    """
-    Checks that 'np.ndarray' is equivalent
+    """ Checks that 'np.ndarray' is equivalent
 
     Parameters
     ----------
@@ -1031,8 +1018,7 @@ def assert_numpy_array_equal(
 def assert_extension_array_equal(
     left, right, check_dtype=True, check_less_precise=False, check_exact=False
 ):
-    """
-    Check that left and right ExtensionArrays are equal.
+    """Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
@@ -1095,8 +1081,7 @@ def assert_series_equal(
     check_categorical=True,
     obj="Series",
 ):
-    """
-    Check that left and right Series are equal.
+    """Check that left and right Series are equal.
 
     Parameters
     ----------

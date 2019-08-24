@@ -8,8 +8,7 @@ import warnings
 
 
 class _DeprecatedModule:
-    """
-    Class for mocking deprecated modules.
+    """ Class for mocking deprecated modules.
 
     Parameters
     ----------

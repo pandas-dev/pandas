@@ -84,9 +84,7 @@ class HistPlot(LinePlot):
             self._add_legend_handle(artists[0], label, index=i)
 
     def _make_plot_keywords(self, kwds, y):
-        """
-        Merge BoxPlot/KdePlot properties to passed kwds.
-        """
+        """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
         kwds["bins"] = self.bins

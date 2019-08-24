@@ -715,9 +715,7 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result3, expected)
 
     def test_stack_multiple_bug(self):
-        """
-        Bug when some uniques are not present in the data #3170.
-        """
+        """ bug when some uniques are not present in the data #3170"""
         id_col = ([1] * 3) + ([2] * 3)
         name = (["a"] * 3) + (["b"] * 3)
         date = pd.to_datetime(["2013-01-03", "2013-01-04", "2013-01-05"] * 2)
@@ -1916,9 +1914,7 @@ Thur,Lunch,Yes,51.51,17"""
 
 
 class TestSorted(Base):
-    """
-    Everything you wanted to test about sorting.
-    """
+    """ everything you wanted to test about sorting """
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()

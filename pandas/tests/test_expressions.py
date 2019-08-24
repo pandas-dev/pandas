@@ -102,7 +102,7 @@ class TestExpressions:
         numexpr_ops={"gt", "lt", "ge", "le", "eq", "ne"},
     ):
         """
-        Tests solely that the result is the same whether or not numexpr is
+        tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
         elsewhere.
         """

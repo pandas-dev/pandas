@@ -6,7 +6,7 @@ import pandas as pd
 class TablePlotter:
     """
     Layout some DataFrames in vertical/horizontal layout for explanation.
-    Used in merging.rst.
+    Used in merging.rst
     """
 
     def __init__(self, cell_width=0.37, cell_height=0.25, font_size=7.5):
@@ -16,7 +16,7 @@ class TablePlotter:
 
     def _shape(self, df):
         """
-        Calculate table shape considering index levels.
+        Calculate table chape considering index levels.
         """
 
         row, col = df.shape
@@ -96,9 +96,7 @@ class TablePlotter:
         return fig
 
     def _conv(self, data):
-        """
-        Convert each input to appropriate for table outplot.
-        """
+        """Convert each input to appropriate for table outplot"""
         if isinstance(data, pd.Series):
             if data.name is None:
                 data = data.to_frame(name="")

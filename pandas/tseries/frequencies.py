@@ -53,9 +53,7 @@ _offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
-    """
-    Alias to closest period strings BQ->Q etc.
-    """
+    """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, None)
 
 
