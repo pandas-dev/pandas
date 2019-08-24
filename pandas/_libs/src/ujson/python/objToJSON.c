@@ -48,13 +48,13 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
 #include "datetime.h"
 
-#define NPY_JSON_BUFSIZE 32768
-
 static PyTypeObject *type_decimal;
 static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+PyObject *cls_timestamp;
+PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -166,6 +166,8 @@ void *initObjToJSON(void)
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
+        cls_timestamp = PyObject_GetAttrString(mod_pandas, "Timestamp");
+	cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
 
@@ -787,30 +789,23 @@ JSOBJ NpyArr_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-static void NpyArr_getLabel(JSOBJ obj, JSONTypeContext *tc, size_t *outLen,
-                            npy_intp idx, char **labels) {
-    JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
-    PRINTMARK();
-    *outLen = strlen(labels[idx]);
-    Buffer_Reserve(enc, *outLen);
-    memcpy(enc->offset, labels[idx], sizeof(char) * (*outLen));
-    enc->offset += *outLen;
-    *outLen = 0;
-}
-
 char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     NpyArrContext *npyarr = GET_TC(tc)->npyarr;
     npy_intp idx;
     PRINTMARK();
+    char *cStr;
 
     if (GET_TC(tc)->iterNext == NpyArr_iterNextItem) {
         idx = npyarr->index[npyarr->stridedim] - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->columnLabels);
+	cStr = npyarr->columnLabels[idx];
     } else {
         idx = npyarr->index[npyarr->stridedim - npyarr->inc] - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
+	cStr = npyarr->rowLabels[idx];
     }
-    return NULL;
+
+    *outLen = strlen(cStr);
+
+    return cStr;
 }
 
 //=============================================================================
@@ -852,19 +847,22 @@ char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
     NpyArrContext *npyarr = blkCtxt->npyCtxts[0];
     npy_intp idx;
+    char *cStr;
     PRINTMARK();
 
     if (GET_TC(tc)->iterNext == PdBlock_iterNextItem) {
         idx = blkCtxt->colIdx - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->columnLabels);
+	cStr = npyarr->columnLabels[idx];
     } else {
         idx = GET_TC(tc)->iterNext != PdBlock_iterNext
                   ? npyarr->index[npyarr->stridedim - npyarr->inc] - 1
                   : npyarr->index[npyarr->stridedim];
 
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
+	cStr = npyarr->rowLabels[idx];
     }
-    return NULL;
+
+    *outLen = strlen(cStr);
+    return cStr;
 }
 
 char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
@@ -872,16 +870,19 @@ char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
     PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
     NpyArrContext *npyarr = blkCtxt->npyCtxts[blkCtxt->colIdx];
     npy_intp idx;
+    char *cStr;
     PRINTMARK();
 
     if (GET_TC(tc)->iterNext == NpyArr_iterNextItem) {
         idx = npyarr->index[npyarr->stridedim] - 1;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->columnLabels);
+	cStr = npyarr->columnLabels[idx];
     } else {
         idx = blkCtxt->colIdx;
-        NpyArr_getLabel(obj, tc, outLen, idx, npyarr->rowLabels);
+	cStr = npyarr->rowLabels[idx];
     }
-    return NULL;
+
+    *outLen = strlen(cStr);
+    return cStr;
 }
 
 int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
@@ -1578,16 +1579,30 @@ void NpyArr_freeLabels(char **labels, npy_intp len) {
     }
 }
 
-char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
+/*
+ * Function: NpyArr_encodeLabels
+ * -----------------------------
+ *
+ * Builds an array of "encoded" labels.
+ *
+ * labels: PyArrayObject pointer for labels to be "encoded"
+ * num : number of labels
+ *
+ * "encode" is quoted above because we aren't really doing encoding
+ * For historical reasons this function would actually encode the entire
+ * array into a separate buffer with a separate call to JSON_Encode
+ * and would leave it to complex pointer manipulation from there to
+ * unpack values as needed. To make things simpler and more idiomatic
+ * this has instead just stringified any input save for datetime values,
+ * which may need to be represented in various formats.
+ */
+char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
-    PyObjectEncoder *pyenc = (PyObjectEncoder *)enc;
     PyObject *item = NULL;
-    npy_intp i, stride, len, need_quotes;
+    npy_intp i, stride, len;
     char **ret;
-    char *dataptr, *cLabel, *origend, *origst, *origoffset;
-    char labelBuffer[NPY_JSON_BUFSIZE];
-    PyArray_GetItemFunc *getitem;
+    char *dataptr, *cLabel;
     int type_num;
     PRINTMARK();
 
@@ -1614,45 +1629,126 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
         ret[i] = NULL;
     }
 
-    origst = enc->start;
-    origend = enc->end;
-    origoffset = enc->offset;
-
     stride = PyArray_STRIDE(labels, 0);
     dataptr = PyArray_DATA(labels);
-    getitem = (PyArray_GetItemFunc *)PyArray_DESCR(labels)->f->getitem;
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
-        if (PyTypeNum_ISDATETIME(type_num) || PyTypeNum_ISNUMBER(type_num))
-        {
-            item = (PyObject *)labels;
-            pyenc->npyType = type_num;
-            pyenc->npyValue = dataptr;
-        } else {
-            item = getitem(dataptr, labels);
-            if (!item) {
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-        }
+      item = PyArray_GETITEM(labels, dataptr);
+        if (!item) {
+	  NpyArr_freeLabels(ret, num);
+	  ret = 0;
+	  break;
+	}
 
-        cLabel = JSON_EncodeObject(item, enc, labelBuffer, NPY_JSON_BUFSIZE);
+	// TODO: for any matches on type_num (date and timedeltas) should use a
+	// vectorized solution to convert to epoch or iso formats
+	if (enc->datetimeIso && (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
+	  PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
+	  if (td == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }	  
 
-        if (item != (PyObject *)labels) {
-            Py_DECREF(item);
-        }
+	  PyObject *iso = PyObject_CallMethod(td, "isoformat", NULL);
+	  Py_DECREF(td);
+	  if (iso == NULL) {
+	    Py_DECREF(item);
+	    NpyArr_freeLabels(ret, num);
+	    ret = 0;
+	    break;
+	  }
 
-        if (PyErr_Occurred() || enc->errorMsg) {
+	  cLabel = (char *)PyUnicode_AsUTF8(iso);
+	  Py_DECREF(iso);
+	  len = strlen(cLabel);
+	}
+	else if (PyTypeNum_ISDATETIME(type_num) || 
+	    PyDateTime_Check(item) || PyDate_Check(item)) {
+	  PyObject *ts = PyObject_CallFunction(cls_timestamp, "(O)", item);
+	  if (ts == NULL) {
+	    Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+	  }
+
+	  if (enc->datetimeIso) {
+	    PyObject *iso = PyObject_CallMethod(ts, "isoformat", NULL);
+	    Py_DECREF(ts);
+	    if (iso == NULL) {
+	      Py_DECREF(item);
+	      NpyArr_freeLabels(ret, num);
+	      ret = 0;
+	      break;
+	    }
+
+	    cLabel = (char *)PyUnicode_AsUTF8(iso);
+	    Py_DECREF(iso);
+	    len = strlen(cLabel);
+	  } else {
+	    npy_int64 value;
+	    // TODO: refactor to not duplicate what goes on in beginTypeContext
+	    if (PyObject_HasAttrString(ts, "value")) {
+	      PRINTMARK();
+	      value = get_long_attr(ts, "value");
+	    } else {
+	      PRINTMARK();
+	      value =
+                total_seconds(ts) * 1000000000LL;  // nanoseconds per second
+	    }
+	    Py_DECREF(ts);
+
+	    switch (enc->datetimeUnit) {
+            case NPY_FR_ns:
+	      break;
+            case NPY_FR_us:
+	      value /= 1000LL;
+	      break;
+            case NPY_FR_ms:
+	      value /= 1000000LL;
+	      break;
+            case NPY_FR_s:
+	      value /= 1000000000LL;
+	      break;
+	    default:
+	      Py_DECREF(item);
+	      NpyArr_freeLabels(ret, num);
+	      ret = 0;
+	      break;	      
+	    }
+
+	    char buf[21] = {0};  // 21 chars for 2**63 as string
+	    cLabel = buf;
+	    sprintf(buf, "%" NPY_INT64_FMT, value);
+	    len = strlen(cLabel);
+	  }
+	} else {  // Fallack to string representation
+	  PyObject *str = PyObject_Str(item);
+	  if (str == NULL) {
+	    Py_DECREF(item);
+	    NpyArr_freeLabels(ret, num);
+	    ret = 0;
+	    break;
+	  }
+
+	  cLabel = (char *)PyUnicode_AsUTF8(str);
+	  Py_DECREF(str);	  
+	  len = strlen(cLabel);
+	}
+
+	Py_DECREF(item);
+	// Add 1 to include NULL terminator
+	ret[i] = PyObject_Malloc(len + 1);
+	memcpy(ret[i], cLabel, len + 1);
+
+        if (PyErr_Occurred()) {
             NpyArr_freeLabels(ret, num);
             ret = 0;
             break;
         }
-
-        need_quotes = ((*cLabel) != '"');
-        len = enc->offset - cLabel + 1 + 2 * need_quotes;
-        ret[i] = PyObject_Malloc(sizeof(char) * len);
 
         if (!ret[i]) {
             PyErr_NoMemory();
@@ -1660,21 +1756,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
             break;
         }
 
-        if (need_quotes) {
-            ret[i][0] = '"';
-            memcpy(ret[i] + 1, cLabel, sizeof(char) * (len - 4));
-            ret[i][len - 3] = '"';
-        } else {
-            memcpy(ret[i], cLabel, sizeof(char) * (len - 2));
-        }
-        ret[i][len - 2] = ':';
-        ret[i][len - 1] = '\0';
         dataptr += stride;
     }
-
-    enc->start = origst;
-    enc->end = origend;
-    enc->offset = origoffset;
 
     Py_DECREF(labels);
     return ret;
@@ -1972,7 +2055,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             if (!pc->columnLabels) {
                 goto INVALID;
@@ -2075,7 +2158,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyObject_Size(tmpObj);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             Py_DECREF(tmpObj);
             if (!pc->columnLabels) {
@@ -2098,7 +2181,7 @@ ISITERABLE:
             pc->rowLabelsLen = PyObject_Size(tmpObj);
             pc->rowLabels =
                 NpyArr_encodeLabels((PyArrayObject *)values,
-                                    (JSONObjectEncoder *)enc, pc->rowLabelsLen);
+                                    enc, pc->rowLabelsLen);
             Py_DECREF(tmpObj);
             tmpObj = (enc->outputFormat == INDEX
                           ? PyObject_GetAttrString(obj, "columns")
@@ -2117,7 +2200,7 @@ ISITERABLE:
             }
             pc->columnLabelsLen = PyObject_Size(tmpObj);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values,
-                                                   (JSONObjectEncoder *)enc,
+                                                   enc,
                                                    pc->columnLabelsLen);
             Py_DECREF(tmpObj);
             if (!pc->columnLabels) {
@@ -2429,7 +2512,6 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     PRINTMARK();
     ret = JSON_EncodeObject(oinput, encoder, buffer, sizeof(buffer));
     PRINTMARK();
-
     if (PyErr_Occurred()) {
         PRINTMARK();
         return NULL;
