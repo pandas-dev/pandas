@@ -1230,7 +1230,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1707,7 +1707,8 @@ def _make_fixed_width(
 
     def just(x):
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            # https://github.com/python/mypy/issues/2608
+            if (conf_max > 3) & (adj.len(x) > max_len):  # type: ignore
                 x = x[: max_len - 3] + "..."
         return x
 

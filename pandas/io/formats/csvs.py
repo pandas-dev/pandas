@@ -5,6 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
+from typing import List
 import warnings
 from zipfile import ZipFile
 
@@ -227,7 +228,7 @@ class CSVFormatter:
         cols = self.cols
         has_mi_columns = self.has_mi_columns
         header = self.header
-        encoded_labels = []
+        encoded_labels = []  # type: List[str]
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
         if not (has_aliases or self.header):

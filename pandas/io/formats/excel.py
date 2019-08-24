@@ -4,6 +4,7 @@
 from functools import reduce
 import itertools
 import re
+from typing import Iterable
 import warnings
 
 import numpy as np
@@ -528,7 +529,7 @@ class ExcelFormatter:
         else:
             gen = self._format_header_regular()
 
-        gen2 = ()
+        gen2 = ()  # type: Iterable[ExcelCell]
         if self.df.index.names:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""

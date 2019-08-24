@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple
 from uuid import uuid1
 
 import numpy as np
@@ -21,13 +22,16 @@ from pandas.core.dtypes.common import is_float, is_string_like
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
+from pandas._typing import Axis, FrameOrSeries
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import _IndexSlice, _maybe_numeric_slice, _non_reducing_slice
+
+ApplyArgs = Tuple[Callable[[FrameOrSeries], FrameOrSeries], Axis, Optional[_IndexSlice]]
+Kwargs = Dict[str, Any]
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-
 
 try:
     import matplotlib.pyplot as plt
@@ -122,8 +126,8 @@ class Styler:
         table_attributes=None,
         cell_ids=True,
     ):
-        self.ctx = defaultdict(list)
-        self._todo = []
+        self.ctx = defaultdict(list)  # type: DefaultDict[Tuple[int, int], List[str]]
+        self._todo = []  # type: List[Tuple[Callable, ApplyArgs, Kwargs]]
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -144,7 +148,7 @@ class Styler:
         self.precision = precision
         self.table_attributes = table_attributes
         self.hidden_index = False
-        self.hidden_columns = []
+        self.hidden_columns = []  # type: List[int]
         self.cell_ids = cell_ids
 
         # display_funcs maps (row, col) -> formatting function
@@ -155,7 +159,9 @@ class Styler:
             else:
                 return x
 
-        self._display_funcs = defaultdict(lambda: default_display_func)
+        self._display_funcs = defaultdict(
+            lambda: default_display_func
+        )  # type: DefaultDict[Tuple[int, int], Callable]
 
     def _repr_html_(self):
         """
@@ -244,7 +250,7 @@ class Styler:
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
 
-        cell_context = dict()
+        cell_context = dict()  # type: Dict[str, Dict]
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -626,7 +632,13 @@ class Styler:
         self._update_ctx(result)
         return self
 
-    def apply(self, func, axis=0, subset=None, **kwargs):
+    def apply(
+        self,
+        func: Callable[[FrameOrSeries], FrameOrSeries],
+        axis: Axis = 0,
+        subset: Optional[_IndexSlice] = None,
+        **kwargs
+    ):
         """
         Apply a function column-wise, row-wise, or table-wise,
         updating the HTML representation with the result.
@@ -1332,7 +1344,8 @@ class Styler:
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
-        class MyStyler(cls):
+        # https://github.com/python/mypy/issues/2477
+        class MyStyler(cls):  # type: ignore
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 

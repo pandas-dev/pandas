@@ -65,7 +65,7 @@ def in_interactive_session():
         return not hasattr(main, "__file__") or get_option("mode.sim_interactive")
 
     try:
-        return __IPYTHON__ or check_main()  # noqa
+        return __IPYTHON__ or check_main()  # type:ignore # noqa
     except NameError:
         return check_main()
 
@@ -75,7 +75,7 @@ def in_ipython_frontend():
     check if we're inside an an IPython zmq frontend
     """
     try:
-        ip = get_ipython()  # noqa
+        ip = get_ipython()  # type:ignore # noqa
         return "zmq" in str(type(ip)).lower()
     except NameError:
         pass
