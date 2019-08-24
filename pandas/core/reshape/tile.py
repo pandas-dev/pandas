@@ -5,6 +5,7 @@ from functools import partial
 
 import numpy as np
 
+from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
@@ -26,8 +27,6 @@ from pandas import (
     Interval,
     IntervalIndex,
     Series,
-    Timedelta,
-    Timestamp,
     to_datetime,
     to_timedelta,
 )
@@ -230,7 +229,7 @@ def cut(
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314
             raise ValueError(
-                "cannot specify integer `bins` when input data " "contains infinity"
+                "cannot specify integer `bins` when input data contains infinity"
             )
         elif mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
@@ -374,8 +373,7 @@ def _bins_to_cuts(
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = algos.take_nd(bins, ids)
-        result = Categorical(result, categories=bins, ordered=True)
+        result = Categorical.from_codes(ids, categories=bins, ordered=True)
         return result, bins
 
     unique_bins = algos.unique(bins)
@@ -406,7 +404,7 @@ def _bins_to_cuts(
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
-                    "Bin labels must be one fewer than " "the number of bin edges"
+                    "Bin labels must be one fewer than the number of bin edges"
                 )
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)

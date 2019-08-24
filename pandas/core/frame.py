@@ -108,6 +108,7 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
+from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -310,11 +311,11 @@ class DataFrame(NDFrame):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, column order follows insertion-order for
            Python 3.6 and later.
 
-        .. versionchanged :: 0.25.0
+        .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
            Python 3.6 and later.
 
@@ -669,15 +670,18 @@ class DataFrame(NDFrame):
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
+            min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return self.to_html(
+            formatter = fmt.DataFrameFormatter(
+                self,
                 max_rows=max_rows,
+                min_rows=min_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
-                notebook=True,
             )
+            return formatter.to_html(notebook=True)
         else:
             return None
 
@@ -732,7 +736,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -750,11 +753,7 @@ class DataFrame(NDFrame):
             decimal=decimal,
             line_width=line_width,
         )
-        formatter.to_string()
-
-        if buf is None:
-            result = formatter.buf.getvalue()
-            return result
+        return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 
@@ -775,12 +774,13 @@ class DataFrame(NDFrame):
     _shared_docs[
         "items"
     ] = r"""
-        Iterator over (column name, Series) pairs.
+        Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.
 
-        %s
+        Yields
+        ------
         label : object
             The column names for the DataFrame being iterated over.
         content : Series
@@ -821,7 +821,7 @@ class DataFrame(NDFrame):
         Name: population, dtype: int64
         """
 
-    @Appender(_shared_docs["items"] % "Yields\n        ------")
+    @Appender(_shared_docs["items"])
     def items(self):
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
@@ -830,9 +830,9 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"] % "Returns\n        -------")
+    @Appender(_shared_docs["items"])
     def iteritems(self):
-        return self.items()
+        yield from self.items()
 
     def iterrows(self):
         """
@@ -850,8 +850,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        items : Iterate over (column name, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -1173,9 +1173,7 @@ class DataFrame(NDFrame):
                     data, index = list(data.values()), list(data.keys())
         elif orient == "columns":
             if columns is not None:
-                raise ValueError(
-                    "cannot use columns parameter with " "orient='columns'"
-                )
+                raise ValueError("cannot use columns parameter with orient='columns'")
         else:  # pragma: no cover
             raise ValueError("only recognize index or columns for orient")
 
@@ -1196,7 +1194,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is a not a view on
             another array. Note that ``copy=False`` does not *ensure* that
@@ -1327,7 +1325,7 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn(
-                "DataFrame columns are not unique, some " "columns will be omitted.",
+                "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -1808,9 +1806,9 @@ class DataFrame(NDFrame):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
-                msg = (
-                    "Invalid dtype {dtype} specified for " "{element} {name}"
-                ).format(dtype=dtype_mapping, element=element, name=name)
+                msg = ("Invalid dtype {dtype} specified for {element} {name}").format(
+                    dtype=dtype_mapping, element=element, name=name
+                )
                 raise ValueError(msg)
 
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
@@ -2086,9 +2084,7 @@ class DataFrame(NDFrame):
             raise ValueError("Only formats 114 and 117 supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError(
-                    "strl support is only available when using " "format 117"
-                )
+                raise ValueError("strl support is only available when using format 117")
             from pandas.io.stata import StataWriter as statawriter
         else:
             from pandas.io.stata import StataWriter117 as statawriter
@@ -2277,7 +2273,6 @@ class DataFrame(NDFrame):
 
         formatter = fmt.DataFrameFormatter(
             self,
-            buf=buf,
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -2298,10 +2293,9 @@ class DataFrame(NDFrame):
             render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        formatter.to_html(classes=classes, notebook=notebook, border=border)
-
-        if buf is None:
-            return formatter.buf.getvalue()
+        return formatter.to_html(
+            buf=buf, classes=classes, notebook=notebook, border=border
+        )
 
     # ----------------------------------------------------------------------
 
@@ -2502,7 +2496,7 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return "{num:3.1f}{size_q} " "{x}".format(
+                    return "{num:3.1f}{size_q} {x}".format(
                         num=num, size_q=size_qualifier, x=x
                     )
                 num /= 1024.0
@@ -2887,7 +2881,7 @@ class DataFrame(NDFrame):
         # with all other indexing behavior
         if isinstance(key, Series) and not key.index.equals(self.index):
             warnings.warn(
-                "Boolean Series key will be reindexed to match " "DataFrame index.",
+                "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -3104,7 +3098,7 @@ class DataFrame(NDFrame):
         passed value.
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
@@ -3458,15 +3452,14 @@ class DataFrame(NDFrame):
         if not is_list_like(exclude):
             exclude = (exclude,) if exclude is not None else ()
 
-        selection = tuple(map(frozenset, (include, exclude)))
+        selection = (frozenset(include), frozenset(exclude))
 
         if not any(selection):
-            raise ValueError("at least one of include or exclude must be " "nonempty")
+            raise ValueError("at least one of include or exclude must be nonempty")
 
         # convert the myriad valid dtypes object to a single representation
-        include, exclude = map(
-            lambda x: frozenset(map(infer_dtype_from_object, x)), selection
-        )
+        include = frozenset(infer_dtype_from_object(x) for x in include)
+        exclude = frozenset(infer_dtype_from_object(x) for x in exclude)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
@@ -3559,7 +3552,7 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
 
            Keyword argument order is maintained for Python 3.6 and later.
 
@@ -3654,7 +3647,7 @@ class DataFrame(NDFrame):
 
                     # other
                     raise TypeError(
-                        "incompatible index of inserted column " "with frame index"
+                        "incompatible index of inserted column with frame index"
                     )
             return value
 
@@ -4337,7 +4330,7 @@ class DataFrame(NDFrame):
                     found = col in self.columns
                 except TypeError:
                     raise TypeError(
-                        err_msg + " Received column of " "type {}".format(type(col))
+                        err_msg + " Received column of type {}".format(type(col))
                     )
                 else:
                     if not found:
@@ -5316,7 +5309,9 @@ class DataFrame(NDFrame):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
-            result = _arith_op(this.values, other.values)
+            with np.errstate(all="ignore"):
+                result = _arith_op(this.values, other.values)
+            result = dispatch_fill_zeros(func, this.values, other.values, result)
             return self._constructor(
                 result, index=new_index, columns=new_columns, copy=False
             )
@@ -5627,7 +5622,7 @@ class DataFrame(NDFrame):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
-            .. versionchanged :: 0.24.0
+            .. versionchanged:: 0.24.0
                Changed from `raise_conflict=False|True`
                to `errors='ignore'|'raise'`.
 
@@ -5714,9 +5709,7 @@ class DataFrame(NDFrame):
         if join != "left":  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
         if errors not in ["ignore", "raise"]:
-            raise ValueError(
-                "The parameter errors must be either " "'ignore' or 'raise'"
-            )
+            raise ValueError("The parameter errors must be either 'ignore' or 'raise'")
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
@@ -5773,7 +5766,7 @@ class DataFrame(NDFrame):
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
-            .. versionchanged :: 0.23.0
+            .. versionchanged:: 0.23.0
                Also accept list of column names.
 
         Returns
@@ -5902,7 +5895,7 @@ class DataFrame(NDFrame):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged :: 0.25.0
+            .. versionchanged:: 0.25.0
 
         Returns
         -------
@@ -7213,7 +7206,7 @@ class DataFrame(NDFrame):
         else:
             if on is not None:
                 raise ValueError(
-                    "Joining multiple DataFrames only supported" " for joining on index"
+                    "Joining multiple DataFrames only supported for joining on index"
                 )
 
             frames = [self] + list(other)
@@ -7223,10 +7216,14 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if can_concat:
                 if how == "left":
-                    res = concat(frames, axis=1, join="outer", verify_integrity=True)
+                    res = concat(
+                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
+                    )
                     return res.reindex(self.index, copy=False)
                 else:
-                    return concat(frames, axis=1, join=how, verify_integrity=True)
+                    return concat(
+                        frames, axis=1, join=how, verify_integrity=True, sort=sort
+                    )
 
             joined = frames[0]
 
@@ -7374,7 +7371,7 @@ class DataFrame(NDFrame):
             # Dispatch to Series.round
             new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
-            raise TypeError("decimals must be an integer, a dict-like or a " "Series")
+            raise TypeError("decimals must be an integer, a dict-like or a Series")
 
         if len(new_cols) > 0:
             return self._constructor(
@@ -8376,11 +8373,11 @@ class DataFrame(NDFrame):
             )
         elif isinstance(values, Series):
             if not values.index.is_unique:
-                raise ValueError("cannot compute isin with " "a duplicate axis.")
+                raise ValueError("cannot compute isin with a duplicate axis.")
             return self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
-                raise ValueError("cannot compute isin with " "a duplicate axis.")
+                raise ValueError("cannot compute isin with a duplicate axis.")
             return self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):

@@ -741,10 +741,7 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cache",
-        [pytest.param(True, marks=pytest.mark.skipif(True, reason="GH 18111")), False],
-    )
+    @pytest.mark.parametrize("cache", [True, False])
     def test_datetime_bool(self, cache):
         # GH13176
         with pytest.raises(TypeError):
@@ -1622,6 +1619,18 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx4)
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
+
+    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
+    def test_to_datetime_dta_tz(self, klass):
+        # GH#27733
+        dti = date_range("2015-04-05", periods=3).rename("foo")
+        expected = dti.tz_localize("UTC")
+
+        obj = klass(dti)
+        expected = klass(expected)
+
+        result = to_datetime(obj, utc=True)
+        tm.assert_equal(result, expected)
 
 
 class TestGuessDatetimeFormat:
