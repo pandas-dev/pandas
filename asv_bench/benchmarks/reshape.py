@@ -214,6 +214,7 @@ class Cut:
         self.datetime_series = pd.Series(
             np.random.randint(N, size=N), dtype="datetime64[ns]"
         )
+        self.interval_bins = pd.IntervalIndex.from_breaks(np.linspace(0, N, bins))
 
     def time_cut_int(self, bins):
         pd.cut(self.int_series, bins)
@@ -238,6 +239,27 @@ class Cut:
 
     def time_qcut_datetime(self, bins):
         pd.qcut(self.datetime_series, bins)
+
+    def time_cut_interval(self, bins):
+        # GH 27668
+        pd.cut(self.int_series, self.interval_bins)
+
+    def peakmem_cut_interval(self, bins):
+        # GH 27668
+        pd.cut(self.int_series, self.interval_bins)
+
+
+class Explode:
+    param_names = ["n_rows", "max_list_length"]
+    params = [[100, 1000, 10000], [3, 5, 10]]
+
+    def setup(self, n_rows, max_list_length):
+
+        data = [np.arange(np.random.randint(max_list_length)) for _ in range(n_rows)]
+        self.series = pd.Series(data)
+
+    def time_explode(self, n_rows, max_list_length):
+        self.series.explode()
 
 
 from .pandas_vb_common import setup  # noqa: F401

@@ -110,17 +110,16 @@ def test_series_set_value():
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
     index = DatetimeIndex(dates)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        s = Series().set_value(dates[0], 1.0)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        s2 = s.set_value(dates[1], np.nan)
+    s = Series()._set_value(dates[0], 1.0)
+    s2 = s._set_value(dates[1], np.nan)
 
-    exp = Series([1.0, np.nan], index=index)
+    expected = Series([1.0, np.nan], index=index)
 
-    assert_series_equal(s2, exp)
+    assert_series_equal(s2, expected)
 
+    # FIXME: dont leave commented-out
     # s = Series(index[:1], index[:1])
-    # s2 = s.set_value(dates[1], index[1])
+    # s2 = s._set_value(dates[1], index[1])
     # assert s2.values.dtype == 'M8[ns]'
 
 
@@ -765,3 +764,14 @@ def test_round_nat(method, freq):
     expected = Series(pd.NaT)
     round_method = getattr(s.dt, method)
     assert_series_equal(round_method(freq), expected)
+
+
+def test_setitem_tuple_with_datetimetz():
+    # GH 20441
+    arr = date_range("2017", periods=4, tz="US/Eastern")
+    index = [(0, 1), (0, 2), (0, 3), (0, 4)]
+    result = Series(arr, index=index)
+    expected = result.copy()
+    result[(0, 1)] = np.nan
+    expected.iloc[0] = np.nan
+    assert_series_equal(result, expected)

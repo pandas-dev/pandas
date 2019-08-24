@@ -1819,10 +1819,17 @@ class TestDataFrameAnalytics:
             (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
             (np.any, {"A": pd.Series([1, 2], dtype="category")}, True),
-            # # Mix
-            # GH 21484
-            # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
-            #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+            # Mix GH#21484
+            pytest.param(
+                np.all,
+                {
+                    "A": pd.Series([10, 20], dtype="M8[ns]"),
+                    "B": pd.Series([10, 20], dtype="m8[ns]"),
+                },
+                True,
+                # In 1.13.3 and 1.14 np.all(df) returns a Timedelta here
+                marks=[td.skip_if_np_lt("1.15")],
+            ),
         ],
     )
     def test_any_all_np_func(self, func, data, expected):

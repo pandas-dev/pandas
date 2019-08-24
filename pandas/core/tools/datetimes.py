@@ -334,6 +334,9 @@ def _convert_listlike_datetimes(
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
                 pass
+        elif tz:
+            # DatetimeArray, DatetimeIndex
+            return arg.tz_localize(tz)
 
         return arg
 
@@ -365,7 +368,7 @@ def _convert_listlike_datetimes(
         return result
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
-            "arg must be a string, datetime, list, tuple, " "1-d array, or Series"
+            "arg must be a string, datetime, list, tuple, 1-d array, or Series"
         )
 
     # warn if passing timedelta64, raise for PeriodDtype
@@ -402,9 +405,7 @@ def _convert_listlike_datetimes(
                     orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
                 except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
-                    raise ValueError(
-                        "cannot convert the input to " "'%Y%m%d' date format"
-                    )
+                    raise ValueError("cannot convert the input to '%Y%m%d' date format")
 
             # fallback
             if result is None:
@@ -503,7 +504,7 @@ def _adjust_to_origin(arg, origin, unit):
         try:
             arg = arg - j0
         except TypeError:
-            raise ValueError("incompatible 'arg' type for given " "'origin'='julian'")
+            raise ValueError("incompatible 'arg' type for given 'origin'='julian'")
 
         # preemptively check this for a nice range
         j_max = Timestamp.max.to_julian_date() - j0
@@ -577,9 +578,6 @@ def to_datetime(
     Parameters
     ----------
     arg : integer, float, string, datetime, list, tuple, 1-d array, Series
-
-        .. versionadded:: 0.18.1
-
            or DataFrame/dict-like
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
@@ -900,7 +898,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
     except (TypeError, ValueError) as e:
-        raise ValueError("cannot assemble the " "datetimes: {error}".format(error=e))
+        raise ValueError("cannot assemble the datetimes: {error}".format(error=e))
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
@@ -1032,7 +1030,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
 
         elif getattr(arg, "ndim", 1) > 1:
             raise TypeError(
-                "arg must be a string, datetime, list, tuple, " "1-d array, or Series"
+                "arg must be a string, datetime, list, tuple, 1-d array, or Series"
             )
 
         arg = ensure_object(arg)
@@ -1077,7 +1075,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
                     times.append(time_object)
                 elif errors == "raise":
                     raise ValueError(
-                        "Cannot convert arg {arg} to " "a time".format(arg=arg)
+                        "Cannot convert arg {arg} to a time".format(arg=arg)
                     )
                 elif errors == "ignore":
                     return arg

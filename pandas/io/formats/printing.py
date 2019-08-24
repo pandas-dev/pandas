@@ -3,13 +3,16 @@ printing tools
 """
 
 import sys
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
+EscapeChars = Union[Dict[str, str], Iterable[str]]
 
-def adjoin(space, *lists, **kwargs):
+
+def adjoin(space: int, *lists: List[str], **kwargs) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -40,11 +43,11 @@ def adjoin(space, *lists, **kwargs):
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
-        out_lines.append(_join_unicode(lines))
-    return _join_unicode(out_lines, sep="\n")
+        out_lines.append("".join(lines))
+    return "\n".join(out_lines)
 
 
-def justify(texts, max_len, mode="right"):
+def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -54,14 +57,6 @@ def justify(texts, max_len, mode="right"):
         return [x.center(max_len) for x in texts]
     else:
         return [x.rjust(max_len) for x in texts]
-
-
-def _join_unicode(lines, sep=""):
-    try:
-        return sep.join(lines)
-    except UnicodeDecodeError:
-        sep = str(sep)
-        return sep.join([x.decode("utf-8") if isinstance(x, str) else x for x in lines])
 
 
 # Unicode consolidation
@@ -88,7 +83,9 @@ def _join_unicode(lines, sep=""):
 #    working with straight ascii.
 
 
-def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
+def _pprint_seq(
+    seq: Sequence, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -121,7 +118,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     return fmt.format(body=body)
 
 
-def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
+def _pprint_dict(
+    seq: Dict, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -151,19 +150,16 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
 
 
 def pprint_thing(
-    thing,
-    _nest_lvl=0,
-    escape_chars=None,
-    default_escapes=False,
-    quote_strings=False,
-    max_seq_items=None,
-):
+    thing: Any,
+    _nest_lvl: int = 0,
+    escape_chars: Optional[EscapeChars] = None,
+    default_escapes: bool = False,
+    quote_strings: bool = False,
+    max_seq_items: Optional[int] = None,
+) -> str:
     """
     This function is the sanctioned way of converting objects
-    to a unicode representation.
-
-    properly handles nested sequences containing unicode strings
-    (unicode(object) does not)
+    to a string representation and properly handles nested sequences.
 
     Parameters
     ----------
@@ -181,21 +177,13 @@ def pprint_thing(
 
     Returns
     -------
-    result - unicode str
+    str
 
     """
 
-    def as_escaped_unicode(thing, escape_chars=escape_chars):
-        # Unicode is fine, else we try to decode using utf-8 and 'replace'
-        # if that's not it either, we have no way of knowing and the user
-        # should deal with it himself.
-
-        try:
-            result = str(thing)  # we should try this first
-        except UnicodeDecodeError:
-            # either utf-8 or we replace errors
-            result = str(thing).decode("utf-8", "replace")
-
+    def as_escaped_string(
+        thing: Any, escape_chars: Optional[EscapeChars] = escape_chars
+    ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
             if default_escapes:
@@ -205,10 +193,11 @@ def pprint_thing(
             escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or tuple()
+
+        result = str(thing)
         for c in escape_chars:
             result = result.replace(c, translate[c])
-
-        return str(result)
+        return result
 
     if hasattr(thing, "__next__"):
         return str(thing)
@@ -227,19 +216,21 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     elif isinstance(thing, str) and quote_strings:
-        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
+        result = "'{thing}'".format(thing=as_escaped_string(thing))
     else:
-        result = as_escaped_unicode(thing)
+        result = as_escaped_string(thing)
 
-    return str(result)  # always unicode
+    return result
 
 
-def pprint_thing_encoded(object, encoding="utf-8", errors="replace", **kwds):
+def pprint_thing_encoded(
+    object, encoding: str = "utf-8", errors: str = "replace"
+) -> bytes:
     value = pprint_thing(object)  # get unicode representation of object
-    return value.encode(encoding, errors, **kwds)
+    return value.encode(encoding, errors)
 
 
-def _enable_data_resource_formatter(enable):
+def _enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
@@ -279,12 +270,12 @@ default_pprint = lambda x, max_seq_items=None: pprint_thing(
 
 def format_object_summary(
     obj,
-    formatter,
-    is_justify=True,
-    name=None,
-    indent_for_name=True,
-    line_break_each_value=False,
-):
+    formatter: Callable,
+    is_justify: bool = True,
+    name: Optional[str] = None,
+    indent_for_name: bool = True,
+    line_break_each_value: bool = False,
+) -> str:
     """
     Return the formatted obj as a unicode string
 
@@ -448,7 +439,9 @@ def format_object_summary(
     return summary
 
 
-def _justify(head, tail):
+def _justify(
+    head: List[Sequence[str]], tail: List[Sequence[str]]
+) -> Tuple[List[Tuple[str, ...]], List[Tuple[str, ...]]]:
     """
     Justify items in head and tail, so they are right-aligned when stacked.
 
@@ -484,10 +477,16 @@ def _justify(head, tail):
     tail = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    return head, tail
+    # https://github.com/python/mypy/issues/4975
+    # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
+    #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
+    #  List[Tuple[str, ...]]]")
+    return head, tail  # type: ignore
 
 
-def format_object_attrs(obj, include_dtype=True):
+def format_object_attrs(
+    obj: Sequence, include_dtype: bool = True
+) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -501,16 +500,20 @@ def format_object_attrs(obj, include_dtype=True):
 
     Returns
     -------
-    list
+    list of 2-tuple
 
     """
-    attrs = []
+    attrs = []  # type: List[Tuple[str, Union[str, int]]]
     if hasattr(obj, "dtype") and include_dtype:
-        attrs.append(("dtype", "'{}'".format(obj.dtype)))
+        # error: "Sequence[Any]" has no attribute "dtype"
+        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore
     if getattr(obj, "name", None) is not None:
-        attrs.append(("name", default_pprint(obj.name)))
-    elif getattr(obj, "names", None) is not None and any(obj.names):
-        attrs.append(("names", default_pprint(obj.names)))
+        # error: "Sequence[Any]" has no attribute "name"
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore
+    # error: "Sequence[Any]" has no attribute "names"
+    elif getattr(obj, "names", None) is not None and any(obj.names):  # type: ignore
+        # error: "Sequence[Any]" has no attribute "names"
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))

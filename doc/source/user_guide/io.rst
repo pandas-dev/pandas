@@ -28,6 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
@@ -39,6 +40,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
     SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
@@ -86,8 +88,6 @@ delim_whitespace : boolean, default False
   will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
-
-  .. versionadded:: 0.18.1 support for the Python parser.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -298,7 +298,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression.
 
-  .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
 thousands : str, default ``None``
   Thousands separator.
@@ -455,8 +454,6 @@ worth trying.
 
 Specifying categorical dtype
 ''''''''''''''''''''''''''''
-
-.. versionadded:: 0.19.0
 
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
 ``dtype=CategoricalDtype(categories, ordered)``.
@@ -1376,6 +1373,7 @@ should pass the ``escapechar`` option:
    print(data)
    pd.read_csv(StringIO(data), escapechar='\\')
 
+.. _io.fwf_reader:
 .. _io.fwf:
 
 Files with fixed width columns
@@ -2195,8 +2193,6 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
 Line delimited json
 '''''''''''''''''''
 
-.. versionadded:: 0.19.0
-
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
@@ -2494,15 +2490,11 @@ Specify values that should be converted to NaN:
 
    dfs = pd.read_html(url, na_values=['No Acquirer'])
 
-.. versionadded:: 0.19
-
 Specify whether to keep the default set of NaN values:
 
 .. code-block:: python
 
    dfs = pd.read_html(url, keep_default_na=False)
-
-.. versionadded:: 0.19
 
 Specify converters for columns. This is useful for numerical text data that has
 leading zeros.  By default columns that are numerical are cast to numeric
@@ -2514,8 +2506,6 @@ columns to strings.
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
    dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
                       converters={'MNC': str})
-
-.. versionadded:: 0.19
 
 Use some combination of the above:
 
@@ -3584,7 +3574,7 @@ Closing a Store and using a context manager:
 Read/write API
 ''''''''''''''
 
-``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
+``HDFStore`` supports a top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
 similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
@@ -3699,7 +3689,7 @@ Hierarchical keys
 Keys to a store can be specified as a string. These can be in a
 hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
 generate a hierarchy of sub-stores (or ``Groups`` in PyTables
-parlance). Keys can be specified with out the leading '/' and are **always**
+parlance). Keys can be specified without the leading '/' and are **always**
 absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
 everything in the sub-store and **below**, so be *careful*.
 
@@ -3837,7 +3827,7 @@ data.
 
 A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
-* ``index`` and ``columns`` are supported indexers of a ``DataFrames``.
+* ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
 
 Valid comparison operators are:
@@ -3929,7 +3919,7 @@ Use boolean expressions, with in-line function evaluation.
 
     store.select('dfq', "index>pd.Timestamp('20130104') & columns=['A', 'B']")
 
-Use and inline column reference
+Use inline column reference.
 
 .. ipython:: python
 
@@ -4605,8 +4595,8 @@ Performance
   write chunksize (default is 50000). This will significantly lower
   your memory usage on writing.
 * You can pass ``expectedrows=<int>`` to the first ``append``,
-  to set the TOTAL number of expected rows that ``PyTables`` will
-  expected. This will optimize read/write performance.
+  to set the TOTAL number of rows that ``PyTables`` will expect.
+  This will optimize read/write performance.
 * Duplicate rows can be written to tables, but are filtered out in
   selection (with the last items being selected; thus a table is
   unique on major, minor pairs)
@@ -5489,6 +5479,43 @@ web site.
 .. _specification: https://support.sas.com/techsup/technote/ts140.pdf
 
 No official documentation is available for the SAS7BDAT format.
+
+.. _io.spss:
+
+.. _io.spss_reader:
+
+SPSS formats
+------------
+
+.. versionadded:: 0.25.0
+
+The top-level function :func:`read_spss` can read (but not write) SPSS
+`sav` (.sav) and  `zsav` (.zsav) format files.
+
+SPSS files contain column names. By default the
+whole file is read, categorical columns are converted into ``pd.Categorical``,
+and a ``DataFrame`` with all columns is returned.
+
+Specify the ``usecols`` parameter to obtain a subset of columns. Specify ``convert_categoricals=False``
+to avoid converting categorical columns into ``pd.Categorical``.
+
+Read an SPSS file:
+
+.. code-block:: python
+
+    df = pd.read_spss('spss_data.sav')
+
+Extract a subset of columns contained in ``usecols`` from an SPSS file and
+avoid converting categorical columns into ``pd.Categorical``:
+
+.. code-block:: python
+
+    df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
+                      convert_categoricals=False)
+
+More information about the `sav` and `zsav` file format is available here_.
+
+.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
 .. _io.other:
 

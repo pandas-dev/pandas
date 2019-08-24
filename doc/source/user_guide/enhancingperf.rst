@@ -243,9 +243,9 @@ We've gotten another big improvement. Let's check again where the time is spent:
 
 .. ipython:: python
 
-   %prun -l 4 apply_integrate_f(df['a'].to_numpy(),
-                                df['b'].to_numpy(),
-                                df['N'].to_numpy())
+   %%prun -l 4 apply_integrate_f(df['a'].to_numpy(),
+                                 df['b'].to_numpy(),
+                                 df['N'].to_numpy())
 
 As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
 so if we wanted to make anymore efficiencies we must continue to concentrate our
@@ -601,8 +601,6 @@ This allows for *formulaic evaluation*.  The assignment target can be a
 new column name or an existing column name, and it must be a valid Python
 identifier.
 
-.. versionadded:: 0.18.0
-
 The ``inplace`` keyword determines whether this assignment will performed
 on the original ``DataFrame`` or return a copy with the new column.
 
@@ -630,8 +628,6 @@ new or modified columns is returned and the original frame is unchanged.
    df.eval('e = a - c', inplace=False)
    df
 
-.. versionadded:: 0.18.0
-
 As a convenience, multiple assignments can be performed by using a
 multi-line string.
 
@@ -652,9 +648,7 @@ The equivalent in standard Python would be
    df['a'] = 1
    df
 
-.. versionadded:: 0.18.0
-
-The ``query`` method gained the ``inplace`` keyword which determines
+The ``query`` method has a ``inplace`` keyword which determines
 whether the query modifies the original frame.
 
 .. ipython:: python

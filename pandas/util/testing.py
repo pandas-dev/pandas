@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 import gzip
 import http.client
-import lzma
 import os
 import re
 from shutil import rmtree
@@ -26,15 +25,13 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
     is_extension_array_dtype,
     is_interval_dtype,
     is_list_like,
@@ -71,6 +68,8 @@ from pandas.core.arrays import (
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
+
+lzma = _import_lzma()
 
 N = 30
 K = 4
@@ -213,7 +212,7 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = lzma.LZMAFile(path, "rb")
+        f = _get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -266,9 +265,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        import lzma
-
-        compress_method = lzma.LZMAFile
+        compress_method = _get_lzma_file(lzma)
     else:
         msg = "Unrecognized compression type: {}".format(compression)
         raise ValueError(msg)
@@ -1172,12 +1169,7 @@ def assert_series_equal(
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
         # the values in that case
-        if (
-            is_datetimelike_v_numeric(left, right)
-            or is_datetimelike_v_object(left, right)
-            or needs_i8_conversion(left)
-            or needs_i8_conversion(right)
-        ):
+        if needs_i8_conversion(left) or needs_i8_conversion(right):
 
             # datetimelike may have different objects (e.g. datetime.datetime
             # vs Timestamp) but will compare equal
