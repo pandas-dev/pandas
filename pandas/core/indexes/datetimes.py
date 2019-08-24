@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
+from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
 import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -69,7 +69,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we we dont' want to expose in the .dt accessor.
-    _extra_methods = ["to_period", "to_perioddelta", "to_julian_date"]
+    _extra_methods = ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
     _extra_raw_methods = ["to_pydatetime", "_local_timestamps", "_has_same_tz"]
     _extra_raw_properties = ["_box_func", "tz", "tzinfo"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
@@ -238,6 +238,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     )
 
     _engine_type = libindex.DatetimeEngine
+    _supports_partial_string_indexing = True
 
     _tz = None
     _freq = None
@@ -464,14 +465,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
-
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -668,7 +661,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def to_series(self, keep_tz=None, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -694,10 +687,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 behaviour and silence the warning.
 
         index : Index, optional
-            index of resulting Series. If None, defaults to original index
-        name : string, optional
-            name of resulting Series. If None, defaults to name of original
-            index
+            Index of resulting Series. If None, defaults to original index.
+        name : str, optional
+            Name of resulting Series. If None, defaults to name of original
+            index.
 
         Returns
         -------
@@ -742,7 +735,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def snap(self, freq="S"):
         """
-        Snap time stamps to nearest occurring frequency
+        Snap time stamps to nearest occurring frequency.
 
         Returns
         -------
@@ -778,6 +771,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             not in (
                 "floating",
                 "integer",
+                "integer-na",
                 "mixed-integer",
                 "mixed-integer-float",
                 "mixed",
@@ -803,11 +797,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise TypeError(
-                        "Cannot join tz-naive with tz-aware " "DatetimeIndex"
-                    )
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware " "DatetimeIndex")
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
@@ -1048,7 +1040,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
-                    "cannot yet lookup inexact labels " "when key is a time object"
+                    "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 
@@ -1184,7 +1176,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
-    strftime = ea_passthrough(DatetimeArray.strftime)
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
     @property
@@ -1282,7 +1273,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 raise ValueError("Passed item and index have different timezone")
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
-                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
@@ -1570,7 +1563,7 @@ def date_range(
                   dtype='datetime64[ns]', freq='D')
     """
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     dtarr = DatetimeArray._generate_range(

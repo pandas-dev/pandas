@@ -21,7 +21,11 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_convert_objects, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects,
+    maybe_downcast_numeric,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -148,8 +152,10 @@ class NDFrameGroupBy(GroupBy):
         new_blocks = []
         new_items = []
         deleted_items = []
+        no_result = object()
         for block in data.blocks:
-
+            # Avoid inheriting result from earlier in the loop
+            result = no_result
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
@@ -174,15 +180,13 @@ class NDFrameGroupBy(GroupBy):
                 except TypeError:
                     # we may have an exception in trying to aggregate
                     # continue and exclude the block
-                    pass
-
+                    deleted_items.append(locs)
+                    continue
             finally:
-
-                dtype = block.values.dtype
-
-                # see if we can cast the block back to the original dtype
-                result = block._try_coerce_and_cast_result(result, dtype=dtype)
-                newb = block.make_block(result)
+                if result is not no_result:
+                    # see if we can cast the block back to the original dtype
+                    result = maybe_downcast_numeric(result, block.dtype)
+                    newb = block.make_block(result)
 
             new_items.append(locs)
             new_blocks.append(newb)
@@ -225,7 +229,7 @@ class NDFrameGroupBy(GroupBy):
             kwargs = {}
         elif func is None:
             # nicer error message
-            raise TypeError("Must provide 'func' or tuples of " "'(column, aggfunc).")
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = _maybe_mangle_lambdas(func)
 
@@ -359,7 +363,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 
@@ -669,7 +673,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
@@ -834,9 +838,7 @@ class SeriesGroupBy(GroupBy):
 
         relabeling = func_or_funcs is None
         columns = None
-        no_arg_message = (
-            "Must provide 'func_or_funcs' or named " "aggregation **kwargs."
-        )
+        no_arg_message = "Must provide 'func_or_funcs' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
             if not PY36:

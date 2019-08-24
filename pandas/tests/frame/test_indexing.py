@@ -269,7 +269,7 @@ class TestDataFrameIndexing(TestData):
         subframe_obj = datetime_frame[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
-        with pytest.raises(ValueError, match="boolean values only"):
+        with pytest.raises(ValueError, match="Boolean array expected"):
             datetime_frame[datetime_frame]
 
         # test that Series work
@@ -820,6 +820,14 @@ class TestDataFrameIndexing(TestData):
         df2 = df.copy()
         df[df > df2] = 47
         assert_frame_equal(df, df2)
+
+    def test_setitem_with_empty_listlike(self):
+        # GH #17101
+        index = pd.Index([], name="idx")
+        result = pd.DataFrame(columns=["A"], index=index)
+        result["A"] = []
+        expected = pd.DataFrame(columns=["A"], index=index)
+        tm.assert_index_equal(result.index, expected.index)
 
     def test_setitem_scalars_no_index(self):
         # GH16823 / 17894

@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pytest
 import pytz
@@ -588,14 +590,23 @@ class TestAsOfMerge:
         # ok, though has dupes
         merge_asof(trades, self.quotes, on="time", by="ticker")
 
-    def test_tolerance(self):
+    @pytest.mark.parametrize(
+        "tolerance",
+        [
+            Timedelta("1day"),
+            pytest.param(
+                datetime.timedelta(days=1),
+                marks=pytest.mark.xfail(reason="not implemented", strict=True),
+            ),
+        ],
+        ids=["pd.Timedelta", "datetime.timedelta"],
+    )
+    def test_tolerance(self, tolerance):
 
         trades = self.trades
         quotes = self.quotes
 
-        result = merge_asof(
-            trades, quotes, on="time", by="ticker", tolerance=Timedelta("1day")
-        )
+        result = merge_asof(trades, quotes, on="time", by="ticker", tolerance=tolerance)
         expected = self.tolerance
         assert_frame_equal(result, expected)
 
@@ -1245,4 +1256,40 @@ class TestAsOfMerge:
             columns=["by_col1", "by_col2", "on_col", "value_x"],
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
+        assert_frame_equal(result, expected)
+
+    def test_timedelta_tolerance_nearest(self):
+        # GH 27642
+
+        left = pd.DataFrame(
+            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5])),
+            columns=["time", "left"],
+        )
+
+        left["time"] = pd.to_timedelta(left["time"], "ms")
+
+        right = pd.DataFrame(
+            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5])),
+            columns=["time", "right"],
+        )
+
+        right["time"] = pd.to_timedelta(right["time"], "ms")
+
+        expected = pd.DataFrame(
+            list(
+                zip(
+                    [0, 5, 10, 15, 20, 25],
+                    [0, 1, 2, 3, 4, 5],
+                    [0, np.nan, 2, 4, np.nan, np.nan],
+                )
+            ),
+            columns=["time", "left", "right"],
+        )
+
+        expected["time"] = pd.to_timedelta(expected["time"], "ms")
+
+        result = pd.merge_asof(
+            left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
+        )
+
         assert_frame_equal(result, expected)

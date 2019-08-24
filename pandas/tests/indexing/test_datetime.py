@@ -51,7 +51,7 @@ class TestDatetimeIndex:
         # indexing
         result = df.iloc[1]
         expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), np.nan, np.nan],
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
             index=list("ABC"),
             dtype="object",
             name=1,
@@ -59,7 +59,7 @@ class TestDatetimeIndex:
         tm.assert_series_equal(result, expected)
         result = df.loc[1]
         expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), np.nan, np.nan],
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
             index=list("ABC"),
             dtype="object",
             name=1,
