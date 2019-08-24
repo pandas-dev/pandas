@@ -411,7 +411,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_to_another(self):
-        # hits _concat_index_asobject
+        # hits Index._concat_same_dtype
         fst = Index(["a", "b"])
         snd = CategoricalIndex(["d", "e"])
         result = fst.append(snd)
@@ -823,6 +823,11 @@ class TestCategoricalIndex(Base):
         msg = (
             "categorical index comparisons must have the same categories"
             " and ordered attributes"
+            "|"
+            "Categoricals can only be compared if 'categories' are the same. "
+            "Categories are different lengths"
+            "|"
+            "Categoricals can only be compared if 'ordered' is the same"
         )
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2

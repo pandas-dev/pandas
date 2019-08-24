@@ -64,9 +64,9 @@ class ExtensionArray:
     shift
     take
     unique
+    view
     _concat_same_type
     _formatter
-    _formatting_values
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
@@ -147,7 +147,7 @@ class ExtensionArray:
     If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
     that
 
-    1. You defer by raising ``NotImplemented`` when any Series are present
+    1. You defer by returning ``NotImplemented`` when any Series are present
        in `inputs`. Pandas will extract the arrays and call the ufunc again.
     2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
        Pandas inspect this to determine whether the ufunc is valid for the
@@ -514,7 +514,7 @@ class ExtensionArray:
 
     def dropna(self):
         """
-        Return ExtensionArray without NA values
+        Return ExtensionArray without NA values.
 
         Returns
         -------
@@ -862,6 +862,27 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+        """
+        Return a view on the array.
+
+        Parameters
+        ----------
+        dtype : str, np.dtype, or ExtensionDtype, optional
+            Default None
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
+
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
@@ -908,21 +929,6 @@ class ExtensionArray:
             return str
         return repr
 
-    def _formatting_values(self) -> np.ndarray:
-        # At the moment, this has to be an array since we use result.dtype
-        """
-        An array of values to be printed in, e.g. the Series repr
-
-        .. deprecated:: 0.24.0
-
-           Use :meth:`ExtensionArray._formatter` instead.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
-
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
@@ -951,7 +957,7 @@ class ExtensionArray:
         cls, to_concat: Sequence[ABCExtensionArray]
     ) -> ABCExtensionArray:
         """
-        Concatenate multiple array
+        Concatenate multiple array.
 
         Parameters
         ----------

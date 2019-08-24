@@ -49,7 +49,7 @@ _NS = slice(None, None)
 # the public IndexSlicerMaker
 class _IndexSlice:
     """
-    Create an object to more easily perform multi-index slicing
+    Create an object to more easily perform multi-index slicing.
 
     See Also
     --------
@@ -124,7 +124,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except (KeyError, TypeError, InvalidIndexError):
+            except (KeyError, TypeError, InvalidIndexError, AttributeError):
                 # TypeError occurs here if the key has non-hashable entries,
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
@@ -132,6 +132,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # The InvalidIndexError is only catched for compatibility
                 #  with geopandas, see
                 #  https://github.com/pandas-dev/pandas/issues/27258
+                # TODO: The AttributeError is for IntervalIndex which
+                #  incorrectly implements get_value, see
+                #  https://github.com/pandas-dev/pandas/issues/27865
                 pass
             else:
                 if is_scalar(values):
@@ -320,6 +323,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
+
+        # if we have any multi-indexes that have non-trivial slices
+        # (not null slices) then we must take the split path, xref
+        # GH 10360, GH 27841
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+            for i, ax in zip(indexer, self.obj.axes):
+                if isinstance(ax, MultiIndex) and not (
+                    is_integer(i) or com.is_null_slice(i)
+                ):
+                    take_split_path = True
+                    break
 
         if isinstance(indexer, tuple):
             nindexer = []
@@ -1704,6 +1718,11 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(ax, MultiIndex):
                 return False
 
+            if isinstance(k, str) and ax._supports_partial_string_indexing:
+                # partial string indexing, df.loc['2000', 'A']
+                # should not be considered scalar
+                return False
+
             if not ax.is_unique:
                 return False
 
@@ -1719,7 +1738,10 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if isinstance(key, str) and labels.levels[0].is_all_dates:
+            if (
+                isinstance(key, str)
+                and labels.levels[0]._supports_partial_string_indexing
+            ):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1729,7 +1751,10 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if isinstance(component, str) and labels.levels[i].is_all_dates:
+                    if (
+                        isinstance(component, str)
+                        and labels.levels[i]._supports_partial_string_indexing
+                    ):
                         new_key.append(slice(component, component, None))
                     else:
                         new_key.append(component)
@@ -2334,7 +2359,7 @@ def convert_to_index_sliceable(obj, key):
 
         # We might have a datetimelike string that we can translate to a
         # slice here via partial string indexing
-        if idx.is_all_dates:
+        if idx._supports_partial_string_indexing:
             try:
                 return idx._get_string_slice(key)
             except (KeyError, ValueError, NotImplementedError):
