@@ -168,7 +168,7 @@ _num_index_shared_docs[
 ] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s
+    of `Index` with purely %(ltype)s labels.
 
     Parameters
     ----------
