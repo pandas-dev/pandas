@@ -246,7 +246,7 @@ typedef struct __JSONObjectEncoder {
 
   /*
   Configuration for spaces of indent */
-  int indent;  
+  int indent;
 
   /*
   Set to an error message if error occurred */
