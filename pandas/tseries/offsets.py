@@ -230,15 +230,11 @@ class DateOffset(BaseOffset):
         - microsecond
         - nanosecond
 
-        .
-
     See Also
     --------
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
-
-    to be applied to an existing datetime an can replace specific components of
-
-    that datetime, or represents an interval of time.
+        to be applied to an existing datetime an can replace specific components of
+        that datetime, or represents an interval of time.
 
     Examples
     --------
