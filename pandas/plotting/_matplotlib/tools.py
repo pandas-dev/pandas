@@ -343,6 +343,21 @@ def _flatten(axes):
     return np.array(axes)
 
 
+def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
+    import matplotlib.pyplot as plt
+
+    for ax in _flatten(axes):
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
+    return axes
+
+
 def _get_all_lines(ax):
     lines = ax.get_lines()
 
@@ -362,18 +377,3 @@ def _get_xlim(lines):
         left = min(np.nanmin(x), left)
         right = max(np.nanmax(x), right)
     return left, right
-
-
-def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
-    import matplotlib.pyplot as plt
-
-    for ax in _flatten(axes):
-        if xlabelsize is not None:
-            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-        if xrot is not None:
-            plt.setp(ax.get_xticklabels(), rotation=xrot)
-        if ylabelsize is not None:
-            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-        if yrot is not None:
-            plt.setp(ax.get_yticklabels(), rotation=yrot)
-    return axes
