@@ -550,7 +550,7 @@ class DataFrameFormatter(TableFormatter):
         table_id: Optional[str] = None,
         render_links: bool = False,
         bold_rows: bool = False,
-        escape: bool = True
+        escape: bool = True,
     ):
         self.frame = frame
         self.show_index_names = index_names
