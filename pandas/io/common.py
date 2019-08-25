@@ -359,7 +359,7 @@ def _infer_compression(
 def _get_handle(
     path_or_buf,
     mode: str,
-    encoding=None,
+    encoding: str = None,
     compression: Optional[Union[str, Dict[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
@@ -384,7 +384,7 @@ def _get_handle(
         no compression). If dict and compression mode is 'zip' or inferred as
         'zip', other entries passed as additional compression options.
 
-        .. versionchanged:: 0.25.0
+        .. versionchanged:: 1.0.0
 
            May now be a dict with key 'method' as compression mode
            and other keys as compression options if compression
