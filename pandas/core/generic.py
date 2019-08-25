@@ -7,7 +7,7 @@ import operator
 import pickle
 import re
 from textwrap import dedent
-from typing import Callable, Dict, FrozenSet, List, Optional, Set
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Union
 import warnings
 import weakref
 
@@ -50,7 +50,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype
+from pandas._typing import Dtype, FilePathOrBuffer
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -120,6 +120,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
         return
 
     return result
+
+
+bool_t = bool  # Need alias because NDFrame has def bool:
 
 
 class NDFrame(PandasObject, SelectionMixin):
@@ -2239,18 +2242,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(
         self,
-        path_or_buf=None,
-        orient=None,
-        date_format=None,
-        double_precision=10,
-        force_ascii=True,
-        date_unit="ms",
-        default_handler=None,
-        lines=False,
-        compression="infer",
-        index=True,
-        indent=0,
-    ):
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        orient: Optional[str] = None,
+        date_format: Optional[str] = None,
+        double_precision: int = 10,
+        force_ascii: bool_t = True,
+        date_unit: str = "ms",
+        default_handler: Optional[Callable[[Any], Union[int, str, List, Dict]]] = None,
+        lines: bool_t = False,
+        compression: Optional[str] = "infer",
+        index: bool_t = True,
+        indent: int = 0,
+    ) -> Optional[str]:
         """
         Convert the object to a JSON string.
 
