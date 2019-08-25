@@ -359,7 +359,7 @@ def _infer_compression(
 def _get_handle(
     path_or_buf,
     mode: str,
-    encoding: str = None,
+    encoding=None,
     compression: Optional[Union[str, Dict[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
