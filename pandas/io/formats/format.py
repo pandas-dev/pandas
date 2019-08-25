@@ -549,7 +549,8 @@ class DataFrameFormatter(TableFormatter):
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
-        **kwds
+        bold_rows: bool = False,
+        escape: bool = True
     ):
         self.frame = frame
         self.show_index_names = index_names
@@ -580,7 +581,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.justify = justify
 
-        self.kwds = kwds
+        self.bold_rows = bold_rows
+        self.escape = escape
 
         if columns is not None:
             self.columns = ensure_index(columns)
