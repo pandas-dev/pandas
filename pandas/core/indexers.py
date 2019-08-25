@@ -226,9 +226,7 @@ def length_of_indexer(indexer, target=None) -> int:
         if step is None:
             step = 1
         elif step < 0:
-            t = stop
-            stop = start + 1
-            start = t + 1
+            start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
