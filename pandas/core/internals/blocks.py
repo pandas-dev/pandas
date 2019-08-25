@@ -2830,9 +2830,9 @@ class ObjectBlock(Block):
         regex = regex_re or to_rep_re
 
         # try to get the pattern attribute (compiled re) or it's a string
-        try:
+        if is_re(to_replace):
             pattern = to_replace.pattern
-        except AttributeError:
+        else:
             pattern = to_replace
 
         # if the pattern is not empty and to_replace is either a string or a
@@ -2853,18 +2853,18 @@ class ObjectBlock(Block):
         if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return value if rx.search(s) is not None else s
-                except TypeError:
+                else:
                     return s
 
         else:
             # value is guaranteed to be a string here, s can be either a string
             # or null if it's null it gets returned
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return rx.sub(value, s)
-                except TypeError:
+                else:
                     return s
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
