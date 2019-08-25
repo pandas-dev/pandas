@@ -460,11 +460,18 @@ class TestParquetPyArrow(Base):
         dtype = pd.CategoricalDtype(["foo", "bar", "baz"])
         df["b"] = pd.Categorical.from_codes(codes=[1, 0, 0, 1, -1, 1], dtype=dtype)
 
+        # test for ordered flag
+        df["c"] = pd.Categorical(
+            ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=True
+        )
+
         if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
             check_round_trip(df, pa)
         else:
             # de-serialized as object for pyarrow < 0.15
-            expected = df.assign(a=df.a.astype(object), b=df.b.astype(object))
+            expected = df.assign(
+                a=df.a.astype(object), b=df.b.astype(object), c=df.c.astype(object)
+            )
             check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
