@@ -1651,9 +1651,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.parametrize("indent", [1, 2, 4])
     def test_to_json_indent(self, indent):
         # GH 12004
-        df = pd.DataFrame([
-            ['foo', 'bar'], ['baz', 'qux']
-        ], columns=['a', 'b'])
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
 
         result = df.to_json(indent=indent)
         spaces = " " * indent
@@ -1666,6 +1664,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 {spaces}"0":"bar",
 {spaces}"1":"qux"
 {spaces}}}
-}}""".format(spaces=spaces)
+}}""".format(
+            spaces=spaces
+        )
 
         assert result == expected

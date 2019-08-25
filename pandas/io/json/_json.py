@@ -42,10 +42,10 @@ def to_json(
     orient: Optional[str] = None,
     date_format: str = "epoch",
     double_precision: int = 10,
-    force_ascii: bool =True,
+    force_ascii: bool = True,
     date_unit: str = "ms",
-    default_handler: Optional[Callable[[Any], Serializable]]=None,
-    lines: bool =False,
+    default_handler: Optional[Callable[[Any], Serializable]] = None,
+    lines: bool = False,
     compression: Optional[str] = "infer",
     index: bool = True,
     indent: int = 0,
@@ -99,7 +99,6 @@ def to_json(
 
 
 class Writer:
-
     def __init__(
         self,
         obj,
@@ -109,7 +108,7 @@ class Writer:
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]]=None,
+        default_handler: Optional[Callable[[Any], Serializable]] = None,
         indent: int = 0,
     ):
         self.obj = obj
@@ -262,8 +261,8 @@ class JSONTableWriter(FrameWriter):
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]]=None,
-        indent: int=0,
+        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        indent: int = 0,
     ):
         """
         Adds a `schema` attribute with the Table Schema, resets
@@ -343,7 +342,7 @@ class JSONTableWriter(FrameWriter):
             date_unit,
             iso_dates,
             default_handler,
-            indent
+            indent,
         )
         serialized = '{{"schema": {schema}, "data": {data}}}'.format(
             schema=dumps(self.schema), data=data
