@@ -1,6 +1,7 @@
 from io import StringIO
 from itertools import islice
 import os
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 
@@ -36,16 +37,16 @@ TABLE_SCHEMA_VERSION = "0.20.0"
 def to_json(
     path_or_buf,
     obj,
-    orient=None,
-    date_format="epoch",
-    double_precision=10,
-    force_ascii=True,
-    date_unit="ms",
-    default_handler=None,
-    lines=False,
-    compression="infer",
-    index=True,
-    indent=0,
+    orient: Optional[str] = None,
+    date_format: str = "epoch",
+    double_precision: int = 10,
+    force_ascii: bool =True,
+    date_unit: str = "ms",
+    default_handler: Optional[Callable[[Any], Union[int, str, List, Dict]]]=None,
+    lines: bool =False,
+    compression: Optional[str] = "infer",
+    index: bool = True,
+    indent: int = 0,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -60,7 +61,7 @@ def to_json(
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
     if orient == "table" and isinstance(obj, DataFrame):
-        writer = JSONTableWriter
+        writer = JSONTableWriter  # type: Type["Writer"]
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):
