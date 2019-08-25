@@ -462,7 +462,7 @@ class TestParquetPyArrow(Base):
 
         # test for ordered flag
         df["c"] = pd.Categorical(
-            ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=True
+            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
         )
 
         if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
