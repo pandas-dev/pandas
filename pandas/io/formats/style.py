@@ -28,10 +28,8 @@ import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _IndexSlice, _maybe_numeric_slice, _non_reducing_slice
 
-ApplyArgs = Tuple[Callable[[FrameOrSeries], FrameOrSeries], Axis, Optional[_IndexSlice]]
-Kwargs = Dict[str, Any]
-
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
+
 
 try:
     import matplotlib.pyplot as plt
@@ -49,6 +47,12 @@ def _mpl(func):
         yield plt, colors
     else:
         raise ImportError(no_mpl_message.format(func.__name__))
+
+
+_ApplyArgs = Tuple[
+    Callable[[FrameOrSeries], FrameOrSeries], Axis, Optional[_IndexSlice]
+]
+_Kwargs = Dict[str, Any]
 
 
 class Styler:
@@ -127,7 +131,7 @@ class Styler:
         cell_ids=True,
     ):
         self.ctx = defaultdict(list)  # type: DefaultDict[Tuple[int, int], List[str]]
-        self._todo = []  # type: List[Tuple[Callable, ApplyArgs, Kwargs]]
+        self._todo = []  # type: List[Tuple[Callable, _ApplyArgs, _Kwargs]]
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
