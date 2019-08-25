@@ -837,10 +837,10 @@ class ExcelFile:
         **kwds
     ):
         """
-        Parse specified sheet(s) into a DataFrame
+        Parse specified sheet(s) into a DataFrame.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters
+        docstring for more info on accepted parameters.
 
         Returns
         -------

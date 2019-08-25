@@ -9,8 +9,7 @@ from pandas import get_option, option_context
 
 def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_csv. See read_csv for the
-    full argument list
+    Read text from clipboard and pass to read_csv.
 
     Parameters
     ----------
@@ -18,9 +17,13 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
 
+    **kwargs
+        See read_csv for the full argument list.
+
     Returns
     -------
-    parsed : DataFrame
+    DataFrame
+        A parsed DataFrame object.
     """
     encoding = kwargs.pop("encoding", "utf-8")
 
