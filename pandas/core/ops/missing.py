@@ -40,7 +40,7 @@ def fill_zeros(result, x, y, name, fill):
 
     Mask the nan's from x.
     """
-    if fill is None or is_float_dtype(result):
+    if fill is None or is_float_dtype(result.dtype):
         return result
 
     if name.startswith(("r", "__r")):
@@ -55,7 +55,7 @@ def fill_zeros(result, x, y, name, fill):
     if is_scalar_type:
         y = np.array(y)
 
-    if is_integer_dtype(y):
+    if is_integer_dtype(y.dtype):
 
         if (y == 0).any():
 
