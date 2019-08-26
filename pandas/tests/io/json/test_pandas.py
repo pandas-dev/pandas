@@ -168,7 +168,7 @@ class TestPandasContainer:
 
         expected = self.frame.copy()
 
-        if orient == "index" and not numpy:
+        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             # TODO: debug why sort is required
             expected = expected.sort_index()
 
