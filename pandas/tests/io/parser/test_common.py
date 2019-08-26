@@ -1898,7 +1898,10 @@ def test_null_byte_char(all_parsers):
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
-        msg = "NULL byte detected"
+        if compat.PY38:
+            msg = "line contains NUL"
+        else:
+            msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), names=names)
 
@@ -2020,9 +2023,34 @@ def test_file_handles_with_open(all_parsers, csv1):
     # Don't close user provided file handles.
     parser = all_parsers
 
-    with open(csv1, "r") as f:
-        parser.read_csv(f)
-        assert not f.closed
+    for mode in ["r", "rb"]:
+        with open(csv1, mode) as f:
+            parser.read_csv(f)
+            assert not f.closed
+
+
+@pytest.mark.parametrize(
+    "fname,encoding",
+    [
+        ("test1.csv", "utf-8"),
+        ("unicode_series.csv", "latin-1"),
+        ("sauron.SHIFT_JIS.csv", "shiftjis"),
+    ],
+)
+def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
+    # gh-23779: Python csv engine shouldn't error on files opened in binary.
+    parser = all_parsers
+
+    fpath = os.path.join(csv_dir_path, fname)
+    expected = parser.read_csv(fpath, encoding=encoding)
+
+    with open(fpath, mode="r", encoding=encoding) as fa:
+        result = parser.read_csv(fa)
+    tm.assert_frame_equal(expected, result)
+
+    with open(fpath, mode="rb") as fb:
+        result = parser.read_csv(fb, encoding=encoding)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_invalid_file_buffer_class(all_parsers):

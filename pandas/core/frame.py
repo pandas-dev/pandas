@@ -108,6 +108,7 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
+from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -669,15 +670,18 @@ class DataFrame(NDFrame):
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
+            min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
-            return self.to_html(
+            formatter = fmt.DataFrameFormatter(
+                self,
                 max_rows=max_rows,
+                min_rows=min_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
-                notebook=True,
             )
+            return formatter.to_html(notebook=True)
         else:
             return None
 
@@ -3094,7 +3098,7 @@ class DataFrame(NDFrame):
         passed value.
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
@@ -5305,7 +5309,9 @@ class DataFrame(NDFrame):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
-            result = _arith_op(this.values, other.values)
+            with np.errstate(all="ignore"):
+                result = _arith_op(this.values, other.values)
+            result = dispatch_fill_zeros(func, this.values, other.values, result)
             return self._constructor(
                 result, index=new_index, columns=new_columns, copy=False
             )
@@ -6177,14 +6183,14 @@ class DataFrame(NDFrame):
 
     def explode(self, column: Union[str, Tuple]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row, replicating index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
         column : str or tuple
+            Column to explode.
 
         Returns
         -------
@@ -6200,8 +6206,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
-            index labels
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+            index labels.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         Series.explode : Explode a DataFrame from list-like columns to long format.
 
         Notes
