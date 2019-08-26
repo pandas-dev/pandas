@@ -80,7 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import AnyArrayLike, Axes, Dtype
+from pandas._typing import AnyArrayLike, Dtype
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -376,7 +376,7 @@ class DataFrame(NDFrame):
     """
 
     @property
-    def _constructor(self) -> Type['DataFrame']:
+    def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
@@ -393,10 +393,9 @@ class DataFrame(NDFrame):
     # Constructors
 
     def __init__(self,
-                 data: Optional[Union[np.ndarray, Iterable, Dict[str, AnyArrayLike],
-                                "DataFrame"]] = None,
-                 index: Optional[Axes] = None,
-                 columns: Optional[Axes] = None,
+                 data = None,
+                 index: Optional[Iterable[Union["Index", Iterable[str]]]] = None,
+                 columns: Optional[Iterable[Union["Index", Iterable[str]]]] = None,
                  dtype: Optional[Dtype] = None,
                  copy: Optional[bool] = False) -> None:
         if data is None:

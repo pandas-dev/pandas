@@ -23,10 +23,6 @@ ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
-
-# Type for index and columns of DataFrame
-Axes = Iterable[Union["Index", Iterable[str]]]
-
 FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
