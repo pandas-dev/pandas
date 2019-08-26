@@ -1257,6 +1257,24 @@ def test_quantile_array():
     tm.assert_frame_equal(result, expected)
 
 
+def test_quantile_array2():
+    # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
+    df = pd.DataFrame(
+        np.random.RandomState(0).randint(0, 5, size=(10, 3)), columns=list("ABC")
+    )
+    result = df.groupby("A").quantile([0.3, 0.7])
+    expected = pd.DataFrame(
+        {
+            "B": [0.9, 2.1, 2.2, 3.4, 1.6, 2.4, 2.3, 2.7, 0.0, 0.0],
+            "C": [1.2, 2.8, 1.8, 3.0, 0.0, 0.0, 1.9, 3.1, 3.0, 3.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [[0, 1, 2, 3, 4], [0.3, 0.7]], names=["A", None]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_quantile_array_no_sort():
     df = pd.DataFrame({"A": [0, 1, 2], "B": [3, 4, 5]})
     result = df.groupby([1, 0, 1], sort=False).quantile([0.25, 0.5, 0.75])
