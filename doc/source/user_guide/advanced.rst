@@ -738,7 +738,7 @@ and allows efficient indexing and storage of an index with a large number of dup
    df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
    df
    df.dtypes
-   df.B.cat.categories
+   df['B'].cat.categories
 
 Setting the index will create a ``CategoricalIndex``.
 
