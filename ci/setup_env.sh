@@ -94,6 +94,12 @@ echo
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
+
+if [[ "$BITS32" == "yes" ]]; then
+    # activate 32-bit compiler
+    export CONDA_BUILD=1
+fi
+
 echo "activate pandas-dev"
 source activate pandas-dev
 
@@ -118,18 +124,12 @@ echo "conda list"
 conda list
 
 # Install DB for Linux
-export DISPLAY=":99."
-if [ ${TRAVIS_OS_NAME} == "linux" ]; then
+if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
-
-  echo
-  echo "sh -e /etc/init.d/xvfb start"
-  sh -e /etc/init.d/xvfb start
-  sleep 3
 else
-   echo "not using dbs on non-linux"
+   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
 
 echo "done"

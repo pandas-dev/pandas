@@ -21,18 +21,34 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 import pandas as pd
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
-    UInt32Dtype, UInt64Dtype)
+    Int8Dtype,
+    Int16Dtype,
+    Int32Dtype,
+    Int64Dtype,
+    UInt8Dtype,
+    UInt16Dtype,
+    UInt32Dtype,
+    UInt64Dtype,
+)
 from pandas.tests.extension import base
 
 
 def make_data():
-    return (list(range(1, 9)) + [np.nan] + list(range(10, 98))
-            + [np.nan] + [99, 100])
+    return list(range(1, 9)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100]
 
 
-@pytest.fixture(params=[Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-                        UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype])
+@pytest.fixture(
+    params=[
+        Int8Dtype,
+        Int16Dtype,
+        Int32Dtype,
+        Int64Dtype,
+        UInt8Dtype,
+        UInt16Dtype,
+        UInt32Dtype,
+        UInt64Dtype,
+    ]
+)
 def dtype(request):
     return request.param()
 
@@ -83,7 +99,6 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-
     @pytest.mark.skip(reason="using multiple dtypes")
     def test_is_dtype_unboxes_dtype(self):
         # we have multiple dtypes, so skip
@@ -91,20 +106,21 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
-            if s.dtype.is_unsigned_integer and (op_name == '__rsub__'):
+            if s.dtype.is_unsigned_integer and (op_name == "__rsub__"):
                 # TODO see https://github.com/pandas-dev/pandas/issues/22023
                 pytest.skip("unsigned subtraction gives negative values")
 
-            if (hasattr(other, 'dtype')
-                    and not is_extension_array_dtype(other.dtype)
-                    and pd.api.types.is_integer_dtype(other.dtype)):
+            if (
+                hasattr(other, "dtype")
+                and not is_extension_array_dtype(other.dtype)
+                and pd.api.types.is_integer_dtype(other.dtype)
+            ):
                 # other is np.int64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
                 other = other.astype(s.dtype.numpy_dtype)
@@ -112,12 +128,12 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             result = op(s, other)
             expected = s.combine(other, op)
 
-            if op_name in ('__rtruediv__', '__truediv__', '__div__'):
+            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
                 expected = expected.astype(float)
-                if op_name == '__rtruediv__':
+                if op_name == "__rtruediv__":
                     # TODO reverse operators result in object dtype
                     result = result.astype(float)
-            elif op_name.startswith('__r'):
+            elif op_name.startswith("__r"):
                 # TODO reverse operators result in object dtype
                 # see https://github.com/pandas-dev/pandas/issues/22024
                 expected = expected.astype(s.dtype)
@@ -126,7 +142,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(s.dtype)
                 pass
-            if (op_name == '__rpow__') and isinstance(other, pd.Series):
+            if (op_name == "__rpow__") and isinstance(other, pd.Series):
                 # TODO pow on Int arrays gives different result with NA
                 # see https://github.com/pandas-dev/pandas/issues/22022
                 result = result.fillna(1)
@@ -146,7 +162,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
@@ -183,8 +198,7 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-
-    @pytest.mark.parametrize('dropna', [True, False])
+    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -193,8 +207,7 @@ class TestMethods(base.BaseMethodsTests):
             other = all_data
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(
-            dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
         expected.index = expected.index.astype(all_data.dtype)
 
         self.assert_series_equal(result, expected)

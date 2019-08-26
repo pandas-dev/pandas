@@ -5,12 +5,13 @@
 Computational tools
 ===================
 
-Statistical Functions
+
+Statistical functions
 ---------------------
 
 .. _computation.pct_change:
 
-Percent Change
+Percent change
 ~~~~~~~~~~~~~~
 
 ``Series`` and ``DataFrame`` have a method
@@ -294,7 +295,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. _stats.summary:
 
-Method Summary
+Method summary
 ~~~~~~~~~~~~~~
 
 We provide a number of common statistical functions:
@@ -335,7 +336,7 @@ compute the mean absolute deviation on a rolling basis:
 
 .. _stats.rolling_window:
 
-Rolling Windows
+Rolling windows
 ~~~~~~~~~~~~~~~
 
 Passing ``win_type`` to ``.rolling`` generates a generic rolling window computation, that is weighted according the ``win_type``.
@@ -404,12 +405,10 @@ For some windowing functions, additional parameters must be specified:
 
 .. _stats.moments.ts:
 
-Time-aware Rolling
+Time-aware rolling
 ~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.19.0
-
-New in version 0.19.0 are the ability to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
+It is possible to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
 variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
 within the indicated time delta.
 
@@ -469,7 +468,7 @@ default of the index) in a DataFrame.
 
 .. _stats.rolling_window.endpoints:
 
-Rolling Window Endpoints
+Rolling window endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.20.0
@@ -511,7 +510,7 @@ For fixed windows, the closed parameter cannot be set and the rolling window wil
 
 .. _stats.moments.ts-versus-resampling:
 
-Time-aware Rolling vs. Resampling
+Time-aware rolling vs. resampling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using ``.rolling()`` with a time-based index is quite similar to :ref:`resampling <timeseries.resampling>`. They
@@ -529,7 +528,7 @@ will have the shape of a regular frequency between the min and the max of the or
 
 To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.
 
-Centering Windows
+Centering windows
 ~~~~~~~~~~~~~~~~~
 
 By default the labels are set to the right edge of the window, but a
@@ -542,7 +541,7 @@ By default the labels are set to the right edge of the window, but a
 
 .. _stats.moments.binary:
 
-Binary Window Functions
+Binary window functions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 :meth:`~Rolling.cov` and :meth:`~Rolling.corr` can compute moving window statistics about
@@ -695,7 +694,7 @@ Furthermore you can pass a nested dict to indicate different aggregations on dif
 
 .. _stats.moments.expanding:
 
-Expanding Windows
+Expanding windows
 -----------------
 
 A common alternative to rolling statistics is to use an *expanding* window,
@@ -716,7 +715,7 @@ they are implemented in pandas such that the following two calls are equivalent:
 
 These have a similar set of methods to ``.rolling`` methods.
 
-Method Summary
+Method summary
 ~~~~~~~~~~~~~~
 
 .. currentmodule:: pandas.core.window
@@ -798,7 +797,7 @@ relative impact of an individual data point. As an example, here is the
 
 .. _stats.moments.exponentially_weighted:
 
-Exponentially Weighted Windows
+Exponentially weighted windows
 ------------------------------
 
 .. currentmodule:: pandas.core.window
@@ -865,7 +864,7 @@ which is equivalent to using weights
 
 The difference between the above two variants arises because we are
 dealing with series which have finite history. Consider a series of infinite
-history:
+history, with ``adjust=True``:
 
 .. math::
 
@@ -884,17 +883,17 @@ and a ratio of :math:`1 - \alpha` we have
     &= \alpha x_t + (1 - \alpha)[x_{t-1} + (1 - \alpha) x_{t-2} + ...]\alpha\\
     &= \alpha x_t + (1 - \alpha) y_{t-1}
 
-which shows the equivalence of the above two variants for infinite series.
-When ``adjust=True`` we have :math:`y_0 = x_0` and from the last
-representation above we have :math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`,
-therefore there is an assumption that :math:`x_0` is not an ordinary value
+which is the same expression as ``adjust=False`` above and therefore
+shows the equivalence of the two variants for infinite series.
+When ``adjust=False``, we have :math:`y_0 = x_0` and
+:math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`.
+Therefore, there is an assumption that :math:`x_0` is not an ordinary value
 but rather an exponentially weighted moment of the infinite series up to that
 point.
 
-One must have :math:`0 < \alpha \leq 1`, and while since version 0.18.0
-it has been possible to pass :math:`\alpha` directly, it's often easier
-to think about either the **span**, **center of mass (com)** or **half-life**
-of an EW moment:
+One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
+:math:`\alpha` directly, it's often easier to think about either the
+**span**, **center  of mass (com)** or **half-life** of an EW moment:
 
 .. math::
 

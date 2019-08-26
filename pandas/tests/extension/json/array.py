@@ -26,7 +26,7 @@ from pandas.core.arrays import ExtensionArray
 
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
-    name = 'json'
+    name = "json"
     na_value = UserDict()
 
     @classmethod
@@ -44,8 +44,7 @@ class JSONDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from "
-                            "'{}'".format(cls, string))
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
 
 class JSONArray(ExtensionArray):
@@ -55,8 +54,7 @@ class JSONArray(ExtensionArray):
     def __init__(self, values, dtype=None, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
-                raise TypeError("All values must be of type " +
-                                str(self.dtype.type))
+                raise TypeError("All values must be of type " + str(self.dtype.type))
         self.data = values
 
         # Some aliases for common attribute names to ensure pandas supports
@@ -77,11 +75,14 @@ class JSONArray(ExtensionArray):
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
-        elif isinstance(item, np.ndarray) and item.dtype == 'bool':
+        elif isinstance(item, np.ndarray) and item.dtype == "bool":
             return self._from_sequence([x for x, m in zip(self, item) if m])
         elif isinstance(item, abc.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
+        elif isinstance(item, slice) and item == slice(None):
+            # Make sure we get a view
+            return type(self)(self.data)
         else:
             # slice
             return type(self)(self.data[item])
@@ -94,7 +95,7 @@ class JSONArray(ExtensionArray):
                 # broadcast value
                 value = itertools.cycle([value])
 
-            if isinstance(key, np.ndarray) and key.dtype == 'bool':
+            if isinstance(key, np.ndarray) and key.dtype == "bool":
                 # masking
                 for i, (k, v) in enumerate(zip(key, value)):
                     if k:
@@ -105,24 +106,25 @@ class JSONArray(ExtensionArray):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self.dtype.na_value for x in self.data],
-                        dtype=bool)
+        return np.array([x == self.dtype.na_value for x in self.data], dtype=bool)
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         # re-implement here, since NumPy has trouble setting
         # sized objects like UserDicts into scalar slots of
         # an ndarary.
         indexer = np.asarray(indexer)
-        msg = ("Index is out of bounds or cannot do a "
-               "non-empty take from an empty array.")
+        msg = (
+            "Index is out of bounds or cannot do a "
+            "non-empty take from an empty array."
+        )
 
         if allow_fill:
             if fill_value is None:
@@ -131,8 +133,9 @@ class JSONArray(ExtensionArray):
             if (indexer < -1).any():
                 raise ValueError
             try:
-                output = [self.data[loc] if loc != -1 else fill_value
-                          for loc in indexer]
+                output = [
+                    self.data[loc] if loc != -1 else fill_value for loc in indexer
+                ]
             except IndexError:
                 raise IndexError(msg)
         else:
@@ -143,7 +146,7 @@ class JSONArray(ExtensionArray):
 
         return self._from_sequence(output)
 
-    def copy(self, deep=False):
+    def copy(self):
         return type(self)(self.data[:])
 
     def astype(self, dtype, copy=True):
@@ -161,9 +164,9 @@ class JSONArray(ExtensionArray):
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
-        return type(self)([
-            dict(x) for x in list({tuple(d.items()) for d in self.data})
-        ])
+        return type(self)(
+            [dict(x) for x in list({tuple(d.items()) for d in self.data})]
+        )
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -187,6 +190,12 @@ class JSONArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
-    return [UserDict([
-        (random.choice(string.ascii_letters), random.randint(0, 100))
-        for _ in range(random.randint(0, 10))]) for _ in range(100)]
+    return [
+        UserDict(
+            [
+                (random.choice(string.ascii_letters), random.randint(0, 100))
+                for _ in range(random.randint(0, 10))
+            ]
+        )
+        for _ in range(100)
+    ]

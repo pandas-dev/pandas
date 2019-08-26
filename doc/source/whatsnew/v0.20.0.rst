@@ -151,7 +151,7 @@ commonly called 'unix epoch' or POSIX time. This was the previous default, so th
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
-Groupby Enhancements
+Groupby enhancements
 ^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names. Previously, only column names could be referenced. This allows to easily group by a column and index level at the same time. (:issue:`5677`)
@@ -240,7 +240,7 @@ The default is to infer the compression type from the extension (``compression='
 
 .. _whatsnew_0200.enhancements.uint64_support:
 
-UInt64 Support Improved
+UInt64 support improved
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas has significantly improved support for operations involving unsigned,
@@ -263,7 +263,7 @@ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937
 
 .. _whatsnew_0200.enhancements.groupy_categorical:
 
-GroupBy on Categoricals
+GroupBy on categoricals
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueError`` when grouping on a categorical series with some categories not appearing in the data. (:issue:`13179`)
@@ -280,7 +280,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
                                      ordered=True)})
    df
 
-**Previous Behavior**:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -288,7 +288,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
    ---------------------------------------------------------------------------
    ValueError: items in new_categories are not the same as in old categories
 
-**New Behavior**:
+**New behavior**:
 
 .. ipython:: python
 
@@ -296,7 +296,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 
 .. _whatsnew_0200.enhancements.table_schema:
 
-Table Schema Output
+Table schema output
 ^^^^^^^^^^^^^^^^^^^
 
 The new orient ``'table'`` for :meth:`DataFrame.to_json`
@@ -339,6 +339,7 @@ See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
 
 .. ipython:: python
+   :okwarning:
 
    from scipy.sparse import csr_matrix
    arr = np.random.random(size=(1000, 5))
@@ -386,7 +387,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    import os
    os.remove('styled.xlsx')
 
-See the :ref:`Style documentation </style.ipynb#Export-to-Excel>` for more detail.
+See the :ref:`Style documentation </user_guide/style.ipynb#Export-to-Excel>` for more detail.
 
 .. _whatsnew_0200.enhancements.intervalindex:
 
@@ -395,7 +396,7 @@ IntervalIndex
 
 pandas has gained an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
 notation, specifically as a return type for the categories in :func:`cut` and :func:`qcut`. The ``IntervalIndex`` allows some unique indexing, see the
-:ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
+:ref:`docs <advanced.intervalindex>`. (:issue:`7640`, :issue:`8625`)
 
 .. warning::
 
@@ -456,7 +457,7 @@ Selecting via a scalar value that is contained *in* the intervals.
 
 .. _whatsnew_0200.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closedness. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
@@ -496,7 +497,7 @@ Other Enhancements
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
-- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </style.ipynb#Subclassing>` (:issue:`15649`)
+- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </user_guide/style.ipynb#Subclassing>` (:issue:`15649`)
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 - Compatibility with Jupyter notebook 5.0; MultiIndex column labels are left-aligned and MultiIndex row-labels are top-aligned (:issue:`15379`)
 - ``TimedeltaIndex`` now has a custom date-tick formatter specifically designed for nanosecond level precision (:issue:`8711`)
@@ -579,7 +580,7 @@ Map on Index types now return other Index types
    mi = pd.MultiIndex.from_tuples([(1, 2), (2, 4)])
    mi
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -595,7 +596,7 @@ Previous Behavior:
    In [8]: mi.map(lambda x: x[0])
    Out[8]: array([1, 2])
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -615,7 +616,7 @@ New Behavior:
                  .tz_localize('Asia/Tokyo'))
    s
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -626,7 +627,7 @@ Previous Behavior:
    2    2
    dtype: int32
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -652,7 +653,7 @@ Previous behaviour:
    In [2]: idx.hour
    Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -696,7 +697,7 @@ data-types would yield different return types. These are now made consistent. (:
         ...:            pd.Timestamp('20160101', tz='US/Eastern')])
      Out[8]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
 
-  New Behavior:
+  New behavior:
 
   .. ipython:: python
 
@@ -726,7 +727,7 @@ data-types would yield different return types. These are now made consistent. (:
      In [2]: pd.unique(pd.Series(list('baabc'), dtype='category'))
      Out[2]: array(['b', 'a', 'c'], dtype=object)
 
-  New Behavior:
+  New behavior:
 
   .. ipython:: python
 
@@ -736,7 +737,7 @@ data-types would yield different return types. These are now made consistent. (:
 
 .. _whatsnew_0200.api_breaking.s3:
 
-S3 File Handling
+S3 file handling
 ^^^^^^^^^^^^^^^^
 
 pandas now uses `s3fs <http://s3fs.readthedocs.io/>`_ for handling S3 connections. This shouldn't break
@@ -745,7 +746,7 @@ in prior versions of pandas. (:issue:`11915`).
 
 .. _whatsnew_0200.api_breaking.partial_string_indexing:
 
-Partial String Indexing Changes
+Partial string indexing changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as an exact match, provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
@@ -755,7 +756,7 @@ Partial String Indexing Changes
    df = pd.DataFrame({'a': [1, 2, 3]}, pd.DatetimeIndex(['2011-12-31 23:59:59',
                                                          '2012-01-01 00:00:00',
                                                          '2012-01-01 00:00:01']))
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -770,7 +771,7 @@ Previous Behavior:
    Name: a, dtype: int64
 
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -796,7 +797,7 @@ Now the smallest acceptable dtype will be used (:issue:`13247`)
    df2 = pd.DataFrame(np.array([np.nan], dtype=np.float32, ndmin=2))
    df2.dtypes
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -805,7 +806,7 @@ Previous Behavior:
    0    float64
    dtype: object
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -822,12 +823,12 @@ currently released version of ``pandas-gbq=0.1.4``. Documentation is now hosted 
 
 .. _whatsnew_0200.api_breaking.memory_usage:
 
-Memory Usage for Index is more Accurate
+Memory usage for Index is more accurate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions, showing ``.memory_usage()`` on a pandas structure that has an index, would only include actual index values and not include structures that facilitated fast indexing. This will generally be different for ``Index`` and ``MultiIndex`` and less-so for other index types. (:issue:`15237`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -842,7 +843,7 @@ Previous Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 180
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -899,7 +900,7 @@ doesn't behave as desired.
                                          [[0, 0, 1, 1], [0, 1, 0, 1]]))
    df
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: python
 
@@ -917,7 +918,7 @@ Previous Behavior:
    In [15]: df.sort_index().index.is_monotonic
    Out[15]: False
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -928,13 +929,13 @@ New Behavior:
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
-Groupby Describe Formatting
+Groupby describe formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The output formatting of ``groupby.describe()`` now labels the ``describe()`` metrics in the columns instead of the index.
 This format is consistent with ``groupby.agg()`` when applying multiple functions at once. (:issue:`4792`)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -969,7 +970,7 @@ Previous Behavior:
    1  1.5  0.707107    1    2
    2  3.5  0.707107    3    4
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -981,7 +982,7 @@ New Behavior:
 
 .. _whatsnew_0200.api_breaking.rolling_pairwise:
 
-Window Binary Corr/Cov operations return a MultiIndex DataFrame
+Window binary corr/cov operations return a MultiIndex DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
@@ -999,7 +1000,7 @@ See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for 
                                          periods=100, freq='D', name='foo'))
    df.tail()
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -1011,7 +1012,7 @@ Previous Behavior:
    Major_axis axis: A to B
    Minor_axis axis: A to B
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -1039,7 +1040,7 @@ usually resulting in an invalid comparison, returning an empty result frame. The
    df.to_hdf('store.h5', 'key', format='table', data_columns=True)
    df.dtypes
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -1049,7 +1050,7 @@ Previous Behavior:
                            ^
    SyntaxError: invalid token
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -1083,14 +1084,14 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
      right = pd.Index([1, 2, 3])
      right
 
-  Previous Behavior:
+  Previous behavior:
 
   .. code-block:: ipython
 
      In [4]: left.intersection(right)
      Out[4]: Int64Index([1, 2], dtype='int64')
 
-  New Behavior:
+  New behavior:
 
   .. ipython:: python
 
@@ -1105,7 +1106,7 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
      right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
      right
 
-  Previous Behavior:
+  Previous behavior:
 
   .. code-block:: ipython
 
@@ -1115,7 +1116,7 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
      1  10  100
      2  20  200
 
-  New Behavior:
+  New behavior:
 
   .. ipython:: python
 
@@ -1123,7 +1124,7 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
 .. _whatsnew_0200.api_breaking.pivot_table:
 
-Pivot Table always returns a DataFrame
+Pivot table always returns a DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The documentation for :meth:`pivot_table` states that a ``DataFrame`` is *always* returned. Here a bug
@@ -1136,7 +1137,7 @@ is fixed that allowed this to return a ``Series`` under certain circumstance. (:
                       'col3': [1, 3, 9]})
    df
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -1148,7 +1149,7 @@ Previous Behavior:
    9     E       5
    Name: col1, dtype: int64
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -1156,7 +1157,7 @@ New Behavior:
 
 .. _whatsnew_0200.api:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
@@ -1191,12 +1192,12 @@ Other API Changes
 
 .. _whatsnew_0200.privacy:
 
-Reorganization of the library: Privacy Changes
+Reorganization of the library: privacy changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_0200.privacy.extensions:
 
-Modules Privacy Has Changed
+Modules privacy has changed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
@@ -1326,7 +1327,7 @@ Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some example
 
    df
 
-Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
+Previous behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
 
 .. code-block:: ipython
 
@@ -1531,7 +1532,7 @@ Should be changed to:
 
 .. _whatsnew_0200.deprecations.other:
 
-Other Deprecations
+Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
 - ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
@@ -1563,7 +1564,7 @@ Removal of prior version deprecations/changes
 
 - The ``pandas.rpy`` module is removed. Similar functionality can be accessed
   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
-  See the :ref:`R interfacing docs <rpy>` for more details.
+  See the `R interfacing docs <https://pandas.pydata.org/pandas-docs/version/0.20/r_interface.html>`__ for more details.
 - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
   Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
@@ -1583,7 +1584,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0200.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
@@ -1605,7 +1606,7 @@ Performance Improvements
 
 .. _whatsnew_0200.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 Conversion
@@ -1712,7 +1713,7 @@ Plotting
 - Bug in the date and time converters pandas registers with matplotlib not handling multiple dimensions (:issue:`16026`)
 - Bug in ``pd.scatter_matrix()`` could accept either ``color`` or ``c``, but not both (:issue:`14855`)
 
-Groupby/Resample/Rolling
+Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
