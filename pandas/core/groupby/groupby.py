@@ -1945,8 +1945,8 @@ class GroupBy(_GroupBy):
             arrays = []
 
             for i in range(self.ngroups):
-                arr = arr + i
-                arrays.append(arr)
+                arr2 = arr + i
+                arrays.append(arr2)
 
             indices = np.concatenate(arrays)
             assert len(indices) == len(result)
