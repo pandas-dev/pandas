@@ -190,7 +190,7 @@ class TestPandasContainer:
 
         expected = self.intframe.copy()
 
-        if orient == "index" and not numpy:
+        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -224,11 +224,11 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
+        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+            expected = expected.sort_index()
+
         if not dtype:
             expected = expected.astype(np.int64)
-
-        if orient == "index" and not numpy:
-            expected = expected.sort_index()
 
         # index columns, and records orients cannot fully preserve the string
         # dtype for axes as the index and column labels are used as keys in
@@ -270,7 +270,7 @@ class TestPandasContainer:
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
 
-        if orient == "index" and not numpy:
+        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -345,7 +345,7 @@ class TestPandasContainer:
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
-        if orient == "index" and not numpy:
+        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
