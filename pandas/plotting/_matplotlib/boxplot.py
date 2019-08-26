@@ -267,10 +267,11 @@ def boxplot(
                     if key in valid_keys:
                         result[key_to_index[key]] = value
                     else:
-                        raise ValueError("color dict contains invalid "
-                                         "key '{0}' "
-                                         "The key must be either {1}"
-                                         .format(key, valid_keys))
+                        raise ValueError(
+                            "color dict contains invalid "
+                            "key '{0}' "
+                            "The key must be either {1}".format(key, valid_keys)
+                        )
             else:
                 raise ValueError("color should be a dict")
 

@@ -175,32 +175,35 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind="box")
         assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
 
-    @pytest.mark.parametrize('dict_colors, expected',
-                             [(dict(boxes='r',
-                                    whiskers='b',
-                                    medians='g',
-                                    caps='c'),
-                               dict(boxes='r',
-                                    whiskers='b',
-                                    medians='g',
-                                    caps='c')),
-                              (dict(boxes='r'), dict(boxes='r'))])
+    @pytest.mark.parametrize(
+        "dict_colors, expected",
+        [
+            (
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+            ),
+            (dict(boxes="r"), dict(boxes="r")),
+        ],
+    )
     def test_color_kwd(self, dict_colors, expected):
         # GH: 26214
         df = DataFrame(random.rand(10, 2))
-        result = df.boxplot(color=dict_colors, return_type='dict')
+        result = df.boxplot(color=dict_colors, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
 
-    @pytest.mark.parametrize('dict_colors, msg',
-                             [(dict(boxes='r', invalid_key='r'),
-                              "invalid key 'invalid_key'"),
-                              (102, "color should be a dict")])
+    @pytest.mark.parametrize(
+        "dict_colors, msg",
+        [
+            (dict(boxes="r", invalid_key="r"), "invalid key 'invalid_key'"),
+            (102, "color should be a dict"),
+        ],
+    )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
         df = DataFrame(random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
-            df.boxplot(color=dict_colors, return_type='dict')
+            df.boxplot(color=dict_colors, return_type="dict")
 
 
 @td.skip_if_no_mpl
