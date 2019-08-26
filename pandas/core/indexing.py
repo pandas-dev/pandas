@@ -422,8 +422,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # if we have a partial multiindex, then need to adjust the plane
             # indexer here
-            if len(labels) == 1 and isinstance(self.obj[labels[0]].axes[0],
-                                               ABCMultiIndex):
+            if len(labels) == 1 and isinstance(
+                self.obj[labels[0]].axes[0], ABCMultiIndex
+            ):
                 item = labels[0]
                 obj = self.obj[item]
                 index = obj.index
