@@ -296,6 +296,7 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=2] ranked_mat
         ndarray[float64_t, ndim=1] maskedx
         ndarray[float64_t, ndim=1] maskedy
         ndarray[uint8_t, ndim=2] mask
@@ -306,6 +307,11 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+
+    ranked_mat = np.empty((N, K), dtype=np.float64)
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
 
     for xi in range(K):
         for yi in range(xi + 1):
@@ -322,11 +328,9 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                 j = 0
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        maskedx[j] = mat[i, xi]
-                        maskedy[j] = mat[i, yi]
+                        maskedx[j] = ranked_mat[i, xi]
+                        maskedy[j] = ranked_mat[i, yi]
                         j += 1
-                maskedx = rank_1d_float64(maskedx)
-                maskedy = rank_1d_float64(maskedy)
 
                 mean = (nobs + 1) / 2.
 
