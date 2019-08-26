@@ -874,54 +874,63 @@ class TestPandasContainer:
         result = read_json(dumps(data))[["id", infer_word]]
         assert_frame_equal(result, expected)
 
-    def test_date_format_frame(self):
+    @pytest.mark.parametrize(
+        "date,date_unit",
+        [
+            ("20130101 20:43:42.123", None),
+            ("20130101 20:43:42", "s"),
+            ("20130101 20:43:42.123", "ms"),
+            ("20130101 20:43:42.123456", "us"),
+            ("20130101 20:43:42.123456789", "ns"),
+        ],
+    )
+    def test_date_format_frame(self, date, date_unit):
         df = self.tsframe.copy()
 
-        def test_w_date(date, date_unit=None):
-            df["date"] = Timestamp(date)
-            df.iloc[1, df.columns.get_loc("date")] = pd.NaT
-            df.iloc[5, df.columns.get_loc("date")] = pd.NaT
-            if date_unit:
-                json = df.to_json(date_format="iso", date_unit=date_unit)
-            else:
-                json = df.to_json(date_format="iso")
-            result = read_json(json)
-            expected = df.copy()
-            expected.index = expected.index.tz_localize("UTC")
-            expected["date"] = expected["date"].dt.tz_localize("UTC")
-            assert_frame_equal(result, expected)
+        df["date"] = Timestamp(date)
+        df.iloc[1, df.columns.get_loc("date")] = pd.NaT
+        df.iloc[5, df.columns.get_loc("date")] = pd.NaT
+        if date_unit:
+            json = df.to_json(date_format="iso", date_unit=date_unit)
+        else:
+            json = df.to_json(date_format="iso")
+        result = read_json(json)
+        expected = df.copy()
+        # expected.index = expected.index.tz_localize("UTC")
+        expected["date"] = expected["date"].dt.tz_localize("UTC")
+        assert_frame_equal(result, expected)
 
-        test_w_date("20130101 20:43:42.123")
-        test_w_date("20130101 20:43:42", date_unit="s")
-        test_w_date("20130101 20:43:42.123", date_unit="ms")
-        test_w_date("20130101 20:43:42.123456", date_unit="us")
-        test_w_date("20130101 20:43:42.123456789", date_unit="ns")
-
+    def test_date_format_frame_raises(self):
+        df = self.tsframe.copy()
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
             df.to_json(date_format="iso", date_unit="foo")
 
-    def test_date_format_series(self):
-        def test_w_date(date, date_unit=None):
-            ts = Series(Timestamp(date), index=self.ts.index)
-            ts.iloc[1] = pd.NaT
-            ts.iloc[5] = pd.NaT
-            if date_unit:
-                json = ts.to_json(date_format="iso", date_unit=date_unit)
-            else:
-                json = ts.to_json(date_format="iso")
-            result = read_json(json, typ="series")
-            expected = ts.copy()
-            expected.index = expected.index.tz_localize("UTC")
-            expected = expected.dt.tz_localize("UTC")
-            assert_series_equal(result, expected)
+    @pytest.mark.parametrize(
+        "date,date_unit",
+        [
+            ("20130101 20:43:42.123", None),
+            ("20130101 20:43:42", "s"),
+            ("20130101 20:43:42.123", "ms"),
+            ("20130101 20:43:42.123456", "us"),
+            ("20130101 20:43:42.123456789", "ns"),
+        ],
+    )
+    def test_date_format_series(self, date, date_unit):
+        ts = Series(Timestamp(date), index=self.ts.index)
+        ts.iloc[1] = pd.NaT
+        ts.iloc[5] = pd.NaT
+        if date_unit:
+            json = ts.to_json(date_format="iso", date_unit=date_unit)
+        else:
+            json = ts.to_json(date_format="iso")
+        result = read_json(json, typ="series")
+        expected = ts.copy()
+        # expected.index = expected.index.tz_localize("UTC")
+        expected = expected.dt.tz_localize("UTC")
+        assert_series_equal(result, expected)
 
-        test_w_date("20130101 20:43:42.123")
-        test_w_date("20130101 20:43:42", date_unit="s")
-        test_w_date("20130101 20:43:42.123", date_unit="ms")
-        test_w_date("20130101 20:43:42.123456", date_unit="us")
-        test_w_date("20130101 20:43:42.123456789", date_unit="ns")
-
+    def test_date_format_series_raises(self):
         ts = Series(Timestamp("20130101 20:43:42.123"), index=self.ts.index)
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
@@ -1459,3 +1468,30 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
         expected = Series([88], index=DatetimeIndex(["2019-01-01 11:00:00"], tz="UTC"))
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
+    )
+    def test_timedelta_as_label(self, date_format, key):
+        df = pd.DataFrame([[1]], columns=[pd.Timedelta("1D")])
+        expected = '{{"{key}":{{"0":1}}}}'.format(key=key)
+        result = df.to_json(date_format=date_format)
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            ("index", "{\"('a', 'b')\":{\"('c', 'd')\":1}}"),
+            ("columns", "{\"('c', 'd')\":{\"('a', 'b')\":1}}"),
+            # TODO: the below have separate encoding procedures
+            # They produce JSON but not in a consistent manner
+            pytest.param("split", "", marks=pytest.mark.skip),
+            pytest.param("table", "", marks=pytest.mark.skip),
+        ],
+    )
+    def test_tuple_labels(self, orient, expected):
+        # GH 20500
+        df = pd.DataFrame([[1]], index=[("a", "b")], columns=[("c", "d")])
+        result = df.to_json(orient=orient)
+        assert result == expected
