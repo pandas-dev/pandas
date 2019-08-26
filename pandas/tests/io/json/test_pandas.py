@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, is_platform_32bit
+from pandas.compat import is_platform_32bit
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -168,7 +168,7 @@ class TestPandasContainer:
 
         expected = self.frame.copy()
 
-        if (orient == "index" and not numpy) or PY35:
+        if orient == "index" and not numpy:
             # TODO: debug why sort is required
             expected = expected.sort_index()
 
@@ -190,7 +190,7 @@ class TestPandasContainer:
 
         expected = self.intframe.copy()
 
-        if (orient == "index" and not numpy) or PY35:
+        if orient == "index" and not numpy:
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -227,7 +227,7 @@ class TestPandasContainer:
         if not dtype:
             expected = expected.astype(np.int64)
 
-        if (orient == "index" and not numpy) or PY35:
+        if orient == "index" and not numpy:
             expected = expected.sort_index()
 
         # index columns, and records orients cannot fully preserve the string
@@ -270,7 +270,7 @@ class TestPandasContainer:
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
 
-        if (orient == "index" and not numpy) or PY35:
+        if orient == "index" and not numpy:
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -345,7 +345,7 @@ class TestPandasContainer:
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
-        if (orient == "index" and not numpy) or PY35:
+        if orient == "index" and not numpy:
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
