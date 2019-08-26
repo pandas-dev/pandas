@@ -1395,8 +1395,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
 
 def maybe_casted_values(index, codes=None):
     """
-    Convert an index, given directly or as a pair (level, codes), to a 1D array
-    containing its values.
+    Convert an index, given directly or as a pair (level, codes), to a 1D array.
 
     Parameters
     ----------
