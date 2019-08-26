@@ -10273,7 +10273,7 @@ class NDFrame(PandasObject, SelectionMixin):
         skipna : bool, default True
             Exclude NA/null values before computing percent change.
 
-            .. versionadded:: 0.25.0
+            .. versionadded:: 1.0.0
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
