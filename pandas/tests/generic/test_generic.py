@@ -585,13 +585,16 @@ class Generic:
         else:
             tm.assert_series_equal(res, Series(exp))
 
-    @pytest.mark.parametrize('fill_method, limit', [
-        ('backfill', None),
-        ('bfill', None),
-        ('pad', None),
-        ('ffill', None),
-        (None, 1)
-    ])
+    @pytest.mark.parametrize(
+        "fill_method, limit",
+        [
+            ("backfill", None),
+            ("bfill", None),
+            ("pad", None),
+            ("ffill", None),
+            (None, 1),
+        ],
+    )
     def test_pct_change_skipna_raises(self, fill_method, limit):
         # GH25006
         vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
@@ -601,8 +604,7 @@ class Generic:
         else:
             msg = "cannot pass both limit and skipna"
         with pytest.raises(ValueError, match=msg):
-            obj.pct_change(skipna=True, fill_method=fill_method,
-                           limit=limit)
+            obj.pct_change(skipna=True, fill_method=fill_method, limit=limit)
 
 
 class TestNDFrame:

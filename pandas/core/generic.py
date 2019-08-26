@@ -10456,9 +10456,10 @@ class NDFrame(PandasObject, SelectionMixin):
         if skipna and isinstance(self, ABCDataFrame):
             # If DataFrame, apply to each column/row
             return self.apply(
-                lambda s: s.pct_change(periods=periods, freq=freq,
-                                       skipna=skipna, **kwargs),
-                axis=axis
+                lambda s: s.pct_change(
+                    periods=periods, freq=freq, skipna=skipna, **kwargs
+                ),
+                axis=axis,
             )
         if skipna:
             data = self.dropna()

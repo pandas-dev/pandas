@@ -227,13 +227,16 @@ class TestSeriesAnalytics:
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.parametrize("periods, expected_vals", [
-        (1, [np.nan, np.nan, 1.0, 0.5, np.nan, 0.333333333333333, np.nan]),
-        (2, [np.nan, np.nan, np.nan, 2.0, np.nan, 1.0, np.nan])
-    ])
+    @pytest.mark.parametrize(
+        "periods, expected_vals",
+        [
+            (1, [np.nan, np.nan, 1.0, 0.5, np.nan, 0.333333333333333, np.nan]),
+            (2, [np.nan, np.nan, np.nan, 2.0, np.nan, 1.0, np.nan]),
+        ],
+    )
     def test_pct_change_skipna(self, periods, expected_vals):
         # GH25006
-        vals = [np.nan, 1., 2., 3., np.nan, 4., np.nan]
+        vals = [np.nan, 1.0, 2.0, 3.0, np.nan, 4.0, np.nan]
         s = Series(vals)
         result = s.pct_change(skipna=True, periods=periods)
         expected = Series(expected_vals)
@@ -1027,7 +1030,9 @@ class TestSeriesAnalytics:
         idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
         ts = pd.Series([1, 2], index=idx)
         left = ts.unstack()
-        right = DataFrame([[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5])
+        right = DataFrame(
+            [[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5]
+        )
         assert_frame_equal(left, right)
 
         idx = pd.MultiIndex.from_arrays(
@@ -1039,7 +1044,8 @@ class TestSeriesAnalytics:
         )
         ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
         right = DataFrame(
-            [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]], columns=["cat", "dog"]
+            [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]],
+            columns=["cat", "dog"],
         )
         tpls = [("a", 1), ("a", 2), ("b", np.nan), ("b", 1)]
         right.index = pd.MultiIndex.from_tuples(tpls)

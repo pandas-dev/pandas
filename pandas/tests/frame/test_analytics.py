@@ -1627,22 +1627,76 @@ class TestDataFrameAnalytics:
 
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("skipna, periods, expected_vals", [
-        (True, 1, [[np.nan, np.nan], [np.nan, np.nan], [1., np.nan], [0.5, 1.],
-                   [np.nan, 0.5], [0.33333333, np.nan], [np.nan, 0.33333333]]),
-        (True, 2, [[np.nan, np.nan], [np.nan, np.nan], [np.nan, np.nan],
-                   [2., np.nan], [np.nan, 2.], [1., np.nan], [np.nan, 1.]]),
-        (False, 1, [[np.nan, np.nan], [np.nan, np.nan], [1., np.nan],
-                    [0.5, 1.], [np.nan, 0.5], [np.nan, np.nan],
-                    [np.nan, np.nan]]),
-        (False, 2, [[np.nan, np.nan], [np.nan, np.nan], [np.nan, np.nan],
-                    [2., np.nan], [np.nan, 2.], [0.33333333, np.nan],
-                    [np.nan, 0.33333333]])
-    ])
+    @pytest.mark.parametrize(
+        "skipna, periods, expected_vals",
+        [
+            (
+                True,
+                1,
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [1.0, np.nan],
+                    [0.5, 1.0],
+                    [np.nan, 0.5],
+                    [0.33333333, np.nan],
+                    [np.nan, 0.33333333],
+                ],
+            ),
+            (
+                True,
+                2,
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [2.0, np.nan],
+                    [np.nan, 2.0],
+                    [1.0, np.nan],
+                    [np.nan, 1.0],
+                ],
+            ),
+            (
+                False,
+                1,
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [1.0, np.nan],
+                    [0.5, 1.0],
+                    [np.nan, 0.5],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                ],
+            ),
+            (
+                False,
+                2,
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [2.0, np.nan],
+                    [np.nan, 2.0],
+                    [0.33333333, np.nan],
+                    [np.nan, 0.33333333],
+                ],
+            ),
+        ],
+    )
     def test_pct_change_skipna(self, skipna, periods, expected_vals):
         # GH25006
-        df = DataFrame([[np.nan, np.nan], [1., np.nan], [2., 1.], [3., 2.],
-                        [np.nan, 3.], [4., np.nan], [np.nan, 4.]])
+        df = DataFrame(
+            [
+                [np.nan, np.nan],
+                [1.0, np.nan],
+                [2.0, 1.0],
+                [3.0, 2.0],
+                [np.nan, 3.0],
+                [4.0, np.nan],
+                [np.nan, 4.0],
+            ]
+        )
         result = df.pct_change(skipna=skipna, periods=periods)
         expected = DataFrame(expected_vals)
         tm.assert_frame_equal(result, expected)

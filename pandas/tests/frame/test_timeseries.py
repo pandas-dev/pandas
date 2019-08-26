@@ -193,7 +193,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         empty_ts = DataFrame(index=self.tsframe.index, columns=self.tsframe.columns)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
-        rs_periods = empty_ts.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+        rs_periods = empty_ts.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit
+        )
         assert_frame_equal(rs_freq, rs_periods)
 
     def test_frame_ctor_datetime64_column(self):

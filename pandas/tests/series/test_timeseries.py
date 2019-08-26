@@ -436,12 +436,16 @@ class TestTimeSeries(TestData):
     def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
         # GH 7292
         rs_freq = self.ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
-        rs_periods = self.ts.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+        rs_periods = self.ts.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit
+        )
         assert_series_equal(rs_freq, rs_periods)
 
         empty_ts = Series(index=self.ts.index)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
-        rs_periods = empty_ts.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+        rs_periods = empty_ts.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit
+        )
         assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self):
