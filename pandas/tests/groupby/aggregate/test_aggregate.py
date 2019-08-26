@@ -10,7 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
-from pandas.core.groupby.generic import _maybe_mangle_lambdas
+from pandas.core.groupby.generic import _maybe_mangle_lambdas, _make_unique
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
@@ -641,7 +641,7 @@ class TestLambdaMangling:
             columns=columns,
         )
 
-        # check pd.NamedAgg case
+        # check agg(key=(col, aggfunc)) case
         result1 = df.groupby(by="kind").agg(
             height_sqr_min=("height", lambda x: np.min(x ** 2)),
             height_max=("height", "max"),
@@ -651,7 +651,7 @@ class TestLambdaMangling:
         )
         tm.assert_frame_equal(result1, expected)
 
-        # check agg(key=(col, aggfunc)) case
+        # check pd.NamedAgg case
         result2 = df.groupby(by="kind").agg(
             height_sqr_min=pd.NamedAgg(
                 column="height", aggfunc=lambda x: np.min(x ** 2)
@@ -662,3 +662,48 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize(
+        "order, expected_reorder",
+        [
+            (
+                [
+                    ("height", "<lambda>"),
+                    ("height", "max"),
+                    ("weight", "max"),
+                    ("height", "<lambda>"),
+                    ("weight", "<lambda>"),
+                ],
+                [
+                    ("height", "<lambda>_0"),
+                    ("height", "max"),
+                    ("weight", "max"),
+                    ("height", "<lambda>_1"),
+                    ("weight", "<lambda>"),
+                ],
+            ),
+            (
+                [
+                    ("col2", "min"),
+                    ("col1", "<lambda>"),
+                    ("col1", "<lambda>"),
+                    ("col1", "<lambda>"),
+                ],
+                [
+                    ("col2", "min"),
+                    ("col1", "<lambda>_0"),
+                    ("col1", "<lambda>_1"),
+                    ("col1", "<lambda>_2"),
+                ],
+            ),
+            (
+                [("col", "<lambda>"), ("col", "<lambda>"), ("col", "<lambda>")],
+                [("col", "<lambda>_0"), ("col", "<lambda>_1"), ("col", "<lambda>_2")],
+            ),
+        ],
+    )
+    def test_make_unique(self, order, expected_reorder):
+        # GH 27519, test if make_unique function reorders correctly
+        result = _make_unique(order)
+
+        assert result == expected_reorder
