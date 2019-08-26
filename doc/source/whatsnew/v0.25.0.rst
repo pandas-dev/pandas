@@ -876,7 +876,6 @@ Other API changes
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 - :class:`Timestamp` and :class:`Timedelta` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
-- Default `skipna=True` for :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` will drop NAs before calculation (:issue:`25006`)
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)

@@ -29,7 +29,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` now accept a ``skipna`` argument (:issue:`25006`)
 -
 
 .. _whatsnew_1000.api_breaking:
