@@ -316,6 +316,8 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     for xi in range(K):
         for yi in range(xi + 1):
             nobs = 0
+            # Keep track of whether the two columns have the same
+            # missing pattern, if not we need to recalculate ranks
             same_miss_pat = True
             for i in range(N):
                 same_miss_pat &= not (mask[i, xi] ^ mask[i, yi])
