@@ -375,7 +375,7 @@ def boxplot(
         >>> type(boxplot)
         <class 'numpy.ndarray'>
     """
-    plot_backend = _get_plot_backend("matplotlib")
+    plot_backend = _get_plot_backend()
     return plot_backend.boxplot(
         data,
         column=column,
