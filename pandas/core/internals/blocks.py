@@ -743,6 +743,26 @@ class Block(PandasObject):
                     return [self]
                 return [self.copy()]
 
+            to_replace = [x for x in to_replace if self._can_hold_element(x)]
+            if not len(to_replace):
+                # GH#28084 avoid costly checks since we can infer
+                #  that there is nothing to replace in this block
+                if inplace:
+                    return [self]
+                return [self.copy()]
+
+            if len(to_replace) == 1:
+                # _can_hold_element checks have reduced this back to the
+                #  scalar case and we can avoid a costly object cast
+                return self.replace(
+                    to_replace[0],
+                    value,
+                    inplace=inplace,
+                    filter=filter,
+                    regex=regex,
+                    convert=convert,
+                )
+
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
@@ -751,7 +771,7 @@ class Block(PandasObject):
             # try again with a compatible block
             block = self.astype(object)
             return block.replace(
-                to_replace=original_to_replace,
+                to_replace=to_replace,
                 value=value,
                 inplace=inplace,
                 filter=filter,
@@ -2830,9 +2850,9 @@ class ObjectBlock(Block):
         regex = regex_re or to_rep_re
 
         # try to get the pattern attribute (compiled re) or it's a string
-        try:
+        if is_re(to_replace):
             pattern = to_replace.pattern
-        except AttributeError:
+        else:
             pattern = to_replace
 
         # if the pattern is not empty and to_replace is either a string or a
@@ -2853,18 +2873,18 @@ class ObjectBlock(Block):
         if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return value if rx.search(s) is not None else s
-                except TypeError:
+                else:
                     return s
 
         else:
             # value is guaranteed to be a string here, s can be either a string
             # or null if it's null it gets returned
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return rx.sub(value, s)
-                except TypeError:
+                else:
                     return s
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
