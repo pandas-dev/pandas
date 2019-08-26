@@ -1148,10 +1148,10 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 
 .. ipython:: python
 
-   df.A.plot()
+   df['A'].plot()
 
    @savefig series_plot_secondary_y.png
-   df.B.plot(secondary_y=True, style='g')
+   df['B'].plot(secondary_y=True, style='g')
 
 .. ipython:: python
    :suppress:
@@ -1205,7 +1205,7 @@ Here is the default behavior, notice how the x-axis tick labeling is performed:
    plt.figure()
 
    @savefig ser_plot_suppress.png
-   df.A.plot()
+   df['A'].plot()
 
 .. ipython:: python
    :suppress:
@@ -1219,7 +1219,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.figure()
 
    @savefig ser_plot_suppress_parm.png
-   df.A.plot(x_compat=True)
+   df['A'].plot(x_compat=True)
 
 .. ipython:: python
    :suppress:
@@ -1235,9 +1235,9 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 
    @savefig ser_plot_suppress_context.png
    with pd.plotting.plot_params.use('x_compat', True):
-       df.A.plot(color='r')
-       df.B.plot(color='g')
-       df.C.plot(color='b')
+       df['A'].plot(color='r')
+       df['B'].plot(color='g')
+       df['C'].plot(color='b')
 
 .. ipython:: python
    :suppress:

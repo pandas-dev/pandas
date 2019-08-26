@@ -99,7 +99,7 @@ Sparse
 Other
 ^^^^^
 
-- Bug in :meth:`DataFrame.drop` when passing empty :meth:`DatetimeIndex` or `list`
+- Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
 -
 
 .. _whatsnew_0.252.contributors:
