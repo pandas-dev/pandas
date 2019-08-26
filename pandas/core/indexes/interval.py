@@ -1310,7 +1310,7 @@ def interval_range(
     start=None, end=None, periods=None, freq=None, name=None, closed="right"
 ):
     """
-    Return a fixed frequency IntervalIndex
+    Return a fixed frequency IntervalIndex.
 
     Parameters
     ----------

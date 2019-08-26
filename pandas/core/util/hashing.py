@@ -58,7 +58,7 @@ def hash_pandas_object(
     obj, index=True, encoding="utf8", hash_key=None, categorize=True
 ):
     """
-    Return a data hash of the Index/Series/DataFrame
+    Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------

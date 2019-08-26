@@ -2020,7 +2020,7 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "fillna"
     ] = """
-        Fill NA/NaN values with the specified value
+        Fill NA/NaN values with the specified value.
 
         Parameters
         ----------
@@ -2051,7 +2051,7 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "dropna"
     ] = """
-        Return Index without NA/NaN values
+        Return Index without NA/NaN values.
 
         Parameters
         ----------

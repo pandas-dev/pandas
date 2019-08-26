@@ -994,7 +994,7 @@ PeriodIndex._add_datetimelike_methods()
 def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
     Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency
+    frequency.
 
     Parameters
     ----------
