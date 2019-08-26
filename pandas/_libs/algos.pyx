@@ -316,7 +316,9 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     for xi in range(K):
         for yi in range(xi + 1):
             nobs = 0
+            same_miss_pat = True
             for i in range(N):
+                same_miss_pat &= not (mask[i, xi] ^ mask[i, yi])
                 if mask[i, xi] and mask[i, yi]:
                     nobs += 1
 
@@ -326,11 +328,16 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                 maskedx = np.empty(nobs, dtype=np.float64)
                 maskedy = np.empty(nobs, dtype=np.float64)
                 j = 0
+
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
                         maskedx[j] = ranked_mat[i, xi]
                         maskedy[j] = ranked_mat[i, yi]
                         j += 1
+
+                if not same_miss_pat:
+                    maskedx = rank_1d_float64(maskedx)
+                    maskedy = rank_1d_float64(maskedy)
 
                 mean = (nobs + 1) / 2.
 
