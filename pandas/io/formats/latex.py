@@ -39,12 +39,13 @@ class LatexFormatter(TableFormatter):
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
-        self.bold_rows = self.fmt.kwds.get("bold_rows", False)
+        self.bold_rows = self.fmt.bold_rows
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
+        self.escape = self.fmt.escape
 
     def write_result(self, buf: IO[str]) -> None:
         """
@@ -142,7 +143,7 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endfoot\n\n")
                     buf.write("\\bottomrule\n")
                     buf.write("\\endlastfoot\n")
-            if self.fmt.kwds.get("escape", True):
+            if self.escape:
                 # escape backslashes first
                 crow = [
                     (
