@@ -198,7 +198,7 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = range(len(expected.columns))
 
-        if is_platform_32bit():
+        if is_platform_32bit() and not numpy:
             # TODO: see what is causing roundtrip dtype loss
             expected = expected.astype(np.int32)
 
