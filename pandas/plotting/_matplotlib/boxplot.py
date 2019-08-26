@@ -1,34 +1,34 @@
 from collections import namedtuple
 import warnings
 
-from matplotlib import pyplot as plt
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas.core.dtypes.common import is_dict_like
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
 
 
 class BoxPlot(LinePlot):
-    _kind = 'box'
-    _layout_type = 'horizontal'
+    _kind = "box"
+    _layout_type = "horizontal"
 
-    _valid_return_types = (None, 'axes', 'dict', 'both')
+    _valid_return_types = (None, "axes", "dict", "both")
     # namedtuple to hold results
-    BP = namedtuple("Boxplot", ['ax', 'lines'])
+    BP = namedtuple("Boxplot", ["ax", "lines"])
 
-    def __init__(self, data, return_type='axes', **kwargs):
+    def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
-            raise ValueError(
-                "return_type must be {None, 'axes', 'dict', 'both'}")
+            raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
         self.return_type = return_type
         MPLPlot.__init__(self, data, **kwargs)
@@ -37,13 +37,13 @@ class BoxPlot(LinePlot):
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
-            if self.orientation == 'vertical':
+            if self.orientation == "vertical":
                 self.sharex = False
             else:
                 self.sharey = False
 
     @classmethod
-    def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
+    def _plot(cls, ax, y, column_num=None, return_type="axes", **kwds):
         if y.ndim == 2:
             y = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -54,52 +54,53 @@ class BoxPlot(LinePlot):
             y = remove_na_arraylike(y)
         bp = ax.boxplot(y, **kwds)
 
-        if return_type == 'dict':
+        if return_type == "dict":
             return bp, bp
-        elif return_type == 'both':
+        elif return_type == "both":
             return cls.BP(ax=ax, lines=bp), bp
         else:
             return ax, bp
 
     def _validate_color_args(self):
-        if 'color' in self.kwds:
+        if "color" in self.kwds:
             if self.colormap is not None:
-                warnings.warn("'color' and 'colormap' cannot be used "
-                              "simultaneously. Using 'color'")
-            self.color = self.kwds.pop('color')
+                warnings.warn(
+                    "'color' and 'colormap' cannot be used "
+                    "simultaneously. Using 'color'"
+                )
+            self.color = self.kwds.pop("color")
 
             if isinstance(self.color, dict):
-                valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
+                valid_keys = ["boxes", "whiskers", "medians", "caps"]
                 for key, values in self.color.items():
                     if key not in valid_keys:
-                        raise ValueError("color dict contains invalid "
-                                         "key '{0}' "
-                                         "The key must be either {1}"
-                                         .format(key, valid_keys))
+                        raise ValueError(
+                            "color dict contains invalid "
+                            "key '{0}' "
+                            "The key must be either {1}".format(key, valid_keys)
+                        )
         else:
             self.color = None
 
         # get standard colors for default
-        colors = _get_standard_colors(num_colors=3,
-                                      colormap=self.colormap,
-                                      color=None)
+        colors = _get_standard_colors(num_colors=3, colormap=self.colormap, color=None)
         # use 2 colors by default, for box/whisker and median
         # flier colors isn't needed here
         # because it can be specified by ``sym`` kw
         self._boxes_c = colors[0]
         self._whiskers_c = colors[0]
         self._medians_c = colors[2]
-        self._caps_c = 'k'          # mpl default
+        self._caps_c = "k"  # mpl default
 
-    def _get_colors(self, num_colors=None, color_kwds='color'):
+    def _get_colors(self, num_colors=None, color_kwds="color"):
         pass
 
     def maybe_color_bp(self, bp):
         if isinstance(self.color, dict):
-            boxes = self.color.get('boxes', self._boxes_c)
-            whiskers = self.color.get('whiskers', self._whiskers_c)
-            medians = self.color.get('medians', self._medians_c)
-            caps = self.color.get('caps', self._caps_c)
+            boxes = self.color.get("boxes", self._boxes_c)
+            whiskers = self.color.get("whiskers", self._whiskers_c)
+            medians = self.color.get("medians", self._medians_c)
+            caps = self.color.get("caps", self._caps_c)
         else:
             # Other types are forwarded to matplotlib
             # If None, use default colors
@@ -108,10 +109,10 @@ class BoxPlot(LinePlot):
             medians = self.color or self._medians_c
             caps = self.color or self._caps_c
 
-        setp(bp['boxes'], color=boxes, alpha=1)
-        setp(bp['whiskers'], color=whiskers, alpha=1)
-        setp(bp['medians'], color=medians, alpha=1)
-        setp(bp['caps'], color=caps, alpha=1)
+        setp(bp["boxes"], color=boxes, alpha=1)
+        setp(bp["whiskers"], color=whiskers, alpha=1)
+        setp(bp["medians"], color=medians, alpha=1)
+        setp(bp["caps"], color=caps, alpha=1)
 
     def _make_plot(self):
         if self.subplots:
@@ -121,8 +122,9 @@ class BoxPlot(LinePlot):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
 
-                ret, bp = self._plot(ax, y, column_num=i,
-                                     return_type=self.return_type, **kwds)
+                ret, bp = self._plot(
+                    ax, y, column_num=i, return_type=self.return_type, **kwds
+                )
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
 
@@ -133,8 +135,9 @@ class BoxPlot(LinePlot):
             ax = self._get_ax(0)
             kwds = self.kwds.copy()
 
-            ret, bp = self._plot(ax, y, column_num=0,
-                                 return_type=self.return_type, **kwds)
+            ret, bp = self._plot(
+                ax, y, column_num=0, return_type=self.return_type, **kwds
+            )
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
@@ -145,7 +148,7 @@ class BoxPlot(LinePlot):
             self._set_ticklabels(ax, labels)
 
     def _set_ticklabels(self, ax, labels):
-        if self.orientation == 'vertical':
+        if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
@@ -158,10 +161,10 @@ class BoxPlot(LinePlot):
 
     @property
     def orientation(self):
-        if self.kwds.get('vert', True):
-            return 'vertical'
+        if self.kwds.get("vert", True):
+            return "vertical"
         else:
-            return 'horizontal'
+            return "horizontal"
 
     @property
     def result(self):
@@ -171,18 +174,28 @@ class BoxPlot(LinePlot):
             return self._return_obj
 
 
-def _grouped_plot_by_column(plotf, data, columns=None, by=None,
-                            numeric_only=True, grid=False,
-                            figsize=None, ax=None, layout=None,
-                            return_type=None, **kwargs):
+def _grouped_plot_by_column(
+    plotf,
+    data,
+    columns=None,
+    by=None,
+    numeric_only=True,
+    grid=False,
+    figsize=None,
+    ax=None,
+    layout=None,
+    return_type=None,
+    **kwargs
+):
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]
         columns = data._get_numeric_data().columns.difference(by)
     naxes = len(columns)
-    fig, axes = _subplots(naxes=naxes, sharex=True, sharey=True,
-                          figsize=figsize, ax=ax, layout=layout)
+    fig, axes = _subplots(
+        naxes=naxes, sharex=True, sharey=True, figsize=figsize, ax=ax, layout=layout
+    )
 
     _axes = _flatten(axes)
 
@@ -205,23 +218,35 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         result = axes
 
     byline = by[0] if len(by) == 1 else by
-    fig.suptitle('Boxplot grouped by {byline}'.format(byline=byline))
+    fig.suptitle("Boxplot grouped by {byline}".format(byline=byline))
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
 
 
-def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, return_type=None,
-            **kwds):
+def boxplot(
+    data,
+    column=None,
+    by=None,
+    ax=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    figsize=None,
+    layout=None,
+    return_type=None,
+    **kwds
+):
+
+    import matplotlib.pyplot as plt
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
     if isinstance(data, ABCSeries):
-        data = data.to_frame('x')
-        column = 'x'
+        data = data.to_frame("x")
+        column = "x"
 
     def _get_colors():
         #  num_colors=3 is required as method maybe_color_bp takes the colors
@@ -230,10 +255,13 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         result = _get_standard_colors(num_colors=3)
         result = np.take(result, [0, 0, 2, 0])
 
-        colors = kwds.pop('color', None)
+        colors = kwds.pop("color", None)
         if colors:
-            if isinstance(colors, dict):
-                valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
+            if is_dict_like(colors):
+                # replace colors in result array with user-specified colors
+                # taken from the colors dict parameter
+                # "boxes" value placed in position 0, "whiskers" in 1, etc.
+                valid_keys = ["boxes", "whiskers", "medians", "caps"]
                 key_to_index = dict(zip(valid_keys, range(4)))
                 for key, value in colors.items():
                     if key in valid_keys:
@@ -249,27 +277,27 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         return result
 
     def maybe_color_bp(bp):
-        setp(bp['boxes'], color=colors[0], alpha=1)
-        setp(bp['whiskers'], color=colors[1], alpha=1)
-        setp(bp['medians'], color=colors[2], alpha=1)
-        setp(bp['caps'], color=colors[3], alpha=1)
+        setp(bp["boxes"], color=colors[0], alpha=1)
+        setp(bp["whiskers"], color=colors[1], alpha=1)
+        setp(bp["medians"], color=colors[2], alpha=1)
+        setp(bp["caps"], color=colors[3], alpha=1)
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
         values = [np.asarray(remove_na_arraylike(v)) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
-            ax.tick_params(axis='both', labelsize=fontsize)
-        if kwds.get('vert', 1):
+            ax.tick_params(axis="both", labelsize=fontsize)
+        if kwds.get("vert", 1):
             ax.set_xticklabels(keys, rotation=rot)
         else:
             ax.set_yticklabels(keys, rotation=rot)
         maybe_color_bp(bp)
 
         # Return axes in multiplot case, maybe revisit later # 985
-        if return_type == 'dict':
+        if return_type == "dict":
             return bp
-        elif return_type == 'both':
+        elif return_type == "both":
             return BoxPlot.BP(ax=ax, lines=bp)
         else:
             return ax
@@ -286,19 +314,27 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if by is not None:
         # Prefer array return type for 2-D plots to match the subplot layout
         # https://github.com/pandas-dev/pandas/pull/12216#issuecomment-241175580
-        result = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                         by=by, grid=grid, figsize=figsize,
-                                         ax=ax, layout=layout,
-                                         return_type=return_type)
+        result = _grouped_plot_by_column(
+            plot_group,
+            data,
+            columns=columns,
+            by=by,
+            grid=grid,
+            figsize=figsize,
+            ax=ax,
+            layout=layout,
+            return_type=return_type,
+        )
     else:
         if return_type is None:
-            return_type = 'axes'
+            return_type = "axes"
         if layout is not None:
-            raise ValueError("The 'layout' keyword is not supported when "
-                             "'by' is None")
+            raise ValueError(
+                "The 'layout' keyword is not supported when " "'by' is None"
+            )
 
         if ax is None:
-            rc = {'figure.figsize': figsize} if figsize is not None else {}
+            rc = {"figure.figsize": figsize} if figsize is not None else {}
             with plt.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
@@ -313,34 +349,75 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     return result
 
 
-def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
-                  grid=True, figsize=None, layout=None,
-                  return_type=None, **kwds):
-    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                 grid=grid, rot=rot, figsize=figsize, layout=layout,
-                 return_type=return_type, **kwds)
+def boxplot_frame(
+    self,
+    column=None,
+    by=None,
+    ax=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    figsize=None,
+    layout=None,
+    return_type=None,
+    **kwds
+):
+    import matplotlib.pyplot as plt
+
+    converter._WARN = False  # no warning for pandas plots
+    ax = boxplot(
+        self,
+        column=column,
+        by=by,
+        ax=ax,
+        fontsize=fontsize,
+        grid=grid,
+        rot=rot,
+        figsize=figsize,
+        layout=layout,
+        return_type=return_type,
+        **kwds
+    )
     plt.draw_if_interactive()
     return ax
 
 
-def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
-                          rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, sharex=False, sharey=True, **kwds):
+def boxplot_frame_groupby(
+    grouped,
+    subplots=True,
+    column=None,
+    fontsize=None,
+    rot=0,
+    grid=True,
+    ax=None,
+    figsize=None,
+    layout=None,
+    sharex=False,
+    sharey=True,
+    **kwds
+):
+    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
-        fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=sharex, sharey=sharey,
-                              figsize=figsize, layout=layout)
+        fig, axes = _subplots(
+            naxes=naxes,
+            squeeze=False,
+            ax=ax,
+            sharex=sharex,
+            sharey=sharey,
+            figsize=figsize,
+            layout=layout,
+        )
         axes = _flatten(axes)
 
         ret = pd.Series()
         for (key, group), ax in zip(grouped, axes):
-            d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
-                              rot=rot, grid=grid, **kwds)
+            d = group.boxplot(
+                ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
+            )
             ax.set_title(pprint_thing(key))
             ret.loc[key] = d
-        fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
-                            right=0.9, wspace=0.2)
+        fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
@@ -350,7 +427,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                 df = frames[0].join(frames[1::])
             else:
                 df = frames[0]
-        ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
-                         grid=grid, ax=ax, figsize=figsize,
-                         layout=layout, **kwds)
+        ret = df.boxplot(
+            column=column,
+            fontsize=fontsize,
+            rot=rot,
+            grid=grid,
+            ax=ax,
+            figsize=figsize,
+            layout=layout,
+            **kwds
+        )
     return ret
