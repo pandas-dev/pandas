@@ -563,6 +563,8 @@ def dispatch_to_extension_op(
         # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
         # on add/sub of integers (or int-like).  We re-raise as a TypeError.
         if keep_null_freq:
+            # TODO: remove keep_null_freq after Timestamp+int deprecation
+            #  GH#22535 is enforced
             raise
         raise TypeError(
             "incompatible type for a datetime/timedelta "
