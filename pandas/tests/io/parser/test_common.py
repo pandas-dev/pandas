@@ -1865,6 +1865,23 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_infinity_parsing(all_parsers, na_filter):
+    parser = all_parsers
+    data = """\
+,A
+a,Infinity
+b,-Infinity
+c,+Infinity
+"""
+    expected = DataFrame(
+        {"A": [float("inf"), float("-inf"), float("inf")]},
+        index=["a", "b", "c"],
+    )
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
