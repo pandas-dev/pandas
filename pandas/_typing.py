@@ -28,4 +28,6 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
 Ordered = Optional[bool]
+
+# to maintain type information across generic functions and parametrization
 _T = TypeVar("_T")
