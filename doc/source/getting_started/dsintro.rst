@@ -418,7 +418,7 @@ types in the list would result in a TypeError.
     Point = make_dataclass("Point", [("x", int), ("y", int)])
 
     data = [Point(0, 0), Point(0, 3), Point(2, 3)]
-    df = pd.DataFrame(data)
+    pd.DataFrame(data)
 
 **Missing data**
 
