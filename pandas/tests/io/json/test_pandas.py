@@ -198,7 +198,9 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = range(len(expected.columns))
 
-        if is_platform_windows() or (numpy and is_platform_32bit()):
+        if is_platform_windows() or (
+            numpy and is_platform_32bit() and not dtype and orient != "split"
+        ):
             # TODO: see what is causing roundtrip dtype loss
             expected = expected.astype(np.int32)
 
@@ -719,7 +721,7 @@ class TestPandasContainer:
             expected = self.objSeries.copy()
 
         if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()            
+            expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -735,7 +737,7 @@ class TestPandasContainer:
 
         # TODO: see what causes inconsistency
         if not numpy and PY35 and orient == "index":
-            expected = expected.sort_index()        
+            expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         else:
