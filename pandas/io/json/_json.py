@@ -7,6 +7,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
+from pandas._typing import Scalar
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
@@ -32,7 +33,7 @@ dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = "0.20.0"
 
-Serializable = Union[int, str, List, Dict]
+Serializable = Union[Scalar, List, Dict]
 
 
 # interface to/from

@@ -61,7 +61,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer
+from pandas._typing import Dtype, FilePathOrBuffer, Scalar
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -2259,7 +2259,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision: int = 10,
         force_ascii: bool_t = True,
         date_unit: str = "ms",
-        default_handler: Optional[Callable[[Any], Union[int, str, List, Dict]]] = None,
+        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
         lines: bool_t = False,
         compression: Optional[str] = "infer",
         index: bool_t = True,
