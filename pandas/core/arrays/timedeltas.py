@@ -421,6 +421,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
         return Timedelta(result)
 
+    def median(
+        self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+    ):
+        nv.validate_median(
+            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+        )
+        return nanops.nanmedian(self._data, axis=axis, skipna=skipna)
+
     # ----------------------------------------------------------------
     # Rendering Methods
 

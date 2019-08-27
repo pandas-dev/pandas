@@ -176,6 +176,7 @@ class TimedeltaIndex(
     _other_ops = TimedeltaArray._other_ops
     sum = ea_passthrough(TimedeltaArray.sum)
     std = ea_passthrough(TimedeltaArray.std)
+    median = ea_passthrough(TimedeltaArray.median)
 
     # -------------------------------------------------------------------
     # Constructors

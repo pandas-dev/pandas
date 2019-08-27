@@ -143,7 +143,7 @@ class TestTimedeltaArray:
 
 
 class TestReductions:
-    @pytest.mark.parametrize("name", ["sum", "std", "min", "max"])
+    @pytest.mark.parametrize("name", ["sum", "std", "min", "max", "median"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
@@ -201,6 +201,25 @@ class TestReductions:
         assert result == expected
 
         result = tdi.std(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.std(skipna=False)
+        assert result is pd.NaT
+
+    def test_median(self):
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        arr = tdi._data
+
+        result = arr.median(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.median(skipna=True)
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
