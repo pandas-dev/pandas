@@ -168,3 +168,33 @@ class TestReductions:
 
         result = arr.max(skipna=skipna)
         assert result is pd.NaT
+
+    def test_sum(self):
+        tdi = pd.TimedeltaIndex(["3H", "3H", "NaT", "2H", "5H", "4H"])
+        arr = tdi._data
+
+        result = arr.sum(skipna=True)
+        expected = pd.Timedelta(hours=17)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.sum(skipna=False)
+        assert result is pd.NaT
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_sum_empty(self, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi._data
+
+        result = tdi.sum(skipna=skipna)
+        assert result is pd.NaT
+
+        result = arr.sum(skipna=skipna)
+        assert result is pd.NaT

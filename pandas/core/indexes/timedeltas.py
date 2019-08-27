@@ -30,6 +30,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -173,6 +174,7 @@ class TimedeltaIndex(
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
+    sum = ea_passthrough(TimedeltaArray.sum)
 
     # -------------------------------------------------------------------
     # Constructors

@@ -14,6 +14,7 @@ from pandas._libs.tslibs.timedeltas import (
     precision_from_unit,
 )
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -383,6 +384,16 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return self.copy()
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
+
+    def sum(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+        if not len(self):
+            return NaT
+        if skipna:
+            if self._hasnans:
+                return self.dropna().sum(axis=axis, *args, **kwargs)
+        return Timedelta(self._data.sum())
 
     # ----------------------------------------------------------------
     # Rendering Methods
