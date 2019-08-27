@@ -618,10 +618,13 @@ class Block(PandasObject):
             else:
                 values = self.get_values(dtype=dtype)
 
+            skipna = kwargs.pop("skipna", True)
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:
-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+                values = astype_nansafe(
+                    vals1d, dtype, copy=True, skipna=skipna, **kwargs
+                )
             except (ValueError, TypeError):
                 # e.g. astype_nansafe can fail on object-dtype of strings
                 #  trying to convert to float

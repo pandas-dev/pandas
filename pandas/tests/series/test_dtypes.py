@@ -147,7 +147,7 @@ class TestSeriesDtypes:
     )
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
-        result = series.astype(dtype)
+        result = series.astype(dtype, skipna=False)
         expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
@@ -170,6 +170,16 @@ class TestSeriesDtypes:
 
         expected = Series([str("1 days 00:00:00.000000000")])
         tm.assert_series_equal(s, expected)
+
+    @pytest.mark.parametrize(
+        "skipna, expected",
+        [(True, Series(["1", "a", np.nan])), (False, Series(["1", "a", "nan"]))],
+    )
+    def test_astype_str(self, skipna, expected):
+        # GH 25353
+        ser = Series([1, "a", np.nan])
+        result = ser.astype(str, skipna=skipna)
+        tm.assert_series_equal(result, expected)
 
     def test_astype_unicode(self):
         # see gh-7758: A bit of magic is required to set

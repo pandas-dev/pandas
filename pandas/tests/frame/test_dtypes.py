@@ -627,13 +627,13 @@ class TestDataFrameDataTypes:
         assert_frame_equal(result, expected)
 
     def test_astype_str_float(self):
-        # see gh-11302
+        # GH 25353
         result = DataFrame([np.NaN]).astype(str)
-        expected = DataFrame(["nan"])
-
+        expected = DataFrame([np.nan], dtype=object)
         assert_frame_equal(result, expected)
-        result = DataFrame([1.12345678901234567890]).astype(str)
 
+        # see gh-11302
+        result = DataFrame([1.12345678901234567890]).astype(str)
         # < 1.14 truncates
         # >= 1.14 preserves the full repr
         val = "1.12345678901" if _np_version_under1p14 else "1.1234567890123457"

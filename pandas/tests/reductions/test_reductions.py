@@ -1105,7 +1105,10 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected1, expected2, expected3",
-        [(True, ["b"], ["bar"], ["nan"]), (False, ["b"], [np.nan], ["nan"])],
+        [
+            (True, ["b"], ["bar"], Series(["bar"])),
+            (False, ["b"], [np.nan], Series([np.nan], dtype=object)),
+        ],
     )
     def test_mode_str_obj(self, dropna, expected1, expected2, expected3):
         # Test string and object types.
@@ -1127,7 +1130,6 @@ class TestSeriesMode:
 
         s = Series(data, dtype=object).astype(str)
         result = s.mode(dropna)
-        expected3 = Series(expected3, dtype=str)
         tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize(

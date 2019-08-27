@@ -200,7 +200,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- When converting into string, :meth:`Series.astype` will keep ``np.nan`` as missing value (:issue:`25353`)
 -
 
 MultiIndex
