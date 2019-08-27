@@ -168,7 +168,7 @@ def _stringify_path(filepath_or_buffer: IO[AnyStr]) -> IO[AnyStr]:
 # consistent with the provided variants.
 
 
-def _stringify_path(filepath_or_buffer):
+def _stringify_path(filepath_or_buffer: FilePathOrBuffer):
     """Attempt to convert a path-like object to a string.
 
     Parameters
@@ -251,7 +251,10 @@ def get_filepath_or_buffer(
 
 
 def get_filepath_or_buffer(
-    filepath_or_buffer, encoding=None, compression=None, mode=None
+    filepath_or_buffer: FilePathOrBuffer,
+    encoding: Optional[str] = None,
+    compression: Optional[str] = None,
+    mode: Optional[str] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -272,10 +275,10 @@ def get_filepath_or_buffer(
               compression, str,
               should_close, bool)
     """
-    filepath_or_buffer = _stringify_path(filepath_or_buffer)
+    fp_or_buf = _stringify_path(filepath_or_buffer)
 
-    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
-        req = urlopen(filepath_or_buffer)
+    if isinstance(fp_or_buf, str) and _is_url(fp_or_buf):
+        req = urlopen(fp_or_buf)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
@@ -284,28 +287,28 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
+    if is_s3_url(fp_or_buf):
         from pandas.io import s3
 
         return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+            fp_or_buf, encoding=encoding, compression=compression, mode=mode
         )
 
-    if is_gcs_url(filepath_or_buffer):
+    if is_gcs_url(fp_or_buf):
         from pandas.io import gcs
 
         return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
+            fp_or_buf, encoding=encoding, compression=compression, mode=mode
         )
 
-    if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-        return _expand_user(filepath_or_buffer), None, compression, False
+    if isinstance(fp_or_buf, (str, bytes, mmap.mmap)):
+        return _expand_user(fp_or_buf), None, compression, False
 
-    if not is_file_like(filepath_or_buffer):
+    if not is_file_like(fp_or_buf):
         msg = "Invalid file path or buffer object type: {_type}"
-        raise ValueError(msg.format(_type=type(filepath_or_buffer)))
+        raise ValueError(msg.format(_type=type(fp_or_buf)))
 
-    return filepath_or_buffer, None, compression, False
+    return fp_or_buf, None, compression, False
 
 
 def file_path_to_url(path: str) -> str:
