@@ -21,7 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
--
+- :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`).
 -
 
 .. _whatsnew_1000.enhancements.other:
