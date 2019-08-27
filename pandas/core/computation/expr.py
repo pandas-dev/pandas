@@ -41,7 +41,8 @@ import pandas.io.formats.printing as printing
 
 
 def tokenize_string(source):
-    """Tokenize a Python source code string.
+    """
+    Tokenize a Python source code string.
 
     Parameters
     ----------
@@ -579,6 +580,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.const_type(node.value, self.env)
 
     def visit_Num(self, node, **kwargs):
+        return self.const_type(node.n, self.env)
+
+    def visit_Constant(self, node, **kwargs):
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):

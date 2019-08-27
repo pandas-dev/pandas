@@ -5,12 +5,23 @@ import codecs
 import csv
 import gzip
 from http.client import HTTPException  # noqa
-from io import BytesIO
-import lzma
+from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
-from typing import IO, AnyStr, BinaryIO, Optional, TextIO, Type
+from typing import (
+    IO,
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
@@ -23,6 +34,7 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
+from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
     DtypeWarning,
@@ -34,6 +46,8 @@ from pandas.errors import (  # noqa
 from pandas.core.dtypes.common import is_file_like
 
 from pandas._typing import FilePathOrBuffer
+
+lzma = _import_lzma()
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -253,6 +267,40 @@ def file_path_to_url(path: str) -> str:
 _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
 
 
+def _get_compression_method(
+    compression: Optional[Union[str, Dict[str, str]]]
+) -> Tuple[Optional[str], Dict[str, str]]:
+    """
+    Simplifies a compression argument to a compression method string and
+    a dict containing additional arguments.
+
+    Parameters
+    ----------
+    compression : str or dict
+        If string, specifies the compression method. If dict, value at key
+        'method' specifies compression method.
+
+    Returns
+    -------
+    tuple of ({compression method}, Optional[str]
+              {compression arguments}, Dict[str, str])
+
+    Raises
+    ------
+    ValueError on dict missing 'method' key
+    """
+    # Handle dict
+    if isinstance(compression, dict):
+        compression_args = compression.copy()
+        try:
+            compression = compression_args.pop("method")
+        except KeyError:
+            raise ValueError("If dict, compression must have key 'method'")
+    else:
+        compression_args = {}
+    return compression, compression_args
+
+
 def _infer_compression(
     filepath_or_buffer: FilePathOrBuffer, compression: Optional[str]
 ) -> Optional[str]:
@@ -264,8 +312,8 @@ def _infer_compression(
 
     Parameters
     ----------
-    filepath_or_buffer :
-        a path (str) or buffer
+    filepath_or_buffer : str or file handle
+        File path or object.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
         If 'infer' and `filepath_or_buffer` is path-like, then detect
         compression from the following extensions: '.gz', '.bz2', '.zip',
@@ -273,12 +321,11 @@ def _infer_compression(
 
     Returns
     -------
-    string or None :
-        compression method
+    string or None
 
     Raises
     ------
-    ValueError on invalid compression specified
+    ValueError on invalid compression specified.
     """
 
     # No compression has been explicitly specified
@@ -310,49 +357,67 @@ def _infer_compression(
 
 
 def _get_handle(
-    path_or_buf, mode, encoding=None, compression=None, memory_map=False, is_text=True
+    path_or_buf,
+    mode: str,
+    encoding=None,
+    compression: Optional[Union[str, Dict[str, Any]]] = None,
+    memory_map: bool = False,
+    is_text: bool = True,
 ):
     """
     Get file handle for given path/buffer and mode.
 
     Parameters
     ----------
-    path_or_buf :
-        a path (str) or buffer
+    path_or_buf : str or file handle
+        File path or object.
     mode : str
-        mode to open path_or_buf with
+        Mode to open path_or_buf with.
     encoding : str or None
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default None
-        If 'infer' and `filepath_or_buffer` is path-like, then detect
-        compression from the following extensions: '.gz', '.bz2', '.zip',
-        or '.xz' (otherwise no compression).
+        Encoding to use.
+    compression : str or dict, default None
+        If string, specifies compression mode. If dict, value at key 'method'
+        specifies compression mode. Compression mode must be one of {'infer',
+        'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
+        and `filepath_or_buffer` is path-like, then detect compression from
+        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
+        no compression). If dict and compression mode is 'zip' or inferred as
+        'zip', other entries passed as additional compression options.
+
+        .. versionchanged:: 1.0.0
+
+           May now be a dict with key 'method' as compression mode
+           and other keys as compression options if compression
+           mode is 'zip'.
+
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
-        mode (pickle, etc.)
+        mode (pickle, etc.).
 
     Returns
     -------
     f : file-like
-        A file-like object
+        A file-like object.
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BytesIO, S3File)
+        need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:
-        need_text_wrapping = (BytesIO,)
+        need_text_wrapping = BufferedIOBase  # type: ignore
 
-    handles = list()
+    handles = list()  # type: List[IO]
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, str)
 
+    compression, compression_args = _get_compression_method(compression)
     if is_path:
         compression = _infer_compression(path_or_buf, compression)
 
@@ -374,7 +439,7 @@ def _get_handle(
 
         # ZIP Compression
         elif compression == "zip":
-            zf = BytesZipFile(path_or_buf, mode)
+            zf = BytesZipFile(path_or_buf, mode, **compression_args)
             # Ensure the container is closed as well.
             handles.append(zf)
             if zf.mode == "w":
@@ -395,7 +460,7 @@ def _get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            f = lzma.LZMAFile(path_or_buf, mode)
+            f = _get_lzma_file(lzma)(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
@@ -420,14 +485,16 @@ def _get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        f = TextIOWrapper(f, encoding=encoding, newline="")
-        handles.append(f)
+        g = TextIOWrapper(f, encoding=encoding, newline="")
+        if not isinstance(f, BufferedIOBase):
+            handles.append(g)
+        f = g
 
     if memory_map and hasattr(f, "fileno"):
         try:
-            g = MMapWrapper(f)
+            wrapped = MMapWrapper(f)
             f.close()
-            f = g
+            f = wrapped
         except Exception:
             # we catch any errors that may have occurred
             # because that is consistent with the lower-level
@@ -452,15 +519,19 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         self,
         file: FilePathOrBuffer,
         mode: str,
-        compression: int = zipfile.ZIP_DEFLATED,
+        archive_name: Optional[str] = None,
         **kwargs
     ):
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")
-        super().__init__(file, mode, compression, **kwargs)
+        self.archive_name = archive_name
+        super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
 
     def write(self, data):
-        super().writestr(self.filename, data)
+        archive_name = self.filename
+        if self.archive_name is not None:
+            archive_name = self.archive_name
+        super().writestr(archive_name, data)
 
     @property
     def closed(self):
