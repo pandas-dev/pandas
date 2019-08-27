@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import Dict, FrozenSet, Iterable, List, Optional, Set, Tuple, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -80,7 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import AnyArrayLike, Dtype
+from pandas._typing import Axes, Dtype
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -393,9 +393,9 @@ class DataFrame(NDFrame):
     # Constructors
 
     def __init__(self,
-                 data = None,
-                 index: Optional[Iterable[Union["Index", Iterable[str]]]] = None,
-                 columns: Optional[Iterable[Union["Index", Iterable[str]]]] = None,
+                 data=None,
+                 index: Optional[Axes] = None,
+                 columns: Optional[Axes] = None,
                  dtype: Optional[Dtype] = None,
                  copy: Optional[bool] = False) -> None:
         if data is None:
