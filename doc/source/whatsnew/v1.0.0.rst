@@ -171,6 +171,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
+- :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -9,6 +9,17 @@ import pandas.util._test_decorators as td
 import pandas
 
 
+@pytest.fixture
+def dummy_backend():
+    backend = types.ModuleType("pandas_dummy_backend")
+    backend.plot = lambda *args, **kwargs: None
+    sys.modules["pandas_dummy_backend"] = backend
+
+    yield
+
+    del sys.modules["pandas_dummy_backend"]
+
+
 def test_matplotlib_backend_error():
     msg = (
         "matplotlib is required for plotting when the default backend "
@@ -22,20 +33,14 @@ def test_matplotlib_backend_error():
 
 
 def test_backend_is_not_module():
-    msg = (
-        '"not_an_existing_module" does not seem to be an installed module. '
-        "A pandas plotting backend must be a module that can be imported"
-    )
+    msg = "Could not find plotting backend 'not_an_existing_module'."
     with pytest.raises(ValueError, match=msg):
         pandas.set_option("plotting.backend", "not_an_existing_module")
 
 
-def test_backend_is_correct(monkeypatch):
-    monkeypatch.setattr(
-        "pandas.core.config_init.importlib.import_module", lambda name: None
-    )
-    pandas.set_option("plotting.backend", "correct_backend")
-    assert pandas.get_option("plotting.backend") == "correct_backend"
+def test_backend_is_correct(dummy_backend):
+    pandas.set_option("plotting.backend", "pandas_dummy_backend")
+    assert pandas.get_option("plotting.backend") == "pandas_dummy_backend"
 
     # Restore backend for other tests (matplotlib can be not installed)
     try:
@@ -72,6 +77,16 @@ def test_register_entrypoint():
         result = pandas.plotting._core._get_plot_backend()
 
     assert result is mod
+
+
+def test_setting_backend_raies():
+    module = types.ModuleType("pandas_plot_backend")
+    sys.modules["pandas_plot_backend"] = module
+
+    with pytest.raises(
+        ValueError, match="Could not find plotting backend 'pandas_plot_backend'."
+    ):
+        pandas.set_option("plotting.backend", "pandas_plot_backend")
 
 
 def test_register_import():
