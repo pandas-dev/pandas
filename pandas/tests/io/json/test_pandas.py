@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, is_platform_32bit
+from pandas.compat import PY35, is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -198,7 +198,7 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = range(len(expected.columns))
 
-        if is_platform_32bit() and not numpy:
+        if is_platform_windows or (is_platform_32bit() and not numpy):
             # TODO: see what is causing roundtrip dtype loss
             expected = expected.astype(np.int32)
 
