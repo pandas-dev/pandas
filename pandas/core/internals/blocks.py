@@ -668,7 +668,7 @@ class Block(PandasObject):
 
         return self.copy() if copy else self
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
         dtype = self.values.dtype.type
         tipo = maybe_infer_dtype_type(element)
@@ -720,6 +720,26 @@ class Block(PandasObject):
                     return [self]
                 return [self.copy()]
 
+            to_replace = [x for x in to_replace if self._can_hold_element(x)]
+            if not len(to_replace):
+                # GH#28084 avoid costly checks since we can infer
+                #  that there is nothing to replace in this block
+                if inplace:
+                    return [self]
+                return [self.copy()]
+
+            if len(to_replace) == 1:
+                # _can_hold_element checks have reduced this back to the
+                #  scalar case and we can avoid a costly object cast
+                return self.replace(
+                    to_replace[0],
+                    value,
+                    inplace=inplace,
+                    filter=filter,
+                    regex=regex,
+                    convert=convert,
+                )
+
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
@@ -728,7 +748,7 @@ class Block(PandasObject):
             # try again with a compatible block
             block = self.astype(object)
             return block.replace(
-                to_replace=original_to_replace,
+                to_replace=to_replace,
                 value=value,
                 inplace=inplace,
                 filter=filter,
@@ -821,12 +841,6 @@ class Block(PandasObject):
             if lib.is_scalar(value):
                 value = convert_scalar(values, value)
 
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
-
         else:
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
@@ -835,15 +849,9 @@ class Block(PandasObject):
                 dtype = value.dtype
                 find_dtype = True
 
-            elif lib.is_scalar(value):
-                if isna(value):
-                    # NaN promotion is handled in latter path
-                    dtype = False
-                else:
-                    dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-                    find_dtype = True
-            else:
-                dtype = "infer"
+            elif lib.is_scalar(value) and not isna(value):
+                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+                find_dtype = True
 
             if find_dtype:
                 dtype = find_common_type([values.dtype, dtype])
@@ -1055,7 +1063,7 @@ class Block(PandasObject):
             mytz = getattr(self.dtype, "tz", None)
             othertz = getattr(dtype, "tz", None)
 
-            if str(mytz) != str(othertz):  # TODO: use tz_compare
+            if not tz_compare(mytz, othertz):
                 return self.astype(object)
 
             raise AssertionError(
@@ -1278,7 +1286,7 @@ class Block(PandasObject):
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def diff(self, n, axis=1):
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
@@ -1367,7 +1375,7 @@ class Block(PandasObject):
 
             if not (
                 (self.is_integer or self.is_bool)
-                and lib.is_scalar(other)
+                and lib.is_float(other)
                 and np.isnan(other)
             ):
                 # np.where will cast integer array to floats in this case
@@ -1423,7 +1431,7 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return array_equivalent(self.values, other.values)
@@ -1802,7 +1810,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         # XXX: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
@@ -1972,7 +1980,7 @@ class NumericBlock(Block):
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         left, right = self.values, other.values
@@ -1983,7 +1991,7 @@ class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
@@ -2047,7 +2055,7 @@ class ComplexBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_complex = True
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
@@ -2064,7 +2072,7 @@ class IntBlock(NumericBlock):
     is_integer = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return (
@@ -2154,7 +2162,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # delegate
         return super()._astype(dtype=dtype, **kwargs)
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             if self.is_datetimetz:
@@ -2311,13 +2319,16 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def diff(self, n, axis=0):
-        """1st discrete difference
+    def diff(self, n: int, axis: int = 0) -> List["Block"]:
+        """
+        1st discrete difference.
 
         Parameters
         ----------
-        n : int, number of periods to diff
-        axis : int, axis to diff upon. default 0
+        n : int
+            Number of periods to diff.
+        axis : int, default 0
+            Axis to diff upon.
 
         Returns
         -------
@@ -2379,7 +2390,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         )
         return newb.setitem(indexer, value)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         # override for significant performance improvement
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
@@ -2418,7 +2429,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _holder(self):
         return TimedeltaArray
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.timedelta64)
@@ -2483,7 +2494,7 @@ class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.bool_)
@@ -2577,7 +2588,7 @@ class ObjectBlock(Block):
         # split and convert the blocks
         return _extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         return True
 
     def should_store(self, value):
@@ -2718,9 +2729,9 @@ class ObjectBlock(Block):
         regex = regex_re or to_rep_re
 
         # try to get the pattern attribute (compiled re) or it's a string
-        try:
+        if is_re(to_replace):
             pattern = to_replace.pattern
-        except AttributeError:
+        else:
             pattern = to_replace
 
         # if the pattern is not empty and to_replace is either a string or a
@@ -2741,18 +2752,18 @@ class ObjectBlock(Block):
         if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return value if rx.search(s) is not None else s
-                except TypeError:
+                else:
                     return s
 
         else:
             # value is guaranteed to be a string here, s can be either a string
             # or null if it's null it gets returned
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return rx.sub(value, s)
-                except TypeError:
+                else:
                     return s
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
