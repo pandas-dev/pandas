@@ -1073,7 +1073,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_reverse_assignment(self):
         # GH26939
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
-        expected = Series(index=range(2010, 2020), data=data)
+        expected = Series(data, index=range(2010, 2020))
 
         result = pd.Series(index=range(2010, 2020))
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
