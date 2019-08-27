@@ -15,7 +15,7 @@ def dummy_backend():
     backend.plot = lambda *args, **kwargs: None
     sys.modules["pandas_dummy_backend"] = backend
 
-    yield
+    yield backend
 
     del sys.modules["pandas_dummy_backend"]
 
@@ -41,6 +41,9 @@ def test_backend_is_not_module():
 def test_backend_is_correct(dummy_backend):
     pandas.set_option("plotting.backend", "pandas_dummy_backend")
     assert pandas.get_option("plotting.backend") == "pandas_dummy_backend"
+    assert (
+        pandas.plotting._core._get_plot_backend("pandas_dummy_backend") is dummy_backend
+    )
 
     # Restore backend for other tests (matplotlib can be not installed)
     try:
@@ -79,7 +82,8 @@ def test_register_entrypoint():
     assert result is mod
 
 
-def test_setting_backend_raies():
+def test_setting_backend_without_plot_raies():
+    # GH-28163
     module = types.ModuleType("pandas_plot_backend")
     sys.modules["pandas_plot_backend"] = module
 
@@ -87,15 +91,6 @@ def test_setting_backend_raies():
         ValueError, match="Could not find plotting backend 'pandas_plot_backend'."
     ):
         pandas.set_option("plotting.backend", "pandas_plot_backend")
-
-
-def test_register_import():
-    mod = types.ModuleType("my_backend2")
-    mod.plot = lambda *args, **kwargs: 1
-    sys.modules["my_backend2"] = mod
-
-    result = pandas.plotting._core._get_plot_backend("my_backend2")
-    assert result is mod
 
 
 @td.skip_if_mpl

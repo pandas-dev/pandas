@@ -1613,7 +1613,7 @@ def _get_plot_backend(backend=None):
         except ImportError:
             raise ImportError(
                 "matplotlib is required for plotting when the "
-                "default backend 'matplotlib' is selected."
+                'default backend "matplotlib" is selected.'
             ) from None
 
         _backends["matplotlib"] = module
