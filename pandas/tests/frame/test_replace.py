@@ -1069,18 +1069,24 @@ class TestDataFrameReplace(TestData):
         e = df
         assert_frame_equal(r, e)
 
-    def test_replace_int_to_int_chain(self):
+    def test_nested_dict_overlapping_keys_replace_int(self):
+        # GH 27660 keep behaviour consistent for simple dictionary and
+        # nested dictionary replacement
         df = DataFrame({"a": list(range(1, 5))})
-        with pytest.raises(ValueError, match="Replacement not allowed .+"):
-            df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
 
-    def test_replace_str_to_str_chain(self):
+        result = df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
+        expected = df.replace(dict(zip(range(1, 5), range(2, 6))))
+        assert_frame_equal(result, expected)
+
+    def test_nested_dict_overlapping_keys_replace_str(self):
+        # GH 27660
         a = np.arange(1, 5)
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({"a": astr})
-        with pytest.raises(ValueError, match="Replacement not allowed .+"):
-            df.replace({"a": dict(zip(astr, bstr))})
+        result = df.replace(dict(zip(astr, bstr)))
+        expected = df.replace({"a": dict(zip(astr, bstr))})
+        assert_frame_equal(result, expected)
 
     def test_replace_swapping_bug(self):
         df = pd.DataFrame({"a": [True, False, True]})
