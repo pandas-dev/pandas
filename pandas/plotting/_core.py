@@ -15,8 +15,10 @@ from pandas.core.base import PandasObject
 # we can lazily import matplotlib.
 try:
     import pandas.plotting._matplotlib  # noqa
+
+    _HAS_MATPLOTLIB = True
 except ImportError:
-    pass
+    _HAS_MATPLOTLIB = False
 
 
 def hist_series(

@@ -581,6 +581,8 @@ plotting_backend_doc = """
 def register_plotting_backend_cb(key):
     from pandas.plotting._core import _get_plot_backend
 
+    # import pdb; pdb.set_trace()
+
     backend_str = cf.get_option(key)
     _get_plot_backend(backend_str)
 
@@ -590,8 +592,8 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=str,
-        cb=register_plotting_backend_cb,
+        # validator=str,
+        validator=register_plotting_backend_cb,
     )
 
 

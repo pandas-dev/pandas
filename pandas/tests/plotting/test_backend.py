@@ -8,9 +8,17 @@ import pandas.util._test_decorators as td
 
 import pandas
 
+from pandas.plotting._core import _HAS_MATPLOTLIB
+
 
 @pytest.fixture
-def dummy_backend():
+def restore_backend():
+    if _HAS_MATPLOTLIB:
+        pandas.set_option("plotting.backend", "matplotlib")
+
+
+@pytest.fixture
+def dummy_backend(restore_backend):
     backend = types.ModuleType("pandas_dummy_backend")
     backend.plot = lambda *args, **kwargs: None
     sys.modules["pandas_dummy_backend"] = backend
@@ -20,16 +28,14 @@ def dummy_backend():
     del sys.modules["pandas_dummy_backend"]
 
 
+@td.skip_if_mpl()
 def test_matplotlib_backend_error():
     msg = (
         "matplotlib is required for plotting when the default backend "
         '"matplotlib" is selected.'
     )
-    try:
-        import matplotlib  # noqa
-    except ImportError:
-        with pytest.raises(ImportError, match=msg):
-            pandas.set_option("plotting.backend", "matplotlib")
+    with pytest.raises(ImportError, match=msg):
+        pandas.set_option("plotting.backend", "matplotlib")
 
 
 def test_backend_is_not_module():
@@ -45,15 +51,9 @@ def test_backend_is_correct(dummy_backend):
         pandas.plotting._core._get_plot_backend("pandas_dummy_backend") is dummy_backend
     )
 
-    # Restore backend for other tests (matplotlib can be not installed)
-    try:
-        pandas.set_option("plotting.backend", "matplotlib")
-    except ImportError:
-        pass
 
-
-@td.skip_if_no_mpl
-def test_register_entrypoint():
+@td.skip_if_no_mpl()
+def test_register_entrypoint(restore_backend):
 
     dist = pkg_resources.get_distribution("pandas")
     if dist.module_path not in pandas.__file__:
@@ -82,7 +82,7 @@ def test_register_entrypoint():
     assert result is mod
 
 
-def test_setting_backend_without_plot_raies():
+def test_setting_backend_without_plot_raises():
     # GH-28163
     module = types.ModuleType("pandas_plot_backend")
     sys.modules["pandas_plot_backend"] = module
@@ -92,8 +92,10 @@ def test_setting_backend_without_plot_raies():
     ):
         pandas.set_option("plotting.backend", "pandas_plot_backend")
 
+    assert pandas.options.plotting.backend == "matplotlib"
 
-@td.skip_if_mpl
+
+@td.skip_if_mpl()
 def test_no_matplotlib_ok():
     with pytest.raises(ImportError):
         pandas.plotting._core._get_plot_backend("matplotlib")
