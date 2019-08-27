@@ -52,7 +52,6 @@ def _mpl(func):
 _ApplyArgs = Tuple[
     Callable[[FrameOrSeries], FrameOrSeries], Axis, Optional[_IndexSlice]
 ]
-_Kwargs = Dict[str, Any]
 
 
 class Styler:
@@ -131,7 +130,7 @@ class Styler:
         cell_ids=True,
     ):
         self.ctx = defaultdict(list)  # type: DefaultDict[Tuple[int, int], List[str]]
-        self._todo = []  # type: List[Tuple[Callable, _ApplyArgs, _Kwargs]]
+        self._todo = []  # type: List[Tuple[Callable, _ApplyArgs, Dict[str, Any]]]
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
