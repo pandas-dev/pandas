@@ -162,7 +162,7 @@ class TestTimestampArithmetic:
             np.array([3, 4], dtype=np.uint64),
         ],
     )
-    def test_add_int_no_freq(self, ts, other):
+    def test_add_int_no_freq_raises(self, ts, other):
         with pytest.raises(ValueError, match="without freq"):
             ts + other
         with pytest.raises(ValueError, match="without freq"):
