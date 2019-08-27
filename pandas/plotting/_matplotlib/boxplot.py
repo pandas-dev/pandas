@@ -251,9 +251,10 @@ def boxplot(
     def _get_colors():
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
-        #  if colors not provided, use color 2 for medians and 0 for all else
+        #  if colors not provided, use same defaults as DataFrame.plot.box
         result = _get_standard_colors(num_colors=3)
-        result = np.take(result, [0, 0, 2, 0])
+        result = np.take(result, [0, 0, 2])
+        result = np.append(result, "k")
 
         colors = kwds.pop("color", None)
         if colors:
@@ -273,7 +274,7 @@ def boxplot(
                             "The key must be either {1}".format(key, valid_keys)
                         )
             else:
-                raise ValueError("color should be a dict")
+                result.fill(colors)
 
         return result
 
