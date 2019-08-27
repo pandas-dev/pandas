@@ -70,7 +70,7 @@ def hist_series(
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.hist_series(
         self,
         by=by,
@@ -180,7 +180,7 @@ def hist_frame(
         ...     }, index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.hist_frame(
         data,
         column=column,
@@ -375,7 +375,7 @@ def boxplot(
         >>> type(boxplot)
         <class 'numpy.ndarray'>
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
         column=column,
@@ -405,7 +405,7 @@ def boxplot_frame(
     return_type=None,
     **kwds
 ):
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot_frame(
         self,
         column=column,
@@ -484,7 +484,7 @@ def boxplot_frame_groupby(
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot_frame_groupby(
         grouped,
         subplots=subplots,
