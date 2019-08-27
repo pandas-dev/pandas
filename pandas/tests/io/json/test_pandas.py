@@ -1656,13 +1656,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = df.to_json(indent=indent)
         spaces = " " * indent
         expected = """{{
-"a":{{
-{spaces}"0":"foo",
-{spaces}"1":"baz"
+{spaces}"a":{{
+{spaces}{spaces}"0":"foo",
+{spaces}{spaces}"1":"baz"
 {spaces}}},
-"b":{{
-{spaces}"0":"bar",
-{spaces}"1":"qux"
+{spaces}"b":{{
+{spaces}{spaces}"0":"bar",
+{spaces}{spaces}"1":"qux"
 {spaces}}}
 }}""".format(
             spaces=spaces
