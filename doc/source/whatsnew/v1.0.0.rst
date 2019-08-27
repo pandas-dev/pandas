@@ -88,7 +88,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
-- Added test to assert roundtripping to parquet with :func:`to_parquet` or :func:`read_parquet` will preserve Categorical dtypes for string types (:issue:`27955`)
+- Added test to assert roundtripping to parquet with :func:`DataFrame.to_parquet` or :func:`read_parquet` will preserve Categorical dtypes for string types (:issue:`27955`)
 -
 
 
