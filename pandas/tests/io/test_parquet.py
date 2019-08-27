@@ -471,9 +471,7 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa)
         else:
             # de-serialized as object for pyarrow < 0.15
-            expected = df.assign(
-                a=df.a.astype(object), b=df.b.astype(object), c=df.c.astype(object)
-            )
+            expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
