@@ -76,8 +76,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
+- Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).
 -
 -
 -
