@@ -5297,12 +5297,19 @@ class DataFrame(NDFrame):
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join="outer", level=level, copy=False)
 
-        def _arith_op(left, right):
-            # for the mixed_type case where we iterate over columns,
-            # _arith_op(left, right) is equivalent to
-            # left._binop(right, func, fill_value=fill_value)
-            left, right = ops.fill_binop(left, right, fill_value)
-            return func(left, right)
+        if fill_value is None:
+            # since _arith_op may be called in a loop, avoid function call
+            #  overhead if possible by doing this check once
+            _arith_op = func
+
+        else:
+
+            def _arith_op(left, right):
+                # for the mixed_type case where we iterate over columns,
+                # _arith_op(left, right) is equivalent to
+                # left._binop(right, func, fill_value=fill_value)
+                left, right = ops.fill_binop(left, right, fill_value)
+                return func(left, right)
 
         if ops.should_series_dispatch(this, other, func):
             # iterate over columns
@@ -5315,7 +5322,7 @@ class DataFrame(NDFrame):
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
-        assert left.index.equals(right.index)
+        # at this point we have `left.index.equals(right.index)`
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
@@ -5328,7 +5335,7 @@ class DataFrame(NDFrame):
 
     def _combine_match_columns(self, other: Series, func, level=None):
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
-        assert left.columns.equals(right.index)
+        # at this point we have `left.columns.equals(right.index)`
         new_data = ops.dispatch_to_series(left, right, func, axis="columns")
         return left._construct_result(right, new_data, func)
 
@@ -6193,14 +6200,14 @@ class DataFrame(NDFrame):
 
     def explode(self, column: Union[str, Tuple]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row, replicating index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
         column : str or tuple
+            Column to explode.
 
         Returns
         -------
@@ -6216,8 +6223,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
-            index labels
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+            index labels.
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         Series.explode : Explode a DataFrame from list-like columns to long format.
 
         Notes

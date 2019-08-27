@@ -169,7 +169,7 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
+    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
         # timedelta64 when operating with timedelta64
@@ -415,7 +415,7 @@ def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
     ):
         return True
 
-    if is_extension_array_dtype(right) and not is_scalar(right):
+    if not is_scalar(right) and is_extension_array_dtype(right):
         # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
         return True
 
@@ -750,7 +750,7 @@ def _bool_method_SERIES(cls, op, special):
             assert not isinstance(y, (list, ABCSeries, ABCIndexClass))
             if isinstance(y, np.ndarray):
                 # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x) and is_bool_dtype(y))
+                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
                 x = ensure_object(x)
                 y = ensure_object(y)
                 result = libops.vec_binop(x, y, op)
@@ -799,7 +799,7 @@ def _bool_method_SERIES(cls, op, special):
 
         else:
             # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
             if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong
@@ -983,10 +983,10 @@ def _arith_method_FRAME(cls, op, special):
                 self, other, pass_op, fill_value=fill_value, axis=axis, level=level
             )
         else:
+            # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            assert np.ndim(other) == 0
             return self._combine_const(other, op)
 
     f.__name__ = op_name
@@ -1028,7 +1028,7 @@ def _flex_comp_method_FRAME(cls, op, special):
                 self, other, na_op, fill_value=None, axis=axis, level=level
             )
         else:
-            assert np.ndim(other) == 0, other
+            # in this case we always have `np.ndim(other) == 0`
             return self._combine_const(other, na_op)
 
     f.__name__ = op_name

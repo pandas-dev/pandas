@@ -556,7 +556,6 @@ class SparseDataFrame(DataFrame):
         return this._construct_result(other, new_data, func)
 
     def _combine_match_index(self, other, func, level=None):
-
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
         this._default_fill_value = self._default_fill_value
 
