@@ -1074,11 +1074,9 @@ class TestDataFrameReplace(TestData):
         # nested dictionary replacement
         df = DataFrame({"a": list(range(1, 5))})
 
-        result1 = df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
-
-        result2 = df.replace(dict(zip(range(1, 5), range(2, 6))))
-
-        assert_frame_equal(result1, result2)
+        result = df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
+        expected = df.replace(dict(zip(range(1, 5), range(2, 6))))
+        assert_frame_equal(result, expected)
 
     def test_nested_dict_overlapping_keys_replace_str(self):
         # GH 27660
@@ -1086,9 +1084,9 @@ class TestDataFrameReplace(TestData):
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({"a": astr})
-        result1 = df.replace(dict(zip(astr, bstr)))
-        result2 = df.replace({"a": dict(zip(astr, bstr))})
-        assert_frame_equal(result1, result2)
+        result = df.replace(dict(zip(astr, bstr)))
+        expected = df.replace({"a": dict(zip(astr, bstr))})
+        assert_frame_equal(result, expected)
 
     def test_replace_swapping_bug(self):
         df = pd.DataFrame({"a": [True, False, True]})
