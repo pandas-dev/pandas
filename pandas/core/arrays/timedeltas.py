@@ -42,6 +42,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 from pandas.core.ops.invalid import invalid_comparison
@@ -385,15 +386,40 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
-    def sum(self, axis=None, skipna=True, *args, **kwargs):
-        nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        skipna=True,
+        min_count=0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
         if not len(self):
             return NaT
-        if skipna:
-            if self._hasnans:
-                return self.dropna().sum(axis=axis, *args, **kwargs)
-        return Timedelta(self._data.sum())
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nansum(
+            self._data, axis=axis, skipna=skipna, min_count=min_count
+        )
+        return Timedelta(result)
+
+    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
+        return Timedelta(result)
 
     # ----------------------------------------------------------------
     # Rendering Methods

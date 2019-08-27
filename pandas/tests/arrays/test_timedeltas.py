@@ -143,6 +143,18 @@ class TestTimedeltaArray:
 
 
 class TestReductions:
+    @pytest.mark.parametrize("name", ["sum", "std", "min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_empty(self, name, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi._data
+
+        result = getattr(tdi, name)(skipna=skipna)
+        assert result is pd.NaT
+
+        result = getattr(arr, name)(skipna=skipna)
+        assert result is pd.NaT
+
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
 
@@ -158,15 +170,6 @@ class TestReductions:
         assert result is pd.NaT
 
         result = arr.max(skipna=False)
-        assert result is pd.NaT
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_min_max_empty(self, skipna):
-        arr = TimedeltaArray._from_sequence([])
-        result = arr.min(skipna=skipna)
-        assert result is pd.NaT
-
-        result = arr.max(skipna=skipna)
         assert result is pd.NaT
 
     def test_sum(self):
@@ -188,13 +191,21 @@ class TestReductions:
         result = tdi.sum(skipna=False)
         assert result is pd.NaT
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_sum_empty(self, skipna):
-        tdi = pd.TimedeltaIndex([])
+    def test_std(self):
+        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
         arr = tdi._data
 
-        result = tdi.sum(skipna=skipna)
+        result = arr.std(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.std(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
         assert result is pd.NaT
 
-        result = arr.sum(skipna=skipna)
+        result = tdi.std(skipna=False)
         assert result is pd.NaT

@@ -175,6 +175,7 @@ class TimedeltaIndex(
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
     sum = ea_passthrough(TimedeltaArray.sum)
+    std = ea_passthrough(TimedeltaArray.std)
 
     # -------------------------------------------------------------------
     # Constructors
