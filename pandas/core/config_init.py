@@ -342,7 +342,7 @@ with cf.config_prefix("display"):
         validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
-    cf.register_option("max_colwidth", 50, max_colwidth_doc)
+    cf.register_option("max_colwidth", 50, max_colwidth_doc, validator=is_nonnegative_int)
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
     else:
