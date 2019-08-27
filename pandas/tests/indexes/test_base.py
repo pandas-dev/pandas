@@ -376,10 +376,6 @@ class TestIndex(Base):
         with pytest.raises(TypeError):
             idx = Index([1, 2, 3], name="a", names=("a",))
 
-        # test non-list-like `names`
-        with pytest.raises(TypeError):
-            idx = Index([1, 2, 3], names="a")
-
         # test list-like with length > 1
         with pytest.raises(TypeError):
             idx = Index([1, 2, 3], names=("a", "b"))
