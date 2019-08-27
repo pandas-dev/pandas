@@ -1347,8 +1347,7 @@ class Styler:
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
-        # https://github.com/python/mypy/issues/2477
-        class MyStyler(cls):  # type: ignore
+        class MyStyler(cls):
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 
