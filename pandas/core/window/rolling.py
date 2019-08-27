@@ -901,12 +901,12 @@ class Window(_Window):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
             # these must apply directly
-            result = arg(self)
+            result = func(self)
 
         return result
 
@@ -1788,8 +1788,8 @@ class Rolling(_Rolling_and_Expanding):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
