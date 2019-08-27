@@ -322,9 +322,9 @@ class Dropna:
     def setup(self, how, axis):
         self.df = DataFrame(np.random.randn(10000, 1000))
         with warnings.catch_warnings(record=True):
-            self.df.ix[50:1000, 20:50] = np.nan
-            self.df.ix[2000:3000] = np.nan
-            self.df.ix[:, 60:70] = np.nan
+            self.df.iloc[50:1000, 20:50] = np.nan
+            self.df.iloc[2000:3000] = np.nan
+            self.df.iloc[:, 60:70] = np.nan
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
@@ -343,9 +343,9 @@ class Count:
     def setup(self, axis):
         self.df = DataFrame(np.random.randn(10000, 1000))
         with warnings.catch_warnings(record=True):
-            self.df.ix[50:1000, 20:50] = np.nan
-            self.df.ix[2000:3000] = np.nan
-            self.df.ix[:, 60:70] = np.nan
+            self.df.iloc[50:1000, 20:50] = np.nan
+            self.df.iloc[2000:3000] = np.nan
+            self.df.iloc[:, 60:70] = np.nan
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
