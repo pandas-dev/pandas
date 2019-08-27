@@ -51,10 +51,6 @@ JSON
    :toctree: api/
 
    read_json
-
-.. autosummary::
-   :toctree: api/
-
    json_normalize
 
 .. currentmodule:: pandas.io.json
