@@ -76,6 +76,7 @@ Performance improvements
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
 - Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
+- Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 
 
 .. _whatsnew_1000.bug_fixes:
@@ -206,6 +207,7 @@ ExtensionArray
 Other
 ^^^^^
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 
 
 .. _whatsnew_1000.contributors:
