@@ -8438,7 +8438,7 @@ class DataFrame(NDFrame):
         4    2
         dtype: int64
         """
-        return self.groupby(self.columns.tolist(), as_index=False).size()
+        return self.groupby(self.columns.tolist()).size()
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame

@@ -46,7 +46,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
--
+- Added :meth:`pandas.core.frame.DataFrame.value_counts` (:issue:`5377`).
 -
 
 .. _whatsnew_1000.deprecations:
