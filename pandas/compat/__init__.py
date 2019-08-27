@@ -10,9 +10,12 @@ Other items:
 import platform
 import struct
 import sys
+import warnings
 
+PY35 = sys.version_info[:2] == (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
+PY38 = sys.version_info >= (3, 8)
 PYPY = platform.python_implementation() == "PyPy"
 
 
@@ -64,3 +67,32 @@ def is_platform_mac():
 
 def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64
+
+
+def _import_lzma():
+    """Attempts to import lzma, warning the user when lzma is not available.
+    """
+    try:
+        import lzma
+
+        return lzma
+    except ImportError:
+        msg = (
+            "Could not import the lzma module. "
+            "Your installed Python is incomplete. "
+            "Attempting to use lzma compression will result in a RuntimeError."
+        )
+        warnings.warn(msg)
+
+
+def _get_lzma_file(lzma):
+    """Returns the lzma method LZMAFile when the module was correctly imported.
+    Otherwise, raises a RuntimeError.
+    """
+    if lzma is None:
+        raise RuntimeError(
+            "lzma module not available. "
+            "A Python re-install with the proper "
+            "dependencies might be required to solve this issue."
+        )
+    return lzma.LZMAFile

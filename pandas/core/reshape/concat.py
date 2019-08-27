@@ -290,7 +290,7 @@ class _Concatenator:
             self.intersect = True
         else:  # pragma: no cover
             raise ValueError(
-                "Only can inner (intersect) or outer (union) " "join the other axis"
+                "Only can inner (intersect) or outer (union) join the other axis"
             )
 
         if isinstance(objs, dict):
@@ -304,7 +304,7 @@ class _Concatenator:
             raise ValueError("No objects to concatenate")
 
         if keys is None:
-            objs = list(com._not_none(*objs))
+            objs = list(com.not_none(*objs))
         else:
             # #1649
             clean_keys = []

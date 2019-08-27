@@ -109,6 +109,13 @@ SAS
 
    read_sas
 
+SPSS
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_spss
+
 SQL
 ~~~
 .. autosummary::

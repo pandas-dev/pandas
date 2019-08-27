@@ -196,10 +196,6 @@ except (AttributeError, KeyError):
 def load(fh, encoding=None, is_verbose=False):
     """load a pickle, with a provided encoding
 
-    if compat is True:
-       fake the old class hierarchy
-       if it works, then return the new type objects
-
     Parameters
     ----------
     fh : a filelike object
