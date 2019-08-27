@@ -89,7 +89,6 @@ from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
 
-
 if TYPE_CHECKING:
     from pandas import Series, DataFrame
 
