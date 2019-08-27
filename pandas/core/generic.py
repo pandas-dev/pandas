@@ -727,12 +727,11 @@ class NDFrame(PandasObject, SelectionMixin):
         nv.validate_transpose(tuple(), kwargs)
         result = self._constructor(new_values, **new_axes).__finalize__(self)
 
-        if len(self.columns) and (self.dtypes == self.dtypes.iloc[0]).all():
-            # FIXME: self.dtypes[0] can fail in tests
+        if self.ndim == 2 and self._is_homogeneous_type and len(self.columns):
             if is_extension_array_dtype(self.dtypes.iloc[0]):
                 # Retain ExtensionArray dtypes through transpose;
                 # TODO: this can be made cleaner if/when (N, 1) EA are allowed
-                dtype = self.dtypes[0]
+                dtype = self.dtypes.iloc[0]
                 for col in result.columns:
                     result[col] = result[col].astype(dtype)
 
