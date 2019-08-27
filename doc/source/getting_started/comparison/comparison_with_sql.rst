@@ -57,7 +57,7 @@ In SQL, you can add a calculated column:
     FROM tips
     LIMIT 5;
 
-With pandas, you can use the assign() method of a DataFrame to append a new column:
+With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to append a new column:
 
 .. ipython:: python
 
