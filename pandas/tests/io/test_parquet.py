@@ -457,8 +457,10 @@ class TestParquetPyArrow(Base):
         df["a"] = pd.Categorical(list("abcdef"))
 
         # test for null, out-of-order values, and unobserved category
-        dtype = pd.CategoricalDtype(["foo", "bar", "baz"])
-        df["b"] = pd.Categorical.from_codes(codes=[1, 0, 0, 1, -1, 1], dtype=dtype)
+        df["b"] = pd.Categorical(
+            ["bar", "foo", "foo", "bar", None, "bar"],
+            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+        )
 
         # test for ordered flag
         df["c"] = pd.Categorical(
