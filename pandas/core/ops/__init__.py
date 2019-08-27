@@ -17,9 +17,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -32,6 +30,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
     ABCSparseSeries,
@@ -170,7 +169,7 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
+    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
         # timedelta64 when operating with timedelta64
@@ -416,7 +415,7 @@ def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
     ):
         return True
 
-    if is_extension_array_dtype(right) and not is_scalar(right):
+    if not is_scalar(right) and is_extension_array_dtype(right):
         # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
         return True
 
@@ -699,42 +698,17 @@ def _comp_method_SERIES(cls, op, special):
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
-        elif (
-            is_list_like(other)
-            and len(other) != len(self)
-            and not isinstance(other, (set, frozenset))
-        ):
-            raise ValueError("Lengths must match")
 
-        elif isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+        elif isinstance(
+            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
+        ):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_categorical_dtype(self):
-            # Dispatch to Categorical implementation; CategoricalIndex
-            # behavior is non-canonical GH#19513
-            res_values = dispatch_to_extension_op(op, self, other)
-
-        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
-            # Dispatch to DatetimeIndex to ensure identical
-            # Series/Index behavior
-            from pandas.core.arrays import DatetimeArray
-
-            res_values = dispatch_to_extension_op(op, DatetimeArray(self), other)
-
-        elif is_timedelta64_dtype(self):
-            from pandas.core.arrays import TimedeltaArray
-
-            res_values = dispatch_to_extension_op(op, TimedeltaArray(self), other)
-
-        elif is_extension_array_dtype(self) or (
-            is_extension_array_dtype(other) and not is_scalar(other)
-        ):
-            # Note: the `not is_scalar(other)` condition rules out
-            #  e.g. other == "category"
+        if should_extension_dispatch(self, other):
             res_values = dispatch_to_extension_op(op, self, other)
 
         elif is_scalar(other) and isna(other):
@@ -756,9 +730,12 @@ def _comp_method_SERIES(cls, op, special):
                 )
 
         result = self._constructor(res_values, index=self.index)
-        # rename is needed in case res_name is None and result.name
-        #  is not.
-        return finalizer(result).rename(res_name)
+        result = finalizer(result)
+
+        # Set the result's name after finalizer is called because finalizer
+        #  would set it back to self.name
+        result.name = res_name
+        return result
 
     wrapper.__name__ = op_name
     return wrapper
@@ -778,7 +755,7 @@ def _bool_method_SERIES(cls, op, special):
             assert not isinstance(y, (list, ABCSeries, ABCIndexClass))
             if isinstance(y, np.ndarray):
                 # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x) and is_bool_dtype(y))
+                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
                 x = ensure_object(x)
                 y = ensure_object(y)
                 result = libops.vec_binop(x, y, op)
@@ -827,7 +804,7 @@ def _bool_method_SERIES(cls, op, special):
 
         else:
             # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
             if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong
@@ -1011,10 +988,10 @@ def _arith_method_FRAME(cls, op, special):
                 self, other, pass_op, fill_value=fill_value, axis=axis, level=level
             )
         else:
+            # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            assert np.ndim(other) == 0
             return self._combine_const(other, op)
 
     f.__name__ = op_name
@@ -1055,7 +1032,7 @@ def _flex_comp_method_FRAME(cls, op, special):
                 self, other, na_op, fill_value=None, axis=axis, level=level
             )
         else:
-            assert np.ndim(other) == 0, other
+            # in this case we always have `np.ndim(other) == 0`
             return self._combine_const(other, na_op)
 
     f.__name__ = op_name
