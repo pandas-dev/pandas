@@ -309,20 +309,26 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     mask = np.isfinite(mat).view(np.uint8)
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
-
-    for i in range(K):
-        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
+    cached_ranks = set({})
 
     for xi in range(K):
         for yi in range(xi + 1):
             nobs = 0
             # Keep track of whether the two columns have the same
-            # missing pattern, if not we need to recalculate ranks
+            # missing pattern, if so save off the ranks
             same_miss_pat = True
             for i in range(N):
                 same_miss_pat &= not (mask[i, xi] ^ mask[i, yi])
                 if mask[i, xi] and mask[i, yi]:
                     nobs += 1
+
+            if same_miss_pat:
+                if xi not in cached_ranks:
+                    ranked_mat[:, xi] = rank_1d_float64(mat[:, xi])
+                    cached_ranks.add(xi)
+                if yi not in cached_ranks:
+                    ranked_mat[:, yi] = rank_1d_float64(mat[:, yi])
+                    cached_ranks.add(yi)
 
             if nobs < minp:
                 result[xi, yi] = result[yi, xi] = NaN
@@ -333,8 +339,8 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
 
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        maskedx[j] = ranked_mat[i, xi]
-                        maskedy[j] = ranked_mat[i, yi]
+                        maskedx[j] = ranked_mat[i, xi] if same_miss_pat else mat[i, xi]
+                        maskedy[j] = ranked_mat[i, yi] if same_miss_pat else mat[i, yi]
                         j += 1
 
                 if not same_miss_pat:
