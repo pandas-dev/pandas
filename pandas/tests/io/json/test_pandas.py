@@ -691,7 +691,7 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
         expected = self.series.copy()
 
-        if PY35 and orient == "index":
+        if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -718,7 +718,7 @@ class TestPandasContainer:
         else:
             expected = self.objSeries.copy()
 
-        if PY35 and orient == "index":
+        if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()            
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -734,7 +734,7 @@ class TestPandasContainer:
         expected = self.empty_series.copy()
 
         # TODO: see what causes inconsistency
-        if PY35 and orient == "index":
+        if not numpy and PY35 and orient == "index":
             expected = expected.sort_index()        
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
