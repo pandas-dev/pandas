@@ -329,7 +329,8 @@ def parallel_coordinates(
     sort_labels=False,
     **kwds
 ):
-    """Parallel coordinates plotting.
+    """
+    Parallel coordinates plotting.
 
     Parameters
     ----------
