@@ -12,7 +12,7 @@ from pandas.tests.extension import base
 
 @pytest.fixture
 def dtype():
-    return PeriodDtype(freq='D')
+    return PeriodDtype(freq="D")
 
 
 @pytest.fixture
@@ -71,7 +71,6 @@ class TestGetitem(BasePeriodTests, base.BaseGetitemTests):
 
 
 class TestMethods(BasePeriodTests, base.BaseMethodsTests):
-
     def test_combine_add(self, data_repeated):
         # Period + Period is not defined.
         pass
@@ -83,28 +82,24 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
-    implements = {'__sub__', '__rsub__'}
+    implements = {"__sub__", "__rsub__"}
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # we implement substitution...
         if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0],
-                              exc=None)
+            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
         else:
             # ... but not the rest.
-            super().test_arith_series_with_scalar(
-                data, all_arithmetic_operators)
+            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0],
-                              exc=None)
+            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
         else:
             # ... but not the rest.
-            super().test_arith_series_with_scalar(
-                data, all_arithmetic_operators)
+            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         super()._check_divmod_op(s, op, other, exc=TypeError)
@@ -112,8 +107,10 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     def test_add_series_with_extension_array(self, data):
         # we don't implement + for Period
         s = pd.Series(data)
-        msg = (r"unsupported operand type\(s\) for \+: "
-               r"\'PeriodArray\' and \'PeriodArray\'")
+        msg = (
+            r"unsupported operand type\(s\) for \+: "
+            r"\'PeriodArray\' and \'PeriodArray\'"
+        )
         with pytest.raises(TypeError, match=msg):
             s + data
 
@@ -132,7 +129,6 @@ class TestCasting(BasePeriodTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
-
     def _compare_other(self, s, data, op_name, other):
         # the base test is not appropriate for us. We raise on comparison
         # with (some) integers, depending on the value.
@@ -160,8 +156,6 @@ class TestPrinting(BasePeriodTests, base.BasePrintingTests):
 
 
 class TestParsing(BasePeriodTests, base.BaseParsingTests):
-    @pytest.mark.parametrize('engine', ['c', 'python'])
+    @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
-        expected_msg = r'.*must implement _from_sequence_of_strings.*'
-        with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+        super().test_EA_types(engine, data)

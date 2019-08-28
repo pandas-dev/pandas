@@ -39,7 +39,7 @@ See the :ref:`overview` for more detail about what's in the library.
     :hidden:
 {% endif %}
 {% if not single_doc %}
-    What's New in 0.25.0 <whatsnew/v0.25.0>
+    What's New in 1.0.0 <whatsnew/v1.0.0>
     install
     getting_started/index
     user_guide/index
@@ -53,7 +53,7 @@ See the :ref:`overview` for more detail about what's in the library.
     whatsnew/index
 {% endif %}
 
-* :doc:`whatsnew/v0.25.0`
+* :doc:`whatsnew/v1.0.0`
 * :doc:`install`
 * :doc:`getting_started/index`
 

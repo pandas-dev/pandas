@@ -9,9 +9,11 @@ VERSIONS = {
     "bs4": "4.6.0",
     "bottleneck": "1.2.1",
     "fastparquet": "0.2.1",
-    "gcsfs": "0.1.0",
+    "gcsfs": "0.2.2",
+    "lxml.etree": "3.8.0",
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
+    "odfpy": "1.3.0",
     "openpyxl": "2.4.8",
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.9.0",
@@ -19,6 +21,7 @@ VERSIONS = {
     "s3fs": "0.0.8",
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
+    "tables": "3.4.2",
     "xarray": "0.8.2",
     "xlrd": "1.1.0",
     "xlwt": "1.2.0",
@@ -36,23 +39,18 @@ version_message = (
 
 
 def _get_version(module: types.ModuleType) -> str:
-    version = getattr(module, '__version__', None)
+    version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
-        version = getattr(module, '__VERSION__', None)
+        version = getattr(module, "__VERSION__", None)
 
     if version is None:
-        raise ImportError(
-            "Can't determine version for {}".format(module.__name__)
-        )
+        raise ImportError("Can't determine version for {}".format(module.__name__))
     return version
 
 
 def import_optional_dependency(
-    name: str,
-    extra: str = "",
-    raise_on_missing: bool = True,
-    on_version: str = "raise",
+    name: str, extra: str = "", raise_on_missing: bool = True, on_version: str = "raise"
 ):
     """
     Import an optional dependency.
@@ -102,9 +100,7 @@ def import_optional_dependency(
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
             msg = version_message.format(
-                minimum_version=minimum_version,
-                name=name,
-                actual_version=version,
+                minimum_version=minimum_version, name=name, actual_version=version
             )
             if on_version == "warn":
                 warnings.warn(msg, UserWarning)

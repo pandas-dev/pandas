@@ -21,10 +21,12 @@ def test_bad_arg_length_max_value_single():
     min_fname_arg_count = 0
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
-    msg = (r"{fname}\(\) takes at most {max_length} "
-           r"argument \({actual_length} given\)"
-           .format(fname=_fname, max_length=max_length,
-                   actual_length=actual_length))
+    msg = (
+        r"{fname}\(\) takes at most {max_length} "
+        r"argument \({actual_length} given\)".format(
+            fname=_fname, max_length=max_length, actual_length=actual_length
+        )
+    )
 
     with pytest.raises(TypeError, match=msg):
         validate_args(_fname, args, min_fname_arg_count, compat_args)
@@ -37,10 +39,12 @@ def test_bad_arg_length_max_value_multiple():
     min_fname_arg_count = 2
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
-    msg = (r"{fname}\(\) takes at most {max_length} "
-           r"arguments \({actual_length} given\)"
-           .format(fname=_fname, max_length=max_length,
-                   actual_length=actual_length))
+    msg = (
+        r"{fname}\(\) takes at most {max_length} "
+        r"arguments \({actual_length} given\)".format(
+            fname=_fname, max_length=max_length, actual_length=actual_length
+        )
+    )
 
     with pytest.raises(TypeError, match=msg):
         validate_args(_fname, args, min_fname_arg_count, compat_args)
@@ -49,9 +53,10 @@ def test_bad_arg_length_max_value_multiple():
 @pytest.mark.parametrize("i", range(1, 3))
 def test_not_all_defaults(i):
     bad_arg = "foo"
-    msg = ("the '{arg}' parameter is not supported "
-           r"in the pandas implementation of {func}\(\)".
-           format(arg=bad_arg, func=_fname))
+    msg = (
+        "the '{arg}' parameter is not supported "
+        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+    )
 
     compat_args = OrderedDict()
     compat_args["foo"] = 2
