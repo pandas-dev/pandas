@@ -147,7 +147,7 @@ class TestReductions:
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
-        arr = tdi._data
+        arr = tdi.array
 
         result = getattr(tdi, name)(skipna=skipna)
         assert result is pd.NaT
@@ -174,7 +174,7 @@ class TestReductions:
 
     def test_sum(self):
         tdi = pd.TimedeltaIndex(["3H", "3H", "NaT", "2H", "5H", "4H"])
-        arr = tdi._data
+        arr = tdi.array
 
         result = arr.sum(skipna=True)
         expected = pd.Timedelta(hours=17)
@@ -194,7 +194,7 @@ class TestReductions:
     def test_npsum(self):
         # GH#25335 np.sum should return a Timedelta, not timedelta64
         tdi = pd.TimedeltaIndex(["3H", "3H", "2H", "5H", "4H"])
-        arr = tdi._data
+        arr = tdi.array
 
         result = np.sum(tdi)
         expected = pd.Timedelta(hours=17)
@@ -207,7 +207,7 @@ class TestReductions:
 
     def test_std(self):
         tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
-        arr = tdi._data
+        arr = tdi.array
 
         result = arr.std(skipna=True)
         expected = pd.Timedelta(hours=2)
@@ -226,7 +226,7 @@ class TestReductions:
 
     def test_median(self):
         tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
-        arr = tdi._data
+        arr = tdi.array
 
         result = arr.median(skipna=True)
         expected = pd.Timedelta(hours=2)
