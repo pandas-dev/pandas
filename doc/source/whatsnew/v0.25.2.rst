@@ -99,7 +99,7 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Bug in :func:`get_indexer_dict` when passed keys are not numpy array. (:issue:`26860`)
 
 .. _whatsnew_0.252.contributors:
 
