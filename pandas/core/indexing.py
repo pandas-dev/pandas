@@ -20,11 +20,11 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.index import Index, InvalidIndexError, MultiIndex
+from pandas.core.index import Index, InvalidIndexError
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
 
 
@@ -143,42 +143,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
 
-    # TODO: remove once geopandas no longer needs __getitem__
-    def _getitem_axis(self, key, axis: int):
-        if is_iterator(key):
-            key = list(key)
-        self._validate_key(key, axis)
-
-        labels = self.obj._get_axis(axis)
-        if isinstance(key, slice):
-            return self._get_slice_axis(key, axis=axis)
-        elif is_list_like_indexer(key) and not (
-            isinstance(key, tuple) and isinstance(labels, MultiIndex)
-        ):
-
-            if hasattr(key, "ndim") and key.ndim > 1:
-                raise ValueError("Cannot index with multidimensional key")
-
-            return self._getitem_iterable(key, axis=axis)
-        else:
-
-            # maybe coerce a float scalar to integer
-            key = labels._maybe_cast_indexer(key)
-
-            if is_integer(key):
-                if axis == 0 and isinstance(labels, MultiIndex):
-                    try:
-                        return self._get_label(key, axis=axis)
-                    except (KeyError, TypeError):
-                        if self.obj.index.levels[0].is_integer():
-                            raise
-
-                # this is the fallback! (for a non-float, non-integer index)
-                if not labels.is_floating() and not labels.is_integer():
-                    return self._get_loc(key, axis=axis)
-
-            return self._get_label(key, axis=axis)
-
     def _get_label(self, label, axis: int):
         if self.ndim == 1:
             # for perf reasons we want to try _xs first
@@ -203,7 +167,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc":
+        if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
             except Exception:
@@ -272,7 +236,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 )
 
     def _is_nested_tuple_indexer(self, tup: Tuple):
-        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
+        if any(isinstance(ax, ABCMultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
@@ -360,7 +324,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # GH 10360, GH 27841
         if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
             for i, ax in zip(indexer, self.obj.axes):
-                if isinstance(ax, MultiIndex) and not (
+                if isinstance(ax, ABCMultiIndex) and not (
                     is_integer(i) or com.is_null_slice(i)
                 ):
                     take_split_path = True
@@ -453,7 +417,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # if we have a partial multiindex, then need to adjust the plane
             # indexer here
-            if len(labels) == 1 and isinstance(self.obj[labels[0]].axes[0], MultiIndex):
+            if len(labels) == 1 and isinstance(
+                self.obj[labels[0]].axes[0], ABCMultiIndex
+            ):
                 item = labels[0]
                 obj = self.obj[item]
                 index = obj.index
@@ -526,7 +492,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame):
                     sub_indexer = list(indexer)
-                    multiindex_indexer = isinstance(labels, MultiIndex)
+                    multiindex_indexer = isinstance(labels, ABCMultiIndex)
 
                     for item in labels:
                         if item in value:
@@ -808,8 +774,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # we have a multi-index and are trying to align
                 # with a particular, level GH3738
                 if (
-                    isinstance(ax, MultiIndex)
-                    and isinstance(df.index, MultiIndex)
+                    isinstance(ax, ABCMultiIndex)
+                    and isinstance(df.index, ABCMultiIndex)
                     and ax.nlevels != df.index.nlevels
                 ):
                     raise TypeError(
@@ -935,7 +901,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, MultiIndex) and self.name != "iloc":
+        if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
@@ -1022,6 +988,42 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 axis -= 1
 
         return obj
+
+    # TODO: remove once geopandas no longer needs __getitem__
+    def _getitem_axis(self, key, axis: int):
+        if is_iterator(key):
+            key = list(key)
+        self._validate_key(key, axis)
+
+        labels = self.obj._get_axis(axis)
+        if isinstance(key, slice):
+            return self._get_slice_axis(key, axis=axis)
+        elif is_list_like_indexer(key) and not (
+            isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)
+        ):
+
+            if hasattr(key, "ndim") and key.ndim > 1:
+                raise ValueError("Cannot index with multidimensional key")
+
+            return self._getitem_iterable(key, axis=axis)
+        else:
+
+            # maybe coerce a float scalar to integer
+            key = labels._maybe_cast_indexer(key)
+
+            if is_integer(key):
+                if axis == 0 and isinstance(labels, ABCMultiIndex):
+                    try:
+                        return self._get_label(key, axis=axis)
+                    except (KeyError, TypeError):
+                        if self.obj.index.levels[0].is_integer():
+                            raise
+
+                # this is the fallback! (for a non-float, non-integer index)
+                if not labels.is_floating() and not labels.is_integer():
+                    return self._get_loc(key, axis=axis)
+
+            return self._get_label(key, axis=axis)
 
     def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
         """
@@ -1221,7 +1223,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         try:
             return labels.get_loc(obj)
         except LookupError:
-            if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
+            if isinstance(obj, tuple) and isinstance(labels, ABCMultiIndex):
                 if len(obj) == labels.nlevels:
                     return {"key": obj}
                 raise
@@ -1241,7 +1243,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # always valid
                 return {"key": obj}
 
-            if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
+            if obj >= self.obj.shape[axis] and not isinstance(labels, ABCMultiIndex):
                 # a positional
                 raise ValueError("cannot set by positional indexing with enlargement")
 
@@ -1612,7 +1614,7 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
             ax = self.obj.axes[i]
-            if isinstance(ax, MultiIndex):
+            if isinstance(ax, ABCMultiIndex):
                 return False
 
             if isinstance(k, str) and ax._supports_partial_string_indexing:
@@ -1634,7 +1636,7 @@ class _LocIndexer(_LocationIndexer):
     def _get_partial_string_timestamp_match_key(self, key, labels):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
-        if isinstance(labels, MultiIndex):
+        if isinstance(labels, ABCMultiIndex):
             if (
                 isinstance(key, str)
                 and labels.levels[0]._supports_partial_string_indexing
@@ -1678,7 +1680,7 @@ class _LocIndexer(_LocationIndexer):
             # to a list of keys
             # we will use the *values* of the object
             # and NOT the index if its a PandasObject
-            if isinstance(labels, MultiIndex):
+            if isinstance(labels, ABCMultiIndex):
 
                 if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
                     # Series, or 0,1 ndim ndarray
@@ -1706,7 +1708,7 @@ class _LocIndexer(_LocationIndexer):
                     key = tuple([key])
 
             # an iterable multi-selection
-            if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
+            if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):
 
                 if hasattr(key, "ndim") and key.ndim > 1:
                     raise ValueError("Cannot index with multidimensional key")
@@ -2371,7 +2373,7 @@ def is_nested_tuple(tup, labels):
     for i, k in enumerate(tup):
 
         if is_list_like(k) or isinstance(k, slice):
-            return isinstance(labels, MultiIndex)
+            return isinstance(labels, ABCMultiIndex)
 
     return False
 
