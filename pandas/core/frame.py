@@ -725,7 +725,6 @@ class DataFrame(NDFrame):
             Max width to truncate each column in characters. By default, no limit.
 
             .. versionadded:: 1.0.0
-
         %(returns)s
         See Also
         --------
