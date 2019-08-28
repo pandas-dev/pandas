@@ -1776,12 +1776,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0 or
-                        strcasecmp(word, cinfty) == 0 or
-                        strcasecmp(word, cposinfty) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif (strcasecmp(word, cneginf) == 0 or 
-                          strcasecmp(word, cneginfty) == 0 ):
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1804,8 +1804,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
                         strcasecmp(word, cinfty) == 0 or
                         strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif (strcasecmp(word, cneginf) == 0 or 
-                          strcasecmp(word, cneginfty) == 0):
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1
