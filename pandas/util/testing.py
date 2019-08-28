@@ -580,7 +580,8 @@ def assert_index_equal(
     check_categorical: bool = True,
     obj: str = "Index",
 ) -> None:
-    """Check that left and right Index are equal.
+    """
+    Check that left and right Index are equal.
 
     Parameters
     ----------
@@ -1081,7 +1082,8 @@ def assert_series_equal(
     check_categorical=True,
     obj="Series",
 ):
-    """Check that left and right Series are equal.
+    """
+    Check that left and right Series are equal.
 
     Parameters
     ----------
