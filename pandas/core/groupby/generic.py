@@ -644,7 +644,10 @@ class NDFrameGroupBy(GroupBy):
         res = slow_path(group)
 
         # if we make it here, test if we can use the fast path
-        res_fast = fast_path(group)
+        try:
+            res_fast = fast_path(group)
+        except ValueError:
+            return path, res
 
         # verify fast path does not change columns (and names), otherwise
         # its results cannot be joined with those of the slow path
