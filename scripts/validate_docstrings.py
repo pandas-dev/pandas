@@ -29,7 +29,7 @@ import tempfile
 import ast
 import textwrap
 
-from flake8.main import application
+import flake8.main.application
 
 try:
     from io import StringIO
