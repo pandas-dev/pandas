@@ -48,7 +48,12 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
-from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
+from pandas.core.groupby.groupby import (
+    GroupBy,
+    _apply_docs,
+    _transform_template,
+    groupby,
+)
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
@@ -169,7 +174,7 @@ class NDFrameGroupBy(GroupBy):
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
-                s = obj.groupby(self.grouper)
+                s = groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
