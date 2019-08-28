@@ -641,7 +641,7 @@ class Styler:
         axis: Axis = 0,
         subset: Optional[_IndexSlice] = None,
         **kwargs
-    ):
+    ) -> "Styler":
         """
         Apply a function column-wise, row-wise, or table-wise,
         updating the HTML representation with the result.
