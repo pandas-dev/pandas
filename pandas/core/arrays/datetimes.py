@@ -272,7 +272,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     """
 
     _typ = "datetimearray"
-    _scalar_type = Timestamp
+
+    @property
+    def _scalar_type(self):
+        return Timestamp
 
     # define my properties & methods for delegation
     _bool_ops = [

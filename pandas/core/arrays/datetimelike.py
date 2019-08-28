@@ -42,6 +42,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
+from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
@@ -61,7 +62,7 @@ class AttributesMixin:
         raise AbstractMethodError(cls)
 
     @property
-    def _scalar_type(self) -> Type[Union[Period, Timestamp, Timedelta]]:
+    def _scalar_type(self) -> Type[DatetimeLikeScalar]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
