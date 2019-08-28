@@ -61,7 +61,7 @@ With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to a
 
 .. ipython:: python
 
-    tips.assign(tip_rate=tips['tip']/tips['total_bill']).head(5)
+    tips.assign(tip_rate=tips['tip'] / tips['total_bill']).head(5)
 
 WHERE
 -----
