@@ -192,7 +192,7 @@ def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
-    def g(x): return np.percentile(x, 80, axis=0)
+    g = lambda x: np.percentile(x, 80, axis=0)
 
     # Series
     ts_grouped = ts.groupby(lambda x: x.month)
@@ -508,7 +508,7 @@ def test_frame_groupby_columns(tsframe):
     assert len(aggregated.columns) == 2
 
     # transform
-    def tf(x): return x - x.mean()
+    tf = lambda x: x - x.mean()
     groupedT = tsframe.T.groupby(mapping, axis=0)
     assert_frame_equal(groupedT.transform(tf).T, grouped.transform(tf))
 
@@ -1086,7 +1086,7 @@ def test_seriesgroupby_name_attr(df):
     assert result.count().name == 'C'
     assert result.mean().name == 'C'
 
-    def testFunc(x): return np.sum(x) * 2
+    testFunc = lambda x: np.sum(x) * 2
     assert result.agg(testFunc).name == 'C'
 
 
@@ -1171,7 +1171,7 @@ def test_series_grouper_noncontig_index():
     grouped = values.groupby(labels)
 
     # accessing the index elements causes segfault
-    def f(x): return len(set(map(id, x.index)))
+    f = lambda x: len(set(map(id, x.index)))
     grouped.agg(f)
 
 
