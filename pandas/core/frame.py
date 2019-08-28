@@ -8394,11 +8394,33 @@ class DataFrame(NDFrame):
                 self.columns,
             )
 
-    def value_counts(self):
+    def value_counts(
+        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+    ):
         """
-        The number of times each unique row appears in the DataFrame.
+        Return a Series containing counts of unique rows in the DataFrame.
 
-        Rows that contain any NaN value are omitted from the results.
+        By default, rows that contain any NaN value are omitted from the
+        results.
+
+        By default, the resulting series will be in descending order so that the
+        first element is the most frequently-occurring row.
+
+        Parameters
+        ----------
+        normalize : boolean, default False
+            If True then the object returned will contain the relative
+            frequencies of the unique values.
+        sort : boolean, default True
+            Sort by frequencies.
+        ascending : boolean, default False
+            Sort in ascending order.
+        bins : integer, optional
+            Rather than count values, group them into half-open bins,
+            a convenience for ``pd.cut``, only works with single-column numeric
+            data.
+        dropna : boolean, default True
+            Don't include counts of rows containing NaN.
 
         Returns
         -------
@@ -8411,34 +8433,82 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = pd.DataFrame({'num_legs': [2, 4, 4], 'num_wings': [2, 0, 0]},
-        ...                   index=['falcon', 'dog', 'cat'])
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
+        ...                    'num_wings': [2, 0, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat', 'ant'])
         >>> df
                 num_legs  num_wings
         falcon         2          2
         dog            4          0
         cat            4          0
+        ant            6          0
 
         >>> df.value_counts()
         num_legs  num_wings
+        4         0            2
+        6         0            1
         2         2            1
+        dtype: int64
+
+        >>> df.value_counts(sort=False)
+        num_legs  num_wings
+        2         2            1
+        4         0            2
+        6         0            1
+        dtype: int64
+
+        >>> df.value_counts(ascending=True)
+        num_legs  num_wings
+        2         2            1
+        6         0            1
         4         0            2
         dtype: int64
 
-        >>> df1col = df[['num_legs']]
-        >>> df1col
-                num_legs
-        falcon         2
-        dog            4
-        cat            4
+        >>> df.value_counts(normalize=True)
+        num_legs  num_wings
+        4         0            0.50
+        6         0            0.25
+        2         2            0.25
+        dtype: float64
 
-        >>> df1col.value_counts()
+        >>> single_col_df = df[['num_legs']]
+        >>> single_col_df.value_counts(bins=4)
         num_legs
-        2    1
-        4    2
+        (3.0, 4.0]      2
+        (5.0, 6.0]      1
+        (1.995, 3.0]    1
+        (4.0, 5.0]      0
         dtype: int64
         """
-        return self.groupby(self.columns.tolist()).size()
+
+        # Delegate to Series.value_counts for single-column data frames.
+        if len(self.columns) == 1:
+            series = self[self.columns[0]].value_counts(
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                bins=bins,
+                dropna=dropna,
+            )
+            # Move series name into its index, as happens in multi-column case.
+            return Series(data=series.data, index=series.index.set_names(series.name))
+
+        # Some features are only supported for single-column data.
+        if not dropna:
+            raise NotImplementedError(
+                "`dropna=False` not yet supported for multi-column dataframes."
+            )
+        if bins is not None:
+            raise ValueError(
+                "`bins` parameter not supported for multi-column dataframes."
+            )
+
+        counts = self.groupby(self.columns.tolist()).size()
+        if sort:
+            counts.sort_values(ascending=ascending, inplace=True)
+        if normalize:
+            counts /= counts.sum()
+        return counts
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
