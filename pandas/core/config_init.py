@@ -592,7 +592,6 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        # validator=str,
         validator=register_plotting_backend_cb,
     )
 

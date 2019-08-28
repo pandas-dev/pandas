@@ -28,16 +28,6 @@ def dummy_backend(restore_backend):
     del sys.modules["pandas_dummy_backend"]
 
 
-# @td.skip_if_mpl()
-# def test_matplotlib_backend_error():
-#     msg = (
-#         "matplotlib is required for plotting when the default backend "
-#         '"matplotlib" is selected.'
-#     )
-#     with pytest.raises(ImportError, match=msg):
-#         pandas.set_option("plotting.backend", "matplotlib")
-
-
 def test_backend_is_not_module():
     msg = "Could not find plotting backend 'not_an_existing_module'."
     with pytest.raises(ValueError, match=msg):
@@ -54,7 +44,7 @@ def test_backend_is_correct(dummy_backend):
     )
 
 
-@td.skip_if_no_mpl()
+@td.skip_if_no_mpl
 def test_register_entrypoint(restore_backend):
 
     dist = pkg_resources.get_distribution("pandas")
@@ -98,7 +88,7 @@ def test_setting_backend_without_plot_raises():
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-@td.skip_if_mpl()
+@td.skip_if_mpl
 def test_no_matplotlib_ok():
     with pytest.raises(ImportError):
         pandas.plotting._core._get_plot_backend("matplotlib")
