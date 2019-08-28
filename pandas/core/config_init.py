@@ -579,12 +579,12 @@ plotting_backend_doc = """
 
 
 def register_plotting_backend_cb(key):
+    if key == "matplotlib":
+        # We defer matplotlib validation, since it's the default
+        return
     from pandas.plotting._core import _get_plot_backend
 
-    # import pdb; pdb.set_trace()
-
-    backend_str = cf.get_option(key)
-    _get_plot_backend(backend_str)
+    _get_plot_backend(key)
 
 
 with cf.config_prefix("plotting"):

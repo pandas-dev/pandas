@@ -8,13 +8,13 @@ import pandas.util._test_decorators as td
 
 import pandas
 
-from pandas.plotting._core import _HAS_MATPLOTLIB
-
 
 @pytest.fixture
 def restore_backend():
-    if _HAS_MATPLOTLIB:
-        pandas.set_option("plotting.backend", "matplotlib")
+    """Restore the plotting backend to matplotlib"""
+    pandas.set_option("plotting.backend", "matplotlib")
+    yield
+    pandas.set_option("plotting.backend", "matplotlib")
 
 
 @pytest.fixture
@@ -28,20 +28,22 @@ def dummy_backend(restore_backend):
     del sys.modules["pandas_dummy_backend"]
 
 
-@td.skip_if_mpl()
-def test_matplotlib_backend_error():
-    msg = (
-        "matplotlib is required for plotting when the default backend "
-        '"matplotlib" is selected.'
-    )
-    with pytest.raises(ImportError, match=msg):
-        pandas.set_option("plotting.backend", "matplotlib")
+# @td.skip_if_mpl()
+# def test_matplotlib_backend_error():
+#     msg = (
+#         "matplotlib is required for plotting when the default backend "
+#         '"matplotlib" is selected.'
+#     )
+#     with pytest.raises(ImportError, match=msg):
+#         pandas.set_option("plotting.backend", "matplotlib")
 
 
 def test_backend_is_not_module():
     msg = "Could not find plotting backend 'not_an_existing_module'."
     with pytest.raises(ValueError, match=msg):
         pandas.set_option("plotting.backend", "not_an_existing_module")
+
+    assert pandas.options.plotting.backend == "matplotlib"
 
 
 def test_backend_is_correct(dummy_backend):
@@ -87,6 +89,7 @@ def test_setting_backend_without_plot_raises():
     module = types.ModuleType("pandas_plot_backend")
     sys.modules["pandas_plot_backend"] = module
 
+    assert pandas.options.plotting.backend == "matplotlib"
     with pytest.raises(
         ValueError, match="Could not find plotting backend 'pandas_plot_backend'."
     ):
