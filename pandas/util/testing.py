@@ -1081,7 +1081,8 @@ def assert_series_equal(
     check_categorical=True,
     obj="Series",
 ):
-    """Check that left and right Series are equal.
+    """
+    Check that left and right Series are equal.
 
     Parameters
     ----------
