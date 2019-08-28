@@ -171,13 +171,12 @@ def test_arg_passthru():
         result = f(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-    # TODO: min, max *should* handle
-    # categorical (ordered) dtype
     expected_columns = Index(
         [
             "int",
             "float",
             "string",
+            "category_string",
             "category_int",
             "datetime",
             "datetimetz",
@@ -212,7 +211,9 @@ def test_arg_passthru():
         result = f(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
-    expected_columns = Index(["int", "float", "string", "category_int", "timedelta"])
+    expected_columns = Index(
+        ["int", "float", "string", "category_string", "category_int", "timedelta"]
+    )
     for attr in ["sum"]:
         f = getattr(df.groupby("group"), attr)
         result = f()

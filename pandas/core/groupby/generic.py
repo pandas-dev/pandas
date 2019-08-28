@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
+    is_categorical_dtype,
     is_datetimelike,
     is_dict_like,
     is_integer_dtype,
@@ -161,10 +162,15 @@ class NDFrameGroupBy(GroupBy):
                 result, _ = self.grouper.aggregate(
                     block.values, how, axis=agg_axis, min_count=min_count
                 )
-            except NotImplementedError:
+            except NotImplementedError as err:
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
+                if "type does not support" in str(err):
+                    # exception raised by NumPy, not pandas
+                    # e.g. "timedelta64 type does not support prod operations"
+                    deleted_items.append(locs)
+                    continue
 
                 if alt is None:
                     # we cannot perform the operation
@@ -182,10 +188,30 @@ class NDFrameGroupBy(GroupBy):
                     # continue and exclude the block
                     deleted_items.append(locs)
                     continue
+
+                if is_categorical_dtype(block.dtype):
+                    # restore e.g. Categorical
+                    # not all dtypes are conserved by agg
+                    result = result.astype(block.dtype)
+
+                assert len(result._data.blocks) == 1
+                result = result._data.blocks[0].values
+
+                # Check that we didn't mess up some corner case
+                # TODO: this isn't a reliable way of doing this
+                grp = obj.loc[s.groups[1]]
+                try:
+                    alt(grp.values, axis=self.axis)
+                except TypeError:
+                    result = no_result
+                    deleted_items.append(locs)
+                    continue
+
             finally:
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
+                    assert not isinstance(result, DataFrame)
                     newb = block.make_block(result)
 
             new_items.append(locs)
@@ -242,11 +268,12 @@ class NDFrameGroupBy(GroupBy):
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
+            elif args or kwargs:
+                result = self._aggregate_generic(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
                 try:
-                    assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
@@ -261,7 +288,7 @@ class NDFrameGroupBy(GroupBy):
                         # to SparseDataFrame, so we do it here.
                         result = SparseDataFrame(result._data)
                 except Exception:
-                    result = self._aggregate_generic(func, *args, **kwargs)
+                    result = self._aggregate_generic(func)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -311,10 +338,10 @@ class NDFrameGroupBy(GroupBy):
         cannot_agg = []
         errors = None
         for item in obj:
-            try:
-                data = obj[item]
-                colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
+            data = obj[item]
+            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
+            try:
                 cast = self._transform_should_cast(func)
 
                 result[item] = colg.aggregate(func, *args, **kwargs)
@@ -682,7 +709,7 @@ class NDFrameGroupBy(GroupBy):
 
         return DataFrame(output, index=obj.index, columns=columns)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a DataFrame excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
