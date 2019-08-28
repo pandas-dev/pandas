@@ -192,7 +192,7 @@ def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
-    g = lambda x: np.percentile(x, 80, axis=0)
+    def g(x): return np.percentile(x, 80, axis=0)
 
     # Series
     ts_grouped = ts.groupby(lambda x: x.month)
@@ -414,7 +414,7 @@ def test_frame_groupby_columns(tsframe):
     assert len(aggregated.columns) == 2
 
     # transform
-    tf = lambda x: x - x.mean()
+    def tf(x): return x - x.mean()
     groupedT = tsframe.T.groupby(mapping, axis=0)
     assert_frame_equal(groupedT.transform(tf).T, grouped.transform(tf))
 
@@ -992,7 +992,7 @@ def test_seriesgroupby_name_attr(df):
     assert result.count().name == 'C'
     assert result.mean().name == 'C'
 
-    testFunc = lambda x: np.sum(x) * 2
+    def testFunc(x): return np.sum(x) * 2
     assert result.agg(testFunc).name == 'C'
 
 
@@ -1077,7 +1077,7 @@ def test_series_grouper_noncontig_index():
     grouped = values.groupby(labels)
 
     # accessing the index elements causes segfault
-    f = lambda x: len(set(map(id, x.index)))
+    def f(x): return len(set(map(id, x.index)))
     grouped.agg(f)
 
 
@@ -1754,79 +1754,95 @@ def test_groupby_groups_in_BaseGrouper():
     assert(result.groups == expected.groups)
 
 
-def test_groupby_indices():
+def _all_combinations(elems):
+    from itertools import chain, combinations
+
+    out = chain.from_iterable(
+        combinations(elems, n + 1) for n in range(len(elems))
+    )
+    return list(out)
+
+
+@pytest.mark.parametrize(
+    'gb_cols', _all_combinations([
+        'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
+        'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat'
+    ]),
+    ids=lambda cols: ",".join(cols)
+)
+def test_groupby_indices(gb_cols):
     # GH 26860
     # Test if DataFrame Groupby builds gb.indices correctly.
 
+    gb_cols = list(gb_cols)
+
     int_series = pd.Series([1, 2, 3])
-    int_series_cat = int_series.astype('category')
-    float_series = pd.Series([1., 2., 3.])
-    float_series_cat = float_series.astype('category')
     dt_series = pd.to_datetime(['2018Q1', '2018Q2', '2018Q3'])
-    dt_series_cat = dt_series.astype('category')
-    period_series = dt_series.to_period('Q')
-    period_series_cat = period_series.astype('category')
+    df = pd.DataFrame(
+        data={
+            'int_series': int_series,
+            'int_series_cat': int_series.astype('category'),
+            'float_series': int_series.astype('float'),
+            'float_series_cat': int_series.astype('float').astype('category'),
+            'dt_series': dt_series,
+            'dt_series_cat': dt_series.astype('category'),
+            'period_series': dt_series.to_period('Q'),
+            'period_series_cat': dt_series.to_period('Q').astype('category')
+        },
+        columns=[
+            'int_series',
+            'int_series_cat',
+            'float_series',
+            'float_series_cat',
+            'dt_series',
+            'dt_series_cat',
+            'period_series',
+            'period_series_cat'
+        ]
+    )
 
-    df = pd.DataFrame({
-        'int_series': int_series,
-        'int_series_cat': int_series_cat,
-        'float_series': float_series,
-        'float_series_cat': float_series_cat,
-        'dt_series': dt_series,
-        'dt_series_cat': dt_series_cat,
-        'period_series': period_series,
-        'period_series_cat': period_series_cat
-    })
-    col_order = [
-        'int_series',
-        'int_series_cat',
-        'float_series',
-        'float_series_cat',
-        'dt_series',
-        'dt_series_cat',
-        'period_series',
-        'period_series_cat'
-    ]
-    df = df[col_order]
-    from itertools import combinations
+    num_gb_cols = len(gb_cols)
 
-    dts = [
-        np.datetime64('2018-01-01T00:00:00.000000000'),
-        np.datetime64('2018-04-01T00:00:00.000000000'),
-        np.datetime64('2018-07-01T00:00:00.000000000')
-    ]
-    pers = [pd.Period(dt, freq='Q') for dt in dts]
+    if num_gb_cols == 1:
+        s = df[gb_cols[0]]
+        col_vals = list(s.unique())
 
-    target_key_choices = [
-        [1, 1, 1.0, 1.0, dts[0], dts[0], pers[0], pers[0]],
-        [2, 2, 2.0, 2.0, dts[1], dts[1], pers[1], pers[1]],
-        [3, 3, 3.0, 3.0, dts[2], dts[2], pers[2], pers[2]]
-    ]
-    target_indices_values = [
-        np.array([i])
-        for i in range(df.shape[0])
-    ]
-    n_choices = len(df.columns)
+        if pd.api.types.is_datetime64_any_dtype(s):
+            col_vals = list(map(pd.Timestamp, col_vals))
 
-    for n in range(1, n_choices + 1):
-        for combo in combinations(list(range(n_choices)), n):
-            combo = list(combo)
-            cols = list(df.columns[combo])
-            if n == 1:
-                target_indices = {}
-                for i, key_choice in enumerate(target_key_choices):
-                    key = key_choice[combo[0]]
-                    if pd.api.types.is_datetime64_any_dtype(key):
-                        key = pd.Timestamp(key)
-                    target_indices[key] = target_indices_values[i]
-            else:
-                target_indices = {}
-                for i, key_choice in enumerate(target_key_choices):
-                    key = tuple(key_choice[j] for j in combo)
-                    target_indices[key] = target_indices_values[i]
+        target = {
+            key: np.array([i])
+            for i, key in enumerate(col_vals)
+        }
+    else:
+        col_vals = {
+            col: list(df[col].unique())
+            for col in gb_cols
+        }
 
-            indices = df.groupby(cols).indices
-            assert set(target_indices.keys()) == set(indices.keys())
-            for key in target_indices.keys():
-                assert pd.core.dtypes.missing.array_equivalent(
-                    target_indices[key], indices[key])
+        def to_dt(elems):
+            elems = map(pd.Timestamp, elems)
+            elems = map(lambda dt: dt.to_datetime64(), elems)
+            elems = list(elems)
+            return elems
+
+        for col in gb_cols:
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                col_vals[col] = to_dt(col_vals[col])
+
+            elif pd.api.types.is_categorical_dtype(df[col]):
+                if pd.api.types.is_datetime64_any_dtype(df[col].cat.categories):
+                    col_vals[col] = to_dt(col_vals[col])
+
+        it = zip(*(col_vals[col] for col in col_vals.keys()))
+        target = {
+            key: np.array([i])
+            for i, key in enumerate(it)
+        }
+
+    indices = df.groupby(gb_cols).indices
+
+    assert set(target.keys()) == set(indices.keys())
+    for key in target.keys():
+        assert pd.core.dtypes.missing.array_equivalent(
+            target[key], indices[key])
