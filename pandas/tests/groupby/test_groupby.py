@@ -1153,7 +1153,6 @@ def test_seriesgroupby_name_attr(df):
     assert result.count().name == "C"
     assert result.mean().name == "C"
 
-
     testFunc = lambda x: np.sum(x) * 2
     assert result.agg(testFunc).name == "C"
 
