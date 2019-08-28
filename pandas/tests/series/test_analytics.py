@@ -490,7 +490,7 @@ class TestSeriesAnalytics:
 
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
-        mi = MultiIndex.from_arrays([list("aabbcc"), [1, 2, 2, nan, 1, 2]])
+        mi = MultiIndex.from_arrays([list("aabbcc"), [1, 2, 2, np.nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
 
         left = ts.count(level=1)

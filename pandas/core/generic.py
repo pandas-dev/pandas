@@ -10446,7 +10446,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs["pct_change"] % _shared_doc_kwargs)
     def pct_change(
-        self, periods=1, fill_method="pad", limit=None, freq=None, skipna=None, **kwargs
+        self, periods=1, fill_method=None, limit=None, freq=None, skipna=None, **kwargs
     ):
         if fill_method is not None and skipna:
             raise ValueError("cannot pass both fill_method and skipna")
