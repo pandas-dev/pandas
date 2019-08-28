@@ -11,6 +11,7 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas.core.common as com
+from pandas.api.types import is_datetime64_any_dtype, is_categorical_dtype
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -391,6 +392,12 @@ def test_groupby_indices_output():
 
     from itertools import chain, combinations
 
+    def dt_to_ts(elems):
+        return [pd.Timestamp(el) for el in elems]
+
+    def ts_to_dt(elems):
+        return [el.to_datetime64() for el in elems]
+
     gb_cols_it = chain.from_iterable(
         combinations(cols, n + 1) for n in range(len(cols))
     )
@@ -402,8 +409,8 @@ def test_groupby_indices_output():
             s = df[gb_cols[0]]
             col_vals = list(s.unique())
 
-            if pd.api.types.is_datetime64_any_dtype(s):
-                col_vals = list(map(pd.Timestamp, col_vals))
+            if is_datetime64_any_dtype(s):
+                col_vals = dt_to_ts(col_vals)
 
             target = {
                 key: np.array([i])
@@ -415,19 +422,12 @@ def test_groupby_indices_output():
                 for col in gb_cols
             }
 
-            def to_dt(elems):
-                elems = map(pd.Timestamp, elems)
-                elems = map(lambda dt: dt.to_datetime64(), elems)
-                elems = list(elems)
-                return elems
-
             for col in gb_cols:
-                if pd.api.types.is_datetime64_any_dtype(df[col]):
-                    col_vals[col] = to_dt(col_vals[col])
-
-                elif pd.api.types.is_categorical_dtype(df[col]):
-                    if pd.api.types.is_datetime64_any_dtype(df[col].cat.categories):
-                        col_vals[col] = to_dt(col_vals[col])
+                is_dt = is_datetime64_any_dtype(df[col])
+                is_cat_dt = is_categorical_dtype(df[col]) and \
+                    is_datetime64_any_dtype(df[col].cat.categories)
+                if is_dt or is_cat_dt:
+                    col_vals[col] = ts_to_dt(dt_to_ts(col_vals[col]))
 
             it = zip(*(col_vals[col] for col in gb_cols))
             target = {
