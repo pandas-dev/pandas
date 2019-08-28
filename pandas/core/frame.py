@@ -239,8 +239,8 @@ Examples
 
 >>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
 ...                     'value': [1, 2, 3, 5]})
->>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-...                     'value': [5, 6, 7, 8]})
+>>> df2 = pd.DataFrame({'rkey': ('foo', 'bar', 'baz', 'foo'),
+...                     'value': (5, 6, 7, 8)})
 >>> df1
     lkey value
 0   foo      1
@@ -336,7 +336,7 @@ class DataFrame(NDFrame):
     --------
     Constructing DataFrame from a dictionary.
 
-    >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+    >>> d = {'col1': (1, 2), 'col2': (3, 4)}
     >>> df = pd.DataFrame(data=d)
     >>> df
        col1  col2
@@ -530,9 +530,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
+        >>> DataFrame({"A": (1, 2), "B": (3, 4)})._is_homogeneous_type
         True
-        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
+        >>> DataFrame({"A": (1, 2), "B": (3.0, 4.0)})._is_homogeneous_type
         False
 
         Items with the same type but different sizes are considered
