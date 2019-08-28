@@ -318,6 +318,8 @@ def get_flattened_iterator(comp_ids, ngroups, levels, labels):
 
 def get_indexer_dict(label_list, keys):
     """ return a diction of {labels} -> {indexers} """
+    # address GH 26860
+    keys = [np.asarray(key) for key in keys]
     shape = list(map(len, keys))
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)

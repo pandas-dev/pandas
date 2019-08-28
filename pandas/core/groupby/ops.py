@@ -232,7 +232,6 @@ class BaseGrouper:
             label_list = [ping.labels for ping in self.groupings]
             keys = [com.values_from_object(ping.group_index)
                     for ping in self.groupings]
-            keys = [np.array(key) for key in keys]
             return get_indexer_dict(label_list, keys)
 
     @property
