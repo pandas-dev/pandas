@@ -176,6 +176,7 @@ Computations / descriptive stats
    DataFrame.std
    DataFrame.var
    DataFrame.nunique
+   DataFrame.value_counts
 
 Reindexing / selection / label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

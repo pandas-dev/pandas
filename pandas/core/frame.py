@@ -8422,6 +8422,8 @@ class DataFrame(NDFrame):
         dropna : boolean, default True
             Don't include counts of rows containing NaN.
 
+        .. versionadded:: 1.0.0
+
         Returns
         -------
         counts : Series
