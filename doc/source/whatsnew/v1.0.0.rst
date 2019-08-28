@@ -176,7 +176,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 -
--
+- Bug in :meth:`DataFrameGroupBy.indices` raises exception when grouping on multiple columns and one is a categorical with datetime values. (:issue:`26860`)
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 
 Reshaping
