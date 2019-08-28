@@ -21,7 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
--
+- :meth:`DataFrame.to_string` added new optional param ``max_colwidth`` to avoid use of display parameters (:issue:`9784`)
 -
 
 .. _whatsnew_1000.enhancements.other:
@@ -161,7 +161,7 @@ I/O
 
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
-- Bug in :func:`DataFrame.to_string()` where values were truncated using display options instead of outputting the full content, added new param ``max_colwidth`` instead (:issue:`9784`)
+- Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 
 Plotting
 ^^^^^^^^
