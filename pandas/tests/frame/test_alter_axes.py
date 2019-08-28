@@ -1187,6 +1187,15 @@ class TestDataFrameAlterAxes:
         result = df.set_index(column_names[:2]).reset_index()
         tm.assert_frame_equal(df, result)
 
+    def test_reset_index_multiindex_empty(self):
+        # GH19602: preserve dtypes when resetting multiindex of
+        # empty dataframe
+        idx = MultiIndex.from_product([[0, 1], [1, 2]])
+        empty_df = DataFrame(index=idx)[:0]
+        types = empty_df.reset_index().dtypes
+        assert types[0] == np.int64
+        assert types[1] == np.int64
+
     def test_reset_index_with_datetimeindex_cols(self):
         # GH5818
         #
