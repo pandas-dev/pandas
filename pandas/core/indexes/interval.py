@@ -331,7 +331,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> idx.to_tuples()
         Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
         >>> idx.to_tuples(na_tuple=False)
-        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
+        """,
         )
     )
     def to_tuples(self, na_tuple=True):
