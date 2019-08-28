@@ -813,16 +813,16 @@ but the categories of these categoricals need to be the same:
     res
     res.dtypes
 
-In this case the categories are not the same, and therefore an error is raised:
+If the categories are not exactly the same, merging will coerce the
+categoricals to their categories' dtypes:
 
 .. ipython:: python
 
     df_different = df.copy()
     df_different["cats"].cat.categories = ["c", "d"]
-    try:
-        pd.concat([df, df_different])
-    except ValueError as e:
-        print("ValueError:", str(e))
+    res = pd.concat([df, df_different])
+    res
+    res.dtypes
 
 The same applies to ``df.append(df_different)``.
 
