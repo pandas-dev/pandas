@@ -140,7 +140,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in assignment using a reverse slicer (:issue:`26939`)
 -
 
 Missing
