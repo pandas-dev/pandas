@@ -66,7 +66,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Axis, Dtype, FilePathOrBuffer, Level
+from pandas._typing import _T, Axis, Dtype, FilePathOrBuffer, FrameOrSeries, Level
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -91,9 +91,6 @@ from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from pandas import Series, DataFrame
-
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
-_T = TypeVar("_T")
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
