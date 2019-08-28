@@ -52,7 +52,6 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -174,7 +173,7 @@ class NDFrameGroupBy(GroupBy):
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
-                s = groupby(obj, self.grouper)
+                s = obj.groupby(self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
@@ -242,15 +241,18 @@ class NDFrameGroupBy(GroupBy):
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
+            elif args or kwargs:
+                result = self._aggregate_generic(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
                 try:
-                    assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
-
+                except Exception:
+                    result = self._aggregate_generic(func)
+                else:
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
                     )
@@ -260,8 +262,6 @@ class NDFrameGroupBy(GroupBy):
                         # values. concat no longer converts DataFrame[Sparse]
                         # to SparseDataFrame, so we do it here.
                         result = SparseDataFrame(result._data)
-                except Exception:
-                    result = self._aggregate_generic(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -311,10 +311,10 @@ class NDFrameGroupBy(GroupBy):
         cannot_agg = []
         errors = None
         for item in obj:
-            try:
-                data = obj[item]
-                colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
+            data = obj[item]
+            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
+            try:
                 cast = self._transform_should_cast(func)
 
                 result[item] = colg.aggregate(func, *args, **kwargs)
@@ -682,7 +682,7 @@ class NDFrameGroupBy(GroupBy):
 
         return DataFrame(output, index=obj.index, columns=columns)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a DataFrame excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
