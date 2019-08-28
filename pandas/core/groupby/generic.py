@@ -53,7 +53,6 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -180,7 +179,7 @@ class NDFrameGroupBy(GroupBy):
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
-                s = groupby(obj, self.grouper)
+                s = obj.groupby(self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
@@ -189,23 +188,18 @@ class NDFrameGroupBy(GroupBy):
                     deleted_items.append(locs)
                     continue
 
+                if is_object_dtype(block.dtype) and how in["prod", "cumprod", "sum"]:
+                    # s.aggregate is not reliable for e.g. `prod` with strings
+                    result = no_result
+                    raise
+
                 if is_categorical_dtype(block.dtype):
-                    # restore e.g. Categorical
-                    # not all dtypes are conserved by agg
+                    # restore Categorical; not all dtypes are conserved by agg
+                    # TODO: will this be right for e.g. sum?
                     result = result.astype(block.dtype)
 
                 assert len(result._data.blocks) == 1
                 result = result._data.blocks[0].values
-
-                # Check that we didn't mess up some corner case
-                # TODO: this isn't a reliable way of doing this
-                grp = obj.loc[s.groups[1]]
-                try:
-                    alt(grp.values, axis=self.axis)
-                except TypeError:
-                    result = no_result
-                    deleted_items.append(locs)
-                    continue
 
             finally:
                 if result is not no_result:
