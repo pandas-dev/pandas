@@ -191,6 +191,20 @@ class TestReductions:
         result = tdi.sum(skipna=False)
         assert result is pd.NaT
 
+        result = arr.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = tdi.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = arr.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
     def test_npsum(self):
         # GH#25335 np.sum should return a Timedelta, not timedelta64
         tdi = pd.TimedeltaIndex(["3H", "3H", "2H", "5H", "4H"])
