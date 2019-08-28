@@ -49,11 +49,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
-from pandas.core.groupby.groupby import (
-    GroupBy,
-    _apply_docs,
-    _transform_template,
-)
+from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
@@ -188,9 +184,12 @@ class NDFrameGroupBy(GroupBy):
                     deleted_items.append(locs)
                     continue
 
-                if is_object_dtype(block.dtype) and how in["prod", "cumprod", "sum"]:
+                if is_object_dtype(block.dtype) and how in ["prod", "cumprod", "sum"]:
                     # s.aggregate is not reliable for e.g. `prod` with strings
                     result = no_result
+                    # TODO: why are we raising here and continuing elsewhere?
+                    # (tests.groupby.test_function.test_arg_passthru breaks
+                    #  if we continue here)
                     raise
 
                 if is_categorical_dtype(block.dtype):
