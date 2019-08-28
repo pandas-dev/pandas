@@ -646,7 +646,8 @@ class NDFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
-        except ValueError:
+        except Exception:
+            # Hard to know ex-ante what exceptions `fast_path` might raise
             return path, res
 
         # verify fast path does not change columns (and names), otherwise
