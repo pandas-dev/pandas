@@ -331,7 +331,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> idx.to_tuples()
         Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
         >>> idx.to_tuples(na_tuple=False)
-        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
+        """,
         )
     )
     def to_tuples(self, na_tuple=True):
@@ -788,7 +789,7 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None
+        self, key: Any, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -982,7 +983,7 @@ class IntervalIndex(IntervalMixin, Index):
             List of indices.
         """
         if self.is_overlapping:
-            return self.get_indexer_non_unique(target, **kwargs)[0]
+            return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
