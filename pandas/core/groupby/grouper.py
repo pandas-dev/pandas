@@ -217,7 +217,6 @@ class Grouper:
 
 
 class Grouping:
-
     """
     Holds the grouping information for a single key
 

@@ -22,7 +22,6 @@ from pandas.io.formats.printing import pprint_thing
 
 
 class FrozenList(PandasObject, list):
-
     """
     Container that doesn't allow setting item *but*
     because it's technically non-hashable, will be used

@@ -706,7 +706,6 @@ class BaseGrouper:
 
 
 class BinGrouper(BaseGrouper):
-
     """
     This is an internal Grouper class
 

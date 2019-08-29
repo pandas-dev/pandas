@@ -565,7 +565,6 @@ class PandasSQLTest:
 
 
 class _TestSQLApi(PandasSQLTest):
-
     """
     Base class to test the public API.
 
