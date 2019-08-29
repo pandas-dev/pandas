@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING, FrozenSet, List, Optional, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -368,6 +368,10 @@ class DataFrame(NDFrame):
     1  4  5  6
     2  7  8  9
     """
+
+    if TYPE_CHECKING:  # attributes index and columns are created dynamically
+        index = None  # type: Index
+        columns = None  # type: Index
 
     @property
     def _constructor(self):
