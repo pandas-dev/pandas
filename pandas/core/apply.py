@@ -212,8 +212,12 @@ class FrameApply:
             except Exception:
                 pass
 
-        if reduce and len(self.agg_axis):
-            r = self.f(Series([]), *self.args, **self.kwds)
+        if reduce:
+            if len(self.agg_axis):
+                r = self.f(Series([]), *self.args, **self.kwds)
+            else:
+                r = np.nan
+
             return self.obj._constructor_sliced(r, index=self.agg_axis)
         else:
             return self.obj.copy()
