@@ -743,6 +743,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                     np.datetime64("1991-11-07 04:22:37", "ms"),
                 ],
             }
+        ).reindex(
+            columns=["year", "month", "day", "hour", "minute", "second", "millisecond"]
         )
         tm.assert_frame_equal(result, expected)
 
