@@ -38,9 +38,8 @@ See the :ref:`overview` for more detail about what's in the library.
     :maxdepth: 3
     :hidden:
 {% endif %}
-
-    {% if not single_doc -%}
-    What's New in 0.25.0 <whatsnew/v0.25.0>
+{% if not single_doc %}
+    What's New in 1.0.0 <whatsnew/v1.0.0>
     install
     getting_started/index
     user_guide/index
@@ -52,10 +51,9 @@ See the :ref:`overview` for more detail about what's in the library.
     {% if not single_doc -%}
     development/index
     whatsnew/index
-{% endif -%}
+{% endif %}
 
-
-* :doc:`whatsnew/v0.25.0`
+* :doc:`whatsnew/v1.0.0`
 * :doc:`install`
 * :doc:`getting_started/index`
 
