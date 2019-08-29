@@ -8,12 +8,10 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64_any_dtype
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
-from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
-    is_categorical_dtype
-)
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (
