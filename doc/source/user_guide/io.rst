@@ -5021,8 +5021,7 @@ Example of a callable using PostgreSQL `COPY clause
       conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
       keys : list of str
           Column names
-      data_iter : generator of list
-          Each item contains a list of values to be inserted
+      data_iter : Iterable that iterates the values to be inserted
       """
       # gets a DBAPI connection that can provide a cursor
       dbapi_conn = conn.connection
@@ -5057,15 +5056,17 @@ table name and optionally a subset of columns to read.
 
    pd.read_sql_table('data', engine)
 
-Note that pandas infers column dtypes from query outputs, and not by looking
-up data types in the physical database schema. For example, assume ``userid``
-is an integer column in a table. Then, intuitively, ``select userid ...`` will
-return integer-valued series, while ``select cast(userid as text) ...`` will
-return object-valued (str) series. Accordingly, if the query output is empty,
-then all resulting columns will be returned as object-valued (since they are
-most general). If you foresee that your query will sometimes generate an empty
-result, you may want to explicitly typecast afterwards to ensure dtype
-integrity.
+.. note::
+
+  Note that pandas infers column dtypes from query outputs, and not by looking
+  up data types in the physical database schema. For example, assume ``userid``
+  is an integer column in a table. Then, intuitively, ``select userid ...`` will
+  return integer-valued series, while ``select cast(userid as text) ...`` will
+  return object-valued (str) series. Accordingly, if the query output is empty,
+  then all resulting columns will be returned as object-valued (since they are
+  most general). If you foresee that your query will sometimes generate an empty
+  result, you may want to explicitly typecast afterwards to ensure dtype
+  integrity.
 
 You can also specify the name of the column as the ``DataFrame`` index,
 and specify a subset of columns to be read.
