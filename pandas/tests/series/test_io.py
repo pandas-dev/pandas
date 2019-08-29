@@ -191,6 +191,15 @@ class TestSeriesToCSV:
                     s, pd.read_csv(fh, index_col=0, squeeze=True, encoding=encoding)
                 )
 
+    def test_to_csv_interval_index(self):
+        # GH 28210
+        s = Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
+
+        # can't roundtrip interval index via read_csv so check string output (GH 23595)
+        result = s.to_csv(path_or_buf=None, header=False)
+        expected = '"(0, 1]",foo\n"(1, 2]",bar\n"(2, 3]",baz\n'
+        assert result == expected
+
 
 class TestSeriesIO:
     def test_to_frame(self, datetime_series):

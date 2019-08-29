@@ -695,6 +695,15 @@ class TestDataFrameToCSV(TestData):
             tm.assert_index_equal(recons.columns, exp.columns)
             assert len(recons) == 0
 
+    def test_to_csv_interval_index(self):
+        # GH 28210
+        df = DataFrame({"A": list("abc"), "B": range(3)}, index=pd.interval_range(0, 3))
+
+        # can't roundtrip interval index via read_csv so check string output (GH 23595)
+        result = df.to_csv(path_or_buf=None)
+        expected = ',A,B\n"(0, 1]",a,0\n"(1, 2]",b,1\n"(2, 3]",c,2\n'
+        assert result == expected
+
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
         df[1] = np.nan
