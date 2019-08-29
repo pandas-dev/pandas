@@ -12,14 +12,25 @@ from pandas import Timestamp
 import pandas.util.testing as tm
 
 
-@pytest.mark.parametrize("data,expected", [
-    (["01-01-2013", "01-02-2013"],
-     ["2013-01-01T00:00:00.000000000-0000",
-      "2013-01-02T00:00:00.000000000-0000"]),
-    (["Mon Sep 16 2013", "Tue Sep 17 2013"],
-     ["2013-09-16T00:00:00.000000000-0000",
-      "2013-09-17T00:00:00.000000000-0000"])
-])
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (
+            ["01-01-2013", "01-02-2013"],
+            [
+                "2013-01-01T00:00:00.000000000-0000",
+                "2013-01-02T00:00:00.000000000-0000",
+            ],
+        ),
+        (
+            ["Mon Sep 16 2013", "Tue Sep 17 2013"],
+            [
+                "2013-09-16T00:00:00.000000000-0000",
+                "2013-09-17T00:00:00.000000000-0000",
+            ],
+        ),
+    ],
+)
 def test_parsing_valid_dates(data, expected):
     arr = np.array(data, dtype=object)
     result, _ = tslib.array_to_datetime(arr)
@@ -28,12 +39,15 @@ def test_parsing_valid_dates(data, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("dt_string, expected_tz", [
-    ["01-01-2013 08:00:00+08:00", 480],
-    ["2013-01-01T08:00:00.000000000+0800", 480],
-    ["2012-12-31T16:00:00.000000000-0800", -480],
-    ["12-31-2012 23:00:00-01:00", -60]
-])
+@pytest.mark.parametrize(
+    "dt_string, expected_tz",
+    [
+        ["01-01-2013 08:00:00+08:00", 480],
+        ["2013-01-01T08:00:00.000000000+0800", 480],
+        ["2012-12-31T16:00:00.000000000-0800", -480],
+        ["12-31-2012 23:00:00-01:00", -60],
+    ],
+)
 def test_parsing_timezone_offsets(dt_string, expected_tz):
     # All of these datetime strings with offsets are equivalent
     # to the same datetime after the timezone offset is added.
@@ -64,20 +78,21 @@ def test_parsing_different_timezone_offsets():
     data = np.array(data, dtype=object)
 
     result, result_tz = tslib.array_to_datetime(data)
-    expected = np.array([datetime(2015, 11, 18, 15, 30,
-                                  tzinfo=tzoffset(None, 19800)),
-                         datetime(2015, 11, 18, 15, 30,
-                                  tzinfo=tzoffset(None, 23400))],
-                        dtype=object)
+    expected = np.array(
+        [
+            datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 19800)),
+            datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 23400)),
+        ],
+        dtype=object,
+    )
 
     tm.assert_numpy_array_equal(result, expected)
     assert result_tz is None
 
 
-@pytest.mark.parametrize("data", [
-    ["-352.737091", "183.575577"],
-    ["1", "2", "3", "4", "5"]
-])
+@pytest.mark.parametrize(
+    "data", [["-352.737091", "183.575577"], ["1", "2", "3", "4", "5"]]
+)
 def test_number_looking_strings_not_into_datetime(data):
     # see gh-4601
     #
@@ -89,12 +104,16 @@ def test_number_looking_strings_not_into_datetime(data):
     tm.assert_numpy_array_equal(result, arr)
 
 
-@pytest.mark.parametrize("invalid_date", [
-    date(1000, 1, 1),
-    datetime(1000, 1, 1),
-    "1000-01-01",
-    "Jan 1, 1000",
-    np.datetime64("1000-01-01")])
+@pytest.mark.parametrize(
+    "invalid_date",
+    [
+        date(1000, 1, 1),
+        datetime(1000, 1, 1),
+        "1000-01-01",
+        "Jan 1, 1000",
+        np.datetime64("1000-01-01"),
+    ],
+)
 @pytest.mark.parametrize("errors", ["coerce", "raise"])
 def test_coerce_outside_ns_bounds(invalid_date, errors):
     arr = np.array([invalid_date], dtype="object")
@@ -135,13 +154,11 @@ def test_coerce_of_invalid_datetimes(errors):
     else:  # coerce.
         # With coercing, the invalid dates becomes iNaT
         result, _ = tslib.array_to_datetime(arr, errors="coerce")
-        expected = ["2013-01-01T00:00:00.000000000-0000",
-                    iNaT,
-                    iNaT]
+        expected = ["2013-01-01T00:00:00.000000000-0000", iNaT, iNaT]
 
         tm.assert_numpy_array_equal(
-            result,
-            np_array_datetime64_compat(expected, dtype="M8[ns]"))
+            result, np_array_datetime64_compat(expected, dtype="M8[ns]")
+        )
 
 
 def test_to_datetime_barely_out_of_bounds():
@@ -160,14 +177,14 @@ class SubDatetime(datetime):
     pass
 
 
-@pytest.mark.parametrize("data,expected", [
-    ([SubDatetime(2000, 1, 1)],
-     ["2000-01-01T00:00:00.000000000-0000"]),
-    ([datetime(2000, 1, 1)],
-     ["2000-01-01T00:00:00.000000000-0000"]),
-    ([Timestamp(2000, 1, 1)],
-     ["2000-01-01T00:00:00.000000000-0000"])
-])
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        ([SubDatetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
+        ([datetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
+        ([Timestamp(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
+    ],
+)
 def test_datetime_subclass(data, expected):
     # GH 25851
     # ensure that subclassed datetime works with
