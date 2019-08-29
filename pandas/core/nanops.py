@@ -712,7 +712,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
         if mask is None:
             mask = isna(values)
         else:
-            raise NotImplementedError
+            mask = mask | isna(values)
         values = values.view("i8")
 
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
