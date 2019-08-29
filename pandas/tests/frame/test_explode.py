@@ -118,3 +118,28 @@ def test_usecase():
         index=[0, 0, 1, 1],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            pd.DataFrame({"col": [[1, 2], [3, 4]]}, index=[0, 0]),
+            pd.DataFrame({"col": [1, 2, 3, 4]}, index=[0, 0, 0, 0], dtype=object),
+        ),
+        (
+            pd.DataFrame(
+                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"]}, index=[0, 0]
+            ),
+            pd.DataFrame(
+                {"col": [1, 2, 3, 4], "other_col": ["a", "a", "b", "b"]},
+                index=[0, 0, 0, 0],
+                dtype=object,
+            ),
+        ),
+    ],
+)
+def test_duplicate_index(df, expected):
+    # GH 28005
+    result = df.explode("col")
+    tm.assert_frame_equal(result, expected)
