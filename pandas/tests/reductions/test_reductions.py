@@ -300,10 +300,13 @@ class TestIndexReductions:
         assert result[0] == expected
 
         # invalid ops
-        for op in ["skew", "kurt", "sem", "prod"]:
+        for op in ["skew", "kurt", "sem", "prod", "var"]:
             msg = "reduction operation '{}' not allowed for this dtype"
             with pytest.raises(TypeError, match=msg.format(op)):
                 getattr(td, op)()
+
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td.to_frame(), op)(numeric_only=False)
 
         # GH#10040
         # make sure NaT is properly handled by median()
@@ -638,7 +641,7 @@ class TestSeriesReductions:
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
-            with pytest.raises(TypeError, match="`var` is not supported"):
+            with pytest.raises(TypeError, match="operation 'var' not allowed"):
                 getattr(tdser, method)()
         else:
             result = getattr(tdser, method)()

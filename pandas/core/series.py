@@ -4017,8 +4017,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if name == "var" and is_timedelta64_dtype(self.dtype):
             raise TypeError(
-                "`var` is not supported for timedelta64[ns] dtype.  "
-                "`std` is available."
+                "reduction operation '{name}' not allowed for this dtype".format(
+                    name=name
+                )
             )
 
         delegate = self._values

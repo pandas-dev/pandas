@@ -706,11 +706,20 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    orig_dtype = values.dtype
+    if is_timedelta64_dtype(values.dtype):
+        # std is well-behaved, but var is not
+        if mask is None:
+            mask = isna(values)
+        else:
+            raise NotImplementedError
+        values = values.view("i8")
+
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
-    return _wrap_results(result, values.dtype)
+    return _wrap_results(result, orig_dtype)
 
 
-@disallow("M8")
+@disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     """
