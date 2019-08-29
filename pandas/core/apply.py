@@ -212,7 +212,7 @@ class FrameApply:
             except Exception:
                 pass
 
-        if reduce:
+        if reduce and len(self.agg_axis):
             r = self.f(Series([]), *self.args, **self.kwds)
             return self.obj._constructor_sliced(r, index=self.agg_axis)
         else:
