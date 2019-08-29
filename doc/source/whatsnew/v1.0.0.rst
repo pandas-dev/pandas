@@ -83,7 +83,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
-- Bug in to_html() when using formatters=<list> and max_cols together fixed (:issue:`25955`)
+- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 
 Categorical
 ^^^^^^^^^^^
