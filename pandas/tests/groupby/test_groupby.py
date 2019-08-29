@@ -10,8 +10,11 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
+    is_categorical_dtype
+)
 import pandas.core.common as com
-from pandas.api.types import is_datetime64_any_dtype, is_categorical_dtype
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
