@@ -365,9 +365,21 @@ def test_groupby_indices_error():
     df.groupby(['a', 'b']).indices
 
 
-def test_groupby_indices_output():
+@pytest.mark.parametrize(
+    "gb_cols", [
+        'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
+        'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat',
+        [
+            'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
+            'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat'
+        ]
+    ]
+)
+def test_groupby_indices_output(gb_cols):
     # GH 26860
     # Test if DataFrame Groupby builds gb.indices correctly.
+    if isinstance(gb_cols, str):
+        gb_cols = [gb_cols]
 
     cols = [
         'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
@@ -390,57 +402,50 @@ def test_groupby_indices_output():
         columns=cols
     )
 
-    from itertools import chain, combinations
-
     def dt_to_ts(elems):
         return [pd.Timestamp(el) for el in elems]
 
     def ts_to_dt(elems):
         return [el.to_datetime64() for el in elems]
 
-    gb_cols_it = chain.from_iterable(
-        combinations(cols, n + 1) for n in range(len(cols))
-    )
-    for gb_cols in gb_cols_it:
-        gb_cols = list(gb_cols)
-        num_gb_cols = len(gb_cols)
+    num_gb_cols = len(gb_cols)
 
-        if num_gb_cols == 1:
-            s = df[gb_cols[0]]
-            col_vals = list(s.unique())
+    if num_gb_cols == 1:
+        s = df[gb_cols[0]]
+        col_vals = list(s.unique())
 
-            if is_datetime64_any_dtype(s):
-                col_vals = dt_to_ts(col_vals)
+        if is_datetime64_any_dtype(s):
+            col_vals = dt_to_ts(col_vals)
 
-            target = {
-                key: np.array([i])
-                for i, key in enumerate(col_vals)
-            }
-        else:
-            col_vals = {
-                col: list(df[col].unique())
-                for col in gb_cols
-            }
+        target = {
+            key: np.array([i])
+            for i, key in enumerate(col_vals)
+        }
+    else:
+        col_vals = {
+            col: list(df[col].unique())
+            for col in gb_cols
+        }
 
-            for col in gb_cols:
-                is_dt = is_datetime64_any_dtype(df[col])
-                is_cat_dt = is_categorical_dtype(df[col]) and \
-                    is_datetime64_any_dtype(df[col].cat.categories)
-                if is_dt or is_cat_dt:
-                    col_vals[col] = ts_to_dt(dt_to_ts(col_vals[col]))
+        for col in gb_cols:
+            is_dt = is_datetime64_any_dtype(df[col])
+            is_cat_dt = is_categorical_dtype(df[col]) and \
+                is_datetime64_any_dtype(df[col].cat.categories)
+            if is_dt or is_cat_dt:
+                col_vals[col] = ts_to_dt(dt_to_ts(col_vals[col]))
 
-            it = zip(*(col_vals[col] for col in gb_cols))
-            target = {
-                key: np.array([i])
-                for i, key in enumerate(it)
-            }
+        it = zip(*(col_vals[col] for col in gb_cols))
+        target = {
+            key: np.array([i])
+            for i, key in enumerate(it)
+        }
 
-        indices = df.groupby(gb_cols).indices
+    indices = df.groupby(gb_cols).indices
 
-        assert set(target.keys()) == set(indices.keys())
-        for key in target.keys():
-            assert pd.core.dtypes.missing.array_equivalent(
-                target[key], indices[key])
+    assert set(target.keys()) == set(indices.keys())
+    for key in target.keys():
+        assert pd.core.dtypes.missing.array_equivalent(
+            target[key], indices[key])
 
 
 def test_attr_wrapper(ts):
