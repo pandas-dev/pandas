@@ -356,25 +356,40 @@ def test_indices_concatenation_order():
 def test_groupby_indices_error():
     # GH 26860
     # Test if DataFrame Groupby builds gb.indices
-    dt = pd.to_datetime(['2018-01-01', '2018-02-01', '2018-03-01'])
-    df = pd.DataFrame({
-        'a': pd.Series(list('abc')),
-        'b': pd.Series(dt, dtype='category'),
-        'c': pd.Categorical.from_codes([-1, 0, 1], categories=[0, 1])
-    })
+    dt = pd.to_datetime(["2018-01-01", "2018-02-01", "2018-03-01"])
+    df = pd.DataFrame(
+        {
+            "a": pd.Series(list("abc")),
+            "b": pd.Series(dt, dtype="category"),
+            "c": pd.Categorical.from_codes([-1, 0, 1], categories=[0, 1]),
+        }
+    )
 
-    df.groupby(['a', 'b']).indices
+    df.groupby(["a", "b"]).indices
 
 
 @pytest.mark.parametrize(
-    "gb_cols", [
-        'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
-        'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat',
+    "gb_cols",
+    [
+        "int_series",
+        "int_series_cat",
+        "float_series",
+        "float_series_cat",
+        "dt_series",
+        "dt_series_cat",
+        "period_series",
+        "period_series_cat",
         [
-            'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
-            'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat'
-        ]
-    ]
+            "int_series",
+            "int_series_cat",
+            "float_series",
+            "float_series_cat",
+            "dt_series",
+            "dt_series_cat",
+            "period_series",
+            "period_series_cat",
+        ],
+    ],
 )
 def test_groupby_indices_output(gb_cols):
     # GH 26860
@@ -383,24 +398,30 @@ def test_groupby_indices_output(gb_cols):
         gb_cols = [gb_cols]
 
     cols = [
-        'int_series', 'int_series_cat', 'float_series', 'float_series_cat',
-        'dt_series', 'dt_series_cat', 'period_series', 'period_series_cat'
+        "int_series",
+        "int_series_cat",
+        "float_series",
+        "float_series_cat",
+        "dt_series",
+        "dt_series_cat",
+        "period_series",
+        "period_series_cat",
     ]
 
     int_series = pd.Series([1, 2, 3])
-    dt_series = pd.to_datetime(['2018Q1', '2018Q2', '2018Q3'])
+    dt_series = pd.to_datetime(["2018Q1", "2018Q2", "2018Q3"])
     df = pd.DataFrame(
         data={
-            'int_series': int_series,
-            'int_series_cat': int_series.astype('category'),
-            'float_series': int_series.astype('float'),
-            'float_series_cat': int_series.astype('float').astype('category'),
-            'dt_series': dt_series,
-            'dt_series_cat': dt_series.astype('category'),
-            'period_series': dt_series.to_period('Q'),
-            'period_series_cat': dt_series.to_period('Q').astype('category')
+            "int_series": int_series,
+            "int_series_cat": int_series.astype("category"),
+            "float_series": int_series.astype("float"),
+            "float_series_cat": int_series.astype("float").astype("category"),
+            "dt_series": dt_series,
+            "dt_series_cat": dt_series.astype("category"),
+            "period_series": dt_series.to_period("Q"),
+            "period_series_cat": dt_series.to_period("Q").astype("category"),
         },
-        columns=cols
+        columns=cols,
     )
 
     def dt_to_ts(elems):
@@ -418,35 +439,26 @@ def test_groupby_indices_output(gb_cols):
         if is_datetime64_any_dtype(s):
             col_vals = dt_to_ts(col_vals)
 
-        target = {
-            key: np.array([i])
-            for i, key in enumerate(col_vals)
-        }
+        target = {key: np.array([i]) for i, key in enumerate(col_vals)}
     else:
-        col_vals = {
-            col: list(df[col].unique())
-            for col in gb_cols
-        }
+        col_vals = {col: list(df[col].unique()) for col in gb_cols}
 
         for col in gb_cols:
             is_dt = is_datetime64_any_dtype(df[col])
-            is_cat_dt = is_categorical_dtype(df[col]) and \
-                is_datetime64_any_dtype(df[col].cat.categories)
+            is_cat_dt = is_categorical_dtype(df[col]) and is_datetime64_any_dtype(
+                df[col].cat.categories
+            )
             if is_dt or is_cat_dt:
                 col_vals[col] = ts_to_dt(dt_to_ts(col_vals[col]))
 
         it = zip(*(col_vals[col] for col in gb_cols))
-        target = {
-            key: np.array([i])
-            for i, key in enumerate(it)
-        }
+        target = {key: np.array([i]) for i, key in enumerate(it)}
 
     indices = df.groupby(gb_cols).indices
 
     assert set(target.keys()) == set(indices.keys())
     for key in target.keys():
-        assert pd.core.dtypes.missing.array_equivalent(
-            target[key], indices[key])
+        assert pd.core.dtypes.missing.array_equivalent(target[key], indices[key])
 
 
 def test_attr_wrapper(ts):
