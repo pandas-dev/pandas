@@ -21,7 +21,11 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_convert_objects, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects,
+    maybe_downcast_numeric,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -180,10 +184,8 @@ class NDFrameGroupBy(GroupBy):
                     continue
             finally:
                 if result is not no_result:
-                    dtype = block.values.dtype
-
                     # see if we can cast the block back to the original dtype
-                    result = block._try_coerce_and_cast_result(result, dtype=dtype)
+                    result = maybe_downcast_numeric(result, block.dtype)
                     newb = block.make_block(result)
 
             new_items.append(locs)
@@ -227,7 +229,7 @@ class NDFrameGroupBy(GroupBy):
             kwargs = {}
         elif func is None:
             # nicer error message
-            raise TypeError("Must provide 'func' or tuples of " "'(column, aggfunc).")
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = _maybe_mangle_lambdas(func)
 
@@ -361,7 +363,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 
@@ -671,7 +673,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
@@ -831,47 +833,45 @@ class SeriesGroupBy(GroupBy):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func_or_funcs=None, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         _level = kwargs.pop("_level", None)
 
-        relabeling = func_or_funcs is None
+        relabeling = func is None
         columns = None
-        no_arg_message = (
-            "Must provide 'func_or_funcs' or named " "aggregation **kwargs."
-        )
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
             if not PY36:
                 # sort for 3.5 and earlier
                 columns = list(sorted(columns))
 
-            func_or_funcs = [kwargs[col] for col in columns]
+            func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
 
-        if isinstance(func_or_funcs, str):
-            return getattr(self, func_or_funcs)(*args, **kwargs)
+        if isinstance(func, str):
+            return getattr(self, func)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, abc.Iterable):
+        if isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
-            func_or_funcs = _maybe_mangle_lambdas(func_or_funcs)
-            ret = self._aggregate_multiple_funcs(func_or_funcs, (_level or 0) + 1)
+            func = _maybe_mangle_lambdas(func)
+            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._get_cython_func(func_or_funcs)
+            cyfunc = self._get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func_or_funcs, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
 
             try:
-                return self._python_agg_general(func_or_funcs, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
             except Exception:
-                result = self._aggregate_named(func_or_funcs, *args, **kwargs)
+                result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
             ret = Series(result, index=index)
@@ -1464,8 +1464,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg=None, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
+    def aggregate(self, func=None, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 

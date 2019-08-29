@@ -46,14 +46,18 @@ def test_backend_is_correct(monkeypatch):
 
 @td.skip_if_no_mpl
 def test_register_entrypoint():
+
+    dist = pkg_resources.get_distribution("pandas")
+    if dist.module_path not in pandas.__file__:
+        # We are running from a non-installed pandas, and this test is invalid
+        pytest.skip("Testing a non-installed pandas")
+
     mod = types.ModuleType("my_backend")
     mod.plot = lambda *args, **kwargs: 1
 
     backends = pkg_resources.get_entry_map("pandas")
     my_entrypoint = pkg_resources.EntryPoint(
-        "pandas_plotting_backend",
-        mod.__name__,
-        dist=pkg_resources.get_distribution("pandas"),
+        "pandas_plotting_backend", mod.__name__, dist=dist
     )
     backends["pandas_plotting_backends"]["my_backend"] = my_entrypoint
     # TODO: the docs recommend importlib.util.module_from_spec. But this works for now.

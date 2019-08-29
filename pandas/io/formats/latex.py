@@ -1,11 +1,13 @@
 """
 Module for formatting output data in Latex.
 """
+from typing import IO, List, Optional, Tuple
+
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import TableFormatter
+from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
 class LatexFormatter(TableFormatter):
@@ -28,18 +30,18 @@ class LatexFormatter(TableFormatter):
 
     def __init__(
         self,
-        formatter,
-        column_format=None,
-        longtable=False,
-        multicolumn=False,
-        multicolumn_format=None,
-        multirow=False,
-        caption=None,
-        label=None,
+        formatter: DataFrameFormatter,
+        column_format: Optional[str] = None,
+        longtable: bool = False,
+        multicolumn: bool = False,
+        multicolumn_format: Optional[str] = None,
+        multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
-        self.bold_rows = self.fmt.kwds.get("bold_rows", False)
+        self.bold_rows = self.fmt.bold_rows
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
@@ -47,8 +49,9 @@ class LatexFormatter(TableFormatter):
         self.multirow = multirow
         self.caption = caption
         self.label = label
+        self.escape = self.fmt.escape
 
-    def write_result(self, buf):
+    def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
@@ -129,7 +132,7 @@ class LatexFormatter(TableFormatter):
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
-        self.clinebuf = []
+        self.clinebuf = []  # type: List[List[int]]
 
         for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
@@ -145,7 +148,7 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endfoot\n\n")
                     buf.write("\\bottomrule\n")
                     buf.write("\\endlastfoot\n")
-            if self.fmt.kwds.get("escape", True):
+            if self.escape:
                 # escape backslashes first
                 crow = [
                     (
@@ -190,7 +193,7 @@ class LatexFormatter(TableFormatter):
         else:
             self._write_tabular_end(buf)
 
-    def _format_multicolumn(self, row, ilevels):
+    def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
@@ -231,7 +234,9 @@ class LatexFormatter(TableFormatter):
             append_col()
         return row2
 
-    def _format_multirow(self, row, ilevels, i, rows):
+    def _format_multirow(
+        self, row: List[str], ilevels: int, i: int, rows: List[Tuple[str, ...]]
+    ) -> List[str]:
         r"""
         Check following rows, whether row should be a multirow
 
@@ -258,7 +263,7 @@ class LatexFormatter(TableFormatter):
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
 
-    def _print_cline(self, buf, i, icol):
+    def _print_cline(self, buf: IO[str], i: int, icol: int) -> None:
         """
         Print clines after multirow-blocks are finished
         """

@@ -590,7 +590,7 @@ class SparseSeries(Series):
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError(
-                "Cannot perform inplace dropna" " operations on a SparseSeries"
+                "Cannot perform inplace dropna operations on a SparseSeries"
             )
         if isna(self.fill_value):
             return dense_valid

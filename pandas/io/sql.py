@@ -233,7 +233,7 @@ def read_sql_table(
     con = _engine_builder(con)
     if not _is_sqlalchemy_connectable(con):
         raise NotImplementedError(
-            "read_sql_table only supported for " "SQLAlchemy connectable."
+            "read_sql_table only supported for SQLAlchemy connectable."
         )
     import sqlalchemy
     from sqlalchemy.schema import MetaData
@@ -269,7 +269,8 @@ def read_sql_query(
     parse_dates=None,
     chunksize=None,
 ):
-    """Read SQL query into a DataFrame.
+    """
+    Read SQL query into a DataFrame.
 
     Returns a DataFrame corresponding to the result set of the query
     string. Optionally provide an `index_col` parameter to use one of the
@@ -503,7 +504,7 @@ def to_sql(
         frame = frame.to_frame()
     elif not isinstance(frame, DataFrame):
         raise NotImplementedError(
-            "'frame' argument should be either a " "Series or a DataFrame"
+            "'frame' argument should be either a Series or a DataFrame"
         )
 
     pandas_sql.to_sql(
@@ -1756,7 +1757,7 @@ class SQLiteDatabase(PandasSQL):
 
         wld = "?"
         query = (
-            "SELECT name FROM sqlite_master " "WHERE type='table' AND name={wld};"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
         ).format(wld=wld)
 
         return len(self.execute(query, [name]).fetchall()) > 0
