@@ -1310,7 +1310,6 @@ class BarPlot(MPLPlot):
         pos = kwargs.pop("position", 0.5)
         kwargs.setdefault("align", "center")
         self.tick_pos = np.arange(len(data))
-        self.custom_tick_pos = kwargs.pop("xticks", None)
 
         self.bottom = kwargs.pop("bottom", 0)
         self.left = kwargs.pop("left", 0)
@@ -1437,8 +1436,8 @@ class BarPlot(MPLPlot):
     def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
 
-        if self.custom_tick_pos is not None:
-            ax.set_xticks(np.array(self.custom_tick_pos))
+        if self.xticks is not None:
+            ax.set_xticks(np.array(self.xticks))
         else:
             ax.set_xticks(self.tick_pos)
             ax.set_xticklabels(ticklabels)
