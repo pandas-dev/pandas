@@ -47,10 +47,6 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     return util.get_value_at(arr, loc)
 
 
-def get_value_box(arr: ndarray, loc: object) -> object:
-    return get_value_at(arr, loc, tz=None)
-
-
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1000000
 
@@ -352,10 +348,10 @@ cdef class IndexEngine:
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
-        Py_ssize_t mid, lo = 0, hi = len(values) - 1
+        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi >= 0 and val > util.get_value_at(values, hi):
+    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
         return len(values)
 
     while lo < hi:
@@ -533,6 +529,9 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
+        elif util.is_timedelta64_object(value):
+            # exclude np.timedelta64("NaT") from value != value below
+            pass
         elif value is None or value != value:
             return NPY_NAT
         elif isinstance(value, str):
@@ -542,8 +541,12 @@ cpdef convert_scalar(ndarray arr, object value):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
-        elif isinstance(value, timedelta):
+        elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
             return Timedelta(value).value
+        elif util.is_datetime64_object(value):
+            # exclude np.datetime64("NaT") which would otherwise be picked up
+            #  by the `value != value check below
+            pass
         elif value is None or value != value:
             return NPY_NAT
         elif isinstance(value, str):
