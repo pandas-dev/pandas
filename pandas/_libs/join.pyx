@@ -242,6 +242,7 @@ ctypedef fused join_t:
     float64_t
     float32_t
     object
+    int8_t
     int32_t
     int64_t
     uint64_t
@@ -410,6 +411,7 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 left_join_indexer_float64 = left_join_indexer["float64_t"]
 left_join_indexer_float32 = left_join_indexer["float32_t"]
 left_join_indexer_object = left_join_indexer["object"]
+left_join_indexer_int8 = left_join_indexer["int8_t"]
 left_join_indexer_int32 = left_join_indexer["int32_t"]
 left_join_indexer_int64 = left_join_indexer["int64_t"]
 left_join_indexer_uint64 = left_join_indexer["uint64_t"]

@@ -348,3 +348,19 @@ def test_merge_join_categorical_multiindex():
     result = a.join(b, on=["Cat1", "Int1"])
     expected = expected.drop(["Cat", "Int"], axis=1)
     assert_frame_equal(expected, result)
+
+
+def test_left_index_and_right_index_true():
+    # From issue 28189
+
+    pdf = DataFrame({"idx": Categorical(["1"] * 4), "value": [1, 2, 3, 4]})
+    pdf = pdf.set_index("idx")
+    agg = pdf.groupby("idx").agg(np.sum)["value"]
+
+    result = merge(pdf, agg, how="left", left_index=True, right_index=True)
+    expected = merge(pdf, agg, how="left", on="idx")
+
+    result = result.reset_index(drop=True)
+    expected = expected.reset_index(drop=True)
+
+    assert_frame_equal(expected, result)
