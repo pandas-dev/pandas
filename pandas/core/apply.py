@@ -213,7 +213,12 @@ class FrameApply:
                 pass
 
         if reduce:
-            return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
+            try:
+                r = self.f(Series([]), *self.args, **self.kwds)
+            except:
+                r = np.nan
+
+            return self.obj._constructor_sliced(r, index=self.agg_axis)
         else:
             return self.obj.copy()
 
