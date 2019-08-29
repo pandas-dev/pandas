@@ -178,11 +178,12 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []  # type: List[str]
     _is_copy = None
     _data = None  # type: BlockManager
-    _AXIS_ALIASES = None  # type: Dict[str, int]
-    _AXIS_NAMES = None  # type: Dict[int, str]
-    _AXIS_NUMBERS = None  # type: Dict[str, int]
-    _AXIS_REVERSED = None
-    _AXIS_LEN = None  # type: int
+    if TYPE_CHECKING:
+        _AXIS_ALIASES = None  # type: Dict[str, int]
+        _AXIS_NAMES = None  # type: Dict[int, str]
+        _AXIS_NUMBERS = None  # type: Dict[str, int]
+        _AXIS_REVERSED = None
+        _AXIS_LEN = None  # type: int
 
     # ----------------------------------------------------------------------
     # Constructors

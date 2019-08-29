@@ -1170,8 +1170,16 @@ def test_extension_array_cross_section_converts():
     "idxr, error, error_message",
     [
         (lambda x: x, AbstractMethodError, None),
-        (lambda x: x.loc, AttributeError, "'NoneType' object has no attribute 'get'"),
-        (lambda x: x.iloc, AttributeError, "'NoneType' object has no attribute 'get'"),
+        (
+            lambda x: x.loc,
+            AttributeError,
+            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
+        ),
+        (
+            lambda x: x.iloc,
+            AttributeError,
+            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
+        ),
     ],
 )
 def test_ndframe_indexing_raises(idxr, error, error_message):
