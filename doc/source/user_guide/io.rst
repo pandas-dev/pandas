@@ -4702,7 +4702,7 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype. 
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
 * The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
