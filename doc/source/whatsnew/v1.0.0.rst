@@ -76,6 +76,7 @@ Performance improvements
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
 - Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
+- Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 
 
 .. _whatsnew_1000.bug_fixes:
@@ -140,7 +141,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in assignment using a reverse slicer (:issue:`26939`)
 -
 
 Missing
@@ -158,7 +159,8 @@ MultiIndex
 I/O
 ^^^
 
--
+- :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
+- Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 -
 
 Plotting
@@ -168,6 +170,7 @@ Plotting
 -
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
+- Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -204,6 +207,8 @@ ExtensionArray
 Other
 ^^^^^
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+- Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 
 
 .. _whatsnew_1000.contributors:
