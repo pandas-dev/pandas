@@ -458,7 +458,7 @@ def is_dataclass_instance(item):
 
     Parameters
     ----------
-    item : the object to check
+    item : object
 
     Returns
     --------
@@ -470,8 +470,8 @@ def is_dataclass_instance(item):
     --------
     >>> @dataclass
     >>> class Point:
-    >>>     x: int
-    >>>     y: int
+    ...     x: int
+    ...     y: int
 
     >>> is_dataclass_instance(Point)
     False
