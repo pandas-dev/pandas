@@ -118,7 +118,7 @@ partners:
     employs: "Wes McKinney"
   - name: "Ursa Labs"
     url: https://ursalabs.org/
-    logo: /static/img/partners/ursa_labs.png
+    logo: /static/img/partners/ursa_labs.svg
     employs: "Wes McKinney, Joris Van den Bossche"
   - name: "Tidelift"
     url: https://tidelift.com
