@@ -2119,7 +2119,7 @@ class DataFrame(NDFrame):
         fname,
         engine="auto",
         compression="snappy",
-        index=None,
+        index=True,
         partition_cols=None,
         **kwargs
     ):
@@ -2148,10 +2148,9 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-        index : bool, default None
+        index : bool, default True
             If ``True``, include the dataframe's index(es) in the file output.
-            If ``False``, they will not be written to the file. If ``None``,
-            the behavior depends on the chosen engine.
+            If ``False``, they will not be written to the file.
 
             .. versionadded:: 0.24.0
 

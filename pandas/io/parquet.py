@@ -206,7 +206,7 @@ def to_parquet(
     path,
     engine="auto",
     compression="snappy",
-    index=None,
+    index=True,
     partition_cols=None,
     **kwargs
 ):
@@ -228,10 +228,9 @@ def to_parquet(
         'pyarrow' is unavailable.
     compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
-    index : bool, default None
+    index : bool, default True
         If ``True``, include the dataframe's index(es) in the file output. If
-        ``False``, they will not be written to the file. If ``None``, the
-        engine's default behavior will be used.
+        ``False``, they will not be written to the file.
 
         .. versionadded:: 0.24.0
 
