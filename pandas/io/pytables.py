@@ -429,7 +429,6 @@ def _is_metadata_of(group, parent_group):
 
 
 class HDFStore:
-
     """
     Dict-like IO interface for storing pandas objects in PyTables.
 
@@ -1546,7 +1545,6 @@ class HDFStore:
 
 
 class TableIterator:
-
     """ define the iteration interface on a table
 
         Parameters
@@ -1654,7 +1652,6 @@ class TableIterator:
 
 
 class IndexCol:
-
     """ an index column description class
 
         Parameters
@@ -1968,7 +1965,6 @@ class IndexCol:
 
 
 class GenericIndexCol(IndexCol):
-
     """ an index which is not represented in the data of the table """
 
     @property
@@ -2006,7 +2002,6 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-
     """ a data holding column, by definition this is not indexable
 
         Parameters
@@ -2456,7 +2451,6 @@ class DataCol(IndexCol):
 
 
 class DataIndexableCol(DataCol):
-
     """ represent a data column that can be indexed """
 
     is_data_indexable = True
@@ -2479,7 +2473,6 @@ class DataIndexableCol(DataCol):
 
 
 class GenericDataIndexableCol(DataIndexableCol):
-
     """ represent a generic pytables data column """
 
     def get_attr(self):
@@ -2487,7 +2480,6 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-
     """ represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
@@ -2655,7 +2647,6 @@ class Fixed:
 
 
 class GenericFixed(Fixed):
-
     """ a generified fixed version """
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
@@ -3252,7 +3243,6 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-
     """ represent a table:
           facilitate read/write of various types of tables
 
@@ -4127,7 +4117,6 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-
     """ a write-once read-many table: this format DOES NOT ALLOW appending to a
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
@@ -4149,7 +4138,6 @@ class WORMTable(Table):
 
 
 class LegacyTable(Table):
-
     """ an appendable table: allow append/query/delete operations to a
           (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
@@ -4603,7 +4591,6 @@ class GenericTable(AppendableFrameTable):
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
-
     """ a frame with a multi-index """
 
     table_type = "appendable_multiframe"
@@ -4962,7 +4949,6 @@ def _need_convert(kind):
 
 
 class Selection:
-
     """
     Carries out a selection operation on a tables.Table object.
 
