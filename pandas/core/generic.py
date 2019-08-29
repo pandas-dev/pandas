@@ -5271,31 +5271,23 @@ class NDFrame(PandasObject, SelectionMixin):
         if inplace:
             self._consolidate_inplace()
         else:
-
-            def f():
-                return self._data.consolidate()
-
+            f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self):
-        def f():
-            return self._data.is_mixed_type
-
+        f = lambda: self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self):
-        def f():
-            return self._data.is_numeric_mixed_type
-
+        f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_datelike_mixed_type(self):
-        def f():
-            return self._data.is_datelike_mixed_type
+        f = lambda: self._data.is_datelike_mixed_type
 
         return self._protect_consolidate(f)
 
@@ -10425,10 +10417,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
-
-        def applyf(x):
-            return method(x, axis=axis, skipna=skipna, **kwargs)
-
+        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
     @classmethod
