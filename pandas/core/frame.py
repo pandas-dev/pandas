@@ -387,7 +387,7 @@ class DataFrame(NDFrame):
     # Constructors
 
     def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False):
-        if data is None and index is not None and columns is not None:
+        if data is None and index is not None and columns is not None and dtype is None:
             data = np.nan
 
         if data is None:
