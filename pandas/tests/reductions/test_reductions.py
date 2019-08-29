@@ -636,8 +636,13 @@ class TestSeriesReductions:
         assert pd.isna(result)
 
         # timedelta64[ns]
-        result = getattr(Series(dtype="m8[ns]"), method)()
-        assert result is pd.NaT
+        tdser = Series([], dtype="m8[ns]")
+        if method == "var":
+            with pytest.raises(TypeError, match="`var` is not supported"):
+                getattr(tdser, method)()
+        else:
+            result = getattr(tdser, method)()
+            assert result is pd.NaT
 
     def test_nansum_buglet(self):
         ser = Series([1.0, np.nan], index=[0, 1])

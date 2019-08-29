@@ -4015,6 +4015,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+        if name == "var" and is_timedelta64_dtype(self.dtype):
+            raise TypeError(
+                "`var` is not supported for timedelta64[ns] dtype.  "
+                "`std` is available."
+            )
+
         delegate = self._values
 
         if axis is not None:
