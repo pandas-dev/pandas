@@ -576,7 +576,6 @@ class MMapWrapper(BaseIterator):
 
 
 class UTF8Recoder(BaseIterator):
-
     """
     Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """
