@@ -45,7 +45,7 @@ def get_time_micros(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_field_sarray(const int64_t[:] dtindex):
+def build_field_sarray(int64_t[:] dtindex):
     """
     Datetime as int64 representation to a structured array of fields
     """
@@ -87,7 +87,7 @@ def build_field_sarray(const int64_t[:] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(const int64_t[:] dtindex, object field, object locale=None):
+def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
@@ -137,7 +137,7 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_start_end_field(const int64_t[:] dtindex, object field,
+def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
@@ -171,7 +171,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
-        # month of year. Other offsets use month, startingMonth as ending
+        # month of year. Other offests use month, startingMonth as ending
         # month of year.
 
         if (freqstr[0:2] in ['MS', 'QS', 'AS']) or (
@@ -380,7 +380,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(const int64_t[:] dtindex, object field):
+def get_date_field(int64_t[:] dtindex, object field):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -542,7 +542,7 @@ def get_date_field(const int64_t[:] dtindex, object field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_timedelta_field(const int64_t[:] tdindex, object field):
+def get_timedelta_field(int64_t[:] tdindex, object field):
     """
     Given a int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.

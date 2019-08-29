@@ -10,14 +10,12 @@ def test_index_equal_levels_mismatch():
 
 Index levels are different
 \\[left\\]:  1, Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: 2, MultiIndex\\(\\[\\('A', 1\\),
-            \\('A', 2\\),
-            \\('B', 3\\),
-            \\('B', 4\\)\\],
-           \\)"""
+\\[right\\]: 2, MultiIndex\\(levels=\\[\\['A', 'B'\\], \\[1, 2, 3, 4\\]\\],
+           codes=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
 
     idx1 = Index([1, 2, 3])
-    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
+                                   ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
         assert_index_equal(idx1, idx2, exact=False)
@@ -30,8 +28,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
-    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
+    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2),
+                                   ("B", 3), ("B", 4)])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
+                                   ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
         assert_index_equal(idx1, idx2, check_exact=check_exact)
@@ -66,7 +66,7 @@ Index classes are different
 
 
 def test_index_equal_values_close(check_exact):
-    idx1 = Index([1, 2, 3.0])
+    idx1 = Index([1, 2, 3.])
     idx2 = Index([1, 2, 3.0000000001])
 
     if check_exact:
@@ -83,9 +83,10 @@ Index values are different \\(33\\.33333 %\\)
 
 
 def test_index_equal_values_less_close(check_exact, check_less_precise):
-    idx1 = Index([1, 2, 3.0])
+    idx1 = Index([1, 2, 3.])
     idx2 = Index([1, 2, 3.0001])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    kwargs = dict(check_exact=check_exact,
+                  check_less_precise=check_less_precise)
 
     if check_exact or not check_less_precise:
         msg = """Index are different
@@ -103,7 +104,8 @@ Index values are different \\(33\\.33333 %\\)
 def test_index_equal_values_too_far(check_exact, check_less_precise):
     idx1 = Index([1, 2, 3])
     idx2 = Index([1, 2, 4])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    kwargs = dict(check_exact=check_exact,
+                  check_less_precise=check_less_precise)
 
     msg = """Index are different
 
@@ -116,9 +118,12 @@ Index values are different \\(33\\.33333 %\\)
 
 
 def test_index_equal_level_values_mismatch(check_exact, check_less_precise):
-    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
-    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2),
+                                   ("B", 3), ("B", 4)])
+    idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2),
+                                   ("B", 3), ("B", 4)])
+    kwargs = dict(check_exact=check_exact,
+                  check_less_precise=check_less_precise)
 
     msg = """MultiIndex level \\[1\\] are different
 
@@ -130,10 +135,9 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
         assert_index_equal(idx1, idx2, **kwargs)
 
 
-@pytest.mark.parametrize(
-    "name1,name2",
-    [(None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)],
-)
+@pytest.mark.parametrize("name1,name2", [
+    (None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)
+])
 def test_index_equal_names(name1, name2):
     msg = """Index are different
 

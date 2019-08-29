@@ -77,8 +77,6 @@ A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.a
    np.asarray(sparr)
 
 
-.. _sparse.dtype:
-
 SparseDtype
 -----------
 
@@ -116,7 +114,7 @@ in many places
 
 .. _sparse.accessor:
 
-Sparse accessor
+Sparse Accessor
 ---------------
 
 .. versionadded:: 0.24.0
@@ -142,7 +140,7 @@ See :ref:`api.frame.sparse` for more.
 
 .. _sparse.calculation:
 
-Sparse calculation
+Sparse Calculation
 ------------------
 
 You can apply NumPy `ufuncs <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
@@ -239,7 +237,7 @@ Sparse-specific properties, like ``density``, are available on the ``.sparse`` a
 
    df.sparse.density
 
-**General differences**
+**General Differences**
 
 In a ``SparseDataFrame``, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
 sparse and dense columns. As a consequence, assigning new columns to a ``DataFrame`` with sparse
@@ -370,7 +368,7 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
 .. _sparse.subclasses:
 
-Sparse subclasses
+Sparse Subclasses
 -----------------
 
 The :class:`SparseSeries` and :class:`SparseDataFrame` classes are deprecated. Visit their

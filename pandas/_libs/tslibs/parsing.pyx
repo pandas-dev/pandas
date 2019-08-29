@@ -8,7 +8,6 @@ from io import StringIO
 from libc.string cimport strchr
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport PyObject_Str, PyUnicode_Join
 
@@ -608,8 +607,7 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
         object[:] result
 
     n = len(dates)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(times) != n:
+    if len(times) != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -645,8 +643,7 @@ def try_parse_year_month_day(object[:] years, object[:] months,
         object[:] result
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
+    if len(months) != n or len(days) != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -671,10 +668,8 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
-            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
-            <Py_ssize_t>len(seconds) != n):
+    if (len(months) != n or len(days) != n or len(hours) != n or
+            len(minutes) != n or len(seconds) != n):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 

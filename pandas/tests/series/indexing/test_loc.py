@@ -6,16 +6,21 @@ from pandas import Series, Timestamp
 from pandas.util.testing import assert_series_equal
 
 
-@pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
+@pytest.mark.parametrize("val,expected", [
+    (2**63 - 1, 3),
+    (2**63, 4),
+])
 def test_loc_uint64(val, expected):
     # see gh-19399
-    s = Series({2 ** 63 - 1: 3, 2 ** 63: 4})
+    s = Series({2**63 - 1: 3, 2**63: 4})
     assert s.loc[val] == expected
 
 
 def test_loc_getitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
-    assert_series_equal(test_data.series.loc[inds], test_data.series.reindex(inds))
+    assert_series_equal(
+        test_data.series.loc[inds],
+        test_data.series.reindex(inds))
     assert_series_equal(test_data.series.iloc[5::2], test_data.series[5::2])
 
     # slice with indices
@@ -94,7 +99,7 @@ def test_loc_setitem_corner(test_data):
     test_data.series.loc[inds] = 5
     msg = r"\['foo'\] not in index"
     with pytest.raises(KeyError, match=msg):
-        test_data.series.loc[inds + ["foo"]] = 5
+        test_data.series.loc[inds + ['foo']] = 5
 
 
 def test_basic_setitem_with_labels(test_data):
@@ -108,8 +113,8 @@ def test_basic_setitem_with_labels(test_data):
 
     cp = test_data.ts.copy()
     exp = test_data.ts.copy()
-    cp[indices[0] : indices[2]] = 0
-    exp.loc[indices[0] : indices[2]] = 0
+    cp[indices[0]:indices[2]] = 0
+    exp.loc[indices[0]:indices[2]] = 0
     assert_series_equal(cp, exp)
 
     # integer indexes, be careful
@@ -139,13 +144,12 @@ def test_basic_setitem_with_labels(test_data):
 
     # GH12089
     # with tz for values
-    s = Series(
-        pd.date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
-    )
+    s = Series(pd.date_range("2011-01-01", periods=3, tz="US/Eastern"),
+               index=['a', 'b', 'c'])
     s2 = s.copy()
-    expected = Timestamp("2011-01-03", tz="US/Eastern")
-    s2.loc["a"] = expected
-    result = s2.loc["a"]
+    expected = Timestamp('2011-01-03', tz='US/Eastern')
+    s2.loc['a'] = expected
+    result = s2.loc['a']
     assert result == expected
 
     s2 = s.copy()
@@ -154,6 +158,6 @@ def test_basic_setitem_with_labels(test_data):
     assert result == expected
 
     s2 = s.copy()
-    s2["a"] = expected
-    result = s2["a"]
+    s2['a'] = expected
+    result = s2['a']
     assert result == expected

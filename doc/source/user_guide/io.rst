@@ -13,7 +13,7 @@
 
 
 ===============================
-IO tools (text, CSV, HDF5, ...)
+IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like
@@ -28,19 +28,16 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
-    text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
-    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
-    binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
     SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
@@ -54,7 +51,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. _io.read_csv_table:
 
-CSV & text files
+CSV & Text files
 ----------------
 
 The workhorse function for reading text files (a.k.a. flat files) is
@@ -89,7 +86,9 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
-Column and index locations and names
+  .. versionadded:: 0.18.1 support for the Python parser.
+
+Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++
 
 header : int or list of ints, default ``'infer'``
@@ -109,7 +108,8 @@ header : int or list of ints, default ``'infer'``
   line of data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed.
+  explicitly pass ``header=None``. Duplicates in this list will cause
+  a ``UserWarning`` to be issued.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -155,7 +155,7 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
-General parsing configuration
+General Parsing Configuration
 +++++++++++++++++++++++++++++
 
 dtype : Type name or dict of column -> type, default ``None``
@@ -211,7 +211,7 @@ memory_map : boolean, default False
   directly onto memory and access the data directly from there. Using this
   option can improve performance because there is no longer any I/O overhead.
 
-NA and missing data handling
+NA and Missing Data Handling
 ++++++++++++++++++++++++++++
 
 na_values : scalar, str, list-like, or dict, default ``None``
@@ -243,7 +243,7 @@ verbose : boolean, default ``False``
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
 
-Datetime handling
+Datetime Handling
 +++++++++++++++++
 
 parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
@@ -263,7 +263,7 @@ keep_date_col : boolean, default ``False``
 date_parser : function, default ``None``
   Function to use for converting a sequence of string columns to an array of
   datetime instances. The default uses ``dateutil.parser.parser`` to do the
-  conversion. pandas will try to call date_parser in three different ways,
+  conversion. Pandas will try to call date_parser in three different ways,
   advancing to the next if an exception occurs: 1) Pass one or more arrays (as
   defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
   values from the columns defined by parse_dates into a single array and pass
@@ -288,7 +288,7 @@ chunksize : int, default ``None``
   Return `TextFileReader` object for iteration. See :ref:`iterating and chunking
   <io.chunking>` below.
 
-Quoting, compression, and file format
+Quoting, Compression, and File Format
 +++++++++++++++++++++++++++++++++++++
 
 compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``}, default ``'infer'``
@@ -298,6 +298,7 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression.
 
+  .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
 thousands : str, default ``None``
   Thousands separator.
@@ -339,8 +340,15 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
+tupleize_cols : boolean, default ``False``
+    .. deprecated:: 0.21.0
 
-Error handling
+    This argument will be removed and will always convert to MultiIndex
+
+  Leave a list of tuples on columns as is (default is to convert to a MultiIndex
+  on the columns).
+
+Error Handling
 ++++++++++++++
 
 error_bad_lines : boolean, default ``True``
@@ -452,8 +460,10 @@ worth trying.
 
 .. _io.categorical:
 
-Specifying categorical dtype
+Specifying Categorical dtype
 ''''''''''''''''''''''''''''
+
+.. versionadded:: 0.19.0
 
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
 ``dtype=CategoricalDtype(categories, ordered)``.
@@ -478,7 +488,7 @@ specification:
 
 .. versionadded:: 0.21.0
 
-Specifying ``dtype='category'`` will result in an unordered ``Categorical``
+Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
@@ -519,7 +529,7 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df['col3']
 
 
-Naming and using columns
+Naming and Using Columns
 ''''''''''''''''''''''''
 
 .. _io.headers:
@@ -636,7 +646,7 @@ use in the final result:
 In this case, the callable is specifying that we exclude the "a" and "c"
 columns from the output.
 
-Comments and empty lines
+Comments and Empty Lines
 ''''''''''''''''''''''''
 
 .. _io.skiplines:
@@ -749,7 +759,7 @@ We can suppress the comments using the ``comment`` keyword:
 
 .. _io.unicode:
 
-Dealing with Unicode data
+Dealing with Unicode Data
 '''''''''''''''''''''''''
 
 The ``encoding`` argument should be used for encoded unicode data, which will
@@ -824,7 +834,7 @@ If a subset of data is being parsed using the ``usecols`` option, the
 Date Handling
 '''''''''''''
 
-Specifying date columns
+Specifying Date Columns
 +++++++++++++++++++++++
 
 To better facilitate working with datetime data, :func:`read_csv`
@@ -937,7 +947,7 @@ data columns:
    specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
-Date parsing functions
+Date Parsing Functions
 ++++++++++++++++++++++
 
 Finally, the parser allows you to specify a custom ``date_parser`` function to
@@ -991,7 +1001,7 @@ a single date rather than the entire array.
 
 .. _io.csv.mixed_timezones:
 
-Parsing a CSV with mixed timezones
+Parsing a CSV with mixed Timezones
 ++++++++++++++++++++++++++++++++++
 
 Pandas cannot natively represent a column or index with mixed timezones. If your CSV
@@ -1021,7 +1031,7 @@ To parse the mixed-timezone values as a datetime column, pass a partially-applie
 .. _io.dayfirst:
 
 
-Inferring datetime format
+Inferring Datetime Format
 +++++++++++++++++++++++++
 
 If you have ``parse_dates`` enabled for some or all of your columns, and your
@@ -1060,7 +1070,7 @@ Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
 
    os.remove('foo.csv')
 
-International date formats
+International Date Formats
 ++++++++++++++++++++++++++
 
 While US date formats tend to be MM/DD/YYYY, many international formats use
@@ -1108,7 +1118,7 @@ writing to a file). For example:
 
 .. _io.thousands:
 
-Thousand separators
+Thousand Separators
 '''''''''''''''''''
 
 For large numbers that have been written with a thousands separator, you can
@@ -1153,7 +1163,7 @@ The ``thousands`` keyword allows integers to be parsed correctly:
 
 .. _io.na_values:
 
-NA values
+NA Values
 '''''''''
 
 To control which values are parsed as missing values (which are signified by
@@ -1373,10 +1383,9 @@ should pass the ``escapechar`` option:
    print(data)
    pd.read_csv(StringIO(data), escapechar='\\')
 
-.. _io.fwf_reader:
 .. _io.fwf:
 
-Files with fixed width columns
+Files with Fixed Width Columns
 ''''''''''''''''''''''''''''''
 
 While :func:`read_csv` reads delimited data, the :func:`read_fwf` function works
@@ -1670,14 +1679,14 @@ S3 URLs are handled as well but require installing the `S3Fs
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
 
-If your S3 bucket requires credentials you will need to set them as environment
+If your S3 bucket requires cedentials you will need to set them as environment
 variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
 documentation on credentials
 <https://s3fs.readthedocs.io/en/latest/#credentials>`_.
 
 
 
-Writing out data
+Writing out Data
 ''''''''''''''''
 
 .. _io.store_in_csv:
@@ -1709,6 +1718,8 @@ function takes a number of arguments. Only the first is required.
 * ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
+* ``tupleize_cols``: If False (default), write as a list of tuples, otherwise
+  write in an expanded line format suitable for ``read_csv``
 * ``date_format``: Format string for datetime objects
 
 Writing a formatted string
@@ -1794,7 +1805,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
    json = dfj.to_json()
    json
 
-Orient options
+Orient Options
 ++++++++++++++
 
 There are a number of different options for the format of the resulting JSON
@@ -1858,7 +1869,7 @@ preservation of metadata including but not limited to dtypes and index names.
   index and column labels during round-trip serialization. If you wish to preserve
   label ordering use the `split` option as it uses ordered containers.
 
-Date handling
+Date Handling
 +++++++++++++
 
 Writing in ISO date format:
@@ -1899,7 +1910,7 @@ Writing to a file, with a date index and a date column:
    with open('test.json') as fh:
        print(fh.read())
 
-Fallback behavior
+Fallback Behavior
 +++++++++++++++++
 
 If the JSON serializer cannot handle the container contents directly it will
@@ -1992,7 +2003,7 @@ If a non-default ``orient`` was used when encoding to JSON be sure to pass the s
 option here so that decoding produces sensible results, see `Orient Options`_ for an
 overview.
 
-Data conversion
+Data Conversion
 +++++++++++++++
 
 The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True``
@@ -2067,7 +2078,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 
    json = dfj2.to_json(date_unit='ns')
 
-   # Try to parse timestamps as milliseconds -> Won't Work
+   # Try to parse timestamps as millseconds -> Won't Work
    dfju = pd.read_json(json, date_unit='ms')
    dfju
 
@@ -2079,7 +2090,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    dfju = pd.read_json(json, date_unit='ns')
    dfju
 
-The Numpy parameter
+The Numpy Parameter
 +++++++++++++++++++
 
 .. note::
@@ -2175,23 +2186,12 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
-The max_level parameter provides more control over which level to end normalization.
-With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
-
-.. ipython:: python
-
-    data = [{'CreatedBy': {'Name': 'User001'},
-             'Lookup': {'TextField': 'Some text',
-                        'UserField': {'Id': 'ID001',
-                                      'Name': 'Name001'}},
-             'Image': {'a': 'b'}
-             }]
-    json_normalize(data, max_level=1)
-
 .. _io.jsonl:
 
 Line delimited json
 '''''''''''''''''''
+
+.. versionadded:: 0.19.0
 
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
@@ -2218,7 +2218,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
 
 .. _io.table_schema:
 
-Table schema
+Table Schema
 ''''''''''''
 
 .. versionadded:: 0.20.0
@@ -2378,7 +2378,7 @@ HTML
 
 .. _io.read_html:
 
-Reading HTML content
+Reading HTML Content
 ''''''''''''''''''''''
 
 .. warning::
@@ -2490,11 +2490,15 @@ Specify values that should be converted to NaN:
 
    dfs = pd.read_html(url, na_values=['No Acquirer'])
 
+.. versionadded:: 0.19
+
 Specify whether to keep the default set of NaN values:
 
 .. code-block:: python
 
    dfs = pd.read_html(url, keep_default_na=False)
+
+.. versionadded:: 0.19
 
 Specify converters for columns. This is useful for numerical text data that has
 leading zeros.  By default columns that are numerical are cast to numeric
@@ -2506,6 +2510,8 @@ columns to strings.
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
    dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
                       converters={'MNC': str})
+
+.. versionadded:: 0.19
 
 Use some combination of the above:
 
@@ -2782,17 +2788,16 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
-files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``.
-The :meth:`~DataFrame.to_excel` instance method is used for
+The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
+Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
+module.  The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
 .. _io.excel_reader:
 
-Reading Excel files
+Reading Excel Files
 '''''''''''''''''''
 
 In the most basic use-case, ``read_excel`` takes a path to an Excel
@@ -2874,7 +2879,7 @@ with ``on_demand=True``.
 
 .. _io.excel.specifying_sheets:
 
-Specifying sheets
+Specifying Sheets
 +++++++++++++++++
 
 .. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
@@ -2975,7 +2980,7 @@ should be passed to ``index_col`` and ``header``:
    os.remove('path_to_file.xlsx')
 
 
-Parsing specific columns
+Parsing Specific Columns
 ++++++++++++++++++++++++
 
 It is often the case that users will insert columns to do temporary computations
@@ -3030,7 +3035,7 @@ the column names, returning names where the callable function evaluates to ``Tru
 
     pd.read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
-Parsing dates
+Parsing Dates
 +++++++++++++
 
 Datetime-like values are normally automatically converted to the appropriate
@@ -3043,7 +3048,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
    pd.read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
 
 
-Cell converters
+Cell Converters
 +++++++++++++++
 
 It is possible to transform the contents of Excel cells via the ``converters``
@@ -3068,7 +3073,7 @@ missing data to recover integer dtype:
 
    pd.read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
-Dtype specifications
+dtype Specifications
 ++++++++++++++++++++
 
 .. versionadded:: 0.20
@@ -3084,10 +3089,10 @@ no type inference, use the type ``str`` or ``object``.
 
 .. _io.excel_writer:
 
-Writing Excel files
+Writing Excel Files
 '''''''''''''''''''
 
-Writing Excel files to disk
+Writing Excel Files to Disk
 +++++++++++++++++++++++++++
 
 To write a ``DataFrame`` object to a sheet of an Excel file, you can use the
@@ -3133,7 +3138,7 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 
 .. _io.excel_writing_buffer:
 
-Writing Excel files to memory
+Writing Excel Files to Memory
 +++++++++++++++++++++++++++++
 
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
@@ -3213,7 +3218,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
 .. _io.excel.style:
 
-Style and formatting
+Style and Formatting
 ''''''''''''''''''''
 
 The look and feel of Excel worksheets created from pandas can be modified using the following parameters on the ``DataFrame``'s ``to_excel`` method.
@@ -3221,31 +3226,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
-Using the `Xlsxwriter`_ engine provides many options for controlling the
-format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
-`Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html
 
-.. _io.ods:
-
-OpenDocument Spreadsheets
--------------------------
-
-.. versionadded:: 0.25
-
-The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
-using the ``odfpy`` module. The semantics and features for reading
-OpenDocument spreadsheets match what can be done for `Excel files`_ using
-``engine='odf'``.
-
-.. code-block:: python
-
-   # Returns a DataFrame
-   pd.read_excel('path_to_file.ods', engine='odf')
-
-.. note::
-
-   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
-   is not implemented.
 
 .. _io.clipboard:
 
@@ -3268,35 +3249,24 @@ And then import the data directly to a ``DataFrame`` by calling:
 
 .. code-block:: python
 
-    >>> clipdf = pd.read_clipboard()
-    >>> clipdf
-      A B C
-    x 1 4 p
-    y 2 5 q
-    z 3 6 r
+   clipdf = pd.read_clipboard()
+
+.. ipython:: python
+
+   clipdf
+
 
 The ``to_clipboard`` method can be used to write the contents of a ``DataFrame`` to
 the clipboard. Following which you can paste the clipboard contents into other
 applications (CTRL-V on many operating systems). Here we illustrate writing a
 ``DataFrame`` into clipboard and reading it back.
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> df = pd.DataFrame({'A': [1, 2, 3],
-    ...                    'B': [4, 5, 6],
-    ...                    'C': ['p', 'q', 'r']},
-    ...                   index=['x', 'y', 'z'])
-    >>> df
-      A B C
-    x 1 4 p
-    y 2 5 q
-    z 3 6 r
-    >>> df.to_clipboard()
-    >>> pd.read_clipboard()
-      A B C
-    x 1 4 p
-    y 2 5 q
-    z 3 6 r
+    df = pd.DataFrame(np.random.randn(5, 3))
+    df
+    df.to_clipboard()
+    pd.read_clipboard()
 
 We can see that we got the same content back, which we had earlier written to the clipboard.
 
@@ -3338,7 +3308,16 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to pandas version 0.20.3
+   Several internal refactoring have been done while still preserving
+   compatibility with pickles created with older versions of pandas. However,
+   for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
+   ``pd.read_pickle``, rather than ``pickle.load``.
+
+   See `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   for some examples of compatibility-breaking changes. See
+   `this question <https://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   for a detailed explanation.
 
 .. _io.pickle.compression:
 
@@ -3412,15 +3391,11 @@ both on the writing (serialization), and reading (deserialization).
 
 .. warning::
 
-   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
-   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
-
-.. warning::
-
-   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
+   This is a very new feature of pandas. We intend to provide certain
+   optimizations in the io of the ``msgpack`` data. Since this is marked
+   as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
 .. ipython:: python
-   :okwarning:
 
    df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
    df.to_msgpack('foo.msg')
@@ -3430,7 +3405,6 @@ both on the writing (serialization), and reading (deserialization).
 You can pass a list of objects and you will receive them back on deserialization.
 
 .. ipython:: python
-   :okwarning:
 
    pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
    pd.read_msgpack('foo.msg')
@@ -3438,7 +3412,6 @@ You can pass a list of objects and you will receive them back on deserialization
 You can pass ``iterator=True`` to iterate over the unpacked results:
 
 .. ipython:: python
-   :okwarning:
 
    for o in pd.read_msgpack('foo.msg', iterator=True):
        print(o)
@@ -3446,7 +3419,6 @@ You can pass ``iterator=True`` to iterate over the unpacked results:
 You can pass ``append=True`` to the writer to append to an existing pack:
 
 .. ipython:: python
-   :okwarning:
 
    df.to_msgpack('foo.msg', append=True)
    pd.read_msgpack('foo.msg')
@@ -3457,7 +3429,6 @@ can pack arbitrary collections of Python lists, dicts, scalars, while intermixin
 pandas objects.
 
 .. ipython:: python
-   :okwarning:
 
    pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
                                        {'scalar': 1.}, {'s': s}]})
@@ -3470,22 +3441,20 @@ pandas objects.
    os.remove('foo.msg')
    os.remove('foo2.msg')
 
-Read/write API
+Read/Write API
 ''''''''''''''
 
 Msgpacks can also be read from and written to strings.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_msgpack()
 
 Furthermore you can concatenate the strings to produce a list of the original objects.
 
 .. ipython:: python
-   :okwarning:
 
-   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+  pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
 
 .. _io.hdf5:
 
@@ -3571,10 +3540,10 @@ Closing a Store and using a context manager:
 
 
 
-Read/write API
+Read/Write API
 ''''''''''''''
 
-``HDFStore`` supports a top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
+``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
 similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
@@ -3617,7 +3586,7 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
 .. _io.hdf5-fixed:
 
-Fixed format
+Fixed Format
 ''''''''''''
 
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
@@ -3641,7 +3610,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
 .. _io.hdf5-table:
 
-Table format
+Table Format
 ''''''''''''
 
 ``HDFStore`` supports another ``PyTables`` format on disk, the ``table``
@@ -3683,13 +3652,13 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. _io.hdf5-keys:
 
-Hierarchical keys
+Hierarchical Keys
 '''''''''''''''''
 
 Keys to a store can be specified as a string. These can be in a
 hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
 generate a hierarchy of sub-stores (or ``Groups`` in PyTables
-parlance). Keys can be specified without the leading '/' and are **always**
+parlance). Keys can be specified with out the leading '/' and are **always**
 absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
 everything in the sub-store and **below**, so be *careful*.
 
@@ -3750,10 +3719,10 @@ will yield a tuple for each group key along with the relative keys of its conten
 
 .. _io.hdf5-types:
 
-Storing types
+Storing Types
 '''''''''''''
 
-Storing mixed types in a table
+Storing Mixed Types in a Table
 ++++++++++++++++++++++++++++++
 
 Storing mixed-dtype data is supported. Strings are stored as a
@@ -3783,7 +3752,7 @@ defaults to `nan`.
     store.append('df_mixed', df_mixed, min_itemsize={'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
-    df_mixed1.dtypes.value_counts()
+    df_mixed1.get_dtype_counts()
 
     # we have provided a minimum string column size
     store.root.df_mixed.table
@@ -3817,7 +3786,7 @@ storing/selecting from homogeneous index ``DataFrames``.
 Querying
 ''''''''
 
-Querying a table
+Querying a Table
 ++++++++++++++++
 
 ``select`` and ``delete`` operations have an optional criterion that can
@@ -3827,7 +3796,7 @@ data.
 
 A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
-* ``index`` and ``columns`` are supported indexers of ``DataFrames``.
+* ``index`` and ``columns`` are supported indexers of a ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
 
 Valid comparison operators are:
@@ -3919,7 +3888,7 @@ Use boolean expressions, with in-line function evaluation.
 
     store.select('dfq', "index>pd.Timestamp('20130104') & columns=['A', 'B']")
 
-Use inline column reference.
+Use and inline column reference
 
 .. ipython:: python
 
@@ -4023,7 +3992,7 @@ See `here <https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-fu
 
 .. _io.hdf5-query-data-columns:
 
-Query via data columns
+Query via Data Columns
 ++++++++++++++++++++++
 
 You can designate (and index) certain columns that you want to be able
@@ -4107,10 +4076,10 @@ chunks.
    for c in chunks(coordinates, 2):
        print(store.select('dfeq', where=c))
 
-Advanced queries
+Advanced Queries
 ++++++++++++++++
 
-Select a single column
+Select a Single Column
 ^^^^^^^^^^^^^^^^^^^^^^
 
 To retrieve a single indexable or data column, use the
@@ -4159,7 +4128,7 @@ a datetimeindex which are 5.
    where = c[pd.DatetimeIndex(c).month == 5].index
    store.select('df_mask', where=where)
 
-Storer object
+Storer Object
 ^^^^^^^^^^^^^
 
 If you want to inspect the stored object, retrieve via
@@ -4171,7 +4140,7 @@ of rows in an object.
    store.get_storer('df_dc').nrows
 
 
-Multiple table queries
+Multiple Table Queries
 ++++++++++++++++++++++
 
 The methods ``append_to_multiple`` and
@@ -4221,7 +4190,7 @@ results.
                             selector='df1_mt')
 
 
-Delete from a table
+Delete from a Table
 '''''''''''''''''''
 
 You can delete from a table selectively by specifying a ``where``. In
@@ -4263,7 +4232,7 @@ the table using a ``where`` that selects all but the missing data.
 
 .. _io.hdf5-notes:
 
-Notes & caveats
+Notes & Caveats
 '''''''''''''''
 
 
@@ -4413,7 +4382,7 @@ object : ``strings``                                    ``np.nan``
 
 .. _io.hdf5-categorical:
 
-Categorical data
+Categorical Data
 ++++++++++++++++
 
 You can write data that contains ``category`` dtypes to a ``HDFStore``.
@@ -4440,7 +4409,7 @@ stored in a more efficient manner.
    os.remove('cats.h5')
 
 
-String columns
+String Columns
 ++++++++++++++
 
 **min_itemsize**
@@ -4495,7 +4464,7 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
 
 .. _io.external_compatibility:
 
-External compatibility
+External Compatibility
 ''''''''''''''''''''''
 
 ``HDFStore`` writes ``table`` format objects in specific formats suitable for
@@ -4595,8 +4564,8 @@ Performance
   write chunksize (default is 50000). This will significantly lower
   your memory usage on writing.
 * You can pass ``expectedrows=<int>`` to the first ``append``,
-  to set the TOTAL number of rows that ``PyTables`` will expect.
-  This will optimize read/write performance.
+  to set the TOTAL number of expected rows that ``PyTables`` will
+  expected. This will optimize read/write performance.
 * Duplicate rows can be written to tables, but are filtered out in
   selection (with the last items being selected; thus a table is
   unique on major, minor pairs)
@@ -4734,7 +4703,6 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4752,7 +4720,6 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
@@ -4768,14 +4735,13 @@ Read only certain columns of a parquet file.
    os.remove('example_fp.parquet')
 
 
-Handling indexes
+Handling Indexes
 ''''''''''''''''
 
 Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4792,7 +4758,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 
@@ -4850,7 +4815,7 @@ The above example creates a partitioned dataset that may look like:
 
 .. _io.sql:
 
-SQL queries
+SQL Queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
@@ -5019,7 +4984,7 @@ will convert the data to UTC.
 
 .. _io.sql.method:
 
-Insertion method
+Insertion Method
 ++++++++++++++++
 
 .. versionadded:: 0.24.0
@@ -5076,7 +5041,7 @@ Example of a callable using PostgreSQL `COPY clause
               table_name, columns)
           cur.copy_expert(sql=sql, file=s_buf)
 
-Reading tables
+Reading Tables
 ''''''''''''''
 
 :func:`~pandas.read_sql_table` will read a database table given the
@@ -5296,12 +5261,12 @@ Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__.
 
 .. _io.stata:
 
-Stata format
+Stata Format
 ------------
 
 .. _io.stata_writer:
 
-Writing to stata format
+Writing to Stata format
 '''''''''''''''''''''''
 
 The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
@@ -5415,7 +5380,7 @@ values will have ``object`` data type.
 
 .. _io.stata-categorical:
 
-Categorical data
+Categorical Data
 ++++++++++++++++
 
 ``Categorical`` data can be exported to *Stata* data files as value labeled data.
@@ -5461,7 +5426,7 @@ whether imported ``Categorical`` variables are ordered.
 
 .. _io.sas_reader:
 
-SAS formats
+SAS Formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
@@ -5503,43 +5468,6 @@ web site.
 
 No official documentation is available for the SAS7BDAT format.
 
-.. _io.spss:
-
-.. _io.spss_reader:
-
-SPSS formats
-------------
-
-.. versionadded:: 0.25.0
-
-The top-level function :func:`read_spss` can read (but not write) SPSS
-`sav` (.sav) and  `zsav` (.zsav) format files.
-
-SPSS files contain column names. By default the
-whole file is read, categorical columns are converted into ``pd.Categorical``,
-and a ``DataFrame`` with all columns is returned.
-
-Specify the ``usecols`` parameter to obtain a subset of columns. Specify ``convert_categoricals=False``
-to avoid converting categorical columns into ``pd.Categorical``.
-
-Read an SPSS file:
-
-.. code-block:: python
-
-    df = pd.read_spss('spss_data.sav')
-
-Extract a subset of columns contained in ``usecols`` from an SPSS file and
-avoid converting categorical columns into ``pd.Categorical``:
-
-.. code-block:: python
-
-    df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
-                      convert_categoricals=False)
-
-More information about the `sav` and `zsav` file format is available here_.
-
-.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
-
 .. _io.other:
 
 Other file formats
@@ -5560,7 +5488,7 @@ easy conversion to and from pandas.
 
 .. _io.perf:
 
-Performance considerations
+Performance Considerations
 --------------------------
 
 This is an informal comparison of various IO methods, using pandas

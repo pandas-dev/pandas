@@ -67,8 +67,8 @@ Indexing, iteration
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
-   DataFrame.iteritems
    DataFrame.keys
+   DataFrame.iteritems
    DataFrame.iterrows
    DataFrame.itertuples
    DataFrame.lookup
@@ -115,7 +115,7 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
-Function application, GroupBy & window
+Function application, GroupBy & Window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -133,7 +133,7 @@ Function application, GroupBy & window
 
 .. _api.dataframe.stats:
 
-Computations / descriptive stats
+Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -177,7 +177,7 @@ Computations / descriptive stats
    DataFrame.var
    DataFrame.nunique
 
-Reindexing / selection / label manipulation
+Reindexing / Selection / Label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -198,6 +198,7 @@ Reindexing / selection / label manipulation
    DataFrame.idxmin
    DataFrame.last
    DataFrame.reindex
+   DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
    DataFrame.rename_axis
@@ -239,7 +240,6 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.swapaxes
    DataFrame.melt
-   DataFrame.explode
    DataFrame.squeeze
    DataFrame.to_xarray
    DataFrame.T
@@ -312,7 +312,7 @@ specific plotting methods of the form ``DataFrame.plot.<kind>``.
 
 .. _api.frame.sparse:
 
-Sparse accessor
+Sparse Accessor
 ~~~~~~~~~~~~~~~
 
 Sparse-dtype specific methods and attributes are provided under the
@@ -332,11 +332,12 @@ Sparse-dtype specific methods and attributes are provided under the
    DataFrame.sparse.to_dense
 
 
-Serialization / IO / conversion
+Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
+   DataFrame.from_csv
    DataFrame.from_dict
    DataFrame.from_items
    DataFrame.from_records

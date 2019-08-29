@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-Extending pandas
+Extending Pandas
 ****************
 
 While pandas provides a rich set of methods, containers, and data types, your
@@ -12,7 +12,7 @@ pandas.
 
 .. _extending.register-accessors:
 
-Registering custom accessors
+Registering Custom Accessors
 ----------------------------
 
 Libraries can use the decorators
@@ -70,7 +70,7 @@ applies only to certain dtypes.
 
 .. _extending.extension-types:
 
-Extension types
+Extension Types
 ---------------
 
 .. versionadded:: 0.23.0
@@ -208,28 +208,9 @@ will
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
 
-.. _extending.extension.ufunc:
-
-NumPy Universal Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:class:`Series` implements ``__array_ufunc__``. As part of the implementation,
-pandas unboxes the ``ExtensionArray`` from the :class:`Series`, applies the ufunc,
-and re-boxes it if necessary.
-
-If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
-extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
-for an example.
-
-As part of your implementation, we require that you defer to pandas when a pandas
-container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
-If any of those is present, you should return ``NotImplemented``. Pandas will take care of
-unboxing the array from the container and re-calling the ufunc with the unwrapped input.
-
 .. _extending.extension.testing:
 
-Testing extension arrays
+Testing Extension Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
@@ -257,7 +238,7 @@ for a list of all the tests available.
 
 .. _extending.subclassing-pandas:
 
-Subclassing pandas data structures
+Subclassing pandas Data Structures
 ----------------------------------
 
 .. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
@@ -279,7 +260,7 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 
    You can find a nice example in `geopandas <https://github.com/geopandas/geopandas>`_ project.
 
-Override constructor properties
+Override Constructor Properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each data structure has several *constructor properties* for returning a new
@@ -367,7 +348,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
 
-Define original properties
+Define Original Properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To let original data structures have additional properties, you should let ``pandas`` know what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
@@ -416,47 +397,3 @@ Below is an example to define two original properties, "internal_cache" as a tem
    # properties defined in _metadata are retained
    >>> df[['A', 'B']].added_property
    property
-
-.. _extending.plotting-backends:
-
-Plotting backends
------------------
-
-Starting in 0.25 pandas can be extended with third-party plotting backends. The
-main idea is letting users select a plotting backend different than the provided
-one based on Matplotlib. For example:
-
-.. code-block:: python
-
-    >>> pd.set_option('plotting.backend', 'backend.module')
-    >>> pd.Series([1, 2, 3]).plot()
-
-This would be more or less equivalent to:
-
-.. code-block:: python
-
-    >>> import backend.module
-    >>> backend.module.plot(pd.Series([1, 2, 3]))
-
-The backend module can then use other visualization tools (Bokeh, Altair,...)
-to generate the plots.
-
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
-to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
-registers the default "matplotlib" backend as follows.
-
-.. code-block:: python
-
-   # in setup.py
-   setup(  # noqa: F821
-       ...,
-       entry_points={
-           "pandas_plotting_backends": [
-               "matplotlib = pandas:plotting._matplotlib",
-           ],
-       },
-   )
-
-
-More information on how to implement a third-party plotting backend can be found at
-https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.

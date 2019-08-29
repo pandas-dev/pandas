@@ -5,6 +5,10 @@ v0.17.1 (November 21, 2015)
 
 {{ header }}
 
+.. ipython:: python
+   :suppress:
+
+
 
 .. note::
 
@@ -31,7 +35,7 @@ New features
 
 .. _whatsnew_0171.style:
 
-Conditional HTML formatting
+Conditional HTML Formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
@@ -61,7 +65,7 @@ We can render the HTML to get the following table.
    :file: whatsnew_0171_html_table.html
 
 :class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
-See the :ref:`documentation </user_guide/style.ipynb>` for more.
+See the :ref:`documentation </style.ipynb>` for more.
 
 .. _whatsnew_0171.enhancements:
 
@@ -135,7 +139,7 @@ Deprecations
 
 .. _whatsnew_0171.performance:
 
-Performance improvements
+Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
@@ -152,7 +156,7 @@ Performance improvements
 
 .. _whatsnew_0171.bug_fixes:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 - ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)

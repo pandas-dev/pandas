@@ -1,6 +1,5 @@
 import numpy as np
 from pandas import DataFrame
-
 try:
     from pandas.util import cache_readonly
 except ImportError:
@@ -8,6 +7,7 @@ except ImportError:
 
 
 class DataFrameAttributes:
+
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 6))
         self.cur_index = self.df.index
@@ -20,12 +20,14 @@ class DataFrameAttributes:
 
 
 class CacheReadonly:
+
     def setup(self):
+
         class Foo:
+
             @cache_readonly
             def prop(self):
                 return 5
-
         self.obj = Foo()
 
     def time_cache_readonly(self):

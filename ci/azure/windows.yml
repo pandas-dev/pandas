@@ -17,16 +17,12 @@ jobs:
         CONDA_PY: "37"
 
   steps:
-    - powershell: |
-        Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-        Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
-      displayName: 'Add conda to PATH'
+    - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+      displayName: Add conda to PATH
     - script: conda update -q -n base conda
       displayName: Update conda
-    - script: |
-        call activate
-        conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
-      displayName: 'Create anaconda environment'
+    - script: conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+      displayName: Create anaconda environment
     - script: |
         call activate pandas-dev
         call conda list
@@ -52,8 +48,4 @@ jobs:
           # note that this will produce $LASTEXITCODE=1
           Write-Error "$($matches[1]) tests failed"
         }
-      displayName: 'Check for test failures'
-    - script: |
-        source activate pandas-dev
-        python ci/print_skipped.py
-      displayName: 'Print skipped tests'
+      displayName: Check for test failures

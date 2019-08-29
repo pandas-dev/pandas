@@ -275,10 +275,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         - iso8601 string object
         - python datetime object
         - another timestamp object
-
-    Raises
-    ------
-    OutOfBoundsDatetime : ts cannot be converted within implementation bounds
     """
     cdef:
         _TSObject obj
@@ -298,11 +294,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
-        try:
-            ts = <int64_t>ts
-        except OverflowError:
-            # GH#26651 re-raise as OutOfBoundsDatetime
-            raise OutOfBoundsDatetime(ts)
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:

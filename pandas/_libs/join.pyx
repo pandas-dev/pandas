@@ -8,9 +8,8 @@ from numpy cimport (ndarray,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
-from pandas._libs.algos import (
-    groupsort_indexer, ensure_platform_int, take_1d_int64_int64
-)
+from pandas._libs.algos import groupsort_indexer, ensure_platform_int
+from pandas.core.algorithms import take_nd
 
 
 def inner_join(const int64_t[:] left, const int64_t[:] right,
@@ -68,8 +67,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray rev
+        ndarray[int64_t] left_count, right_count
+        ndarray left_sorter, right_sorter, rev
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
 
@@ -120,13 +119,14 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:  # if not asked to sort, revert to original order
-        # cast to avoid build warning GH#26757
-        if <Py_ssize_t>len(left) == len(left_indexer):
+        if len(left) == len(left_indexer):
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
+            left_sorter = ensure_platform_int(left_sorter)
+
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(ensure_platform_int(left_sorter), np.arange(len(left)))
+            rev.put(left_sorter, np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
@@ -200,12 +200,9 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-cdef _get_result_indexer(ndarray[int64_t] sorter, ndarray[int64_t] indexer):
+def _get_result_indexer(sorter, indexer):
     if len(sorter) > 0:
-        # cython-only equivalent to
-        #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
-        res = np.empty(len(indexer), dtype=np.int64)
-        take_1d_int64_int64(sorter, indexer, res, -1)
+        res = take_nd(sorter, indexer, fill_value=-1)
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)

@@ -203,7 +203,7 @@ API changes
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``. These return the *index* of the
    min or max element respectively. Prior to 0.13.0 these would return the position of the min / max element. (:issue:`6214`)
 
-Prior version deprecations/changes
+Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These were announced changes in 0.12 or prior that are taking effect as of 0.13.0
@@ -234,7 +234,7 @@ Deprecated in 0.13.0
   behavior is the default, but the new behavior is available through the
   keyword argument ``as_indexer=True``.
 
-Indexing API changes
+Indexing API Changes
 ~~~~~~~~~~~~~~~~~~~~
 
 Prior to 0.13, it was impossible to use a label indexer (``.loc/.ix``) to set a value that
@@ -271,41 +271,19 @@ This is like an ``append`` operation.
 
 A Panel setting operation on an arbitrary axis aligns the input to the Panel
 
-.. code-block:: ipython
+.. ipython:: python
+   :okwarning:
 
-   In [20]: p = pd.Panel(np.arange(16).reshape(2, 4, 2),
-      ....:              items=['Item1', 'Item2'],
-      ....:              major_axis=pd.date_range('2001/1/12', periods=4),
-      ....:              minor_axis=['A', 'B'], dtype='float64')
-      ....:
+   p = pd.Panel(np.arange(16).reshape(2, 4, 2),
+                items=['Item1', 'Item2'],
+                major_axis=pd.date_range('2001/1/12', periods=4),
+                minor_axis=['A', 'B'], dtype='float64')
+   p
+   p.loc[:, :, 'C'] = pd.Series([30, 32], index=p.items)
+   p
+   p.loc[:, :, 'C']
 
-   In [21]: p
-   Out[21]:
-   <class 'pandas.core.panel.Panel'>
-   Dimensions: 2 (items) x 4 (major_axis) x 2 (minor_axis)
-   Items axis: Item1 to Item2
-   Major_axis axis: 2001-01-12 00:00:00 to 2001-01-15 00:00:00
-   Minor_axis axis: A to B
-
-   In [22]: p.loc[:, :, 'C'] = pd.Series([30, 32], index=p.items)
-
-   In [23]: p
-   Out[23]:
-   <class 'pandas.core.panel.Panel'>
-   Dimensions: 2 (items) x 4 (major_axis) x 3 (minor_axis)
-   Items axis: Item1 to Item2
-   Major_axis axis: 2001-01-12 00:00:00 to 2001-01-15 00:00:00
-   Minor_axis axis: A to C
-
-   In [24]: p.loc[:, :, 'C']
-   Out[24]:
-               Item1  Item2
-   2001-01-12   30.0   32.0
-   2001-01-13   30.0   32.0
-   2001-01-14   30.0   32.0
-   2001-01-15   30.0   32.0
-
-Float64Index API change
+Float64Index API Change
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added a new index type, ``Float64Index``. This will be automatically created when passing floating values in index creation.
@@ -369,7 +347,7 @@ Float64Index API change
      In [3]: pd.Series(range(5))[3.0]
      Out[3]: 3
 
-HDFStore API changes
+HDFStore API Changes
 ~~~~~~~~~~~~~~~~~~~~
 
 - Query Format Changes. A much more string-like query format is now supported. See :ref:`the docs<io.hdf5-query>`.
@@ -468,7 +446,7 @@ HDFStore API changes
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
 - pass through store creation arguments; can be used to support in-memory stores
 
-DataFrame repr changes
+DataFrame repr Changes
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The HTML and plain text representations of :class:`DataFrame` now show
@@ -829,7 +807,6 @@ Experimental
      Since this is an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
   .. ipython:: python
-     :okwarning:
 
      df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
      df.to_msgpack('foo.msg')
@@ -842,7 +819,6 @@ Experimental
   You can pass ``iterator=True`` to iterator over the unpacked results
 
   .. ipython:: python
-     :okwarning:
 
      for o in pd.read_msgpack('foo.msg', iterator=True):
          print(o)
@@ -917,7 +893,7 @@ Experimental
 
 .. _whatsnew_0130.refactoring:
 
-Internal refactoring
+Internal Refactoring
 ~~~~~~~~~~~~~~~~~~~~
 
 In 0.13.0 there is a major refactor primarily to subclass ``Series`` from
@@ -1032,7 +1008,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
 .. _release.bug_fixes-0.13.0:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 - ``HDFStore``

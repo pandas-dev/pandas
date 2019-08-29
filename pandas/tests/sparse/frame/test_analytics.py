@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.xfail(reason="Wrong SparseBlock initialization (GH#17386)")
+@pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)')
 def test_quantile():
     # GH 17386
     data = [[1, 1], [2, 10], [3, 100], [np.nan, np.nan]]
@@ -24,7 +24,7 @@ def test_quantile():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.xfail(reason="Wrong SparseBlock initialization (GH#17386)")
+@pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)')
 def test_quantile_multi():
     # GH 17386
     data = [[1, 1], [2, 10], [3, 100], [np.nan, np.nan]]

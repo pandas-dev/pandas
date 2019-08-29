@@ -21,8 +21,7 @@ PyDateTime_IMPORT
 
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
-    pandas_datetime_to_datetimestruct, check_dts_bounds,
-    NPY_DATETIMEUNIT, NPY_FR_D)
+    pandas_datetime_to_datetimestruct, NPY_DATETIMEUNIT, NPY_FR_D)
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -1012,7 +1011,7 @@ def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
+def periodarr_to_dt64arr(int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
@@ -1025,8 +1024,9 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
 
     out = np.empty(l, dtype='i8')
 
-    for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+    with nogil:
+        for i in range(l):
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out.base  # .base to access underlying np.ndarray
 
@@ -1179,7 +1179,7 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     return get_period_ordinal(&dts, freq)
 
 
-cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
+cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     cdef:
         npy_datetimestruct dts
 
@@ -1187,7 +1187,6 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
         return NPY_NAT
 
     get_date_info(ordinal, freq, &dts)
-    check_dts_bounds(&dts)
     return dtstruct_to_dt64(&dts)
 
 

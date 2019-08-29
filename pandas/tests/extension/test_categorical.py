@@ -22,7 +22,6 @@ import pandas as pd
 from pandas import Categorical
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -54,17 +53,19 @@ def data():
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return Categorical([np.nan, "A"])
+    return Categorical([np.nan, 'A'])
 
 
 @pytest.fixture
 def data_for_sorting():
-    return Categorical(["A", "B", "C"], categories=["C", "A", "B"], ordered=True)
+    return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
+                       ordered=True)
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return Categorical(["A", None, "B"], categories=["B", "A"], ordered=True)
+    return Categorical(['A', None, 'B'], categories=['B', 'A'],
+                       ordered=True)
 
 
 @pytest.fixture
@@ -74,7 +75,7 @@ def na_value():
 
 @pytest.fixture
 def data_for_grouping():
-    return Categorical(["a", "a", None, None, "b", "b", "a", "c"])
+    return Categorical(['a', 'a', None, None, 'b', 'b', 'a', 'c'])
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -93,10 +94,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_ravel(self, data):
-        # GH#27199 Categorical.ravel returns self until after deprecation cycle
-        with tm.assert_produces_warning(FutureWarning):
-            data.ravel()
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -152,6 +150,7 @@ class TestSetitem(base.BaseSetitemTests):
 
 
 class TestMissing(base.BaseMissingTests):
+
     @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_pad(self, data_missing):
         super().test_fillna_limit_pad(data_missing)
@@ -177,9 +176,8 @@ class TestMethods(base.BaseMethodsTests):
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        expected = pd.Series(
-            ([a + b for (a, b) in zip(list(orig_data1), list(orig_data2))])
-        )
+        expected = pd.Series(([a + b for (a, b) in
+                               zip(list(orig_data1), list(orig_data2))]))
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
@@ -201,17 +199,18 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
 
         op_name = all_arithmetic_operators
-        if op_name != "__rmod__":
+        if op_name != '__rmod__':
             super().test_arith_series_with_scalar(data, op_name)
         else:
-            pytest.skip("rmod never called when string is first argument")
+            pytest.skip('rmod never called when string is first argument')
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
+        with pytest.raises(TypeError, match="cannot perform"):
             ser + data
 
     def test_divmod_series_array(self):
@@ -224,14 +223,15 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
-        if op_name == "__eq__":
+        if op_name == '__eq__':
             result = op(s, other)
             expected = s.combine(other, lambda x, y: x == y)
             assert (result == expected).all()
 
-        elif op_name == "__ne__":
+        elif op_name == '__ne__':
             result = op(s, other)
             expected = s.combine(other, lambda x, y: x != y)
             assert (result == expected).all()

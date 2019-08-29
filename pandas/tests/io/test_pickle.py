@@ -11,8 +11,10 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
+from distutils.version import LooseVersion
 import glob
 import gzip
+import lzma
 import os
 import pickle
 import shutil
@@ -21,7 +23,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 
 import pandas as pd
 from pandas import Index
@@ -29,14 +31,12 @@ import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
-lzma = _import_lzma()
 
-
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def current_pickle_data():
     # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
-
+    from pandas.tests.io.generate_legacy_storage_files import (
+        create_pickle_data)
     return create_pickle_data()
 
 
@@ -48,19 +48,18 @@ def compare_element(result, expected, typ, version=None):
         tm.assert_index_equal(expected, result)
         return
 
-    if typ.startswith("sp_"):
-        comparator = getattr(tm, "assert_{typ}_equal".format(typ=typ))
+    if typ.startswith('sp_'):
+        comparator = getattr(tm, "assert_%s_equal" % typ)
         comparator(result, expected, exact_indices=False)
-    elif typ == "timestamp":
+    elif typ == 'timestamp':
         if expected is pd.NaT:
             assert result is pd.NaT
         else:
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(
-            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
-        )
+        comparator = getattr(tm, "assert_%s_equal" %
+                             typ, tm.assert_almost_equal)
         comparator(result, expected)
 
 
@@ -70,20 +69,35 @@ def compare(data, vf, version):
 
     m = globals()
     for typ, dv in data.items():
+        if typ == "panel":
+            # FIXME: kludge; get this key out of the legacy file
+            continue
+
         for dt, result in dv.items():
-            expected = data[typ][dt]
+            try:
+                expected = data[typ][dt]
+            except (KeyError):
+                if version in ('0.10.1', '0.11.0') and dt == 'reg':
+                    break
+                else:
+                    raise
 
             # use a specific comparator
             # if available
             comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
 
-            comparator = m.get(comparator, m["compare_element"])
+            comparator = m.get(comparator, m['compare_element'])
             comparator(result, expected, typ, version)
     return data
 
 
 def compare_sp_series_ts(res, exp, typ, version):
-    tm.assert_sp_series_equal(res, exp)
+    # SparseTimeSeries integrated into SparseSeries in 0.12.0
+    # and deprecated in 0.17.0
+    if version and LooseVersion(version) <= LooseVersion("0.12.0"):
+        tm.assert_sp_series_equal(res, exp, check_series_type=False)
+    else:
+        tm.assert_sp_series_equal(res, exp)
 
 
 def compare_series_ts(result, expected, typ, version):
@@ -107,19 +121,47 @@ def compare_series_ts(result, expected, typ, version):
 
 
 def compare_series_dt_tz(result, expected, typ, version):
-    tm.assert_series_equal(result, expected)
+    # 8260
+    # dtype is object < 0.17.0
+    if LooseVersion(version) < LooseVersion('0.17.0'):
+        expected = expected.astype(object)
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
 
 
 def compare_series_cat(result, expected, typ, version):
-    tm.assert_series_equal(result, expected)
+    # Categorical dtype is added in 0.15.0
+    # ordered is changed in 0.16.0
+    if LooseVersion(version) < LooseVersion('0.15.0'):
+        tm.assert_series_equal(result, expected, check_dtype=False,
+                               check_categorical=False)
+    elif LooseVersion(version) < LooseVersion('0.16.0'):
+        tm.assert_series_equal(result, expected, check_categorical=False)
+    else:
+        tm.assert_series_equal(result, expected)
 
 
 def compare_frame_dt_mixed_tzs(result, expected, typ, version):
-    tm.assert_frame_equal(result, expected)
+    # 8260
+    # dtype is object < 0.17.0
+    if LooseVersion(version) < LooseVersion('0.17.0'):
+        expected = expected.astype(object)
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_frame_equal(result, expected)
 
 
 def compare_frame_cat_onecol(result, expected, typ, version):
-    tm.assert_frame_equal(result, expected)
+    # Categorical dtype is added in 0.15.0
+    # ordered is changed in 0.16.0
+    if LooseVersion(version) < LooseVersion('0.15.0'):
+        tm.assert_frame_equal(result, expected, check_dtype=False,
+                              check_categorical=False)
+    elif LooseVersion(version) < LooseVersion('0.16.0'):
+        tm.assert_frame_equal(result, expected, check_categorical=False)
+    else:
+        tm.assert_frame_equal(result, expected)
 
 
 def compare_frame_cat_and_float(result, expected, typ, version):
@@ -130,17 +172,20 @@ def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result, expected)
     assert isinstance(result.freq, MonthEnd)
     assert result.freq == MonthEnd()
-    assert result.freqstr == "M"
+    assert result.freqstr == 'M'
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
 def compare_sp_frame_float(result, expected, typ, version):
-    tm.assert_sp_frame_equal(result, expected)
+    if LooseVersion(version) <= LooseVersion('0.18.1'):
+        tm.assert_sp_frame_equal(result, expected, exact_indices=False,
+                                 check_dtype=False)
+    else:
+        tm.assert_sp_frame_equal(result, expected)
 
 
-files = glob.glob(
-    os.path.join(os.path.dirname(__file__), "data", "legacy_pickle", "*", "*.pickle")
-)
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                  "legacy_pickle", "*", "*.pickle"))
 
 
 @pytest.fixture(params=files)
@@ -164,12 +209,13 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_round_trip_current(current_pickle_data):
+
     def python_pickler(obj, path):
-        with open(path, "wb") as fh:
+        with open(path, 'wb') as fh:
             pickle.dump(obj, fh, protocol=-1)
 
     def python_unpickler(path):
-        with open(path, "rb") as fh:
+        with open(path, 'rb') as fh:
             fh.seek(0)
             return pickle.load(fh)
 
@@ -196,10 +242,9 @@ def test_round_trip_current(current_pickle_data):
 
 def test_pickle_v0_14_1(datapath):
 
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_14_1.pickle")
+    cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
+                         categories=['a', 'b', 'c', 'd'])
+    pickle_path = datapath('io', 'data', 'categorical_0_14_1.pickle')
     # This code was executed once on v0.14.1 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
@@ -213,10 +258,9 @@ def test_pickle_v0_15_2(datapath):
     # ordered -> _ordered
     # GH 9347
 
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_15_2.pickle")
+    cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
+                         categories=['a', 'b', 'c', 'd'])
+    pickle_path = datapath('io', 'data', 'categorical_0_15_2.pickle')
     # This code was executed once on v0.15.2 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
@@ -242,20 +286,19 @@ def test_pickle_path_localpath():
 # test pickle compression
 # ---------------------
 
-
 @pytest.fixture
 def get_random_path():
-    return "__{}__.pickle".format(tm.rands(10))
+    return '__%s__.pickle' % tm.rands(10)
 
 
 class TestCompression:
 
     _compression_to_extension = {
         None: ".none",
-        "gzip": ".gz",
-        "bz2": ".bz2",
-        "zip": ".zip",
-        "xz": ".xz",
+        'gzip': '.gz',
+        'bz2': '.bz2',
+        'zip': '.zip',
+        'xz': '.xz',
     }
 
     def compress_file(self, src_path, dest_path, compression):
@@ -263,17 +306,18 @@ class TestCompression:
             shutil.copyfile(src_path, dest_path)
             return
 
-        if compression == "gzip":
+        if compression == 'gzip':
             f = gzip.open(dest_path, "w")
-        elif compression == "bz2":
+        elif compression == 'bz2':
             f = bz2.BZ2File(dest_path, "w")
-        elif compression == "zip":
-            with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
+        elif compression == 'zip':
+            with zipfile.ZipFile(dest_path, "w",
+                                 compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
-        elif compression == "xz":
-            f = _get_lzma_file(lzma)(dest_path, "w")
+        elif compression == 'xz':
+            f = lzma.LZMAFile(dest_path, "w")
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = 'Unrecognized compression type: {}'.format(compression)
             raise ValueError(msg)
 
         if compression != "zip":
@@ -301,14 +345,14 @@ class TestCompression:
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
+    @pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
     def test_write_explicit_bad(self, compression, get_random_path):
         with pytest.raises(ValueError, match="Unrecognized compression type"):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".no_compress", ".xz"])
+    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.no_compress', '.xz'])
     def test_write_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ext
@@ -354,7 +398,8 @@ class TestCompression:
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".zip", ".no_compress", ".xz"])
+    @pytest.mark.parametrize('ext', [
+        '', '.gz', '.bz2', '.zip', '.no_compress', '.xz'])
     def test_read_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
@@ -384,9 +429,9 @@ class TestCompression:
 # test pickle compression
 # ---------------------
 
-
 class TestProtocol:
-    @pytest.mark.parametrize("protocol", [-1, 0, 1, 2])
+
+    @pytest.mark.parametrize('protocol', [-1, 0, 1, 2])
     def test_read(self, protocol, get_random_path):
         with tm.ensure_clean(get_random_path) as path:
             df = tm.makeDataFrame()

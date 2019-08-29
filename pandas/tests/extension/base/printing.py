@@ -19,10 +19,10 @@ class BasePrintingTests(BaseExtensionTests):
 
         result = repr(data)
         assert data.__class__.__name__ in result
-        assert "Length: {}".format(len(data)) in result
+        assert 'Length: {}'.format(len(data)) in result
         assert str(data.dtype) in result
-        if size == "big":
-            assert "..." in result
+        if size == 'big':
+            assert '...' in result
 
     def test_array_repr_unicode(self, data):
         result = str(data)

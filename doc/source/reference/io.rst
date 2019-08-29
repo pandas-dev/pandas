@@ -3,7 +3,7 @@
 .. _api.io:
 
 ============
-Input/output
+Input/Output
 ============
 .. currentmodule:: pandas
 
@@ -14,7 +14,7 @@ Pickling
 
    read_pickle
 
-Flat file
+Flat File
 ~~~~~~~~~
 .. autosummary::
    :toctree: api/
@@ -104,13 +104,6 @@ SAS
    :toctree: api/
 
    read_sas
-
-SPSS
-~~~~
-.. autosummary::
-   :toctree: api/
-
-   read_spss
 
 SQL
 ~~~

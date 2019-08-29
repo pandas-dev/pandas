@@ -71,9 +71,9 @@ static void free_if_not_null(void **ptr) {
 
 */
 
-static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
+static void *grow_buffer(void *buffer, int64_t length, int64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
-    uint64_t cap = *capacity;
+    int64_t cap = *capacity;
     void *newbuffer = buffer;
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
@@ -248,7 +248,7 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    uint64_t i, cap, length;
+    int64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
 
@@ -263,7 +263,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
         ("\n\nmake_stream_space: nbytes = %zu.  grow_buffer(self->stream...)\n",
          nbytes))
     self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
-                                       &self->stream_cap, nbytes * 2,
+                                       (int64_t*)&self->stream_cap, nbytes * 2,
                                        sizeof(char), &status);
     TRACE(
         ("make_stream_space: self->stream=%p, self->stream_len = %zu, "
@@ -305,7 +305,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 
     self->words =
         (char **)grow_buffer((void *)self->words, length,
-                             &self->words_cap, nbytes,
+                             (int64_t*)&self->words_cap, nbytes,
                              sizeof(char *), &status);
     TRACE(
         ("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, "
@@ -336,7 +336,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     cap = self->lines_cap;
     self->line_start =
         (int64_t *)grow_buffer((void *)self->line_start, self->lines + 1,
-                           &self->lines_cap, nbytes,
+                           (int64_t*)&self->lines_cap, nbytes,
                            sizeof(int64_t), &status);
     TRACE((
         "make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
@@ -424,13 +424,13 @@ static void append_warning(parser_t *self, const char *msg) {
 
     if (self->warn_msg == NULL) {
         self->warn_msg = (char *)malloc(length + 1);
-        snprintf(self->warn_msg, length + 1, "%s", msg);
+        strncpy(self->warn_msg, msg, strlen(msg) + 1);
     } else {
         ex_length = strlen(self->warn_msg);
         newptr = safe_realloc(self->warn_msg, ex_length + length + 1);
         if (newptr != NULL) {
             self->warn_msg = (char *)newptr;
-            snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
+            strncpy(self->warn_msg + ex_length, msg, strlen(msg) + 1);
         }
     }
 }
@@ -471,7 +471,7 @@ static int end_line(parser_t *self) {
         return 0;
     }
 
-    if (!(self->lines <= self->header_end + 1) &&
+    if (!(self->lines <= (int64_t) self->header_end + 1) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
@@ -507,7 +507,7 @@ static int end_line(parser_t *self) {
         }
     } else {
         // missing trailing delimiters
-        if ((self->lines >= self->header_end + 1) &&
+        if ((self->lines >= (int64_t) self->header_end + 1) &&
                 fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
@@ -651,7 +651,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -666,7 +666,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -737,8 +737,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 
 int tokenize_bytes(parser_t *self,
                    size_t line_limit, int64_t start_lines) {
-    int64_t i;
-    uint64_t slen;
+    int64_t i, slen;
     int should_skip;
     char c;
     char *stream;
@@ -1204,8 +1203,7 @@ static int parser_handle_eof(parser_t *self) {
 }
 
 int parser_consume_rows(parser_t *self, size_t nrows) {
-    int64_t offset, word_deletions;
-    uint64_t char_count, i;
+    int64_t i, offset, word_deletions, char_count;
 
     if (nrows > self->lines) {
         nrows = self->lines;
@@ -1231,8 +1229,6 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->stream_len -= char_count;
 
     /* move token metadata */
-    // Note: We should always have words_len < word_deletions, so this
-    //  subtraction will remain appropriately-typed.
     for (i = 0; i < self->words_len - word_deletions; ++i) {
         offset = i + word_deletions;
 
@@ -1246,8 +1242,6 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
-    // Note: We should always have self->lines - nrows + 1 >= 0, so this
-    //  subtraction will remain appropriately-typed.
     for (i = 0; i < self->lines - nrows + 1; ++i) {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
@@ -1271,7 +1265,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    uint64_t i;
+    int64_t i;
 
     /**
      * Before we free up space and trim, we should
@@ -1433,14 +1427,13 @@ PANDAS_INLINE void uppercase(char *p) {
 int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
-    size_t length0 = (strlen(item) + 1);
-    int bufsize = length0;
+    int bufsize = sizeof(char) * (strlen(item) + 1);
 
     static const char *tstrs[1] = {"TRUE"};
     static const char *fstrs[1] = {"FALSE"};
 
     tmp = malloc(bufsize);
-    snprintf(tmp,  length0, "%s", item);
+    strncpy(tmp, item, bufsize);
     uppercase(tmp);
 
     for (i = 0; i < 1; ++i) {
@@ -1816,7 +1809,7 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
     double r = PyOS_string_to_double(p, q, 0);
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
-    else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
+    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }

@@ -5,7 +5,7 @@
 .. _timedeltas.timedeltas:
 
 ***********
-Time deltas
+Time Deltas
 ***********
 
 Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes,
@@ -229,7 +229,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 
 .. _timedeltas.timedeltas_convert:
 
-Frequency conversion
+Frequency Conversion
 --------------------
 
 Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
@@ -360,7 +360,7 @@ inferred frequency upon creation:
 
    pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
 
-Generating ranges of time deltas
+Generating Ranges of Time Deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``

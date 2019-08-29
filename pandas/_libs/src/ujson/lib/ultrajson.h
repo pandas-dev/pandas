@@ -307,4 +307,11 @@ EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
                                        const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
 
+#define Buffer_Reserve(__enc, __len)                                  \
+    if ((size_t)((__enc)->end - (__enc)->offset) < (size_t)(__len)) { \
+        Buffer_Realloc((__enc), (__len));                             \
+    }
+
+void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded);
+
 #endif  // PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_

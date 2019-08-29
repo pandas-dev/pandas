@@ -11,13 +11,12 @@ import pandas.util.testing as tm
 def id_func(x):
     if isinstance(x, tuple):
         assert len(x) == 2
-        return x[0].__name__ + "-" + str(x[1])
+        return x[0].__name__ + '-' + str(x[1])
     else:
         return x.__name__
 
 
 # ------------------------------------------------------------------
-
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
@@ -25,17 +24,12 @@ def one(request):
     return request.param
 
 
-zeros = [
-    box_cls([0] * 5, dtype=dtype)
-    for box_cls in [pd.Index, np.array]
-    for dtype in [np.int64, np.uint64, np.float64]
-]
-zeros.extend(
-    [box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [pd.Index, np.array]]
-)
-zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([np.array(-0.0, dtype=np.float64)])
-zeros.extend([0, 0.0, -0.0])
+zeros = [box_cls([0] * 5, dtype=dtype)
+         for box_cls in [pd.Index, np.array]
+         for dtype in [np.int64, np.uint64, np.float64]]
+zeros.extend([np.array(0, dtype=dtype)
+              for dtype in [np.int64, np.uint64, np.float64]])
+zeros.extend([0, 0.0])
 
 
 @pytest.fixture(params=zeros)
@@ -48,16 +42,11 @@ def zero(request):
 # ------------------------------------------------------------------
 # Vector Fixtures
 
-
-@pytest.fixture(
-    params=[
-        pd.Float64Index(np.arange(5, dtype="float64")),
-        pd.Int64Index(np.arange(5, dtype="int64")),
-        pd.UInt64Index(np.arange(5, dtype="uint64")),
-        pd.RangeIndex(5),
-    ],
-    ids=lambda x: type(x).__name__,
-)
+@pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
+                        pd.Int64Index(np.arange(5, dtype='int64')),
+                        pd.UInt64Index(np.arange(5, dtype='uint64')),
+                        pd.RangeIndex(5)],
+                ids=lambda x: type(x).__name__)
 def numeric_idx(request):
     """
     Several types of numeric-dtypes Index objects
@@ -68,15 +57,10 @@ def numeric_idx(request):
 # ------------------------------------------------------------------
 # Scalar Fixtures
 
-
-@pytest.fixture(
-    params=[
-        pd.Timedelta("5m4s").to_pytimedelta(),
-        pd.Timedelta("5m4s"),
-        pd.Timedelta("5m4s").to_timedelta64(),
-    ],
-    ids=lambda x: type(x).__name__,
-)
+@pytest.fixture(params=[pd.Timedelta('5m4s').to_pytimedelta(),
+                        pd.Timedelta('5m4s'),
+                        pd.Timedelta('5m4s').to_timedelta64()],
+                ids=lambda x: type(x).__name__)
 def scalar_td(request):
     """
     Several variants of Timedelta scalars representing 5 minutes and 4 seconds
@@ -84,17 +68,13 @@ def scalar_td(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        pd.offsets.Day(3),
-        pd.offsets.Hour(72),
-        pd.Timedelta(days=3).to_pytimedelta(),
-        pd.Timedelta("72:00:00"),
-        np.timedelta64(3, "D"),
-        np.timedelta64(72, "h"),
-    ],
-    ids=lambda x: type(x).__name__,
-)
+@pytest.fixture(params=[pd.offsets.Day(3),
+                        pd.offsets.Hour(72),
+                        pd.Timedelta(days=3).to_pytimedelta(),
+                        pd.Timedelta('72:00:00'),
+                        np.timedelta64(3, 'D'),
+                        np.timedelta64(72, 'h')],
+                ids=lambda x: type(x).__name__)
 def three_days(request):
     """
     Several timedelta-like and DateOffset objects that each represent
@@ -103,17 +83,13 @@ def three_days(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        pd.offsets.Hour(2),
-        pd.offsets.Minute(120),
-        pd.Timedelta(hours=2).to_pytimedelta(),
-        pd.Timedelta(seconds=2 * 3600),
-        np.timedelta64(2, "h"),
-        np.timedelta64(120, "m"),
-    ],
-    ids=lambda x: type(x).__name__,
-)
+@pytest.fixture(params=[pd.offsets.Hour(2),
+                        pd.offsets.Minute(120),
+                        pd.Timedelta(hours=2).to_pytimedelta(),
+                        pd.Timedelta(seconds=2 * 3600),
+                        np.timedelta64(2, 'h'),
+                        np.timedelta64(120, 'm')],
+                ids=lambda x: type(x).__name__)
 def two_hours(request):
     """
     Several timedelta-like and DateOffset objects that each represent
@@ -122,21 +98,14 @@ def two_hours(request):
     return request.param
 
 
-_common_mismatch = [
-    pd.offsets.YearBegin(2),
-    pd.offsets.MonthBegin(1),
-    pd.offsets.Minute(),
-]
+_common_mismatch = [pd.offsets.YearBegin(2),
+                    pd.offsets.MonthBegin(1),
+                    pd.offsets.Minute()]
 
 
-@pytest.fixture(
-    params=[
-        pd.Timedelta(minutes=30).to_pytimedelta(),
-        np.timedelta64(30, "s"),
-        pd.Timedelta(seconds=30),
-    ]
-    + _common_mismatch
-)
+@pytest.fixture(params=[pd.Timedelta(minutes=30).to_pytimedelta(),
+                        np.timedelta64(30, 's'),
+                        pd.Timedelta(seconds=30)] + _common_mismatch)
 def not_hourly(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
@@ -145,14 +114,9 @@ def not_hourly(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        np.timedelta64(4, "h"),
-        pd.Timedelta(hours=23).to_pytimedelta(),
-        pd.Timedelta("23:00:00"),
-    ]
-    + _common_mismatch
-)
+@pytest.fixture(params=[np.timedelta64(4, 'h'),
+                        pd.Timedelta(hours=23).to_pytimedelta(),
+                        pd.Timedelta('23:00:00')] + _common_mismatch)
 def not_daily(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
@@ -161,14 +125,9 @@ def not_daily(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        np.timedelta64(365, "D"),
-        pd.Timedelta(days=365).to_pytimedelta(),
-        pd.Timedelta(days=365),
-    ]
-    + _common_mismatch
-)
+@pytest.fixture(params=[np.timedelta64(365, 'D'),
+                        pd.Timedelta(days=365).to_pytimedelta(),
+                        pd.Timedelta(days=365)] + _common_mismatch)
 def mismatched_freq(request):
     """
     Several timedelta-like and DateOffset instances that are _not_
@@ -179,8 +138,8 @@ def mismatched_freq(request):
 
 # ------------------------------------------------------------------
 
-
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame],
+                ids=id_func)
 def box(request):
     """
     Several array-like containers that should have effectively identical
@@ -189,10 +148,11 @@ def box(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[pd.Index, pd.Series, pytest.param(pd.DataFrame, marks=pytest.mark.xfail)],
-    ids=id_func,
-)
+@pytest.fixture(params=[pd.Index,
+                        pd.Series,
+                        pytest.param(pd.DataFrame,
+                                     marks=pytest.mark.xfail)],
+                ids=id_func)
 def box_df_fail(request):
     """
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
@@ -200,15 +160,12 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        (pd.Index, False),
-        (pd.Series, False),
-        (pd.DataFrame, False),
-        pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
-    ],
-    ids=id_func,
-)
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail)],
+                ids=id_func)
 def box_transpose_fail(request):
     """
     Fixture similar to `box` but testing both transpose cases for DataFrame,
@@ -218,7 +175,8 @@ def box_transpose_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
+                ids=id_func)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array

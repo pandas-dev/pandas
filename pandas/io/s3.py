@@ -1,14 +1,11 @@
 """ s3 support for remote file interactivity """
-from typing import IO, Any, Optional, Tuple
+try:
+    import s3fs
+    from botocore.exceptions import NoCredentialsError
+except ImportError:
+    raise ImportError("The s3fs library is required to handle s3 files")
+
 from urllib.parse import urlparse as parse_url
-
-from pandas.compat._optional import import_optional_dependency
-
-from pandas._typing import FilePathOrBuffer
-
-s3fs = import_optional_dependency(
-    "s3fs", extra="The s3fs package is required to handle s3 files."
-)
 
 
 def _strip_schema(url):
@@ -17,17 +14,15 @@ def _strip_schema(url):
     return result.netloc + result.path
 
 
-def get_file_and_filesystem(
-    filepath_or_buffer: FilePathOrBuffer, mode: Optional[str] = None
-) -> Tuple[IO, Any]:
-    from botocore.exceptions import NoCredentialsError
+def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
+                           compression=None, mode=None):
 
     if mode is None:
-        mode = "rb"
+        mode = 'rb'
 
     fs = s3fs.S3FileSystem(anon=False)
     try:
-        file = fs.open(_strip_schema(filepath_or_buffer), mode)
+        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
     except (FileNotFoundError, NoCredentialsError):
         # boto3 has troubles when trying to access a public file
         # when credentialed...
@@ -36,15 +31,6 @@ def get_file_and_filesystem(
         # A NoCredentialsError is raised if you don't have creds
         # for that bucket.
         fs = s3fs.S3FileSystem(anon=True)
-        file = fs.open(_strip_schema(filepath_or_buffer), mode)
-    return file, fs
-
-
-def get_filepath_or_buffer(
-    filepath_or_buffer: FilePathOrBuffer,
-    encoding: Optional[str] = None,
-    compression: Optional[str] = None,
-    mode: Optional[str] = None,
-) -> Tuple[IO, Optional[str], Optional[str], bool]:
-    file, _fs = get_file_and_filesystem(filepath_or_buffer, mode=mode)
-    return file, None, compression, True
+        filepath_or_buffer = fs.open(
+            _strip_schema(filepath_or_buffer), mode)  # type: s3fs.S3File
+    return filepath_or_buffer, None, compression, True

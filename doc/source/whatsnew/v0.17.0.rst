@@ -5,6 +5,10 @@ v0.17.0 (October 9, 2015)
 
 {{ header }}
 
+.. ipython:: python
+   :suppress:
+
+
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -103,7 +107,7 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
    There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
    functionally these are the same.
 
-   Previous behavior:
+   Previous Behavior:
 
    .. code-block:: ipython
 
@@ -115,7 +119,7 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
       In [2]: pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
       Out[2]: dtype('<M8[ns]')
 
-   New behavior:
+   New Behavior:
 
    .. ipython:: python
 
@@ -216,7 +220,7 @@ total_seconds
 
 .. _whatsnew_0170.periodfreq:
 
-Period frequency enhancement
+Period Frequency Enhancement
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Period``, ``PeriodIndex`` and ``period_range`` can now accept multiplied freq. Also, ``Period.freq`` and ``PeriodIndex.freq`` are now stored as a ``DateOffset`` instance like ``DatetimeIndex``, and not as ``str`` (:issue:`7811`)
@@ -263,7 +267,7 @@ See the :ref:`docs <io.sas>` for more details.
 
 .. _whatsnew_0170.matheval:
 
-Support for math functions in .eval()
+Support for Math Functions in .eval()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`~pandas.eval` now supports calling math functions (:issue:`4893`)
@@ -329,7 +333,7 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
 .. _whatsnew_0170.gbq:
 
-Google BigQuery enhancements
+Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - Added ability to automatically create a table/dataset using the :func:`pandas.io.gbq.to_gbq` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
 - Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/writing.html>`__ for more details (:issue:`8325`).
@@ -339,7 +343,7 @@ Google BigQuery enhancements
 
 .. _whatsnew_0170.east_asian_width:
 
-Display alignment with Unicode East Asian width
+Display Alignment with Unicode East Asian Width
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
@@ -411,7 +415,7 @@ Other enhancements
      bar = pd.Series([1, 2])
      baz = pd.Series([4, 5])
 
-  Previous behavior:
+  Previous Behavior:
 
   .. code-block:: ipython
 
@@ -421,7 +425,7 @@ Other enhancements
         0  1  1  4
         1  2  2  5
 
-  New behavior:
+  New Behavior:
 
   .. ipython:: python
 
@@ -609,14 +613,14 @@ In prior versions it was ``errors='ignore'``. Furthermore, the ``coerce`` argume
 has been deprecated in favor of ``errors='coerce'``. This means that invalid parsing
 will raise rather that return the original input as in previous versions. (:issue:`10636`)
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
    In [2]: pd.to_datetime(['2009-07-31', 'asd'])
    Out[2]: array(['2009-07-31', 'asd'], dtype=object)
 
-New behavior:
+New Behavior:
 
 .. code-block:: ipython
 
@@ -638,7 +642,7 @@ To keep the previous behavior, you can use ``errors='ignore'``:
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
-Consistent parsing
+Consistent Parsing
 """"""""""""""""""
 
 The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has
@@ -648,7 +652,7 @@ Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime
 uses the beginning of the year. ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex``
 can parse, such as a quarterly string.
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -663,7 +667,7 @@ Previous behavior:
 
 v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
 
@@ -681,7 +685,7 @@ New behavior:
       pd.Timestamp.now()
       pd.Timestamp.now() + offsets.DateOffset(years=1)
 
-Changes to Index comparisons
+Changes to Index Comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`9947`, :issue:`10637`)
@@ -689,7 +693,7 @@ Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`994
 Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
 a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -702,7 +706,7 @@ Previous behavior:
    In [4]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
    Out[4]: False
 
-New behavior:
+New Behavior:
 
 .. code-block:: ipython
 
@@ -729,7 +733,7 @@ or it can return False if broadcasting can not be done:
 
    np.array([1, 2, 3]) == np.array([1, 2])
 
-Changes to boolean comparisons vs. None
+Changes to Boolean Comparisons vs. None
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).
@@ -740,14 +744,14 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
    s.iloc[1] = None
    s
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
    In [5]: s == None
    TypeError: Could not compare <type 'NoneType'> type with Series
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
 
@@ -776,7 +780,7 @@ HDFStore dropna behavior
 
 The default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
 
-Previous behavior:
+Previous Behavior:
 
 .. ipython:: python
 
@@ -802,7 +806,7 @@ Previous behavior:
      2     2   NaN
 
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
 
@@ -882,7 +886,7 @@ Changes to ``Categorical.unique``
    cat
    cat.unique()
 
-Changes to ``bool`` passed as ``header`` in parsers
+Changes to ``bool`` passed as ``header`` in Parsers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In earlier versions of pandas, if a bool was passed the ``header`` argument of
@@ -901,7 +905,7 @@ A ``bool`` input to ``header`` will now raise a ``TypeError``
 
 .. _whatsnew_0170.api_breaking.other:
 
-Other API changes
+Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
@@ -1016,7 +1020,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0170.performance:
 
-Performance improvements
+Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
@@ -1039,7 +1043,7 @@ Performance improvements
 
 .. _whatsnew_0170.bug_fixes:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 - Bug in incorrect computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)

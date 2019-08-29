@@ -8,7 +8,7 @@ Tutorials
 
 This is a guide to many pandas tutorials, geared mainly for new users.
 
-Internal guides
+Internal Guides
 ===============
 
 pandas' own :ref:`10 Minutes to pandas<10min>`.
@@ -17,7 +17,7 @@ More complex recipes are in the :ref:`Cookbook<cookbook>`.
 
 A handy pandas `cheat sheet <http://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
 
-Community guides
+Community Guides
 ================
 
 pandas Cookbook by Julia Evans
@@ -74,7 +74,7 @@ Excel charts with pandas, vincent and xlsxwriter
 
 *  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
-Video tutorials
+Video Tutorials
 ---------------
 
 * `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
@@ -96,7 +96,7 @@ Video tutorials
   `Jupyter Notebook <http://nbviewer.jupyter.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
 
 
-Various tutorials
+Various Tutorials
 -----------------
 
 * `Wes McKinney's (pandas BDFL) blog <http://blog.wesmckinney.com/>`_

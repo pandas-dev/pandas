@@ -22,7 +22,7 @@ Highlights include:
 - :ref:`Instantiation from dicts respects order for Python 3.6+ <whatsnew_0230.api_breaking.dict_insertion_order>`.
 - :ref:`Dependent column arguments for assign <whatsnew_0230.enhancements.assign_dependent>`.
 - :ref:`Merging / sorting on a combination of columns and index levels <whatsnew_0230.enhancements.merge_on_columns_and_levels>`.
-- :ref:`Extending pandas with custom types <whatsnew_023.enhancements.extension>`.
+- :ref:`Extending Pandas with custom types <whatsnew_023.enhancements.extension>`.
 - :ref:`Excluding unobserved categories from groupby <whatsnew_0230.enhancements.categorical_grouping>`.
 - :ref:`Changes to make output shape of DataFrame.apply consistent <whatsnew_0230.api_breaking.apply>`.
 
@@ -31,7 +31,7 @@ Check the :ref:`API Changes <whatsnew_0230.api_breaking>` and :ref:`deprecations
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
+   See :ref:`install.dropping-27` for more.
 
 .. contents:: What's new in v0.23.0
     :local:
@@ -105,7 +105,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
   using ``.assign()`` to update an existing column. Previously, callables
   referring to other variables being updated would get the "old" values
 
-  Previous behavior:
+  Previous Behavior:
 
   .. code-block:: ipython
 
@@ -118,7 +118,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
       1  3 -2
       2  4 -3
 
-  New behavior:
+  New Behavior:
 
   .. ipython:: python
 
@@ -186,7 +186,7 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
 
 .. _whatsnew_023.enhancements.extension:
 
-Extending pandas with custom types (experimental)
+Extending Pandas with Custom Types (Experimental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
@@ -276,7 +276,7 @@ To show only observed values:
 
    df.groupby(['A', 'B', 'C'], observed=True).count()
 
-For pivoting operations, this behavior is *already* controlled by the ``dropna`` keyword:
+For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
 
 .. ipython:: python
 
@@ -398,7 +398,7 @@ In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their
     s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
     s
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -411,7 +411,7 @@ Previous behavior:
     4    NaN
     dtype: float64
 
-Current behavior:
+Current Behavior:
 
 .. ipython:: python
 
@@ -424,7 +424,7 @@ Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``N
     s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
     s
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -436,7 +436,7 @@ Previous behavior:
     3    2.5
     dtype: float64
 
-Current behavior:
+Current Behavior:
 
 .. ipython:: python
 
@@ -502,7 +502,7 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
 
 .. _whatsnew_0230.enhancements.other:
 
-Other enhancements
+Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
@@ -597,7 +597,7 @@ Pandas will use the dict's insertion order, when creating a ``Series`` or
 ``DataFrame`` from a dict and you're using Python version 3.6 or
 higher. (:issue:`19884`)
 
-Previous behavior (and current behavior if on Python < 3.6):
+Previous Behavior (and current behavior if on Python < 3.6):
 
 .. code-block:: ipython
 
@@ -614,7 +614,7 @@ Previous behavior (and current behavior if on Python < 3.6):
 
 Note the Series above is ordered alphabetically by the index values.
 
-New behavior (for Python >= 3.6):
+New Behavior (for Python >= 3.6):
 
 .. ipython:: python
 
@@ -738,7 +738,7 @@ where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :iss
                       columns=['A', 'B', 'C'])
     df
 
-Previous behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
+Previous Behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
 If the return shape did not match, a ``Series`` with lists was returned.
 
 .. code-block:: python
@@ -764,7 +764,7 @@ If the return shape did not match, a ``Series`` with lists was returned.
    dtype: object
 
 
-New behavior: When the applied function returns a list-like, this will now *always* return a ``Series``.
+New Behavior: When the applied function returns a list-like, this will now *always* return a ``Series``.
 
 .. ipython:: python
 
@@ -824,7 +824,7 @@ Note that this change also applies to :meth:`DataFrame.append`, which has also r
 
 .. _whatsnew_0230.api_breaking.build_changes:
 
-Build changes
+Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
@@ -833,12 +833,12 @@ Build changes
 
 .. _whatsnew_0230.api_breaking.index_division_by_zero:
 
-Index division by zero fills correctly
+Index Division By Zero Fills Correctly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -859,7 +859,7 @@ Previous behavior:
     In [11]: pd.RangeIndex(1, 5) / 0
     ZeroDivisionError: integer division or modulo by zero
 
-Current behavior:
+Current Behavior:
 
 .. ipython:: python
 
@@ -888,7 +888,7 @@ extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame
 ``expand`` is set to ``False``. Finally, ``None`` was an accepted value for
 the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -906,7 +906,7 @@ Previous behavior:
     Out [4]:
     pandas.core.series.Series
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
 
@@ -933,25 +933,15 @@ The default value of the ``ordered`` parameter for :class:`~pandas.api.types.Cat
 
 In previous versions, the default value for the ``ordered`` parameter was ``False``.  This could potentially lead to the ``ordered`` parameter unintentionally being changed from ``True`` to ``False`` when users attempt to update ``categories`` if ``ordered`` is not explicitly specified, as it would silently default to ``False``.  The new behavior for ``ordered=None`` is to retain the existing value of ``ordered``.
 
-New behavior:
+New Behavior:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [2]: from pandas.api.types import CategoricalDtype
-
-    In [3]: cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
-
-    In [4]: cat
-    Out[4]:
-    [a, b, c, a, b, a]
-    Categories (3, object): [c < b < a]
-
-    In [5]: cdt = CategoricalDtype(categories=list('cbad'))
-
-    In [6]: cat.astype(cdt)
-    Out[6]:
-    [a, b, c, a, b, a]
-    Categories (4, object): [c < b < a < d]
+    from pandas.api.types import CategoricalDtype
+    cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
+    cat
+    cdt = CategoricalDtype(categories=list('cbad'))
+    cat.astype(cdt)
 
 Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
 
@@ -988,7 +978,7 @@ yourself. To revert to the old setting, you can run this line:
 
 .. _whatsnew_0230.api.datetimelike:
 
-Datetimelike API changes
+Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
@@ -1017,7 +1007,7 @@ Datetimelike API changes
 
 .. _whatsnew_0230.api.other:
 
-Other API changes
+Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
@@ -1140,7 +1130,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0230.performance:
 
-Performance improvements
+Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
@@ -1172,7 +1162,7 @@ Performance improvements
 
 .. _whatsnew_0230.docs:
 
-Documentation changes
+Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
 Thanks to all of the contributors who participated in the Pandas Documentation
@@ -1200,7 +1190,7 @@ read the `NumFOCUS blogpost`_ recapping the sprint.
 
 .. _whatsnew_0230.bug_fixes:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 Categorical
@@ -1403,7 +1393,7 @@ Plotting
 - :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
 
 
-Groupby/resample/rolling
+Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)

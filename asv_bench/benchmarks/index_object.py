@@ -1,48 +1,38 @@
-import gc
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (
-    Series,
-    date_range,
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Float64Index,
-    IntervalIndex,
-)
+from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
+                    Float64Index, IntervalIndex)
 
 
 class SetOperations:
 
-    params = (
-        ["datetime", "date_string", "int", "strings"],
-        ["intersection", "union", "symmetric_difference"],
-    )
-    param_names = ["dtype", "method"]
+    params = (['datetime', 'date_string', 'int', 'strings'],
+              ['intersection', 'union', 'symmetric_difference'])
+    param_names = ['dtype', 'method']
 
     def setup(self, dtype, method):
-        N = 10 ** 5
-        dates_left = date_range("1/1/2000", periods=N, freq="T")
-        fmt = "%Y-%m-%d %H:%M:%S"
+        N = 10**5
+        dates_left = date_range('1/1/2000', periods=N, freq='T')
+        fmt = '%Y-%m-%d %H:%M:%S'
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
         str_left = tm.makeStringIndex(N)
-        data = {
-            "datetime": {"left": dates_left, "right": dates_left[:-1]},
-            "date_string": {"left": date_str_left, "right": date_str_left[:-1]},
-            "int": {"left": int_left, "right": int_left[:-1]},
-            "strings": {"left": str_left, "right": str_left[:-1]},
-        }
-        self.left = data[dtype]["left"]
-        self.right = data[dtype]["right"]
+        data = {'datetime': {'left': dates_left, 'right': dates_left[:-1]},
+                'date_string': {'left': date_str_left,
+                                'right': date_str_left[:-1]},
+                'int': {'left': int_left, 'right': int_left[:-1]},
+                'strings': {'left': str_left, 'right': str_left[:-1]}}
+        self.left = data[dtype]['left']
+        self.right = data[dtype]['right']
 
     def time_operation(self, dtype, method):
         getattr(self.left, method)(self.right)
 
 
 class SetDisjoint:
+
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
         B = N + 20000
         self.datetime_left = DatetimeIndex(range(N))
         self.datetime_right = DatetimeIndex(range(N, B))
@@ -52,8 +42,9 @@ class SetDisjoint:
 
 
 class Datetime:
+
     def setup(self):
-        self.dr = date_range("20000101", freq="D", periods=10000)
+        self.dr = date_range('20000101', freq='D', periods=10000)
 
     def time_is_dates_only(self):
         self.dr._is_dates_only
@@ -61,12 +52,12 @@ class Datetime:
 
 class Ops:
 
-    params = ["float", "int"]
-    param_names = ["dtype"]
+    params = ['float', 'int']
+    param_names = ['dtype']
 
     def setup(self, dtype):
-        N = 10 ** 6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
+        N = 10**6
+        indexes = {'int': 'makeIntIndex', 'float': 'makeFloatIndex'}
         self.index = getattr(tm, indexes[dtype])(N)
 
     def time_add(self, dtype):
@@ -86,9 +77,10 @@ class Ops:
 
 
 class Range:
+
     def setup(self):
-        self.idx_inc = RangeIndex(start=0, stop=10 ** 7, step=3)
-        self.idx_dec = RangeIndex(start=10 ** 7, stop=-1, step=-3)
+        self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
+        self.idx_dec = RangeIndex(start=10**7, stop=-1, step=-3)
 
     def time_max(self):
         self.idx_inc.max()
@@ -110,6 +102,7 @@ class Range:
 
 
 class IndexAppend:
+
     def setup(self):
 
         N = 10000
@@ -139,20 +132,19 @@ class IndexAppend:
 
 class Indexing:
 
-    params = ["String", "Float", "Int"]
-    param_names = ["dtype"]
+    params = ['String', 'Float', 'Int']
+    param_names = ['dtype']
 
     def setup(self, dtype):
-        N = 10 ** 6
-        self.idx = getattr(tm, "make{}Index".format(dtype))(N)
+        N = 10**6
+        self.idx = getattr(tm, 'make{}Index'.format(dtype))(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()
         half = N // 2
         self.non_unique = self.idx[:half].append(self.idx[:half])
-        self.non_unique_sorted = (
-            self.sorted[:half].append(self.sorted[:half]).sort_values()
-        )
+        self.non_unique_sorted = (self.sorted[:half].append(self.sorted[:half])
+                                  .sort_values())
         self.key = self.sorted[N // 4]
 
     def time_boolean_array(self, dtype):
@@ -196,16 +188,13 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10 ** 3, 10 ** 5]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
         right = np.append(np.arange(1, N + 1), np.array(1))
         self.intv = IntervalIndex.from_arrays(left, right)
         self.intv._engine
-
-        self.intv2 = IntervalIndex.from_arrays(left + 1, right + 1)
-        self.intv2._engine
 
         self.left = IntervalIndex.from_breaks(np.arange(N))
         self.right = IntervalIndex.from_breaks(np.arange(N - 3, 2 * N - 3))
@@ -219,28 +208,8 @@ class IntervalIndexMethod:
     def time_intersection(self, N):
         self.left.intersection(self.right)
 
-    def time_intersection_one_duplicate(self, N):
+    def time_intersection_duplicate(self, N):
         self.intv.intersection(self.right)
-
-    def time_intersection_both_duplicate(self, N):
-        self.intv.intersection(self.intv2)
-
-
-class GC:
-    params = [1, 2, 5]
-
-    def create_use_drop(self):
-        idx = Index(list(range(1000 * 1000)))
-        idx._engine
-
-    def peakmem_gc_instances(self, N):
-        try:
-            gc.disable()
-
-            for _ in range(N):
-                self.create_use_drop()
-        finally:
-            gc.enable()
 
 
 from .pandas_vb_common import setup  # noqa: F401

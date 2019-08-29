@@ -12,11 +12,9 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
-  - moto
   - nomkl
   - numexpr
   - numpy=1.15.*
-  - odfpy
   - openpyxl
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271
@@ -39,14 +37,16 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=5.0.1
-  - pytest-xdist>=1.29.0
+  - pytest>=4.0.2
+  - pytest-xdist
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
+  - isort
   - pip
   - pip:
     - brotlipy
     - coverage
+    - moto
     - pandas-datareader
     - python-dateutil

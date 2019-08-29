@@ -224,7 +224,7 @@ Most development discussion is taking place on github in this repo. Further, the
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas-docs.github.io/pandas-docs-travis/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 
@@ -233,5 +233,3 @@ You can also triage issues which may include reproducing bug reports, or asking 
 Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’...you can do something about it!
 
 Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Gitter](https://gitter.im/pydata/pandas).
-
-As contributors and maintainers to this project, you are expected to abide by pandas' code of conduct. More information can be found at: [Contributor Code of Conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md)

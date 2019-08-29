@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-Pandas ecosystem
+pandas Ecosystem
 ****************
 
 Increasingly, packages are being built on top of pandas to address specific needs
@@ -26,7 +26,7 @@ substantial projects that you feel should be on this list, please let us know.
 
 .. _ecosystem.stats:
 
-Statistics and machine learning
+Statistics and Machine Learning
 -------------------------------
 
 `Statsmodels <https://www.statsmodels.org/>`__
@@ -71,17 +71,6 @@ Bokeh is a Python interactive visualization library for large datasets that nati
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
 graphics in the style of Protovis/D3, while delivering high-performance interactivity over
 large data to thin clients.
-
-`Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
-for Bokeh that can be loaded as a native Pandas plotting backend via
-
-.. code:: python
-
-    pd.set_option("plotting.backend", "pandas_bokeh")
-
-It is very similar to the matplotlib plotting backend, but provides interactive
-web-based charts and maps.
-
 
 `seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,7 +243,7 @@ you can obtain for free on the FRED website.
 
 .. _ecosystem.domain:
 
-Domain specific
+Domain Specific
 ---------------
 
 `Geopandas <https://github.com/kjordahl/geopandas>`__
@@ -343,7 +332,7 @@ and check that they're *actually* true.
 
 .. _ecosystem.extensions:
 
-Extension data types
+Extension Data Types
 --------------------
 
 Pandas provides an interface for defining

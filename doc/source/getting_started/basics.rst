@@ -3,7 +3,7 @@
 {{ header }}
 
 ==============================
- Essential basic functionality
+ Essential Basic Functionality
 ==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
@@ -19,7 +19,7 @@ the previous section:
 
 .. _basics.head_tail:
 
-Head and tail
+Head and Tail
 -------------
 
 To view a small sample of a Series or DataFrame object, use the
@@ -34,7 +34,7 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and underlying data
+Attributes and Underlying Data
 ------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
@@ -286,7 +286,7 @@ using ``fillna`` if you wish).
 
 .. _basics.compare:
 
-Flexible comparisons
+Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
 Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
@@ -304,7 +304,7 @@ indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>
 
 .. _basics.reductions:
 
-Boolean reductions
+Boolean Reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
@@ -468,7 +468,7 @@ which we illustrate:
    df2
    df1.combine_first(df2)
 
-General DataFrame combine
+General DataFrame Combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
@@ -643,7 +643,7 @@ there for details about accepted inputs.
 
 .. _basics.idxmin:
 
-Index of min/max values
+Index of Min/Max Values
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.idxmin` and :meth:`~DataFrame.idxmax` functions on Series
@@ -677,7 +677,7 @@ matching index:
 
 .. _basics.discretization:
 
-Value counts (histogramming) / mode
+Value counts (histogramming) / Mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
@@ -752,7 +752,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 .. _basics.pipe:
 
-Tablewise function application
+Tablewise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
@@ -784,7 +784,6 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
-   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -807,7 +806,7 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 .. _R: https://www.r-project.org
 
 
-Row or column-wise function application
+Row or Column-wise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Arbitrary functions can be applied along the axes of a DataFrame
@@ -926,7 +925,7 @@ Single aggregations on a ``Series`` this will return a scalar value:
 
 .. ipython:: python
 
-   tsdf['A'].agg('sum')
+   tsdf.A.agg('sum')
 
 
 Aggregating with multiple functions
@@ -950,13 +949,13 @@ On a ``Series``, multiple functions return a ``Series``, indexed by the function
 
 .. ipython:: python
 
-   tsdf['A'].agg(['sum', 'mean'])
+   tsdf.A.agg(['sum', 'mean'])
 
 Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 
 .. ipython:: python
 
-   tsdf['A'].agg(['sum', lambda x: x.mean()])
+   tsdf.A.agg(['sum', lambda x: x.mean()])
 
 Passing a named function will yield that name for the row:
 
@@ -965,7 +964,7 @@ Passing a named function will yield that name for the row:
    def mymean(x):
        return x.mean()
 
-   tsdf['A'].agg(['sum', mymean])
+   tsdf.A.agg(['sum', mymean])
 
 Aggregating with a dict
 +++++++++++++++++++++++
@@ -988,7 +987,7 @@ not noted for a particular column will be ``NaN``:
 
 .. _basics.aggregation.mixed_dtypes:
 
-Mixed dtypes
+Mixed Dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
@@ -1065,7 +1064,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 
 .. ipython:: python
 
-   tsdf['A'].transform(np.abs)
+   tsdf.A.transform(np.abs)
 
 
 Transform with multiple functions
@@ -1084,7 +1083,7 @@ resulting column names will be the transforming functions.
 
 .. ipython:: python
 
-   tsdf['A'].transform([np.abs, lambda x: x + 1])
+   tsdf.A.transform([np.abs, lambda x: x + 1])
 
 
 Transforming with a dict
@@ -1107,7 +1106,7 @@ selective transforms.
 
 .. _basics.elementwise:
 
-Applying elementwise functions
+Applying Elementwise Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
@@ -1422,6 +1421,8 @@ The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
 ``inplace=True`` to rename the data in place.
 
+.. versionadded:: 0.18.0
+
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
 
@@ -1473,7 +1474,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1522,10 +1523,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 
     df
 
-items
-~~~~~
+iteritems
+~~~~~~~~~
 
-Consistent with the dict-like interface, :meth:`~DataFrame.items` iterates
+Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
 through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
@@ -1535,7 +1536,7 @@ For example:
 
 .. ipython:: python
 
-   for label, ser in df.items():
+   for label, ser in df.iteritems():
        print(label)
        print(ser)
 
@@ -1725,7 +1726,7 @@ sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
 
-By index
+By Index
 ~~~~~~~~
 
 The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
@@ -1752,7 +1753,7 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_values:
 
-By values
+By Values
 ~~~~~~~~~
 
 The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
@@ -1784,7 +1785,7 @@ argument:
 
 .. _basics.sort_indexes_and_values:
 
-By indexes and values
+By Indexes and Values
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.23.0
@@ -1967,11 +1968,11 @@ dtype of the column will be chosen to accommodate all of the data types
    pd.Series([1, 2, 3, 6., 'foo'])
 
 The number of columns of each type in a ``DataFrame`` can be found by calling
-``DataFrame.dtypes.value_counts()``.
+:meth:`~DataFrame.get_dtype_counts`.
 
 .. ipython:: python
 
-   dft.dtypes.value_counts()
+   dft.get_dtype_counts()
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
@@ -2060,6 +2061,8 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
    dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
+
+.. versionadded:: 0.19.0
 
 Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 

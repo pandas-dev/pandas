@@ -37,7 +37,7 @@ time, we changed the sum and prod of an empty ``Series`` to also be ``NaN``.
 
 Based on feedback, we've partially reverted those changes.
 
-Arithmetic operations
+Arithmetic Operations
 ^^^^^^^^^^^^^^^^^^^^^
 
 The default sum for empty or all-*NA* ``Series`` is now ``0``.
@@ -93,7 +93,7 @@ returning ``1`` instead.
 These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
 Finally, a few less obvious places in pandas are affected by this change.
 
-Grouping by a categorical
+Grouping by a Categorical
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Grouping by a ``Categorical`` and summing now returns ``0`` instead of
@@ -196,7 +196,7 @@ Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
 
    pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
 
-Rolling and expanding
+Rolling and Expanding
 ^^^^^^^^^^^^^^^^^^^^^
 
 Rolling and expanding already have a ``min_periods`` keyword that behaves

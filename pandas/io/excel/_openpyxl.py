@@ -1,28 +1,19 @@
-from typing import List
-
-import numpy as np
-
-from pandas.compat._optional import import_optional_dependency
-
-from pandas._typing import FilePathOrBuffer, Scalar
-
-from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
+from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
 
 
 class _OpenpyxlWriter(ExcelWriter):
-    engine = "openpyxl"
-    supported_extensions = (".xlsx", ".xlsm")
+    engine = 'openpyxl'
+    supported_extensions = ('.xlsx', '.xlsm')
 
-    def __init__(self, path, engine=None, mode="w", **engine_kwargs):
+    def __init__(self, path, engine=None, mode='w', **engine_kwargs):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
-        if self.mode == "a":  # Load from existing workbook
+        if self.mode == 'a':  # Load from existing workbook
             from openpyxl import load_workbook
-
             book = load_workbook(self.path)
             self.book = book
         else:
@@ -53,16 +44,12 @@ class _OpenpyxlWriter(ExcelWriter):
         """
 
         from openpyxl.style import Style
-
         xls_style = Style()
         for key, value in style_dict.items():
             for nk, nv in value.items():
                 if key == "borders":
-                    (
-                        xls_style.borders.__getattribute__(nk).__setattr__(
-                            "border_style", nv
-                        )
-                    )
+                    (xls_style.borders.__getattribute__(nk)
+                     .__setattr__('border_style', nv))
                 else:
                     xls_style.__getattribute__(key).__setattr__(nk, nv)
 
@@ -91,13 +78,16 @@ class _OpenpyxlWriter(ExcelWriter):
             appropriate class.
         """
 
-        _style_key_map = {"borders": "border"}
+        _style_key_map = {
+            'borders': 'border',
+        }
 
         style_kwargs = {}
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, "_convert_to_{k}".format(k=k), lambda x: None)
+            _conv_to_x = getattr(cls, '_convert_to_{k}'.format(k=k),
+                                 lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
                 style_kwargs[k] = new_v
@@ -162,19 +152,19 @@ class _OpenpyxlWriter(ExcelWriter):
         from openpyxl.styles import Font
 
         _font_key_map = {
-            "sz": "size",
-            "b": "bold",
-            "i": "italic",
-            "u": "underline",
-            "strike": "strikethrough",
-            "vertalign": "vertAlign",
+            'sz': 'size',
+            'b': 'bold',
+            'i': 'italic',
+            'u': 'underline',
+            'strike': 'strikethrough',
+            'vertalign': 'vertAlign',
         }
 
         font_kwargs = {}
         for k, v in font_dict.items():
             if k in _font_key_map:
                 k = _font_key_map[k]
-            if k == "color":
+            if k == 'color':
                 v = cls._convert_to_color(v)
             font_kwargs[k] = v
 
@@ -224,15 +214,17 @@ class _OpenpyxlWriter(ExcelWriter):
         from openpyxl.styles import PatternFill, GradientFill
 
         _pattern_fill_key_map = {
-            "patternType": "fill_type",
-            "patterntype": "fill_type",
-            "fgColor": "start_color",
-            "fgcolor": "start_color",
-            "bgColor": "end_color",
-            "bgcolor": "end_color",
+            'patternType': 'fill_type',
+            'patterntype': 'fill_type',
+            'fgColor': 'start_color',
+            'fgcolor': 'start_color',
+            'bgColor': 'end_color',
+            'bgcolor': 'end_color',
         }
 
-        _gradient_fill_key_map = {"fill_type": "type"}
+        _gradient_fill_key_map = {
+            'fill_type': 'type',
+        }
 
         pfill_kwargs = {}
         gfill_kwargs = {}
@@ -242,9 +234,9 @@ class _OpenpyxlWriter(ExcelWriter):
                 pk = _pattern_fill_key_map[k]
             if k in _gradient_fill_key_map:
                 gk = _gradient_fill_key_map[k]
-            if pk in ["start_color", "end_color"]:
+            if pk in ['start_color', 'end_color']:
                 v = cls._convert_to_color(v)
-            if gk == "stop":
+            if gk == 'stop':
                 v = cls._convert_to_stop(v)
             if pk:
                 pfill_kwargs[pk] = v
@@ -277,7 +269,9 @@ class _OpenpyxlWriter(ExcelWriter):
 
         from openpyxl.styles import Side
 
-        _side_key_map = {"border_style": "style"}
+        _side_key_map = {
+            'border_style': 'style',
+        }
 
         if isinstance(side_spec, str):
             return Side(style=side_spec)
@@ -286,7 +280,7 @@ class _OpenpyxlWriter(ExcelWriter):
         for k, v in side_spec.items():
             if k in _side_key_map:
                 k = _side_key_map[k]
-            if k == "color":
+            if k == 'color':
                 v = cls._convert_to_color(v)
             side_kwargs[k] = v
 
@@ -318,15 +312,18 @@ class _OpenpyxlWriter(ExcelWriter):
 
         from openpyxl.styles import Border
 
-        _border_key_map = {"diagonalup": "diagonalUp", "diagonaldown": "diagonalDown"}
+        _border_key_map = {
+            'diagonalup': 'diagonalUp',
+            'diagonaldown': 'diagonalDown',
+        }
 
         border_kwargs = {}
         for k, v in border_dict.items():
             if k in _border_key_map:
                 k = _border_key_map[k]
-            if k == "color":
+            if k == 'color':
                 v = cls._convert_to_color(v)
-            if k in ["left", "right", "top", "bottom", "diagonal"]:
+            if k in ['left', 'right', 'top', 'bottom', 'diagonal']:
                 v = cls._convert_to_side(v)
             border_kwargs[k] = v
 
@@ -369,7 +366,7 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         number_format : str
         """
-        return number_format_dict["format_code"]
+        return number_format_dict['format_code']
 
     @classmethod
     def _convert_to_protection(cls, protection_dict):
@@ -389,9 +386,8 @@ class _OpenpyxlWriter(ExcelWriter):
 
         return Protection(**protection_dict)
 
-    def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -405,13 +401,13 @@ class _OpenpyxlWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if _validate_freeze_panes(freeze_panes):
-            wks.freeze_panes = wks.cell(
-                row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
-            )
+            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
+                                        column=freeze_panes[1] + 1)
 
         for cell in cells:
             xcell = wks.cell(
-                row=startrow + cell.row + 1, column=startcol + cell.col + 1
+                row=startrow + cell.row + 1,
+                column=startcol + cell.col + 1
             )
             xcell.value, fmt = self._value_with_fmt(cell.val)
             if fmt:
@@ -435,7 +431,7 @@ class _OpenpyxlWriter(ExcelWriter):
                     start_row=startrow + cell.row + 1,
                     start_column=startcol + cell.col + 1,
                     end_column=startcol + cell.mergeend + 1,
-                    end_row=startrow + cell.mergestart + 1,
+                    end_row=startrow + cell.mergestart + 1
                 )
 
                 # When cells are merged only the top-left cell is preserved
@@ -455,68 +451,3 @@ class _OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
-
-
-class _OpenpyxlReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
-        """Reader using openpyxl engine.
-
-        Parameters
-        ----------
-        filepath_or_buffer : string, path object or Workbook
-            Object to be parsed.
-        """
-        import_optional_dependency("openpyxl")
-        super().__init__(filepath_or_buffer)
-
-    @property
-    def _workbook_class(self):
-        from openpyxl import Workbook
-
-        return Workbook
-
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
-        from openpyxl import load_workbook
-
-        return load_workbook(
-            filepath_or_buffer, read_only=True, data_only=True, keep_links=False
-        )
-
-    @property
-    def sheet_names(self) -> List[str]:
-        return self.book.sheetnames
-
-    def get_sheet_by_name(self, name: str):
-        return self.book[name]
-
-    def get_sheet_by_index(self, index: int):
-        return self.book.worksheets[index]
-
-    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
-
-        # TODO: replace with openpyxl constants
-        if cell.is_date:
-            return cell.value
-        elif cell.data_type == "e":
-            return np.nan
-        elif cell.data_type == "b":
-            return bool(cell.value)
-        elif cell.value is None:
-            return ""  # compat with xlrd
-        elif cell.data_type == "n":
-            # GH5394
-            if convert_float:
-                val = int(cell.value)
-                if val == cell.value:
-                    return val
-            else:
-                return float(cell.value)
-
-        return cell.value
-
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        data = []  # type: List[List[Scalar]]
-        for row in sheet.rows:
-            data.append([self._convert_cell(cell, convert_float) for cell in row])
-
-        return data

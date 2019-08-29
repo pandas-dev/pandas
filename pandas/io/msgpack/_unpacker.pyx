@@ -5,13 +5,15 @@ from cython cimport Py_ssize_t
 
 from cpython cimport (
     PyCallable_Check,
-    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release, Py_buffer,
+    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release,
     PyBytes_Size,
     PyBytes_FromStringAndSize,
     PyBytes_AsString)
 
 cdef extern from "Python.h":
     ctypedef struct PyObject
+    cdef int PyObject_AsReadBuffer(object o, const void** buff,
+                                   Py_ssize_t* buf_len) except -1
 
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy, memmove
@@ -127,14 +129,8 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
         Py_ssize_t buf_len
         char* cenc = NULL
         char* cerr = NULL
-        Py_buffer view
-        bytes extra_bytes
 
-    # GH#26769 Effectively re-implement deprecated PyObject_AsReadBuffer;
-    # based on https://xpra.org/trac/ticket/1884
-    PyObject_GetBuffer(packed, &view, PyBUF_SIMPLE)
-    buf = <char*>view.buf
-    buf_len = view.len
+    PyObject_AsReadBuffer(packed, <const void**>&buf, &buf_len)
 
     if encoding is not None:
         if isinstance(encoding, unicode):
@@ -153,13 +149,10 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
     if ret == 1:
         obj = unpack_data(&ctx)
         if <Py_ssize_t> off < buf_len:
-            extra_bytes = PyBytes_FromStringAndSize(buf + off, buf_len - off)
-            PyBuffer_Release(&view)
-            raise ExtraData(obj, extra_bytes)
-        PyBuffer_Release(&view)
+            raise ExtraData(obj, PyBytes_FromStringAndSize(
+                buf + off, buf_len - off))
         return obj
     else:
-        PyBuffer_Release(&view)
         raise UnpackValueError("Unpack failed: error = {ret}".format(ret=ret))
 
 

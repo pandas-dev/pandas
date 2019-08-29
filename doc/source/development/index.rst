@@ -16,4 +16,3 @@ Development
     internals
     extending
     developer
-    roadmap

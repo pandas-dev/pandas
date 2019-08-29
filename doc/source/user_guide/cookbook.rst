@@ -99,7 +99,7 @@ Splitting
    df[df.AAA <= 5]
    df[df.AAA > 5]
 
-Building criteria
+Building Criteria
 *****************
 
 `Select with multi-column criteria
@@ -245,7 +245,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
-New columns
+New Columns
 ***********
 
 `Efficiently and dynamically creating new columns using applymap
@@ -399,7 +399,7 @@ Sorting
 
    df.sort_values(by=('Labs', 'II'), ascending=False)
 
-`Partial selection, the need for sortedness;
+`Partial Selection, the need for sortedness;
 <https://github.com/pandas-dev/pandas/issues/2995>`__
 
 Levels
@@ -413,7 +413,7 @@ Levels
 
 .. _cookbook.missing_data:
 
-Missing data
+Missing Data
 ------------
 
 The :ref:`missing data<missing_data>` docs.
@@ -485,7 +485,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    expected_df = gb.apply(GrowUp)
    expected_df
 
-`Expanding apply
+`Expanding Apply
 <http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
 
 .. ipython:: python
@@ -592,10 +592,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame([0, 1, 0, 1, 1, 1, 0, 1, 1], columns=['A'])
-   df['A'].groupby((df['A'] != df['A'].shift()).cumsum()).groups
-   df['A'].groupby((df['A'] != df['A'].shift()).cumsum()).cumsum()
+   df.A.groupby((df.A != df.A.shift()).cumsum()).groups
+   df.A.groupby((df.A != df.A.shift()).cumsum()).cumsum()
 
-Expanding data
+Expanding Data
 **************
 
 `Alignment and to-date
@@ -690,7 +690,7 @@ To create year and month cross tabulation:
 Apply
 *****
 
-`Rolling apply to organize - Turning embedded lists into a MultiIndex frame
+`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -706,7 +706,7 @@ Apply
                         for ind, row in df.iterrows()})
    df_orgz
 
-`Rolling apply with a DataFrame returning a Series
+`Rolling Apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
 
 Rolling Apply to multiple columns where function calculates a Series before a Scalar from the Series is returned
@@ -719,7 +719,7 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    df
 
    def gm(df, const):
-       v = ((((df['A'] + df['B']) + 1).cumprod()) - 1) * const
+       v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
        return v.iloc[-1]
 
    s = pd.Series({df.index[i]: gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
@@ -1099,7 +1099,7 @@ HDFStore
 
 The :ref:`HDFStores <io.hdf5>` docs
 
-`Simple queries with a Timestamp Index
+`Simple Queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy
@@ -1169,7 +1169,7 @@ Storing Attributes to a group node
 
 .. _cookbook.binary:
 
-Binary files
+Binary Files
 ************
 
 pandas readily accepts NumPy record arrays, if you need to read in a binary
@@ -1260,19 +1260,24 @@ The `method` argument within `DataFrame.corr` can accept a callable in addition 
        n = len(x)
        a = np.zeros(shape=(n, n))
        b = np.zeros(shape=(n, n))
+
        for i in range(n):
            for j in range(i + 1, n):
                a[i, j] = abs(x[i] - x[j])
                b[i, j] = abs(y[i] - y[j])
+
        a += a.T
        b += b.T
+
        a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
        b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
+
        A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
        B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
        cov_ab = np.sqrt(np.nansum(A * B)) / n
        std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
        std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
+
        return cov_ab / std_a / std_b
 
    df = pd.DataFrame(np.random.normal(size=(100, 3)))
@@ -1334,7 +1339,7 @@ Values can be set to NaT using np.nan, similar to datetime
    y[1] = np.nan
    y
 
-Aliasing axis names
+Aliasing Axis Names
 -------------------
 
 To globally provide aliases for axis names, one can define these 2 functions:
@@ -1361,7 +1366,7 @@ To globally provide aliases for axis names, one can define these 2 functions:
    df2.sum(axis='myaxis2')
    clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
-Creating example data
+Creating Example Data
 ---------------------
 
 To create a dataframe from every combination of some given values, like R's ``expand.grid()``

@@ -5,22 +5,22 @@ from pandas.io.excel._util import _validate_freeze_panes
 
 
 class _XlwtWriter(ExcelWriter):
-    engine = "xlwt"
-    supported_extensions = (".xls",)
+    engine = 'xlwt'
+    supported_extensions = ('.xls',)
 
-    def __init__(self, path, engine=None, encoding=None, mode="w", **engine_kwargs):
+    def __init__(self, path, engine=None, encoding=None, mode='w',
+                 **engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
+        engine_kwargs['engine'] = engine
 
-        engine_kwargs["engine"] = engine
-
-        if mode == "a":
-            raise ValueError("Append mode is not supported with xlwt!")
+        if mode == 'a':
+            raise ValueError('Append mode is not supported with xlwt!')
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
         if encoding is None:
-            encoding = "ascii"
+            encoding = 'ascii'
         self.book = xlwt.Workbook(encoding=encoding)
         self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
         self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
@@ -31,9 +31,8 @@ class _XlwtWriter(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using xlwt.
 
         sheet_name = self._get_sheet_name(sheet_name)
@@ -65,19 +64,19 @@ class _XlwtWriter(ExcelWriter):
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
-                wks.write_merge(
-                    startrow + cell.row,
-                    startrow + cell.mergestart,
-                    startcol + cell.col,
-                    startcol + cell.mergeend,
-                    val,
-                    style,
-                )
+                wks.write_merge(startrow + cell.row,
+                                startrow + cell.mergestart,
+                                startcol + cell.col,
+                                startcol + cell.mergeend,
+                                val, style)
             else:
-                wks.write(startrow + cell.row, startcol + cell.col, val, style)
+                wks.write(startrow + cell.row,
+                          startcol + cell.col,
+                          val, style)
 
     @classmethod
-    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=",", line_sep=";"):
+    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=',',
+                       line_sep=';'):
         """helper which recursively generate an xlwt easy style string
         for example:
 
@@ -92,19 +91,17 @@ class _XlwtWriter(ExcelWriter):
                     border: top thin, right thin, bottom thin, left thin; \
                     align: horiz center;
         """
-        if hasattr(item, "items"):
+        if hasattr(item, 'items'):
             if firstlevel:
-                it = [
-                    "{key}: {val}".format(key=key, val=cls._style_to_xlwt(value, False))
-                    for key, value in item.items()
-                ]
+                it = ["{key}: {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
+                      for key, value in item.items()]
                 out = "{sep} ".format(sep=(line_sep).join(it))
                 return out
             else:
-                it = [
-                    "{key} {val}".format(key=key, val=cls._style_to_xlwt(value, False))
-                    for key, value in item.items()
-                ]
+                it = ["{key} {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
+                      for key, value in item.items()]
                 out = "{sep} ".format(sep=(field_sep).join(it))
                 return out
         else:
@@ -126,7 +123,7 @@ class _XlwtWriter(ExcelWriter):
 
         if style_dict:
             xlwt_stylestr = cls._style_to_xlwt(style_dict)
-            style = xlwt.easyxf(xlwt_stylestr, field_sep=",", line_sep=";")
+            style = xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
         else:
             style = xlwt.XFStyle()
         if num_format_str is not None:

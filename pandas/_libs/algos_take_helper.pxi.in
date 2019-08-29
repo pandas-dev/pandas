@@ -148,7 +148,7 @@ def get_dispatch(dtypes):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_1d_{{name}}_{{dest}}_memview({{c_type_in}}[:] values,
-                                              const int64_t[:] indexer,
+                                              int64_t[:] indexer,
                                               {{c_type_out}}[:] out,
                                               fill_value=np.nan):
 
@@ -159,7 +159,7 @@ cdef inline take_1d_{{name}}_{{dest}}_memview({{c_type_in}}[:] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
-                              const int64_t[:] indexer,
+                              int64_t[:] indexer,
                               {{c_type_out}}[:] out,
                               fill_value=np.nan):
 
@@ -178,7 +178,7 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis0_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
-                                                    const int64_t[:] indexer,
+                                                    int64_t[:] indexer,
                                                     {{c_type_out}}[:, :] out,
                                                     fill_value=np.nan):
 {{inner_take_2d_axis0}}
@@ -205,7 +205,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
-                                                    const int64_t[:] indexer,
+                                                    int64_t[:] indexer,
                                                     {{c_type_out}}[:, :] out,
                                                     fill_value=np.nan):
 {{inner_take_2d_axis1}}

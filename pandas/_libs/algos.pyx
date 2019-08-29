@@ -674,6 +674,31 @@ def backfill_2d_inplace(algos_t[:, :] values,
                 val = values[j, i]
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap(algos_t[:] index, object func):
+    cdef:
+        Py_ssize_t length = index.shape[0]
+        Py_ssize_t i = 0
+        ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from pandas._libs.lib import maybe_convert_objects
+
+    for i in range(length):
+        result[i] = func(index[i])
+
+    return maybe_convert_objects(result)
+
+
+arrmap_float64 = arrmap["float64_t"]
+arrmap_float32 = arrmap["float32_t"]
+arrmap_object = arrmap["object"]
+arrmap_int64 = arrmap["int64_t"]
+arrmap_int32 = arrmap["int32_t"]
+arrmap_uint64 = arrmap["uint64_t"]
+arrmap_bool = arrmap["uint8_t"]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):

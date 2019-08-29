@@ -1,12 +1,14 @@
+:orphan:
+
 .. _whatsnew_0241:
 
-Whats new in 0.24.1 (February 3, 2019)
+Whats New in 0.24.1 (February 3, 2019)
 --------------------------------------
 
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
 
 {{ header }}
 
@@ -15,7 +17,7 @@ including other versions of pandas. See :ref:`whatsnew_0240` for the 0.24.0 chan
 
 .. _whatsnew_0241.api:
 
-API changes
+API Changes
 ~~~~~~~~~~~
 
 Changing the ``sort`` parameter for :class:`Index` set operations
@@ -45,7 +47,7 @@ The `sort` option for :meth:`Index.intersection` has changed in three ways.
 
 .. _whatsnew_0241.regressions:
 
-Fixed regressions
+Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`DataFrame.to_dict` with ``records`` orient raising an
@@ -60,7 +62,7 @@ Fixed regressions
 
 .. _whatsnew_0241.bug_fixes:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 **Reshaping**

@@ -1,9 +1,8 @@
 numpy>=1.15
-python-dateutil>=2.6.1
+python-dateutil>=2.5.0
 pytz
 asv
 cython>=0.28.2
-black
 cpplint
 flake8
 flake8-comprehensions
@@ -12,7 +11,7 @@ isort
 mypy
 pycodestyle
 gitpython
-sphinx==1.8.5
+sphinx
 numpydoc>=0.9.0
 nbconvert>=5.4.1
 nbsphinx
@@ -39,13 +38,13 @@ jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
-beautifulsoup4>=4.6.0
+beautifulsoup4>=4.2.1
 fastparquet>=0.2.1
 html5lib
 lxml
 openpyxl
 pyarrow>=0.9.0
-pyqt5>=5.9.2
+pyqt
 tables>=3.4.2
 python-snappy
 s3fs
@@ -54,4 +53,3 @@ xarray
 xlrd
 xlsxwriter
 xlwt
-pyreadstat

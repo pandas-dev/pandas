@@ -9,7 +9,7 @@ from pandas.util import testing as tm
 
 
 class TestFrozenList(CheckImmutable, CheckStringMixin):
-    mutable_methods = ("extend", "pop", "remove", "insert")
+    mutable_methods = ('extend', 'pop', 'remove', 'insert')
     unicode_container = FrozenList(["\u05d0", "\u05d1", "c"])
 
     def setup_method(self, _):
@@ -58,7 +58,7 @@ class TestFrozenList(CheckImmutable, CheckStringMixin):
 
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
-    mutable_methods = ("put", "itemset", "fill")
+    mutable_methods = ('put', 'itemset', 'fill')
 
     def setup_method(self, _):
         self.lst = [3, 5, 7, -2]

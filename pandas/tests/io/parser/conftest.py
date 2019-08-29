@@ -12,7 +12,8 @@ class BaseParser:
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()
-        kwargs.update(dict(engine=self.engine, low_memory=self.low_memory))
+        kwargs.update(dict(engine=self.engine,
+                           low_memory=self.low_memory))
 
         return kwargs
 
@@ -66,16 +67,19 @@ _c_parser_ids = ["c_high", "c_low"]
 _all_parser_ids = _c_parser_ids + _py_parser_ids
 
 
-@pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
+@pytest.fixture(params=_all_parsers,
+                ids=_all_parser_ids)
 def all_parsers(request):
     return request.param
 
 
-@pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
+@pytest.fixture(params=_c_parsers_only,
+                ids=_c_parser_ids)
 def c_parser_only(request):
     return request.param
 
 
-@pytest.fixture(params=_py_parsers_only, ids=_py_parser_ids)
+@pytest.fixture(params=_py_parsers_only,
+                ids=_py_parser_ids)
 def python_parser_only(request):
     return request.param

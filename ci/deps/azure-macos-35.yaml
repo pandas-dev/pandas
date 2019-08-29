@@ -16,20 +16,16 @@ dependencies:
   - pyarrow
   - pytables
   - python=3.5.*
-  - python-dateutil==2.6.1
   - pytz
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
+  - isort
   - pip:
-    - pyreadstat
+    - python-dateutil==2.5.3
     # universal
-    - pytest>=5.0.1
-    - pytest-xdist>=1.29.0
+    - pytest==4.5.0
+    - pytest-xdist
     - pytest-mock
     - hypothesis>=3.58.0
-    # https://github.com/pandas-dev/pandas/issues/27421
-    - pytest-azurepipelines<1.0.0
-

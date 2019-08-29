@@ -23,7 +23,8 @@ class _DeprecatedModule:
             objects
     """
 
-    def __init__(self, deprmod, deprmodto=None, removals=None, moved=None):
+    def __init__(self, deprmod, deprmodto=None, removals=None,
+                 moved=None):
         self.deprmod = deprmod
         self.deprmodto = deprmodto
         self.removals = removals
@@ -63,27 +64,23 @@ class _DeprecatedModule:
             warnings.warn(
                 "{deprmod}.{name} is deprecated and will be removed in "
                 "a future version.".format(deprmod=self.deprmod, name=name),
-                FutureWarning,
-                stacklevel=2,
-            )
+                FutureWarning, stacklevel=2)
         elif self.moved is not None and name in self.moved:
             warnings.warn(
                 "{deprmod} is deprecated and will be removed in "
                 "a future version.\nYou can access {name} as {moved}".format(
-                    deprmod=self.deprmod, name=name, moved=self.moved[name]
-                ),
-                FutureWarning,
-                stacklevel=2,
-            )
+                    deprmod=self.deprmod,
+                    name=name,
+                    moved=self.moved[name]),
+                FutureWarning, stacklevel=2)
         else:
             deprmodto = self.deprmodto
             if deprmodto is False:
                 warnings.warn(
                     "{deprmod}.{name} is deprecated and will be removed in "
-                    "a future version.".format(deprmod=self.deprmod, name=name),
-                    FutureWarning,
-                    stacklevel=2,
-                )
+                    "a future version.".format(
+                        deprmod=self.deprmod, name=name),
+                    FutureWarning, stacklevel=2)
             else:
                 if deprmodto is None:
                     deprmodto = obj.__module__
@@ -91,11 +88,8 @@ class _DeprecatedModule:
                 warnings.warn(
                     "{deprmod}.{name} is deprecated. Please use "
                     "{deprmodto}.{name} instead.".format(
-                        deprmod=self.deprmod, name=name, deprmodto=deprmodto
-                    ),
-                    FutureWarning,
-                    stacklevel=2,
-                )
+                        deprmod=self.deprmod, name=name, deprmodto=deprmodto),
+                    FutureWarning, stacklevel=2)
 
         return obj
 
@@ -104,6 +98,6 @@ class _DeprecatedModule:
             mod = self.deprmod
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
+            warnings.filterwarnings('ignore', category=FutureWarning)
             deprmodule = importlib.import_module(mod)
             return deprmodule

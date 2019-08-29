@@ -68,7 +68,11 @@ class ExtensionDtype:
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
-
+    # na_value is the default NA value to use for this type. This is used in
+    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
+    # of the NA value, not the physical NA value for storage.
+    # e.g. for JSONArray, this is an empty dictionary.
+    na_value = np.nan
     _metadata = ()  # type: Tuple[str, ...]
 
     def __str__(self):
@@ -99,7 +103,8 @@ class ExtensionDtype:
                 return False
         if isinstance(other, type(self)):
             return all(
-                getattr(self, attr) == getattr(other, attr) for attr in self._metadata
+                getattr(self, attr) == getattr(other, attr)
+                for attr in self._metadata
             )
         return False
 
@@ -108,17 +113,6 @@ class ExtensionDtype:
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-    @property
-    def na_value(self):
-        """
-        Default NA value to use for this type.
-
-        This is used in e.g. ExtensionArray.take. This should be the
-        user-facing "boxed" version of the NA value, not the physical NA value
-        for storage.  e.g. for JSONArray, this is an empty dictionary.
-        """
-        return np.nan
 
     @property
     def type(self) -> Type:
@@ -146,7 +140,7 @@ class ExtensionDtype:
         --------
         numpy.dtype.kind
         """
-        return "O"
+        return 'O'
 
     @property
     def name(self) -> str:
@@ -220,12 +214,9 @@ class ExtensionDtype:
         ...         raise TypeError("Cannot construct a '{}' from "
         ...                         "'{}'".format(cls.__name__, string))
         """
-        if not isinstance(string, str):
-            raise TypeError("Expects a string, got {}".format(type(string)))
         if string != cls.name:
-            raise TypeError(
-                "Cannot construct a '{}' from '{}'".format(cls.__name__, string)
-            )
+            raise TypeError("Cannot construct a '{}' from '{}'".format(
+                cls.__name__, string))
         return cls()
 
     @classmethod
@@ -251,9 +242,10 @@ class ExtensionDtype:
         3. ``dtype`` has a ``dtype`` attribute, and any of the above
            conditions is true for ``dtype.dtype``.
         """
-        dtype = getattr(dtype, "dtype", dtype)
+        dtype = getattr(dtype, 'dtype', dtype)
 
-        if isinstance(dtype, (ABCSeries, ABCIndexClass, ABCDataFrame, np.dtype)):
+        if isinstance(dtype, (ABCSeries, ABCIndexClass,
+                              ABCDataFrame, np.dtype)):
             # https://github.com/pandas-dev/pandas/issues/22960
             # avoid passing data to `construct_from_string`. This could
             # cause a FutureWarning from numpy about failing elementwise

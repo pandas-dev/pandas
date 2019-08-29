@@ -2,7 +2,7 @@ from functools import reduce
 
 import numpy as np
 
-from pandas._config import get_option
+import pandas as pd
 
 # A token value Python's tokenizer probably will never use.
 _BACKTICK_QUOTED_STRING = 100
@@ -11,7 +11,7 @@ _BACKTICK_QUOTED_STRING = 100
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicode """
     if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode(get_option("display.encoding"))
+        s = s.decode(pd.get_option('display.encoding'))
     return s
 
 

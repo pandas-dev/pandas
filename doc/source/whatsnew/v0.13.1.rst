@@ -43,7 +43,7 @@ Highlights include:
       df.loc[0, 'A'] = np.nan
       df
 
-Output formatting enhancements
+Output Formatting Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - df.info() view now display dtype info per column (:issue:`5682`)
@@ -179,7 +179,7 @@ API changes
     [0 rows x 2 columns]
 
 
-Prior version deprecations/changes
+Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1
@@ -394,7 +394,7 @@ There are no experimental changes in 0.13.1
 
 .. _release.bug_fixes-0.13.1:
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)

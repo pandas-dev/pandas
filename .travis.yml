@@ -1,3 +1,4 @@
+sudo: false
 language: python
 python: 3.5
 
@@ -21,7 +22,7 @@ env:
 
 git:
     # for cloning
-    depth: false
+    depth: 2000
 
 matrix:
     fast_finish: true
@@ -47,10 +48,17 @@ matrix:
       env:
         - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
 
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
     allow_failures:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
+      - dist: trusty
+        env:
+          - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
 
 before_install:
   - echo "before_install"
@@ -63,7 +71,7 @@ before_install:
   - pwd
   - uname -a
   - git --version
-  - ./ci/check_git_tags.sh
+  - git tag
   # Because travis runs on Google Cloud and has a /etc/boto.cfg,
   # it breaks moto import, see:
   # https://github.com/spulec/moto/issues/1771
@@ -89,10 +97,16 @@ before_script:
 script:
   - echo "script start"
   - source activate pandas-dev
+  - ci/build_docs.sh
   - ci/run_tests.sh
 
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - ci/print_skipped.py 
+  - if [ -e test-data-single.xml ]; then
+        ci/print_skipped.py test-data-single.xml;
+    fi
+  - if [ -e test-data-multiple.xml ]; then
+        ci/print_skipped.py test-data-multiple.xml;
+    fi
   - echo "after_script done"

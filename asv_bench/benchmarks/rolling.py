@@ -4,16 +4,15 @@ import numpy as np
 
 class Methods:
 
-    params = (
-        ["DataFrame", "Series"],
-        [10, 1000],
-        ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
-    )
-    param_names = ["contructor", "window", "dtype", "method"]
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
     def setup(self, constructor, window, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
@@ -23,15 +22,14 @@ class Methods:
 
 class ExpandingMethods:
 
-    params = (
-        ["DataFrame", "Series"],
-        ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
-    )
-    param_names = ["contructor", "window", "dtype", "method"]
+    params = (['DataFrame', 'Series'],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
     def setup(self, constructor, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         self.expanding = getattr(pd, constructor)(arr).expanding()
 
@@ -41,11 +39,14 @@ class ExpandingMethods:
 
 class EWMMethods:
 
-    params = (["DataFrame", "Series"], [10, 1000], ["int", "float"], ["mean", "std"])
-    param_names = ["contructor", "window", "dtype", "method"]
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              ['mean', 'std'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
     def setup(self, constructor, window, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
 
@@ -54,28 +55,29 @@ class EWMMethods:
 
 
 class VariableWindowMethods(Methods):
-    params = (
-        ["DataFrame", "Series"],
-        ["50s", "1h", "1d"],
-        ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
-    )
-    param_names = ["contructor", "window", "dtype", "method"]
+    params = (['DataFrame', 'Series'],
+              ['50s', '1h', '1d'],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
     def setup(self, constructor, window, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
-        index = pd.date_range("2017-01-01", periods=N, freq="5s")
+        index = pd.date_range('2017-01-01', periods=N, freq='5s')
         self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 
 class Pairwise:
 
-    params = ([10, 1000, None], ["corr", "cov"], [True, False])
-    param_names = ["window", "method", "pairwise"]
+    params = ([10, 1000, None],
+              ['corr', 'cov'],
+              [True, False])
+    param_names = ['window', 'method', 'pairwise']
 
     def setup(self, window, method, pairwise):
-        N = 10 ** 4
+        N = 10**4
         arr = np.random.random(N)
         self.df = pd.DataFrame(arr)
 
@@ -88,25 +90,25 @@ class Pairwise:
 
 
 class Quantile:
-    params = (
-        ["DataFrame", "Series"],
-        [10, 1000],
-        ["int", "float"],
-        [0, 0.5, 1],
-        ["linear", "nearest", "lower", "higher", "midpoint"],
-    )
-    param_names = ["constructor", "window", "dtype", "percentile"]
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              [0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'])
+    param_names = ['constructor', 'window', 'dtype', 'percentile']
 
     def setup(self, constructor, window, dtype, percentile, interpolation):
         N = 10 ** 5
         arr = np.random.random(N).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
-    def time_quantile(self, constructor, window, dtype, percentile, interpolation):
+    def time_quantile(self, constructor, window, dtype, percentile,
+                      interpolation):
         self.roll.quantile(percentile, interpolation=interpolation)
 
 
 class PeakMemFixed:
+
     def setup(self):
         N = 10
         arr = 100 * np.random.random(N)

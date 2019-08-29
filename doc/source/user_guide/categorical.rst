@@ -3,7 +3,7 @@
 {{ header }}
 
 ****************
-Categorical data
+Categorical Data
 ****************
 
 This is an introduction to pandas categorical data type, including a short comparison
@@ -38,10 +38,10 @@ See also the :ref:`API docs on categoricals<api.arrays.categorical>`.
 
 .. _categorical.objectcreation:
 
-Object creation
+Object Creation
 ---------------
 
-Series creation
+Series Creation
 ~~~~~~~~~~~~~~~
 
 Categorical ``Series`` or columns in a ``DataFrame`` can be created in several ways:
@@ -90,7 +90,7 @@ Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
 
     df.dtypes
 
-DataFrame creation
+DataFrame Creation
 ~~~~~~~~~~~~~~~~~~
 
 Similar to the previous section where a single column was converted to categorical, all columns in a
@@ -130,7 +130,7 @@ This conversion is likewise done column by column:
     df_cat['B']
 
 
-Controlling behavior
+Controlling Behavior
 ~~~~~~~~~~~~~~~~~~~~
 
 In the examples above where we passed ``dtype='category'``, we used the default
@@ -181,7 +181,7 @@ during normal constructor mode:
                                             categories=["train", "test"]))
 
 
-Regaining original data
+Regaining Original Data
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 To get back to the original ``Series`` or NumPy array, use
@@ -243,7 +243,7 @@ expects a `dtype`. For example :func:`pandas.read_csv`,
     array. In other words, ``dtype='category'`` is equivalent to
     ``dtype=CategoricalDtype()``.
 
-Equality semantics
+Equality Semantics
 ~~~~~~~~~~~~~~~~~~
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
@@ -438,7 +438,7 @@ use :meth:`~pandas.Categorical.set_categories`.
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
     NumPy S1 dtype and Python strings). This can result in surprising behaviour!
 
-Sorting and order
+Sorting and Order
 -----------------
 
 .. _categorical.sort:
@@ -510,7 +510,7 @@ necessarily make the sort order the same as the categories order.
     (e.g. :meth:`Series.median`, which would need to compute the mean between two values if the length
     of an array is even) do not work and raise a ``TypeError``.
 
-Multi column sorting
+Multi Column Sorting
 ~~~~~~~~~~~~~~~~~~~~
 
 A categorical dtyped column will participate in a multi-column sort in a similar manner to other columns.
@@ -834,6 +834,8 @@ See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about pres
 Unioning
 ~~~~~~~~
 
+.. versionadded:: 0.19.0
+
 If you want to combine categoricals that do not necessarily have the same
 categories, the :func:`~pandas.api.types.union_categoricals` function will
 combine a list-like of categoricals. The new categories will be the union of
@@ -961,7 +963,7 @@ Following table summarizes the results of ``Categoricals`` related concatenation
 +----------+--------------------------------------------------------+----------------------------+
 
 
-Getting data in/out
+Getting Data In/Out
 -------------------
 
 You can write data that contains ``category`` dtypes to a ``HDFStore``.
@@ -998,7 +1000,7 @@ relevant columns back to `category` and assign the right categories and categori
 
 The same holds for writing to a SQL database with ``to_sql``.
 
-Missing data
+Missing Data
 ------------
 
 pandas primarily uses the value `np.nan` to represent missing data. It is by
@@ -1050,7 +1052,7 @@ Gotchas
 
 .. _categorical.rfactor:
 
-Memory usage
+Memory Usage
 ~~~~~~~~~~~~
 
 .. _categorical.memory:
@@ -1150,7 +1152,7 @@ You can use ``fillna`` to handle missing values before applying a function.
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
 
-Categorical index
+Categorical Index
 ~~~~~~~~~~~~~~~~~
 
 ``CategoricalIndex`` is a type of index that is useful for supporting
@@ -1171,7 +1173,7 @@ Setting the index will create a ``CategoricalIndex``:
     # This now sorts by the categories order
     df.sort_index()
 
-Side effects
+Side Effects
 ~~~~~~~~~~~~
 
 Constructing a ``Series`` from a ``Categorical`` will not copy the input

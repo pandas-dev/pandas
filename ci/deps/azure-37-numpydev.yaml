@@ -6,11 +6,11 @@ dependencies:
   - pytz
   - Cython>=0.28.2
   # universal
-  # pytest < 5 until defaults has pytest-xdist>=1.29.0
-  - pytest>=4.0.2,<5.0
+  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - hypothesis>=3.58.0
+  - isort
   - pip
   - pip:
     - "git+git://github.com/dateutil/dateutil.git"
@@ -18,5 +18,3 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
-    # https://github.com/pandas-dev/pandas/issues/27421
-    - pytest-azurepipelines<1.0.0
