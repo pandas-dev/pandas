@@ -62,7 +62,7 @@ Missing
 I/O
 ^^^
 
--
+- Fix regression in notebook display where <th> tags not used for :attr:`DataFrame.index` (:issue:`28204`).
 -
 -
 
