@@ -236,7 +236,7 @@ def test_to_html_truncate(datapath):
 
 
 def test_to_html_truncate_formatter(datapath):
-    #issue-25955
+    # issue-25955
     data = [
         {"A": 1, "B": 2, "C": 3, "D": 4},
         {"A": 5, "B": 6, "C": 7, "D": 8},
