@@ -49,7 +49,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Frame gets duplicated when exploding a single column and there are duplicates in the index (:issue:`28010`).
 -
 -
 -
