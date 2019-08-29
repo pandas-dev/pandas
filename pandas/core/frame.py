@@ -6263,7 +6263,7 @@ class DataFrame(NDFrame):
         exploded_col = frame.pop(column).reset_index(drop=True).explode()
         result = frame.reset_index().join(exploded_col)
 
-        if isinstance(self.index, MultiIndex):
+        if isinstance(self.index, ABCMultiIndex):
             result.index = pandas.MultiIndex.from_frame(
                 result.iloc[:, : self.index.nlevels]
             )
