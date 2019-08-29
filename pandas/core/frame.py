@@ -8398,6 +8398,8 @@ class DataFrame(NDFrame):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
         """
+        .. versionadded:: 1.0.0
+
         Return a Series containing counts of unique rows in the DataFrame.
 
         By default, rows that contain any NaN value are omitted from the
@@ -8421,8 +8423,6 @@ class DataFrame(NDFrame):
             data.
         dropna : boolean, default True
             Don't include counts of rows containing NaN.
-
-        .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -8493,7 +8493,7 @@ class DataFrame(NDFrame):
                 dropna=dropna,
             )
             # Move series name into its index, as happens in multi-column case.
-            return Series(data=series.data, index=series.index.set_names(series.name))
+            return Series(data=series.values, index=series.index.set_names(series.name))
 
         # Some features are only supported for single-column data.
         if not dropna:
