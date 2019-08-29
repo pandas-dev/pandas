@@ -2606,7 +2606,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
             * 'multi': Pass multiple values in a single ``INSERT`` clause.
-            * callable with signature ``(pd_table, con, keys, data_iter)``.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
