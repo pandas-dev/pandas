@@ -5447,3 +5447,16 @@ class TestTimezones(Base):
                 store.append(key, expected, format="table", append=True)
             result = pd.read_hdf(path, key, where="DATE > 20151130")
             assert_frame_equal(result, expected)
+
+    def test_py2_created_with_datetimez(self, datapath):
+        # The test HDF5 file was created in Python 2, but could not be read in
+        # Python 3.
+        #
+        # GH26443
+        index = [pd.Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
+        expected = DataFrame({"data": 123}, index=index)
+        with ensure_clean_store(
+            datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
+        ) as store:
+            result = store["key"]
+            assert_frame_equal(result, expected)

@@ -2902,7 +2902,12 @@ class GenericFixed(Fixed):
             kwargs["freq"] = node._v_attrs["freq"]
 
         if "tz" in node._v_attrs:
-            kwargs["tz"] = node._v_attrs["tz"]
+            if isinstance(node._v_attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = node._v_attrs["tz"]
 
         if kind in ("date", "datetime"):
             index = factory(
