@@ -6259,9 +6259,9 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        frame = self.copy()
-        exploded_col = frame.pop(column).reset_index(drop=True).explode()
-        result = frame.reset_index().join(exploded_col)
+        result = self.copy()
+        exploded_col = result.pop(column).reset_index(drop=True).explode()
+        result = result.reset_index().join(exploded_col)
 
         if isinstance(self.index, ABCMultiIndex):
             result.index = pandas.MultiIndex.from_frame(

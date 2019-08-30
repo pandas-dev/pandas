@@ -143,7 +143,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
-- Frame gets duplicated when exploding a single column and there are duplicates in the index (:issue:`28010`)
+- Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
 
 Missing
 ^^^^^^^
