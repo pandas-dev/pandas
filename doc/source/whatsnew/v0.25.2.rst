@@ -62,7 +62,7 @@ Missing
 I/O
 ^^^
 
--
+- Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
 -
 -
 
