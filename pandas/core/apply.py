@@ -204,17 +204,15 @@ class FrameApply:
         from pandas import Series
 
         if not reduce:
-
-            EMPTY_SERIES = Series([])
             try:
-                r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
+                r = self.f(Series([]))
                 reduce = not isinstance(r, Series)
             except Exception:
                 pass
 
         if reduce:
             if len(self.agg_axis):
-                r = self.f(Series([]), *self.args, **self.kwds)
+                r = self.f(Series([]))
             else:
                 r = np.nan
 
