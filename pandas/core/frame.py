@@ -6262,13 +6262,7 @@ class DataFrame(NDFrame):
         result = self.copy()
         exploded_col = result.pop(column).reset_index(drop=True).explode()
         result = result.reset_index().join(exploded_col)
-
-        if isinstance(self.index, ABCMultiIndex):
-            result.index = pandas.MultiIndex.from_frame(
-                result.iloc[:, : self.index.nlevels]
-            )
-        else:
-            result.index = result.iloc[:, 0]
+        result.set_index(result.columns[: self.index.nlevels].tolist(), inplace=True)
         result.index.names = self.index.names
         result = result.reindex(columns=self.columns, copy=False)
 
