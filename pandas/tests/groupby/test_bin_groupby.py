@@ -2,7 +2,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas._libs import groupby, lib, reduction
+from pandas._libs import groupby, lib, reduction as libreduction
 
 from pandas.core.dtypes.common import ensure_int64
 
@@ -18,7 +18,7 @@ def test_series_grouper():
 
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
-    grouper = reduction.SeriesGrouper(obj, np.mean, labels, 2, dummy)
+    grouper = libreduction.SeriesGrouper(obj, np.mean, labels, 2, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[3:6].mean(), obj[6:].mean()])
@@ -34,7 +34,7 @@ def test_series_bin_grouper():
 
     bins = np.array([3, 6])
 
-    grouper = reduction.SeriesBinGrouper(obj, np.mean, bins, dummy)
+    grouper = libreduction.SeriesBinGrouper(obj, np.mean, bins, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
@@ -120,31 +120,31 @@ class TestMoments:
 class TestReducer:
     def test_int_index(self):
         arr = np.random.randn(100, 4)
-        result = reduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
+        result = libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
-        result = reduction.compute_reduction(
+        result = libreduction.compute_reduction(
             arr, np.sum, axis=1, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(100))
-        result = reduction.compute_reduction(
+        result = libreduction.compute_reduction(
             arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
         )
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
-        result = reduction.compute_reduction(
+        result = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
-        result = reduction.compute_reduction(
+        result = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         assert_almost_equal(result, expected)
