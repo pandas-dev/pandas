@@ -84,6 +84,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 
 Categorical
 ^^^^^^^^^^^
