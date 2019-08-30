@@ -136,6 +136,10 @@ class TestDataFrameApply:
         expected = df.all()
         assert_series_equal(result, expected)
 
+        result = df.nunique()
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
+
     def test_apply_deprecate_reduce(self):
         empty_frame = DataFrame()
 
