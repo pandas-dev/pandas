@@ -8,6 +8,9 @@ import pandas.util._test_decorators as td
 
 import pandas
 
+dummy_backend = types.ModuleType("pandas_dummy_backend")
+dummy_backend.plot = lambda *args, **kwargs: None
+
 
 @pytest.fixture
 def restore_backend():
@@ -15,17 +18,6 @@ def restore_backend():
     pandas.set_option("plotting.backend", "matplotlib")
     yield
     pandas.set_option("plotting.backend", "matplotlib")
-
-
-@pytest.fixture
-def dummy_backend(restore_backend):
-    backend = types.ModuleType("pandas_dummy_backend")
-    backend.plot = lambda *args, **kwargs: None
-    sys.modules["pandas_dummy_backend"] = backend
-
-    yield backend
-
-    del sys.modules["pandas_dummy_backend"]
 
 
 def test_backend_is_not_module():
@@ -36,7 +28,9 @@ def test_backend_is_not_module():
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-def test_backend_is_correct(dummy_backend):
+def test_backend_is_correct(monkeypatch, restore_backend):
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
+
     pandas.set_option("plotting.backend", "pandas_dummy_backend")
     assert pandas.get_option("plotting.backend") == "pandas_dummy_backend"
     assert (
