@@ -21,7 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-- :meth:`DataFrame.to_string` added new optional param ``max_colwidth`` to avoid use of display parameters (:issue:`9784`)
+- :meth:`DataFrame.to_string` added new optional param ``max_colwidth`` to avoid use of display options (:issue:`9784`)
 -
 
 .. _whatsnew_1000.enhancements.other:
