@@ -47,7 +47,6 @@ _indexops_doc_kwargs = dict(
 
 
 class PandasObject(DirNamesMixin):
-
     """baseclass for various pandas objects"""
 
     @property
@@ -1462,7 +1461,7 @@ class IndexOpsMixin:
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of the values
+        Memory usage of the values.
 
         Parameters
         ----------
