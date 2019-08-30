@@ -55,7 +55,7 @@ Backwards incompatible API changes
 .. code-block:: ipython
 
    In [2]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
-   Out[2]: 
+   Out[2]:
    IntervalArray([(0, 1], (2, 3]],
                  closed='right',
                  dtype='interval[int64]')
