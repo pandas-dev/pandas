@@ -50,13 +50,13 @@
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
-        "pip+odfpy": [],
+        "odfpy": [],
         "pytest": [],
         // If using Windows with python 2.7 and want to build using the
         // mingw toolchain (rather than MSVC), uncomment the following line.
         // "libpython": [],
     },
-
+    "conda_channels": ["conda-forge", "defaults"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.

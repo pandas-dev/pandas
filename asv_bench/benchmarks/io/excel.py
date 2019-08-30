@@ -28,11 +28,11 @@ class WriteExcel:
         self.df = _generate_dataframe()
 
     def time_write_excel(self, engine):
-        bio_write = BytesIO()
-        bio_write.seek(0)
-        writer_write = ExcelWriter(bio_write, engine=engine)
-        self.df.to_excel(writer_write, sheet_name="Sheet1")
-        writer_write.save()
+        bio = BytesIO()
+        bio.seek(0)
+        writer = ExcelWriter(bio, engine=engine)
+        self.df.to_excel(writer, sheet_name="Sheet1")
+        writer.save()
 
 
 class ReadExcel:
@@ -40,7 +40,7 @@ class ReadExcel:
     params = ["xlrd", "openpyxl", "odf"]
     param_names = ["engine"]
 
-    def _generate_odf(self):
+    def _create_odf(self):
         doc = OpenDocumentSpreadsheet()
         table = Table(name="Table1")
         for row in self.df.values:
@@ -52,26 +52,18 @@ class ReadExcel:
             table.addElement(tr)
 
         doc.spreadsheet.addElement(table)
-
-        return doc
+        doc.save(self.fname_odf)
 
     def setup(self, engine):
         self.df = _generate_dataframe()
-
-        self.bio_read = BytesIO()
-        self.writer_read = ExcelWriter(self.bio_read)
-        self.df.to_excel(self.writer_read, sheet_name="Sheet1")
-        self.writer_read.save()
-        self.bio_read.seek(0)
-
-        self.bio_read_odf = BytesIO()
-        odf_doc = self._generate_odf()
-        odf_doc.write(self.bio_read_odf)
-        self.bio_read_odf.seek(0)
+        self.fname_excel = "spreadsheet.xlsx"
+        self.fname_odf = "spreadsheet.ods"
+        self.df.to_excel(self.fname_excel, sheet_name="Sheet1")
+        self._create_odf()
 
     def time_read_excel(self, engine):
-        bio = self.bio_read_odf if engine == "odf" else self.bio_read
-        read_excel(bio, engine=engine)
+        fname = self.fname_odf if engine == "odf" else self.fname_excel
+        read_excel(fname, engine=engine)
 
 
 from ..pandas_vb_common import setup  # noqa: F401
