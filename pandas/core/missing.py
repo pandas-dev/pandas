@@ -200,14 +200,14 @@ def interpolate_1d(
         raise ValueError("Limit must be greater than 0")
 
     if (max_gap is not None) and (limit is not None):
-    raise ValueError('max_gap cannot be used together with limit')
+        raise ValueError("max_gap cannot be used together with limit")
 
     if max_gap is None:
         pass
     elif not is_integer(max_gap):
-        raise ValueError('max_gap must be an integer')
+        raise ValueError("max_gap must be an integer")
     elif max_gap < 1:
-        raise ValueError('max_gap must be greater than 0')
+        raise ValueError("max_gap must be greater than 0")
 
     preserve_nans = _derive_indices_of_nans_to_preserve(
         yvalues=yvalues,
