@@ -91,3 +91,15 @@ class TestSetitem:
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
+
+
+def test_repr():
+    # GH 25022
+    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
+    result = repr(arr)
+    expected = (
+        "<IntervalArray>\n"
+        "[(0, 1], (1, 2]]\n"
+        "Length: 2, closed: right, dtype: interval[int64]"
+    )
+    assert result == expected

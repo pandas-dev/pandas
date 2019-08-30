@@ -42,10 +42,10 @@ Backwards incompatible API changes
 
 *pandas 0.25.x*
 
-.. code-block:: ipython
+.. code-block:: python
 
-   In [1]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
-   Out[1]:
+   arr = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+   arr
    IntervalArray([(0, 1], (2, 3]],
                  closed='right',
                  dtype='interval[int64]')
@@ -54,8 +54,8 @@ Backwards incompatible API changes
 
 .. ipython:: python
 
-   In [2]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
-   Out[2]:
+   arr = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+   arr
    <IntervalArray>
    [(0, 1], (2, 3]]
    Length: 2, closed: right, dtype: interval[int64]
