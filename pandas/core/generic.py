@@ -10365,6 +10365,17 @@ class NDFrame(PandasObject, SelectionMixin):
         5    0.117647
         dtype: float64
 
+        By contrast, `skipna=False` will not drop NA values before
+        computation, instead evaluating each entry against the entry prior.
+
+        >>> s.pct_change(skipna=False)
+        0         NaN
+        1    0.011111
+        2         NaN
+        3         NaN
+        4         NaN
+        5         NaN
+
         On the other hand, if a fill method is passed, NAs are filled before
         the computation. For example, before the computation of percentage
         change, forward fill method `ffill` first fills NAs with last valid
