@@ -1,6 +1,7 @@
 import numpy as np
+
+from pandas import DataFrame, concat, date_range, read_json, timedelta_range
 import pandas.util.testing as tm
-from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
 from ..pandas_vb_common import BaseIO
 
@@ -214,4 +215,4 @@ class ToJSONMem:
             df.to_json()
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

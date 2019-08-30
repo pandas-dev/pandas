@@ -1,4 +1,5 @@
 import numpy as np
+
 from pandas import DataFrame, date_range, read_pickle
 import pandas.util.testing as tm
 
@@ -25,4 +26,4 @@ class Pickle(BaseIO):
         self.df.to_pickle(self.fname)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

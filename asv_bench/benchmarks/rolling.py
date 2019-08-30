@@ -1,5 +1,6 @@
-import pandas as pd
 import numpy as np
+
+import pandas as pd
 
 
 class Methods:
@@ -121,4 +122,4 @@ class PeakMemFixed:
             self.roll.max()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
