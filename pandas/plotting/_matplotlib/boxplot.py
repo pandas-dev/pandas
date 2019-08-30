@@ -8,7 +8,6 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
-from pandas import Index, IndexSlice, MultiIndex
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
@@ -322,12 +321,12 @@ def boxplot(
         # data simply using columns
         if columns is None:
             columns = data.columns
-        elif isinstance(data.columns, MultiIndex):
+        elif isinstance(data.columns, pd.MultiIndex):
 
             # reselect columns with after-groupby multi-index columns
-            data = data.loc[:, IndexSlice[:, columns]]
+            data = data.loc[:, pd.IndexSlice[:, columns]]
             columns = data.columns
-        elif isinstance(data.columns, Index):
+        elif isinstance(data.columns, pd.Index):
             data = data.loc[:, columns]
             columns = data.columns
 
