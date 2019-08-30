@@ -61,7 +61,7 @@ Missing
 
 I/O
 ^^^
-- Improve infinity parsing. ``pd.read_csv()`` will now interpret ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values  (:issue:`10065`).
+
 -
 -
 -
