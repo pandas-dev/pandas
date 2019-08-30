@@ -1,10 +1,12 @@
 from io import BytesIO
+
 import numpy as np
-from pandas import DataFrame, date_range, ExcelWriter, read_excel
-import pandas.util.testing as tm
 from odf.opendocument import OpenDocumentSpreadsheet
+from odf.table import Table, TableCell, TableRow
 from odf.text import P
-from odf.table import Table, TableRow, TableCell
+
+from pandas import DataFrame, ExcelWriter, date_range, read_excel
+import pandas.util.testing as tm
 
 
 def _generate_dataframe():
