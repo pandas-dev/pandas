@@ -4,7 +4,6 @@ import numpy as np
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import Table, TableCell, TableRow
 from odf.text import P
-
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
 import pandas.util.testing as tm
 
@@ -68,4 +67,4 @@ class ReadExcel:
         read_excel(fname, engine=engine)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip
