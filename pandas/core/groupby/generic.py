@@ -268,7 +268,9 @@ class NDFrameGroupBy(GroupBy):
             result.index = np.arange(len(result))
 
         if relabeling:
-            result = result[order]
+
+            # used reordered index of columns
+            result = result.iloc[:, order]
             result.columns = columns
 
         return result._convert(datetime=True)
@@ -1731,8 +1733,8 @@ def _normalize_keyword_aggregation(kwargs):
         The transformed kwargs.
     columns : List[str]
         The user-provided keys.
-    order : List[Tuple[str, str]]
-        Pairs of the input and output column names.
+    col_idx_order : List[int]
+        List of columns indices.
 
     Examples
     --------
@@ -1759,7 +1761,39 @@ def _normalize_keyword_aggregation(kwargs):
         else:
             aggspec[column] = [aggfunc]
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
-    return aggspec, columns, order
+
+    # uniquify aggfunc name if duplicated in order list
+    uniquified_order = _make_unique(order)
+
+    # GH 25719, due to aggspec will change the order of assigned columns in aggregation
+    # uniquified_aggspec will store uniquified order list and will compare it with order
+    # based on index
+    aggspec_order = [
+        (column, com.get_callable_name(aggfunc) or aggfunc)
+        for column, aggfuncs in aggspec.items()
+        for aggfunc in aggfuncs
+    ]
+    uniquified_aggspec = _make_unique(aggspec_order)
+
+    # get the new indice of columns by comparison
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    return aggspec, columns, col_idx_order
+
+
+def _make_unique(seq):
+    """Uniquify aggfunc name of the pairs in the order list
+
+    Examples:
+    --------
+    >>> _make_unique([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
+    [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
+    """
+    return [
+        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
+        if seq.count(pair) > 1
+        else pair
+        for i, pair in enumerate(seq)
+    ]
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
