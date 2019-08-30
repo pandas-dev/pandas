@@ -73,4 +73,5 @@ class ReadExcel:
         bio = self.bio_read_odf if engine == "odf" else self.bio_read
         read_excel(bio, engine=engine)
 
+
 from ..pandas_vb_common import setup  # noqa: F401
