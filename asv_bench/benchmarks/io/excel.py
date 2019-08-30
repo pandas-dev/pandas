@@ -18,6 +18,7 @@ def _generate_dataframe():
     df["object"] = tm.makeStringIndex(N)
     return df
 
+
 class WriteExcel:
 
     params = ["openpyxl", "xlsxwriter", "xlwt"]
@@ -32,6 +33,7 @@ class WriteExcel:
         writer_write = ExcelWriter(bio_write, engine=engine)
         self.df.to_excel(writer_write, sheet_name="Sheet1")
         writer_write.save()
+
 
 class ReadExcel:
 
