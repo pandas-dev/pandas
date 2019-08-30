@@ -296,8 +296,6 @@ cdef class SeriesBinGrouper:
                 islider.advance(group_size)
                 vslider.advance(group_size)
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
@@ -425,8 +423,6 @@ cdef class SeriesGrouper:
 
                     group_size = 0
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
