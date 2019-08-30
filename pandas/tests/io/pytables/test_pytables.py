@@ -37,7 +37,6 @@ from pandas import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal, set_timezone
 
-from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.pytables import (
     ClosedFileError,
@@ -46,7 +45,9 @@ from pandas.io.pytables import (
     Term,
     read_hdf,
 )
-from pandas.io.pytables import TableIterator  # noqa:E402
+
+from pandas.io import pytables as pytables  # noqa: E402 isort:skip
+from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 tables = pytest.importorskip("tables")
 
@@ -5445,4 +5446,17 @@ class TestTimezones(Base):
             with pd.HDFStore(path) as store:
                 store.append(key, expected, format="table", append=True)
             result = pd.read_hdf(path, key, where="DATE > 20151130")
+            assert_frame_equal(result, expected)
+
+    def test_py2_created_with_datetimez(self, datapath):
+        # The test HDF5 file was created in Python 2, but could not be read in
+        # Python 3.
+        #
+        # GH26443
+        index = [pd.Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
+        expected = DataFrame({"data": 123}, index=index)
+        with ensure_clean_store(
+            datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
+        ) as store:
+            result = store["key"]
             assert_frame_equal(result, expected)
