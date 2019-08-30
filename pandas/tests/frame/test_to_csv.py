@@ -699,10 +699,15 @@ class TestDataFrameToCSV(TestData):
         # GH 28210
         df = DataFrame({"A": list("abc"), "B": range(3)}, index=pd.interval_range(0, 3))
 
-        # can't roundtrip interval index via read_csv so check string output (GH 23595)
-        result = df.to_csv(path_or_buf=None)
-        expected = ',A,B\n"(0, 1]",a,0\n"(1, 2]",b,1\n"(2, 3]",c,2\n'
-        assert result == expected
+        with ensure_clean("__tmp_to_csv_interval_index__.csv") as path:
+            df.to_csv(path)
+            result = self.read_csv(path, index_col=0)
+
+            # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
+            expected = df.copy()
+            expected.index = expected.index.astype(str)
+
+            assert_frame_equal(result, expected)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))

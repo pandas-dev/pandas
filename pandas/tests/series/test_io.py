@@ -195,10 +195,15 @@ class TestSeriesToCSV:
         # GH 28210
         s = Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
 
-        # can't roundtrip interval index via read_csv so check string output (GH 23595)
-        result = s.to_csv(path_or_buf=None, header=False)
-        expected = '"(0, 1]",foo\n"(1, 2]",bar\n"(2, 3]",baz\n'
-        assert result == expected
+        with ensure_clean("__tmp_to_csv_interval_index__.csv") as path:
+            s.to_csv(path, header=False)
+            result = self.read_csv(path, index_col=0, squeeze=True)
+
+            # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
+            expected = s.copy()
+            expected.index = expected.index.astype(str)
+
+            assert_series_equal(result, expected)
 
 
 class TestSeriesIO:
