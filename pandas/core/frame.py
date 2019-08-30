@@ -2247,7 +2247,7 @@ class DataFrame(NDFrame):
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
 
-            .. deprecated:: 0.25.0
+            .. deprecated:: 1.0.0
 
         border : int
             A ``border=border`` attribute is included in the opening
