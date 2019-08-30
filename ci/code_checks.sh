@@ -205,8 +205,9 @@ import pandas
 
 blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2' 'hypothesis',
              'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'xlrd', 'xlsxwriter', 'xlwt'}
-mods = blacklist & set(m.split('.')[0] for m in sys.modules)
+             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
+import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
+mods = blacklist & import_mods
 if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
