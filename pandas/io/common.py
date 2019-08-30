@@ -190,9 +190,9 @@ def urlopen(*args, **kwargs):
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
     the stdlib.
     """
-    from urllib.request import urlopen as _urlopen
+    import urllib.request
 
-    return _urlopen(*args, **kwargs)
+    return urllib.request.urlopen(*args, **kwargs)
 
 
 def get_filepath_or_buffer(
