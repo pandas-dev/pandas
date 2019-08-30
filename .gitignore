@@ -66,6 +66,9 @@ coverage_html_report
 # hypothesis test database
 .hypothesis/
 __pycache__
+# pytest-monkeytype
+monkeytype.sqlite3
+
 
 # OS generated files #
 ######################

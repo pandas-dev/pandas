@@ -26,9 +26,7 @@ def test_sparse_frame_stack(sparse_df, multi_index3):
 def test_sparse_frame_unstack(sparse_df):
     mi = pd.MultiIndex.from_tuples([(0, 0), (1, 0), (1, 2)])
     sparse_df.index = mi
-    arr = np.array([[1, np.nan, np.nan],
-                    [np.nan, 1, np.nan],
-                    [np.nan, np.nan, 1]])
+    arr = np.array([[1, np.nan, np.nan], [np.nan, 1, np.nan], [np.nan, np.nan, 1]])
     unstacked_df = pd.DataFrame(arr, index=mi).unstack()
     unstacked_sdf = sparse_df.unstack()
 

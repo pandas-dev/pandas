@@ -220,7 +220,7 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. _whatsnew_0150.memory:
 
-Memory Usage
+Memory usage
 ^^^^^^^^^^^^
 
 Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-memory-usage>` for more. (:issue:`6852`).
@@ -339,7 +339,7 @@ Timezone handling improvements
 
 .. _whatsnew_0150.roll:
 
-Rolling/Expanding Moments improvements
+Rolling/expanding moments improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
@@ -701,14 +701,19 @@ Other notable API changes:
 
   This can also be seen in multi-axis indexing with a ``Panel``.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
-     p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
-                  items=['ItemA', 'ItemB'],
-                  major_axis=[1, 2, 3],
-                  minor_axis=['A', 'B', 'C', 'D'])
-     p
+     >>> p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
+     ...              items=['ItemA', 'ItemB'],
+     ...              major_axis=[1, 2, 3],
+     ...              minor_axis=['A', 'B', 'C', 'D'])
+     >>> p
+     <class 'pandas.core.panel.Panel'>
+     Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+     Items axis: ItemA to ItemB
+     Major_axis axis: 1 to 3
+     Minor_axis axis: A to D
+
 
   The following would raise ``KeyError`` prior to 0.15.0:
 
@@ -879,7 +884,7 @@ Other notable API changes:
 
 .. _whatsnew_0150.refactoring:
 
-Internal Refactoring
+Internal refactoring
 ^^^^^^^^^^^^^^^^^^^^
 
 In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
@@ -1109,7 +1114,7 @@ Performance
 
 .. _whatsnew_0150.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)

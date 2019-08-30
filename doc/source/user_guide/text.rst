@@ -3,7 +3,7 @@
 {{ header }}
 
 ======================
-Working with Text Data
+Working with text data
 ======================
 
 .. _text.string_methods:
@@ -81,7 +81,7 @@ and replacing any remaining whitespaces with underscores:
     exceptions, other uses are not supported, and may be disabled at a later point.
 
 
-Splitting and Replacing Strings
+Splitting and replacing strings
 -------------------------------
 
 .. _text.split:
@@ -356,7 +356,7 @@ of the string, the result will be a ``NaN``.
    s.str[0]
    s.str[1]
 
-Extracting Substrings
+Extracting substrings
 ---------------------
 
 .. _text.extract:
@@ -366,13 +366,12 @@ Extract first match in each subject (extract)
 
 .. warning::
 
-   In version 0.18.0, ``extract`` gained the ``expand`` argument. When
-   ``expand=False`` it returns a ``Series``, ``Index``, or
+   Before version 0.23, argument ``expand`` of the ``extract`` method defaulted to
+   ``False``. When ``expand=False``, ``expand`` returns a ``Series``, ``Index``, or
    ``DataFrame``, depending on the subject and regular expression
-   pattern (same behavior as pre-0.18.0). When ``expand=True`` it
-   always returns a ``DataFrame``, which is more consistent and less
-   confusing from the perspective of a user. ``expand=True`` is the
-   default since version 0.23.0.
+   pattern. When ``expand=True``, it always returns a ``DataFrame``,
+   which is more consistent and less confusing from the perspective of a user.
+   ``expand=True`` has been the default since version 0.23.0.
 
 The ``extract`` method accepts a `regular expression
 <https://docs.python.org/3/library/re.html>`__ with at least one
@@ -468,8 +467,6 @@ Extract all matches in each subject (extractall)
 
 .. _text.extractall:
 
-.. versionadded:: 0.18.0
-
 Unlike ``extract`` (which returns only the first match),
 
 .. ipython:: python
@@ -509,8 +506,6 @@ then ``extractall(pat).xs(0, level='match')`` gives the same result as
 ``Index`` also supports ``.str.extractall``. It returns a ``DataFrame`` which has the
 same result as a ``Series.str.extractall`` with a default index (starts from 0).
 
-.. versionadded:: 0.19.0
-
 .. ipython:: python
 
    pd.Index(["a1a2", "b1", "c1"]).str.extractall(two_groups)
@@ -518,7 +513,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
 
-Testing for Strings that Match or Contain a Pattern
+Testing for Strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:
@@ -547,7 +542,7 @@ an extra ``na`` argument so missing values can be considered True or False:
 
 .. _text.indicator:
 
-Creating Indicator Variables
+Creating indicator variables
 ----------------------------
 
 You can extract dummy variables from string columns.
@@ -560,8 +555,6 @@ For example if they are separated by a ``'|'``:
 
 String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
-.. versionadded:: 0.18.1
-
 .. ipython:: python
 
     idx = pd.Index(['a', 'a|b', np.nan, 'a|c'])
@@ -569,7 +562,7 @@ String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
 
 See also :func:`~pandas.get_dummies`.
 
-Method Summary
+Method summary
 --------------
 
 .. _text.summary:

@@ -5,14 +5,27 @@ from pandas.io.msgpack import packb, unpackb
 
 def check(length, obj):
     v = packb(obj)
-    assert len(v) == length, \
-        "%r length should be %r but get %r" % (obj, length, len(v))
+    assert (
+        len(v) == length
+    ), "{obj!r} length should be {length!r} but get {got:!r}".format(
+        obj=obj, length=length, got=len(v)
+    )
     assert unpackb(v, use_list=0) == obj
 
 
 def test_1():
-    for o in [None, True, False, 0, 1, (1 << 6), (1 << 7) - 1, -1,
-              -((1 << 5) - 1), -(1 << 5)]:
+    for o in [
+        None,
+        True,
+        False,
+        0,
+        1,
+        (1 << 6),
+        (1 << 7) - 1,
+        -1,
+        -((1 << 5) - 1),
+        -(1 << 5),
+    ]:
         check(1, o)
 
 
@@ -32,8 +45,16 @@ def test_5():
 
 
 def test_9():
-    for o in [1 << 32, (1 << 64) - 1, -((1 << 31) + 1), -(1 << 63), 1.0, 0.1,
-              -0.1, -1.0]:
+    for o in [
+        1 << 32,
+        (1 << 64) - 1,
+        -((1 << 31) + 1),
+        -(1 << 63),
+        1.0,
+        0.1,
+        -0.1,
+        -1.0,
+    ]:
         check(9, o)
 
 
@@ -56,7 +77,7 @@ def test_raw32():
 
 
 def check_array(overhead, num):
-    check(num + overhead, (None, ) * num)
+    check(num + overhead, (None,) * num)
 
 
 def test_fixarray():
@@ -80,31 +101,46 @@ def match(obj, buf):
 
 def test_match():
     cases = [
-        (None, b'\xc0'),
-        (False, b'\xc2'),
-        (True, b'\xc3'),
-        (0, b'\x00'),
-        (127, b'\x7f'),
-        (128, b'\xcc\x80'),
-        (256, b'\xcd\x01\x00'),
-        (-1, b'\xff'),
-        (-33, b'\xd0\xdf'),
-        (-129, b'\xd1\xff\x7f'),
-        ({1: 1}, b'\x81\x01\x01'),
+        (None, b"\xc0"),
+        (False, b"\xc2"),
+        (True, b"\xc3"),
+        (0, b"\x00"),
+        (127, b"\x7f"),
+        (128, b"\xcc\x80"),
+        (256, b"\xcd\x01\x00"),
+        (-1, b"\xff"),
+        (-33, b"\xd0\xdf"),
+        (-129, b"\xd1\xff\x7f"),
+        ({1: 1}, b"\x81\x01\x01"),
         (1.0, b"\xcb\x3f\xf0\x00\x00\x00\x00\x00\x00"),
-        ((), b'\x90'),
-        (tuple(range(15)), (b"\x9f\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09"
-                            b"\x0a\x0b\x0c\x0d\x0e")),
-        (tuple(range(16)), (b"\xdc\x00\x10\x00\x01\x02\x03\x04\x05\x06\x07"
-                            b"\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f")),
-        ({}, b'\x80'),
-        ({x: x for x in range(15)},
-         (b'\x8f\x00\x00\x01\x01\x02\x02\x03\x03\x04\x04\x05\x05\x06\x06\x07'
-          b'\x07\x08\x08\t\t\n\n\x0b\x0b\x0c\x0c\r\r\x0e\x0e')),
-        ({x: x for x in range(16)},
-         (b'\xde\x00\x10\x00\x00\x01\x01\x02\x02\x03\x03\x04\x04\x05\x05\x06'
-          b'\x06\x07\x07\x08\x08\t\t\n\n\x0b\x0b\x0c\x0c\r\r\x0e\x0e'
-          b'\x0f\x0f')),
+        ((), b"\x90"),
+        (
+            tuple(range(15)),
+            (b"\x9f\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09" b"\x0a\x0b\x0c\x0d\x0e"),
+        ),
+        (
+            tuple(range(16)),
+            (
+                b"\xdc\x00\x10\x00\x01\x02\x03\x04\x05\x06\x07"
+                b"\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+            ),
+        ),
+        ({}, b"\x80"),
+        (
+            {x: x for x in range(15)},
+            (
+                b"\x8f\x00\x00\x01\x01\x02\x02\x03\x03\x04\x04\x05\x05\x06\x06\x07"
+                b"\x07\x08\x08\t\t\n\n\x0b\x0b\x0c\x0c\r\r\x0e\x0e"
+            ),
+        ),
+        (
+            {x: x for x in range(16)},
+            (
+                b"\xde\x00\x10\x00\x00\x01\x01\x02\x02\x03\x03\x04\x04\x05\x05\x06"
+                b"\x06\x07\x07\x08\x08\t\t\n\n\x0b\x0b\x0c\x0c\r\r\x0e\x0e"
+                b"\x0f\x0f"
+            ),
+        ),
     ]
 
     for v, p in cases:
@@ -112,4 +148,4 @@ def test_match():
 
 
 def test_unicode():
-    assert unpackb(packb('foobar'), use_list=1) == b'foobar'
+    assert unpackb(packb("foobar"), use_list=1) == b"foobar"

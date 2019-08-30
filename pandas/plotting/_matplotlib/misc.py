@@ -1,5 +1,7 @@
-# being a bit too dynamic
-import matplotlib.pyplot as plt
+import random
+
+import matplotlib.lines as mlines
+import matplotlib.patches as patches
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -9,14 +11,23 @@ from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _set_ticks_props, _subplots
 
 
-def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', density_kwds=None,
-                   hist_kwds=None, range_padding=0.05, **kwds):
+def scatter_matrix(
+    frame,
+    alpha=0.5,
+    figsize=None,
+    ax=None,
+    grid=False,
+    diagonal="hist",
+    marker=".",
+    density_kwds=None,
+    hist_kwds=None,
+    range_padding=0.05,
+    **kwds
+):
     df = frame._get_numeric_data()
     n = df.columns.size
     naxes = n * n
-    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax,
-                          squeeze=False)
+    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
@@ -29,13 +40,13 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     density_kwds = density_kwds or {}
 
     # GH 14855
-    kwds.setdefault('edgecolors', 'none')
+    kwds.setdefault("edgecolors", "none")
 
     boundaries_list = []
     for a in df.columns:
         values = df[a].values[mask[a].values]
         rmin_, rmax_ = np.min(values), np.max(values)
-        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
+        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.0
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
     for i, a in enumerate(df.columns):
@@ -46,11 +57,12 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 values = df[a].values[mask[a].values]
 
                 # Deal with the diagonal by drawing a histogram there.
-                if diagonal == 'hist':
+                if diagonal == "hist":
                     ax.hist(values, **hist_kwds)
 
-                elif diagonal in ('kde', 'density'):
+                elif diagonal in ("kde", "density"):
                     from scipy.stats import gaussian_kde
+
                     y = values
                     gkde = gaussian_kde(y)
                     ind = np.linspace(y.min(), y.max(), 1000)
@@ -61,8 +73,9 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             else:
                 common = (mask[a] & mask[b]).values
 
-                ax.scatter(df[b][common], df[a][common],
-                           marker=marker, alpha=alpha, **kwds)
+                ax.scatter(
+                    df[b][common], df[a][common], marker=marker, alpha=alpha, **kwds
+                )
 
                 ax.set_xlim(boundaries_list[j])
                 ax.set_ylim(boundaries_list[i])
@@ -96,14 +109,13 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 
 def _get_marker_compat(marker):
-    import matplotlib.lines as mlines
     if marker not in mlines.lineMarkers:
-        return 'o'
+        return "o"
     return marker
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
-    import matplotlib.patches as patches
+    import matplotlib.pyplot as plt
 
     def normalize(series):
         a = min(series)
@@ -119,16 +131,20 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
     to_plot = {}
-    colors = _get_standard_colors(num_colors=len(classes), colormap=colormap,
-                                  color_type='random', color=color)
+    colors = _get_standard_colors(
+        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+    )
 
     for kls in classes:
         to_plot[kls] = [[], []]
 
     m = len(frame.columns) - 1
-    s = np.array([(np.cos(t), np.sin(t))
-                  for t in [2.0 * np.pi * (i / float(m))
-                            for i in range(m)]])
+    s = np.array(
+        [
+            (np.cos(t), np.sin(t))
+            for t in [2.0 * np.pi * (i / float(m)) for i in range(m)]
+        ]
+    )
 
     for i in range(n):
         row = df.iloc[i].values
@@ -139,41 +155,56 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         to_plot[kls][1].append(y[1])
 
     for i, kls in enumerate(classes):
-        ax.scatter(to_plot[kls][0], to_plot[kls][1], color=colors[i],
-                   label=pprint_thing(kls), **kwds)
+        ax.scatter(
+            to_plot[kls][0],
+            to_plot[kls][1],
+            color=colors[i],
+            label=pprint_thing(kls),
+            **kwds
+        )
     ax.legend()
 
-    ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
+    ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
 
     for xy, name in zip(s, df.columns):
 
-        ax.add_patch(patches.Circle(xy, radius=0.025, facecolor='gray'))
+        ax.add_patch(patches.Circle(xy, radius=0.025, facecolor="gray"))
 
         if xy[0] < 0.0 and xy[1] < 0.0:
-            ax.text(xy[0] - 0.025, xy[1] - 0.025, name,
-                    ha='right', va='top', size='small')
+            ax.text(
+                xy[0] - 0.025, xy[1] - 0.025, name, ha="right", va="top", size="small"
+            )
         elif xy[0] < 0.0 and xy[1] >= 0.0:
-            ax.text(xy[0] - 0.025, xy[1] + 0.025, name,
-                    ha='right', va='bottom', size='small')
+            ax.text(
+                xy[0] - 0.025,
+                xy[1] + 0.025,
+                name,
+                ha="right",
+                va="bottom",
+                size="small",
+            )
         elif xy[0] >= 0.0 and xy[1] < 0.0:
-            ax.text(xy[0] + 0.025, xy[1] - 0.025, name,
-                    ha='left', va='top', size='small')
+            ax.text(
+                xy[0] + 0.025, xy[1] - 0.025, name, ha="left", va="top", size="small"
+            )
         elif xy[0] >= 0.0 and xy[1] >= 0.0:
-            ax.text(xy[0] + 0.025, xy[1] + 0.025, name,
-                    ha='left', va='bottom', size='small')
+            ax.text(
+                xy[0] + 0.025, xy[1] + 0.025, name, ha="left", va="bottom", size="small"
+            )
 
-    ax.axis('equal')
+    ax.axis("equal")
     return ax
 
 
-def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
-                   colormap=None, **kwds):
-    from math import sqrt, pi
+def andrews_curves(
+    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwds
+):
+    import matplotlib.pyplot as plt
 
     def function(amplitudes):
         def f(t):
             x1 = amplitudes[0]
-            result = x1 / sqrt(2.0)
+            result = x1 / np.sqrt(2.0)
 
             # Take the rest of the coefficients and resize them
             # appropriately. Take a copy of amplitudes as otherwise numpy
@@ -186,25 +217,28 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
             harmonics = np.arange(0, coeffs.shape[0]) + 1
             trig_args = np.outer(harmonics, t)
 
-            result += np.sum(coeffs[:, 0, np.newaxis] * np.sin(trig_args) +
-                             coeffs[:, 1, np.newaxis] * np.cos(trig_args),
-                             axis=0)
+            result += np.sum(
+                coeffs[:, 0, np.newaxis] * np.sin(trig_args)
+                + coeffs[:, 1, np.newaxis] * np.cos(trig_args),
+                axis=0,
+            )
             return result
+
         return f
 
     n = len(frame)
     class_col = frame[class_column]
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
-    t = np.linspace(-pi, pi, samples)
+    t = np.linspace(-np.pi, np.pi, samples)
     used_legends = set()
 
-    color_values = _get_standard_colors(num_colors=len(classes),
-                                        colormap=colormap, color_type='random',
-                                        color=color)
+    color_values = _get_standard_colors(
+        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+    )
     colors = dict(zip(classes, color_values))
     if ax is None:
-        ax = plt.gca(xlim=(-pi, pi))
+        ax = plt.gca(xlim=(-np.pi, np.pi))
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
@@ -217,13 +251,14 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
         else:
             ax.plot(t, y, color=colors[kls], **kwds)
 
-    ax.legend(loc='upper right')
+    ax.legend(loc="upper right")
     ax.grid()
     return ax
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
-    import random
+
+    import matplotlib.pyplot as plt
 
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
@@ -231,8 +266,9 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     means = np.array([np.mean(sampling) for sampling in samplings])
     medians = np.array([np.median(sampling) for sampling in samplings])
-    midranges = np.array([(min(sampling) + max(sampling)) * 0.5
-                          for sampling in samplings])
+    midranges = np.array(
+        [(min(sampling) + max(sampling)) * 0.5 for sampling in samplings]
+    )
     if fig is None:
         fig = plt.figure()
     x = list(range(samples))
@@ -267,12 +303,24 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     return fig
 
 
-def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
-                         use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, axvlines_kwds=None, sort_labels=False,
-                         **kwds):
+def parallel_coordinates(
+    frame,
+    class_column,
+    cols=None,
+    ax=None,
+    color=None,
+    use_columns=False,
+    xticks=None,
+    colormap=None,
+    axvlines=True,
+    axvlines_kwds=None,
+    sort_labels=False,
+    **kwds
+):
+    import matplotlib.pyplot as plt
+
     if axvlines_kwds is None:
-        axvlines_kwds = {'linewidth': 1, 'color': 'black'}
+        axvlines_kwds = {"linewidth": 1, "color": "black"}
 
     n = len(frame)
     classes = frame[class_column].drop_duplicates()
@@ -290,13 +338,13 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     # determine values to use for xticks
     if use_columns is True:
         if not np.all(np.isreal(list(df.columns))):
-            raise ValueError('Columns must be numeric to be used as xticks')
+            raise ValueError("Columns must be numeric to be used as xticks")
         x = df.columns
     elif xticks is not None:
         if not np.all(np.isreal(xticks)):
-            raise ValueError('xticks specified must be numeric')
+            raise ValueError("xticks specified must be numeric")
         elif len(xticks) != ncols:
-            raise ValueError('Length of xticks must match number of columns')
+            raise ValueError("Length of xticks must match number of columns")
         x = xticks
     else:
         x = list(range(ncols))
@@ -304,9 +352,9 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     if ax is None:
         ax = plt.gca()
 
-    color_values = _get_standard_colors(num_colors=len(classes),
-                                        colormap=colormap, color_type='random',
-                                        color=color)
+    color_values = _get_standard_colors(
+        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+    )
 
     if sort_labels:
         classes = sorted(classes)
@@ -330,14 +378,16 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
     ax.set_xlim(x[0], x[-1])
-    ax.legend(loc='upper right')
+    ax.legend(loc="upper right")
     ax.grid()
     return ax
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
     # workaround because `c='b'` is hardcoded in matplotlibs scatter method
-    kwds.setdefault('c', plt.rcParams['patch.facecolor'])
+    import matplotlib.pyplot as plt
+
+    kwds.setdefault("c", plt.rcParams["patch.facecolor"])
 
     data = series.values
     y1 = data[:-lag]
@@ -351,6 +401,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
+    import matplotlib.pyplot as plt
+
     n = len(series)
     data = np.asarray(series)
     if ax is None:
@@ -359,21 +411,21 @@ def autocorrelation_plot(series, ax=None, **kwds):
     c0 = np.sum((data - mean) ** 2) / float(n)
 
     def r(h):
-        return ((data[:n - h] - mean) *
-                (data[h:] - mean)).sum() / float(n) / c0
+        return ((data[: n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
+
     x = np.arange(n) + 1
     y = [r(loc) for loc in x]
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
-    ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
-    ax.axhline(y=z95 / np.sqrt(n), color='grey')
-    ax.axhline(y=0.0, color='black')
-    ax.axhline(y=-z95 / np.sqrt(n), color='grey')
-    ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
+    ax.axhline(y=z99 / np.sqrt(n), linestyle="--", color="grey")
+    ax.axhline(y=z95 / np.sqrt(n), color="grey")
+    ax.axhline(y=0.0, color="black")
+    ax.axhline(y=-z95 / np.sqrt(n), color="grey")
+    ax.axhline(y=-z99 / np.sqrt(n), linestyle="--", color="grey")
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
     ax.plot(x, y, **kwds)
-    if 'label' in kwds:
+    if "label" in kwds:
         ax.legend()
     ax.grid()
     return ax
