@@ -99,7 +99,7 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Improved asv benchmark for reading excel files, it now runs for all supported engines 
 
 .. _whatsnew_0.252.contributors:
 
