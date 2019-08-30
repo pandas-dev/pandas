@@ -50,6 +50,7 @@
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
+        "pip+odfpy": [],
         "pytest": [],
         // If using Windows with python 2.7 and want to build using the
         // mingw toolchain (rather than MSVC), uncomment the following line.
