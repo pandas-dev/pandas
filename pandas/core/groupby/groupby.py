@@ -1011,7 +1011,6 @@ b  2""",
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data.
 
