@@ -134,7 +134,7 @@ class TestDataFrameApply:
         assert_series_equal(result, expected)
 
         result = df.T.nunique()
-        expected = Series([])
+        expected = Series([], index=pd.Index([]))
         assert_series_equal(result, expected)
 
     def test_apply_deprecate_reduce(self):
