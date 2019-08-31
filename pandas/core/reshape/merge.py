@@ -39,15 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timedelta,
-    to_timedelta,
-)
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -1715,7 +1707,7 @@ class _AsOfMerge(_OrderedMerge):
             right_values = right_values.view("i8")
             if tolerance is not None:
                 if not isinstance(self.tolerance, Timedelta):
-                    tolerance = to_timedelta(tolerance)
+                    tolerance = Timedelta(tolerance)
                 tolerance = tolerance.value
 
         # a "by" parameter requires special handling
