@@ -315,21 +315,20 @@ def boxplot(
                 ax = plt.gca()
         data = data._get_numeric_data()
 
-        # if columns is None, use all numeric columns of data; if data columns
-        # is MultiIndex, which means a Groupby has been applied before, select
-        # data using new grouped column names; if data columns is Index, select
-        # data simply using columns
+        # if columns is None, use all numeric columns of data, so directly pass
+        # if the given 'column' are subset of column index, no matter if data column
+        # is multiindex or index, get the subset of data directly
+        # if given 'column' is not subset, and data columns is multiindex, and then
+        # query the columns if column contains at least one element from 'columns'
         if columns is None:
-            columns = data.columns
-        elif isinstance(data.columns, pd.MultiIndex):
-
-            # reselect columns with after-groupby multi-index columns
-            data = data.loc[:, pd.IndexSlice[:, columns]]
-            columns = data.columns
-        elif isinstance(data.columns, pd.Index):
+            pass
+        elif set(column).issubset(data.columns):
             data = data.loc[:, columns]
-            columns = data.columns
+        elif isinstance(data.columns, pd.MultiIndex):
+            columns = [col for col in data.columns if set(columns).intersection(col)]
+            data = data.loc[:, columns]
 
+        columns = data.columns
         result = plot_group(columns, data.values.T, ax)
         ax.grid(grid)
 
