@@ -8,8 +8,6 @@ from odf.text import P
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import setup  # noqa: F401
-
 
 def _generate_dataframe():
     N = 2000
@@ -68,3 +66,6 @@ class ReadExcel:
     def time_read_excel(self, engine):
         fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine)
+
+
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip
