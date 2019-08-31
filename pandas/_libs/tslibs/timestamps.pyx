@@ -483,7 +483,7 @@ default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        Return a new Timestamp floored to this resolution.
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -519,7 +519,7 @@ default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        Return a new Timestamp ceiled to this resolution.
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -893,7 +893,7 @@ default 'raise'
                 hour=None, minute=None, second=None, microsecond=None,
                 nanosecond=None, tzinfo=object, fold=0):
         """
-        Implements datetime.replace, handles nanoseconds.
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
