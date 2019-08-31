@@ -2937,7 +2937,7 @@ class NDFrame(PandasObject, SelectionMixin):
         .. versionchanged:: 0.20.2
            Added to Series.
 
-        .. versionchanged:: 0.26.0
+        .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
         Parameters
