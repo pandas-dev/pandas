@@ -1688,7 +1688,6 @@ class _AsOfMerge(_OrderedMerge):
         # we require sortedness and non-null values in the join keys
         msg_sorted = "{side} keys must be sorted"
         msg_missings = "Merge keys contain null values on {side} side"
-        msg_tolerance = "tolerance of type {t} is unsupported"
 
         if not Index(left_values).is_monotonic:
             if isnull(left_values).any():
