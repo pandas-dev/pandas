@@ -1710,7 +1710,7 @@ class _AsOfMerge(_OrderedMerge):
                 try:
                     tolerance = tolerance.value
                 except AttributeError:
-                    # datetime.timedelta(microseconds=1) == minimum resolution -> convert to nano
+                    # datetime.timedelta(microseconds=1) == min resolution, cvt to nano
                     tolerance = (tolerance / datetime.timedelta(microseconds=1)) * 1000
                 else:
                     raise ValueError(msg_tolerance.format(t=type(tolerance)))
