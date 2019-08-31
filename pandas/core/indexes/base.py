@@ -4720,6 +4720,10 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer_non_unique(ptarget)
 
         if self.is_all_dates:
+            # If `target` doesn't consist of dates, `target.asi8` will return
+            # None, which will raise TypeError. GH 27994
+            if not target.is_all_dates:
+                raise KeyError("{} not found in axis".format(target.to_numpy()))
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values

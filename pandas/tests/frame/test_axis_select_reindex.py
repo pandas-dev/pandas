@@ -127,6 +127,16 @@ class TestDataFrameSelectReindex:
         assert_frame_equal(df_index.drop(np.array([])), df_index)
         assert_frame_equal(df_index.drop(df_index[:0]), df_index)
 
+    @pytest.mark.parametrize("labels", ["a", ["a"]])
+    def test_drop_empty_index_str(self, labels):
+        # Passing str to DataFrame.drop() for dataframe with DatetimeIndex
+        # should raise KeyError, GH 27994
+        with pytest.raises(KeyError, match="not found in axis"):
+            pd.DataFrame(
+                {"a": [0, 1]},
+                index=[pd.Timestamp("2019-01-01"), pd.Timestamp("2019-01-01")],
+            ).drop(labels)
+
     def test_drop_multiindex_not_lexsorted(self):
         # GH 11640
 
