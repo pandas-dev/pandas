@@ -121,8 +121,8 @@ class TestDataFrameApply:
         # GH 28213
         df = DataFrame(columns=["a", "b", "c"])
 
-        result = df.apply(eval(func))
-        expected = operator.methodcaller(func)(df)
+        result = df.apply(getattr(np, func))
+        expected = getattr(df, func)()
         assert_series_equal(result, expected)
 
     def test_apply_deprecate_reduce(self):
