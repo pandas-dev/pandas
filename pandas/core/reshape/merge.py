@@ -7,6 +7,7 @@ from functools import partial
 import string
 import warnings
 
+import datetime
 import numpy as np
 
 from pandas._libs import hashtable as libhashtable, lib
@@ -1619,7 +1620,7 @@ class _AsOfMerge(_OrderedMerge):
                     )
                 raise MergeError(msg)
 
-        # validate tolerance; must be a Timedelta if we have a DTI
+        # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
 
             if self.left_index:
@@ -1635,7 +1636,7 @@ class _AsOfMerge(_OrderedMerge):
             )
 
             if is_datetimelike(lt):
-                if not isinstance(self.tolerance, Timedelta):
+                if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
                     raise MergeError("tolerance must be positive")
@@ -1687,6 +1688,7 @@ class _AsOfMerge(_OrderedMerge):
         # we require sortedness and non-null values in the join keys
         msg_sorted = "{side} keys must be sorted"
         msg_missings = "Merge keys contain null values on {side} side"
+        msg_tolerance = "tolerance of type {t} is unsupported"
 
         if not Index(left_values).is_monotonic:
             if isnull(left_values).any():
@@ -1705,7 +1707,13 @@ class _AsOfMerge(_OrderedMerge):
             left_values = left_values.view("i8")
             right_values = right_values.view("i8")
             if tolerance is not None:
-                tolerance = tolerance.value
+                try:
+                    tolerance = tolerance.value
+                except AttributeError:
+                    # datetime.timedelta(microseconds=1) == minimum resolution -> convert to nano
+                    tolerance = (tolerance / datetime.timedelta(microseconds=1)) * 1000
+                else:
+                    raise ValueError(msg_tolerance.format(t=type(tolerance)))
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
