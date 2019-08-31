@@ -125,6 +125,18 @@ class TestDataFrameApply:
         expected = getattr(df, func)()
         assert_series_equal(result, expected)
 
+    def test_nunique_empty(self):
+        # GH 28213
+        df = DataFrame(columns=["a", "b", "c"])
+
+        result = df.nunique()
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
+
+        result = df.T.nunique()
+        expected = Series([])
+        assert_series_equal(result, expected)
+
     def test_apply_deprecate_reduce(self):
         empty_frame = DataFrame()
 
