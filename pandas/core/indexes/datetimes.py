@@ -661,7 +661,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def to_series(self, keep_tz=None, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -687,10 +687,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 behaviour and silence the warning.
 
         index : Index, optional
-            index of resulting Series. If None, defaults to original index
-        name : string, optional
-            name of resulting Series. If None, defaults to name of original
-            index
+            Index of resulting Series. If None, defaults to original index.
+        name : str, optional
+            Name of resulting Series. If None, defaults to name of original
+            index.
 
         Returns
         -------
@@ -735,7 +735,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def snap(self, freq="S"):
         """
-        Snap time stamps to nearest occurring frequency
+        Snap time stamps to nearest occurring frequency.
 
         Returns
         -------
@@ -1594,7 +1594,7 @@ def bdate_range(
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
-    frequency
+    frequency.
 
     Parameters
     ----------

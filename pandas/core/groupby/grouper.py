@@ -37,7 +37,7 @@ from pandas.io.formats.printing import pprint_thing
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
-    object
+    object.
 
     This specification will select a column via the key parameter, or if the
     level and/or axis parameters are given, a level of the index of the target
@@ -217,7 +217,6 @@ class Grouper:
 
 
 class Grouping:
-
     """
     Holds the grouping information for a single key
 
