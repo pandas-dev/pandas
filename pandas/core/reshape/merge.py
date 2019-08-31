@@ -1712,8 +1712,6 @@ class _AsOfMerge(_OrderedMerge):
                 except AttributeError:
                     # datetime.timedelta(microseconds=1) == min resolution, cvt to nano
                     tolerance = (tolerance / datetime.timedelta(microseconds=1)) * 1000
-                else:
-                    raise ValueError(msg_tolerance.format(t=type(tolerance)))
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
