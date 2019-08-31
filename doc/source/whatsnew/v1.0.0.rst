@@ -97,6 +97,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
+- Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
 -
 
 
@@ -141,7 +142,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in assignment using a reverse slicer (:issue:`26939`)
 -
 
 Missing
@@ -178,6 +179,7 @@ Groupby/resample/rolling
 -
 -
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
+- Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 
 Reshaping
 ^^^^^^^^^
