@@ -6,6 +6,7 @@ import sys
 
 from pandas.compat import PY37
 
+
 class TimeImport:
     def time_import(self):
         if PY37:
