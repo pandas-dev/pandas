@@ -1044,7 +1044,7 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
-                if dtype <= np.dtype("M8[ns]"):
+                if dtype <= np.dtype("m8[ns]"):
                     if dtype.name == "timedelta64":
                         raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _TD_DTYPE
