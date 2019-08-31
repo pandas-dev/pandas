@@ -3,11 +3,11 @@ SQL-style merge routines
 """
 
 import copy
+import datetime
 from functools import partial
 import string
 import warnings
 
-import datetime
 import numpy as np
 
 from pandas._libs import hashtable as libhashtable, lib
