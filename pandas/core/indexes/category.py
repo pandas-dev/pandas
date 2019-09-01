@@ -8,8 +8,7 @@ import numpy as np  # type: ignore
 from pandas._config import get_option
 
 # error: No library stub file for module 'pandas._libs.hashtable'
-# error: No library stub file for module 'pandas._libs.hashtable'
-from pandas._libs import index as libindex  # type: ignore
+from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64  # type: ignore
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv

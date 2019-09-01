@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Type, Union, cast
+from typing import Any, Sequence, Union, cast
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -9,7 +9,6 @@ import numpy as np  # type: ignore
 # error: No library stub file for module 'pandas._libs.tslibs.c_timestamp'
 # error: No library stub file for module 'pandas._libs.tslibs.period'
 # error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
-# error: No library stub file for module 'pandas._libs.tslibs.timestamps'
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated  # type: ignore
 from pandas._libs.tslibs.period import (  # type:ignore
@@ -21,7 +20,7 @@ from pandas._libs.tslibs.timedeltas import (  # type: ignore
     Timedelta,
     delta_to_nanoseconds,
 )
-from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64  # type: ignore
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution
@@ -54,7 +53,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
@@ -74,7 +72,7 @@ class AttributesMixin:
         raise AbstractMethodError(cls)
 
     @property
-    def _scalar_type(self) -> Type[DatetimeLikeScalar]:
+    def _scalar_type(self):
         """The scalar associated with this datelike
 
         * PeriodArray : Period
