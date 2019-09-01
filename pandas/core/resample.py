@@ -4,12 +4,15 @@ from textwrap import dedent
 from typing import Dict, no_type_check
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.frequencies'
+# error: No library stub file for module 'pandas._libs.tslibs.period'
 from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Period, Timestamp
-from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod  # type: ignore
+from pandas._libs.tslibs.period import IncompatibleFrequency  # type: ignore
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution

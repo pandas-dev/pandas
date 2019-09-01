@@ -3,7 +3,8 @@ import textwrap
 from typing import Union
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 from pytz import utc
 
 from pandas._libs import lib, tslib

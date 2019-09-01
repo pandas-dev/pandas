@@ -72,14 +72,17 @@ def determine_clipboard():
             # qtpy is a small abstraction layer that lets you write
             # applications using a single api call to either PyQt or PySide
             # https://pypi.org/project/QtPy
-            import qtpy  # noqa
+            # error: Cannot find module named 'qtpy'
+            import qtpy  # type:ignore # noqa
         except ImportError:
             # If qtpy isn't installed, fall back on importing PyQt5, or PyQt5
             try:
-                import PyQt5  # noqa
+                # error: No library stub file for module 'PyQt5'
+                import PyQt5  # type: ignore # noqa
             except ImportError:
                 try:
-                    import PyQt4  # noqa
+                    # error: No library stub file for module 'PyQt4'
+                    import PyQt4  # type:ignore # noqa
                 except ImportError:
                     pass  # fail fast for all non-ImportError exceptions.
                 else:

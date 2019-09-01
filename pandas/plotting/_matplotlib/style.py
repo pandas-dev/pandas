@@ -1,9 +1,12 @@
 # being a bit too dynamic
 import warnings
 
-import matplotlib.cm as cm
-import matplotlib.colors
-import numpy as np
+# error: No library stub file for module 'matplotlib.cm'
+# error: No library stub file for module 'matplotlib.colors'
+# error: No library stub file for module 'numpy'
+import matplotlib.cm as cm  # type: ignore
+import matplotlib.colors  # type: ignore
+import numpy as np  # type: ignore
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -13,7 +16,8 @@ import pandas.core.common as com
 def _get_standard_colors(
     num_colors=None, colormap=None, color_type="default", color=None
 ):
-    import matplotlib.pyplot as plt
+    # error: No library stub file for module 'matplotlib.pyplot'
+    import matplotlib.pyplot as plt  # type: ignore
 
     if color is None and colormap is not None:
         if isinstance(colormap, str):

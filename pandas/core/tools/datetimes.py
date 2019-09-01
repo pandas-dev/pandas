@@ -3,17 +3,20 @@ from datetime import datetime, time
 from functools import partial
 from typing import Optional, TypeVar, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.parsing'
+# error: No library stub file for module 'pandas._libs.tslibs.strptime'
 from pandas._libs import tslib, tslibs
 from pandas._libs.tslibs import Timestamp, conversion, parsing
-from pandas._libs.tslibs.parsing import (  # noqa
+from pandas._libs.tslibs.parsing import (  # type: ignore # noqa
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,
     parse_time_string,
 )
-from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.strptime import array_strptime  # type: ignore
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (

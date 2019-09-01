@@ -1,12 +1,14 @@
 """
 missing types & inference
 """
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type:ignore
 
 from pandas._config import get_option
 
+# error: No library stub file for module 'pandas._libs.missing'
 from pandas._libs import lib
-import pandas._libs.missing as libmissing
+import pandas._libs.missing as libmissing  # type: ignore
 from pandas._libs.tslibs import NaT, iNaT
 
 from .common import (

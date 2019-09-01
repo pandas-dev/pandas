@@ -18,11 +18,14 @@ import struct
 import sys
 import warnings
 
+# error: No library stub file for module 'numpy'
 from dateutil.relativedelta import relativedelta
-import numpy as np
+import numpy as np  # type: ignore
 
-from pandas._libs.lib import infer_dtype
-from pandas._libs.writers import max_len_string_array
+# error: No library stub file for module 'pandas._libs.lib'
+# error: No library stub file for module 'pandas._libs.writers'
+from pandas._libs.lib import infer_dtype  # type: ignore
+from pandas._libs.writers import max_len_string_array  # type: ignore
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (

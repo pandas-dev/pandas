@@ -3,10 +3,12 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy
+import numpy as np  # type: ignore
 import pytz
 
-from pandas._libs.interval import Interval
+# error: No library stub file for module 'pandas._libs.interval'
+from pandas._libs.interval import Interval  # type: ignore
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass

@@ -234,7 +234,8 @@ def _enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
-    from IPython import get_ipython
+    # error: Cannot find module named 'IPython'
+    from IPython import get_ipython  # type: ignore
 
     ip = get_ipython()
     if ip is None:
@@ -247,7 +248,8 @@ def _enable_data_resource_formatter(enable: bool) -> None:
     if enable:
         if mimetype not in formatters:
             # define tableschema formatter
-            from IPython.core.formatters import BaseFormatter
+            # error: Cannot find module named 'IPython.core.formatters'
+            from IPython.core.formatters import BaseFormatter  # type: ignore
 
             class TableSchemaFormatter(BaseFormatter):
                 print_method = "_repr_data_resource_"

@@ -5,9 +5,11 @@ from collections import defaultdict
 import copy
 from typing import DefaultDict, Dict, List, Optional, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
-from pandas._libs.writers import convert_json_to_lines
+# error: No library stub file for module 'pandas._libs.writers'
+from pandas._libs.writers import convert_json_to_lines  # type: ignore
 
 from pandas import DataFrame
 

@@ -25,12 +25,15 @@ def init_qt_clipboard():
 
     # Try to import from qtpy, but if that fails try PyQt5 then PyQt4
     try:
-        from qtpy.QtWidgets import QApplication
+        # error: Cannot find module named 'qtpy.QtWidgets'
+        from qtpy.QtWidgets import QApplication  # type: ignore
     except ImportError:
         try:
-            from PyQt5.QtWidgets import QApplication
+            # error: No library stub file for module 'PyQt5.QtWidgets'
+            from PyQt5.QtWidgets import QApplication  # type: ignore
         except ImportError:
-            from PyQt4.QtGui import QApplication
+            # error: No library stub file for module 'PyQt4.QtGui'
+            from PyQt4.QtGui import QApplication  # type: ignore
 
     app = QApplication.instance()
     if app is None:

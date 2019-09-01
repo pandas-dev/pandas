@@ -77,7 +77,8 @@ class PyArrowImpl(BaseImpl):
         pyarrow = import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
-        import pyarrow.parquet
+        # error: Cannot find module named 'pyarrow.parquet'
+        import pyarrow.parquet  # type: ignore
 
         self.api = pyarrow
 

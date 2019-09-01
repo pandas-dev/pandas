@@ -27,7 +27,8 @@ from distutils.version import LooseVersion
 import locale
 from typing import Callable, Optional
 
-import pytest
+# error: No library stub file for module 'pytest'
+import pytest  # type: ignore
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 from pandas.compat.numpy import _np_version

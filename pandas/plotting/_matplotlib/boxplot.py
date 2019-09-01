@@ -1,8 +1,10 @@
 from collections import namedtuple
 import warnings
 
-from matplotlib.artist import setp
-import numpy as np
+# error: No library stub file for module 'numpy'
+# error: No library stub file for module 'matplotlib.artist'
+from matplotlib.artist import setp  # type: ignore
+import numpy as np  # type: ignore
 
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
@@ -237,7 +239,8 @@ def boxplot(
     **kwds
 ):
 
-    import matplotlib.pyplot as plt
+    # error: No library stub file for module 'matplotlib.pyplot'
+    import matplotlib.pyplot as plt  # type: ignore
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:

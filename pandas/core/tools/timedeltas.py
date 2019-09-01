@@ -4,10 +4,15 @@ timedelta support tools
 
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import (  # type:ignore
+    Timedelta,
+    parse_timedelta_unit,
+)
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import is_list_like

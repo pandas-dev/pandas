@@ -21,7 +21,8 @@ def to_feather(df, path):
 
     """
     import_optional_dependency("pyarrow")
-    from pyarrow import feather
+    # error: Cannot find module named 'pyarrow'
+    from pyarrow import feather  # type: ignore
 
     path = _stringify_path(path)
 

@@ -2,16 +2,22 @@ import datetime as pydt
 from datetime import datetime, timedelta
 import warnings
 
+# error: No library stub file for module 'matplotlib.dates'
+# error: No library stub file for module 'matplotlib.units'
+# error: No library stub file for module 'numpy'
+# error: No library stub file for module 'matplotlib.ticker'
+# error: No library stub file for module 'matplotlib.transforms'
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
-from matplotlib.ticker import AutoLocator, Formatter, Locator
-from matplotlib.transforms import nonsingular
-import matplotlib.units as units
-import numpy as np
+import matplotlib.dates as dates  # type: ignore
+from matplotlib.ticker import AutoLocator, Formatter, Locator  # type: ignore
+from matplotlib.transforms import nonsingular  # type: ignore
+import matplotlib.units as units  # type: ignore
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.frequencies'
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq  # type: ignore
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,

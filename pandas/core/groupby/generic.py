@@ -14,7 +14,8 @@ import typing
 from typing import Any, Callable, FrozenSet, Iterator, Sequence, Type, Union
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._libs import Timestamp, lib
 from pandas.compat import PY36

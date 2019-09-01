@@ -2,7 +2,8 @@
 from collections import defaultdict
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries

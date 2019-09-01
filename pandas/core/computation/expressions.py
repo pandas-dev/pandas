@@ -8,18 +8,21 @@ Offer fast expression evaluation through numexpr
 
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
-from pandas._libs.lib import values_from_object
+# error: No library stub file for module 'pandas._libs.lib'
+from pandas._libs.lib import values_from_object  # type: ignore
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
 if _NUMEXPR_INSTALLED:
-    import numexpr as ne
+    # error: Cannot find module named 'numexpr'
+    import numexpr as ne  # type: ignore
 
 _TEST_MODE = None
 _TEST_RESULT = None

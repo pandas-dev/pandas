@@ -4,12 +4,14 @@ import textwrap
 from typing import Any, Optional, Tuple, Union
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
+# error: No library stub file for module 'pandas._libs.interval'
 from pandas._libs import Timedelta, Timestamp, lib
-from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
+from pandas._libs.interval import Interval, IntervalMixin, IntervalTree  # type: ignore
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 

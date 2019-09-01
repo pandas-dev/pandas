@@ -6,10 +6,12 @@ from textwrap import dedent
 from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslib'
 from pandas._libs import algos, hashtable as htable, lib
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslib import iNaT  # type: ignore
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.cast import (

@@ -5,7 +5,8 @@ http://specs.frictionlessdata.io/json-table-schema/
 """
 import warnings
 
-import pandas._libs.json as json
+# error: No library stub file for module 'pandas._libs.json'
+import pandas._libs.json as json  # type: ignore
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,

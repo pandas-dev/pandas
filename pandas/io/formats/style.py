@@ -10,7 +10,8 @@ from functools import partial
 from itertools import product
 from uuid import uuid1
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
@@ -30,7 +31,8 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 
 
 try:
-    import matplotlib.pyplot as plt
+    # error: No library stub file for module 'matplotlib.pyplot'
+    import matplotlib.pyplot as plt  # type: ignore
     from matplotlib import colors
 
     has_mpl = True

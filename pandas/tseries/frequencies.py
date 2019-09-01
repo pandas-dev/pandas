@@ -2,19 +2,28 @@ from datetime import timedelta
 import re
 from typing import Dict
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 from pytz import AmbiguousTimeError
 
-from pandas._libs.algos import unique_deltas
+# error: No library stub file for module 'pandas._libs.tslibs.frequencies'
+# error: No library stub file for module 'pandas._libs.tslibs.resolution'
+# error: No library stub file for module 'pandas._libs.algos'
+# error: No library stub file for module 'pandas._libs.tslibs.ccalendar'
+# error: No library stub file for module 'pandas._libs.tslibs.fields'
+# error: No library stub file for module 'pandas._libs.tslibs.offsets'
+# No library stub file for module 'pandas._libs.tslibs.timezones'
+# No library stub file for module 'pandas._libs.tslibs.tzconversion'
+from pandas._libs.algos import unique_deltas  # type: ignore
 from pandas._libs.tslibs import Timedelta, Timestamp
-from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
-from pandas._libs.tslibs.fields import build_field_sarray
-import pandas._libs.tslibs.frequencies as libfreqs
-from pandas._libs.tslibs.offsets import _offset_to_period_map
-import pandas._libs.tslibs.resolution as libresolution
+from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday  # type: ignore
+from pandas._libs.tslibs.fields import build_field_sarray  # type: ignore
+import pandas._libs.tslibs.frequencies as libfreqs  # type: ignore
+from pandas._libs.tslibs.offsets import _offset_to_period_map  # type: ignore
+import pandas._libs.tslibs.resolution as libresolution  # type: ignore
 from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.timezones import UTC
-from pandas._libs.tslibs.tzconversion import tz_convert
+from pandas._libs.tslibs.timezones import UTC  # type: ignore
+from pandas._libs.tslibs.tzconversion import tz_convert  # type: ignore
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (

@@ -3,7 +3,8 @@ import itertools
 import operator
 from typing import Any, Optional, Tuple, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
@@ -1246,7 +1247,8 @@ def nancorr(a, b, method="pearson", min_periods=None):
 
 def get_corr_func(method):
     if method in ["kendall", "spearman"]:
-        from scipy.stats import kendalltau, spearmanr
+        # error: No library stub file for module 'scipy.stats'
+        from scipy.stats import kendalltau, spearmanr  # type: ignore
     elif callable(method):
         return method
 

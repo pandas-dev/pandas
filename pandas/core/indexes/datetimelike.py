@@ -5,10 +5,12 @@ import operator
 from typing import Set
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.algos'
 from pandas._libs import NaT, iNaT, lib
-from pandas._libs.algos import unique_deltas
+from pandas._libs.algos import unique_deltas  # type: ignore
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg

@@ -3,7 +3,8 @@
 from distutils.version import LooseVersion
 import re
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 # numpy versioning
 _np_version = np.__version__

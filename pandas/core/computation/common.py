@@ -1,6 +1,7 @@
 from functools import reduce
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 

@@ -404,7 +404,8 @@ def _get_handle(
         A list of file-like object that were opened in this function.
     """
     try:
-        from s3fs import S3File
+        # error: Cannot find module named 's3fs'
+        from s3fs import S3File  # type: ignore
 
         need_text_wrapping = (BufferedIOBase, S3File)
     except ImportError:

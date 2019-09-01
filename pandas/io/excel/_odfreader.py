@@ -23,7 +23,8 @@ class _ODFReader(_BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        from odf.opendocument import OpenDocument
+        # error: Cannot find module named 'odf.opendocument'
+        from odf.opendocument import OpenDocument  # type: ignore
 
         return OpenDocument
 
@@ -40,7 +41,8 @@ class _ODFReader(_BaseExcelReader):
     @property
     def sheet_names(self) -> List[str]:
         """Return a list of sheet names present in the document"""
-        from odf.table import Table
+        # error: Cannot find module named 'odf.table'
+        from odf.table import Table  # type: ignore
 
         tables = self.book.getElementsByType(Table)
         return [t.getAttribute("name") for t in tables]
@@ -123,7 +125,8 @@ class _ODFReader(_BaseExcelReader):
         Repeating an empty row appeared to be a common way
         of representing sparse rows in the table.
         """
-        from odf.namespaces import TABLENS
+        # error: Cannot find module named 'odf.namespaces'
+        from odf.namespaces import TABLENS  # type: ignore
 
         return int(row.attributes.get((TABLENS, "number-rows-repeated"), 1))
 

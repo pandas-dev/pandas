@@ -21,9 +21,11 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+# error: No library stub file for module 'numpy'
+from numpy import __version__ as _np_version, ndarray  # type: ignore
 
-from pandas._libs.lib import is_bool, is_integer
+# error: No library stub file for module 'pandas._libs.lib'
+from pandas._libs.lib import is_bool, is_integer  # type: ignore
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,

@@ -536,7 +536,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from bs4 import SoupStrainer
+        # error: No library stub file for module 'bs4'
+        from bs4 import SoupStrainer  # type: ignore
 
         self._strainer = SoupStrainer("table")
 
@@ -707,8 +708,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.html import parse, fromstring, HTMLParser
-        from lxml.etree import XMLSyntaxError
+        # error: No library stub file for module 'lxml.html'
+        from lxml.html import parse, fromstring, HTMLParser  # type: ignore
+
+        # error: No library stub file for module 'lxml.etree'
+        from lxml.etree import XMLSyntaxError  # type: ignore
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 

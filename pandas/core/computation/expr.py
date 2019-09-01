@@ -9,7 +9,8 @@ import operator
 import tokenize
 from typing import Type
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 import pandas as pd
 from pandas.core import common as com

@@ -1,7 +1,8 @@
 """Extend pandas with custom array types"""
 from typing import List, Optional, Tuple, Type
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas.errors import AbstractMethodError
 

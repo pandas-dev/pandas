@@ -1,8 +1,10 @@
 """ miscellaneous sorting / groupby utilities """
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.hashtable'
 from pandas._libs import algos, hashtable, lib
-from pandas._libs.hashtable import unique_label_indices
+from pandas._libs.hashtable import unique_label_indices  # type: ignore
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (

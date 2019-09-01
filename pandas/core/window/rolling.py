@@ -7,9 +7,11 @@ from textwrap import dedent
 from typing import Callable, List, Optional, Set, Union
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
-import pandas._libs.window as libwindow
+# error: No library stub file for module 'pandas._libs.window'
+import pandas._libs.window as libwindow  # type: ignore
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -776,7 +778,8 @@ class Window(_Window):
             import_optional_dependency(
                 "scipy", extra="Scipy is required to generate window weight."
             )
-            import scipy.signal as sig
+            # error: No library stub file for module 'scipy.signal'
+            import scipy.signal as sig  # type: ignore
 
             if not isinstance(self.win_type, str):
                 raise ValueError("Invalid win_type {0}".format(self.win_type))

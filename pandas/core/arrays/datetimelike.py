@@ -3,13 +3,25 @@ import operator
 from typing import Any, Sequence, Type, Union, cast
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.c_timestamp'
+# error: No library stub file for module 'pandas._libs.tslibs.period'
+# error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
+# error: No library stub file for module 'pandas._libs.tslibs.timestamps'
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
-from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated  # type: ignore
+from pandas._libs.tslibs.period import (  # type:ignore
+    DIFFERENT_FREQ,
+    IncompatibleFrequency,
+    Period,
+)
+from pandas._libs.tslibs.timedeltas import (  # type: ignore
+    Timedelta,
+    delta_to_nanoseconds,
+)
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64  # type: ignore
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution

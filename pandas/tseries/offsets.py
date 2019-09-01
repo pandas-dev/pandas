@@ -3,9 +3,12 @@ import functools
 import operator
 from typing import Optional
 
-from dateutil.easter import easter
-import numpy as np
+# error: No library stub file for module 'numpy'
+# error: No library stub file for module 'dateutil.easter'
+from dateutil.easter import easter  # type: ignore
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.offsets'
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -20,7 +23,7 @@ from pandas._libs.tslibs import (
     offsets as liboffsets,
     timezones,
 )
-from pandas._libs.tslibs.offsets import (
+from pandas._libs.tslibs.offsets import (  # type: ignore
     ApplyTypeError,
     BaseOffset,
     _get_calendar,

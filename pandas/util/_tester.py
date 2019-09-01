@@ -9,11 +9,13 @@ PKG = os.path.dirname(os.path.dirname(__file__))
 
 def test(extra_args=None):
     try:
-        import pytest
+        # error: No library stub file for module 'pytest'
+        import pytest  # type: ignore
     except ImportError:
         raise ImportError("Need pytest>=4.0.2 to run tests")
     try:
-        import hypothesis  # noqa
+        # error: Cannot find module named 'hypothesis'
+        import hypothesis  # type:ignore # noqa
     except ImportError:
         raise ImportError("Need hypothesis>=3.58 to run tests")
     cmd = ["--skip-slow", "--skip-network", "--skip-db"]

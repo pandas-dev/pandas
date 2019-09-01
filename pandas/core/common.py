@@ -11,7 +11,8 @@ from functools import partial
 import inspect
 from typing import Any, Iterable, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._libs import lib, tslibs
 from pandas.compat import PY36

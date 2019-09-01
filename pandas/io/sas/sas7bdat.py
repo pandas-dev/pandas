@@ -16,14 +16,16 @@ Reference for binary data compression:
 from datetime import datetime
 import struct
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas.errors import EmptyDataError
 
 import pandas as pd
 
+# error: No library stub file for module 'pandas.io.sas._sas'
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
-from pandas.io.sas._sas import Parser
+from pandas.io.sas._sas import Parser  # type: ignore
 import pandas.io.sas.sas_constants as const
 
 

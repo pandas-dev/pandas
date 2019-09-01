@@ -2,7 +2,8 @@ import numbers
 from typing import Type
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._libs import lib
 from pandas.compat import set_function_name

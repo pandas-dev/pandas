@@ -2,8 +2,12 @@ from datetime import timedelta
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.tslibs.fields'
+# error: No library stub file for module 'pandas._libs.tslibs.period'
+# error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
@@ -12,15 +16,18 @@ from pandas._libs.tslibs import (
     iNaT,
     period as libperiod,
 )
-from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs.period import (
+from pandas._libs.tslibs.fields import isleapyear_arr  # type: ignore
+from pandas._libs.tslibs.period import (  # type: ignore
     DIFFERENT_FREQ,
     IncompatibleFrequency,
     Period,
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import (  # type: ignore
+    Timedelta,
+    delta_to_nanoseconds,
+)
 import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 

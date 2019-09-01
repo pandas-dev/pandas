@@ -1,6 +1,7 @@
 from typing import List
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -16,12 +17,14 @@ class _OpenpyxlWriter(ExcelWriter):
 
     def __init__(self, path, engine=None, mode="w", **engine_kwargs):
         # Use the openpyxl module as the Excel writer.
-        from openpyxl.workbook import Workbook
+        # error: Cannot find module named 'openpyxl.workbook'
+        from openpyxl.workbook import Workbook  # type: ignore
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
         if self.mode == "a":  # Load from existing workbook
-            from openpyxl import load_workbook
+            # error: Cannot find module named 'openpyxl'
+            from openpyxl import load_workbook  # type: ignore
 
             book = load_workbook(self.path)
             self.book = book
@@ -52,7 +55,8 @@ class _OpenpyxlWriter(ExcelWriter):
         style_dict : style dictionary to convert
         """
 
-        from openpyxl.style import Style
+        # error: Cannot find module named 'openpyxl.style'
+        from openpyxl.style import Style  # type: ignore
 
         xls_style = Style()
         for key, value in style_dict.items():
@@ -125,7 +129,8 @@ class _OpenpyxlWriter(ExcelWriter):
         color : openpyxl.styles.Color
         """
 
-        from openpyxl.styles import Color
+        # error: Cannot find module named 'openpyxl.styles'
+        from openpyxl.styles import Color  # type: ignore
 
         if isinstance(color_spec, str):
             return Color(color_spec)

@@ -8,7 +8,8 @@
 import operator
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv

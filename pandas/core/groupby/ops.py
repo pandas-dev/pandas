@@ -8,11 +8,14 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 
 import collections
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.groupby'
+# error: No library stub file for module 'pandas._libs.reduction'
 from pandas._libs import NaT, iNaT, lib
-import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as libreduction
+import pandas._libs.groupby as libgroupby  # type: ignore
+import pandas._libs.reduction as libreduction  # type: ignore
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 

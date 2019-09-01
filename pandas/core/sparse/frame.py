@@ -4,10 +4,13 @@ with float64 data
 """
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
-from pandas._libs.lib import is_scalar, item_from_zerodim
-from pandas._libs.sparse import BlockIndex, get_blocks
+# error: No library stub file for module 'pandas._libs.lib'
+# error: No library stub file for module 'pandas._libs.sparse'
+from pandas._libs.lib import is_scalar, item_from_zerodim  # type: ignore
+from pandas._libs.sparse import BlockIndex, get_blocks  # type: ignore
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 

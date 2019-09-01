@@ -5,12 +5,15 @@ import re
 from typing import Any, List
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.internals'
+# error: No library stub file for module 'pandas._libs.tslibs.timezones'
 from pandas._libs import NaT, Timestamp, lib, tslib
-import pandas._libs.internals as libinternals
+import pandas._libs.internals as libinternals  # type: ignore
 from pandas._libs.tslibs import Timedelta, conversion
-from pandas._libs.tslibs.timezones import tz_compare
+from pandas._libs.tslibs.timezones import tz_compare  # type: ignore
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (

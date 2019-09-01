@@ -7,10 +7,12 @@ from functools import partial
 import string
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
+# error: No library stub file for module 'pandas._libs.join'
 from pandas._libs import hashtable as libhashtable, lib
-import pandas._libs.join as libjoin
+import pandas._libs.join as libjoin  # type: ignore
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 

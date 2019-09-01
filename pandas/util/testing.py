@@ -15,8 +15,10 @@ from typing import Union, cast
 import warnings
 import zipfile
 
-import numpy as np
-from numpy.random import rand, randn
+# error: No library stub file for module 'numpy'
+# error: No library stub file for module 'numpy.random'
+import numpy as np  # type: ignore
+from numpy.random import rand, randn  # type: ignore
 
 from pandas._config.localization import (  # noqa:F401
     can_set_locale,
@@ -24,7 +26,8 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
-import pandas._libs.testing as _testing
+# error: No library stub file for module 'pandas._libs.testing'
+import pandas._libs.testing as _testing  # type: ignore
 from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
 
 from pandas.core.dtypes.common import (
@@ -147,7 +150,8 @@ def round_trip_pathlib(writer, reader, path=None):
         The original object that was serialized and then re-read.
     """
 
-    import pytest
+    # error: No library stub file for module 'pytest'
+    import pytest  # type: ignore
 
     Path = pytest.importorskip("pathlib").Path
     if path is None:
@@ -460,7 +464,8 @@ def randu(nchars):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import get_fignums, close as _close
+    # error: No library stub file for module 'matplotlib.pyplot'
+    from matplotlib.pyplot import get_fignums, close as _close  # type: ignore
 
     if fignum is None:
         for fignum in get_fignums():
@@ -778,7 +783,8 @@ def assert_attr_equal(attr, left, right, obj="Attributes"):
 
 
 def assert_is_valid_plot_return_object(objs):
-    import matplotlib.pyplot as plt
+    # error: No library stub file for module 'matplotlib'
+    import matplotlib.pyplot as plt  # type: ignore
 
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():

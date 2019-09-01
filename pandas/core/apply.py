@@ -1,7 +1,8 @@
 import inspect
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._libs import reduction as libreduction
 from pandas.util._decorators import cache_readonly

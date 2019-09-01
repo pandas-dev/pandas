@@ -20,7 +20,8 @@ def _strip_schema(url):
 def get_file_and_filesystem(
     filepath_or_buffer: FilePathOrBuffer, mode: Optional[str] = None
 ) -> Tuple[IO, Any]:
-    from botocore.exceptions import NoCredentialsError
+    # error: Cannot find module named 'botocore.exceptions'
+    from botocore.exceptions import NoCredentialsError  # type: ignore
 
     if mode is None:
         mode = "rb"

@@ -2,12 +2,15 @@ import operator
 from typing import Any
 import warnings
 
-import numpy as np
+# error: No library stub file for module 'numpy'
+import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex
-from pandas._libs.hashtable import duplicated_int64
+# error: No library stub file for module 'pandas._libs.hashtable'
+# error: No library stub file for module 'pandas._libs.hashtable'
+from pandas._libs import index as libindex  # type: ignore
+from pandas._libs.hashtable import duplicated_int64  # type: ignore
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
