@@ -2,6 +2,7 @@
 """
 
 import re
+from typing import Optional
 import warnings
 
 
@@ -87,7 +88,7 @@ class CSSResolver:
                 props["font-size"], em_pt, conversions=self.FONT_SIZE_RATIOS
             )
 
-            font_size = float(props["font-size"][:-2])
+            font_size = float(props["font-size"][:-2])  # type: Optional[float]
         else:
             font_size = None
 
@@ -160,7 +161,10 @@ class CSSResolver:
             return self.size_to_pt("1!!default", conversions=conversions)
 
         try:
-            val, unit = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val).groups()
+            # error: Item "None" of "Optional[Match[Any]]" has no attribute "groups"
+            val, unit = re.match(  # type: ignore
+                r"^(\S*?)([a-zA-Z%!].*)", in_val
+            ).groups()
         except AttributeError:
             return _error()
         if val == "":
