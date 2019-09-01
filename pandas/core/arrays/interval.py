@@ -6,12 +6,7 @@ import numpy as np  # type: ignore
 
 from pandas._config import get_option
 
-# error: No library stub file for module 'pandas._libs.interval'
-from pandas._libs.interval import (  # type: ignore
-    Interval,
-    IntervalMixin,
-    intervals_to_interval_bounds,
-)
+from pandas._libs.interval import Interval, IntervalMixin, intervals_to_interval_bounds
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 

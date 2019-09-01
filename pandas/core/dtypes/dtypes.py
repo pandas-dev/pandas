@@ -7,8 +7,7 @@ import warnings
 import numpy as np  # type: ignore
 import pytz
 
-# error: No library stub file for module 'pandas._libs.interval'
-from pandas._libs.interval import Interval  # type: ignore
+from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
