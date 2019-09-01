@@ -254,7 +254,7 @@ def _add_margins(
     try:
         for dtype in set(result.dtypes):
             cols = result.select_dtypes([dtype]).columns
-            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+            margin_dummy[cols] = maybe_downcast_to_dtype(margin_dummy[cols], dtype)
         result = result.append(margin_dummy)
     except TypeError:
 
