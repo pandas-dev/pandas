@@ -1,5 +1,5 @@
 """ common type operations """
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union, cast
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -71,7 +71,7 @@ _TD_DTYPE = conversion.TD_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
-_is_scipy_sparse = None
+_is_scipy_sparse: Optional[Callable] = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
@@ -316,7 +316,7 @@ def is_sparse(arr):
     return isinstance(dtype, SparseDtype)
 
 
-def is_scipy_sparse(arr):
+def is_scipy_sparse(arr) -> bool:
     """
     Check whether an array-like is a scipy.sparse.spmatrix instance.
 
@@ -351,6 +351,8 @@ def is_scipy_sparse(arr):
         try:
             # error: No library stub file for module 'scipy.sparse'
             from scipy.sparse import issparse as _is_scipy_sparse  # type: ignore
+
+            _is_scipy_sparse = cast(Callable, _is_scipy_sparse)
         except ImportError:
             _is_scipy_sparse = lambda _: False
 
