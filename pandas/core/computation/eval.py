@@ -5,6 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
+from typing import Optional
 import warnings
 
 from pandas.util._validators import validate_bool_kwarg
@@ -15,7 +16,7 @@ from pandas.core.computation.scope import _ensure_scope
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
+def _check_engine(engine: Optional[str]) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -169,7 +170,7 @@ def _check_for_locals(expr, stack_level, parser):
 def eval(
     expr,
     parser="pandas",
-    engine=None,
+    engine: Optional[str] = None,
     truediv=True,
     local_dict=None,
     global_dict=None,

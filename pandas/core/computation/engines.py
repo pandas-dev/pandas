@@ -3,6 +3,7 @@ Engine classes for :func:`~pandas.eval`
 """
 
 import abc
+from typing import Dict, Type
 
 from pandas.core.computation.align import _align, _reconstruct_object
 from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
@@ -148,4 +149,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines = {"numexpr": NumExprEngine, "python": PythonEngine}
+_engines: Dict[str, Type[AbstractEngine]] = {
+    "numexpr": NumExprEngine,
+    "python": PythonEngine,
+}
