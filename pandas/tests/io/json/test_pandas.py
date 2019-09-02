@@ -1732,7 +1732,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     ]
 ]"""),
 
-        # TODO custom schema build is inconsistent with indent for table orient
         ("table", """{
     "schema":{
         "fields":[
