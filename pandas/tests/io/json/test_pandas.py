@@ -1669,3 +1669,87 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
 
         assert result == expected
+
+    @pytest.mark.parametrize("orient,expected", [
+        ("split", """{
+    "columns":[
+        "a",
+        "b"
+    ],
+    "index":[
+        0,
+        1
+    ],
+    "data":[
+        [
+            "foo",
+            "bar"
+        ],
+        [
+            "baz",
+            "qux"
+        ]
+    ]
+}"""),
+        ("records", """[
+    {
+        "a":"foo",
+        "b":"bar"
+    },
+    {
+        "a":"baz",
+        "b":"qux"
+    }
+]"""),
+        ("index", """{
+    "0":{
+        "a":"foo",
+        "b":"bar"
+    },
+    "1":{
+        "a":"baz",
+        "b":"qux"
+    }
+}"""),
+        ("columns", """{
+    "a":{
+        "0":"foo",
+        "1":"baz"
+    },
+    "b":{
+        "0":"bar",
+        "1":"qux"
+    }
+}"""),
+        ("values", """[
+    [
+        "foo",
+        "bar"
+    ],
+    [
+        "baz",
+        "qux"
+    ]
+]"""),
+
+        # TODO custom schema build is inconsistent with indent for table orient
+        ("table", """{"schema": {"fields":\
+[{"name":"index","type":"integer"},{"name":"a","type":"string"},\
+{"name":"b","type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"}\
+, "data": [
+    {
+        "index":0,
+        "a":"foo",
+        "b":"bar"
+    },
+    {
+        "index":1,
+        "a":"baz",
+        "b":"qux"
+    }
+]}""")])
+    def test_json_indent_all_orients(self, orient, expected):
+        # GH 12004
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
+        result = df.to_json(orient=orient, indent=4)
+        assert result == expected
