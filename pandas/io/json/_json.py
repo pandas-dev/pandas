@@ -1,6 +1,7 @@
 from io import StringIO
 from itertools import islice
 import os
+import textwrap
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
@@ -345,8 +346,20 @@ class JSONTableWriter(FrameWriter):
             default_handler,
             indent,
         )
-        serialized = '{{"schema": {schema}, "data": {data}}}'.format(
-            schema=dumps(self.schema), data=data
+        schema = dumps(self.schema, indent=indent)
+
+        spaces = " " * indent
+        if indent:
+            line_break = "\n"
+            data = textwrap.indent(data, spaces).strip()
+            schema = textwrap.indent(schema, spaces).strip()
+            spacer = "\n{}".format(spaces)
+        else:
+            line_break = ""
+
+        serialized = '{{{line_break}{spaces}"schema":{schema},\
+{line_break}{spaces}"data":{data}{line_break}}}'.format(
+            line_break=line_break, spaces=spaces, schema=schema, data=data
         )
         return serialized
 

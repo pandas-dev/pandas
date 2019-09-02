@@ -1733,21 +1733,40 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 ]"""),
 
         # TODO custom schema build is inconsistent with indent for table orient
-        ("table", """{"schema": {"fields":\
-[{"name":"index","type":"integer"},{"name":"a","type":"string"},\
-{"name":"b","type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"}\
-, "data": [
-    {
-        "index":0,
-        "a":"foo",
-        "b":"bar"
+        ("table", """{
+    "schema":{
+        "fields":[
+            {
+                "name":"index",
+                "type":"integer"
+            },
+            {
+                "name":"a",
+                "type":"string"
+            },
+            {
+                "name":"b",
+                "type":"string"
+            }
+        ],
+        "primaryKey":[
+            "index"
+        ],
+        "pandas_version":"0.20.0"
     },
-    {
-        "index":1,
-        "a":"baz",
-        "b":"qux"
-    }
-]}""")])
+    "data":[
+        {
+            "index":0,
+            "a":"foo",
+            "b":"bar"
+        },
+        {
+            "index":1,
+            "a":"baz",
+            "b":"qux"
+        }
+    ]
+}""")])
     def test_json_indent_all_orients(self, orient, expected):
         # GH 12004
         df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
