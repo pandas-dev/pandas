@@ -1176,11 +1176,10 @@ class GenericArrayFormatter:
         else:
             float_format = self.float_format
 
-        formatter = (
-            self.formatter
-            if self.formatter is not None
-            else (lambda x: pprint_thing(x, escape_chars=("\t", "\r", "\n")))
-        )
+        if self.formatter is None:
+            formatter = lambda x: pprint_thing(x, escape_chars=("\t", "\r", "\n"))
+        else:
+            formatter = self.formatter
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
@@ -1236,7 +1235,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1268,7 +1267,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
-                return float_format(value=v) if notna(v) else self.na_rep
+                # error: "str" not callable
+                # error: Unexpected keyword argument "value" for "__call__" of
+                # "EngFormatter"
+                # error: "None" not callable
+                return float_format(value=v) if notna(v) else self.na_rep  # type:ignore
 
         else:
 
@@ -1713,7 +1716,9 @@ def _make_fixed_width(
 
     def just(x):
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            # error: Item "None" of "Optional[TextAdjustment]" has no attribute "len"
+            # https://github.com/python/mypy/issues/2608
+            if (conf_max > 3) & (adj.len(x) > max_len):  # type: ignore
                 x = x[: max_len - 3] + "..."
         return x
 
