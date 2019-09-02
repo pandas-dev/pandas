@@ -20,6 +20,7 @@ from pandas import (
 from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -236,6 +237,59 @@ class TestSeriesAnalytics:
 
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+
+    def test_dt_nm_bool_diff(self):
+        # Combined datetime diff, normal diff and boolean diff test
+        ts = tm.makeTimeSeries(name="ts")
+        ts.diff()
+
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = s.diff()
+        assert rs[1] == 1
+
+        # neg n
+        rs = ts.diff(-1)
+        xp = ts - ts.shift(-1)
+        assert_series_equal(rs, xp)
+
+        # 0
+        rs = ts.diff(0)
+        xp = ts - ts
+        assert_series_equal(rs, xp)
+
+        # datetime diff (GH3100)
+        s = Series(date_range("20130102", periods=5))
+        rs = s - s.shift(1)
+        xp = s.diff()
+        assert_series_equal(rs, xp)
+
+        # timedelta diff
+        nrs = rs - rs.shift(1)
+        nxp = xp.diff()
+        assert_series_equal(nrs, nxp)
+
+        # with tz
+        s = Series(
+            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
+        )
+        result = s.diff()
+        assert_series_equal(
+            result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+        )
+
+        # boolean series
+        s = Series([False, True, True, False, False])
+        result = s.diff()
+        assert_series_equal(result, Series([nan, True, False, True, False]))
+
+        # boolean nan series
+        s = Series([False, True, nan, False, False])
+        result = s.diff()
+        assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype="object"))
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)

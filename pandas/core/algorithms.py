@@ -1915,6 +1915,7 @@ def diff(arr, n, axis=0):
     dtype = arr.dtype
 
     is_timedelta = False
+    is_bool = False
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view("i8")
@@ -1923,6 +1924,7 @@ def diff(arr, n, axis=0):
 
     elif is_bool_dtype(dtype):
         dtype = np.object_
+        is_bool = True
 
     elif is_integer_dtype(dtype):
         dtype = np.float64
@@ -1962,6 +1964,8 @@ def diff(arr, n, axis=0):
             result = res - lag
             result[mask] = na
             out_arr[res_indexer] = result
+        elif is_bool:
+            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
