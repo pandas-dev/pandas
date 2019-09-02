@@ -560,8 +560,8 @@ class SparseDataFrame(DataFrame):
         this._default_fill_value = self._default_fill_value
 
         new_data = {}
-        for col, series in this.items():
-            new_data[col] = func(series.values, other.values)
+        for col in this.columns:
+            new_data[col] = func(this[col], other)
 
         return this._construct_result(other, new_data, func)
 
@@ -577,7 +577,7 @@ class SparseDataFrame(DataFrame):
 
         new_data = {}
         for col in left.columns:
-            new_data[col] = func(left[col], float(right[col]))
+            new_data[col] = func(left[col], right[col])
 
         # TODO: using this changed some behavior, see GH#28025
         return left._construct_result(other, new_data, func)
