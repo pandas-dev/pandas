@@ -1,5 +1,5 @@
 import operator
-from typing import Any
+from typing import Any, List
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -597,6 +597,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
+        missing: List[int]
         if self.equals(target):
             indexer = None
             missing = []
