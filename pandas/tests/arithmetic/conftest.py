@@ -190,7 +190,12 @@ def box(request):
 
 
 @pytest.fixture(
-    params=[pd.Index, pd.Series, pytest.param(pd.DataFrame, marks=pytest.mark.xfail)],
+    params=[
+        pd.Index,
+        pd.Series,
+        pytest.param(pd.DataFrame, marks=pytest.mark.xfail),
+        tm.to_array,
+    ],
     ids=id_func,
 )
 def box_df_fail(request):
@@ -206,6 +211,7 @@ def box_df_fail(request):
         (pd.Series, False),
         (pd.DataFrame, False),
         pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
+        (tm.to_array, False),
     ],
     ids=id_func,
 )

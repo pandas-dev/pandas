@@ -348,28 +348,6 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([False, False], xbox)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat(self, op):
-        # GH#18162
-        dr = pd.date_range("2016-01-01", periods=6)
-        dz = dr.tz_localize("US/Pacific")
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        naive_series = Series(dr)
-        aware_series = Series(dz)
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            op(dz, naive_series)
-        with pytest.raises(TypeError, match=msg):
-            op(dr, aware_series)
-
-        # TODO: implement _assert_tzawareness_compat for the reverse
-        # comparison with the Series on the left-hand side
-
 
 class TestDatetimeIndexComparisons:
 
@@ -599,15 +577,18 @@ class TestDatetimeIndexComparisons:
         with pytest.raises(TypeError, match=msg):
             op(dz, np.array(list(dr), dtype=object))
 
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
+        # The aware==aware and naive==naive comparisons should *not* raise
         assert_all(dr == dr)
-        assert_all(dz == dz)
+        assert_all(dr == list(dr))
+        assert_all(list(dr) == dr)
+        assert_all(np.array(list(dr), dtype=object) == dr)
+        assert_all(dr == np.array(list(dr), dtype=object))
 
-        # FIXME: DataFrame case fails to raise for == and !=, wrong
-        #  message for inequalities
-        assert (dr == list(dr)).all()
-        assert (dz == list(dz)).all()
+        assert_all(dz == dz)
+        assert_all(dz == list(dz))
+        assert_all(list(dz) == dz)
+        assert_all(np.array(list(dz), dtype=object) == dz)
+        assert_all(dz == np.array(list(dz), dtype=object))
 
     @pytest.mark.parametrize(
         "op",
@@ -844,6 +825,7 @@ class TestDatetime64Arithmetic:
         rng -= two_hours
         tm.assert_equal(rng, expected)
 
+    # TODO: redundant with test_dt64arr_add_timedeltalike_scalar
     def test_dt64arr_add_td64_scalar(self, box_with_array):
         # scalar timedeltas/np.timedelta64 objects
         # operate with np.timedelta64 correctly
@@ -1709,14 +1691,12 @@ class TestTimestampSeriesArithmetic:
         dt1 - dt2
         dt2 - dt1
 
-        # ## datetime64 with timetimedelta ###
+        # datetime64 with timetimedelta
         dt1 + td1
         td1 + dt1
         dt1 - td1
-        # TODO: Decide if this ought to work.
-        # td1 - dt1
 
-        # ## timetimedelta with datetime64 ###
+        # timetimedelta with datetime64
         td1 + dt1
         dt1 + td1
 
@@ -1914,7 +1894,7 @@ class TestTimestampSeriesArithmetic:
         with pytest.raises(TypeError, match=msg):
             method(other)
         with pytest.raises(TypeError, match=msg):
-            method(other.values)
+            method(np.array(other))
         with pytest.raises(TypeError, match=msg):
             method(pd.Index(other))
 
@@ -2380,34 +2360,34 @@ class TestDatetimeIndexArithmetic:
         idx = date_range("2011-01-01", periods=3, freq="2D", name="x")
 
         delta = np.timedelta64(1, "D")
+        exp = date_range("2011-01-02", periods=3, freq="2D", name="x")
         for result in [idx + delta, np.add(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            exp = date_range("2011-01-02", periods=3, freq="2D", name="x")
             tm.assert_index_equal(result, exp)
             assert result.freq == "2D"
 
+        exp = date_range("2010-12-31", periods=3, freq="2D", name="x")
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            exp = date_range("2010-12-31", periods=3, freq="2D", name="x")
             tm.assert_index_equal(result, exp)
             assert result.freq == "2D"
 
         delta = np.array(
             [np.timedelta64(1, "D"), np.timedelta64(2, "D"), np.timedelta64(3, "D")]
         )
+        exp = DatetimeIndex(
+            ["2011-01-02", "2011-01-05", "2011-01-08"], freq="3D", name="x"
+        )
         for result in [idx + delta, np.add(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            exp = DatetimeIndex(
-                ["2011-01-02", "2011-01-05", "2011-01-08"], freq="3D", name="x"
-            )
             tm.assert_index_equal(result, exp)
             assert result.freq == "3D"
 
+        exp = DatetimeIndex(
+            ["2010-12-31", "2011-01-01", "2011-01-02"], freq="D", name="x"
+        )
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            exp = DatetimeIndex(
-                ["2010-12-31", "2011-01-01", "2011-01-02"], freq="D", name="x"
-            )
             tm.assert_index_equal(result, exp)
             assert result.freq == "D"
 
