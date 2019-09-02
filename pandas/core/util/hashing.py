@@ -58,9 +58,7 @@ def hash_pandas_object(
     obj, index=True, encoding="utf8", hash_key=None, categorize=True
 ):
     """
-    Return a data hash of the Index/Series/DataFrame
-
-    .. versionadded:: 0.19.2
+    Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------
@@ -244,8 +242,6 @@ def _hash_categorical(c, encoding, hash_key):
 def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     """
     Given a 1d array, return an array of deterministic integers.
-
-    .. versionadded:: 0.19.2
 
     Parameters
     ----------

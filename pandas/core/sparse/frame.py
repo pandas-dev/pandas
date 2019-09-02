@@ -49,7 +49,7 @@ class SparseDataFrame(DataFrame):
     Parameters
     ----------
     data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -425,7 +425,7 @@ class SparseDataFrame(DataFrame):
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
-                raise ValueError("Length of values does not match " "length of index")
+                raise ValueError("Length of values does not match length of index")
             clean = value
 
         elif hasattr(value, "__iter__"):
@@ -435,9 +435,7 @@ class SparseDataFrame(DataFrame):
                     clean = sp_maker(clean)
             else:
                 if len(value) != len(self.index):
-                    raise ValueError(
-                        "Length of values does not match " "length of index"
-                    )
+                    raise ValueError("Length of values does not match length of index")
                 clean = sp_maker(value)
 
         # Scalar
@@ -447,11 +445,12 @@ class SparseDataFrame(DataFrame):
         # always return a SparseArray!
         return clean
 
-    def get_value(self, index, col, takeable=False):
+    # ----------------------------------------------------------------------
+    # Indexing Methods
+
+    def _get_value(self, index, col, takeable=False):
         """
         Quickly retrieve single value at passed column and index
-
-        .. deprecated:: 0.21.0
 
         Please use .at[] or .iat[] accessors.
 
@@ -465,66 +464,12 @@ class SparseDataFrame(DataFrame):
         -------
         value : scalar value
         """
-        warnings.warn(
-            "get_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._get_value(index, col, takeable=takeable)
-
-    def _get_value(self, index, col, takeable=False):
         if takeable is True:
             series = self._iget_item_cache(col)
         else:
             series = self._get_item_cache(col)
 
         return series._get_value(index, takeable=takeable)
-
-    _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index
-
-        .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
-
-        Parameters
-        ----------
-        index : row label
-        col : column label
-        value : scalar value
-        takeable : interpret the index/col as indexers, default False
-
-        Notes
-        -----
-        This method *always* returns a new object. It is currently not
-        particularly efficient (and potentially very expensive) but is provided
-        for API compatibility with DataFrame
-
-        Returns
-        -------
-        frame : DataFrame
-        """
-        warnings.warn(
-            "set_value is deprecated and will be removed "
-            "in a future release. Please use "
-            ".at[] or .iat[] accessors instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
-        dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
-        return dense.to_sparse(
-            kind=self._default_kind, fill_value=self._default_fill_value
-        )
-
-    _set_value.__doc__ = set_value.__doc__
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:
@@ -556,6 +501,34 @@ class SparseDataFrame(DataFrame):
         i = self.index.get_loc(key)
         data = self.take([i])._internal_get_values()[0]
         return Series(data, index=self.columns)
+
+    def _set_value(self, index, col, value, takeable=False):
+        """
+        Put single value at passed column and index
+
+        Please use .at[] or .iat[] accessors.
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar value
+        takeable : interpret the index/col as indexers, default False
+
+        Notes
+        -----
+        This method *always* returns a new object. It is currently not
+        particularly efficient (and potentially very expensive) but is provided
+        for API compatibility with DataFrame
+
+        Returns
+        -------
+        frame : DataFrame
+        """
+        dense = self.to_dense()._set_value(index, col, value, takeable=takeable)
+        return dense.to_sparse(
+            kind=self._default_kind, fill_value=self._default_fill_value
+        )
 
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
@@ -596,13 +569,13 @@ class SparseDataFrame(DataFrame):
         ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None):
-        new_data = {}
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
+        new_data = {}
         for col, series in this.items():
             new_data[col] = func(series.values, other.values)
 
@@ -757,7 +730,7 @@ class SparseDataFrame(DataFrame):
 
         if method is not None or limit is not None:
             raise NotImplementedError(
-                "cannot reindex with a method or limit " "with sparse"
+                "cannot reindex with a method or limit with sparse"
             )
 
         if fill_value is None:
@@ -790,9 +763,7 @@ class SparseDataFrame(DataFrame):
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
         if on is not None:
-            raise NotImplementedError(
-                "'on' keyword parameter is not yet " "implemented"
-            )
+            raise NotImplementedError("'on' keyword parameter is not yet implemented")
         return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_index(self, other, how, lsuffix, rsuffix):

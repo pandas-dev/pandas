@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, tslibs
+from pandas._libs import NaT, Timestamp, lib, tslib
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -18,6 +18,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
+    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
     maybe_promote,
@@ -49,13 +50,12 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.concat import concat_categorical, concat_datetime
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
 )
@@ -68,21 +68,15 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PandasDtype,
-    TimedeltaArray,
-)
+from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_scalar_indexer,
 )
-from pandas.core.internals.arrays import extract_array
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
@@ -209,10 +203,6 @@ class Block(PandasObject):
         """
         return self.values
 
-    def formatting_values(self):
-        """Return the internal values used by the DataFrame/SeriesFormatter"""
-        return self.internal_values()
-
     def get_values(self, dtype=None):
         """
         return an internal format, currently just the ndarray
@@ -273,6 +263,8 @@ class Block(PandasObject):
             )
         if placement is None:
             placement = self.mgr_locs
+        if ndim is None:
+            ndim = self.ndim
         return make_block(
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
@@ -415,11 +407,8 @@ class Block(PandasObject):
                 return self.copy()
 
         if self._can_hold_element(value):
-            # equivalent: self._try_coerce_args(value) would not raise
+            # equivalent: _try_coerce_args(value) would not raise
             blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [
-                b.make_block(values=self._try_coerce_result(b.values)) for b in blocks
-            ]
             return self._maybe_downcast(blocks, downcast)
 
         # we can't process the value, but nothing to do
@@ -437,7 +426,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(mask, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace):
+    def split_and_operate(self, mask, f, inplace: bool):
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -496,17 +485,15 @@ class Block(PandasObject):
 
         return new_blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and self.is_float:
-            return blocks
-        elif downcast is None and (self.is_timedelta or self.is_datetime):
+        if downcast is None and (
+            self.is_float or self.is_timedelta or self.is_datetime
+        ):
             return blocks
 
-        if not isinstance(blocks, list):
-            blocks = [blocks]
         return _extend_blocks([b.downcast(downcast) for b in blocks])
 
     def downcast(self, dtypes=None):
@@ -552,10 +539,10 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, values=values, **kwargs)
+    def astype(self, dtype, copy=False, errors="raise", **kwargs):
+        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
 
-    def _astype(self, dtype, copy=False, errors="raise", values=None, **kwargs):
+    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -599,7 +586,7 @@ class Block(PandasObject):
 
             categories = kwargs.get("categories", None)
             ordered = kwargs.get("ordered", None)
-            if com._any_not_none(categories, ordered):
+            if com.any_not_none(categories, ordered):
                 dtype = CategoricalDtype(categories, ordered)
 
             if is_categorical_dtype(self.values):
@@ -616,40 +603,39 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        if values is None:
-            try:
-                # force the copy here
-                if self.is_extension:
-                    values = self.values.astype(dtype)
-                else:
-                    if issubclass(dtype.type, str):
-
-                        # use native type formatting for datetime/tz/timedelta
-                        if self.is_datelike:
-                            values = self.to_native_types()
-
-                        # astype formatting
-                        else:
-                            values = self.get_values()
-
-                    else:
-                        values = self.get_values(dtype=dtype)
-
-                    # _astype_nansafe works fine with 1-d only
-                    vals1d = values.ravel()
-                    values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-                # TODO(extension)
-                # should we make this attribute?
-                if isinstance(values, np.ndarray):
-                    values = values.reshape(self.shape)
-
-            except Exception:  # noqa: E722
-                if errors == "raise":
-                    raise
-                newb = self.copy() if copy else self
+        try:
+            # force the copy here
+            if self.is_extension:
+                values = self.values.astype(dtype)
             else:
-                newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+                if issubclass(dtype.type, str):
+
+                    # use native type formatting for datetime/tz/timedelta
+                    if self.is_datelike:
+                        values = self.to_native_types()
+
+                    # astype formatting
+                    else:
+                        values = self.get_values()
+
+                else:
+                    values = self.get_values(dtype=dtype)
+
+                # _astype_nansafe works fine with 1-d only
+                vals1d = values.ravel()
+                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+
+            # TODO(extension)
+            # should we make this attribute?
+            if isinstance(values, np.ndarray):
+                values = values.reshape(self.shape)
+
+        except Exception:
+            # e.g. astype_nansafe can fail on object-dtype of strings
+            #  trying to convert to float
+            if errors == "raise":
+                raise
+            newb = self.copy() if copy else self
         else:
             newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
@@ -683,49 +669,13 @@ class Block(PandasObject):
 
         return self.copy() if copy else self
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
         dtype = self.values.dtype.type
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
-
-    def _try_cast_result(self, result, dtype=None):
-        """ try to cast the result to our original type, we may have
-        roundtripped thru object in the mean-time
-        """
-        if dtype is None:
-            dtype = self.dtype
-
-        if self.is_integer or self.is_bool or self.is_datetime:
-            pass
-        elif self.is_float and result.dtype == self.dtype:
-            # protect against a bool/object showing up here
-            if isinstance(dtype, str) and dtype == "infer":
-                return result
-
-            # This is only reached via Block.setitem, where dtype is always
-            #  either "infer", self.dtype, or values.dtype.
-            assert dtype == self.dtype, (dtype, self.dtype)
-            return result
-
-        # may need to change the dtype here
-        return maybe_downcast_to_dtype(result, dtype)
-
-    def _coerce_values(self, values):
-        """
-        Coerce values (usually derived from self.values) for an operation.
-
-        Parameters
-        ----------
-        values : ndarray or ExtensionArray
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-        """
-        return values
 
     def _try_coerce_args(self, other):
         """ provide coercion to our input arguments """
@@ -739,17 +689,15 @@ class Block(PandasObject):
                     type(self).__name__.lower().replace("Block", ""),
                 )
             )
+        if np.any(isna(other)) and not self._can_hold_na:
+            raise TypeError(
+                "cannot convert {} to an {}".format(
+                    type(other).__name__,
+                    type(self).__name__.lower().replace("Block", ""),
+                )
+            )
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        return result
-
-    def _try_coerce_and_cast_result(self, result, dtype=None):
-        result = self._try_coerce_result(result)
-        result = self._try_cast_result(result, dtype=dtype)
-        return result
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -768,7 +716,7 @@ class Block(PandasObject):
         values[mask] = na_rep
         return values
 
-    # block actions ####
+    # block actions #
     def copy(self, deep=True):
         """ copy constructor """
         values = self.values
@@ -787,21 +735,43 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         original_to_replace = to_replace
 
-        # try to replace, if we raise an error, convert to ObjectBlock and
+        # If we cannot replace with own dtype, convert to ObjectBlock and
         # retry
-        values = self._coerce_values(self.values)
-        try:
-            to_replace = self._try_coerce_args(to_replace)
-        except (TypeError, ValueError):
+        if not self._can_hold_element(to_replace):
+            if not isinstance(to_replace, list):
+                if inplace:
+                    return [self]
+                return [self.copy()]
+
+            to_replace = [x for x in to_replace if self._can_hold_element(x)]
+            if not len(to_replace):
+                # GH#28084 avoid costly checks since we can infer
+                #  that there is nothing to replace in this block
+                if inplace:
+                    return [self]
+                return [self.copy()]
+
+            if len(to_replace) == 1:
+                # _can_hold_element checks have reduced this back to the
+                #  scalar case and we can avoid a costly object cast
+                return self.replace(
+                    to_replace[0],
+                    value,
+                    inplace=inplace,
+                    filter=filter,
+                    regex=regex,
+                    convert=convert,
+                )
+
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
-                raise
+                raise AssertionError
 
             # try again with a compatible block
             block = self.astype(object)
             return block.replace(
-                to_replace=original_to_replace,
+                to_replace=to_replace,
                 value=value,
                 inplace=inplace,
                 filter=filter,
@@ -809,18 +779,34 @@ class Block(PandasObject):
                 convert=convert,
             )
 
+        values = self.values
+        to_replace = self._try_coerce_args(to_replace)
+
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
             filtered_out = ~self.mgr_locs.isin(filter)
             mask[filtered_out.nonzero()[0]] = False
 
+        if not mask.any():
+            if inplace:
+                return [self]
+            return [self.copy()]
+
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
+            # Note: it is _not_ the case that self._can_hold_element(value)
+            #  is always true at this point.  In particular, that can fail
+            #  for:
+            #   "2u" with bool-dtype, float-dtype
+            #   0.5 with int64-dtype
+            #   np.nan with int64-dtype
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
             if is_object_dtype(self):
                 raise
+
+            assert not self._can_hold_element(value), value
 
             # try again with a compatible block
             block = self.astype(object)
@@ -868,9 +854,10 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        try:
+        if self._can_hold_element(value):
             value = self._try_coerce_args(value)
-        except (TypeError, ValueError):
+
+        else:
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
 
@@ -878,28 +865,15 @@ class Block(PandasObject):
                 dtype = value.dtype
                 find_dtype = True
 
-            elif lib.is_scalar(value):
-                if isna(value):
-                    # NaN promotion is handled in latter path
-                    dtype = False
-                else:
-                    dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-                    find_dtype = True
-            else:
-                dtype = "infer"
+            elif lib.is_scalar(value) and not isna(value):
+                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+                find_dtype = True
 
             if find_dtype:
                 dtype = find_common_type([values.dtype, dtype])
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
                     return b.setitem(indexer, value)
-        else:
-            values = self._coerce_values(values)
-            # can keep its own dtype
-            if hasattr(value, "dtype") and is_dtype_equal(values.dtype, value.dtype):
-                dtype = self.dtype
-            else:
-                dtype = "infer"
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -929,7 +903,7 @@ class Block(PandasObject):
         elif (
             len(arr_value.shape)
             and arr_value.shape[0] == values.shape[0]
-            and np.prod(arr_value.shape) == np.prod(values.shape)
+            and arr_value.size == values.size
         ):
             values[indexer] = value
             try:
@@ -941,8 +915,6 @@ class Block(PandasObject):
         else:
             values[indexer] = value
 
-        # coerce and try to infer the dtypes of the result
-        values = self._try_coerce_and_cast_result(values, dtype)
         if transpose:
             values = values.T
         block = self.make_block(values)
@@ -976,6 +948,7 @@ class Block(PandasObject):
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
+            # FIXME: make sure we have compatible NA
             new = self.fill_value
 
         if self._can_hold_element(new):
@@ -1103,7 +1076,7 @@ class Block(PandasObject):
             mytz = getattr(self.dtype, "tz", None)
             othertz = getattr(dtype, "tz", None)
 
-            if str(mytz) != str(othertz):
+            if not tz_compare(mytz, othertz):
                 return self.astype(object)
 
             raise AssertionError(
@@ -1125,9 +1098,7 @@ class Block(PandasObject):
         try:
             return self.astype(dtype)
         except (ValueError, TypeError, OverflowError):
-            pass
-
-        return self.astype(object)
+            return self.astype(object)
 
     def interpolate(
         self,
@@ -1219,7 +1190,6 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values = self._coerce_values(values)
         fill_value = self._try_coerce_args(fill_value)
         values = missing.interpolate_2d(
             values,
@@ -1229,7 +1199,6 @@ class Block(PandasObject):
             fill_value=fill_value,
             dtype=self.dtype,
         )
-        values = self._try_coerce_result(values)
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
@@ -1327,7 +1296,7 @@ class Block(PandasObject):
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def diff(self, n, axis=1):
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
@@ -1361,7 +1330,15 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1405,29 +1382,23 @@ class Block(PandasObject):
 
         # our where function
         def func(cond, values, other):
-            other = self._try_coerce_args(other)
 
-            try:
-                fastres = expressions.where(cond, values, other)
-                return self._try_coerce_result(fastres)
-            except Exception as detail:
-                if errors == "raise":
-                    raise TypeError(
-                        "Could not operate [{other!r}] with block values "
-                        "[{detail!s}]".format(other=other, detail=detail)
-                    )
-                else:
-                    # return the values
-                    result = np.empty(values.shape, dtype="float64")
-                    result.fill(np.nan)
-                    return result
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
+                # np.where will cast integer array to floats in this case
+                other = self._try_coerce_args(other)
+
+            fastres = expressions.where(cond, values, other)
+            return fastres
 
         if cond.ravel().all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            values = self._coerce_values(values)
             try:
                 result = func(cond, values, other)
             except TypeError:
@@ -1450,11 +1421,7 @@ class Block(PandasObject):
             if transpose:
                 result = result.T
 
-            # try to cast if requested
-            if try_cast:
-                result = self._try_cast_result(result)
-
-            return self.make_block(result)
+            return [self.make_block(result)]
 
         # might need to separate out blocks
         axis = cond.ndim - 1
@@ -1465,13 +1432,13 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
-                r = self._try_cast_result(taken)
+                r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)
 
         return result_blocks
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return array_equivalent(self.values, other.values)
@@ -1486,9 +1453,9 @@ class Block(PandasObject):
         new_columns : Index
             All columns of the unstacked BlockManager.
         n_rows : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
         fill_value : int
-            Only used in ExtensionBlock.unstack
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
@@ -1526,19 +1493,7 @@ class Block(PandasObject):
         # We should always have ndim == 2 becase Series dispatches to DataFrame
         assert self.ndim == 2
 
-        if self.is_datetimetz:
-            # TODO: cleanup this special case.
-            # We need to operate on i8 values for datetimetz
-            # but `Block.get_values()` returns an ndarray of objects
-            # right now. We need an API for "values to do numeric-like ops on"
-            values = self.values.asi8
-
-            # TODO: NonConsolidatableMixin shape
-            # Usual shape inconsistencies for ExtensionBlocks
-            values = values[None, :]
-        else:
-            values = self.get_values()
-            values = self._coerce_values(values)
+        values = self.get_values()
 
         is_empty = values.shape[axis] == 0
         orig_scalar = not is_list_like(qs)
@@ -1554,16 +1509,14 @@ class Block(PandasObject):
             ).reshape(len(values), len(qs))
         else:
             # asarray needed for Sparse, see GH#24600
-            # Note: we use self.values below instead of values because the
-            #  `asi8` conversion above will behave differently under `isna`
-            mask = np.asarray(isna(self.values))
+            mask = np.asarray(isna(values))
             result = nanpercentile(
                 values,
                 np.array(qs) * 100,
                 axis=axis,
                 na_value=self.fill_value,
                 mask=mask,
-                ndim=self.ndim,
+                ndim=values.ndim,
                 interpolation=interpolation,
             )
 
@@ -1576,8 +1529,7 @@ class Block(PandasObject):
             result = result[..., 0]
             result = lib.item_from_zerodim(result)
 
-        ndim = getattr(result, "ndim", None) or 0
-        result = self._try_coerce_result(result)
+        ndim = np.ndim(result)
         return make_block(result, placement=np.arange(len(result)), ndim=ndim)
 
     def _replace_coerce(
@@ -1703,7 +1655,6 @@ class NonConsolidatableMixIn:
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new_values = self._coerce_values(new_values)
         new = self._try_coerce_args(new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
@@ -1712,11 +1663,7 @@ class NonConsolidatableMixIn:
         mask = _safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
-        new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
-
-    def _try_cast_result(self, result, dtype=None):
-        return result
 
     def _get_unstack_items(self, unstacker, new_columns):
         """
@@ -1769,7 +1716,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         super().__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
-        """Unbox to an extension array.
+        """
+        Unbox to an extension array.
 
         This will unbox an ExtensionArray stored in an Index or Series.
         ExtensionArrays pass through. No dtype coercion is done.
@@ -1782,9 +1730,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         -------
         ExtensionArray
         """
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
-        return values
+        return extract_array(values)
 
     @property
     def _holder(self):
@@ -1872,7 +1818,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         # XXX: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
@@ -1889,41 +1835,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             slicer = slicer[1]
 
         return self.values[slicer]
-
-    def _try_cast_result(self, result, dtype=None):
-        """
-        if we have an operation that operates on for example floats
-        we want to try to cast back to our EA here if possible
-
-        result could be a 2-D numpy array, e.g. the result of
-        a numeric operation; but it must be shape (1, X) because
-        we by-definition operate on the ExtensionBlocks one-by-one
-
-        result could also be an EA Array itself, in which case it
-        is already a 1-D array
-        """
-        try:
-
-            result = self._holder._from_sequence(result.ravel(), dtype=dtype)
-        except Exception:
-            pass
-
-        return result
-
-    def formatting_values(self):
-        # Deprecating the ability to override _formatting_values.
-        # Do the warning here, it's only user in pandas, since we
-        # have to check if the subclass overrode it.
-        fv = getattr(type(self.values), "_formatting_values", None)
-        if fv and fv != ExtensionArray._formatting_values:
-            msg = (
-                "'ExtensionArray._formatting_values' is deprecated. "
-                "Specify 'ExtensionArray._formatter' instead."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=10)
-            return self.values._formatting_values()
-
-        return self.values
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -1972,7 +1883,15 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             )
         ]
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
             # `other` should be a DataFrame with a single column.
@@ -2017,7 +1936,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 np.where(cond, self.values, other), dtype=dtype
             )
 
-        return self.make_block_same_class(result, placement=self.mgr_locs)
+        return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
     @property
     def _ftype(self):
@@ -2069,7 +1988,7 @@ class NumericBlock(Block):
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         left, right = self.values, other.values
@@ -2080,7 +1999,7 @@ class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
@@ -2144,7 +2063,7 @@ class ComplexBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_complex = True
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
@@ -2161,7 +2080,7 @@ class IntBlock(NumericBlock):
     is_integer = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return (
@@ -2184,7 +2103,7 @@ class DatetimeLikeBlockMixin:
 
     @property
     def fill_value(self):
-        return tslibs.iNaT
+        return np.datetime64("NaT", "ns")
 
     def get_values(self, dtype=None):
         """
@@ -2251,12 +2170,14 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # delegate
         return super()._astype(dtype=dtype, **kwargs)
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             if self.is_datetimetz:
                 # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype)
+                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
+                    element, self.dtype
+                )
 
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
@@ -2266,13 +2187,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             if self.is_datetimetz:
                 return tz_compare(element.tzinfo, self.dtype.tz)
             return element.tzinfo is None
-        elif is_integer(element):
-            return element == tslibs.iNaT
 
         return is_valid_nat_for_dtype(element, self.dtype)
-
-    def _coerce_values(self, values):
-        return values.view("i8")
 
     def _try_coerce_args(self, other):
         """
@@ -2290,36 +2206,21 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         base-type other
         """
         if is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
+            other = np.datetime64("NaT", "ns")
         elif isinstance(other, (datetime, np.datetime64, date)):
-            other = self._box_func(other)
-            if getattr(other, "tz") is not None:
+            other = Timestamp(other)
+            if other.tz is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a naive Block")
-            other = other.asm8.view("i8")
+            other = other.asm8
         elif hasattr(other, "dtype") and is_datetime64_dtype(other):
-            other = other.astype("i8", copy=False).view("i8")
+            # TODO: can we get here with non-nano?
+            pass
         else:
             # coercion issues
             # let higher levels handle
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("M8[ns]")
-
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = self._box_func(result)
-        return result
-
-    @property
-    def _box_func(self):
-        return tslibs.Timestamp
 
     def to_native_types(
         self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
@@ -2376,6 +2277,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     _can_hold_element = DatetimeBlock._can_hold_element
+    fill_value = np.datetime64("NaT", "ns")
 
     @property
     def _holder(self):
@@ -2431,7 +2333,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         values = self.values
         if is_object_dtype(dtype):
-            values = values._box_values(values._data)
+            values = values.astype(object)
 
         values = np.asarray(values)
 
@@ -2457,85 +2359,20 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def _coerce_values(self, values):
-        # asi8 is a view, needs copy
-        return _block_shape(values.view("i8"), ndim=self.ndim)
-
     def _try_coerce_args(self, other):
-        """
-        localize and return i8 for the values
-
-        Parameters
-        ----------
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type other
-        """
-
-        if isinstance(other, ABCSeries):
-            other = self._holder(other)
-
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_datetime64_dtype(other):
-            # add the tz back
-            other = self._holder(other, dtype=self.dtype)
-
-        elif is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
-        elif isinstance(other, self._holder):
-            if other.tz != self.values.tz:
-                raise ValueError("incompatible or non tz-aware value")
-            other = _block_shape(other.asi8, ndim=self.ndim)
-        elif isinstance(other, (np.datetime64, datetime, date)):
-            other = tslibs.Timestamp(other)
-            tz = getattr(other, "tz", None)
-
-            # test we can have an equal time zone
-            if tz is None or str(tz) != str(self.values.tz):
-                raise ValueError("incompatible or non tz-aware value")
-            other = other.value
-        else:
-            raise TypeError(other)
-
+        # DatetimeArray handles this for us
         return other
 
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("M8[ns]")
-
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = self._box_func(result)
-
-        if isinstance(result, np.ndarray):
-            # allow passing of > 1dim if its trivial
-
-            if result.ndim > 1:
-                result = result.reshape(np.prod(result.shape))
-            # GH#24096 new values invalidates a frequency
-            result = self._holder._simple_new(
-                result, freq=None, dtype=self.values.dtype
-            )
-
-        return result
-
-    @property
-    def _box_func(self):
-        return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
-
-    def diff(self, n, axis=0):
-        """1st discrete difference
+    def diff(self, n: int, axis: int = 0) -> List["Block"]:
+        """
+        1st discrete difference.
 
         Parameters
         ----------
-        n : int, number of periods to diff
-        axis : int, axis to diff upon. default 0
+        n : int
+            Number of periods to diff.
+        axis : int, default 0
+            Axis to diff upon.
 
         Returns
         -------
@@ -2563,7 +2400,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Instead of placing the condition here, it could also go into the
         # is_uniform_join_units check, but I'm not sure what is better.
         if len({x.dtype for x in to_concat}) > 1:
-            values = _concat._concat_datetime([x.values for x in to_concat])
+            values = concat_datetime([x.values for x in to_concat])
             placement = placement or slice(0, len(values), 1)
 
             if self.ndim > 1:
@@ -2574,31 +2411,47 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
-        try:
+        if self._can_hold_element(value):
             return super().fillna(value, limit, inplace, downcast)
-        except (ValueError, TypeError):
-            # different timezones, or a non-tz
-            return self.astype(object).fillna(
-                value, limit=limit, inplace=inplace, downcast=downcast
-            )
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def setitem(self, indexer, value):
         # https://github.com/pandas-dev/pandas/issues/24020
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
-        try:
+        if self._can_hold_element(value) or (
+            isinstance(indexer, np.ndarray) and indexer.size == 0
+        ):
             return super().setitem(indexer, value)
-        except (ValueError, TypeError):
-            newb = make_block(
-                self.values.astype(object), placement=self.mgr_locs, klass=ObjectBlock
-            )
-            return newb.setitem(indexer, value)
 
-    def equals(self, other):
+        obj_vals = self.values.astype(object)
+        newb = make_block(
+            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
+        )
+        return newb.setitem(indexer, value)
+
+    def equals(self, other) -> bool:
         # override for significant performance improvement
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return (self.values.view("i8") == other.values.view("i8")).all()
+
+    def quantile(self, qs, interpolation="linear", axis=0):
+        naive = self.values.view("M8[ns]")
+
+        # kludge for 2D block with 1D values
+        naive = naive.reshape(self.shape)
+
+        blk = self.make_block(naive)
+        res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
+
+        # ravel is kludge for 2D block with 1D values, assumes column-like
+        aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
+        return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
@@ -2606,6 +2459,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     is_timedelta = True
     _can_hold_na = True
     is_numeric = False
+    fill_value = np.timedelta64("NaT", "ns")
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != _TD_DTYPE:
@@ -2619,22 +2473,14 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _holder(self):
         return TimedeltaArray
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
-
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            # TODO: remove the np.int64 support once coerce_values and
-            #  _try_coerce_args both coerce to m8[ns] and not i8.
-            return issubclass(tipo.type, (np.timedelta64, np.int64))
+            return issubclass(tipo.type, np.timedelta64)
         elif element is NaT:
             return True
         elif isinstance(element, (timedelta, np.timedelta64)):
             return True
-        elif is_integer(element):
-            return element == tslibs.iNaT
         return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
@@ -2654,13 +2500,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
 
-    def _coerce_values(self, values):
-        return values.view("i8")
-
     def _try_coerce_args(self, other):
         """
-        Coerce values and other to int64, with null values converted to
-        iNaT. values is always ndarray-like, other may not be
+        Coerce values and other to datetime64[ns], with null values
+        converted to datetime64("NaT", "ns").
 
         Parameters
         ----------
@@ -2672,32 +2515,18 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         """
 
         if is_valid_nat_for_dtype(other, self.dtype):
-            other = tslibs.iNaT
-        elif is_integer(other) and other == tslibs.iNaT:
-            pass
+            other = np.timedelta64("NaT", "ns")
         elif isinstance(other, (timedelta, np.timedelta64)):
-            other = Timedelta(other).value
+            other = Timedelta(other).to_timedelta64()
         elif hasattr(other, "dtype") and is_timedelta64_dtype(other):
-            other = other.astype("i8", copy=False).view("i8")
+            # TODO: can we get here with non-nano dtype?
+            pass
         else:
             # coercion issues
             # let higher levels handle
             raise TypeError(other)
 
         return other
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args / try_operate """
-        if isinstance(result, np.ndarray):
-            mask = isna(result)
-            if result.dtype.kind in ["i", "f"]:
-                result = result.astype("m8[ns]")
-            result[mask] = tslibs.iNaT
-
-        elif isinstance(result, (np.integer, np.float)):
-            result = self._box_func(result)
-
-        return result
 
     def should_store(self, value):
         return issubclass(
@@ -2737,7 +2566,7 @@ class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.bool_)
@@ -2823,7 +2652,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def _maybe_downcast(self, blocks, downcast=None):
+    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
 
         if downcast is not None:
             return blocks
@@ -2831,7 +2660,7 @@ class ObjectBlock(Block):
         # split and convert the blocks
         return _extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
-    def _can_hold_element(self, element):
+    def _can_hold_element(self, element: Any) -> bool:
         return True
 
     def _try_coerce_args(self, other):
@@ -2987,9 +2816,9 @@ class ObjectBlock(Block):
         regex = regex_re or to_rep_re
 
         # try to get the pattern attribute (compiled re) or it's a string
-        try:
+        if is_re(to_replace):
             pattern = to_replace.pattern
-        except AttributeError:
+        else:
             pattern = to_replace
 
         # if the pattern is not empty and to_replace is either a string or a
@@ -3010,18 +2839,18 @@ class ObjectBlock(Block):
         if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return value if rx.search(s) is not None else s
-                except TypeError:
+                else:
                     return s
 
         else:
             # value is guaranteed to be a string here, s can be either a string
             # or null if it's null it gets returned
             def re_replacer(s):
-                try:
+                if is_re(rx) and isinstance(s, str):
                     return rx.sub(value, s)
-                except TypeError:
+                else:
                     return s
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
@@ -3088,13 +2917,13 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _concatenator = staticmethod(_concat._concat_categorical)
+    _concatenator = staticmethod(concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
-        from pandas.core.arrays.categorical import _maybe_to_categorical
-
         # coerce to categorical if we can
-        super().__init__(_maybe_to_categorical(values), placement=placement, ndim=ndim)
+        values = extract_array(values)
+        assert isinstance(values, Categorical), type(values)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     @property
     def _holder(self):
@@ -3106,16 +2935,6 @@ class CategoricalBlock(ExtensionBlock):
         array
         """
         return np.object_
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-
-        # GH12564: CategoricalBlock is 1-dim only
-        # while returned results could be any dim
-        if (not is_categorical_dtype(result)) and isinstance(result, np.ndarray):
-            result = _block_shape(result, ndim=self.ndim)
-
-        return result
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
@@ -3158,7 +2977,15 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(self, other, cond, align=True, errors="raise", try_cast=False, axis=0):
+    def where(
+        self,
+        other,
+        cond,
+        align=True,
+        errors="raise",
+        try_cast: bool = False,
+        axis: int = 0,
+    ) -> List["Block"]:
         # TODO(CategoricalBlock.where):
         # This can all be deleted in favor of ExtensionBlock.where once
         # we enforce the deprecation.

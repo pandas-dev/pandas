@@ -438,10 +438,6 @@ columns:
 
 .. _visualization.box.return:
 
-.. warning::
-
-   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
-
 In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
 Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
@@ -1152,10 +1148,10 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 
 .. ipython:: python
 
-   df.A.plot()
+   df['A'].plot()
 
    @savefig series_plot_secondary_y.png
-   df.B.plot(secondary_y=True, style='g')
+   df['B'].plot(secondary_y=True, style='g')
 
 .. ipython:: python
    :suppress:
@@ -1209,7 +1205,7 @@ Here is the default behavior, notice how the x-axis tick labeling is performed:
    plt.figure()
 
    @savefig ser_plot_suppress.png
-   df.A.plot()
+   df['A'].plot()
 
 .. ipython:: python
    :suppress:
@@ -1223,7 +1219,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.figure()
 
    @savefig ser_plot_suppress_parm.png
-   df.A.plot(x_compat=True)
+   df['A'].plot(x_compat=True)
 
 .. ipython:: python
    :suppress:
@@ -1239,9 +1235,9 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 
    @savefig ser_plot_suppress_context.png
    with pd.plotting.plot_params.use('x_compat', True):
-       df.A.plot(color='r')
-       df.B.plot(color='g')
-       df.C.plot(color='b')
+       df['A'].plot(color='r')
+       df['B'].plot(color='g')
+       df['C'].plot(color='b')
 
 .. ipython:: python
    :suppress:
@@ -1632,18 +1628,3 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
-
-
-.. _rplot:
-
-
-Trellis plotting interface
---------------------------
-
-.. warning::
-
-    The ``rplot`` trellis plotting interface has been **removed**. Please use
-    external packages like `seaborn <https://github.com/mwaskom/seaborn>`_ for
-    similar but more refined functionality and refer to our 0.18.1 documentation
-    `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html>`__
-    for how to convert to using it.

@@ -9,6 +9,7 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    Period,
     Timedelta,
     Timestamp,
     ccalendar,
@@ -33,7 +34,6 @@ from pandas._libs.tslibs.offsets import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.dtypes.inference import is_list_like
 
 from pandas.core.tools.datetimes import to_datetime
@@ -204,8 +204,7 @@ class DateOffset(BaseOffset):
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
-    **kwds
-        Temporal parameter that add to or replace the offset value.
+    **kwds : Temporal parameter that add to or replace the offset value.
 
         Parameters that **add** to the offset (like Timedelta):
 
@@ -233,16 +232,19 @@ class DateOffset(BaseOffset):
 
     See Also
     --------
-    dateutil.relativedelta.relativedelta
+    dateutil.relativedelta.relativedelta : The relativedelta type is designed
+        to be applied to an existing datetime an can replace specific components of
+        that datetime, or represents an interval of time.
 
     Examples
     --------
+    >>> from pandas.tseries.offsets import DateOffset
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
     >>> ts + DateOffset(months=3)
     Timestamp('2017-04-01 09:10:11')
 
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
-    >>> ts + DateOffset(month=3)
+    >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
 
@@ -1396,8 +1398,6 @@ class SemiMonthEnd(SemiMonthOffset):
     Two DateOffset's per month repeating on the last
     day of the month and day_of_month.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     n : int
@@ -1456,8 +1456,6 @@ class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first
     day of the month and day_of_month.
-
-    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -2537,7 +2535,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, ABCPeriod):
+        elif isinstance(other, Period):
             return other + self
         try:
             return self.apply(other)

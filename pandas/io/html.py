@@ -1,4 +1,5 @@
-""":mod:`pandas.io.html` is a module containing functionality for dealing with
+"""
+:mod:`pandas.io.html` is a module containing functionality for dealing with
 HTML IO.
 
 """
@@ -58,7 +59,8 @@ _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
-    """Replace extra whitespace inside of a string with a single space.
+    """
+    Replace extra whitespace inside of a string with a single space.
 
     Parameters
     ----------
@@ -77,7 +79,8 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
 
 
 def _get_skiprows(skiprows):
-    """Get an iterator given an integer, slice or container.
+    """
+    Get an iterator given an integer, slice or container.
 
     Parameters
     ----------
@@ -107,7 +110,8 @@ def _get_skiprows(skiprows):
 
 
 def _read(obj):
-    """Try to read from a url, file or string.
+    """
+    Try to read from a url, file or string.
 
     Parameters
     ----------
@@ -136,7 +140,8 @@ def _read(obj):
 
 
 class _HtmlFrameParser:
-    """Base class for parsers that parse HTML into DataFrames.
+    """
+    Base class for parsers that parse HTML into DataFrames.
 
     Parameters
     ----------
@@ -515,7 +520,8 @@ class _HtmlFrameParser:
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
-    """HTML to DataFrame parser that uses BeautifulSoup under the hood.
+    """
+    HTML to DataFrame parser that uses BeautifulSoup under the hood.
 
     See Also
     --------
@@ -622,7 +628,8 @@ _valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
-    """HTML to DataFrame parser that uses lxml under the hood.
+    """
+    HTML to DataFrame parser that uses lxml under the hood.
 
     Warning
     -------
@@ -937,7 +944,8 @@ def read_html(
     keep_default_na=True,
     displayed_only=True,
 ):
-    r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
+    r"""
+    Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
     ----------
@@ -1011,31 +1019,21 @@ def read_html(
         Character to recognize as decimal point (e.g. use ',' for European
         data).
 
-        .. versionadded:: 0.19.0
-
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
 
-        .. versionadded:: 0.19.0
-
     na_values : iterable, default None
         Custom NA values
-
-        .. versionadded:: 0.19.0
 
     keep_default_na : bool, default True
         If na_values are specified and keep_default_na is False the default NaN
         values are overridden, otherwise they're appended to
 
-        .. versionadded:: 0.19.0
-
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------

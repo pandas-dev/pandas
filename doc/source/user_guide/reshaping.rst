@@ -469,7 +469,7 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
                        'C': [1, 1, np.nan, 1, 1]})
     df
 
-    pd.crosstab(df.A, df.B)
+    pd.crosstab(df['A'], df['B'])
 
 Any input passed containing ``Categorical`` data will have **all** of its
 categories included in the cross-tabulation, even if the actual data does
@@ -484,20 +484,18 @@ not contain any instances of a particular category.
 Normalization
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.18.1
-
 Frequency tables can also be normalized to show percentages rather than counts
 using the ``normalize`` argument:
 
 .. ipython:: python
 
-   pd.crosstab(df.A, df.B, normalize=True)
+   pd.crosstab(df['A'], df['B'], normalize=True)
 
 ``normalize`` can also normalize values within each row or within each column:
 
 .. ipython:: python
 
-   pd.crosstab(df.A, df.B, normalize='columns')
+   pd.crosstab(df['A'], df['B'], normalize='columns')
 
 ``crosstab`` can also be passed a third ``Series`` and an aggregation function
 (``aggfunc``) that will be applied to the values of the third ``Series`` within
@@ -505,7 +503,7 @@ each group defined by the first two ``Series``:
 
 .. ipython:: python
 
-   pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum)
+   pd.crosstab(df['A'], df['B'], values=df['C'], aggfunc=np.sum)
 
 Adding margins
 ~~~~~~~~~~~~~~
@@ -514,7 +512,7 @@ Finally, one can also add margins or normalize this output.
 
 .. ipython:: python
 
-   pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum, normalize=True,
+   pd.crosstab(df['A'], df['B'], values=df['C'], aggfunc=np.sum, normalize=True,
                margins=True)
 
 .. _reshaping.tile:

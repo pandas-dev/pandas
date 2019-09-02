@@ -3,8 +3,8 @@ import itertools
 
 import numpy as np
 
-import pandas._libs.algos as _algos
-import pandas._libs.reshape as _reshape
+import pandas._libs.algos as libalgos
+import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_extension_array_dtype,
+    is_integer,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -22,9 +23,9 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
-from pandas.core.internals.arrays import extract_array
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -133,9 +134,7 @@ class _Unstacker:
         num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
 
         if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError(
-                "Unstacked DataFrame is too big, " "causing int32 overflow"
-            )
+            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
 
         self._make_sorted_values_labels()
         self._make_selectors()
@@ -151,7 +150,7 @@ class _Unstacker:
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = libalgos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
@@ -176,7 +175,7 @@ class _Unstacker:
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
-            raise ValueError("Index contains duplicate entries, " "cannot reshape")
+            raise ValueError("Index contains duplicate entries, cannot reshape")
 
         self.group_index = comp_index
         self.mask = mask
@@ -240,7 +239,7 @@ class _Unstacker:
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(_reshape, "unstack_{name}".format(name=name))
+        f = getattr(libreshape, "unstack_{name}".format(name=name))
         f(
             sorted_values,
             mask.view("u1"),
@@ -401,6 +400,10 @@ def unstack(obj, level, fill_value=None):
             return _unstack_multiple(obj, level, fill_value=fill_value)
         else:
             level = level[0]
+
+    # Prioritize integer interpretation (GH #21677):
+    if not is_integer(level) and not level == "__placeholder__":
+        level = obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
@@ -852,7 +855,6 @@ def get_dummies(
     2  0.0  0.0  1.0
     """
     from pandas.core.reshape.concat import concat
-    from itertools import cycle
 
     dtypes_to_encode = ["object", "category"]
 
@@ -881,7 +883,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = cycle([prefix])
+            prefix = itertools.cycle([prefix])
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -890,7 +892,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = cycle([prefix_sep])
+            prefix_sep = itertools.cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 

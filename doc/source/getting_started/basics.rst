@@ -926,7 +926,7 @@ Single aggregations on a ``Series`` this will return a scalar value:
 
 .. ipython:: python
 
-   tsdf.A.agg('sum')
+   tsdf['A'].agg('sum')
 
 
 Aggregating with multiple functions
@@ -950,13 +950,13 @@ On a ``Series``, multiple functions return a ``Series``, indexed by the function
 
 .. ipython:: python
 
-   tsdf.A.agg(['sum', 'mean'])
+   tsdf['A'].agg(['sum', 'mean'])
 
 Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 
 .. ipython:: python
 
-   tsdf.A.agg(['sum', lambda x: x.mean()])
+   tsdf['A'].agg(['sum', lambda x: x.mean()])
 
 Passing a named function will yield that name for the row:
 
@@ -965,7 +965,7 @@ Passing a named function will yield that name for the row:
    def mymean(x):
        return x.mean()
 
-   tsdf.A.agg(['sum', mymean])
+   tsdf['A'].agg(['sum', mymean])
 
 Aggregating with a dict
 +++++++++++++++++++++++
@@ -1065,7 +1065,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 
 .. ipython:: python
 
-   tsdf.A.transform(np.abs)
+   tsdf['A'].transform(np.abs)
 
 
 Transform with multiple functions
@@ -1084,7 +1084,7 @@ resulting column names will be the transforming functions.
 
 .. ipython:: python
 
-   tsdf.A.transform([np.abs, lambda x: x + 1])
+   tsdf['A'].transform([np.abs, lambda x: x + 1])
 
 
 Transforming with a dict
@@ -2060,8 +2060,6 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
    dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
-
-.. versionadded:: 0.19.0
 
 Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 

@@ -270,22 +270,6 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs["from_intervals"] % _index_doc_kwargs)
-    def from_intervals(cls, data, closed=None, name=None, copy=False, dtype=None):
-        msg = (
-            "IntervalIndex.from_intervals is deprecated and will be "
-            "removed in a future version; Use IntervalIndex(...) instead"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
-
-        if name is None and isinstance(data, cls):
-            name = data.name
-
-        return cls._simple_new(array, name=name)
-
-    @classmethod
     @Appender(_interval_shared_docs["from_tuples"] % _index_doc_kwargs)
     def from_tuples(cls, data, closed="right", name=None, copy=False, dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -347,7 +331,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> idx.to_tuples()
         Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
         >>> idx.to_tuples(na_tuple=False)
-        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
+        """,
         )
     )
     def to_tuples(self, na_tuple=True):
@@ -804,7 +789,7 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None
+        self, key: Any, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -906,35 +891,35 @@ class IntervalIndex(IntervalMixin, Index):
             )
             raise InvalidIndexError(msg)
 
-        target = ensure_index(target)
+        target_as_index = ensure_index(target)
 
-        if isinstance(target, IntervalIndex):
+        if isinstance(target_as_index, IntervalIndex):
             # equal indexes -> 1:1 positional match
-            if self.equals(target):
+            if self.equals(target_as_index):
                 return np.arange(len(self), dtype="intp")
 
             # different closed or incompatible subtype -> no matches
             common_subtype = find_common_type(
-                [self.dtype.subtype, target.dtype.subtype]
+                [self.dtype.subtype, target_as_index.dtype.subtype]
             )
-            if self.closed != target.closed or is_object_dtype(common_subtype):
-                return np.repeat(np.intp(-1), len(target))
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+                return np.repeat(np.intp(-1), len(target_as_index))
 
-            # non-overlapping -> at most one match per interval in target
+            # non-overlapping -> at most one match per interval in target_as_index
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            left_indexer = self.left.get_indexer(target.left)
-            right_indexer = self.right.get_indexer(target.right)
+            left_indexer = self.left.get_indexer(target_as_index.left)
+            right_indexer = self.right.get_indexer(target_as_index.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-        elif not is_object_dtype(target):
+        elif not is_object_dtype(target_as_index):
             # homogeneous scalar index: use IntervalTree
-            target = self._maybe_convert_i8(target)
-            indexer = self._engine.get_indexer(target.values)
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer = self._engine.get_indexer(target_as_index.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # (non-overlapping so get_loc guarantees scalar of KeyError)
             indexer = []
-            for key in target:
+            for key in target_as_index:
                 try:
                     loc = self.get_loc(key)
                 except KeyError:
@@ -947,21 +932,26 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer_non_unique(
         self, target: AnyArrayLike
     ) -> Tuple[np.ndarray, np.ndarray]:
-        target = ensure_index(target)
+        target_as_index = ensure_index(target)
 
-        # check that target IntervalIndex is compatible
-        if isinstance(target, IntervalIndex):
+        # check that target_as_index IntervalIndex is compatible
+        if isinstance(target_as_index, IntervalIndex):
             common_subtype = find_common_type(
-                [self.dtype.subtype, target.dtype.subtype]
+                [self.dtype.subtype, target_as_index.dtype.subtype]
             )
-            if self.closed != target.closed or is_object_dtype(common_subtype):
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
                 # different closed or incompatible subtype -> no matches
-                return np.repeat(-1, len(target)), np.arange(len(target))
+                return (
+                    np.repeat(-1, len(target_as_index)),
+                    np.arange(len(target_as_index)),
+                )
 
-        if is_object_dtype(target) or isinstance(target, IntervalIndex):
-            # target might contain intervals: defer elementwise to get_loc
+        if is_object_dtype(target_as_index) or isinstance(
+            target_as_index, IntervalIndex
+        ):
+            # target_as_index might contain intervals: defer elementwise to get_loc
             indexer, missing = [], []
-            for i, key in enumerate(target):
+            for i, key in enumerate(target_as_index):
                 try:
                     locs = self.get_loc(key)
                     if isinstance(locs, slice):
@@ -973,8 +963,10 @@ class IntervalIndex(IntervalMixin, Index):
                 indexer.append(locs)
             indexer = np.concatenate(indexer)
         else:
-            target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer, missing = self._engine.get_indexer_non_unique(
+                target_as_index.values
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
@@ -991,7 +983,7 @@ class IntervalIndex(IntervalMixin, Index):
             List of indices.
         """
         if self.is_overlapping:
-            return self.get_indexer_non_unique(target, **kwargs)[0]
+            return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
@@ -1051,7 +1043,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(item, Interval):
             if item.closed != self.closed:
                 raise ValueError(
-                    "inserted item must be closed on the same " "side as the index"
+                    "inserted item must be closed on the same side as the index"
                 )
             left_insert = item.left
             right_insert = item.right
@@ -1060,7 +1052,7 @@ class IntervalIndex(IntervalMixin, Index):
             left_insert = right_insert = item
         else:
             raise ValueError(
-                "can only insert Interval objects and NA into " "an IntervalIndex"
+                "can only insert Interval objects and NA into an IntervalIndex"
             )
 
         new_left = self.left.insert(loc, left_insert)
@@ -1104,12 +1096,8 @@ class IntervalIndex(IntervalMixin, Index):
         return header + list(self._format_native_types(**kwargs))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
-        """ actually format my specific types """
-        from pandas.io.formats.format import ExtensionArrayFormatter
-
-        return ExtensionArrayFormatter(
-            values=self, na_rep=na_rep, justify="all", leading_space=False
-        ).get_result()
+        # GH 28210: use base method but with different default na_rep
+        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _format_data(self, name=None):
 
@@ -1311,7 +1299,7 @@ def _is_type_compatible(a, b):
         (is_number(a) and is_number(b))
         or (is_ts_compat(a) and is_ts_compat(b))
         or (is_td_compat(a) and is_td_compat(b))
-        or com._any_none(a, b)
+        or com.any_none(a, b)
     )
 
 
@@ -1319,7 +1307,7 @@ def interval_range(
     start=None, end=None, periods=None, freq=None, name=None, closed="right"
 ):
     """
-    Return a fixed frequency IntervalIndex
+    Return a fixed frequency IntervalIndex.
 
     Parameters
     ----------
@@ -1409,7 +1397,7 @@ def interval_range(
     end = com.maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
-    if freq is None and com._any_none(periods, start, end):
+    if freq is None and com.any_none(periods, start, end):
         freq = 1 if is_number(endpoint) else "D"
 
     if com.count_not_none(start, end, periods, freq) != 3:
@@ -1456,7 +1444,7 @@ def interval_range(
 
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
-        if com._all_not_none(start, end, freq):
+        if com.all_not_none(start, end, freq):
             end -= (end - start) % freq
 
         # compute the period/start/end if unspecified (at most one)
@@ -1468,7 +1456,7 @@ def interval_range(
             end = start + (periods - 1) * freq
 
         breaks = np.linspace(start, end, periods)
-        if all(is_integer(x) for x in com._not_none(start, end, freq)):
+        if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
             breaks = maybe_downcast_to_dtype(breaks, "int64")
     else:

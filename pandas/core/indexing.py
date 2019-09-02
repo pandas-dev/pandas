@@ -21,12 +21,12 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_sparse,
 )
-from pandas.core.dtypes.concat import _concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.index import Index, InvalidIndexError, MultiIndex
+from pandas.core.index import Index, InvalidIndexError
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
 
 
@@ -49,7 +49,7 @@ _NS = slice(None, None)
 # the public IndexSlicerMaker
 class _IndexSlice:
     """
-    Create an object to more easily perform multi-index slicing
+    Create an object to more easily perform multi-index slicing.
 
     See Also
     --------
@@ -117,13 +117,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise NotImplementedError("ix is not iterable")
 
     def __getitem__(self, key):
+        # Used in ix and downstream in geopandas _CoordinateIndexer
         if type(key) is tuple:
             # Note: we check the type exactly instead of with isinstance
             #  because NamedTuple is checked separately.
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj._get_value(*key)
-            except (KeyError, TypeError, InvalidIndexError):
+            except (KeyError, TypeError, InvalidIndexError, AttributeError):
                 # TypeError occurs here if the key has non-hashable entries,
                 #  generally slice or list.
                 # TODO(ix): most/all of the TypeError cases here are for ix,
@@ -131,6 +132,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # The InvalidIndexError is only catched for compatibility
                 #  with geopandas, see
                 #  https://github.com/pandas-dev/pandas/issues/27258
+                # TODO: The AttributeError is for IntervalIndex which
+                #  incorrectly implements get_value, see
+                #  https://github.com/pandas-dev/pandas/issues/27865
                 pass
             else:
                 if is_scalar(values):
@@ -164,11 +168,11 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
-            return self._convert_tuple(key, is_setter=True)
+            return self._convert_tuple(key)
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc":
+        if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
             except Exception:
@@ -176,16 +180,16 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             try:
-                return self._convert_tuple(key, is_setter=True)
+                return self._convert_tuple(key)
             except IndexingError:
                 pass
 
         if isinstance(key, range):
-            return self._convert_range(key, is_setter=True)
+            return list(key)
 
         axis = self.axis or 0
         try:
-            return self._convert_to_indexer(key, axis=axis, is_setter=True)
+            return self._convert_to_indexer(key, axis=axis)
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
@@ -223,10 +227,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
-    def _has_valid_tuple(self, key):
+    def _has_valid_tuple(self, key: Tuple):
         """ check the key for valid keys across my indexer """
         for i, k in enumerate(key):
-            if i >= self.obj.ndim:
+            if i >= self.ndim:
                 raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
@@ -236,33 +240,27 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     "[{types}] types".format(types=self._valid_types)
                 )
 
-    def _is_nested_tuple_indexer(self, tup):
-        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
+    def _is_nested_tuple_indexer(self, tup: Tuple):
+        if any(isinstance(ax, ABCMultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key, is_setter: bool = False):
+    def _convert_tuple(self, key):
         keyidx = []
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
             for i in range(self.ndim):
                 if i == axis:
-                    keyidx.append(
-                        self._convert_to_indexer(key, axis=axis, is_setter=is_setter)
-                    )
+                    keyidx.append(self._convert_to_indexer(key, axis=axis))
                 else:
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
-                if i >= self.obj.ndim:
+                if i >= self.ndim:
                     raise IndexingError("Too many indexers")
-                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
+                idx = self._convert_to_indexer(k, axis=i)
                 keyidx.append(idx)
         return tuple(keyidx)
-
-    def _convert_range(self, key, is_setter: bool = False):
-        """ convert a range argument """
-        return list(key)
 
     def _convert_scalar_indexer(self, key, axis: int):
         # if we are accessing via lowered dim, use the last dim
@@ -270,7 +268,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # a scalar
         return ax._convert_scalar_indexer(key, kind=self.name)
 
-    def _convert_slice_indexer(self, key, axis: int):
+    def _convert_slice_indexer(self, key: slice, axis: int):
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
         return ax._convert_slice_indexer(key, kind=self.name)
@@ -286,7 +284,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             raise IndexError("{0} cannot enlarge its target object".format(self.name))
         else:
             if not isinstance(indexer, tuple):
-                indexer = self._tuplify(indexer)
+                indexer = _tuplify(self.ndim, indexer)
             for ax, i in zip(self.obj.axes, indexer):
                 if isinstance(i, slice):
                     # should check the stop slice?
@@ -325,6 +323,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
+
+        # if we have any multi-indexes that have non-trivial slices
+        # (not null slices) then we must take the split path, xref
+        # GH 10360, GH 27841
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+            for i, ax in zip(indexer, self.obj.axes):
+                if isinstance(ax, ABCMultiIndex) and not (
+                    is_integer(i) or com.is_null_slice(i)
+                ):
+                    take_split_path = True
+                    break
 
         if isinstance(indexer, tuple):
             nindexer = []
@@ -401,7 +410,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             assert info_axis == 1
 
             if not isinstance(indexer, tuple):
-                indexer = self._tuplify(indexer)
+                indexer = _tuplify(self.ndim, indexer)
 
             if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
@@ -413,7 +422,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # if we have a partial multiindex, then need to adjust the plane
             # indexer here
-            if len(labels) == 1 and isinstance(self.obj[labels[0]].axes[0], MultiIndex):
+            if len(labels) == 1 and isinstance(
+                self.obj[labels[0]].axes[0], ABCMultiIndex
+            ):
                 item = labels[0]
                 obj = self.obj[item]
                 index = obj.index
@@ -484,9 +495,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
                 # we have an equal len Frame
-                if isinstance(value, ABCDataFrame) and value.ndim > 1:
+                if isinstance(value, ABCDataFrame):
                     sub_indexer = list(indexer)
-                    multiindex_indexer = isinstance(labels, MultiIndex)
+                    multiindex_indexer = isinstance(labels, ABCMultiIndex)
 
                     for item in labels:
                         if item in value:
@@ -607,7 +618,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
-                new_values = _concat_compat([self.obj._values, new_values])
+                new_values = concat_compat([self.obj._values, new_values])
             self.obj._data = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._data
@@ -638,27 +649,23 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             self.obj._maybe_update_cacher(clear=True)
             return self.obj
 
-    def _align_series(self, indexer, ser, multiindex_indexer=False):
+    def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
         """
         Parameters
         ----------
         indexer : tuple, slice, scalar
             The indexer used to get the locations that will be set to
             `ser`
-
         ser : pd.Series
             The values to assign to the locations specified by `indexer`
-
         multiindex_indexer : boolean, optional
             Defaults to False. Should be set to True if `indexer` was from
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
-
 
         Returns
         -------
         `np.array` of `ser` broadcast to the appropriate shape for assignment
         to the locations selected by `indexer`
-
         """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
@@ -674,7 +681,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
-            is_frame = self.obj.ndim == 2
+            is_frame = self.ndim == 2
             obj = self.obj
 
             # are we a single alignable value on a non-primary
@@ -734,8 +741,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df):
-        is_frame = self.obj.ndim == 2
+    def _align_frame(self, indexer, df: ABCDataFrame):
+        is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
 
@@ -772,8 +779,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # we have a multi-index and are trying to align
                 # with a particular, level GH3738
                 if (
-                    isinstance(ax, MultiIndex)
-                    and isinstance(df.index, MultiIndex)
+                    isinstance(ax, ABCMultiIndex)
+                    and isinstance(df.index, ABCMultiIndex)
                     and ax.nlevels != df.index.nlevels
                 ):
                     raise TypeError(
@@ -786,7 +793,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with DataFrame")
 
-    def _getitem_tuple(self, tup):
+    def _getitem_tuple(self, tup: Tuple):
         try:
             return self._getitem_lowerdim(tup)
         except IndexingError:
@@ -809,7 +816,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return retval
 
-    def _multi_take_opportunity(self, tup):
+    def _multi_take_opportunity(self, tup: Tuple):
         """
         Check whether there is the possibility to use ``_multi_take``.
         Currently the limit is that all axes being indexed must be indexed with
@@ -833,7 +840,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return True
 
-    def _multi_take(self, tup):
+    def _multi_take(self, tup: Tuple):
         """
         Create the indexers for the passed tuple of keys, and execute the take
         operation. This allows the take operation to be executed all at once -
@@ -859,7 +866,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
     def _convert_for_reindex(self, key, axis: int):
         return key
 
-    def _handle_lowerdim_multi_index_axis0(self, tup):
+    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -871,7 +878,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.obj.ndim:
+            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
@@ -884,7 +891,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return None
 
-    def _getitem_lowerdim(self, tup):
+    def _getitem_lowerdim(self, tup: Tuple):
 
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
@@ -899,12 +906,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, MultiIndex) and self.name != "iloc":
+        if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
 
-        if len(tup) > self.obj.ndim:
+        if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
@@ -948,7 +955,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         raise IndexingError("not applicable")
 
-    def _getitem_nested_tuple(self, tup):
+    def _getitem_nested_tuple(self, tup: Tuple):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -999,7 +1006,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
         elif is_list_like_indexer(key) and not (
-            isinstance(key, tuple) and isinstance(labels, MultiIndex)
+            isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)
         ):
 
             if hasattr(key, "ndim") and key.ndim > 1:
@@ -1012,7 +1019,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             key = labels._maybe_cast_indexer(key)
 
             if is_integer(key):
-                if axis == 0 and isinstance(labels, MultiIndex):
+                if axis == 0 and isinstance(labels, ABCMultiIndex):
                     try:
                         return self._get_label(key, axis=axis)
                     except (KeyError, TypeError):
@@ -1188,9 +1195,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
 
-    def _convert_to_indexer(
-        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
-    ):
+    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on an ndarray
@@ -1214,10 +1219,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         try:
             obj = self._convert_scalar_indexer(obj, axis)
         except TypeError:
-
             # but we will allow setting
-            if is_setter:
-                pass
+            pass
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -1227,8 +1230,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         try:
             return labels.get_loc(obj)
         except LookupError:
-            if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
-                if is_setter and len(obj) == labels.nlevels:
+            if isinstance(obj, tuple) and isinstance(labels, ABCMultiIndex):
+                if len(obj) == labels.nlevels:
                     return {"key": obj}
                 raise
         except TypeError:
@@ -1242,17 +1245,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             # if we are setting and its not a valid location
             # its an insert which fails by definition
-            if is_setter:
 
+            if self.name == "loc":
                 # always valid
-                if self.name == "loc":
-                    return {"key": obj}
+                return {"key": obj}
 
+            if obj >= self.obj.shape[axis] and not isinstance(labels, ABCMultiIndex):
                 # a positional
-                if obj >= self.obj.shape[axis] and not isinstance(labels, MultiIndex):
-                    raise ValueError(
-                        "cannot set by positional indexing with enlargement"
-                    )
+                raise ValueError("cannot set by positional indexing with enlargement")
 
             return obj
 
@@ -1267,21 +1267,15 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:
-                kwargs = {"raise_missing": True if is_setter else raise_missing}
-                return self._get_listlike_indexer(obj, axis, **kwargs)[1]
+                return self._get_listlike_indexer(obj, axis, raise_missing=True)[1]
         else:
             try:
                 return labels.get_loc(obj)
             except LookupError:
                 # allow a not found key only if we are a setter
-                if not is_list_like_indexer(obj) and is_setter:
+                if not is_list_like_indexer(obj):
                     return {"key": obj}
                 raise
-
-    def _tuplify(self, loc):
-        tup = [slice(None, None) for _ in range(self.ndim)]
-        tup[0] = loc
-        return tuple(tup)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -1422,7 +1416,7 @@ class _LocationIndexer(_NDFrameIndexer):
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
-        inds, = key.nonzero()
+        inds = key.nonzero()[0]
         try:
             return self.obj.take(inds, axis=axis)
         except Exception as detail:
@@ -1723,7 +1717,12 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
             ax = self.obj.axes[i]
-            if isinstance(ax, MultiIndex):
+            if isinstance(ax, ABCMultiIndex):
+                return False
+
+            if isinstance(k, str) and ax._supports_partial_string_indexing:
+                # partial string indexing, df.loc['2000', 'A']
+                # should not be considered scalar
                 return False
 
             if not ax.is_unique:
@@ -1740,8 +1739,11 @@ class _LocIndexer(_LocationIndexer):
     def _get_partial_string_timestamp_match_key(self, key, labels):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
-        if isinstance(labels, MultiIndex):
-            if isinstance(key, str) and labels.levels[0].is_all_dates:
+        if isinstance(labels, ABCMultiIndex):
+            if (
+                isinstance(key, str)
+                and labels.levels[0]._supports_partial_string_indexing
+            ):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1751,7 +1753,10 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if isinstance(component, str) and labels.levels[i].is_all_dates:
+                    if (
+                        isinstance(component, str)
+                        and labels.levels[i]._supports_partial_string_indexing
+                    ):
                         new_key.append(slice(component, component, None))
                     else:
                         new_key.append(component)
@@ -1778,7 +1783,7 @@ class _LocIndexer(_LocationIndexer):
             # to a list of keys
             # we will use the *values* of the object
             # and NOT the index if its a PandasObject
-            if isinstance(labels, MultiIndex):
+            if isinstance(labels, ABCMultiIndex):
 
                 if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
                     # Series, or 0,1 ndim ndarray
@@ -1806,7 +1811,7 @@ class _LocIndexer(_LocationIndexer):
                     key = tuple([key])
 
             # an iterable multi-selection
-            if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
+            if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):
 
                 if hasattr(key, "ndim") and key.ndim > 1:
                     raise ValueError("Cannot index with multidimensional key")
@@ -2037,7 +2042,7 @@ class _iLocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key, takeable=True)
         return values
 
-    def _validate_integer(self, key, axis):
+    def _validate_integer(self, key: int, axis: int):
         """
         Check that 'key' is a valid position in the desired axis.
 
@@ -2062,7 +2067,7 @@ class _iLocIndexer(_LocationIndexer):
         if key >= len_axis or key < -len_axis:
             raise IndexError("single positional indexer is out-of-bounds")
 
-    def _getitem_tuple(self, tup):
+    def _getitem_tuple(self, tup: Tuple):
 
         self._has_valid_tuple(tup)
         try:
@@ -2081,6 +2086,8 @@ class _iLocIndexer(_LocationIndexer):
 
             # if the dim was reduced, then pass a lower-dim the next time
             if retval.ndim < self.ndim:
+                # TODO: this is never reached in tests; can we confirm that
+                #  it is impossible?
                 axis -= 1
 
             # try to get for the next axis
@@ -2134,9 +2141,7 @@ class _iLocIndexer(_LocationIndexer):
             return self._get_loc(key, axis=axis)
 
     # raise_missing is included for compat with the parent class signature
-    def _convert_to_indexer(
-        self, obj, axis: int, is_setter: bool = False, raise_missing: bool = False
-    ):
+    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
         """ much simpler as we only have to deal with our valid types """
 
         # make need to convert a float key
@@ -2156,11 +2161,11 @@ class _iLocIndexer(_LocationIndexer):
             )
 
 
-class _ScalarAccessIndexer(_NDFrameIndexer):
+class _ScalarAccessIndexer(_NDFrameIndexerBase):
     """ access scalars quickly """
 
     def _convert_key(self, key, is_setter: bool = False):
-        return list(key)
+        raise AbstractMethodError(self)
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
@@ -2182,8 +2187,8 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
             key = com.apply_if_callable(key, self.obj)
 
         if not isinstance(key, tuple):
-            key = self._tuplify(key)
-        if len(key) != self.obj.ndim:
+            key = _tuplify(self.ndim, key)
+        if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
         key.append(value)
@@ -2313,15 +2318,31 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     _takeable = True
 
-    def _has_valid_setitem_indexer(self, indexer):
-        self._has_valid_positional_setitem_indexer(indexer)
-
     def _convert_key(self, key, is_setter: bool = False):
         """ require integer args (and convert to label arguments) """
         for a, i in zip(self.obj.axes, key):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
+
+
+def _tuplify(ndim: int, loc) -> tuple:
+    """
+    Given an indexer for the first dimension, create an equivalent tuple
+    for indexing over all dimensions.
+
+    Parameters
+    ----------
+    ndim : int
+    loc : object
+
+    Returns
+    -------
+    tuple
+    """
+    tup = [slice(None, None) for _ in range(ndim)]
+    tup[0] = loc
+    return tuple(tup)
 
 
 def convert_to_index_sliceable(obj, key):
@@ -2340,7 +2361,7 @@ def convert_to_index_sliceable(obj, key):
 
         # We might have a datetimelike string that we can translate to a
         # slice here via partial string indexing
-        if idx.is_all_dates:
+        if idx._supports_partial_string_indexing:
             try:
                 return idx._get_string_slice(key)
             except (KeyError, ValueError, NotImplementedError):
@@ -2455,7 +2476,7 @@ def is_nested_tuple(tup, labels):
     for i, k in enumerate(tup):
 
         if is_list_like(k) or isinstance(k, slice):
-            return isinstance(labels, MultiIndex)
+            return isinstance(labels, ABCMultiIndex)
 
     return False
 
@@ -2471,25 +2492,6 @@ def need_slice(obj):
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
     )
-
-
-def maybe_droplevels(index, key):
-    # drop levels
-    original_index = index
-    if isinstance(key, tuple):
-        for _ in key:
-            try:
-                index = index.droplevel(0)
-            except ValueError:
-                # we have dropped too much, so back out
-                return original_index
-    else:
-        try:
-            index = index.droplevel(0)
-        except ValueError:
-            pass
-
-    return index
 
 
 def _non_reducing_slice(slice_):
