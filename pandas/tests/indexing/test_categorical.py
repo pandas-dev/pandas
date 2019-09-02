@@ -46,6 +46,18 @@ class TestCategoricalIndex:
                 "B": (Series([1, 1, 2, 1, 3, 2]).astype(CDT([3, 2, 1], ordered=False))),
             }
         ).set_index("B")
+        self.df5 = DataFrame(
+            {
+                "A": np.arange(3, dtype="int64"),
+                "B": Series(list("abc")).astype(CDT(list("cabe"))),
+            }
+        ).set_index("B")
+        self.df6 = DataFrame(
+            {
+                "A": np.arange(3, dtype="int64"),
+                "B": (Series([1, 3, 2]).astype(CDT([3, 2, 1], ordered=False))),
+            }
+        ).set_index("B")
 
     def test_loc_scalar(self):
         result = self.df.loc["a"]
@@ -564,23 +576,21 @@ class TestCategoricalIndex:
 
         # reindexing
         # convert to a regular index
-        result = self.df2.reindex(["a", "b", "e"])
-        expected = DataFrame(
-            {"A": [0, 1, 5, 2, 3, np.nan], "B": Series(list("aaabbe"))}
-        ).set_index("B")
+        result = self.df5.reindex(["a", "b", "e"])
+        expected = DataFrame({"A": [0, 1, np.nan], "B": Series(list("abe"))}).set_index(
+            "B"
+        )
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["a", "b"])
-        expected = DataFrame(
-            {"A": [0, 1, 5, 2, 3], "B": Series(list("aaabb"))}
-        ).set_index("B")
+        result = self.df5.reindex(["a", "b"])
+        expected = DataFrame({"A": [0, 1], "B": Series(list("ab"))}).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["e"])
+        result = self.df5.reindex(["e"])
         expected = DataFrame({"A": [np.nan], "B": Series(["e"])}).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["d"])
+        result = self.df5.reindex(["d"])
         expected = DataFrame({"A": [np.nan], "B": Series(["d"])}).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
@@ -588,65 +598,60 @@ class TestCategoricalIndex:
         # then return a Categorical
         cats = list("cabe")
 
-        result = self.df2.reindex(Categorical(["a", "d"], categories=cats))
+        result = self.df5.reindex(Categorical(["a", "e"], categories=cats))
         expected = DataFrame(
-            {"A": [0, 1, 5, np.nan], "B": Series(list("aaad")).astype(CDT(cats))}
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats))}
         ).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(Categorical(["a"], categories=cats))
+        result = self.df5.reindex(Categorical(["a"], categories=cats))
         expected = DataFrame(
-            {"A": [0, 1, 5], "B": Series(list("aaa")).astype(CDT(cats))}
+            {"A": [0], "B": Series(list("a")).astype(CDT(cats))}
         ).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["a", "b", "e"])
-        expected = DataFrame(
-            {"A": [0, 1, 5, 2, 3, np.nan], "B": Series(list("aaabbe"))}
-        ).set_index("B")
+        result = self.df5.reindex(["a", "b", "e"])
+        expected = DataFrame({"A": [0, 1, np.nan], "B": Series(list("abe"))}).set_index(
+            "B"
+        )
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["a", "b"])
-        expected = DataFrame(
-            {"A": [0, 1, 5, 2, 3], "B": Series(list("aaabb"))}
-        ).set_index("B")
+        result = self.df5.reindex(["a", "b"])
+        expected = DataFrame({"A": [0, 1], "B": Series(list("ab"))}).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(["e"])
+        result = self.df5.reindex(["e"])
         expected = DataFrame({"A": [np.nan], "B": Series(["e"])}).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
         # give back the type of categorical that we received
-        result = self.df2.reindex(
-            Categorical(["a", "d"], categories=cats, ordered=True)
+        result = self.df5.reindex(
+            Categorical(["a", "e"], categories=cats, ordered=True)
         )
         expected = DataFrame(
-            {
-                "A": [0, 1, 5, np.nan],
-                "B": Series(list("aaad")).astype(CDT(cats, ordered=True)),
-            }
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats, ordered=True))}
         ).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
-        result = self.df2.reindex(Categorical(["a", "d"], categories=["a", "d"]))
+        result = self.df5.reindex(Categorical(["a", "d"], categories=["a", "d"]))
         expected = DataFrame(
-            {"A": [0, 1, 5, np.nan], "B": Series(list("aaad")).astype(CDT(["a", "d"]))}
+            {"A": [0, np.nan], "B": Series(list("ad")).astype(CDT(["a", "d"]))}
         ).set_index("B")
         assert_frame_equal(result, expected, check_index_type=True)
 
         # passed duplicate indexers are not allowed
-        msg = "cannot reindex with a non-unique indexer"
+        msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
-            self.df2.reindex(["a", "a"])
+            self.df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"
         with pytest.raises(NotImplementedError, match=msg.format("method")):
-            self.df2.reindex(["a"], method="ffill")
+            self.df5.reindex(["a"], method="ffill")
         with pytest.raises(NotImplementedError, match=msg.format("level")):
-            self.df2.reindex(["a"], level=1)
+            self.df5.reindex(["a"], level=1)
         with pytest.raises(NotImplementedError, match=msg.format("limit")):
-            self.df2.reindex(["a"], limit=2)
+            self.df5.reindex(["a"], limit=2)
 
     def test_loc_slice(self):
         # slicing
