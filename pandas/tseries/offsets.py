@@ -8,7 +8,6 @@ from typing import Optional
 from dateutil.easter import easter  # type: ignore
 import numpy as np  # type: ignore
 
-# error: No library stub file for module 'pandas._libs.tslibs.offsets'
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -23,7 +22,7 @@ from pandas._libs.tslibs import (
     offsets as liboffsets,
     timezones,
 )
-from pandas._libs.tslibs.offsets import (  # type: ignore
+from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     BaseOffset,
     _get_calendar,
@@ -251,7 +250,9 @@ class DateOffset(BaseOffset):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    _params = cache_readonly(BaseOffset._params.fget)
+    # error: "Callable[[_BaseOffset], Tuple[Any, ...]]" has no attribute "fget"
+    # https://github.com/python/mypy/issues/6185
+    _params = cache_readonly(BaseOffset._params.fget)  # type: ignore
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
