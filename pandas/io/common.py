@@ -363,6 +363,7 @@ def _get_handle(
     compression: Optional[Union[str, Dict[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
+    encoding_errors: Optional[str] = "strict",
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -395,6 +396,11 @@ def _get_handle(
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.).
+    encoding_errors : str, default 'strict'
+        Behavior when the input string can’t be converted according to
+        the encoding’s rules (strict, ignore, replace, etc.)
+        See: https://docs.python.org/3/library/codecs.html#codec-base-classes
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -472,10 +478,12 @@ def _get_handle(
     elif is_path:
         if encoding:
             # Encoding
-            f = open(path_or_buf, mode, encoding=encoding, newline="")
+            f = open(
+                path_or_buf, mode, errors=encoding_errors, encoding=encoding, newline=""
+            )
         elif is_text:
             # No explicit encoding
-            f = open(path_or_buf, mode, errors="replace", newline="")
+            f = open(path_or_buf, mode, errors=encoding_errors, newline="")
         else:
             # Binary mode
             f = open(path_or_buf, mode)

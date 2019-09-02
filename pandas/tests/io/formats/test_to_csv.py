@@ -555,3 +555,467 @@ z
             assert len(zp.filelist) == 1
             archived_file = os.path.basename(zp.filelist[0].filename)
             assert archived_file == expected_arcname
+
+    def test_to_csv_path_with_sjis(self):
+        # https://github.com/pandas-dev/pandas/issues/27750
+        data = {"int": [1, 2, 3], "str_sjis": ["abc", "\u070a", "def"]}
+        df = pd.DataFrame(data)
+        # case 1: encoding_errors=strict
+        with tm.ensure_clean("sjis_test.csv") as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="sjis",
+                    encoding_errors="strict",
+                    index=False,
+                )
+
+        # case 2: encoding_errors=replace
+        with tm.ensure_clean("sjis_test.csv") as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,?
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="replace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 3: encoding_errors=ignore
+        with tm.ensure_clean("sjis_test.csv") as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="ignore",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 4: encoding_errors=xmlcharrefreplace
+        with tm.ensure_clean("sjis_test.csv") as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,&#1802;
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="xmlcharrefreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 5: encoding_errors=backslashreplace
+        with tm.ensure_clean("sjis_test.csv") as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,\\u070a
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="backslashreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 6: encoding_errors=namereplace
+        with tm.ensure_clean("sjis_test.csv") as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,\\N{SYRIAC CONTRACTION}
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="namereplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 7: encoding_errors=surrogatepass
+        with tm.ensure_clean("sjis_test.csv") as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="sjis",
+                    encoding_errors="surrogatepass",
+                    index=False,
+                )
+
+    def test_to_csv_path_with_cp932(self):
+        # https://github.com/pandas-dev/pandas/issues/27750
+        data = {"int": [1, 2, 3], "str_cp932": ["abc", "\u070a", "def"]}
+        df = pd.DataFrame(data)
+        # case 1: encoding_errors=strict
+        with tm.ensure_clean("cp932_test.csv") as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="cp932",
+                    encoding_errors="strict",
+                    index=False,
+                )
+
+        # case 2: encoding_errors=replace
+        with tm.ensure_clean("cp932_test.csv") as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,?
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="replace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 3: encoding_errors=ignore
+        with tm.ensure_clean("cp932_test.csv") as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="ignore",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 4: encoding_errors=xmlcharrefreplace
+        with tm.ensure_clean("cp932_test.csv") as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,&#1802;
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="xmlcharrefreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 5: encoding_errors=backslashreplace
+        with tm.ensure_clean("cp932_test.csv") as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,\\u070a
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="backslashreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 6: encoding_errors=namereplace
+        with tm.ensure_clean("cp932_test.csv") as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,\\N{SYRIAC CONTRACTION}
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="namereplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 7: encoding_errors=surrogatepass
+        with tm.ensure_clean("cp932_test.csv") as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="cp932",
+                    encoding_errors="surrogatepass",
+                    index=False,
+                )
+
+    def test_to_csv_file_object_with_sjis(self):
+        # https://github.com/pandas-dev/pandas/issues/27750
+        data = {"int": [1, 2, 3], "str_sjis": ["abc", "\u070a", "def"]}
+        df = pd.DataFrame(data)
+        # case 1: encoding_errors=strict
+        with tm.ensure_clean() as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="sjis",
+                    encoding_errors="strict",
+                    index=False,
+                )
+
+        # case 2: encoding_errors=replace
+        with tm.ensure_clean() as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,?
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="replace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 3: encoding_errors=ignore
+        with tm.ensure_clean() as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="ignore",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 4: encoding_errors=xmlcharrefreplace
+        with tm.ensure_clean() as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,&#1802;
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="xmlcharrefreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 5: encoding_errors=backslashreplace
+        with tm.ensure_clean() as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,\\u070a
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="backslashreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 6: encoding_errors=namereplace
+        with tm.ensure_clean() as path:
+            expected_sjis = """\
+int,str_sjis
+1,abc
+2,\\N{SYRIAC CONTRACTION}
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="sjis",
+                encoding_errors="namereplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_sjis
+
+        # case 7: encoding_errors=surrogatepass
+        with tm.ensure_clean() as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="sjis",
+                    encoding_errors="surrogatepass",
+                    index=False,
+                )
+
+    def test_to_csv_file_object_with_cp932(self):
+        # https://github.com/pandas-dev/pandas/issues/27750
+        data = {"int": [1, 2, 3], "str_cp932": ["abc", "\u070a", "def"]}
+        df = pd.DataFrame(data)
+        # case 1: encoding_errors=strict
+        with tm.ensure_clean() as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="cp932",
+                    encoding_errors="strict",
+                    index=False,
+                )
+
+        # case 2: encoding_errors=replace
+        with tm.ensure_clean() as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,?
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="replace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 3: encoding_errors=ignore
+        with tm.ensure_clean() as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="ignore",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 4: encoding_errors=xmlcharrefreplace
+        with tm.ensure_clean() as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,&#1802;
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="xmlcharrefreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 5: encoding_errors=backslashreplace
+        with tm.ensure_clean() as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,\\u070a
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="backslashreplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 6: encoding_errors=namereplace
+        with tm.ensure_clean() as path:
+            expected_cp932 = """\
+int,str_cp932
+1,abc
+2,\\N{SYRIAC CONTRACTION}
+3,def
+"""
+            df.to_csv(
+                path,
+                line_terminator="\n",
+                encoding="cp932",
+                encoding_errors="namereplace",
+                index=False,
+            )
+            with open(path, "r") as f:
+                assert f.read() == expected_cp932
+
+        # case 7: encoding_errors=surrogatepass
+        with tm.ensure_clean() as path:
+            with pytest.raises(UnicodeEncodeError):
+                df.to_csv(
+                    path,
+                    line_terminator="\n",
+                    encoding="cp932",
+                    encoding_errors="surrogatepass",
+                    index=False,
+                )

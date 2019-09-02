@@ -21,7 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
--
+- :meth:`Dataframe.to_csv` Add `encoding_errors` option (:issue:`27750`).
 -
 
 .. _whatsnew_1000.enhancements.other:

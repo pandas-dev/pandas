@@ -52,6 +52,7 @@ class CSVFormatter:
         doublequote=True,
         escapechar=None,
         decimal=".",
+        encoding_errors="strict",
     ):
 
         self.obj = obj
@@ -96,6 +97,8 @@ class CSVFormatter:
         self.date_format = date_format
 
         self.has_mi_columns = isinstance(obj.columns, ABCMultiIndex)
+
+        self.encoding_errors = encoding_errors
 
         # validate mi options
         if self.has_mi_columns:
@@ -183,6 +186,7 @@ class CSVFormatter:
                 self.mode,
                 encoding=self.encoding,
                 compression=dict(self.compression_args, method=self.compression),
+                encoding_errors=self.encoding_errors,
             )
             close = True
 

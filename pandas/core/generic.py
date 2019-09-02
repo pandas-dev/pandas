@@ -3084,6 +3084,7 @@ class NDFrame(PandasObject, SelectionMixin):
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
+        encoding_errors: Optional[str] = "strict",
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3171,6 +3172,11 @@ class NDFrame(PandasObject, SelectionMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
+        encoding_errors : str, default 'strict'
+            Behavior when the input string can’t be converted according to
+            the encoding’s rules (strict, ignore, replace, etc.)
+            See: https://docs.python.org/3/library/codecs.html#codec-base-classes
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -3224,6 +3230,7 @@ class NDFrame(PandasObject, SelectionMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             decimal=decimal,
+            encoding_errors=encoding_errors,
         )
         formatter.save()
 

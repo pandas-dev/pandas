@@ -1710,6 +1710,8 @@ function takes a number of arguments. Only the first is required.
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
 * ``date_format``: Format string for datetime objects
+* ``encoding_errors``: Behavior when the input string can’t be converted according to the encoding’s rules (strict, ignore, replace, etc.)
+  .. versionadded:: 1.0.0
 
 Writing a formatted string
 ++++++++++++++++++++++++++
