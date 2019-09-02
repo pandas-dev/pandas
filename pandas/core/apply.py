@@ -1,4 +1,5 @@
 import inspect
+from typing import Type
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -33,6 +34,7 @@ def frame_apply(
     """ construct and return a row or column based frame apply object """
 
     axis = obj._get_axis_number(axis)
+    klass: Type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
