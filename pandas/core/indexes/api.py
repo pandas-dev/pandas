@@ -1,4 +1,5 @@
 import textwrap
+from typing import Any, List, Set
 import warnings
 
 from pandas._libs import NaT, lib
@@ -93,12 +94,12 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
-def _get_distinct_objs(objs):
+def _get_distinct_objs(objs: List[object]) -> List[Any]:
     """
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids = set()
+    ids: Set[int] = set()
     res = []
     for obj in objs:
         if not id(obj) in ids:
