@@ -338,7 +338,6 @@ class JSONTableWriter(FrameWriter):
         indent,
     ):
         table_obj = OrderedDict((("schema", self.schema), ("data", obj)))
-        breakpoint()
         serialized = super()._write(
             table_obj,
             orient,
