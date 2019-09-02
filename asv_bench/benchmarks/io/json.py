@@ -119,7 +119,7 @@ class ToJSON(BaseIO):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
     def mem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        return getattr(self, frame).to_json(self.fname, orient=orient)
 
     def time_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
@@ -129,7 +129,7 @@ class ToJSON(BaseIO):
     def mem_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        return df.to_json(self.fname, orient=orient)
 
 
 class ToJSONLines(BaseIO):
