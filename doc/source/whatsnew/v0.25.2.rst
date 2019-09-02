@@ -100,7 +100,7 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Bug in :meth:`Series.diff` where a boolean series would cause a TypeError (the - operator is deprecated) when using NumPy >= 0.13.0 (:issue:`17294`)
 
 .. _whatsnew_0.252.contributors:
 
