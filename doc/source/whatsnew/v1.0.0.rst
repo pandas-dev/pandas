@@ -189,7 +189,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-
+- Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
 -
 -
 
