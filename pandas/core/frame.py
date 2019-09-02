@@ -5356,8 +5356,20 @@ class DataFrame(NDFrame):
 
     def _construct_result(self, other, result, func):
         """
-        Compat for DataFrame/SparseDataFrame op result wrapping.
+        Wrap the result of an arithmetic, comparison, or logical operation.
 
+        Parameters
+        ----------
+        other : object
+        result : DataFrame
+        func : binary operator
+
+        Returns
+        -------
+        DataFrame
+
+        Notes
+        -----
         `func` is included for compat with SparseDataFrame signature, is not
         needed here.
         """

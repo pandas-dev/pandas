@@ -587,7 +587,17 @@ class SparseDataFrame(DataFrame):
 
     def _construct_result(self, other, result, func):
         """
-        Compat for DataFrame/SparseDataFrame op result wrapping.
+        Wrap the result of an arithmetic, comparison, or logical operation.
+
+        Parameters
+        ----------
+        other : object
+        result : SparseDataFrame
+        func : binary operator
+
+        Returns
+        -------
+        SparseDataFrame
         """
         fill_value = self._get_op_result_fill_value(other, func)
 
