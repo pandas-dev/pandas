@@ -206,6 +206,9 @@ import pandas
 blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2' 'hypothesis',
              'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
+
+# GH#28227 for some of these check for top-level modules, while others are
+#  more specific (e.g. urllib.request)
 import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
 mods = blacklist & import_mods
 if mods:
