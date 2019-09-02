@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from io import StringIO
 from itertools import islice
 import os
@@ -336,8 +337,10 @@ class JSONTableWriter(FrameWriter):
         default_handler,
         indent,
     ):
-        data = super()._write(
-            obj,
+        table_obj = OrderedDict((("schema", self.schema), ("data", obj)))
+        breakpoint()
+        serialized = super()._write(
+            table_obj,
             orient,
             double_precision,
             ensure_ascii,
@@ -346,21 +349,7 @@ class JSONTableWriter(FrameWriter):
             default_handler,
             indent,
         )
-        schema = dumps(self.schema, indent=indent)
 
-        spaces = " " * indent
-        if indent:
-            line_break = "\n"
-            data = textwrap.indent(data, spaces).strip()
-            schema = textwrap.indent(schema, spaces).strip()
-            spacer = "\n{}".format(spaces)
-        else:
-            line_break = ""
-
-        serialized = '{{{line_break}{spaces}"schema":{schema},\
-{line_break}{spaces}"data":{data}{line_break}}}'.format(
-            line_break=line_break, spaces=spaces, schema=schema, data=data
-        )
         return serialized
 
 
