@@ -14,8 +14,7 @@ def test(extra_args=None):
     except ImportError:
         raise ImportError("Need pytest>=4.0.2 to run tests")
     try:
-        # error: Cannot find module named 'hypothesis'
-        import hypothesis  # type:ignore # noqa
+        import hypothesis  # noqa
     except ImportError:
         raise ImportError("Need hypothesis>=3.58 to run tests")
     cmd = ["--skip-slow", "--skip-network", "--skip-db"]
