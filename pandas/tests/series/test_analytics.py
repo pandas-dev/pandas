@@ -280,8 +280,7 @@ class TestSeriesAnalytics:
         expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         assert_series_equal(result, expected)
 
-        # tests added for fix #17294
-        # boolean series
+        # boolean series (test for fixing #17294)
         s = Series([False, True, True, False, False])
         result = s.diff()
         expected = Series([nan, True, False, True, False])
