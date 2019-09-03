@@ -334,3 +334,26 @@ class TestRolling(Base):
         result = pd.Series(arr).rolling(2).mean()
         expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_datetime(self, axis_frame):
+        # GH-28192
+        df = pd.DataFrame(
+            {i: [1] * 2 for i in pd.date_range("2019-8-01", "2019-08-03", freq="D")}
+        )
+        if axis_frame in [0, "index"]:
+            result = df.T.rolling("2d", axis=axis_frame).sum().T
+        else:
+            result = df.rolling("2d", axis=axis_frame).sum()
+        expected = pd.DataFrame(
+            {
+                **{
+                    i: [1.0] * 2
+                    for i in pd.date_range("2019-8-01", periods=1, freq="D")
+                },
+                **{
+                    i: [2.0] * 2
+                    for i in pd.date_range("2019-8-02", "2019-8-03", freq="D")
+                },
+            }
+        )
+        tm.assert_frame_equal(result, expected)
