@@ -11,14 +11,12 @@ class TimeImport:
     def time_import(self):
         if PY37:
             cmd = [sys.executable, "-X", "importtime", "-c", "import pandas as pd"]
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _, stderr = p.communicate()
+            p = subprocess.run(cmd, stderr=subprocess.PIPE)
 
-            line = stderr.splitlines()[-1]
+            line = p.stderr.splitlines()[-1]
             field = line.split(b"|")[-2].strip()
             total = int(field)  # microseconds
             return total
 
         cmd = [sys.executable, "-c", "import pandas as pd"]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.communicate()
+        p = subprocess.run(cmd, stderr=subprocess.PIPE)
