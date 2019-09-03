@@ -1601,7 +1601,6 @@ class TestPivotTable:
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame(
@@ -1614,6 +1613,24 @@ class TestPivotTable:
 
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
+
+    def test_margins_casted_to_float(self):
+        # GH #24893
+        df = pd.DataFrame(
+            {
+                "A": [2, 4, 6, 8],
+                "B": [1, 4, 5, 8],
+                "C": [1, 3, 4, 6],
+                "D": ["X", "X", "Y", "Y"],
+            }
+        )
+
+        result = pd.pivot_table(df, index="D", margins=True)
+        expected = pd.DataFrame(
+            {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
+            index=pd.Index(["X", "Y", "All"], name="D"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
     def test_categorical_margins_category(self, observed):
