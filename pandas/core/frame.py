@@ -6259,11 +6259,10 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        result = self.copy()
-        exploded_col = result.pop(column).reset_index(drop=True).explode()
-        result = result.reset_index().join(exploded_col)
-        result.set_index(result.columns[: self.index.nlevels].tolist(), inplace=True)
-        result.index.names = self.index.names
+        df = self.reset_index(drop=True)
+        result = df[column].explode()
+        result = df.drop([column], axis=1).join(result)
+        result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
         return result
