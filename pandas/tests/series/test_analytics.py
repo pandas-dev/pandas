@@ -277,10 +277,8 @@ class TestSeriesAnalytics:
             date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
         )
         result = s.diff()
-        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4)
-        assert_series_equal(
-            result, expected, name="foo")
-        )
+        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+        assert_series_equal(result, expected)
 
         # tests added for fix #17294
         # boolean series
