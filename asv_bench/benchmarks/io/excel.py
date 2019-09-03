@@ -48,7 +48,7 @@ class ReadExcel:
         for row in self.df.values:
             tr = TableRow()
             for val in row:
-                tc = TableCell(valuetype='string')
+                tc = TableCell(valuetype="string")
                 tc.addElement(P(text=val))
                 tr.addElement(tc)
             table.addElement(tr)
