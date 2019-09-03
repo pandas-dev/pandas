@@ -47,7 +47,6 @@ _indexops_doc_kwargs = dict(
 
 
 class PandasObject(DirNamesMixin):
-
     """baseclass for various pandas objects"""
 
     @property
