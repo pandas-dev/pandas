@@ -18,7 +18,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 -
 -
 -
