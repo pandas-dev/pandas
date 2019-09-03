@@ -278,7 +278,6 @@ cdef class _Timestamp(datetime):
 
     def __sub__(self, other):
 
-        # FIXME: why are we allowing integer through here?
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
             # `delta` attribute is for offsets.Tick or offsets.Week obj
