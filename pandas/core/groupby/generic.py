@@ -270,7 +270,9 @@ class NDFrameGroupBy(GroupBy):
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
-
+                except Exception:
+                    result = self._aggregate_generic(func)
+                else:
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
                     )
@@ -280,8 +282,6 @@ class NDFrameGroupBy(GroupBy):
                         # values. concat no longer converts DataFrame[Sparse]
                         # to SparseDataFrame, so we do it here.
                         result = SparseDataFrame(result._data)
-                except Exception:
-                    result = self._aggregate_generic(func)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -668,20 +668,21 @@ class NDFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
-
-            # verify fast path does not change columns (and names), otherwise
-            # its results cannot be joined with those of the slow path
-            if res_fast.columns != group.columns:
-                return path, res
-            # verify numerical equality with the slow path
-            if res.shape == res_fast.shape:
-                res_r = res.values.ravel()
-                res_fast_r = res_fast.values.ravel()
-                mask = notna(res_r)
-                if (res_r[mask] == res_fast_r[mask]).all():
-                    path = fast_path
         except Exception:
-            pass
+            # Hard to know ex-ante what exceptions `fast_path` might raise
+            return path, res
+
+        # verify fast path does not change columns (and names), otherwise
+        # its results cannot be joined with those of the slow path
+        if not isinstance(res_fast, DataFrame):
+            return path, res
+
+        if not res_fast.columns.equals(group.columns):
+            return path, res
+
+        if res_fast.equals(res):
+            path = fast_path
+
         return path, res
 
     def _transform_item_by_item(self, obj, wrapper):

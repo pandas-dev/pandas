@@ -16,8 +16,8 @@ import argparse
 import os
 import re
 import sys
-import yaml
 
+import yaml
 
 EXCLUDE = {"python=3"}
 RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
