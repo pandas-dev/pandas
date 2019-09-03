@@ -268,8 +268,8 @@ class TestSeriesAnalytics:
         assert_series_equal(result, expected)
 
         # timedelta diff
-        result = rs - rs.shift(1)
-        expected = xp.diff()
+        result = result - result.shift(1) # previous result
+        expected = expected.diff() # previously expected
         assert_series_equal(result, expected)
 
         # with tz
