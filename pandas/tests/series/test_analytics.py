@@ -238,7 +238,7 @@ class TestSeriesAnalytics:
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def test_dt_nm_bool_diff(self):
+    def test_diff(self):
         # Combined datetime diff, normal diff and boolean diff test
         ts = tm.makeTimeSeries(name="ts")
         ts.diff()
@@ -248,48 +248,52 @@ class TestSeriesAnalytics:
         b = a + 1
         s = Series([a, b])
 
-        rs = s.diff()
-        assert rs[1] == 1
+        result = s.diff()
+        assert result[1] == 1
 
         # neg n
-        rs = ts.diff(-1)
-        xp = ts - ts.shift(-1)
-        assert_series_equal(rs, xp)
+        result = ts.diff(-1)
+        expected = ts - ts.shift(-1)
+        assert_series_equal(result, expected)
 
         # 0
-        rs = ts.diff(0)
-        xp = ts - ts
-        assert_series_equal(rs, xp)
+        result = ts.diff(0)
+        expected = ts - ts
+        assert_series_equal(result, expected)
 
         # datetime diff (GH3100)
         s = Series(date_range("20130102", periods=5))
-        rs = s - s.shift(1)
-        xp = s.diff()
-        assert_series_equal(rs, xp)
+        result = s - s.shift(1)
+        expected = s.diff()
+        assert_series_equal(result, expected)
 
         # timedelta diff
-        nrs = rs - rs.shift(1)
-        nxp = xp.diff()
-        assert_series_equal(nrs, nxp)
+        result = rs - rs.shift(1)
+        expected = xp.diff()
+        assert_series_equal(result, expected)
 
         # with tz
         s = Series(
             date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
         )
         result = s.diff()
+        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4)
         assert_series_equal(
-            result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+            result, expected, name="foo")
         )
 
+        # tests added for fix #17294
         # boolean series
         s = Series([False, True, True, False, False])
         result = s.diff()
-        assert_series_equal(result, Series([nan, True, False, True, False]))
+        expected = Series([nan, True, False, True, False])
+        assert_series_equal(result, expected)
 
         # boolean nan series
         s = Series([False, True, nan, False, False])
         result = s.diff()
-        assert_series_equal(result, Series([nan, 1, nan, nan, 0], dtype="object"))
+        expected = Series([nan, 1, nan, nan, 0], dtype="object")
+        assert_series_equal(result, expected)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
