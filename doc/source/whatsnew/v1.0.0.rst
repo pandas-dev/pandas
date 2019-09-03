@@ -229,6 +229,9 @@ Indexing
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
+- :meth:`Index.union` could fail when the LHS contained duplicates (:issue:`28257`)
+- :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
+-
 
 Missing
 ^^^^^^^
