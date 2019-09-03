@@ -18,7 +18,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 -
 -
 -
