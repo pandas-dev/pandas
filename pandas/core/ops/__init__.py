@@ -501,6 +501,8 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
         if right.dtype == "timedelta64[ns]":
             # ensure we treat NaT values as the correct dtype
+            # Note: we do not do this unconditionally as it may be lossy or
+            #  expensive for EA dtypes.
             right = np.asarray(right)
 
             def column_op(a, b):
