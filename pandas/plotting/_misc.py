@@ -417,8 +417,8 @@ def autocorrelation_plot(series, ax=None, **kwds):
 
     Parameters
     ----------
-    series: Time series
-    ax: Matplotlib axis object, optional
+    series : Time series
+    ax : Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
