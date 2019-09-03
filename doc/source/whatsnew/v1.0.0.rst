@@ -162,7 +162,7 @@ I/O
 
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
--
+- Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
 
 Plotting
 ^^^^^^^^
@@ -189,7 +189,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-
+- Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
 -
 -
 
