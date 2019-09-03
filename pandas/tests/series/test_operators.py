@@ -7,7 +7,6 @@ import pytest
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, bdate_range, date_range, isna
 from pandas.core import ops
-from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
