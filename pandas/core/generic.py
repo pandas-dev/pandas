@@ -732,8 +732,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # Retain ExtensionArray dtypes through transpose;
                 # TODO: this can be made cleaner if/when (N, 1) EA are allowed
                 dtype = self.dtypes.iloc[0]
-                for col in result.columns:
-                    result[col] = result[col].astype(dtype)
+                result = result.astype(dtype)
 
         return result
 
