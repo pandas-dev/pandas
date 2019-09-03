@@ -785,8 +785,8 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
    df2.iloc[[0]].reindex(['a', 'e'])
    df2.iloc[[0]].reindex(['a', 'e']).index
-   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abcde')))
-   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abcde'))).index
+   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
+   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abe'))).index
 
 .. warning::
 
