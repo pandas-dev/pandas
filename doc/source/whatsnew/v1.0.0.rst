@@ -20,8 +20,7 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 -
 
 .. _whatsnew_1000.enhancements.other:
