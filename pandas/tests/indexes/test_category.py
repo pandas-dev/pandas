@@ -574,29 +574,29 @@ class TestCategoricalIndex(Base):
             tm.assert_numpy_array_equal(expected, actual)
 
     def test_reindex_dtype(self):
-        c = CategoricalIndex(["a", "b", "c"])
+        c = CategoricalIndex(["a", "b", "c", "a"])
         res, indexer = c.reindex(["a", "c"])
-        tm.assert_index_equal(res, Index(["a", "c"]), exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 2], dtype=np.intp))
+        tm.assert_index_equal(res, Index(["a", "a", "c"]), exact=True)
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c"])
+        c = CategoricalIndex(["a", "b", "c", "a"])
         res, indexer = c.reindex(Categorical(["a", "c"]))
 
-        exp = CategoricalIndex(["a", "c"], categories=["a", "c"])
+        exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
         tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 2], dtype=np.intp))
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
+        c = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
         res, indexer = c.reindex(["a", "c"])
-        exp = Index(["a", "c"], dtype="object")
+        exp = Index(["a", "a", "c"], dtype="object")
         tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 2], dtype=np.intp))
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
+        c = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
         res, indexer = c.reindex(Categorical(["a", "c"]))
-        exp = CategoricalIndex(["a", "c"], categories=["a", "c"])
+        exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
         tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 2], dtype=np.intp))
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
     def test_reindex_duplicate_source(self):
         # See GH23963
