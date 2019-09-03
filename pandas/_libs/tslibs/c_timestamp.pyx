@@ -255,10 +255,6 @@ cdef class _Timestamp(datetime):
 
             result = self.__class__(self.value + nanos,
                                     tz=self.tzinfo, freq=self.freq)
-            if getattr(other, 'normalize', False):
-                # DateOffset
-                assert False, other
-                result = result.normalize()
             return result
 
         elif is_array(other):
