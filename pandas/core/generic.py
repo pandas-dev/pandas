@@ -3019,9 +3019,7 @@ class NDFrame(PandasObject, SelectionMixin):
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
-
         %(returns)s
-
         See Also
         --------
         DataFrame.to_string : Render a DataFrame to a console-friendly
@@ -3033,7 +3031,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{tabular}{lll}
          \toprule
                name &    mask &    weapon \\
