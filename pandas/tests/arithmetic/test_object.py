@@ -89,7 +89,7 @@ class TestArithmetic:
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     @pytest.mark.parametrize("other", ["category", "Int64"])
-    def test_add_extension_scalar(self, other, box, op):
+    def test_add_extension_scalar(self, other, box_with_array, op):
         # GH#22378
         # Check that scalars satisfying is_extension_array_dtype(obj)
         # do not incorrectly try to dispatch to an ExtensionArray operation
@@ -97,8 +97,8 @@ class TestArithmetic:
         arr = pd.Series(["a", "b", "c"])
         expected = pd.Series([op(x, other) for x in arr])
 
-        arr = tm.box_expected(arr, box)
-        expected = tm.box_expected(expected, box)
+        arr = tm.box_expected(arr, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = op(arr, other)
         tm.assert_equal(result, expected)
@@ -133,16 +133,17 @@ class TestArithmetic:
         ],
     )
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_objarr_radd_str_invalid(self, dtype, data, box):
+    def test_objarr_radd_str_invalid(self, dtype, data, box_with_array):
         ser = Series(data, dtype=dtype)
 
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box_with_array)
         with pytest.raises(TypeError):
             "foo_" + ser
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd, operator.sub, ops.rsub])
-    def test_objarr_add_invalid(self, op, box):
+    def test_objarr_add_invalid(self, op, box_with_array):
         # invalid ops
+        box = box_with_array
 
         obj_ser = tm.makeObjectSeries()
         obj_ser.name = "objects"

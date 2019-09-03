@@ -2594,13 +2594,14 @@ class NDFrame(PandasObject, SelectionMixin):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Rows will be written in batches of this size at a time. By default,
-            all rows will be written at once.
-        dtype : dict, optional
-            Specifying the datatype for columns. The keys should be the column
-            names and the values should be the SQLAlchemy types or strings for
-            the sqlite3 legacy mode.
-        method : {None, 'multi', callable}, default None
+            Specify the number of rows in each batch to be written at a time.
+            By default, all rows will be written at once.
+        dtype : dict or scalar, optional
+            Specifying the datatype for columns. If a dictionary is used, the
+            keys should be the column names and the values should be the
+            SQLAlchemy types or strings for the sqlite3 legacy mode. If a
+            scalar is provided, it will be applied to all columns.
+        method : {None, 'multi', callable}, optional
             Controls the SQL insertion clause used:
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
@@ -6672,11 +6673,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 for k, v in items:
                     keys, values = list(zip(*v.items())) or ([], [])
-                    if set(keys) & set(values):
-                        raise ValueError(
-                            "Replacement not allowed with "
-                            "overlapping keys and values"
-                        )
+
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
 
