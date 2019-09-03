@@ -2933,15 +2933,21 @@ class NDFrame(PandasObject, SelectionMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
+        caption=None,
+        label=None,
     ):
         r"""
-        Render an object to a LaTeX tabular environment table.
+        Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
-        Render an object to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \usepackage{booktabs}.
+        Requires ``\usepackage{booktabs}``.  The output can be copy/pasted
+        into a main LaTeX document or read from an external file
+        with ``\input{table.tex}``.
 
         .. versionchanged:: 0.20.2
-           Added to Series
+           Added to Series.
+
+        .. versionchanged:: 1.0.0
+           Added caption and label arguments.
 
         Parameters
         ----------
@@ -3010,6 +3016,17 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
+
+        caption : str, optional
+            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+
+            .. versionadded:: 1.0.0
+
+        label : str, optional
+            The LaTeX label to be placed inside ``\label{}`` in the output.
+            This is used with ``\ref{}`` in the main ``.tex`` file.
+
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
@@ -3022,7 +3039,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{tabular}{lll}
          \toprule
                name &    mask &    weapon \\
@@ -3069,6 +3086,8 @@ class NDFrame(PandasObject, SelectionMixin):
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
+            caption=caption,
+            label=label,
         )
 
     def to_csv(
