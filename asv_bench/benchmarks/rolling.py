@@ -21,6 +21,9 @@ class Methods:
     def time_rolling(self, constructor, window, dtype, method):
         getattr(self.roll, method)()
 
+    def peakmem_rolling(self, constructor, window, dtype, method):
+        getattr(self.roll, method)()
+
 
 class ExpandingMethods:
 
