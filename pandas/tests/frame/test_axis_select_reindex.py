@@ -119,23 +119,29 @@ class TestDataFrameSelectReindex:
 
     def test_drop_empty_index(self):
         # GH 27994
-        df_index = pd.DataFrame(
+        df = pd.DataFrame(
             {"a": [0, 1]},
             index=[pd.Timestamp("2019-01-01"), pd.Timestamp("2019-01-01")],
         )
-        assert_frame_equal(df_index.drop([]), df_index)
-        assert_frame_equal(df_index.drop(np.array([])), df_index)
-        assert_frame_equal(df_index.drop(df_index[:0]), df_index)
+        result_empty_list = df.drop([])
+        assert_frame_equal(result_empty_list, df)
+
+        result_empty_array = df.drop(np.array([]))
+        assert_frame_equal(result_empty_array, df)
+
+        result_empty_index = df.drop(df[:0])
+        assert_frame_equal(result_empty_index, df)
 
     @pytest.mark.parametrize("labels", ["a", ["a"]])
     def test_drop_empty_index_str(self, labels):
         # Passing str to DataFrame.drop() for dataframe with DatetimeIndex
         # should raise KeyError, GH 27994
+        df = pd.DataFrame(
+            {"a": [0, 1]},
+            index=[pd.Timestamp("2019-01-01"), pd.Timestamp("2019-01-01")],
+        )
         with pytest.raises(KeyError, match="not found in axis"):
-            pd.DataFrame(
-                {"a": [0, 1]},
-                index=[pd.Timestamp("2019-01-01"), pd.Timestamp("2019-01-01")],
-            ).drop(labels)
+            df.drop(labels)
 
     def test_drop_multiindex_not_lexsorted(self):
         # GH 11640
