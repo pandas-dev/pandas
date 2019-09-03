@@ -368,7 +368,7 @@ class NDFrameGroupBy(GroupBy):
             output_keys = sorted(output)
             try:
                 output_keys.sort()
-            except Exception:  # pragma: no cover
+            except TypeError:
                 pass
 
             if isinstance(labels, MultiIndex):
