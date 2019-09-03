@@ -304,12 +304,20 @@ cdef class IndexEngine:
         if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
+            remaining_stargets = set()
             for starget in stargets:
-                start = values.searchsorted(starget, side='left')
-                end = values.searchsorted(starget, side='right')
-                if start != end:
-                    d[starget] = list(range(start, end))
-        else:
+                try:
+                    start = values.searchsorted(starget, side='left')
+                    end = values.searchsorted(starget, side='right')
+                except TypeError: # e.g. if we tried to search for string in int array
+                    remaining_stargets.add(starget)
+                else:
+                    if start != end:
+                        d[starget] = list(range(start, end))
+
+            stargets = remaining_stargets
+        
+        if stargets:
             # otherwise, map by iterating through all items in the index
             for i in range(n):
                 val = values[i]
