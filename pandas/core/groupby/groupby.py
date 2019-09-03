@@ -653,7 +653,8 @@ b  2""",
                     # mark this column as an error
                     try:
                         return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except (AttributeError):
+                    except AttributeError:
+                        # e.g. SparseArray has no flags attr
                         raise ValueError
 
         return wrapper
@@ -726,8 +727,7 @@ b  2""",
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f)
-            except Exception:
-
+            except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
                 # operation, by excluding the grouping column
@@ -1011,7 +1011,6 @@ b  2""",
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data.
 

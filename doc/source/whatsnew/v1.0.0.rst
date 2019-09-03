@@ -97,6 +97,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
+- Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
 -
 
 
@@ -141,7 +142,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in assignment using a reverse slicer (:issue:`26939`)
 -
 
 Missing
@@ -161,7 +162,7 @@ I/O
 
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
--
+- Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
 
 Plotting
 ^^^^^^^^
@@ -178,6 +179,7 @@ Groupby/resample/rolling
 -
 -
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
+- Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 
 Reshaping
 ^^^^^^^^^
@@ -187,7 +189,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-
+- Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
 -
 -
 
