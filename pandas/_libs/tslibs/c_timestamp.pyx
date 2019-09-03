@@ -324,10 +324,6 @@ cdef class _Timestamp(datetime):
 
         return NotImplemented
 
-        # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
-        # same timezone if specified)
-        return datetime.__sub__(self, other)
-
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
