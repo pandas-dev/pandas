@@ -212,8 +212,8 @@ class BaseGrouper:
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 pass
-            except Exception:
-                # raise this error to the caller
+            except TypeError:
+                # occurs if we have any EAs
                 pass
 
         for key, (i, group) in zip(group_keys, splitter):
