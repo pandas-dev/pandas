@@ -653,7 +653,8 @@ b  2""",
                     # mark this column as an error
                     try:
                         return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except (AttributeError):
+                    except AttributeError:
+                        # e.g. SparseArray has no flags attr
                         raise ValueError
 
         return wrapper
@@ -1010,7 +1011,6 @@ b  2""",
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data.
 

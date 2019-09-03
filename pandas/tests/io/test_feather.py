@@ -8,7 +8,7 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, ensure_clean
 
-from pandas.io.feather_format import read_feather, to_feather  # noqa:E402
+from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 
 pyarrow = pytest.importorskip("pyarrow")
 
