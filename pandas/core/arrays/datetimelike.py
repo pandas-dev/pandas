@@ -1334,7 +1334,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 # -self flips self.freq, messing up results
                 return -(self - other)
 
-            return (-self).__add__(other)
+            return (-self) + other
 
         return -(self - other)
 
