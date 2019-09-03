@@ -237,7 +237,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied).
         """
         # GH 25710
         return self._range.start
@@ -245,7 +245,7 @@ class RangeIndex(Int64Index):
     @property
     def _start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied).
 
          .. deprecated:: 0.25.0
             Use ``start`` instead.
@@ -260,14 +260,14 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
     def _stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
 
          .. deprecated:: 0.25.0
             Use ``stop`` instead.
@@ -283,7 +283,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def step(self):
         """
-        The value of the `step` parameter (``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied).
         """
         # GH 25710
         return self._range.step
@@ -291,7 +291,7 @@ class RangeIndex(Int64Index):
     @property
     def _step(self):
         """
-        The value of the `step` parameter (``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied).
 
          .. deprecated:: 0.25.0
             Use ``step`` instead.

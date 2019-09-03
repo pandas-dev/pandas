@@ -1056,6 +1056,7 @@ default 'raise'
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
+
         >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:30:00',
         ...                               '2018-10-28 02:00:00',
         ...                               '2018-10-28 02:30:00',
@@ -1087,6 +1088,7 @@ default 'raise'
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
         or `'shift_backwards'`.
+
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
         ...                               '2015-03-29 03:30:00']))
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
@@ -1151,7 +1153,7 @@ default 'raise'
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects
+        objects.
 
         Returns
         -------
@@ -1276,7 +1278,7 @@ default 'raise'
         """
         Calculate TimedeltaArray of difference between index
         values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets
+        freq. Used for vectorized offsets.
 
         Parameters
         ----------
