@@ -1670,8 +1670,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert result == expected
 
-    @pytest.mark.parametrize("orient,expected", [
-        ("split", """{
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            (
+                "split",
+                """{
     "columns":[
         "a",
         "b"
@@ -1690,8 +1694,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             "qux"
         ]
     ]
-}"""),
-        ("records", """[
+}""",
+            ),
+            (
+                "records",
+                """[
     {
         "a":"foo",
         "b":"bar"
@@ -1700,8 +1707,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "a":"baz",
         "b":"qux"
     }
-]"""),
-        ("index", """{
+]""",
+            ),
+            (
+                "index",
+                """{
     "0":{
         "a":"foo",
         "b":"bar"
@@ -1710,8 +1720,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "a":"baz",
         "b":"qux"
     }
-}"""),
-        ("columns", """{
+}""",
+            ),
+            (
+                "columns",
+                """{
     "a":{
         "0":"foo",
         "1":"baz"
@@ -1720,8 +1733,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "0":"bar",
         "1":"qux"
     }
-}"""),
-        ("values", """[
+}""",
+            ),
+            (
+                "values",
+                """[
     [
         "foo",
         "bar"
@@ -1730,9 +1746,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "baz",
         "qux"
     ]
-]"""),
-
-        ("table", """{
+]""",
+            ),
+            (
+                "table",
+                """{
     "schema":{
         "fields":[
             {
@@ -1765,7 +1783,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             "b":"qux"
         }
     ]
-}""")])
+}""",
+            ),
+        ],
+    )
     def test_json_indent_all_orients(self, orient, expected):
         # GH 12004
         df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
