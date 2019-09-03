@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit
+from pandas.compat import is_platform_32bit, PY35
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1791,4 +1791,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 12004
         df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
         result = df.to_json(orient=orient, indent=4)
-        assert result == expected
+
+        if PY35:
+            assert json.loads(result) == json.loads(expected)
+        else:
+            assert result == expected
