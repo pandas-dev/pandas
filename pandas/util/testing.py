@@ -1598,8 +1598,7 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(
-        Categorical.from_codes(np.arange(k) % n, categories=x),
-        name=name, **kwargs
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
 
 
