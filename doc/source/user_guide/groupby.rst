@@ -183,7 +183,7 @@ By default the group keys are sorted during the ``groupby`` operation. You may h
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'X': ['B', 'B', 'A', 'A'], 'Y': [1, 2, 3, 4]})
+   df2 = pd.DataFrame({'X': ['A', 'A', 'B', 'B'], 'Y': [1, 2, 3, 4]})
    df2.groupby(['X']).sum()
    df2.groupby(['X'], sort=False).sum()
 
@@ -703,7 +703,7 @@ code would work even without the special versions via dispatching (see below).
 Transformation
 --------------
 
-The ``transform`` method returns an object that is indexed the same (same size)
+The ``transform`` method returns an object that is indexed with the same size
 as the one being grouped. The transform function must:
 
 * Return a result that is either the same size as the group chunk or
@@ -799,7 +799,7 @@ Another common data transform is to replace missing data with the group mean.
    transformed = grouped.transform(lambda x: x.fillna(x.mean()))
 
 We can verify that the group means have not changed in the transformed data
-and that the transformed data contains no NAs.
+and that the transformed data contains no NAN's.
 
 .. ipython:: python
 
