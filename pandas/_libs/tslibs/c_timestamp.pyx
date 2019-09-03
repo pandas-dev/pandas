@@ -42,6 +42,15 @@ from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+    pass
+
+
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
@@ -227,8 +236,8 @@ cdef class _Timestamp(datetime):
                 # to be compat with Period
                 return NaT
             elif self.freq is None:
-                raise ValueError("Cannot add integral value to Timestamp "
-                                 "without freq.")
+                raise NullFrequencyError(
+                    "Cannot add integral value to Timestamp without freq.")
             return self.__class__((self.freq * other).apply(self),
                                   freq=self.freq)
 
@@ -248,6 +257,7 @@ cdef class _Timestamp(datetime):
                                     tz=self.tzinfo, freq=self.freq)
             if getattr(other, 'normalize', False):
                 # DateOffset
+                assert False, other
                 result = result.normalize()
             return result
 
@@ -255,8 +265,9 @@ cdef class _Timestamp(datetime):
             if other.dtype.kind in ['i', 'u']:
                 maybe_integer_op_deprecated(self)
                 if self.freq is None:
-                    raise ValueError("Cannot add integer-dtype array "
-                                     "to Timestamp without freq.")
+                    raise NullFrequencyError(
+                        "Cannot add integer-dtype array "
+                        "to Timestamp without freq.")
                 return self.freq * other + self
 
         # index/series like
@@ -270,6 +281,8 @@ cdef class _Timestamp(datetime):
         return result
 
     def __sub__(self, other):
+
+        # FIXME: why are we allowing integer through here?
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
             # `delta` attribute is for offsets.Tick or offsets.Week obj
@@ -280,15 +293,16 @@ cdef class _Timestamp(datetime):
             if other.dtype.kind in ['i', 'u']:
                 maybe_integer_op_deprecated(self)
                 if self.freq is None:
-                    raise ValueError("Cannot subtract integer-dtype array "
-                                     "from Timestamp without freq.")
+                    raise NullFrequencyError(
+                        "Cannot subtract integer-dtype array "
+                        "from Timestamp without freq.")
                 return self - self.freq * other
 
         typ = getattr(other, '_typ', None)
         if typ is not None:
             return NotImplemented
 
-        elif other is NaT:
+        if other is NaT:
             return NaT
 
         # coerce if necessary if we are a Timestamp-like
@@ -311,6 +325,8 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
+
+        return NotImplemented
 
         # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
         # same timezone if specified)

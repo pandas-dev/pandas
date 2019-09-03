@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import Timedelta, Timestamp
+from pandas.errors import NullFrequencyError
 import pandas.util.testing as tm
 
 from pandas.tseries import offsets
@@ -163,12 +164,12 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_no_freq_raises(self, ts, other):
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             ts + other
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             other + ts
 
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             ts - other
         with pytest.raises(TypeError):
             other - ts
