@@ -5,11 +5,12 @@ import json
 import numpy as np
 import pytest
 
+from pandas.compat import PY35
+
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
 
 import pandas as pd
 from pandas import DataFrame
-from pandas.compat import PY35
 import pandas.util.testing as tm
 
 from pandas.io.json._table_schema import (
