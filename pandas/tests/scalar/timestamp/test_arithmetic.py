@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import Timedelta, Timestamp
 from pandas.errors import NullFrequencyError
+
+from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
 
 from pandas.tseries import offsets
