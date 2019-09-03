@@ -984,7 +984,7 @@ class TestDataFrameReshape(TestData):
         df = DataFrame([[10, 11, 12]], columns=cidx)
         result = df.stack()
 
-        # `MutliIndex.from_product` preserves categorical dtype -
+        # `MultiIndex.from_product` preserves categorical dtype -
         # it's tested elsewhere.
         midx = pd.MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
