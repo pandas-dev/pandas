@@ -876,7 +876,7 @@ class TestSeriesPlots(TestPlotBase):
         s = pd.Series(range(10), index=["P{i:02d}".format(i=i) for i in range(10)])
         ax = s.plot.bar(xticks=range(0, 11, 2))
         exp = np.array(list(range(0, 11, 2)))
-        assert (exp == ax.get_xticks()).all()
+        tm.assert_numpy_array_equal(exp, ax.get_xticks())
 
     def test_custom_business_day_freq(self):
         # GH7222
