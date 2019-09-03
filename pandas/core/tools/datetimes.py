@@ -570,7 +570,7 @@ def to_datetime(
     unit=None,
     infer_datetime_format=False,
     origin="unix",
-    cache=True,
+    cache=False,
 ):
     """
     Convert argument to datetime.
