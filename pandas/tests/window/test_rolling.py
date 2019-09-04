@@ -341,9 +341,9 @@ class TestRolling(Base):
             {i: [1] * 2 for i in pd.date_range("2019-8-01", "2019-08-03", freq="D")}
         )
         if axis_frame in [0, "index"]:
-            result = df.T.rolling("2d", axis=axis_frame).sum().T
+            result = df.T.rolling("2D", axis=axis_frame).sum().T
         else:
-            result = df.rolling("2d", axis=axis_frame).sum()
+            result = df.rolling("2D", axis=axis_frame).sum()
         expected = pd.DataFrame(
             {
                 **{
