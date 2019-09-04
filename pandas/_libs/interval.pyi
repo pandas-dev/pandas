@@ -3,6 +3,9 @@
 from typing import Any
 
 class IntervalMixin:
+    left: Any
+    right: Any
+    closed: str
     @property
     def closed_left(self): ...
     @property
@@ -19,9 +22,6 @@ class IntervalMixin:
     def is_empty(self): ...
 
 class Interval(IntervalMixin):
-    left: Any
-    right: Any
-    closed: str
     def __init__(self, left, right, closed: str = ...): ...
     def __hash__(self): ...
     def __contains__(self, key): ...
@@ -40,11 +40,8 @@ class Interval(IntervalMixin):
 def intervals_to_interval_bounds(intervals, validate_closed=...): ...
 
 class IntervalTree(IntervalMixin):
-    left: Any
-    right: Any
     root: Any
     dtype: Any
-    closed: str
     def __init__(self, left, right, closed=..., leaf_size=...): ...
     @property
     def left_sorter(self): ...

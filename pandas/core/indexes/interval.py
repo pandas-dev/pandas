@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Set, Tuple, Type, Union
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -502,7 +502,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self[::-1].is_monotonic_increasing
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
@@ -515,7 +515,7 @@ class IntervalIndex(IntervalMixin, Index):
         if left.is_unique or right.is_unique:
             return True
 
-        seen_pairs = set()
+        seen_pairs: Set[Tuple] = set()
         check_idx = np.where(left.duplicated(keep=False))[0]
         for idx in check_idx:
             pair = (left[idx], right[idx])
@@ -698,7 +698,9 @@ class IntervalIndex(IntervalMixin, Index):
             # convert left/right and reconstruct
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
-            constructor = Interval if scalar else IntervalIndex.from_arrays
+            constructor: Union[
+                Type[Interval], Callable[..., IntervalIndex]
+            ] = Interval if scalar else IntervalIndex.from_arrays
             return constructor(left, right, closed=self.closed)
 
         if scalar:
@@ -1462,6 +1464,7 @@ def interval_range(
             breaks = maybe_downcast_to_dtype(breaks, "int64")
     else:
         # delegate to the appropriate range function
+        range_func: Callable
         if isinstance(endpoint, Timestamp):
             range_func = date_range
         else:
