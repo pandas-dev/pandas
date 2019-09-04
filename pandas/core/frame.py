@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
+from typing import FrozenSet, List, Optional, Set, Tuple, Type, TypeVar, Union
 import warnings
 
 # error: No library stub file for module 'numpy'
@@ -111,6 +111,9 @@ from pandas.core.series import Series
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
+
+_DFT = TypeVar("_DFT", bound="DataFrame")
+
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -7082,7 +7085,15 @@ class DataFrame(NDFrame):
             sort=sort,
         )
 
-    def join(self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False):
+    def join(
+        self: _DFT,
+        other,
+        on=None,
+        how: str = "left",
+        lsuffix: str = "",
+        rsuffix: str = "",
+        sort: bool = False,
+    ) -> _DFT:
         """
         Join columns of another DataFrame.
 

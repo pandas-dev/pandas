@@ -1,4 +1,5 @@
 import re
+from typing import TYPE_CHECKING, TypeVar
 
 # error: No library stub file for module 'numpy'
 import numpy as np  # type: ignore
@@ -15,6 +16,11 @@ from pandas.core.frame import _shared_docs
 from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa: F401
+
+_DFT = TypeVar("_DFT", bound="DataFrame")
 
 
 @Appender(
@@ -189,7 +195,9 @@ def lreshape(data, groups, dropna=True, label=None):
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
+def wide_to_long(
+    df: _DFT, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> _DFT:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -425,7 +433,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
-    def melt_stub(df, stub, i, j, value_vars, sep):
+    def melt_stub(df: _DFT, stub, i, j, value_vars, sep: str) -> _DFT:
         newdf = melt(
             df,
             id_vars=i,
@@ -462,8 +470,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
-    melted = melted[0].join(melted[1:], how="outer")
+    melted_ = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
+    melted = melted_[0].join(melted_[1:], how="outer")
 
     if len(i) == 1:
         new = df[id_vars].set_index(i).join(melted)
