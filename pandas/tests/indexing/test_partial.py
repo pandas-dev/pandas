@@ -1,8 +1,10 @@
 """
 test setting *parts* of objects both positionally and label based
 
-TODO: these should be split among the indexer tests
+TOD: these should be split among the indexer tests
 """
+
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -13,6 +15,7 @@ from pandas.util import testing as tm
 
 
 class TestPartialSetting:
+    @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -84,28 +87,32 @@ class TestPartialSetting:
         # single dtype frame, overwrite
         expected = DataFrame(dict({"A": [0, 2, 4], "B": [0, 2, 4]}))
         df = df_orig.copy()
-        df.loc[:, "B"] = df.loc[:, "A"]
+        with catch_warnings(record=True):
+            df.ix[:, "B"] = df.ix[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
         expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        df.loc[:, "B"] = df.loc[:, "A"]
+        with catch_warnings(record=True):
+            df.ix[:, "B"] = df.ix[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
         expected = df_orig.copy()
         expected["C"] = df["A"]
         df = df_orig.copy()
-        df.loc[:, "C"] = df.loc[:, "A"]
+        with catch_warnings(record=True):
+            df.ix[:, "C"] = df.ix[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed frame, partial setting
         expected = df_orig.copy()
         expected["C"] = df["A"]
         df = df_orig.copy()
-        df.loc[:, "C"] = df.loc[:, "A"]
+        with catch_warnings(record=True):
+            df.ix[:, "C"] = df.ix[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # GH 8473
@@ -357,6 +364,7 @@ class TestPartialSetting:
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940
@@ -367,15 +375,26 @@ class TestPartialSetting:
 
         # don't allow not string inserts
         with pytest.raises(TypeError):
-            df.loc[100.0, :] = df.iloc[0]
+            with catch_warnings(record=True):
+                df.loc[100.0, :] = df.ix[0]
 
         with pytest.raises(TypeError):
-            df.loc[100, :] = df.iloc[0]
+            with catch_warnings(record=True):
+                df.loc[100, :] = df.ix[0]
+
+        with pytest.raises(TypeError):
+            with catch_warnings(record=True):
+                df.ix[100.0, :] = df.ix[0]
+
+        with pytest.raises(ValueError):
+            with catch_warnings(record=True):
+                df.ix[100, :] = df.ix[0]
 
         # allow object conversion here
         df = orig.copy()
-        df.loc["a", :] = df.iloc[0]
-        exp = orig.append(Series(df.iloc[0], name="a"))
+        with catch_warnings(record=True):
+            df.loc["a", :] = df.ix[0]
+            exp = orig.append(Series(df.ix[0], name="a"))
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"
