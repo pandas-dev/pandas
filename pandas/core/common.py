@@ -211,7 +211,7 @@ def try_sort(iterable):
     listed = list(iterable)
     try:
         return sorted(listed)
-    except Exception:
+    except TypeError:
         return listed
 
 
