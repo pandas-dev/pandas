@@ -619,9 +619,7 @@ class TestCategoricalIndex:
         assert_frame_equal(result, expected, check_index_type=True)
 
         # give back the type of categorical that we received
-        result = df.reindex(
-            Categorical(["a", "e"], categories=cats, ordered=True)
-        )
+        result = df.reindex(Categorical(["a", "e"], categories=cats, ordered=True))
         expected = DataFrame(
             {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats, ordered=True))}
         ).set_index("B")

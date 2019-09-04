@@ -277,8 +277,8 @@ class TestSeriesLogicalOps:
         "op, index_op",
         [
             (ops.rand_, Index.intersection),
-            (ops.ror_,  Index.union),
-            (ops.rxor,  Index.symmetric_difference),
+            (ops.ror_, Index.union),
+            (ops.rxor, Index.symmetric_difference),
         ],
     )
     def test_reversed_logical_ops_with_index(self, op, index_op):
