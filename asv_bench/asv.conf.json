@@ -56,7 +56,7 @@
         // mingw toolchain (rather than MSVC), uncomment the following line.
         // "libpython": [],
     },
-    "conda_channels": ["conda-forge", "defaults"],
+    "conda_channels": ["defaults", "conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
