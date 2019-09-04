@@ -281,7 +281,7 @@ cdef class IndexEngine:
         cdef:
             ndarray values, x
             ndarray[int64_t] result, missing
-            set stargets
+            set stargets, remaining_stargets
             dict d = {}
             object val
             int count = 0, count_missing = 0

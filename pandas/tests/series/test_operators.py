@@ -274,41 +274,24 @@ class TestSeriesLogicalOps:
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "op",
+        "op, index_op",
         [
-            pytest.param(
-                ops.rand_,
-                marks=pytest.mark.xfail(
-                    reason="GH#22092 Index implementation returns Index",
-                    raises=AssertionError,
-                    strict=True,
-                ),
-            ),
-            pytest.param(
-                ops.ror_,
-                marks=pytest.mark.xfail(
-                    reason="GH#22092 Index implementation returns Index",
-                    raises=AssertionError,
-                    strict=True,
-                ),
-            ),
-            ops.rxor,
+            (ops.rand_, Index.intersection),
+            (ops.ror_,  Index.union),
+            (ops.rxor,  Index.symmetric_difference),
         ],
     )
-    def test_reversed_logical_ops_with_index(self, op):
+    def test_reversed_logical_ops_with_index(self, op, index_op):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
-        # symmetric_difference is only for rxor, but other 2 should fail
-        expected = idx1.symmetric_difference(ser)
-
+        expected = index_op(idx1, ser)
         result = op(ser, idx1)
         assert_index_equal(result, expected)
 
-        expected = idx2.symmetric_difference(ser)
-
+        expected = index_op(idx2, ser)
         result = op(ser, idx2)
         assert_index_equal(result, expected)
 
