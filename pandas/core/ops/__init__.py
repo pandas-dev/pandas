@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
@@ -181,7 +181,7 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
+    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
         # timedelta64 when operating with timedelta64
@@ -427,7 +427,7 @@ def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
     ):
         return True
 
-    if is_extension_array_dtype(right) and not is_scalar(right):
+    if not is_scalar(right) and is_extension_array_dtype(right):
         # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
         return True
 
@@ -532,7 +532,12 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     return result
 
 
-def dispatch_to_extension_op(op, left, right, keep_null_freq: bool = False):
+def dispatch_to_extension_op(
+    op,
+    left: Union[ABCExtensionArray, np.ndarray],
+    right: Any,
+    keep_null_freq: bool = False,
+):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
     apply the operator defined by op.
@@ -569,6 +574,8 @@ def dispatch_to_extension_op(op, left, right, keep_null_freq: bool = False):
         # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
         # on add/sub of integers (or int-like).  We re-raise as a TypeError.
         if keep_null_freq:
+            # TODO: remove keep_null_freq after Timestamp+int deprecation
+            #  GH#22535 is enforced
             raise
         raise TypeError(
             "incompatible type for a datetime/timedelta "
@@ -657,12 +664,6 @@ def _arith_method_SERIES(cls, op, special):
         if should_extension_dispatch(left, rvalues) or isinstance(rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
-        #elif isinstance(rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)):
-        #    # We should only get here with td64 rvalues with non-scalar values
-        #    #  for rvalues upcast by maybe_upcast_for_op
-        #    assert not isinstance(rvalues, (np.timedelta64, np.ndarray))
-        #    result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
         else:
             with np.errstate(all="ignore"):
                 result = na_op(lvalues, rvalues)
@@ -702,10 +703,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
-    def wrapper(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
+    def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
         other = lib.item_from_zerodim(other)
@@ -785,7 +783,7 @@ def _bool_method_SERIES(cls, op, special):
             assert not isinstance(y, (list, ABCSeries, ABCIndexClass))
             if isinstance(y, np.ndarray):
                 # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x) and is_bool_dtype(y))
+                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
                 x = ensure_object(x)
                 y = ensure_object(y)
                 result = libops.vec_binop(x, y, op)
@@ -821,28 +819,40 @@ def _bool_method_SERIES(cls, op, special):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
+        # TODO: shouldn't we be applying finalize whenever
+        #  not isinstance(other, ABCSeries)?
+        finalizer = (
+            lambda x: x.__finalize__(self)
+            if not isinstance(other, (ABCSeries, ABCIndexClass))
+            else x
+        )
+
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
+        elif should_extension_dispatch(self, other):
+            lvalues = extract_array(self, extract_numpy=True)
+            rvalues = extract_array(other, extract_numpy=True)
+            res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+            result = self._constructor(res_values, index=self.index, name=res_name)
+            return finalizer(result)
+
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = fill_int(other) if is_other_int_dtype else fill_bool(other)
-
-            ovalues = other.values
-            finalizer = lambda x: x
+            other = other if is_other_int_dtype else fill_bool(other)
 
         else:
             # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
             if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong
                 # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
                 other = construct_1d_object_array_from_listlike(other)
 
-            ovalues = other
-            finalizer = lambda x: x.__finalize__(self)
+        # TODO: use extract_array once we handle EA correctly, see GH#27959
+        ovalues = lib.values_from_object(other)
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
@@ -1018,10 +1028,10 @@ def _arith_method_FRAME(cls, op, special):
                 self, other, pass_op, fill_value=fill_value, axis=axis, level=level
             )
         else:
+            # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            assert np.ndim(other) == 0
             return self._combine_const(other, op)
 
     f.__name__ = op_name
@@ -1062,7 +1072,7 @@ def _flex_comp_method_FRAME(cls, op, special):
                 self, other, na_op, fill_value=None, axis=axis, level=level
             )
         else:
-            assert np.ndim(other) == 0, other
+            # in this case we always have `np.ndim(other) == 0`
             return self._combine_const(other, na_op)
 
     f.__name__ = op_name
@@ -1096,7 +1106,7 @@ def _comp_method_FRAME(cls, func, special):
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func)
-            return res.fillna(True).astype(bool)
+            return res
 
     f.__name__ = op_name
 
