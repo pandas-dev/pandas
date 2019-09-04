@@ -123,6 +123,9 @@ class Correlation:
     def time_corr_wide(self, method, use_bottleneck):
         self.df_wide.corr(method=method)
 
+    def peakmem_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
+
     def time_corr_series(self, method, use_bottleneck):
         self.s.corr(self.s2, method=method)
 
