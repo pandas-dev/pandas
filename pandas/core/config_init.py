@@ -9,8 +9,6 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import importlib
-
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
@@ -582,26 +580,12 @@ plotting_backend_doc = """
 
 
 def register_plotting_backend_cb(key):
-    backend_str = cf.get_option(key)
-    if backend_str == "matplotlib":
-        try:
-            import pandas.plotting._matplotlib  # noqa
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            )
-        else:
-            return
+    if key == "matplotlib":
+        # We defer matplotlib validation, since it's the default
+        return
+    from pandas.plotting._core import _get_plot_backend
 
-    try:
-        importlib.import_module(backend_str)
-    except ImportError:
-        raise ValueError(
-            '"{}" does not seem to be an installed module. '
-            "A pandas plotting backend must be a module that "
-            "can be imported".format(backend_str)
-        )
+    _get_plot_backend(key)
 
 
 with cf.config_prefix("plotting"):
@@ -609,8 +593,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=str,
-        cb=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,
     )
 
 

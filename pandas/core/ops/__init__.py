@@ -699,10 +699,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
-    def wrapper(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
+    def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
         other = lib.item_from_zerodim(other)
@@ -829,6 +826,13 @@ def _bool_method_SERIES(cls, op, special):
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
+
+        elif should_extension_dispatch(self, other):
+            lvalues = extract_array(self, extract_numpy=True)
+            rvalues = extract_array(other, extract_numpy=True)
+            res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+            result = self._constructor(res_values, index=self.index, name=res_name)
+            return finalizer(result)
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
@@ -1098,7 +1102,7 @@ def _comp_method_FRAME(cls, func, special):
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func)
-            return res.fillna(True).astype(bool)
+            return res
 
     f.__name__ = op_name
 
