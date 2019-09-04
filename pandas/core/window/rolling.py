@@ -1656,7 +1656,7 @@ class Rolling(_Rolling_and_Expanding):
             if self.axis == 0:
                 return self.obj.index
             elif self.axis == 1:
-                return self.obj.transpose().index
+                return self.obj.columns
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
             return Index(self.obj[self.on])
         else:
