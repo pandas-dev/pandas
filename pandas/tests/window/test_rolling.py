@@ -339,7 +339,10 @@ class TestRolling(Base):
         # GH-28192
         tz = tz_naive_fixture
         df = pd.DataFrame(
-            {i: [1] * 2 for i in pd.date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
+            {
+                i: [1] * 2
+                for i in pd.date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)
+            }
         )
         if axis_frame in [0, "index"]:
             result = df.T.rolling("2D", axis=axis_frame).sum().T
