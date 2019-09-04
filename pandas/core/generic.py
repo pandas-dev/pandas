@@ -7,7 +7,17 @@ import operator
 import pickle
 import re
 from textwrap import dedent
-from typing import Callable, Dict, FrozenSet, List, Optional, Set
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+)
 import warnings
 import weakref
 
@@ -50,7 +60,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype
+from pandas._typing import Dtype, FilePathOrBuffer
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -120,6 +130,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
         return
 
     return result
+
+
+bool_t = bool  # Need alias because NDFrame has def bool:
 
 
 class NDFrame(PandasObject, SelectionMixin):
@@ -2581,13 +2594,14 @@ class NDFrame(PandasObject, SelectionMixin):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Rows will be written in batches of this size at a time. By default,
-            all rows will be written at once.
-        dtype : dict, optional
-            Specifying the datatype for columns. The keys should be the column
-            names and the values should be the SQLAlchemy types or strings for
-            the sqlite3 legacy mode.
-        method : {None, 'multi', callable}, default None
+            Specify the number of rows in each batch to be written at a time.
+            By default, all rows will be written at once.
+        dtype : dict or scalar, optional
+            Specifying the datatype for columns. If a dictionary is used, the
+            keys should be the column names and the values should be the
+            SQLAlchemy types or strings for the sqlite3 legacy mode. If a
+            scalar is provided, it will be applied to all columns.
+        method : {None, 'multi', callable}, optional
             Controls the SQL insertion clause used:
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
@@ -2911,15 +2925,21 @@ class NDFrame(PandasObject, SelectionMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
+        caption=None,
+        label=None,
     ):
         r"""
-        Render an object to a LaTeX tabular environment table.
+        Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
-        Render an object to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \usepackage{booktabs}.
+        Requires ``\usepackage{booktabs}``.  The output can be copy/pasted
+        into a main LaTeX document or read from an external file
+        with ``\input{table.tex}``.
 
         .. versionchanged:: 0.20.2
-           Added to Series
+           Added to Series.
+
+        .. versionchanged:: 1.0.0
+           Added caption and label arguments.
 
         Parameters
         ----------
@@ -2988,6 +3008,17 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
+
+        caption : str, optional
+            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+
+            .. versionadded:: 1.0.0
+
+        label : str, optional
+            The LaTeX label to be placed inside ``\label{}`` in the output.
+            This is used with ``\ref{}`` in the main ``.tex`` file.
+
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
@@ -3000,7 +3031,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{tabular}{lll}
          \toprule
                name &    mask &    weapon \\
@@ -3047,30 +3078,32 @@ class NDFrame(PandasObject, SelectionMixin):
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
+            caption=caption,
+            label=label,
         )
 
     def to_csv(
         self,
-        path_or_buf=None,
-        sep=",",
-        na_rep="",
-        float_format=None,
-        columns=None,
-        header=True,
-        index=True,
-        index_label=None,
-        mode="w",
-        encoding=None,
-        compression="infer",
-        quoting=None,
-        quotechar='"',
-        line_terminator=None,
-        chunksize=None,
-        date_format=None,
-        doublequote=True,
-        escapechar=None,
-        decimal=".",
-    ):
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        sep: str = ",",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[bool_t, List[str]] = True,
+        index: bool_t = True,
+        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        mode: str = "w",
+        encoding: Optional[str] = None,
+        compression: Optional[Union[str, Dict[str, str]]] = "infer",
+        quoting: Optional[int] = None,
+        quotechar: str = '"',
+        line_terminator: Optional[str] = None,
+        chunksize: Optional[int] = None,
+        date_format: Optional[str] = None,
+        doublequote: bool_t = True,
+        escapechar: Optional[str] = None,
+        decimal: Optional[str] = ".",
+    ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -3117,16 +3150,21 @@ class NDFrame(PandasObject, SelectionMixin):
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
-        compression : str, default 'infer'
-            Compression mode among the following possible values: {'infer',
-            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
-            is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
-            compression).
+        compression : str or dict, default 'infer'
+            If str, represents compression mode. If dict, value at 'method' is
+            the compression mode. Compression mode may be any of the following
+            possible values: {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. If
+            compression mode is 'infer' and `path_or_buf` is path-like, then
+            detect compression mode from the following extensions: '.gz',
+            '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
+            and mode is 'zip' or inferred as 'zip', other entries passed as
+            additional compression options.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 0.25.0
 
-               'infer' option added and set to default.
+               May now be a dict with key 'method' as compression mode
+               and other entries as additional compression options if
+               compression mode is 'zip'.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3171,6 +3209,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'weapon': ['sai', 'bo staff']})
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+
+        # create 'out.zip' containing 'out.csv'
+        >>> compression_opts = dict(method='zip',
+        ...                         archive_name='out.csv')  # doctest: +SKIP
+
+        >>> df.to_csv('out.zip', index=False,
+        ...           compression=compression_opts)  # doctest: +SKIP
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
@@ -3203,6 +3248,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
+
+        return None
 
     # ----------------------------------------------------------------------
     # Fancy Indexing
@@ -6642,11 +6689,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 for k, v in items:
                     keys, values = list(zip(*v.items())) or ([], [])
-                    if set(keys) & set(values):
-                        raise ValueError(
-                            "Replacement not allowed with "
-                            "overlapping keys and values"
-                        )
+
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
 

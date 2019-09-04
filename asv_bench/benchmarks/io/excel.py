@@ -1,6 +1,8 @@
 from io import BytesIO
+
 import numpy as np
-from pandas import DataFrame, date_range, ExcelWriter, read_excel
+
+from pandas import DataFrame, ExcelWriter, date_range, read_excel
 import pandas.util.testing as tm
 
 
@@ -35,4 +37,4 @@ class Excel:
         writer_write.save()
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

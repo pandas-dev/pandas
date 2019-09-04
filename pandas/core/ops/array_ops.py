@@ -11,7 +11,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     maybe_upcast_putmask,
 )
-from pandas.core.dtypes.common import is_object_dtype, is_period_dtype, is_scalar
+from pandas.core.dtypes.common import is_object_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import notna
 
@@ -57,9 +57,9 @@ def masked_arith_op(x, y, op):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
-        # PeriodIndex.ravel() returns int64 dtype, so we have
-        # to work around that case.  See GH#19956
-        yrav = y if is_period_dtype(y) else y.ravel()
+        # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
+        #  we would get int64 dtype, see GH#19956
+        yrav = y.ravel()
         mask = notna(xrav) & notna(yrav)
 
         if yrav.shape != mask.shape:
@@ -82,9 +82,9 @@ def masked_arith_op(x, y, op):
         mask = notna(xrav)
 
         # 1 ** np.nan is 1. So we have to unmask those.
-        if op == pow:
+        if op is pow:
             mask = np.where(x == 1, False, mask)
-        elif op == rpow:
+        elif op is rpow:
             mask = np.where(y == 1, False, mask)
 
         if mask.any():

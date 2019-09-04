@@ -62,7 +62,8 @@ Missing
 I/O
 ^^^
 
--
+- Fix regression in notebook display where <th> tags not used for :attr:`DataFrame.index` (:issue:`28204`).
+- Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
 -
 -
 
@@ -76,8 +77,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
+- Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).
 -
 -
 -
@@ -99,7 +99,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
 -
 
 .. _whatsnew_0.252.contributors:
