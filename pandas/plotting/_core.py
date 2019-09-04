@@ -1576,10 +1576,18 @@ def _find_backend(backend: str):
             # We re-raise later on.
             pass
         else:
-            _backends[backend] = module
-            return module
+            if hasattr(module, "plot"):
+                # Validate that the interface is implemented when the option
+                # is set, rather than at plot time.
+                _backends[backend] = module
+                return module
 
-    raise ValueError("No backend {}".format(backend))
+    msg = (
+        "Could not find plotting backend '{name}'. Ensure that you've installed the "
+        "package providing the '{name}' entrypoint, or that the package has a"
+        "top-level `.plot` method."
+    )
+    raise ValueError(msg.format(name=backend))
 
 
 def _get_plot_backend(backend=None):
@@ -1600,7 +1608,13 @@ def _get_plot_backend(backend=None):
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
-        import pandas.plotting._matplotlib as module
+        try:
+            import pandas.plotting._matplotlib as module
+        except ImportError:
+            raise ImportError(
+                "matplotlib is required for plotting when the "
+                'default backend "matplotlib" is selected.'
+            ) from None
 
         _backends["matplotlib"] = module
 
