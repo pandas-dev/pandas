@@ -203,7 +203,7 @@ if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 import sys
 import pandas
 
-blacklist = {'bs4', 'gcsfs', 'html5lib', 'ipython', 'jinja2' 'hypothesis',
+blacklist = {'bs4', 'gcsfs', 'html5lib', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'xlrd', 'xlsxwriter', 'xlwt'}
 mods = blacklist & set(m.split('.')[0] for m in sys.modules)
