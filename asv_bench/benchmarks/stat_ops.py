@@ -114,6 +114,7 @@ class Correlation:
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.df2 = pd.DataFrame(np.random.randn(1000, 30))
         self.df_wide = pd.DataFrame(np.random.randn(1000, 500))
+        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 500)) < 0.9)
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
@@ -122,6 +123,9 @@ class Correlation:
 
     def time_corr_wide(self, method, use_bottleneck):
         self.df_wide.corr(method=method)
+
+    def time_corr_wide_nans(self, method, use_bottleneck):
+        self.df_wide_nans.corr(method=method)
 
     def peakmem_corr_wide(self, method, use_bottleneck):
         self.df_wide.corr(method=method)
