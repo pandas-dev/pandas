@@ -846,13 +846,13 @@ def _bool_method_SERIES(cls, op, special):
                 # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
                 other = construct_1d_object_array_from_listlike(other)
 
-        # TODO: use extract_array once we handle EA correctly, see GH#27959
-        ovalues = lib.values_from_object(other)
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-        res_values = na_op(self.values, ovalues)
+        res_values = na_op(lvalues, rvalues)
         unfilled = self._constructor(res_values, index=self.index, name=res_name)
         filled = filler(unfilled)
         return finalizer(filled)
