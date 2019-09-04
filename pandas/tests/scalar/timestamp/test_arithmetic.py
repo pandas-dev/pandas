@@ -67,7 +67,7 @@ class TestTimestampArithmetic:
         assert result.nanosecond == val.nanosecond
 
     def test_rsub_dtscalars(self, tz_naive_fixture):
-        # In particular, check that datetime64 - Timestamp works
+        # In particular, check that datetime64 - Timestamp works GH#28286
         td = Timedelta(1235345642000)
         ts = Timestamp.now(tz_naive_fixture)
         other = ts + td
