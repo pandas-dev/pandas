@@ -113,11 +113,15 @@ class Correlation:
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.df2 = pd.DataFrame(np.random.randn(1000, 30))
+        self.df_wide = pd.DataFrame(np.random.randn(1000, 500))
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
     def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
+
+    def time_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
 
     def time_corr_series(self, method, use_bottleneck):
         self.s.corr(self.s2, method=method)
