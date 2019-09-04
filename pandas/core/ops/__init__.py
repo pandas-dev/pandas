@@ -698,10 +698,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
-    def wrapper(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
+    def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
         other = lib.item_from_zerodim(other)
