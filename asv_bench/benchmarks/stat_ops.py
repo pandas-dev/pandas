@@ -1,6 +1,6 @@
 import numpy as np
-import pandas as pd
 
+import pandas as pd
 
 ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
 
@@ -148,4 +148,4 @@ class Covariance:
         self.s.cov(self.s2)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

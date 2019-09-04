@@ -846,7 +846,6 @@ class Unpacker(_Unpacker):
 
 
 class Iterator:
-
     """ manage the unpacking iteration,
         close the file on completion """
 
