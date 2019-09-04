@@ -1651,18 +1651,19 @@ class Rolling(_Rolling_and_Expanding):
 
     @cache_readonly
     def _on(self):
-
         if self.on is None:
             if self.axis == 0:
                 return self.obj.index
             elif self.axis == 1:
                 return self.obj.columns
+        elif isinstance(self.on, Index):
+            return self.on
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
             return Index(self.obj[self.on])
         else:
             raise ValueError(
                 "invalid on specified as {0}, "
-                "must be a column (if DataFrame) "
+                "must be a column (of DataFrame), an Index "
                 "or None".format(self.on)
             )
 
@@ -1706,9 +1707,9 @@ class Rolling(_Rolling_and_Expanding):
 
     def _validate_monotonic(self):
         """
-        Validate on is_monotonic.
+        Validate monotonic (increasing or decreasing).
         """
-        if not self._on.is_monotonic:
+        if not self._on.is_monotonic_increasing and self._on.is_monotonic_decreasing:
             formatted = self.on or "index"
             raise ValueError("{0} must be monotonic".format(formatted))
 
