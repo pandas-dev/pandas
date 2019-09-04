@@ -312,6 +312,10 @@ cdef class _Timestamp(datetime):
             except (OverflowError, OutOfBoundsDatetime):
                 pass
 
+        elif is_datetime64_object(self):
+            # cython semantics for __rsub__, `other` is actually the Timestamp
+            return type(other)(self) - other
+
         # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
         # same timezone if specified)
         return datetime.__sub__(self, other)
