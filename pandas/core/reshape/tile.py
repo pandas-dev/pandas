@@ -2,6 +2,7 @@
 Quantilization functions and related stuff
 """
 from functools import partial
+from typing import Callable
 
 # error: No library stub file for module 'numpy'
 import numpy as np  # type: ignore
@@ -498,11 +499,14 @@ def _convert_bin_to_datelike_type(bins, dtype):
     return bins
 
 
-def _format_labels(bins, precision, right=True, include_lowest=False, dtype=None):
+def _format_labels(
+    bins, precision, right: bool = True, include_lowest=False, dtype=None
+):
     """ based on the dtype, return our labels """
 
     closed = "right" if right else "left"
 
+    formatter: Callable
     if is_datetime64tz_dtype(dtype):
         formatter = partial(Timestamp, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
