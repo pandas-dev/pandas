@@ -420,7 +420,7 @@ class TestPandasContainer:
             convert_axes=convert_axes,
             dtype=dtype,
         )
-        if not dtype:  # Special case for object data; maybe a bug?
+        if not dtype:  # TODO: Special case for object data; maybe a bug?
             assert result.iloc[0, 2] is None
         else:
             assert np.isnan(result.iloc[0, 2])
