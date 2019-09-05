@@ -1,8 +1,8 @@
 import builtins
+import datetime as dt
 from io import StringIO
 from itertools import product
 from string import ascii_lowercase
-import datetime as dt
 
 import numpy as np
 import pytest
