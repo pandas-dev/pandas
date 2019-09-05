@@ -1199,6 +1199,7 @@ class Block(PandasObject):
         fill_value = self._try_coerce_args(fill_value)
 
         if (max_gap is not None) or (limit_area is not None):
+
             def func(x):
                 return missing.interpolate_1d_fill(
                     x,
@@ -1210,6 +1211,7 @@ class Block(PandasObject):
                     fill_value=fill_value,
                     dtype=self.dtype,
                 )
+
             interp_values = np.apply_along_axis(func, axis, values)
 
         else:
@@ -1219,7 +1221,7 @@ class Block(PandasObject):
                 axis=axis,
                 limit=limit,
                 fill_value=fill_value,
-                dtype=self.dtype
+                dtype=self.dtype,
             )
 
         blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]

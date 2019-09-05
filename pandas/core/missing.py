@@ -217,7 +217,7 @@ def interpolate_1d(
         limit=limit,
         limit_area=limit_area,
         limit_direction=limit_direction,
-        max_gap=max_gap
+        max_gap=max_gap,
     )
 
     xvalues = getattr(xvalues, "values", xvalues)
@@ -273,9 +273,9 @@ def interpolate_1d(
         return result
 
 
-def _derive_indices_of_nans_to_preserve(yvalues, invalid, valid,
-                                        limit, limit_area, limit_direction,
-                                        max_gap):
+def _derive_indices_of_nans_to_preserve(
+    yvalues, invalid, valid, limit, limit_area, limit_direction, max_gap
+):
     """ Derive the indices of NaNs that shall be preserved after interpolation
 
     This function is called by `interpolate_1d` and takes the arguments with
@@ -286,6 +286,7 @@ def _derive_indices_of_nans_to_preserve(yvalues, invalid, valid,
     """
 
     from pandas import Series
+
     ys = Series(yvalues)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
@@ -315,6 +316,7 @@ def _derive_indices_of_nans_to_preserve(yvalues, invalid, valid,
             # both directions... just use _interp_limit
             preserve_nans = set(_interp_limit(invalid, limit, limit))
     else:
+
         def bfill_nan(arr):
             """ Backward-fill NaNs """
             mask = np.isnan(arr)
@@ -327,8 +329,7 @@ def _derive_indices_of_nans_to_preserve(yvalues, invalid, valid,
         # at each NaN location.
         cumsum = np.cumsum(invalid).astype("float")
         diff = np.zeros_like(yvalues)
-        diff[~invalid] = np.pad(np.diff(cumsum[~invalid]),
-                                (1, 0), mode="constant")
+        diff[~invalid] = np.pad(np.diff(cumsum[~invalid]), (1, 0), mode="constant")
         diff[invalid] = np.nan
         diff = bfill_nan(diff)
         # hack to avoid having trailing NaNs in `diff`. Fill these
@@ -525,11 +526,15 @@ def interpolate_1d_fill(
     max_gap=None,
     limit_area=None,
     fill_value=None,
-    dtype=None
+    dtype=None,
 ):
     """
-    Perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result.
+    This a modification of `interpolate_2d`, which is used for methods `pad`
+    and `backfill` when interpolating. This 1D-version is necessary to be
+    able to handle kwargs `max_gap` and `limit_area` via the function
+    ` _derive_indices_of_nans_to_preserve. It is used the same way as the
+    1D-interpolation functions which are based on scipy-interpolation, i.e.
+    via np.apply_along_axis.
     """
     if method == "pad":
         limit_direction = "forward"
@@ -565,7 +570,8 @@ def interpolate_1d_fill(
         limit=limit,
         limit_area=limit_area,
         limit_direction=limit_direction,
-        max_gap=max_gap)
+        max_gap=max_gap,
+    )
 
     method = clean_fill_method(method)
     if method == "pad":

@@ -1493,63 +1493,38 @@ class TestSeriesInterpolateData:
         assert_series_equal(result, expected)
 
     def test_interp_max_gap(self):
-        s = Series([
-            np.nan,
-            1., np.nan,
-            2., np.nan, np.nan,
-            5., np.nan, np.nan, np.nan,
-            -1., np.nan, np.nan
-        ])
+        s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
 
-        excpected = Series([
-            1.,
-            1., 1.5,
-            2., 3., 4.,
-            5., np.nan, np.nan, np.nan,
-            -1., -1, -1
-        ])
+        excpected = Series(
+            [1.0, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, -1, -1]
+        )
         result = s.interpolate(method="linear", max_gap=2)
         assert_series_equal(result, excpected)
 
-        excpected = Series([
-            np.nan,
-            1., 1.5,
-            2., 3., 4.,
-            5., np.nan, np.nan, np.nan,
-            -1., np.nan, np.nan
-        ])
+        excpected = Series(
+            [nan, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, nan, nan]
+        )
         result = s.interpolate(method="linear", max_gap=2, limit_area="inside")
         assert_series_equal(result, excpected)
 
-        excpected = Series([
-            np.nan,
-            1., 1,
-            2., 2., 2.,
-            5., np.nan, np.nan, np.nan,
-            -1., np.nan, np.nan
-        ])
+        excpected = Series(
+            [nan, 1.0, 1, 2.0, 2.0, 2.0, 5.0, nan, nan, nan, -1.0, nan, nan]
+        )
         result = s.interpolate(method="pad", max_gap=2, limit_area="inside")
         assert_series_equal(result, excpected)
 
     def test_interp_max_gap_errors(self):
-        s = Series([
-            np.nan,
-            1., np.nan,
-            2., np.nan, np.nan,
-            5., np.nan, np.nan, np.nan,
-            -1., np.nan, np.nan
-        ])
+        s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
 
-        with pytest.raises(ValueError,
-                           match="max_gap cannot be used together with limit"):
+        with pytest.raises(
+            ValueError, match="max_gap cannot be used together with limit"
+        ):
             s.interpolate(method="linear", max_gap=2, limit=3)
 
-        with pytest.raises(ValueError,
-                           match="max_gap must be an integer"):
+        with pytest.raises(ValueError, match="max_gap must be an integer"):
             s.interpolate(method="linear", max_gap="foo")
 
-        with pytest.raises(ValueError,
-                           match="max_gap must be greater than 0"):
+        with pytest.raises(ValueError, match="max_gap must be greater than 0"):
             s.interpolate(method="linear", max_gap=0)
 
     def test_interp_limit_before_ends(self):
