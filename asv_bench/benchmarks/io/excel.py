@@ -41,6 +41,8 @@ class ReadExcel:
 
     params = ["xlrd", "openpyxl", "odf"]
     param_names = ["engine"]
+    fname_excel = "spreadsheet.xlsx"
+    fname_odf = "spreadsheet.ods"
 
     def _create_odf(self):
         doc = OpenDocumentSpreadsheet()
@@ -56,10 +58,9 @@ class ReadExcel:
         doc.spreadsheet.addElement(table)
         doc.save(self.fname_odf)
 
-    def setup(self, engine):
+    def setup_cache(self):
         self.df = _generate_dataframe()
-        self.fname_excel = "spreadsheet.xlsx"
-        self.fname_odf = "spreadsheet.ods"
+
         self.df.to_excel(self.fname_excel, sheet_name="Sheet1")
         self._create_odf()
 
