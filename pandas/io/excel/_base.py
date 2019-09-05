@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from urllib.request import urlopen
 
 from pandas._config import config
 
@@ -21,6 +20,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
+    urlopen,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
