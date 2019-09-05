@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as reduction
+import pandas._libs.reduction as libreduction
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -207,13 +207,13 @@ class BaseGrouper:
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
 
-            except reduction.InvalidApply:
+            except libreduction.InvalidApply:
                 # Cannot fast apply on MultiIndex (_has_complex_internals).
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 pass
-            except Exception:
-                # raise this error to the caller
+            except TypeError:
+                # occurs if we have any EAs
                 pass
 
         for key, (i, group) in zip(group_keys, splitter):
@@ -615,14 +615,9 @@ class BaseGrouper:
         is_datetimelike,
         min_count=-1,
     ):
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                chunk = chunk.squeeze()
-                agg_func(result[:, :, i], counts, chunk, comp_ids, min_count)
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
@@ -640,20 +635,9 @@ class BaseGrouper:
     ):
 
         comp_ids, _, ngroups = self.group_info
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                transform_func(
-                    result[:, :, i],
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
-                    **kwargs
-                )
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
@@ -678,7 +662,7 @@ class BaseGrouper:
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
-        grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
+        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
         result, counts = grouper.get_result()
         return result, counts
 
@@ -706,7 +690,6 @@ class BaseGrouper:
 
 
 class BinGrouper(BaseGrouper):
-
     """
     This is an internal Grouper class
 
@@ -852,7 +835,7 @@ class BinGrouper(BaseGrouper):
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
-        grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
 
@@ -933,14 +916,10 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
-        try:
-            starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        except Exception:
-            # fails when all -1
-            return [], True
+        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         sdata = self._get_sorted_data()
-        return reduction.apply_frame_axis0(sdata, f, names, starts, ends)
+        return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
