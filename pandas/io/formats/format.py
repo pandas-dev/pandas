@@ -1275,7 +1275,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 # error: Unexpected keyword argument "value" for "__call__" of
                 # "EngFormatter"
                 # error: "None" not callable
-                return float_format(value=v) if notna(v) else self.na_rep  # type:ignore
+                return (
+                    float_format(value=v) if notna(v) else self.na_rep  # type: ignore
+                )
 
         else:
 

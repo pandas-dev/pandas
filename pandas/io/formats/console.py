@@ -67,7 +67,7 @@ def in_interactive_session():
 
     try:
         # error: Name '__IPYTHON__' is not defined
-        return __IPYTHON__ or check_main()  # type:ignore # noqa
+        return __IPYTHON__ or check_main()  # type: ignore # noqa
     except NameError:
         return check_main()
 

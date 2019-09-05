@@ -73,7 +73,7 @@ def determine_clipboard():
             # applications using a single api call to either PyQt or PySide
             # https://pypi.org/project/QtPy
             # error: Cannot find module named 'qtpy'
-            import qtpy  # type:ignore # noqa
+            import qtpy  # type: ignore # noqa
         except ImportError:
             # If qtpy isn't installed, fall back on importing PyQt5, or PyQt5
             try:
@@ -82,7 +82,7 @@ def determine_clipboard():
             except ImportError:
                 try:
                     # error: No library stub file for module 'PyQt4'
-                    import PyQt4  # type:ignore # noqa
+                    import PyQt4  # type: ignore # noqa
                 except ImportError:
                     pass  # fail fast for all non-ImportError exceptions.
                 else:

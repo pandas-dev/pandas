@@ -11,7 +11,7 @@ import numpy as np  # type: ignore
 # error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated  # type: ignore
-from pandas._libs.tslibs.period import (  # type:ignore
+from pandas._libs.tslibs.period import (  # type: ignore
     DIFFERENT_FREQ,
     IncompatibleFrequency,
     Period,

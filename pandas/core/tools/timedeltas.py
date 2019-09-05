@@ -9,7 +9,7 @@ import numpy as np  # type: ignore
 
 # error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import (  # type:ignore
+from pandas._libs.tslibs.timedeltas import (  # type: ignore
     Timedelta,
     parse_timedelta_unit,
 )

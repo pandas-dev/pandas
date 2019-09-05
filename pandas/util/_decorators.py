@@ -16,7 +16,7 @@ from typing import (
 import warnings
 
 # error: No library stub file for module 'pandas._libs.properties'
-from pandas._libs.properties import cache_readonly  # type:ignore # noqa
+from pandas._libs.properties import cache_readonly  # type: ignore # noqa
 
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
