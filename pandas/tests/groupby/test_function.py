@@ -2,6 +2,7 @@ import builtins
 from io import StringIO
 from itertools import product
 from string import ascii_lowercase
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -9,7 +10,16 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+    NaT,
+)
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td, testing as tm
 
@@ -1012,6 +1022,42 @@ def test_nunique_with_timegrouper():
     ).set_index("time")
     result = test.groupby(pd.Grouper(freq="h"))["data"].nunique()
     expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(pd.Series.nunique)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "key, data, dropna, expected",
+    [
+        (
+            ["x", "x", "x"],
+            [Timestamp("2019-01-01"), NaT, Timestamp("2019-01-01")],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "y", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "x", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+    ],
+)
+def test_nunique_with_NaT(key, data, dropna, expected):
+    # GH 27951
+    df = pd.DataFrame({"key": key, "data": data})
+    result = df.groupby(["key"])["data"].nunique(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
 
