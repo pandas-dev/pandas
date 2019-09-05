@@ -112,7 +112,7 @@ dtype : Type name or dict of column -> type, default None
 
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd.
+    Acceptable values are None, "xlrd", "openpyxl" or "odf".
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -783,11 +783,12 @@ class ExcelFile:
     Parameters
     ----------
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file.
+        a file-like object, xlrd workbook or openpypl workbook.
+        If a string or path object, expected to be a path to xls, xlsx or odf file.
     engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or ``xlrd``.
+        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
