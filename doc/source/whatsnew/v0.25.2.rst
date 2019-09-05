@@ -78,8 +78,8 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).
-- Allow usage of ``rolling`` ``on`` argument with multi-index column.
-- Allow usage of ``rolling`` with monotonic decreasing time indexes.
+-
+-
 -
 
 Reshaping
