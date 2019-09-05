@@ -3,6 +3,7 @@ Table Schema builders
 
 http://specs.frictionlessdata.io/json-table-schema/
 """
+from typing import TYPE_CHECKING, Any, Dict, Union, Optional
 import warnings
 
 # error: No library stub file for module 'pandas._libs.json'
@@ -23,6 +24,9 @@ from pandas.core.dtypes.common import (
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
 
 loads = json.loads
 
@@ -190,7 +194,12 @@ def convert_json_field_to_pandas_type(field):
     raise ValueError("Unsupported or invalid field type: {}".format(typ))
 
 
-def build_table_schema(data, index=True, primary_key=None, version=True):
+def build_table_schema(
+    data: Union["Series", DataFrame],
+    index: bool = True,
+    primary_key: Optional[bool] = None,
+    version: bool = True,
+) -> Dict[str, Any]:
     """
     Create a Table schema from ``data``.
 
@@ -239,7 +248,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     if index is True:
         data = set_default_names(data)
 
-    schema = {}
+    schema: Dict[str, Any] = {}
     fields = []
 
     if index:
