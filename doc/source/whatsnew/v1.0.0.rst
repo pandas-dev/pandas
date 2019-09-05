@@ -186,6 +186,7 @@ Reshaping
 
 -
 -
+- Bug in :meth:`pivot_table` not returning correct type ``float`` when ``margins=True`` and ``aggfunc='mean'`` (:issue:`24893`)
 
 Sparse
 ^^^^^^
