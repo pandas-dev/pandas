@@ -54,4 +54,5 @@ xarray
 xlrd
 xlsxwriter
 xlwt
+odfpy
 pyreadstat
