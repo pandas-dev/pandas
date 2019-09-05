@@ -309,7 +309,9 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     mask = np.isfinite(mat).view(np.uint8)
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
-    cached_ranks = set({})
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
 
     for xi in range(K):
         for yi in range(xi + 1):
@@ -322,14 +324,6 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                 if mask[i, xi] and mask[i, yi]:
                     nobs += 1
 
-            if all_ranks:
-                if xi not in cached_ranks:
-                    ranked_mat[:, xi] = rank_1d_float64(mat[:, xi])
-                    cached_ranks.add(xi)
-                if yi not in cached_ranks:
-                    ranked_mat[:, yi] = rank_1d_float64(mat[:, yi])
-                    cached_ranks.add(yi)
-
             if nobs < minp:
                 result[xi, yi] = result[yi, xi] = NaN
             else:
@@ -339,8 +333,8 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
 
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        maskedx[j] = ranked_mat[i, xi] if all_ranks else mat[i, xi]
-                        maskedy[j] = ranked_mat[i, yi] if all_ranks else mat[i, yi]
+                        maskedx[j] = ranked_mat[i, xi]
+                        maskedy[j] = ranked_mat[i, yi]
                         j += 1
 
                 if not all_ranks:
