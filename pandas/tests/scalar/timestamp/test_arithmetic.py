@@ -76,6 +76,9 @@ class TestTimestampArithmetic:
         assert other.to_pydatetime() - ts == td
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
+        else:
+            with pytest.raises(TypeError, match="subtraction must have"):
+                other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
         dt = datetime(2013, 10, 12)
