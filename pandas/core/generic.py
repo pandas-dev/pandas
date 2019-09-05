@@ -62,6 +62,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import Dtype, FilePathOrBuffer
 from pandas.core import missing, nanops
+from pandas.core._meta import ndframe_finalize
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -5175,9 +5176,7 @@ class NDFrame(PandasObject, SelectionMixin):
             types of propagation actions based on this
 
         """
-        if isinstance(other, NDFrame):
-            for name in self._metadata:
-                object.__setattr__(self, name, getattr(other, name, None))
+        ndframe_finalize(self, other, method)
         return self
 
     def __getattr__(self, name):
@@ -6016,7 +6015,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: object
         """
         data = self._data.copy(deep=deep)
-        return self._constructor(data).__finalize__(self)
+        return self._constructor(data).__finalize__(self, NDFrame.copy)
 
     def __copy__(self, deep=True):
         return self.copy(deep=deep)
