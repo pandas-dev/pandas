@@ -133,7 +133,8 @@ def interpolate_1d(
     xvalues,
     yvalues,
     method="linear",
-    limit=None, max_gap=None,
+    limit=None,
+    max_gap=None,
     limit_direction="forward",
     limit_area=None,
     fill_value=None,
@@ -514,6 +515,81 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
         return P(x, der=der)
     else:
         return [P(x, nu) for nu in der]
+
+
+def interpolate_1d_fill(
+    values,
+    method="pad",
+    axis=0,
+    limit=None,
+    max_gap=None,
+    limit_area=None,
+    fill_value=None,
+    dtype=None
+):
+    """
+    Perform an actual interpolation of values, values will be make 2-d if
+    needed fills inplace, returns the result.
+    """
+    if method == "pad":
+        limit_direction = "forward"
+    elif method == "backfill":
+        limit_direction = "backward"
+    else:
+        raise ValueError("`method` must be either 'pad' or 'backfill'.")
+
+    orig_values = values
+
+    yvalues = values
+    invalid = isna(yvalues)
+    valid = ~invalid
+
+    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+
+    # reshape a 1 dim if needed
+    ndim = values.ndim
+    if values.ndim == 1:
+        if axis != 0:  # pragma: no cover
+            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
+        values = values.reshape(tuple((1,) + values.shape))
+
+    if fill_value is None:
+        mask = None
+    else:  # todo create faster fill func without masking
+        mask = mask_missing(transf(values), fill_value)
+
+    preserve_nans = _derive_indices_of_nans_to_preserve(
+        yvalues=yvalues,
+        valid=valid,
+        invalid=invalid,
+        limit=limit,
+        limit_area=limit_area,
+        limit_direction=limit_direction,
+        max_gap=max_gap)
+
+    method = clean_fill_method(method)
+    if method == "pad":
+        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+    else:
+        values = transf(
+            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
+        )
+
+    # reshape back
+    if ndim == 1:
+        values = values[0]
+
+    if orig_values.dtype.kind == "M":
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
+
+    # if np.issubdtype(values.dtype, np.datetime64):
+    #     values[preserve_nans] = np.datetime64('NaT')
+    # else:
+    #     values[preserve_nans] = np.nan
+    values[preserve_nans] = fill_value
+
+    return values
 
 
 def interpolate_2d(

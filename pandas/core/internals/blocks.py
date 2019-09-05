@@ -1108,6 +1108,7 @@ class Block(PandasObject):
         values=None,
         inplace=False,
         limit=None,
+        max_gap=None,
         limit_direction="forward",
         limit_area=None,
         fill_value=None,
@@ -1142,6 +1143,8 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
+                max_gap=max_gap,
+                limit_area=limit_area,
                 fill_value=fill_value,
                 coerce=coerce,
                 downcast=downcast,
@@ -1158,6 +1161,7 @@ class Block(PandasObject):
             values=values,
             axis=axis,
             limit=limit,
+            max_gap=max_gap,
             limit_direction=limit_direction,
             limit_area=limit_area,
             fill_value=fill_value,
@@ -1172,6 +1176,8 @@ class Block(PandasObject):
         axis=0,
         inplace=False,
         limit=None,
+        max_gap=None,
+        limit_area=None,
         fill_value=None,
         coerce=False,
         downcast=None,
@@ -1191,16 +1197,32 @@ class Block(PandasObject):
 
         values = self.values if inplace else self.values.copy()
         fill_value = self._try_coerce_args(fill_value)
-        values = missing.interpolate_2d(
-            values,
-            method=method,
-            axis=axis,
-            limit=limit,
-            fill_value=fill_value,
-            dtype=self.dtype,
-        )
 
-        blocks = [self.make_block_same_class(values, ndim=self.ndim)]
+        if values.ndim == 1:
+            def func(x):
+                return missing.interpolate_1d_fill(
+                    x,
+                    method=method,
+                    axis=axis,
+                    limit=limit,
+                    max_gap=max_gap,
+                    limit_area=limit_area,
+                    fill_value=fill_value,
+                    dtype=self.dtype,
+                )
+            interp_values = np.apply_along_axis(func, axis, values)
+
+        else:
+            interp_values = missing.interpolate_2d(
+                values,
+                method=method,
+                axis=axis,
+                limit=limit,
+                fill_value=fill_value,
+                dtype=self.dtype
+            )
+
+        blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
     def _interpolate(
@@ -1211,6 +1233,7 @@ class Block(PandasObject):
         fill_value=None,
         axis=0,
         limit=None,
+        max_gap=None,
         limit_direction="forward",
         limit_area=None,
         inplace=False,
@@ -1249,6 +1272,7 @@ class Block(PandasObject):
                 x,
                 method=method,
                 limit=limit,
+                max_gap=max_gap,
                 limit_direction=limit_direction,
                 limit_area=limit_area,
                 fill_value=fill_value,
