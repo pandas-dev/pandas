@@ -4,7 +4,6 @@ import bz2
 import codecs
 import csv
 import gzip
-from http.client import HTTPException  # noqa
 from io import BufferedIOBase, BytesIO
 import mmap
 import os
@@ -22,7 +21,6 @@ from typing import (
     Type,
     Union,
 )
-from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -31,7 +29,6 @@ from urllib.parse import (  # noqa
     uses_params,
     uses_relative,
 )
-from urllib.request import pathname2url, urlopen
 import zipfile
 
 from pandas.compat import _get_lzma_file, _import_lzma
@@ -188,6 +185,16 @@ def is_gcs_url(url) -> bool:
         return False
 
 
+def urlopen(*args, **kwargs):
+    """
+    Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
+    the stdlib.
+    """
+    import urllib.request
+
+    return urllib.request.urlopen(*args, **kwargs)
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
@@ -261,6 +268,9 @@ def file_path_to_url(path: str) -> str:
     -------
     a valid FILE URL
     """
+    # lazify expensive import (~30ms)
+    from urllib.request import pathname2url
+
     return urljoin("file:", pathname2url(path))
 
 
@@ -576,7 +586,6 @@ class MMapWrapper(BaseIterator):
 
 
 class UTF8Recoder(BaseIterator):
-
     """
     Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """
