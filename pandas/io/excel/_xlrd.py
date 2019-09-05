@@ -6,6 +6,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
 
+from pandas.core.dtypes.missing import isnull
 
 class _XlrdReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer):
@@ -87,6 +88,10 @@ class _XlrdReader(_BaseExcelReader):
             elif cell_typ == XL_CELL_BOOLEAN:
                 cell_contents = bool(cell_contents)
             elif convert_float and cell_typ == XL_CELL_NUMBER:
+                # Some libs and softwares export excel files
+                # assigning NaN when the column is blank
+                if isnull(cell_contents):
+                    return 0
                 # GH5394 - Excel 'numbers' are always floats
                 # it's a minimal perf hit and less surprising
                 val = int(cell_contents)
