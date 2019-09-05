@@ -40,7 +40,9 @@ class _GroupByMixin(GroupByMixin):
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
-        super().__init__(obj, *args, **kwargs)
+        # https://github.com/python/mypy/issues/5887
+        # error: Too many arguments for "__init__" of "object"
+        super().__init__(obj, *args, **kwargs)  # type: ignore
 
     count = GroupByMixin._dispatch("count")
     corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
