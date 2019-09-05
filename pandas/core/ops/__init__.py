@@ -805,14 +805,21 @@ def _bool_method_SERIES(cls, op, special):
 
         return result
 
-    fill_int = lambda x: x.fillna(0)
-    fill_bool = lambda x: x.fillna(False).astype(bool)
+    fill_int = lambda x: x
+
+    def fill_bool(x, left=None):
+        # if `left` is specifically not-boolean, we do not cast to bool
+        x = x.fillna(False)
+        if left is None or is_bool_dtype(left.dtype):
+            x = x.astype(bool)
+        return x
 
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
+        other = lib.item_from_zerodim(other)
 
         # TODO: shouldn't we be applying finalize whenever
         #  not isinstance(other, ABCSeries)?
@@ -835,16 +842,21 @@ def _bool_method_SERIES(cls, op, special):
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
+
+        elif not is_list_like(other):
+            # i.e. scalar
+            is_other_int_dtype = lib.is_integer(other)
 
         else:
-            # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
-            if is_list_like(other) and not isinstance(other, np.ndarray):
-                # TODO: Can we do this before the is_integer_dtype check?
-                # could the is_integer_dtype check be checking the wrong
-                # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
+            # list, tuple, np.ndarray
+            if not isinstance(other, np.ndarray):
                 other = construct_1d_object_array_from_listlike(other)
+
+            is_other_int_dtype = is_integer_dtype(other.dtype)
+            # FIXME: what if this converts and object array to e.g. PeriodDtype?
+            other = type(self)(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)

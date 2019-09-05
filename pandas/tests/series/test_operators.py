@@ -103,11 +103,8 @@ class TestSeriesLogicalOps:
             s_0123 & [0.1, 4, 3.14, 2]
         with pytest.raises(TypeError):
             s_0123 & np.array([0.1, 4, 3.14, 2])
-
-        # FIXME: this should be consistent with the list case above
-        expected = Series([False, True, False, True])
-        result = s_0123 & Series([0.1, 4, -3.14, 2])
-        assert_series_equal(result, expected)
+        with pytest.raises(TypeError):
+            s_0123 & Series([0.1, 4, -3.14, 2])
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
