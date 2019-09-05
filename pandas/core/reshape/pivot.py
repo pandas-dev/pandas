@@ -252,6 +252,7 @@ def _add_margins(
 
     row_names = result.index.names
     try:
+        # check the result column and leave floats
         for dtype in set(result.dtypes):
             cols = result.select_dtypes([dtype]).columns
             margin_dummy[cols] = margin_dummy[cols].apply(
