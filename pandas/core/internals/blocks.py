@@ -1198,7 +1198,7 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
         fill_value = self._try_coerce_args(fill_value)
 
-        if values.ndim == 1:
+        if (max_gap is not None) or (limit_area is not None):
             def func(x):
                 return missing.interpolate_1d_fill(
                     x,
