@@ -106,7 +106,9 @@ class TestRollingTS:
         df.rolling("2s").sum()
 
         # non-monotonic
-        df.index = reversed(df.index.tolist())
+        non_monotonic_index = df.index.to_list()
+        non_monotonic_index[0] = non_monotonic_index[3]
+        df.index = non_monotonic_index
         assert not df.index.is_monotonic
 
         with pytest.raises(ValueError):
