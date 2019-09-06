@@ -216,9 +216,6 @@ def _gen_eval_kwargs(name):
     if name in ["truediv", "rtruediv"]:
         kwargs["truediv"] = True
 
-    if name in ["ne"]:
-        kwargs["masker"] = True
-
     return kwargs
 
 
@@ -247,7 +244,7 @@ def _get_frame_op_default_axis(name):
         return "columns"
 
 
-def _get_opstr(op, cls):
+def _get_opstr(op):
     """
     Find the operation string, if any, to pass to numexpr for this
     operation.
@@ -255,19 +252,11 @@ def _get_opstr(op, cls):
     Parameters
     ----------
     op : binary operator
-    cls : class
 
     Returns
     -------
     op_str : string or None
     """
-    # numexpr is available for non-sparse classes
-    subtyp = getattr(cls, "_subtyp", "")
-    use_numexpr = "sparse" not in subtyp
-
-    if not use_numexpr:
-        # if we're not using numexpr, then don't pass a str_rep
-        return None
 
     return {
         operator.add: "+",
@@ -624,7 +613,7 @@ def _arith_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
     construct_result = (
@@ -999,7 +988,7 @@ def _align_method_FRAME(left, right, axis):
 
 
 def _arith_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -1041,7 +1030,7 @@ def _arith_method_FRAME(cls, op, special):
 
 
 def _flex_comp_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
@@ -1082,7 +1071,7 @@ def _flex_comp_method_FRAME(cls, op, special):
 
 
 def _comp_method_FRAME(cls, func, special):
-    str_rep = _get_opstr(func, cls)
+    str_rep = _get_opstr(func)
     op_name = _get_op_name(func, special)
 
     @Appender("Wrapper for comparison method {name}".format(name=op_name))
