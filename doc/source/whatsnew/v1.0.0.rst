@@ -177,8 +177,8 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
-- Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels.
-- Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes.
+- Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels (:issue: `15584`).
+- Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes (:issue: `19248`).
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 
