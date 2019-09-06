@@ -14,7 +14,7 @@ from pandas.core.base import PandasObject
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
 # we can lazily import matplotlib.
-import_optional_dependency("pandas.plotting._matplotlib")
+import_optional_dependency("pandas.plotting._matplotlib", raise_on_missing=False)
 
 
 def hist_series(
