@@ -330,6 +330,7 @@ Sparse-dtype specific methods and attributes are provided under the
    DataFrame.sparse.from_spmatrix
    DataFrame.sparse.to_coo
    DataFrame.sparse.to_dense
+   DataFrame.sparse.is_sparse
 
 
 Serialization / IO / conversion

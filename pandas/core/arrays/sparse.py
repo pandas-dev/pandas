@@ -5,7 +5,7 @@ from collections import abc
 import numbers
 import operator
 import re
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 import warnings
 
 import numpy as np
@@ -48,6 +48,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas._typing import Dtype
+import pandas.api.types
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
@@ -59,6 +60,8 @@ import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
 
+if TYPE_CHECKING:
+    from pandas import Series
 
 # ----------------------------------------------------------------------------
 # Dtype
@@ -2111,10 +2114,19 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     .. versionadded:: 0.25.0
     """
 
-    def _validate(self, data):
-        dtypes = data.dtypes
-        if not all(isinstance(t, SparseDtype) for t in dtypes):
+    def _validate_sparse(self):
+        """
+        Validate if the DataFrame is sparse
+
+        It has to be run for every method of DataFrame.sparse
+        except DataFrame.sparse.is_sparse(), which can be called
+        on non-sparse DataFrames.
+        """
+        if not all(self.is_sparse()):
             raise AttributeError(self._validation_msg)
+
+    def _validate(self, data):
+        pass
 
     @classmethod
     def from_spmatrix(cls, data, index=None, columns=None):
@@ -2179,6 +2191,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         from pandas import DataFrame
 
+        self._validate_sparse()
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
 
@@ -2207,6 +2220,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
+        self._validate_sparse()
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
@@ -2230,7 +2244,22 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Ratio of non-sparse points to total (dense) data points
         represented in the DataFrame.
         """
+        self._validate_sparse()
         return np.mean([column.array.density for _, column in self._parent.items()])
+
+    def is_sparse(self) -> "Series":
+        """
+        Return a boolean Series specifying if each column of the DataFrame is sparse.
+
+        .. versionadded:: 1.0.0
+
+        Returns
+        -------
+        Series[bool]
+            A boolean Series whose index is the DataFrame columns names,
+            containing True if the column is sparse, False else.
+        """
+        return self._parent.dtypes.apply(pandas.api.types.is_sparse)
 
     @staticmethod
     def _prep_index(data, index, columns):

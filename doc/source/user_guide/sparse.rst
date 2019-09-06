@@ -263,6 +263,14 @@ Instead, you'll need to ensure that the values being assigned are sparse
    df['B'] = pd.SparseArray([0, 0])
    df['B'].dtype
 
+You can check which columns of a :class:`DataFrame` are sparse with the ``.sparse`` accessor ``is_sparse``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 1]),
+                      "B": pd.Series([0, 1])})
+   df.sparse.is_sparse()
+
 The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
 have no replacement.
 

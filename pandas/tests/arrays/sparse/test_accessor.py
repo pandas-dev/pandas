@@ -19,10 +19,21 @@ class TestSeriesAccessor:
 
 
 class TestFrameAccessor:
-    def test_accessor_raises(self):
+    @td.skip_if_no_scipy
+    def test_accessor_raises_to_coo(self):
         df = pd.DataFrame({"A": [0, 1]})
         with pytest.raises(AttributeError, match="sparse"):
-            df.sparse
+            df.sparse.to_coo()
+
+    def test_accessor_raises_to_dense(self):
+        df = pd.DataFrame({"A": [0, 1]})
+        with pytest.raises(AttributeError, match="sparse"):
+            df.sparse.to_dense()
+
+    def test_accessor_raises_density(self):
+        df = pd.DataFrame({"A": [0, 1]})
+        with pytest.raises(AttributeError, match="sparse"):
+            df.sparse.density
 
     @pytest.mark.parametrize("format", ["csc", "csr", "coo"])
     @pytest.mark.parametrize("labels", [None, list(string.ascii_letters[:10])])
@@ -117,3 +128,15 @@ class TestFrameAccessor:
             TypeError, match="Expected coo_matrix. Got csr_matrix instead."
         ):
             pd.Series.sparse.from_coo(m)
+
+    def test_is_sparse(self):
+        df = pd.DataFrame(
+            {
+                "A": pd.SparseArray([1, 0], fill_value=0),
+                "B": pd.SparseArray([0, 1], fill_value=0),
+                "C": pd.Series([0, 0]),
+            }
+        )
+        result = df.sparse.is_sparse()
+        expected = pd.Series([True, True, False], index=df.columns)
+        tm.assert_series_equal(result, expected)
