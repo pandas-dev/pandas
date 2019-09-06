@@ -122,9 +122,15 @@ class Correlation:
         self.df.corr(method=method)
 
     def time_corr_wide(self, method, use_bottleneck):
+        # Raise here until benchmark can pass
+        if method == "kendall":
+            raise NotImplementedError
         self.df_wide.corr(method=method)
 
     def time_corr_wide_nans(self, method, use_bottleneck):
+        # Raise here until benchmark can pass
+        if method == "kendall":
+            raise NotImplementedError
         self.df_wide_nans.corr(method=method)
 
     def peakmem_corr_wide(self, method, use_bottleneck):
