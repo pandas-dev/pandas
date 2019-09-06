@@ -62,10 +62,9 @@ def set_numexpr_threads(n=None):
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b, truediv=True, reversed=False):
+def _evaluate_standard(op, op_str, a, b, reversed=False):
     """ standard evaluation """
-    # truediv and reversed kwargs are included for compatibility
-    #  with _evaluate_numexpr signature
+    # `reversed` kwarg is included for compatibility with _evaluate_numexpr
     if _TEST_MODE:
         _store_test_result(False)
     with np.errstate(all="ignore"):
@@ -98,7 +97,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False):
+def _evaluate_numexpr(op, op_str, a, b, reversed=False):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
@@ -113,7 +112,6 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False):
                 "a_value {op} b_value".format(op=op_str),
                 local_dict={"a_value": a_value, "b_value": b_value},
                 casting="safe",
-                truediv=truediv,
             )
         except ValueError as detail:
             if "unknown type object" in str(detail):
@@ -202,7 +200,7 @@ def _bool_arith_check(
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr=True, truediv=True, reversed=False):
+def evaluate(op, op_str, a, b, use_numexpr=True, reversed=False):
     """
     Evaluate and return the expression of the op on a and b.
 
@@ -215,13 +213,12 @@ def evaluate(op, op_str, a, b, use_numexpr=True, truediv=True, reversed=False):
     b : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
-    truediv : bool, default True
     reversed : bool, default False
     """
 
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, truediv=truediv, reversed=reversed)
+        return _evaluate(op, op_str, a, b, reversed=reversed)
     return _evaluate_standard(op, op_str, a, b)
 
 

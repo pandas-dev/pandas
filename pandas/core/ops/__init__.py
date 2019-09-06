@@ -213,9 +213,6 @@ def _gen_eval_kwargs(name):
             # Exclude commutative operations
             kwargs["reversed"] = True
 
-    if name in ["truediv", "rtruediv"]:
-        kwargs["truediv"] = True
-
     return kwargs
 
 
