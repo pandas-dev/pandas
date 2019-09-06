@@ -2263,7 +2263,7 @@ class NDFrame(PandasObject, SelectionMixin):
         lines: bool_t = False,
         compression: Optional[str] = "infer",
         index: bool_t = True,
-        indent: int = 0,
+        indent: Optional[int] = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2344,7 +2344,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
-        indent : integer, default 0
+        indent : integer, optional
            Length of whitespace used to indent each record.
 
            .. versionadded:: 1.0.0
@@ -2409,6 +2409,12 @@ class NDFrame(PandasObject, SelectionMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
+
+        if indent is None:
+            int_indent = 0
+        else:
+            int_indent = indent
+
         return json.to_json(
             path_or_buf=path_or_buf,
             obj=self,
@@ -2421,7 +2427,7 @@ class NDFrame(PandasObject, SelectionMixin):
             lines=lines,
             compression=compression,
             index=index,
-            indent=indent,
+            indent=int_indent,
         )
 
     def to_hdf(self, path_or_buf, key, **kwargs):
