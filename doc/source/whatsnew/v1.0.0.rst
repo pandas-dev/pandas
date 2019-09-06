@@ -46,9 +46,6 @@ Backwards incompatible API changes
 
    intv_arr = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
    intv_arr
-   IntervalArray([(0, 1], (2, 3]],
-                 closed='right',
-                 dtype='interval[int64]')
 
 *pandas 1.0.0*
 
@@ -56,9 +53,6 @@ Backwards incompatible API changes
 
    intv_arr = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
    intv_arr
-   IntervalArray([(0, 1], (2, 3]],
-                 closed='right',
-                 dtype='interval[int64]')
 
 
 .. _whatsnew_1000.api.other:
