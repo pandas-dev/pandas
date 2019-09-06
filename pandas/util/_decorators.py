@@ -18,8 +18,8 @@ import warnings
 # error: No library stub file for module 'pandas._libs.properties'
 from pandas._libs.properties import cache_readonly  # type: ignore # noqa
 
-FuncType = Callable[..., Any]
-F = TypeVar("F", bound=FuncType)
+_FuncType = Callable[..., Any]
+_F = TypeVar("_F", bound=_FuncType)
 
 
 def deprecate(
@@ -107,7 +107,7 @@ def deprecate_kwarg(
     new_arg_name: Optional[str],
     mapping: Optional[Union[Dict[Any, Any], Callable[[Any], Any]]] = None,
     stacklevel: int = 2,
-) -> Callable[..., Any]:
+) -> Callable[[_F], _F]:
     """
     Decorator to deprecate a keyword argument of a function.
 
@@ -175,7 +175,7 @@ def deprecate_kwarg(
             "mapping from old to new argument values " "must be dict or callable!"
         )
 
-    def _deprecate_kwarg(func: F) -> F:
+    def _deprecate_kwarg(func: _F) -> _F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Callable[..., Any]:
             old_arg_value = kwargs.pop(old_arg_name, None)
@@ -222,7 +222,7 @@ def deprecate_kwarg(
                     kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
-        return cast(F, wrapper)
+        return cast(_F, wrapper)
 
     return _deprecate_kwarg
 
@@ -230,7 +230,7 @@ def deprecate_kwarg(
 def rewrite_axis_style_signature(
     name: str, extra_params: List[Tuple[str, Any]]
 ) -> Callable[..., Any]:
-    def decorate(func: F) -> F:
+    def decorate(func: _F) -> _F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Callable[..., Any]:
             return func(*args, **kwargs)
@@ -251,7 +251,7 @@ def rewrite_axis_style_signature(
 
         # https://github.com/python/typing/issues/598
         func.__signature__ = sig  # type: ignore
-        return cast(F, wrapper)
+        return cast(_F, wrapper)
 
     return decorate
 
@@ -295,7 +295,7 @@ class Substitution:
 
         self.params = args or kwargs
 
-    def __call__(self, func: F) -> F:
+    def __call__(self, func: _F) -> _F:
         func.__doc__ = func.__doc__ and func.__doc__ % self.params
         return func
 
@@ -335,7 +335,7 @@ class Appender:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func: F) -> F:
+    def __call__(self, func: _F) -> _F:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]

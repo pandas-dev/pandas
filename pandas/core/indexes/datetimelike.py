@@ -736,7 +736,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @deprecate_kwarg(old_arg_name="n", new_arg_name="periods")
-    def shift(self, periods, freq=None):
+    def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
