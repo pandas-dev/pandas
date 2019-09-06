@@ -7,7 +7,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_s3_url
+from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 
 def get_engine(engine):
@@ -159,7 +159,7 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
-        if is_s3_url(path):
+        if is_s3_url(path) or is_gcs_url(path):
             # path is s3:// so we need to open the s3file in 'wb' mode.
             # TODO: Support 'ab'
 
