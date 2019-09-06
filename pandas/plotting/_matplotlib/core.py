@@ -1,5 +1,5 @@
 import re
-from typing import Optional  # noqa
+from typing import Optional  # noqa:F401
 import warnings
 
 import numpy as np
