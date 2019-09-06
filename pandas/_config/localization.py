@@ -103,10 +103,10 @@ def _default_locale_getter():
     except subprocess.CalledProcessError as err:
         # "locale -a" is not (always?) defined on Windows
         raise type(err)(
-            returncode=errr.returncode,
+            returncode=err.returncode,
             cmd=err.cmd,
             output="{exception}, the 'locale -a' command cannot be found "
-            "on your system".format(exception=err)
+            "on your system".format(exception=err),
         )
     return raw_locales
 
