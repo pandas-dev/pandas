@@ -1796,3 +1796,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             assert json.loads(result) == json.loads(expected)
         else:
             assert result == expected
+
+    def test_json_negative_indent_raises(self):
+        with pytest.raises(ValueError, match="must be a nonnegative integer"):
+            pd.DataFrame().to_json(indent=-1)

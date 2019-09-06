@@ -2359,6 +2359,13 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         read_json
 
+        Notes
+        -----
+        The behavior of ``indent=0`` varies from the stdlib, which does not
+        indent the output but does insert newlines. Currently, ``indent=0``
+        and the default ``indent=None`` are equivalent in pandas, though this
+        may change in a future release.
+
         Examples
         --------
 
@@ -2410,6 +2417,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif date_format is None:
             date_format = "epoch"
 
+        config.is_nonnegative_int(indent)
         if indent is None:
             int_indent = 0
         else:
