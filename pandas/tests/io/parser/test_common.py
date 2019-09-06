@@ -11,6 +11,7 @@ from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
+from urllib.error import URLError
 
 import numpy as np
 import pytest
@@ -21,7 +22,6 @@ from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas.util.testing as tm
 
-from pandas.io.common import URLError
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
 
