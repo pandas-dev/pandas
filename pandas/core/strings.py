@@ -2107,7 +2107,9 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return [others[x] for x in others]
-        elif is_list_like(others, allow_sets=False) and not isinstance(others,type(self)):
+        elif is_list_like(others, allow_sets=False) and not isinstance(
+            others, type(self)
+        ):
             others = list(others)  # ensure iterators do not get read twice etc
 
             # in case of list-like `others`, all elements must be
