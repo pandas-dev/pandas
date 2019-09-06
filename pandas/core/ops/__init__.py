@@ -807,7 +807,13 @@ def _bool_method_SERIES(cls, op, special):
         return result
 
     fill_int = lambda x: x.fillna(0)
-    fill_bool = lambda x: x.fillna(False).astype(bool)
+
+    def fill_bool(x, left=None):
+        # if `left` is specifically not-boolean, we do not cast to bool
+        x = x.fillna(False)
+        if left is None or is_bool_dtype(left.dtype):
+            x = x.astype(bool)
+        return x
 
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
@@ -836,7 +842,7 @@ def _bool_method_SERIES(cls, op, special):
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
             # scalars, list, tuple, np.array

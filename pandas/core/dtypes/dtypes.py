@@ -24,7 +24,7 @@ str_type = str
 ordered_sentinel = object()  # type: object
 
 
-def register_extension_dtype(cls: Type[ExtensionDtype],) -> Type[ExtensionDtype]:
+def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     """
     Register an ExtensionType with pandas as class decorator.
 
