@@ -139,7 +139,7 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
     """
     try:
         raw_locales = locale_getter()
-    except Exception:
+    except subprocess.CalledProcessError:
         return None
 
     try:
