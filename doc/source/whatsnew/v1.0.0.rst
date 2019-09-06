@@ -89,7 +89,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
-- Bug in merge on CategoricalIndex fails if left_index=True & right_index=True, but not if on={index} (:issue:`28189`)
+- Bug in merge on CategoricalIndex fails if ``left_index=True`` & ``right_index=True``, but not if ``on={index}`` (:issue:`28189`)
 -
 
 
