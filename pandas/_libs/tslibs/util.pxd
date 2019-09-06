@@ -2,6 +2,11 @@
 from cpython cimport PyTypeObject
 
 cdef extern from *:
+    """
+    PyObject* char_to_string(const char* data) {
+        return PyUnicode_FromString(data);
+    }
+    """
     object char_to_string(const char* data)
 
 
