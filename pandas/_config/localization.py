@@ -100,10 +100,13 @@ def _valid_locales(locales, normalize):
 def _default_locale_getter():
     try:
         raw_locales = subprocess.check_output(["locale -a"], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)(
-            "{exception}, the 'locale -a' command cannot be found "
-            "on your system".format(exception=e)
+    except subprocess.CalledProcessError as err:
+        # "locale -a" is not (always?) defined on Windows
+        raise type(err)(
+            returncode=errr.returncode,
+            cmd=err.cmd,
+            output="{exception}, the 'locale -a' command cannot be found "
+            "on your system".format(exception=err)
         )
     return raw_locales
 
