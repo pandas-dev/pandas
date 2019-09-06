@@ -437,6 +437,11 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=message):
             s.str.cat("    ")
 
+        # test whether error is raise when others is StringMethod
+        message = "others must be Series, Index, DataFrame,.*"
+        with pytest.raises(TypeError, match=message):
+            s.str.cat(others=s.str)
+
     @pytest.mark.parametrize("sep", ["", None])
     @pytest.mark.parametrize("dtype_target", ["object", "category"])
     @pytest.mark.parametrize("dtype_caller", ["object", "category"])
