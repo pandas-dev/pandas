@@ -126,7 +126,7 @@ class _Window(PandasObject, SelectionMixin):
         obj = self._selected_obj
 
         # filter out the on from the object
-        if self.on is not None:
+        if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         blocks = obj._to_dict_of_blocks(copy=False).values()
@@ -1709,8 +1709,10 @@ class Rolling(_Rolling_and_Expanding):
         """
         Validate monotonic (increasing or decreasing).
         """
-        if not self._on.is_monotonic_increasing and self._on.is_monotonic_decreasing:
-            formatted = self.on or "index"
+        if not self._on.is_monotonic_increasing and not self._on.is_monotonic_decreasing:
+            formatted = self.on
+            if self.on is None:
+                formatted = "index"
             raise ValueError("{0} must be monotonic".format(formatted))
 
     def _validate_freq(self):
