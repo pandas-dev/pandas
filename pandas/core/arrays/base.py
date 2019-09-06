@@ -1164,10 +1164,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             if op.__name__ in {"divmod", "rdivmod"}:
                 a, b = zip(*res)
-                res = _maybe_convert(a), _maybe_convert(b)
-            else:
-                res = _maybe_convert(res)
-            return res
+                return _maybe_convert(a), _maybe_convert(b)
+
+            return _maybe_convert(res)
 
         op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)

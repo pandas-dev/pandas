@@ -458,6 +458,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
+            return None
         else:
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty

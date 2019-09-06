@@ -858,7 +858,10 @@ def _bool_method_SERIES(cls, op, special):
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
-        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
+        if is_self_int_dtype and is_other_int_dtype:
+            filler = fill_int
+        else:
+            filler = fill_bool
         res_values = na_op(self.values, ovalues)
         unfilled = self._constructor(res_values, index=self.index, name=res_name)
         filled = filler(unfilled)

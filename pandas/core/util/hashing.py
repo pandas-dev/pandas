@@ -2,6 +2,7 @@
 data hash pandas / numpy objects
 """
 import itertools
+from typing import Iterator
 
 # error: No library stub file for module 'numpy'
 import numpy as np  # type: ignore
@@ -113,7 +114,7 @@ def hash_pandas_object(
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series.values) for _, series in obj.items())
+        hashes: Iterator = (hash_array(series.values) for _, series in obj.items())
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -123,7 +124,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values  # noqa
+                ).values
                 for _ in [None]
             )
             num_items += 1
