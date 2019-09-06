@@ -381,10 +381,13 @@ class TestRolling(Base):
     def test_rolling_multi_index(self):
         df = pd.DataFrame(
             {'column': range(6)},
-            index=pd.MultiIndex.from_product([pd.date_range('20190101', periods=3), range(2)], names=['date', 'seq'])
+            index=pd.MultiIndex.from_product(
+                [pd.date_range('20190101', periods=3), range(2)],
+                names=['date', 'seq']
+            )
         )
         result = df.rolling('10d', on=df.index.get_level_values('date')).sum()
         tm.assert_frame_equal(
             result,
-            pd.DataFrame({'column': [0., 1., 3., 6., 10., 15.]}, index = df.index)
+            pd.DataFrame({'column': [0., 1., 3., 6., 10., 15.]}, index=df.index)
         )

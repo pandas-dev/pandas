@@ -1709,7 +1709,10 @@ class Rolling(_Rolling_and_Expanding):
         """
         Validate monotonic (increasing or decreasing).
         """
-        if not self._on.is_monotonic_increasing and not self._on.is_monotonic_decreasing:
+        if (
+            not self._on.is_monotonic_increasing
+            and not self._on.is_monotonic_decreasing
+        ):
             formatted = self.on
             if self.on is None:
                 formatted = "index"
