@@ -14,11 +14,11 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    NaT,
     Series,
     Timestamp,
     date_range,
     isna,
-    NaT,
 )
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td, testing as tm
