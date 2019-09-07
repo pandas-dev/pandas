@@ -65,8 +65,9 @@ def set_numexpr_threads(n=None):
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b, **eval_kwargs):
+def _evaluate_standard(op, op_str, a, b, reversed=False):
     """ standard evaluation """
+    # `reversed` kwarg is included for compatibility with _evaluate_numexpr
     if _TEST_MODE:
         _store_test_result(False)
     with np.errstate(all="ignore"):
@@ -99,7 +100,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False, **eval_kwargs):
+def _evaluate_numexpr(op, op_str, a, b, reversed=False):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
@@ -114,8 +115,6 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True, reversed=False, **eval_kwa
                 "a_value {op} b_value".format(op=op_str),
                 local_dict={"a_value": a_value, "b_value": b_value},
                 casting="safe",
-                truediv=truediv,
-                **eval_kwargs
             )
         except ValueError as detail:
             if "unknown type object" in str(detail):
@@ -204,7 +203,7 @@ def _bool_arith_check(
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
+def evaluate(op, op_str, a, b, use_numexpr=True, reversed=False):
     """
     Evaluate and return the expression of the op on a and b.
 
@@ -217,11 +216,12 @@ def evaluate(op, op_str, a, b, use_numexpr=True, **eval_kwargs):
     b : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
+    reversed : bool, default False
     """
 
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, **eval_kwargs)
+        return _evaluate(op, op_str, a, b, reversed=reversed)
     return _evaluate_standard(op, op_str, a, b)
 
 

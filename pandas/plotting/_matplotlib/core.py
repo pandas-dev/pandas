@@ -1,5 +1,5 @@
 import re
-from typing import Optional  # noqa
+from typing import Optional
 import warnings
 
 # error: No library stub file for module 'numpy'

@@ -1148,6 +1148,10 @@ class SeriesGroupBy(GroupBy):
 
         val = self.obj._internal_get_values()
 
+        # GH 27951
+        # temporary fix while we wait for NumPy bug 12629 to be fixed
+        val[isna(val)] = np.datetime64("NaT")
+
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes

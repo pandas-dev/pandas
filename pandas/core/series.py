@@ -1115,9 +1115,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     return self.__getitem__(new_key)
                 raise
 
-        except Exception:
-            raise
-
         if is_iterator(key):
             key = list(key)
 
