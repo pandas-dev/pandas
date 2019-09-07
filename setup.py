@@ -300,12 +300,12 @@ class CleanCommand(Command):
         for clean_me in self._clean_me:
             try:
                 os.unlink(clean_me)
-            except Exception:
+            except OSError:
                 pass
         for clean_tree in self._clean_trees:
             try:
                 shutil.rmtree(clean_tree)
-            except Exception:
+            except OSError:
                 pass
 
 
