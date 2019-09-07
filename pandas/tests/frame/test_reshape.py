@@ -1013,14 +1013,13 @@ class TestDataFrameReshape(TestData):
     def test_stack_multi_columns_non_unique_index(self, index, columns):
         # GH-28301
         df = pd.DataFrame(index=index, columns=columns).fillna(1)
-        stacked = df.stack(-1)
-        new_index = pd.MultiIndex.from_tuples(stacked.index.values)
-
-        tm.assert_index_equal(stacked.index, new_index)
-
-        a = np.asarray(stacked.index.codes)
-        b = np.asarray(new_index.codes)
-        tm.assert_numpy_array_equal(a, b)
+        stacked = df.stack()
+        new_index = pd.MultiIndex.from_tuples(stacked.index.to_numpy())
+        expected = pd.DataFrame(stacked.to_numpy(), index=new_index, columns=stacked.columns)
+        tm.assert_frame_equal(stacked, expected)
+        stacked_codes = np.asarray(stacked.index.codes)
+        expected_codes = np.asarray(new_index.codes)
+        tm.assert_numpy_array_equal(stacked_codes, expected_codes)
 
     @pytest.mark.parametrize("level", [0, 1])
     def test_unstack_mixed_extension_types(self, level):
