@@ -1898,7 +1898,10 @@ def test_null_byte_char(all_parsers):
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
-        msg = "NULL byte detected"
+        if compat.PY38:
+            msg = "line contains NUL"
+        else:
+            msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), names=names)
 
