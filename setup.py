@@ -277,6 +277,7 @@ class CleanCommand(Command):
                     ".pyo",
                     ".pyd",
                     ".c",
+                    ".cpp",
                     ".orig",
                 ):
                     self._clean_me.append(filepath)
