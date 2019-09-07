@@ -113,8 +113,8 @@ class Correlation:
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.df2 = pd.DataFrame(np.random.randn(1000, 30))
-        self.df_wide = pd.DataFrame(np.random.randn(1000, 300))
-        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 300)) < 0.9)
+        self.df_wide = pd.DataFrame(np.random.randn(1000, 200))
+        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 200)) < 0.9)
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
