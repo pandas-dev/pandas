@@ -1015,7 +1015,9 @@ class TestDataFrameReshape(TestData):
         df = pd.DataFrame(index=index, columns=columns).fillna(1)
         stacked = df.stack()
         new_index = pd.MultiIndex.from_tuples(stacked.index.to_numpy())
-        expected = pd.DataFrame(stacked.to_numpy(), index=new_index, columns=stacked.columns)
+        expected = pd.DataFrame(
+            stacked.to_numpy(), index=new_index, columns=stacked.columns
+        )
         tm.assert_frame_equal(stacked, expected)
         stacked_codes = np.asarray(stacked.index.codes)
         expected_codes = np.asarray(new_index.codes)
