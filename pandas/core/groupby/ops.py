@@ -464,7 +464,7 @@ class BaseGrouper:
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
             raise NotImplementedError(
-                "{} are not supported in Cython operations".format(values.dtype)
+                "{} dtype not supported".format(values.dtype)
             )
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
