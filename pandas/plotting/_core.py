@@ -1,22 +1,20 @@
 import importlib
-from typing import List, Type  # noqa
 import warnings
 
+from pandas._config import get_option
+
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas
 from pandas.core.base import PandasObject
 
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
 # we can lazily import matplotlib.
-try:
-    import pandas.plotting._matplotlib  # noqa
-except ImportError:
-    pass
+import_optional_dependency("pandas.plotting._matplotlib", raise_on_missing=False)
 
 
 def hist_series(
@@ -732,7 +730,7 @@ class PlotAccessor(PandasObject):
         # `x` parameter, and return a Series with the parameter `y` as values.
         data = self._parent.copy()
 
-        if isinstance(data, pandas.core.dtypes.generic.ABCSeries):
+        if isinstance(data, ABCSeries):
             kwargs["reuse_plot"] = True
 
         if kind in self._dataframe_kinds:
@@ -1603,7 +1601,7 @@ def _get_plot_backend(backend=None):
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
-    backend = backend or pandas.get_option("plotting.backend")
+    backend = backend or get_option("plotting.backend")
 
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
