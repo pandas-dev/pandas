@@ -1002,6 +1002,26 @@ class TestDataFrameReshape(TestData):
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "index, columns",
+        [
+            ([0, 0, 1, 1], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
+            ([0, 0, 2, 3], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
+            ([0, 1, 2, 3], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
+        ],
+    )
+    def test_stack_multi_columns_non_unique_index(self, index, columns):
+        # GH-28301
+        df = pd.DataFrame(index=index, columns=columns).fillna(1)
+        stacked = df.stack(-1)
+        new_index = pd.MultiIndex.from_tuples(stacked.index.values)
+
+        tm.assert_index_equal(stacked.index, new_index)
+
+        a = np.asarray(stacked.index.codes)
+        b = np.asarray(new_index.codes)
+        tm.assert_numpy_array_equal(a, b)
+
     @pytest.mark.parametrize("level", [0, 1])
     def test_unstack_mixed_extension_types(self, level):
         index = pd.MultiIndex.from_tuples(
