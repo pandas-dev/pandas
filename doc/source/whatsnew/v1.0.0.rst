@@ -98,6 +98,7 @@ Datetimelike
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
+- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 -
 
 
