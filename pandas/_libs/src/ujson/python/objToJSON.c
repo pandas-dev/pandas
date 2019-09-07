@@ -435,7 +435,7 @@ static void *PyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     return NULL;
 }
 
-static void *PyStringToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                             size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
@@ -1869,7 +1869,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyBytes_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyStringToUTF8;
+        pc->PyTypeToJSON = PyBytesToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyUnicode_Check(obj)) {
