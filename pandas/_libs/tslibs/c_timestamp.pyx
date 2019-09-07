@@ -320,6 +320,10 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
+        elif is_datetime64_object(self):
+            # GH#28286 cython semantics for __rsub__, `other` is actually
+            #  the Timestamp
+            return type(other)(self) - other
 
         return NotImplemented
 
