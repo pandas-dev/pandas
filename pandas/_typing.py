@@ -1,5 +1,15 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    AnyStr,
+    Collection,
+    Hashable,
+    Iterable,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -28,4 +38,4 @@ FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
 Ordered = Optional[bool]
-Axes = Iterable[Union["Index", Iterable[str]]]
+Axes = Iterable[Union["Index", Collection[Hashable]]]
