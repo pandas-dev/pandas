@@ -1348,6 +1348,11 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_with_varying_types(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
         # varying types
         Point = make_dataclass("Point", [("x", int), ("y", int)])
         HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
@@ -1359,6 +1364,11 @@ class TestDataFrameConstructors:
         )
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_error_thrown(self):
+        # GH21910
+        from dataclasses import make_dataclass
 
         # expect TypeError
         with pytest.raises(TypeError):
