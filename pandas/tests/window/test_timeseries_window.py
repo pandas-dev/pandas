@@ -105,10 +105,15 @@ class TestRollingTS:
         assert df.index.is_monotonic
         df.rolling("2s").sum()
 
-        # non-monotonic
+    def test_non_monotonic_on(self):
+        df = DataFrame(
+            {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
+        )
+        df.set_index("A", inplace=True)
         non_monotonic_index = df.index.to_list()
         non_monotonic_index[0] = non_monotonic_index[3]
         df.index = non_monotonic_index
+
         assert not df.index.is_monotonic
 
         with pytest.raises(ValueError):
@@ -692,3 +697,34 @@ class TestRollingTS:
 
         expected2 = ss.rolling(3, min_periods=1).cov()
         tm.assert_series_equal(result, expected2)
+
+    def test_rolling_on_decreasing_index(self):
+        # GH-19248
+        index = [
+            pd.Timestamp("20190101 09:00:00"),
+            pd.Timestamp("20190101 09:00:02"),
+            pd.Timestamp("20190101 09:00:03"),
+            pd.Timestamp("20190101 09:00:05"),
+            pd.Timestamp("20190101 09:00:06"),
+        ]
+
+        df = pd.DataFrame({"column": [3, 4, 4, 2, 1]}, index=reversed(index))
+        result = df.rolling("2s").min()
+        expected = (
+            pd.DataFrame({"column": [3.0, 3.0, 3.0, 2.0, 1.0]}, index=reversed(index)),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_multi_index_level(self):
+        # GH-15584
+        df = pd.DataFrame(
+            {"column": range(6)},
+            index=pd.MultiIndex.from_product(
+                [pd.date_range("20190101", periods=3), range(2)], names=["date", "seq"]
+            ),
+        )
+        result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
+        expected = (
+            pd.DataFrame({"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index),
+        )
+        tm.assert_frame_equal(result, expected)
