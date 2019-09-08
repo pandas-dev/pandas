@@ -140,7 +140,8 @@ cdef class _Timestamp(datetime):
 
         try:
             stamp += zone.strftime(' %%Z')
-        except:
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
             pass
 
         tz = ", tz='{0}'".format(zone) if zone is not None else ""
