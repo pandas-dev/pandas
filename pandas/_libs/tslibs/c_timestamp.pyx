@@ -251,6 +251,14 @@ cdef class _Timestamp(datetime):
                 result = result.normalize()
             return result
 
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise ValueError("Cannot add integer-dtype array "
+                                     "to Timestamp without freq.")
+                return self.freq * other + self
+
         # index/series like
         elif hasattr(other, '_typ'):
             return NotImplemented
@@ -268,16 +276,17 @@ cdef class _Timestamp(datetime):
             neg_other = -other
             return self + neg_other
 
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise ValueError("Cannot subtract integer-dtype array "
+                                     "from Timestamp without freq.")
+                return self - self.freq * other
+
         typ = getattr(other, '_typ', None)
-
-        # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        if typ in ('datetimeindex', 'datetimearray'):
-            # timezone comparison is performed in DatetimeIndex._sub_datelike
-            return -other.__sub__(self)
-
-        # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif typ in ('timedeltaindex', 'timedeltaarray'):
-            return (-other).__add__(self)
+        if typ is not None:
+            return NotImplemented
 
         elif other is NaT:
             return NaT
@@ -302,6 +311,11 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
+
+        elif is_datetime64_object(self):
+            # GH#28286 cython semantics for __rsub__, `other` is actually
+            #  the Timestamp
+            return type(other)(self) - other
 
         # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
         # same timezone if specified)

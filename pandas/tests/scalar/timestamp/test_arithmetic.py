@@ -66,6 +66,20 @@ class TestTimestampArithmetic:
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 
+    def test_rsub_dtscalars(self, tz_naive_fixture):
+        # In particular, check that datetime64 - Timestamp works GH#28286
+        td = Timedelta(1235345642000)
+        ts = Timestamp.now(tz_naive_fixture)
+        other = ts + td
+
+        assert other - ts == td
+        assert other.to_pydatetime() - ts == td
+        if tz_naive_fixture is None:
+            assert other.to_datetime64() - ts == td
+        else:
+            with pytest.raises(TypeError, match="subtraction must have"):
+                other.to_datetime64() - ts
+
     def test_timestamp_sub_datetime(self):
         dt = datetime(2013, 10, 12)
         ts = Timestamp(datetime(2013, 10, 13))
@@ -151,3 +165,56 @@ class TestTimestampArithmetic:
         result = ts + other
         valdiff = result.value - ts.value
         assert valdiff == expected_difference
+
+    @pytest.mark.parametrize("ts", [Timestamp.now(), Timestamp.now("utc")])
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            np.array([1, 2], dtype=np.int32),
+            np.array([3, 4], dtype=np.uint64),
+        ],
+    )
+    def test_add_int_no_freq_raises(self, ts, other):
+        with pytest.raises(ValueError, match="without freq"):
+            ts + other
+        with pytest.raises(ValueError, match="without freq"):
+            other + ts
+
+        with pytest.raises(ValueError, match="without freq"):
+            ts - other
+        with pytest.raises(TypeError):
+            other - ts
+
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("1776-07-04", freq="D"),
+            Timestamp("1776-07-04", tz="UTC", freq="D"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            np.array([1, 2], dtype=np.int32),
+            np.array([3, 4], dtype=np.uint64),
+        ],
+    )
+    def test_add_int_with_freq(self, ts, other):
+        with tm.assert_produces_warning(FutureWarning):
+            result1 = ts + other
+        with tm.assert_produces_warning(FutureWarning):
+            result2 = other + ts
+
+        assert np.all(result1 == result2)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = result1 - other
+
+        assert np.all(result == ts)
+
+        with pytest.raises(TypeError):
+            other - ts
