@@ -3005,8 +3005,9 @@ class CategoricalBlock(ExtensionBlock):
             )
         return result
 
-    def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, convert=True):
+    def replace(
+        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
+    ):
         result = self if inplace else self.copy()
         if filter is None:
             categories = result.values.categories.tolist()
@@ -3018,16 +3019,15 @@ class CategoricalBlock(ExtensionBlock):
                     categories[index] = value
                     result.values.rename_categories(categories, inplace=True)
             if convert:
-                return result.convert(by_item=True, numeric=False,
-                                      copy=not inplace)
+                return result.convert(by_item=True, numeric=False, copy=not inplace)
             else:
                 return result
         else:
             if not isna(value):
                 result.values.add_categories(value, inplace=True)
-            return super(CategoricalBlock, result).replace(to_replace, value,
-                                                           inplace, filter,
-                                                           regex, convert)
+            return super(CategoricalBlock, result).replace(
+                to_replace, value, inplace, filter, regex, convert
+            )
 
 
 # -----------------------------------------------------------------
