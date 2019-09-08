@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# See GH#27465 for reference on related-but-unused cython code
 
 cdef extern from "src/skiplist.h":
     ctypedef struct node_t:
