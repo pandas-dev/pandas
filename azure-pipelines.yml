@@ -1,10 +1,10 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 jobs:
 # Mac and Linux use the same template
-- template: ci/azure/posix.yml
-  parameters:
-    name: macOS
-    vmImage: xcode9-macos10.13
+# - template: ci/azure/posix.yml
+#   parameters:
+#     name: macOS
+#     vmImage: xcode9-macos10.13
 
 - template: ci/azure/posix.yml
   parameters:
