@@ -5784,7 +5784,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.20.0
 
-        kwargs : keyword arguments to pass on to the constructor
+        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
