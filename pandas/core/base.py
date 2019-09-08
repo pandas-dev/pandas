@@ -7,11 +7,9 @@ import textwrap
 from typing import Dict, Optional
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
-import pandas._libs.lib as lib  # type: ignore
+import pandas._libs.lib as lib
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError

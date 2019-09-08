@@ -1,8 +1,7 @@
 """
 Routines for filling missing data.
 """
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs import algos, lib
 from pandas.compat._optional import import_optional_dependency
@@ -302,8 +301,7 @@ def _interpolate_scipy_wrapper(
     """
     extra = "{method} interpolation requires SciPy.".format(method=method)
     import_optional_dependency("scipy", extra=extra)
-    # error: No library stub file for module 'scipy'
-    from scipy import interpolate  # type: ignore
+    from scipy import interpolate
 
     new_x = np.asarray(new_x)
 

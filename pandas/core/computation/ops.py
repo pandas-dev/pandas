@@ -6,8 +6,7 @@ from distutils.version import LooseVersion
 from functools import partial
 import operator as op
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 

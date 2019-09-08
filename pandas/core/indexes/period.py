@@ -2,17 +2,11 @@ from datetime import datetime, timedelta
 import warnings
 import weakref
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.tslibs.period'
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, iNaT, resolution
-from pandas._libs.tslibs.period import (  # type: ignore
-    DIFFERENT_FREQ,
-    IncompatibleFrequency,
-    Period,
-)
+from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (

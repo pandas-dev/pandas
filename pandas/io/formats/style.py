@@ -11,8 +11,7 @@ from itertools import product
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple
 from uuid import uuid1
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config import get_option
 
@@ -33,8 +32,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 
 
 try:
-    # error: No library stub file for module 'matplotlib.pyplot'
-    import matplotlib.pyplot as plt  # type: ignore
+    import matplotlib.pyplot as plt
     from matplotlib import colors
 
     has_mpl = True

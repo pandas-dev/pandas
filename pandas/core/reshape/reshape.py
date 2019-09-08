@@ -1,15 +1,11 @@
 from functools import partial
 import itertools
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.algos'
-# error: No library stub file for module 'pandas._libs.reshape'
-# error: No library stub file for module 'pandas._libs.sparse'
-import pandas._libs.algos as libalgos  # type: ignore
-import pandas._libs.reshape as libreshape  # type: ignore
-from pandas._libs.sparse import IntIndex  # type: ignore
+import pandas._libs.algos as libalgos
+import pandas._libs.reshape as libreshape
+from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (

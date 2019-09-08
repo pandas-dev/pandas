@@ -3,8 +3,7 @@ from io import BytesIO
 import pickle
 import warnings
 
-# error: No library stub file for module 'numpy.lib.format'
-from numpy.lib.format import read_array  # type: ignore
+from numpy.lib.format import read_array
 
 from pandas.compat import pickle_compat as pc
 

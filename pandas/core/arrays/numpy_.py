@@ -1,9 +1,7 @@
 import numbers
 
-# error: No library stub file for module 'numpy'
-# error: No library stub file for module 'numpy.lib.mixins'
-import numpy as np  # type: ignore
-from numpy.lib.mixins import NDArrayOperatorsMixin  # type: ignore
+import numpy as np
+from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv

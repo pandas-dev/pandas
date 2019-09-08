@@ -2,11 +2,9 @@ from io import StringIO
 from itertools import islice
 import os
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.json'
-import pandas._libs.json as json  # type: ignore
+import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas.errors import AbstractMethodError
 

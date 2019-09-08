@@ -2,8 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs import ops as libops
 

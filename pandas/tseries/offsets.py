@@ -3,10 +3,8 @@ import functools
 import operator
 from typing import Optional
 
-# error: No library stub file for module 'numpy'
-# error: No library stub file for module 'dateutil.easter'
-from dateutil.easter import easter  # type: ignore
-import numpy as np  # type: ignore
+from dateutil.easter import easter
+import numpy as np
 
 from pandas._libs.tslibs import (
     NaT,

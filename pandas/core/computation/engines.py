@@ -109,8 +109,7 @@ class NumExprEngine(AbstractEngine):
         return str(super().convert())
 
     def _evaluate(self):
-        # error: Cannot find module named 'numexpr'
-        import numexpr as ne  # type: ignore
+        import numexpr as ne
 
         # convert the expression to a valid numexpr expression
         s = self.convert()

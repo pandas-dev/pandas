@@ -6,8 +6,7 @@ import itertools
 import re
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar

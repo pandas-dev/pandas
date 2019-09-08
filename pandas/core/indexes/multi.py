@@ -3,14 +3,12 @@ import datetime
 from sys import getsizeof
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config import get_option
 
-# error: No library stub file for module 'pandas._libs.hashtable'
 from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
-from pandas._libs.hashtable import duplicated_int64  # type: ignore
+from pandas._libs.hashtable import duplicated_int64
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg

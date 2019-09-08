@@ -59,8 +59,7 @@ def in_interactive_session():
 
     def check_main():
         try:
-            # error: Cannot find module named '__main__'
-            import __main__ as main  # type: ignore
+            import __main__ as main
         except ModuleNotFoundError:
             return get_option("mode.sim_interactive")
         return not hasattr(main, "__file__") or get_option("mode.sim_interactive")

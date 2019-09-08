@@ -1,7 +1,6 @@
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
@@ -149,8 +148,7 @@ class KdePlot(HistPlot):
         stacking_id=None,
         **kwds
     ):
-        # error: No library stub file for module 'scipy.stats'
-        from scipy.stats import gaussian_kde  # type: ignore
+        from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
         gkde = gaussian_kde(y, bw_method=bw_method)
@@ -296,8 +294,7 @@ def hist_series(
     bins=10,
     **kwds
 ):
-    # error: No library stub file for module 'matplotlib.pyplot'
-    import matplotlib.pyplot as plt  # type: ignore
+    import matplotlib.pyplot as plt
 
     if by is None:
         if kwds.get("layout", None) is not None:

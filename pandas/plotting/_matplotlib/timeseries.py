@@ -3,19 +3,16 @@
 import functools
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.tslibs.frequencies'
-# error: No library stub file for module 'pandas._libs.tslibs.period'
-from pandas._libs.tslibs.frequencies import (  # type: ignore
+from pandas._libs.tslibs.frequencies import (
     FreqGroup,
     get_base_alias,
     get_freq,
     is_subperiod,
     is_superperiod,
 )
-from pandas._libs.tslibs.period import Period  # type: ignore
+from pandas._libs.tslibs.period import Period
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -53,8 +50,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
     .. deprecated:: 0.23.0
        Use Series.plot() instead
     """
-    # error: No library stub file for module 'matplotlib.pyplot'
-    import matplotlib.pyplot as plt  # type: ignore
+    import matplotlib.pyplot as plt
 
     warnings.warn(
         "'tsplot' is deprecated and will be removed in a "

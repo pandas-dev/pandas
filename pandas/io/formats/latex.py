@@ -3,8 +3,7 @@ Module for formatting output data in Latex.
 """
 from typing import IO, List, Optional, Tuple
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 

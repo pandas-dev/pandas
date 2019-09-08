@@ -4,11 +4,9 @@ data hash pandas / numpy objects
 import itertools
 from typing import Iterator
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.hashing'
-import pandas._libs.hashing as hashing  # type: ignore
+import pandas._libs.hashing as hashing
 import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar

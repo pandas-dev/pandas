@@ -3,8 +3,7 @@ Templates for invalid operations.
 """
 import operator
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 
 def invalid_comparison(left, right, op):

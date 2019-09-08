@@ -1,5 +1,4 @@
-# error: No library stub file for module 'pandas._libs.json'
-import pandas._libs.json as json  # type: ignore
+import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
@@ -11,8 +10,7 @@ class _XlwtWriter(ExcelWriter):
 
     def __init__(self, path, engine=None, encoding=None, mode="w", **engine_kwargs):
         # Use the xlwt module as the Excel writer.
-        # error: No library stub file for module 'xlwt'
-        import xlwt  # type: ignore
+        import xlwt
 
         engine_kwargs["engine"] = engine
 

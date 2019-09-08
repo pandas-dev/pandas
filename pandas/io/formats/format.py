@@ -27,20 +27,16 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-# error: No library stub file for module 'numpy'
-# error: No library stub file for module 'dateutil.zoneinfo'
 from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile  # type: ignore
-import numpy as np  # type: ignore
+from dateutil.zoneinfo import tzfile
+import numpy as np
 
 from pandas._config.config import get_option, set_option
 
-# error: No library stub file for module 'pandas._libs.tslib'
-# error: No library stub file for module 'pandas._libs.tslibs.nattype'
 from pandas._libs import lib
-from pandas._libs.tslib import format_array_from_datetime  # type: ignore
+from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas._libs.tslibs.nattype import NaTType  # type: ignore
+from pandas._libs.tslibs.nattype import NaTType
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (

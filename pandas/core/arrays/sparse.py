@@ -8,12 +8,10 @@ import re
 from typing import Any, Callable
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.sparse'
 from pandas._libs import index as libindex, lib
-import pandas._libs.sparse as splib  # type: ignore
+import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
@@ -2207,8 +2205,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         and uint64 will result in a float64 dtype.
         """
         import_optional_dependency("scipy")
-        # error: No library stub file for module 'scipy.sparse'
-        from scipy.sparse import coo_matrix  # type: ignore
+        from scipy.sparse import coo_matrix
 
         dtype = find_common_type(self._parent.dtypes)
         if isinstance(dtype, SparseDtype):

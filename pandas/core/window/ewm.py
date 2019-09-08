@@ -1,10 +1,8 @@
 from textwrap import dedent
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.window'
-import pandas._libs.window as libwindow  # type: ignore
+import pandas._libs.window as libwindow
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 

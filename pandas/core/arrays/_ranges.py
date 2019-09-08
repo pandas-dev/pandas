@@ -5,8 +5,7 @@ Helper functions to generate range-like data for DatetimeArray
 
 from typing import Tuple
 
-# No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 

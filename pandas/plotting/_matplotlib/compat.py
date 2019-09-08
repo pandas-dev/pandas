@@ -6,8 +6,7 @@ import operator
 def _mpl_version(version, op):
     def inner():
         try:
-            # error: No library stub file for module 'matplotlib'
-            import matplotlib as mpl  # type: ignore
+            import matplotlib as mpl
         except ImportError:
             return False
         return (

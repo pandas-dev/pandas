@@ -2,12 +2,10 @@ import textwrap
 from typing import Tuple
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
 from pandas._libs.indexing import _NDFrameIndexerBase
-from pandas._libs.lib import item_from_zerodim  # type: ignore
+from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 

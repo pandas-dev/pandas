@@ -1,8 +1,7 @@
 """
 datetimelike delegation
 """
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,

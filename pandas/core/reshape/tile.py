@@ -4,12 +4,10 @@ Quantilization functions and related stuff
 from functools import partial
 from typing import Callable
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
 from pandas._libs import Timedelta, Timestamp
-from pandas._libs.lib import infer_dtype  # type: ignore
+from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,

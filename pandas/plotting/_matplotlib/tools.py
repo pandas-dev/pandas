@@ -2,12 +2,9 @@
 from math import ceil
 import warnings
 
-# error: No library stub file for module 'matplotlib.table'
-# error: No library stub file for module 'matplotlib.ticker'
-# error: No library stub file for module 'numpy'
-import matplotlib.table  # type: ignore
-import matplotlib.ticker as ticker  # type: ignore
-import numpy as np  # type: ignore
+import matplotlib.table
+import matplotlib.ticker as ticker
+import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -182,8 +179,7 @@ def _subplots(
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
-    # error: No library stub file for module 'matplotlib.pyplot'
-    import matplotlib.pyplot as plt  # type: ignore
+    import matplotlib.pyplot as plt
 
     if subplot_kw is None:
         subplot_kw = {}

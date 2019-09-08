@@ -2,12 +2,10 @@ from datetime import datetime, time, timedelta
 import operator
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.join'
 from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
-import pandas._libs.join as libjoin  # type: ignore
+import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 

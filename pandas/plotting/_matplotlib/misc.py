@@ -1,11 +1,8 @@
 import random
 
-# error: No library stub file for module 'matplotlib.lines'
-# error: No library stub file for module 'matplotlib.patches'
-# error: No library stub file for module 'numpy'
-import matplotlib.lines as mlines  # type: ignore
-import matplotlib.patches as patches  # type: ignore
-import numpy as np  # type: ignore
+import matplotlib.lines as mlines
+import matplotlib.patches as patches
+import numpy as np
 
 from pandas.core.dtypes.missing import notna
 
@@ -64,8 +61,7 @@ def scatter_matrix(
                     ax.hist(values, **hist_kwds)
 
                 elif diagonal in ("kde", "density"):
-                    # error: No library stub file for module 'scipy.stats'
-                    from scipy.stats import gaussian_kde  # type: ignore
+                    from scipy.stats import gaussian_kde
 
                     y = values
                     gkde = gaussian_kde(y)
@@ -119,8 +115,7 @@ def _get_marker_compat(marker):
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
-    # error: No library stub file for module 'matplotlib.pyplot'
-    import matplotlib.pyplot as plt  # type: ignore
+    import matplotlib.pyplot as plt
 
     def normalize(series):
         a = min(series)

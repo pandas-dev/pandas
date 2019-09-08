@@ -3,15 +3,12 @@ import textwrap
 from typing import List
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.tslibs.fields'
-# error: No library stub file for module 'pandas._libs.tslibs.timedeltas'
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas._libs.tslibs.fields import get_timedelta_field  # type: ignore
-from pandas._libs.tslibs.timedeltas import (  # type: ignore
+from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     parse_timedelta_unit,
     precision_from_unit,

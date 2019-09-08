@@ -14,14 +14,12 @@ from functools import partial, wraps
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config.config import option_context
 
-# error: No library stub file for module 'pandas._libs.groupby'
 from pandas._libs import Timestamp
-import pandas._libs.groupby as libgroupby  # type: ignore
+import pandas._libs.groupby as libgroupby
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError

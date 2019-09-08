@@ -3,8 +3,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 import warnings
 
-# error: No library stub file for module 'numpy
-import numpy as np  # type: ignore
+import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval

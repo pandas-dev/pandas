@@ -43,14 +43,12 @@ from io import BytesIO
 import os
 import warnings
 
-# error: No library stub file for module 'numpy'
 from dateutil.parser import parse
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas.util._move'
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
-from pandas.util._move import (  # type: ignore
+from pandas.util._move import (
     BadMove as _BadMove,
     move_into_mutable_buffer as _move_into_mutable_buffer,
 )

@@ -23,8 +23,7 @@ from numpy in the following ways:
 """
 import operator
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_scalar
 

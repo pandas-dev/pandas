@@ -12,8 +12,7 @@ import time
 from typing import List, Optional, Type, Union
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config import config, get_option
 
@@ -234,8 +233,7 @@ def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
     if _table_mod is None:
-        # error: Cannot find module named 'tables'
-        import tables  # type: ignore
+        import tables
 
         _table_mod = tables
 

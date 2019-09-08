@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, AnyStr, Optional, TypeVar, Union
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types

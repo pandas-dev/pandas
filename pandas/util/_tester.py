@@ -9,8 +9,7 @@ PKG = os.path.dirname(os.path.dirname(__file__))
 
 def test(extra_args=None):
     try:
-        # error: No library stub file for module 'pytest'
-        import pytest  # type: ignore
+        import pytest
     except ImportError:
         raise ImportError("Need pytest>=4.0.2 to run tests")
     try:

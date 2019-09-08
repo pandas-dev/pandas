@@ -2,8 +2,7 @@
 from typing import Any, Callable, Optional, Union, cast
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
@@ -349,8 +348,7 @@ def is_scipy_sparse(arr) -> bool:
 
     if _is_scipy_sparse is None:
         try:
-            # error: No library stub file for module 'scipy.sparse'
-            from scipy.sparse import issparse as _is_scipy_sparse  # type: ignore
+            from scipy.sparse import issparse as _is_scipy_sparse
 
             _is_scipy_sparse = cast(Callable, _is_scipy_sparse)
         except ImportError:

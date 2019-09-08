@@ -5,13 +5,10 @@ with float64 data
 from collections import abc
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.index'
-# error: No library stub file for module 'pandas._libs.sparse'
-import pandas._libs.index as libindex  # type: ignore
-import pandas._libs.sparse as splib  # type: ignore
+import pandas._libs.index as libindex
+import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution

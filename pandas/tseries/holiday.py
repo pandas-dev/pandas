@@ -2,9 +2,8 @@ from datetime import datetime, timedelta
 from typing import List
 import warnings
 
-# error: No library stub file for module 'numpy'
 from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.errors import PerformanceWarning
 

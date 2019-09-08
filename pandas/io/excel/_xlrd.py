@@ -1,7 +1,6 @@
 from datetime import time
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -23,8 +22,7 @@ class _XlrdReader(_BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        # error: No library stub file for module 'xlrd'
-        from xlrd import Book  # type: ignore
+        from xlrd import Book
 
         return Book
 

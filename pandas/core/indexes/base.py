@@ -4,19 +4,14 @@ from textwrap import dedent
 from typing import Union
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.join'
-# error: No library stub file for module 'pandas._libs.lib'
-# error: No library stub file for module 'pandas._libs.tslibs.period'
-# error: No library stub file for module 'pandas._libs.tslibs.timezones
 from pandas._libs import algos as libalgos, index as libindex, lib
-import pandas._libs.join as libjoin  # type: ignore
-from pandas._libs.lib import is_datetime_array  # type: ignore
+import pandas._libs.join as libjoin
+from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
-from pandas._libs.tslibs.period import IncompatibleFrequency  # type: ignore
-from pandas._libs.tslibs.timezones import tz_compare  # type: ignore
+from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.timezones import tz_compare
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly

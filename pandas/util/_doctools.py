@@ -1,5 +1,4 @@
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 import pandas as pd
 
@@ -49,11 +48,8 @@ class TablePlotter:
         vertical : bool
             If True, use vertical layout. If False, use horizontal layout.
         """
-        # error: No library stub file for module 'matplotlib.pyplot'
-        import matplotlib.pyplot as plt  # type: ignore
-
-        # error: No library stub file for module 'matplotlib.gridspec'
-        import matplotlib.gridspec as gridspec  # type: ignore
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
 
         if not isinstance(left, list):
             left = [left]

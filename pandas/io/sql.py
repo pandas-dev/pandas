@@ -9,11 +9,9 @@ from functools import partial
 import re
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
-import pandas._libs.lib as lib  # type: ignore
+import pandas._libs.lib as lib
 from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
@@ -43,8 +41,7 @@ def _is_sqlalchemy_connectable(con):
     global _SQLALCHEMY_INSTALLED
     if _SQLALCHEMY_INSTALLED is None:
         try:
-            # error: No library stub file for module 'sqlalchemy'
-            import sqlalchemy  # type: ignore
+            import sqlalchemy
 
             _SQLALCHEMY_INSTALLED = True
         except ImportError:
@@ -239,9 +236,7 @@ def read_sql_table(
             "read_sql_table only supported for SQLAlchemy connectable."
         )
     import sqlalchemy
-
-    # error: No library stub file for module 'sqlalchemy.schema'
-    from sqlalchemy.schema import MetaData  # type: ignore
+    from sqlalchemy.schema import MetaData
 
     meta = MetaData(con, schema=schema)
     try:
@@ -958,8 +953,7 @@ class SQLTable(PandasObject):
         # Needed for inserting typed data containing NULLs, GH 8778.
         col_type = lib.infer_dtype(col, skipna=True)
 
-        # error: No library stub file for module 'sqlalchemy.types'
-        from sqlalchemy.types import (  # type: ignore
+        from sqlalchemy.types import (
             BigInteger,
             Integer,
             Float,

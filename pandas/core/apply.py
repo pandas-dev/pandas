@@ -2,8 +2,7 @@ import inspect
 from typing import Type
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._libs import reduction as libreduction
 from pandas.util._decorators import cache_readonly

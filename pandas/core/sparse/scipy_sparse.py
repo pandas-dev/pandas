@@ -93,8 +93,7 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
     labels respectively. Returns the sparse_matrix, row and column labels.
     """
 
-    # error: No library stub file for module 'scipy.sparse'
-    import scipy.sparse  # type: ignore
+    import scipy.sparse
 
     if ss.index.nlevels < 2:
         raise ValueError("to_coo requires MultiIndex with nlevels > 2")

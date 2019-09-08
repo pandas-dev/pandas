@@ -12,15 +12,11 @@ from textwrap import fill
 from typing import Any, Dict, Set
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
-# error: No library stub file for module 'pandas._libs.ops'
-# error: No library stub file for module 'pandas._libs.parsers'
-import pandas._libs.lib as lib  # type: ignore
-import pandas._libs.ops as libops  # type: ignore
-import pandas._libs.parsers as parsers  # type: ignore
+import pandas._libs.lib as lib
+import pandas._libs.ops as libops
+import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 from pandas.errors import (
     AbstractMethodError,

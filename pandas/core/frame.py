@@ -18,10 +18,8 @@ from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Tuple, Type, TypeVar, Union
 import warnings
 
-# error: No library stub file for module 'numpy'
-# error: No library stub file for module 'numpy.ma'
-import numpy as np  # type: ignore
-import numpy.ma as ma  # type: ignore
+import numpy as np
+import numpy.ma as ma
 
 from pandas._config import get_option
 
@@ -407,8 +405,7 @@ class DataFrame(NDFrame):
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
-            # error: No library stub file for module 'numpy.ma.mrecords'
-            import numpy.ma.mrecords as mrecords  # type: ignore
+            import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -4882,12 +4879,7 @@ class DataFrame(NDFrame):
         Series
         """
         from pandas.core.sorting import get_group_index
-
-        # error: No library stub file for module 'pandas._libs.hashtable'
-        from pandas._libs.hashtable import (  # type: ignore
-            duplicated_int64,
-            _SIZE_HINT_LIMIT,
-        )
+        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
             return Series(dtype=bool)

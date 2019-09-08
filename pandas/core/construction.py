@@ -6,10 +6,8 @@ These should not depend on core.internals.
 """
 from typing import Optional, Sequence, Union, cast
 
-# error: No library stub file for module 'numpy'
-# error: No library stub file for module 'numpy.ma'
-import numpy as np  # type: ignore
-import numpy.ma as ma  # type: ignore
+import numpy as np
+import numpy.ma as ma
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime

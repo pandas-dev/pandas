@@ -2,8 +2,7 @@ import re
 from typing import Optional
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config import get_option
 
@@ -111,8 +110,7 @@ class MPLPlot:
         **kwds
     ):
 
-        # error: No library stub file for module 'matplotlib.pyplot'
-        import matplotlib.pyplot as plt  # type: ignore
+        import matplotlib.pyplot as plt
 
         converter._WARN = False  # no warning for pandas plots
         self.data = data
@@ -856,8 +854,7 @@ class MPLPlot:
         return errors
 
     def _get_subplots(self):
-        # error: No library stub file for module 'matplotlib.axes'
-        from matplotlib.axes import Subplot  # type: ignore
+        from matplotlib.axes import Subplot
 
         return [
             ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
@@ -1196,8 +1193,7 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
-        # error: No library stub file for module 'matplotlib.ticker'
-        from matplotlib.ticker import FixedLocator  # type: ignore
+        from matplotlib.ticker import FixedLocator
 
         def get_label(i):
             try:

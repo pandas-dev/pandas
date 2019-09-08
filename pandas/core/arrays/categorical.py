@@ -4,8 +4,7 @@ import textwrap
 from typing import Type, Union, cast
 from warnings import warn
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
 from pandas._config import get_option
 

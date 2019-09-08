@@ -1,5 +1,4 @@
-# error: No library stub file for module 'pandas._libs.json'
-import pandas._libs.json as json  # type: ignore
+import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
@@ -172,8 +171,7 @@ class _XlsxWriter(ExcelWriter):
         **engine_kwargs
     ):
         # Use the xlsxwriter module as the Excel writer.
-        # error: Cannot find module named 'xlsxwriter'
-        import xlsxwriter  # type: ignore
+        import xlsxwriter
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")

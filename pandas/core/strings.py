@@ -5,13 +5,10 @@ import textwrap
 from typing import Dict, List
 import warnings
 
-# error: No library stub file for module 'numpy'
-import numpy as np  # type: ignore
+import numpy as np
 
-# error: No library stub file for module 'pandas._libs.lib'
-# error: No library stub file for module 'pandas._libs.ops'
-import pandas._libs.lib as lib  # type: ignore
-import pandas._libs.ops as libops  # type: ignore
+import pandas._libs.lib as lib
+import pandas._libs.ops as libops
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
