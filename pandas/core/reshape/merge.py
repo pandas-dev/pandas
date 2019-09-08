@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetimelike,
     is_dtype_equal,
@@ -179,7 +178,7 @@ def merge_ordered(
     """
     Perform merge with optional filling/interpolation designed for ordered
     data like time series data. Optionally perform group-wise merge (see
-    examples)
+    examples).
 
     Parameters
     ----------
@@ -1635,7 +1634,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
+            if is_datetimelike(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):

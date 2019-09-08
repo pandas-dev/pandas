@@ -1,4 +1,5 @@
 import numpy as np
+
 import pandas as pd
 
 
@@ -36,6 +37,23 @@ class ReplaceDict:
         self.s.replace(self.to_rep, inplace=inplace)
 
 
+class ReplaceList:
+    # GH#28099
+
+    params = [(True, False)]
+    param_names = ["inplace"]
+
+    def setup(self, inplace):
+        self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(4 * 10 ** 7))
+
+    def time_replace_list(self, inplace):
+        self.df.replace([np.inf, -np.inf], np.nan, inplace=inplace)
+
+    def time_replace_list_one_match(self, inplace):
+        # the 1 can be held in self._df.blocks[0], while the inf and -inf cant
+        self.df.replace([np.inf, -np.inf, 1], np.nan, inplace=inplace)
+
+
 class Convert:
 
     params = (["DataFrame", "Series"], ["Timestamp", "Timedelta"])
@@ -56,4 +74,4 @@ class Convert:
         self.data.replace(self.to_replace)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

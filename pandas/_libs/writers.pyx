@@ -3,11 +3,6 @@ from cython import Py_ssize_t
 
 from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_SIZE
 
-try:
-    from cpython cimport PyString_GET_SIZE
-except ImportError:
-    from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
-
 import numpy as np
 from numpy cimport ndarray, uint8_t
 
@@ -126,11 +121,9 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     for i in range(length):
         val = arr[i]
         if isinstance(val, str):
-            l = PyString_GET_SIZE(val)
+            l = PyUnicode_GET_SIZE(val)
         elif isinstance(val, bytes):
             l = PyBytes_GET_SIZE(val)
-        elif isinstance(val, unicode):
-            l = PyUnicode_GET_SIZE(val)
 
         if l > m:
             m = l
