@@ -241,10 +241,7 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             tdi - dti
 
-        msg = (
-            r"descriptor '__sub__' requires a 'datetime\.datetime' object"
-            " but received a 'Timedelta'"
-        )
+        msg = r"unsupported operand type\(s\) for -"
         with pytest.raises(TypeError, match=msg):
             td - dt
 
