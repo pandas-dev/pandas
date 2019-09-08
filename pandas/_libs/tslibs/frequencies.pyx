@@ -138,6 +138,10 @@ cpdef get_freq_code(freqstr):
     -------
     return : tuple of base frequency code and stride (mult)
 
+    Raises
+    ------
+    TypeError : if passed a tuple witth incorrect types
+
     Examples
     --------
     >>> get_freq_code('3D')
