@@ -587,10 +587,8 @@ def read_json(
 
     result = json_reader.read()
     if should_close:
-        try:
-            filepath_or_buffer.close()
-        except:  # noqa: flake8
-            pass
+        filepath_or_buffer.close()
+
     return result
 
 
