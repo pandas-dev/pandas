@@ -1114,9 +1114,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     return self.__getitem__(new_key)
                 raise
 
-        except Exception:
-            raise
-
         if is_iterator(key):
             key = list(key)
 
@@ -3620,7 +3617,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.str.split : Split string values on specified separator.
         Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
             to produce DataFrame.
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         DataFrame.explode : Explode a DataFrame from list-like
             columns to long format.
 
@@ -4165,12 +4162,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         kwargs["inplace"] = validate_bool_kwarg(kwargs.get("inplace", False), "inplace")
 
-        non_mapping = is_scalar(index) or (
-            is_list_like(index) and not is_dict_like(index)
-        )
-        if non_mapping:
+        if callable(index) or is_dict_like(index):
+            return super().rename(index=index, **kwargs)
+        else:
             return self._set_name(index, inplace=kwargs.get("inplace"))
-        return super().rename(index=index, **kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)

@@ -10,6 +10,7 @@ from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
+from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -262,7 +263,13 @@ class Index(IndexOpsMixin, PandasObject):
         fastpath=None,
         tupleize_cols=True,
         **kwargs
-    ):
+    ) -> "Index":
+
+        from .range import RangeIndex
+        from pandas import PeriodIndex, DatetimeIndex, TimedeltaIndex
+        from .numeric import Float64Index, Int64Index, UInt64Index
+        from .interval import IntervalIndex
+        from .category import CategoricalIndex
 
         if name is None and hasattr(data, "name"):
             name = data.name
@@ -277,8 +284,6 @@ class Index(IndexOpsMixin, PandasObject):
             if fastpath:
                 return cls._simple_new(data, name)
 
-        from .range import RangeIndex
-
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
@@ -291,16 +296,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
-            from .category import CategoricalIndex
-
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # interval
         elif (
             is_interval_dtype(data) or is_interval_dtype(dtype)
         ) and not is_object_dtype(dtype):
-            from .interval import IntervalIndex
-
             closed = kwargs.get("closed", None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy, closed=closed)
 
@@ -309,8 +310,6 @@ class Index(IndexOpsMixin, PandasObject):
             or is_datetime64_any_dtype(dtype)
             or "tz" in kwargs
         ):
-            from pandas import DatetimeIndex
-
             if is_dtype_equal(_o_dtype, dtype):
                 # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
                 #  will raise in the where `data` is already tz-aware.  So
@@ -318,33 +317,24 @@ class Index(IndexOpsMixin, PandasObject):
                 #  the DatetimeIndex construction.
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
-                result = DatetimeIndex(data, copy=False, name=name, **kwargs)
+                result = DatetimeIndex(
+                    data, copy=False, name=name, **kwargs
+                )  # type: "Index"
                 return result.astype(object)
             else:
-                result = DatetimeIndex(
-                    data, copy=copy, name=name, dtype=dtype, **kwargs
-                )
-                return result
+                return DatetimeIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
         elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
-            from pandas import TimedeltaIndex
-
             if is_dtype_equal(_o_dtype, dtype):
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
                 result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
                 return result.astype(object)
             else:
-                result = TimedeltaIndex(
-                    data, copy=copy, name=name, dtype=dtype, **kwargs
-                )
-                return result
+                return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
         elif is_period_dtype(data) and not is_object_dtype(dtype):
-            from pandas import PeriodIndex
-
-            result = PeriodIndex(data, copy=copy, name=name, **kwargs)
-            return result
+            return PeriodIndex(data, copy=copy, name=name, **kwargs)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -387,8 +377,6 @@ class Index(IndexOpsMixin, PandasObject):
                             pass
 
                         # Return an actual float index.
-                        from .numeric import Float64Index
-
                         return Float64Index(data, copy=copy, dtype=dtype, name=name)
 
                     elif inferred == "string":
@@ -405,19 +393,11 @@ class Index(IndexOpsMixin, PandasObject):
                     data = np.array(data, dtype=dtype, copy=copy)
 
             # maybe coerce to a sub-class
-            from pandas.core.indexes.period import PeriodIndex, IncompatibleFrequency
-
             if is_signed_integer_dtype(data.dtype):
-                from .numeric import Int64Index
-
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
             elif is_unsigned_integer_dtype(data.dtype):
-                from .numeric import UInt64Index
-
                 return UInt64Index(data, copy=copy, dtype=dtype, name=name)
             elif is_float_dtype(data.dtype):
-                from .numeric import Float64Index
-
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype("object")
@@ -440,12 +420,8 @@ class Index(IndexOpsMixin, PandasObject):
                     return Index(subarr, copy=copy, dtype=object, name=name)
                 elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
                     # TODO: Returns IntegerArray for integer-na case in the future
-                    from .numeric import Float64Index
-
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == "interval":
-                    from .interval import IntervalIndex
-
                     try:
                         return IntervalIndex(subarr, name=name, copy=copy)
                     except ValueError:
@@ -456,8 +432,6 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
                 elif inferred != "string":
                     if inferred.startswith("datetime"):
-                        from pandas import DatetimeIndex
-
                         try:
                             return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
                         except (ValueError, OutOfBoundsDatetime):
@@ -467,8 +441,6 @@ class Index(IndexOpsMixin, PandasObject):
                             pass
 
                     elif inferred.startswith("timedelta"):
-                        from pandas import TimedeltaIndex
-
                         return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
                     elif inferred == "period":
                         try:
@@ -2020,7 +1992,7 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "fillna"
     ] = """
-        Fill NA/NaN values with the specified value
+        Fill NA/NaN values with the specified value.
 
         Parameters
         ----------
@@ -2051,7 +2023,7 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "dropna"
     ] = """
-        Return Index without NA/NaN values
+        Return Index without NA/NaN values.
 
         Parameters
         ----------
@@ -2325,7 +2297,10 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(np.array(self) - other)
 
     def __rsub__(self, other):
-        return Index(other - np.array(self))
+        # wrap Series to ensure we pin name correctly
+        from pandas import Series
+
+        return Index(other - Series(self))
 
     def __and__(self, other):
         return self.intersection(other)

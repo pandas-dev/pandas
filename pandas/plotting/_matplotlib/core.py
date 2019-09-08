@@ -1,5 +1,5 @@
 import re
-from typing import Optional  # noqa
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -1101,9 +1101,13 @@ class LinePlot(MPLPlot):
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            if self._is_ts_plot():
+
+                # reset of xlim should be used for ts data
+                # TODO: GH28021, should find a way to change view limit on xaxis
+                lines = _get_all_lines(ax)
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
