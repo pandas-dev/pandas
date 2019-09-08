@@ -1,8 +1,9 @@
 # flake8: noqa
 
-from typing import List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 need_suffix: List[str]
+_offset_to_period_map: Dict[str, str]
 
 # ---------------------------------------------------------------------
 # Misc Helpers

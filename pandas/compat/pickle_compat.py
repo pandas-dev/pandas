@@ -146,7 +146,7 @@ _class_locations_map = {
 # functions for compat
 
 
-class Unpickler(pkl._Unpickler):  # type: ignore
+class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
