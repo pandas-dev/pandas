@@ -1196,10 +1196,10 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
-            try:
-                return pprint_thing(data.index[i])
-            except Exception:
+            if i >= len(data.index):
+                # TODO: is getting here indicative of a larger problem?
                 return ""
+            return pprint_thing(data.index[i])
 
         if self._need_to_set_index:
             xticks = ax.get_xticks()

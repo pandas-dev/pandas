@@ -264,9 +264,11 @@ class DatetimeConverter(dates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return _dt_to_float_ordinal(tools.to_datetime(values))
-            except Exception:
+                dtvalues = tools.to_datetime(values)
+            except (ValueError, TypeError):
                 return values
+            else:
+                return _dt_to_float_ordinal(dtvalues)
 
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
@@ -293,12 +295,13 @@ class DatetimeConverter(dates.DateConverter):
 
             try:
                 values = tools.to_datetime(values)
+            except (ValueError, TypeError):
+                values = _dt_to_float_ordinal(values)
+            else:
                 if isinstance(values, Index):
                     values = _dt_to_float_ordinal(values)
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
-            except Exception:
-                values = _dt_to_float_ordinal(values)
 
         return values
 
@@ -426,12 +429,9 @@ class MilliSecondLocator(dates.DateLocator):
         ed = _from_ordinal(dates.date2num(dmax))
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
-        try:
-            if len(all_dates) > 0:
-                locs = self.raise_if_exceeds(dates.date2num(all_dates))
-                return locs
-        except Exception:  # pragma: no cover
-            pass
+        if len(all_dates) > 0:
+            locs = self.raise_if_exceeds(dates.date2num(all_dates))
+            return locs
 
         lims = dates.date2num([dmin, dmax])
         return lims
