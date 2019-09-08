@@ -3008,18 +3008,12 @@ class CategoricalBlock(ExtensionBlock):
     def replace(
         self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
     ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
         if filter is None:
-            categories = result.values.categories.tolist()
-            if to_replace in categories:
-                if isna(value):
-                    result.values.remove_categories(to_replace, inplace=True)
-                else:
-                    index = categories.index(to_replace)
-                    categories[index] = value
-                    result.values.rename_categories(categories, inplace=True)
+            result.values.replace(to_replace, value, inplace=True)
             if convert:
-                return result.convert(by_item=True, numeric=False, copy=not inplace)
+                return result.convert(numeric=False, copy=not inplace)
             else:
                 return result
         else:

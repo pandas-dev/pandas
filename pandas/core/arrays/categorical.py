@@ -2494,6 +2494,20 @@ class Categorical(ExtensionArray, PandasObject):
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
+    def replace(self, to_replace, value, inplace=False):
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        cat = self if inplace else self.copy()
+        categories = cat.categories.tolist()
+        if to_replace in categories:
+            if isna(value):
+                cat.remove_categories(to_replace, inplace=True)
+            else:
+                index = categories.index(to_replace)
+                categories[index] = value
+                cat.rename_categories(categories, inplace=True)
+        if not inplace:
+            return cat
+
 
 # The Series.cat accessor
 

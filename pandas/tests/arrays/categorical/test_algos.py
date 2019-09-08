@@ -59,6 +59,28 @@ def test_isin_cats():
     tm.assert_numpy_array_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "to_replace, value, result",
+    [
+        ("b", "c", ["a", "c"]),
+        ("c", "d", ["a", "b"]),
+        ("b", None, ["a", None]),
+    ],
+)
+def test_replace(to_replace, value, result):
+    # GH 26988
+    cat = pd.Categorical(["a", "b"])
+    expected = pd.Categorical(result)
+    result = cat.replace(to_replace, value)
+    tm.assert_categorical_equal(result, expected)
+    if to_replace == "b":  # the "c" test is supposed to be unchanged
+        with pytest.raises(AssertionError):
+            # ensure non-inplace call does not affect original
+            tm.assert_categorical_equal(cat, expected)
+    cat.replace(to_replace, value, inplace=True)
+    tm.assert_categorical_equal(cat, expected)
+
+
 @pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])
