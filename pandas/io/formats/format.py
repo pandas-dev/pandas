@@ -27,8 +27,6 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile
 import numpy as np
 
 from pandas._config.config import get_option, set_option
@@ -75,6 +73,9 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
+    from dateutil.tz.tz import tzutc  # noqa:F401
+    from dateutil.zoneinfo import tzfile  # noqa:F401
+
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
@@ -1553,7 +1554,7 @@ def _is_dates_only(
 
 def _format_datetime64(
     x: Union[NaTType, Timestamp],
-    tz: Optional[Union[tzfile, tzutc]] = None,
+    tz: Optional[Union["tzfile", "tzutc"]] = None,
     nat_rep: str = "NaT",
 ) -> str:
     if x is None or (is_scalar(x) and isna(x)):
