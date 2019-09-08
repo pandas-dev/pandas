@@ -15,35 +15,10 @@ Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
-.. _install.dropping-27:
-
-Plan for dropping Python 2.7
-----------------------------
-
-The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
-In line with `NumPy's plans`_, all pandas releases through December 31, 2018
-will support Python 2.
-
-The 0.24.x feature release will be the last release to
-support Python 2. The released package will continue to be available on
-PyPI and through conda.
-
- Starting **January 1, 2019**, all new feature releases (> 0.24) will be Python 3 only.
-
-If there are people interested in continued support for Python 2.7 past December
-31, 2018 (either backporting bug fixes or funding) please reach out to the
-maintainers on the issue tracker.
-
-For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
-
-.. _NumPy's plans: https://github.com/numpy/numpy/blob/master/doc/neps/nep-0014-dropping-python2.7-proposal.rst#plan-for-dropping-python-27-support
-.. _Python 3 statement: http://python3statement.org/
-.. _Porting to Python 3 guide: https://docs.python.org/3/howto/pyporting.html
-
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, 3.6, and 3.7.
+Officially Python 3.5.3 and above, 3.6, and 3.7.
 
 Installing pandas
 -----------------
@@ -236,7 +211,7 @@ Package                                                          Minimum support
 
 .. _install.recommended_dependencies:
 
-Recommended Dependencies
+Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
@@ -255,7 +230,7 @@ Recommended Dependencies
 
 .. _install.optional_dependencies:
 
-Optional Dependencies
+Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 Pandas has many optional dependencies that are only used for specific methods.
@@ -276,15 +251,15 @@ SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for msgpack
 fastparquet               0.2.1              Parquet reading / writing
-gcsfs                     0.1.0              Google Cloud Storage access
+gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                                         HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
 openpyxl                  2.4.8              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.9.0              Parquet and feather reading / writing
-pymysql                                      MySQL engine for sqlalchemy
+pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
@@ -299,7 +274,7 @@ zlib                                         Compression for msgpack
 
 .. _optional_html:
 
-Optional Dependencies for Parsing HTML
+Optional dependencies for parsing HTML
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One of the following combinations of libraries is needed to use the

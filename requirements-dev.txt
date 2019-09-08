@@ -3,6 +3,7 @@ python-dateutil>=2.6.1
 pytz
 asv
 cython>=0.28.2
+black
 cpplint
 flake8
 flake8-comprehensions
@@ -44,7 +45,7 @@ html5lib
 lxml
 openpyxl
 pyarrow>=0.9.0
-pyqt
+pyqt5>=5.9.2
 tables>=3.4.2
 python-snappy
 s3fs
@@ -53,4 +54,5 @@ xarray
 xlrd
 xlsxwriter
 xlwt
+odfpy
 pyreadstat

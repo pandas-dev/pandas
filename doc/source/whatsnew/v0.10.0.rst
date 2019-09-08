@@ -255,7 +255,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
 New features
 ~~~~~~~~~~~~
 
-Wide DataFrame Printing
+Wide DataFrame printing
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Instead of printing the summary information, pandas now splits the string
@@ -290,7 +290,7 @@ The width of each line can be changed via 'line_width' (80 by default):
    wide_frame
 
 
-Updated PyTables Support
+Updated PyTables support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Docs <io.hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
@@ -490,7 +490,7 @@ Updated PyTables Support
 however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
 file and write it out using the new format to take advantage of the updates.
 
-N Dimensional Panels (Experimental)
+N dimensional Panels (experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
@@ -498,7 +498,7 @@ Here is a taste of what to expect.
 
 .. code-block:: ipython
 
-  In [58]: p4d = Panel4D(randn(2, 2, 5, 4),
+  In [58]: p4d = Panel4D(np.random.randn(2, 2, 5, 4),
     ....:       labels=['Label1','Label2'],
     ....:       items=['Item1', 'Item2'],
     ....:       major_axis=date_range('1/1/2000', periods=5),

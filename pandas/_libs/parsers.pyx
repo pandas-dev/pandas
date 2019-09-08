@@ -2,7 +2,6 @@
 # See LICENSE for the license
 import bz2
 import gzip
-import lzma
 import os
 import sys
 import time
@@ -59,8 +58,11 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
+from pandas.compat import _import_lzma, _get_lzma_file
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
+
+lzma = _import_lzma()
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -297,7 +299,6 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
-        object tupleize_cols
         object usecols
         list dtype_cast_order
         set unnamed_cols
@@ -351,7 +352,6 @@ cdef class TextReader:
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False,
                   float_precision=None,
                   skip_blank_lines=True):
 
@@ -370,7 +370,6 @@ cdef class TextReader:
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols = mangle_dupe_cols
-        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []
@@ -648,9 +647,9 @@ cdef class TextReader:
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = lzma.LZMAFile(source, 'rb')
+                    source = _get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = lzma.LZMAFile(filename=source)
+                    source = _get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
@@ -1694,6 +1693,10 @@ cdef:
     char* cposinf = b'+inf'
     char* cneginf = b'-inf'
 
+    char* cinfty = b'Infinity'
+    char* cposinfty = b'+Infinity'
+    char* cneginfty = b'-Infinity'
+
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
@@ -1773,9 +1776,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif strcasecmp(word, cneginf) == 0:
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1794,9 +1800,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0 or
+                        strcasecmp(word, cinfty) == 0 or
+                        strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1

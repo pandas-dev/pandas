@@ -17,7 +17,7 @@ class MyTuple(tuple):
     pass
 
 
-MyNamedTuple = namedtuple('MyNamedTuple', 'x y')
+MyNamedTuple = namedtuple("MyNamedTuple", "x y")
 
 
 def test_types():

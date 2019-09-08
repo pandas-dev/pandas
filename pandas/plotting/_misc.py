@@ -24,9 +24,10 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     -------
     matplotlib table object
     """
-    plot_backend = _get_plot_backend()
-    return plot_backend.table(ax=ax, data=data, rowLabels=None, colLabels=None,
-                              **kwargs)
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.table(
+        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
+    )
 
 
 def register(explicit=True):
@@ -45,9 +46,9 @@ def register(explicit=True):
 
     See Also
     --------
-    deregister_matplotlib_converter
+    deregister_matplotlib_converters
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register(explicit=explicit)
 
 
@@ -64,15 +65,25 @@ def deregister():
 
     See Also
     --------
-    deregister_matplotlib_converters
+    register_matplotlib_converters
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     plot_backend.deregister()
 
 
-def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', density_kwds=None,
-                   hist_kwds=None, range_padding=0.05, **kwds):
+def scatter_matrix(
+    frame,
+    alpha=0.5,
+    figsize=None,
+    ax=None,
+    grid=False,
+    diagonal="hist",
+    marker=".",
+    density_kwds=None,
+    hist_kwds=None,
+    range_padding=0.05,
+    **kwds
+):
     """
     Draw a matrix of scatter plots.
 
@@ -113,11 +124,20 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
-        frame=frame, alpha=alpha, figsize=figsize, ax=ax, grid=grid,
-        diagonal=diagonal, marker=marker, density_kwds=density_kwds,
-        hist_kwds=hist_kwds, range_padding=range_padding, **kwds)
+        frame=frame,
+        alpha=alpha,
+        figsize=figsize,
+        ax=ax,
+        grid=grid,
+        diagonal=diagonal,
+        marker=marker,
+        density_kwds=density_kwds,
+        hist_kwds=hist_kwds,
+        range_padding=range_padding,
+        **kwds
+    )
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
@@ -182,14 +202,21 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...     })
         >>> rad_viz = pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
-    plot_backend = _get_plot_backend()
-    return plot_backend.radviz(frame=frame, class_column=class_column, ax=ax,
-                               color=color, colormap=colormap, **kwds)
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.radviz(
+        frame=frame,
+        class_column=class_column,
+        ax=ax,
+        color=color,
+        colormap=colormap,
+        **kwds
+    )
 
 
-@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
-def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
-                   colormap=None, **kwds):
+@deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
+def andrews_curves(
+    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwds
+):
     """
     Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
@@ -222,10 +249,16 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     -------
     class:`matplotlip.axis.Axes`
     """
-    plot_backend = _get_plot_backend()
-    return plot_backend.andrews_curves(frame=frame, class_column=class_column,
-                                       ax=ax, samples=samples, color=color,
-                                       colormap=colormap, **kwds)
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.andrews_curves(
+        frame=frame,
+        class_column=class_column,
+        ax=ax,
+        samples=samples,
+        color=color,
+        colormap=colormap,
+        **kwds
+    )
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
@@ -274,18 +307,30 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
             >>> s = pd.Series(np.random.uniform(size=100))
             >>> fig = pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
     """
-    plot_backend = _get_plot_backend()
-    return plot_backend.bootstrap_plot(series=series, fig=fig, size=size,
-                                       samples=samples, **kwds)
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.bootstrap_plot(
+        series=series, fig=fig, size=size, samples=samples, **kwds
+    )
 
 
-@deprecate_kwarg(old_arg_name='colors', new_arg_name='color')
-@deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
-def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
-                         use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, axvlines_kwds=None, sort_labels=False,
-                         **kwds):
-    """Parallel coordinates plotting.
+@deprecate_kwarg(old_arg_name="colors", new_arg_name="color")
+@deprecate_kwarg(old_arg_name="data", new_arg_name="frame", stacklevel=3)
+def parallel_coordinates(
+    frame,
+    class_column,
+    cols=None,
+    ax=None,
+    color=None,
+    use_columns=False,
+    xticks=None,
+    colormap=None,
+    axvlines=True,
+    axvlines_kwds=None,
+    sort_labels=False,
+    **kwds
+):
+    """
+    Parallel coordinates plotting.
 
     Parameters
     ----------
@@ -330,16 +375,26 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
             color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
-        frame=frame, class_column=class_column, cols=cols, ax=ax, color=color,
-        use_columns=use_columns, xticks=xticks, colormap=colormap,
-        axvlines=axvlines, axvlines_kwds=axvlines_kwds,
-        sort_labels=sort_labels, **kwds)
+        frame=frame,
+        class_column=class_column,
+        cols=cols,
+        ax=ax,
+        color=color,
+        use_columns=use_columns,
+        xticks=xticks,
+        colormap=colormap,
+        axvlines=axvlines,
+        axvlines_kwds=axvlines_kwds,
+        sort_labels=sort_labels,
+        **kwds
+    )
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    """Lag plot for time series.
+    """
+    Lag plot for time series.
 
     Parameters
     ----------
@@ -352,7 +407,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     -------
     class:`matplotlib.axis.Axes`
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
@@ -362,8 +417,8 @@ def autocorrelation_plot(series, ax=None, **kwds):
 
     Parameters
     ----------
-    series: Time series
-    ax: Matplotlib axis object, optional
+    series : Time series
+    ax : Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -371,7 +426,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
     -------
     class:`matplotlib.axis.Axes`
     """
-    plot_backend = _get_plot_backend()
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwds)
 
 
@@ -392,10 +447,13 @@ def tsplot(series, plotf, ax=None, **kwargs):
     .. deprecated:: 0.23.0
        Use Series.plot() instead
     """
-    warnings.warn("'tsplot' is deprecated and will be removed in a "
-                  "future version. Please use Series.plot() instead.",
-                  FutureWarning, stacklevel=2)
-    plot_backend = _get_plot_backend()
+    warnings.warn(
+        "'tsplot' is deprecated and will be removed in a "
+        "future version. Please use Series.plot() instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
 
 
@@ -408,19 +466,20 @@ class _Options(dict):
     """
 
     # alias so the names are same as plotting method parameter names
-    _ALIASES = {'x_compat': 'xaxis.compat'}
-    _DEFAULT_KEYS = ['xaxis.compat']
+    _ALIASES = {"x_compat": "xaxis.compat"}
+    _DEFAULT_KEYS = ["xaxis.compat"]
 
     def __init__(self, deprecated=False):
         self._deprecated = deprecated
         # self['xaxis.compat'] = False
-        super().__setitem__('xaxis.compat', False)
+        super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
             raise ValueError(
-                '{key} is not a valid pandas plotting option'.format(key=key))
+                "{key} is not a valid pandas plotting option".format(key=key)
+            )
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -430,8 +489,7 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError(
-                'Cannot remove default parameter {key}'.format(key=key))
+            raise ValueError("Cannot remove default parameter {key}".format(key=key))
         return super().__delitem__(key)
 
     def __contains__(self, key):

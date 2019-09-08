@@ -1,9 +1,12 @@
 # flake8: noqa
 
-from .conversion import normalize_date, localize_pydatetime
+from .conversion import localize_pydatetime, normalize_date
 from .nattype import NaT, NaTType, iNaT, is_null_datetimelike
 from .np_datetime import OutOfBoundsDatetime
-from .period import Period, IncompatibleFrequency
+from .period import IncompatibleFrequency, Period
+from .timedeltas import Timedelta, delta_to_nanoseconds, ints_to_pytimedelta
 from .timestamps import Timestamp
-from .timedeltas import delta_to_nanoseconds, ints_to_pytimedelta, Timedelta
 from .tzconversion import tz_convert_single
+
+# import fails if we do this before np_datetime
+from .c_timestamp import NullFrequencyError  # isort:skip
