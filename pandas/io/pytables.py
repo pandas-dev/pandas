@@ -429,10 +429,10 @@ def _is_metadata_of(group, parent_group):
 
 
 class HDFStore:
-
     """
-    Dict-like IO interface for storing pandas objects in PyTables
-    either Fixed or Table format.
+    Dict-like IO interface for storing pandas objects in PyTables.
+
+    Either Fixed or Table format.
 
     Parameters
     ----------
@@ -564,13 +564,12 @@ class HDFStore:
 
     def keys(self):
         """
-        Return a (potentially unordered) list of the keys corresponding to the
-        objects stored in the HDFStore. These are ABSOLUTE path-names (e.g.
-        have the leading '/'
+        Return a list of keys corresponding to objects stored in HDFStore.
 
         Returns
         -------
         list
+            List of ABSOLUTE path-names (e.g. have the leading '/').
         """
         return [n._v_pathname for n in self.groups()]
 
@@ -703,7 +702,7 @@ class HDFStore:
 
     def get(self, key):
         """
-        Retrieve pandas object stored in file
+        Retrieve pandas object stored in file.
 
         Parameters
         ----------
@@ -711,7 +710,8 @@ class HDFStore:
 
         Returns
         -------
-        obj : same type as object stored in file
+        object
+            Same type as object stored in file.
         """
         group = self.get_node(key)
         if group is None:
@@ -731,25 +731,31 @@ class HDFStore:
         **kwargs
     ):
         """
-        Retrieve pandas object stored in file, optionally based on where
-        criteria
+        Retrieve pandas object stored in file, optionally based on where criteria.
 
         Parameters
         ----------
         key : object
-        where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
-        columns : a list of columns that if not None, will limit the return
-            columns
-        iterator : boolean, return an iterator, default False
-        chunksize : nrows to include in iteration, return an iterator
-        auto_close : boolean, should automatically close the store when
-            finished, default is False
+                Object being retrieved from file.
+        where : list, default None
+                List of Term (or convertible) objects, optional.
+        start : int, default None
+                Row number to start selection.
+        stop : int, default None
+                Row number to stop selection.
+        columns : list, default None
+                A list of columns that if not None, will limit the return columns.
+        iterator : bool, default False
+                Returns an iterator.
+        chunksize : int, default None
+                Number or rows to include in iteration, return an iterator.
+        auto_close : bool, default False
+            Should automatically close the store when finished.
 
         Returns
         -------
-        The selected object
+        object
+            Retrieved object from file.
         """
         group = self.get_node(key)
         if group is None:
@@ -929,28 +935,30 @@ class HDFStore:
 
     def put(self, key, value, format=None, append=False, **kwargs):
         """
-        Store object in HDFStore
+        Store object in HDFStore.
 
         Parameters
         ----------
-        key      : object
-        value    : {Series, DataFrame}
-        format   : 'fixed(f)|table(t)', default is 'fixed'
+        key : object
+        value : {Series, DataFrame}
+        format : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable
+                       Fast writing/reading. Not-appendable, nor searchable.
             table(t) : Table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
-                       / selecting subsets of the data
-        append   : boolean, default False
+                       / selecting subsets of the data.
+        append   : bool, default False
             This will force Table format, append the input data to the
             existing.
-        data_columns : list of columns to create as data columns, or True to
+        data_columns : list, default None
+            List of columns to create as data columns, or True to
             use all columns. See `here
             <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        encoding : default None, provide an encoding for strings
-        dropna   : boolean, default False, do not write an ALL nan row to
-            the store settable by the option 'io.hdf.dropna_table'
+        encoding : str, default None
+            Provide an encoding for strings.
+        dropna   : bool, default False, do not write an ALL nan row to
+            The store settable by the option 'io.hdf.dropna_table'.
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1165,12 +1173,15 @@ class HDFStore:
         s.create_index(**kwargs)
 
     def groups(self):
-        """return a list of all the top-level nodes (that are not themselves a
-        pandas storage object)
+        """
+        Return a list of all the top-level nodes.
+
+        Each node returned is not a pandas storage object.
 
         Returns
         -------
         list
+            List of objects.
         """
         _tables()
         self._check_if_open()
@@ -1188,10 +1199,12 @@ class HDFStore:
         ]
 
     def walk(self, where="/"):
-        """ Walk the pytables group hierarchy for pandas objects
+        """
+        Walk the pytables group hierarchy for pandas objects.
 
         This generator will yield the group path, subgroups and pandas object
         names for each group.
+
         Any non-pandas PyTables objects that are not a group will be ignored.
 
         The `where` group itself is listed first (preorder), then each of its
@@ -1202,18 +1215,17 @@ class HDFStore:
 
         Parameters
         ----------
-        where : str, optional
+        where : str, default "/"
             Group where to start walking.
-            If not supplied, the root group is used.
 
         Yields
         ------
         path : str
-            Full path to a group (without trailing '/')
-        groups : list of str
-            names of the groups contained in `path`
-        leaves : list of str
-            names of the pandas objects contained in `path`
+            Full path to a group (without trailing '/').
+        groups : list
+            Names (strings) of the groups contained in `path`.
+        leaves : list
+            Names (strings) of the pandas objects contained in `path`.
         """
         _tables()
         self._check_if_open()
@@ -1533,7 +1545,6 @@ class HDFStore:
 
 
 class TableIterator:
-
     """ define the iteration interface on a table
 
         Parameters
@@ -1641,7 +1652,6 @@ class TableIterator:
 
 
 class IndexCol:
-
     """ an index column description class
 
         Parameters
@@ -1955,7 +1965,6 @@ class IndexCol:
 
 
 class GenericIndexCol(IndexCol):
-
     """ an index which is not represented in the data of the table """
 
     @property
@@ -1993,7 +2002,6 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-
     """ a data holding column, by definition this is not indexable
 
         Parameters
@@ -2443,7 +2451,6 @@ class DataCol(IndexCol):
 
 
 class DataIndexableCol(DataCol):
-
     """ represent a data column that can be indexed """
 
     is_data_indexable = True
@@ -2466,7 +2473,6 @@ class DataIndexableCol(DataCol):
 
 
 class GenericDataIndexableCol(DataIndexableCol):
-
     """ represent a generic pytables data column """
 
     def get_attr(self):
@@ -2474,7 +2480,6 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-
     """ represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
@@ -2642,7 +2647,6 @@ class Fixed:
 
 
 class GenericFixed(Fixed):
-
     """ a generified fixed version """
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
@@ -2898,7 +2902,12 @@ class GenericFixed(Fixed):
             kwargs["freq"] = node._v_attrs["freq"]
 
         if "tz" in node._v_attrs:
-            kwargs["tz"] = node._v_attrs["tz"]
+            if isinstance(node._v_attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = node._v_attrs["tz"]
 
         if kind in ("date", "datetime"):
             index = factory(
@@ -3239,7 +3248,6 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-
     """ represent a table:
           facilitate read/write of various types of tables
 
@@ -4114,7 +4122,6 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-
     """ a write-once read-many table: this format DOES NOT ALLOW appending to a
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
@@ -4136,7 +4143,6 @@ class WORMTable(Table):
 
 
 class LegacyTable(Table):
-
     """ an appendable table: allow append/query/delete operations to a
           (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
@@ -4590,7 +4596,6 @@ class GenericTable(AppendableFrameTable):
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
-
     """ a frame with a multi-index """
 
     table_type = "appendable_multiframe"
@@ -4949,7 +4954,6 @@ def _need_convert(kind):
 
 
 class Selection:
-
     """
     Carries out a selection operation on a tables.Table object.
 

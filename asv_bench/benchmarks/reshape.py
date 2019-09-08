@@ -1,9 +1,10 @@
-import string
 from itertools import product
+import string
 
 import numpy as np
-from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+
 import pandas as pd
+from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
 
 
 class Melt:
@@ -262,4 +263,4 @@ class Explode:
         self.series.explode()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

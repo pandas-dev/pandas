@@ -36,21 +36,13 @@ class TestSeriesLogicalOps:
         expected[mask] = False
         assert_series_equal(result, expected)
 
-    def test_operators_bitwise(self):
+    def test_logical_operators_bool_dtype_with_empty(self):
         # GH#9016: support bitwise op for integer types
         index = list("bca")
 
         s_tft = Series([True, False, True], index=index)
         s_fff = Series([False, False, False], index=index)
-        s_tff = Series([True, False, False], index=index)
         s_empty = Series([])
-
-        # TODO: unused
-        # s_0101 = Series([0, 1, 0, 1])
-
-        s_0123 = Series(range(4), dtype="int64")
-        s_3333 = Series([3] * 4)
-        s_4444 = Series([4] * 4)
 
         res = s_tft & s_empty
         expected = s_fff
@@ -60,40 +52,22 @@ class TestSeriesLogicalOps:
         expected = s_tft
         assert_series_equal(res, expected)
 
+    def test_logical_operators_int_dtype_with_int_dtype(self):
+        # GH#9016: support bitwise op for integer types
+
+        # TODO: unused
+        # s_0101 = Series([0, 1, 0, 1])
+
+        s_0123 = Series(range(4), dtype="int64")
+        s_3333 = Series([3] * 4)
+        s_4444 = Series([4] * 4)
+
         res = s_0123 & s_3333
         expected = Series(range(4), dtype="int64")
         assert_series_equal(res, expected)
 
         res = s_0123 | s_4444
         expected = Series(range(4, 8), dtype="int64")
-        assert_series_equal(res, expected)
-
-        s_a0b1c0 = Series([1], list("b"))
-
-        res = s_tft & s_a0b1c0
-        expected = s_tff.reindex(list("abc"))
-        assert_series_equal(res, expected)
-
-        res = s_tft | s_a0b1c0
-        expected = s_tft.reindex(list("abc"))
-        assert_series_equal(res, expected)
-
-        n0 = 0
-        res = s_tft & n0
-        expected = s_fff
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n0
-        expected = Series([0] * 4)
-        assert_series_equal(res, expected)
-
-        n1 = 1
-        res = s_tft & n1
-        expected = s_tft
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n1
-        expected = Series([0, 1, 0, 1])
         assert_series_equal(res, expected)
 
         s_1111 = Series([1] * 4, dtype="int8")
@@ -105,39 +79,116 @@ class TestSeriesLogicalOps:
         expected = Series([1, 1, 3, 3], dtype="int32")
         assert_series_equal(res, expected)
 
-        with pytest.raises(TypeError):
-            s_1111 & "a"
-        with pytest.raises(TypeError):
-            s_1111 & ["a", "b", "c", "d"]
+    def test_logical_operators_int_dtype_with_int_scalar(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
+        res = s_0123 & 0
+        expected = Series([0] * 4)
+        assert_series_equal(res, expected)
+
+        res = s_0123 & 1
+        expected = Series([0, 1, 0, 1])
+        assert_series_equal(res, expected)
+
+    def test_logical_operators_int_dtype_with_float(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
         with pytest.raises(TypeError):
             s_0123 & np.NaN
         with pytest.raises(TypeError):
             s_0123 & 3.14
         with pytest.raises(TypeError):
             s_0123 & [0.1, 4, 3.14, 2]
+        with pytest.raises(TypeError):
+            s_0123 & np.array([0.1, 4, 3.14, 2])
+        with pytest.raises(TypeError):
+            s_0123 & Series([0.1, 4, -3.14, 2])
 
-        # s_0123 will be all false now because of reindexing like s_tft
-        exp = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        assert_series_equal(s_tft & s_0123, exp)
+    def test_logical_operators_int_dtype_with_str(self):
+        s_1111 = Series([1] * 4, dtype="int8")
 
-        # s_tft will be all false now because of reindexing like s_0123
-        exp = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        assert_series_equal(s_0123 & s_tft, exp)
+        with pytest.raises(TypeError):
+            s_1111 & "a"
+        with pytest.raises(TypeError):
+            s_1111 & ["a", "b", "c", "d"]
 
-        assert_series_equal(s_0123 & False, Series([False] * 4))
-        assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
-        assert_series_equal(s_0123 & [False], Series([False] * 4))
-        assert_series_equal(s_0123 & (False), Series([False] * 4))
-        assert_series_equal(
-            s_0123 & Series([False, np.NaN, False, False]), Series([False] * 4)
-        )
+    def test_logical_operators_int_dtype_with_bool(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
 
-        s_ftft = Series([False, True, False, True])
-        assert_series_equal(s_0123 & Series([0.1, 4, -3.14, 2]), s_ftft)
+        expected = Series([False] * 4)
+
+        result = s_0123 & False
+        assert_series_equal(result, expected)
+
+        result = s_0123 & [False]
+        assert_series_equal(result, expected)
+
+        result = s_0123 & (False,)
+        assert_series_equal(result, expected)
+
+        result = s_0123 ^ False
+        expected = Series([False, True, True, True])
+        assert_series_equal(result, expected)
+
+    def test_logical_operators_int_dtype_with_object(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
+        result = s_0123 & Series([False, np.NaN, False, False])
+        expected = Series([False] * 4)
+        assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.NaN, "d"])
-        res = s_0123 & s_abNd
-        expected = s_ftft
+        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+            s_0123 & s_abNd
+
+    def test_logical_operators_bool_dtype_with_int(self):
+        index = list("bca")
+
+        s_tft = Series([True, False, True], index=index)
+        s_fff = Series([False, False, False], index=index)
+
+        res = s_tft & 0
+        expected = s_fff
+        assert_series_equal(res, expected)
+
+        res = s_tft & 1
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+    def test_logical_operators_int_dtype_with_bool_dtype_and_reindex(self):
+        # GH#9016: support bitwise op for integer types
+
+        # with non-matching indexes, logical operators will cast to object
+        #  before operating
+        index = list("bca")
+
+        s_tft = Series([True, False, True], index=index)
+        s_tft = Series([True, False, True], index=index)
+        s_tff = Series([True, False, False], index=index)
+
+        s_0123 = Series(range(4), dtype="int64")
+
+        # s_0123 will be all false now because of reindexing like s_tft
+        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
+        result = s_tft & s_0123
+        assert_series_equal(result, expected)
+
+        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
+        result = s_0123 & s_tft
+        assert_series_equal(result, expected)
+
+        s_a0b1c0 = Series([1], list("b"))
+
+        res = s_tft & s_a0b1c0
+        expected = s_tff.reindex(list("abc"))
+        assert_series_equal(res, expected)
+
+        res = s_tft | s_a0b1c0
+        expected = s_tft.reindex(list("abc"))
         assert_series_equal(res, expected)
 
     def test_scalar_na_logical_ops_corners(self):
@@ -523,6 +574,7 @@ class TestSeriesComparisons:
 
             assert_series_equal(result, expected)
 
+            # FIXME: dont leave commented-out
             # fffffffuuuuuuuuuuuu
             # result = f(val, s)
             # expected = f(val, s.dropna()).reindex(s.index)
