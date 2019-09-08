@@ -22,7 +22,7 @@ dependencies:
   - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
-  - mypy
+  - mypy=0.720
   - pycodestyle  # used by flake8
 
   # documentation
