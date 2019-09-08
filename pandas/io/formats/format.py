@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 
 import codecs
 from contextlib import contextmanager
+from datetime import tzinfo
 import decimal
 from functools import partial
 from io import StringIO
@@ -73,9 +74,6 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from dateutil.tz.tz import tzutc  # noqa:F401
-    from dateutil.zoneinfo import tzfile  # noqa:F401
-
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
@@ -1553,9 +1551,7 @@ def _is_dates_only(
 
 
 def _format_datetime64(
-    x: Union[NaTType, Timestamp],
-    tz: Optional[Union["tzfile", "tzutc"]] = None,
-    nat_rep: str = "NaT",
+    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
 ) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
