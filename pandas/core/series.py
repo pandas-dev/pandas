@@ -4012,12 +4012,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
-        if name == "var" and is_timedelta64_dtype(self.dtype):
-            raise TypeError(
-                "reduction operation '{name}' not allowed for this dtype".format(
-                    name=name
-                )
-            )
 
         delegate = self._values
 
