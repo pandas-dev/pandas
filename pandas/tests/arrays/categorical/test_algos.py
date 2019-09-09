@@ -61,11 +61,7 @@ def test_isin_cats():
 
 @pytest.mark.parametrize(
     "to_replace, value, result",
-    [
-        ("b", "c", ["a", "c"]),
-        ("c", "d", ["a", "b"]),
-        ("b", None, ["a", None]),
-    ],
+    [("b", "c", ["a", "c"]), ("c", "d", ["a", "b"]), ("b", None, ["a", None])],
 )
 def test_replace(to_replace, value, result):
     # GH 26988
