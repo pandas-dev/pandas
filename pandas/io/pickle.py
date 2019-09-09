@@ -153,10 +153,10 @@ def read_pickle(path, compression="infer"):
             # We want to silence any warnings about, e.g. moved modules.
             warnings.simplefilter("ignore", Warning)
             return pickle.load(f)
-    except Exception:  # noqa: E722
+    except Exception:
         try:
             return pc.load(f, encoding=None)
-        except Exception:  # noqa: E722
+        except Exception:
             return pc.load(f, encoding="latin1")
     finally:
         f.close()

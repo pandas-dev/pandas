@@ -1064,7 +1064,6 @@ class TextFileReader(BaseIterator):
             )
 
             if result.get(arg, depr_default) != depr_default:
-                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + "\n\n"
             else:
                 result[arg] = parser_default

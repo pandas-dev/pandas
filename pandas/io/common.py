@@ -90,7 +90,8 @@ class BaseIterator:
 
 
 def _is_url(url) -> bool:
-    """Check to see if a URL has a valid protocol.
+    """
+    Check to see if a URL has a valid protocol.
 
     Parameters
     ----------
@@ -101,10 +102,9 @@ def _is_url(url) -> bool:
     isurl : bool
         If `url` has a valid protocol return True otherwise False.
     """
-    try:
-        return parse_url(url).scheme in _VALID_URLS
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in _VALID_URLS
 
 
 def _expand_user(
@@ -171,18 +171,16 @@ def _stringify_path(
 
 def is_s3_url(url) -> bool:
     """Check for an s3, s3n, or s3a url"""
-    try:
-        return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
 
 
 def is_gcs_url(url) -> bool:
     """Check for a gcs url"""
-    try:
-        return parse_url(url).scheme in ["gcs", "gs"]
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in ["gcs", "gs"]
 
 
 def urlopen(*args, **kwargs):
