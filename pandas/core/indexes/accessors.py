@@ -326,18 +326,15 @@ class CombinedDatetimelikeProperties(
         if orig is not None:
             data = Series(orig.values.categories, name=orig.name, copy=False)
 
-        try:
-            if is_datetime64_dtype(data.dtype):
-                return DatetimeProperties(data, orig)
-            elif is_datetime64tz_dtype(data.dtype):
-                return DatetimeProperties(data, orig)
-            elif is_timedelta64_dtype(data.dtype):
-                return TimedeltaProperties(data, orig)
-            elif is_period_arraylike(data):
-                return PeriodProperties(data, orig)
-            elif is_datetime_arraylike(data):
-                return DatetimeProperties(data, orig)
-        except Exception:
-            pass  # we raise an attribute error anyway
+        if is_datetime64_dtype(data.dtype):
+            return DatetimeProperties(data, orig)
+        elif is_datetime64tz_dtype(data.dtype):
+            return DatetimeProperties(data, orig)
+        elif is_timedelta64_dtype(data.dtype):
+            return TimedeltaProperties(data, orig)
+        elif is_period_arraylike(data):
+            return PeriodProperties(data, orig)
+        elif is_datetime_arraylike(data):
+            return DatetimeProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")
