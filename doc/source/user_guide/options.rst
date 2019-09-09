@@ -163,7 +163,7 @@ determines how many rows are shown in the truncated repr.
 .. ipython:: python
 
    pd.set_option('max_rows', 8)
-   pd.set_option('max_rows', 4)
+   pd.set_option('min_rows', 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
