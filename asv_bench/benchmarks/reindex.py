@@ -1,20 +1,20 @@
 import numpy as np
+
+from pandas import DataFrame, Index, MultiIndex, Series, date_range, period_range
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, Index, date_range,
-                    period_range)
+
 from .pandas_vb_common import lib
 
 
 class Reindex:
-
     def setup(self):
-        rng = date_range(start='1/1/1970', periods=10000, freq='1min')
-        self.df = DataFrame(np.random.rand(10000, 10), index=rng,
-                            columns=range(10))
-        self.df['foo'] = 'bar'
+        rng = date_range(start="1/1/1970", periods=10000, freq="1min")
+        self.df = DataFrame(np.random.rand(10000, 10), index=rng, columns=range(10))
+        self.df["foo"] = "bar"
         self.rng_subset = Index(rng[::2])
-        self.df2 = DataFrame(index=range(10000),
-                             data=np.random.rand(10000, 30), columns=range(30))
+        self.df2 = DataFrame(
+            index=range(10000), data=np.random.rand(10000, 30), columns=range(30)
+        )
         N = 5000
         K = 200
         level1 = tm.makeStringIndex(N).values.repeat(K)
@@ -35,12 +35,12 @@ class Reindex:
 
 class ReindexMethod:
 
-    params = [['pad', 'backfill'], [date_range, period_range]]
-    param_names = ['method', 'constructor']
+    params = [["pad", "backfill"], [date_range, period_range]]
+    param_names = ["method", "constructor"]
 
     def setup(self, method, constructor):
         N = 100000
-        self.idx = constructor('1/1/2000', periods=N, freq='1min')
+        self.idx = constructor("1/1/2000", periods=N, freq="1min")
         self.ts = Series(np.random.randn(N), index=self.idx)[::2]
 
     def time_reindex_method(self, method, constructor):
@@ -49,15 +49,15 @@ class ReindexMethod:
 
 class Fillna:
 
-    params = ['pad', 'backfill']
-    param_names = ['method']
+    params = ["pad", "backfill"]
+    param_names = ["method"]
 
     def setup(self, method):
         N = 100000
-        self.idx = date_range('1/1/2000', periods=N, freq='1min')
+        self.idx = date_range("1/1/2000", periods=N, freq="1min")
         ts = Series(np.random.randn(N), index=self.idx)[::2]
         self.ts_reindexed = ts.reindex(self.idx)
-        self.ts_float32 = self.ts_reindexed.astype('float32')
+        self.ts_float32 = self.ts_reindexed.astype("float32")
 
     def time_reindexed(self, method):
         self.ts_reindexed.fillna(method=method)
@@ -67,17 +67,17 @@ class Fillna:
 
 
 class LevelAlign:
-
     def setup(self):
         self.index = MultiIndex(
             levels=[np.arange(10), np.arange(100), np.arange(100)],
-            codes=[np.arange(10).repeat(10000),
-                   np.tile(np.arange(100).repeat(100), 10),
-                   np.tile(np.tile(np.arange(100), 100), 10)])
-        self.df = DataFrame(np.random.randn(len(self.index), 4),
-                            index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4),
-                                  index=self.index.levels[1])
+            codes=[
+                np.arange(10).repeat(10000),
+                np.tile(np.arange(100).repeat(100), 10),
+                np.tile(np.tile(np.arange(100), 100), 10),
+            ],
+        )
+        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
+        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
 
     def time_align_level(self):
         self.df.align(self.df_level, level=1, copy=False)
@@ -89,15 +89,16 @@ class LevelAlign:
 class DropDuplicates:
 
     params = [True, False]
-    param_names = ['inplace']
+    param_names = ["inplace"]
 
     def setup(self, inplace):
         N = 10000
         K = 10
         key1 = tm.makeStringIndex(N).values.repeat(K)
         key2 = tm.makeStringIndex(N).values.repeat(K)
-        self.df = DataFrame({'key1': key1, 'key2': key2,
-                             'value': np.random.randn(N * K)})
+        self.df = DataFrame(
+            {"key1": key1, "key2": key2, "value": np.random.randn(N * K)}
+        )
         self.df_nan = self.df.copy()
         self.df_nan.iloc[:10000, :] = np.nan
 
@@ -107,15 +108,14 @@ class DropDuplicates:
         N = 1000000
         K = 10000
         key1 = np.random.randint(0, K, size=N)
-        self.df_int = DataFrame({'key1': key1})
-        self.df_bool = DataFrame(np.random.randint(0, 2, size=(K, 10),
-                                                   dtype=bool))
+        self.df_int = DataFrame({"key1": key1})
+        self.df_bool = DataFrame(np.random.randint(0, 2, size=(K, 10), dtype=bool))
 
     def time_frame_drop_dups(self, inplace):
-        self.df.drop_duplicates(['key1', 'key2'], inplace=inplace)
+        self.df.drop_duplicates(["key1", "key2"], inplace=inplace)
 
     def time_frame_drop_dups_na(self, inplace):
-        self.df_nan.drop_duplicates(['key1', 'key2'], inplace=inplace)
+        self.df_nan.drop_duplicates(["key1", "key2"], inplace=inplace)
 
     def time_series_drop_dups_int(self, inplace):
         self.s.drop_duplicates(inplace=inplace)
@@ -137,16 +137,16 @@ class Align:
         indices = tm.makeStringIndex(n)
         subsample_size = 40000
         self.x = Series(np.random.randn(n), indices)
-        self.y = Series(np.random.randn(subsample_size),
-                        index=np.random.choice(indices, subsample_size,
-                                               replace=False))
+        self.y = Series(
+            np.random.randn(subsample_size),
+            index=np.random.choice(indices, subsample_size, replace=False),
+        )
 
     def time_align_series_irregular_string(self):
         self.x + self.y
 
 
 class LibFastZip:
-
     def setup(self):
         N = 10000
         K = 10
@@ -161,4 +161,4 @@ class LibFastZip:
         lib.fast_zip(self.col_array_list)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

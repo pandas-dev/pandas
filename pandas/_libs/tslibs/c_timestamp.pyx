@@ -19,7 +19,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t
+from numpy cimport int64_t, int8_t, uint8_t, ndarray
 cnp.import_array()
 
 from cpython.datetime cimport (datetime,
@@ -42,6 +42,15 @@ from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+    pass
+
+
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
@@ -54,6 +63,9 @@ def maybe_integer_op_deprecated(obj):
 
 
 cdef class _Timestamp(datetime):
+
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -84,6 +96,15 @@ cdef class _Timestamp(datetime):
             if ndim != -1:
                 if ndim == 0:
                     if is_datetime64_object(other):
+                        other = self.__class__(other)
+                    elif is_array(other):
+                        # zero-dim array, occurs if try comparison with
+                        #  datetime64 scalar on the left hand side
+                        # Unfortunately, for datetime64 values, other.item()
+                        #  incorrectly returns an integer, so we need to use
+                        #  the numpy C api to extract it.
+                        other = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other),
+                                                     other)
                         other = self.__class__(other)
                     else:
                         return NotImplemented
@@ -119,7 +140,8 @@ cdef class _Timestamp(datetime):
 
         try:
             stamp += zone.strftime(' %%Z')
-        except:
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
             pass
 
         tz = ", tz='{0}'".format(zone) if zone is not None else ""
@@ -201,7 +223,7 @@ cdef class _Timestamp(datetime):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos
+            int64_t other_int, nanos = 0
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -215,8 +237,8 @@ cdef class _Timestamp(datetime):
                 # to be compat with Period
                 return NaT
             elif self.freq is None:
-                raise ValueError("Cannot add integral value to Timestamp "
-                                 "without freq.")
+                raise NullFrequencyError(
+                    "Cannot add integral value to Timestamp without freq.")
             return self.__class__((self.freq * other).apply(self),
                                   freq=self.freq)
 
@@ -234,10 +256,16 @@ cdef class _Timestamp(datetime):
 
             result = self.__class__(self.value + nanos,
                                     tz=self.tzinfo, freq=self.freq)
-            if getattr(other, 'normalize', False):
-                # DateOffset
-                result = result.normalize()
             return result
+
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise NullFrequencyError(
+                        "Cannot add integer-dtype array "
+                        "to Timestamp without freq.")
+                return self.freq * other + self
 
         # index/series like
         elif hasattr(other, '_typ'):
@@ -250,24 +278,27 @@ cdef class _Timestamp(datetime):
         return result
 
     def __sub__(self, other):
+
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
             # `delta` attribute is for offsets.Tick or offsets.Week obj
             neg_other = -other
             return self + neg_other
 
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise NullFrequencyError(
+                        "Cannot subtract integer-dtype array "
+                        "from Timestamp without freq.")
+                return self - self.freq * other
+
         typ = getattr(other, '_typ', None)
+        if typ is not None:
+            return NotImplemented
 
-        # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        if typ in ('datetimeindex', 'datetimearray'):
-            # timezone comparison is performed in DatetimeIndex._sub_datelike
-            return -other.__sub__(self)
-
-        # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif typ in ('timedeltaindex', 'timedeltaarray'):
-            return (-other).__add__(self)
-
-        elif other is NaT:
+        if other is NaT:
             return NaT
 
         # coerce if necessary if we are a Timestamp-like
@@ -290,10 +321,12 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
+        elif is_datetime64_object(self):
+            # GH#28286 cython semantics for __rsub__, `other` is actually
+            #  the Timestamp
+            return type(other)(self) - other
 
-        # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
-        # same timezone if specified)
-        return datetime.__sub__(self, other)
+        return NotImplemented
 
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
@@ -308,7 +341,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            int8_t out[1]
+            ndarray[uint8_t, cast=True] out
             int month_kw
 
         freq = self.freq

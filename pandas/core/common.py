@@ -18,7 +18,11 @@ from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    is_array_like, is_bool_dtype, is_extension_array_dtype, is_integer)
+    is_array_like,
+    is_bool_dtype,
+    is_extension_array_dtype,
+    is_integer,
+)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
@@ -114,9 +118,10 @@ def is_bool_indexer(key: Any) -> bool:
         When the array is an object-dtype ndarray or ExtensionArray
         and contains missing values.
     """
-    na_msg = 'cannot index with vector containing NA / NaN values'
-    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or
-            (is_array_like(key) and is_extension_array_dtype(key.dtype))):
+    na_msg = "cannot index with vector containing NA / NaN values"
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
+        is_array_like(key) and is_extension_array_dtype(key.dtype)
+    ):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
 
@@ -160,51 +165,39 @@ def cast_scalar_indexer(val):
     return val
 
 
-def _not_none(*args):
+def not_none(*args):
     """
     Returns a generator consisting of the arguments that are not None.
     """
     return (arg for arg in args if arg is not None)
 
 
-def _any_none(*args):
+def any_none(*args):
     """
     Returns a boolean indicating if any argument is None.
     """
-    for arg in args:
-        if arg is None:
-            return True
-    return False
+    return any(arg is None for arg in args)
 
 
-def _all_none(*args):
+def all_none(*args):
     """
     Returns a boolean indicating if all arguments are None.
     """
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
+    return all(arg is None for arg in args)
 
 
-def _any_not_none(*args):
+def any_not_none(*args):
     """
     Returns a boolean indicating if any argument is not None.
     """
-    for arg in args:
-        if arg is not None:
-            return True
-    return False
+    return any(arg is not None for arg in args)
 
 
-def _all_not_none(*args):
+def all_not_none(*args):
     """
     Returns a boolean indicating if all arguments are not None.
     """
-    for arg in args:
-        if arg is None:
-            return False
-    return True
+    return all(arg is not None for arg in args)
 
 
 def count_not_none(*args):
@@ -218,7 +211,7 @@ def try_sort(iterable):
     listed = list(iterable)
     try:
         return sorted(listed)
-    except Exception:
+    except TypeError:
         return listed
 
 
@@ -234,7 +227,7 @@ def dict_keys_to_ordered_list(mapping):
 
 def asarray_tuplesafe(values, dtype=None):
 
-    if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
+    if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
         return values.values
@@ -249,7 +242,6 @@ def asarray_tuplesafe(values, dtype=None):
 
     if result.ndim == 2:
         # Avoid building an array of arrays:
-        # TODO: verify whether any path hits this except #18819 (invalid)
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
 
@@ -302,8 +294,12 @@ def is_null_slice(obj):
     """
     We have a null slice.
     """
-    return (isinstance(obj, slice) and obj.start is None and
-            obj.stop is None and obj.step is None)
+    return (
+        isinstance(obj, slice)
+        and obj.start is None
+        and obj.stop is None
+        and obj.step is None
+    )
 
 
 def is_true_slices(l):
@@ -318,19 +314,20 @@ def is_full_slice(obj, l):
     """
     We have a full length slice.
     """
-    return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
-            obj.step is None)
+    return (
+        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+    )
 
 
 def get_callable_name(obj):
     # typical case has name
-    if hasattr(obj, '__name__'):
-        return getattr(obj, '__name__')
+    if hasattr(obj, "__name__"):
+        return getattr(obj, "__name__")
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
     # fall back to class name
-    if hasattr(obj, '__call__'):
+    if hasattr(obj, "__call__"):
         return obj.__class__.__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
@@ -399,14 +396,12 @@ def standardize_mapping(into):
     """
     if not inspect.isclass(into):
         if isinstance(into, collections.defaultdict):
-            return partial(
-                collections.defaultdict, into.default_factory)
+            return partial(collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
-        raise TypeError('unsupported type: {into}'.format(into=into))
+        raise TypeError("unsupported type: {into}".format(into=into))
     elif into == collections.defaultdict:
-        raise TypeError(
-            'to_dict() only accepts initialized defaultdicts')
+        raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
 
@@ -435,11 +430,12 @@ def random_state(state=None):
     elif state is None:
         return np.random
     else:
-        raise ValueError("random_state must be an integer, a numpy "
-                         "RandomState, or None")
+        raise ValueError(
+            "random_state must be an integer, a numpy RandomState, or None"
+        )
 
 
-def _pipe(obj, func, *args, **kwargs):
+def pipe(obj, func, *args, **kwargs):
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -466,7 +462,7 @@ def _pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = '%s is both the pipe target and a keyword argument' % target
+            msg = "%s is both the pipe target and a keyword argument" % target
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)
@@ -474,7 +470,7 @@ def _pipe(obj, func, *args, **kwargs):
         return func(obj, *args, **kwargs)
 
 
-def _get_rename_function(mapper):
+def get_rename_function(mapper):
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
@@ -486,6 +482,7 @@ def _get_rename_function(mapper):
                 return mapper[x]
             else:
                 return x
+
     else:
         f = mapper
 

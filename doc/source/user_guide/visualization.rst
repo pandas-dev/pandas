@@ -23,7 +23,7 @@ libraries that go beyond the basics documented here.
 
 .. _visualization.basic:
 
-Basic Plotting: ``plot``
+Basic plotting: ``plot``
 ------------------------
 
 We will demonstrate the basics, see the :ref:`cookbook<cookbook.plotting>` for
@@ -97,7 +97,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
 .. _visualization.other:
 
-Other Plots
+Other plots
 -----------
 
 Plotting methods allow for a handful of plot styles other than the
@@ -311,7 +311,7 @@ The ``by`` keyword can be specified to plot grouped histograms:
 
 .. _visualization.box:
 
-Box Plots
+Box plots
 ~~~~~~~~~
 
 Boxplot can be drawn calling :meth:`Series.plot.box` and :meth:`DataFrame.plot.box`,
@@ -438,10 +438,6 @@ columns:
 
 .. _visualization.box.return:
 
-.. warning::
-
-   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
-
 In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
 Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
@@ -495,7 +491,7 @@ then by the numeric columns.
 
 .. _visualization.area_plot:
 
-Area Plot
+Area plot
 ~~~~~~~~~
 
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
@@ -531,7 +527,7 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 
 .. _visualization.scatter:
 
-Scatter Plot
+Scatter plot
 ~~~~~~~~~~~~
 
 Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
@@ -599,7 +595,7 @@ See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 
 .. _visualization.hexbin:
 
-Hexagonal Bin Plot
+Hexagonal bin plot
 ~~~~~~~~~~~~~~~~~~
 
 You can create hexagonal bin plots with :meth:`DataFrame.plot.hexbin`.
@@ -762,7 +758,7 @@ See the `matplotlib pie documentation <http://matplotlib.org/api/pyplot_api.html
 
 .. _visualization.missing_data:
 
-Plotting with Missing Data
+Plotting with missing data
 --------------------------
 
 Pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
@@ -808,7 +804,7 @@ and take a :class:`Series` or :class:`DataFrame` as an argument.
 
 .. _visualization.scatter_matrix:
 
-Scatter Matrix Plot
+Scatter matrix plot
 ~~~~~~~~~~~~~~~~~~~
 
 You can create a scatter plot matrix using the
@@ -834,7 +830,7 @@ You can create a scatter plot matrix using the
 
 .. _visualization.kde:
 
-Density Plot
+Density plot
 ~~~~~~~~~~~~
 
 You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFrame.plot.kde` methods.
@@ -859,7 +855,7 @@ You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFr
 
 .. _visualization.andrews_curves:
 
-Andrews Curves
+Andrews curves
 ~~~~~~~~~~~~~~
 
 Andrews curves allow one to plot multivariate data as a large number
@@ -884,7 +880,7 @@ of the same class will usually be closer together and form larger structures.
 
 .. _visualization.parallel_coordinates:
 
-Parallel Coordinates
+Parallel coordinates
 ~~~~~~~~~~~~~~~~~~~~
 
 Parallel coordinates is a plotting technique for plotting multivariate data,
@@ -913,7 +909,7 @@ represents one data point. Points that tend to cluster will appear closer togeth
 
 .. _visualization.lag:
 
-Lag Plot
+Lag plot
 ~~~~~~~~
 
 Lag plots are used to check if a data set or time series is random. Random
@@ -946,7 +942,7 @@ be passed, and when ``lag=1`` the plot is essentially ``data[:-1]`` vs.
 
 .. _visualization.autocorrelation:
 
-Autocorrelation Plot
+Autocorrelation plot
 ~~~~~~~~~~~~~~~~~~~~
 
 Autocorrelation plots are often used for checking randomness in time series.
@@ -983,7 +979,7 @@ autocorrelation plots.
 
 .. _visualization.bootstrap:
 
-Bootstrap Plot
+Bootstrap plot
 ~~~~~~~~~~~~~~
 
 Bootstrap plots are used to visually assess the uncertainty of a statistic, such
@@ -1088,7 +1084,7 @@ keywords are passed along to the corresponding matplotlib function
 :meth:`ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used
 to control additional styling, beyond what pandas provides.
 
-Controlling the Legend
+Controlling the legend
 ~~~~~~~~~~~~~~~~~~~~~~
 
 You may set the ``legend`` argument to ``False`` to hide the legend, which is
@@ -1140,7 +1136,7 @@ You may pass ``logy`` to get a log-scale Y axis.
 
 See also the ``logx`` and ``loglog`` keyword arguments.
 
-Plotting on a Secondary Y-axis
+Plotting on a secondary y-axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
@@ -1152,10 +1148,10 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 
 .. ipython:: python
 
-   df.A.plot()
+   df['A'].plot()
 
    @savefig series_plot_secondary_y.png
-   df.B.plot(secondary_y=True, style='g')
+   df['B'].plot(secondary_y=True, style='g')
 
 .. ipython:: python
    :suppress:
@@ -1194,7 +1190,7 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    plt.close('all')
 
-Suppressing Tick Resolution Adjustment
+Suppressing tick resolution adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 pandas includes automatic tick resolution adjustment for regular frequency
@@ -1209,7 +1205,7 @@ Here is the default behavior, notice how the x-axis tick labeling is performed:
    plt.figure()
 
    @savefig ser_plot_suppress.png
-   df.A.plot()
+   df['A'].plot()
 
 .. ipython:: python
    :suppress:
@@ -1223,7 +1219,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.figure()
 
    @savefig ser_plot_suppress_parm.png
-   df.A.plot(x_compat=True)
+   df['A'].plot(x_compat=True)
 
 .. ipython:: python
    :suppress:
@@ -1239,16 +1235,16 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 
    @savefig ser_plot_suppress_context.png
    with pd.plotting.plot_params.use('x_compat', True):
-       df.A.plot(color='r')
-       df.B.plot(color='g')
-       df.C.plot(color='b')
+       df['A'].plot(color='r')
+       df['B'].plot(color='g')
+       df['C'].plot(color='b')
 
 .. ipython:: python
    :suppress:
 
    plt.close('all')
 
-Automatic Date Tick Adjustment
+Automatic date tick adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.20.0
@@ -1276,7 +1272,7 @@ with the ``subplots`` keyword:
 
    plt.close('all')
 
-Using Layout and Targeting Multiple Axes
+Using layout and targeting multiple axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The layout of subplots can be specified by the ``layout`` keyword. It can accept
@@ -1377,7 +1373,7 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 
 .. _visualization.errorbars:
 
-Plotting With Error Bars
+Plotting with error bars
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Plotting with error bars is supported in :meth:`DataFrame.plot` and :meth:`Series.plot`.
@@ -1423,7 +1419,7 @@ Here is an example of one way to easily plot group means with standard deviation
 
 .. _visualization.table:
 
-Plotting Tables
+Plotting tables
 ~~~~~~~~~~~~~~~
 
 Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :meth:`Series.plot` with a ``table`` keyword. The ``table`` keyword can accept ``bool``, :class:`DataFrame` or :class:`Series`. The simple way to draw a table is to specify ``table=True``. Data will be transposed to meet matplotlib's default layout.
@@ -1632,18 +1628,3 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
-
-
-.. _rplot:
-
-
-Trellis plotting interface
---------------------------
-
-.. warning::
-
-    The ``rplot`` trellis plotting interface has been **removed**. Please use
-    external packages like `seaborn <https://github.com/mwaskom/seaborn>`_ for
-    similar but more refined functionality and refer to our 0.18.1 documentation
-    `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html>`__
-    for how to convert to using it.

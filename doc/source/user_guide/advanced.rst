@@ -3,7 +3,7 @@
 {{ header }}
 
 ******************************
-MultiIndex / Advanced Indexing
+MultiIndex / advanced indexing
 ******************************
 
 This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
@@ -179,18 +179,18 @@ on a deeper level.
 
 .. _advanced.shown_levels:
 
-Defined Levels
+Defined levels
 ~~~~~~~~~~~~~~
 
-The repr of a ``MultiIndex`` shows all the defined levels of an index, even
+The :class:`MultiIndex` keeps all the defined levels of an index, even
 if they are not actually used. When slicing an index, you may notice this.
 For example:
 
 .. ipython:: python
 
-   df.columns  # original MultiIndex
+   df.columns.levels  # original MultiIndex
 
-   df[['foo','qux']].columns  # sliced
+   df[['foo','qux']].columns.levels  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
@@ -210,7 +210,8 @@ To reconstruct the ``MultiIndex`` with only the used levels, the
 
 .. ipython:: python
 
-   df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi.levels
 
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -641,7 +642,7 @@ And now selection works as expected.
 
    dfm.loc[(0, 'y'):(1, 'z')]
 
-Take Methods
+Take methods
 ------------
 
 .. _advanced.take:
@@ -711,7 +712,7 @@ faster than fancy indexing.
 
 .. _indexing.index_types:
 
-Index Types
+Index types
 -----------
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively.
@@ -737,7 +738,7 @@ and allows efficient indexing and storage of an index with a large number of dup
    df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
    df
    df.dtypes
-   df.B.cat.categories
+   df['B'].cat.categories
 
 Setting the index will create a ``CategoricalIndex``.
 
@@ -809,15 +810,10 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. warning::
+:class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
+implementing an ordered, sliceable set.
 
-   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
-
-:class:`Int64Index` is a fundamental basic index in pandas.
-This is an immutable array implementing an ordered, sliceable set.
-Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
-
-:class:`RangeIndex` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
+:class:`RangeIndex` is a sub-class of ``Int64Index``  that provides the default index for all ``NDFrame`` objects.
 ``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
@@ -879,16 +875,6 @@ In non-float indexes, slicing using floats will raise a ``TypeError``.
    In [1]: pd.Series(range(5))[3.5:4.5]
    TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
 
-.. warning::
-
-   Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``:
-
-   .. code-block:: ipython
-
-      In [3]: pd.Series(range(5)).iloc[3.0]
-      TypeError: cannot do positional indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
-
-
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could, for
 example, be millisecond offsets.
@@ -937,9 +923,8 @@ for interval notation.
 The ``IntervalIndex`` allows some unique indexing and is also used as a
 return type for the categories in :func:`cut` and :func:`qcut`.
 
-.. warning::
-
-   These indexing behaviors are provisional and may change in a future version of pandas.
+Indexing with an ``IntervalIndex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index.
 
@@ -964,7 +949,34 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
-``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+Selecting using an ``Interval`` will only return exact matches (starting from pandas 0.25.0).
+
+.. ipython:: python
+
+   df.loc[pd.Interval(1, 2)]
+
+Trying to select an ``Interval`` that is not exactly contained in the ``IntervalIndex`` will raise a ``KeyError``.
+
+.. code-block:: python
+
+   In [7]: df.loc[pd.Interval(0.5, 2.5)]
+   ---------------------------------------------------------------------------
+   KeyError: Interval(0.5, 2.5, closed='right')
+
+Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
+:meth:`~IntervalIndex.overlaps` method to create a boolean indexer.
+
+.. ipython:: python
+
+   idxr = df.index.overlaps(pd.Interval(0.5, 2.5))
+   idxr
+   df[idxr]
+
+Binning data with ``cut`` and ``qcut``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`cut` and :func:`qcut` both return a ``Categorical`` object, and the bins they
+create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 .. ipython:: python
 
@@ -972,15 +984,19 @@ If you select a label *contained* within an interval, this will also select the 
    c
    c.categories
 
-Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
-bins, with ``NaN`` representing a missing value similar to other dtypes.
+:func:`cut` also accepts an ``IntervalIndex`` for its ``bins`` argument, which enables
+a useful pandas idiom. First, We call :func:`cut` with some data and ``bins`` set to a
+fixed number, to generate the bins. Then, we pass the values of ``.categories`` as the
+``bins`` argument in subsequent calls to :func:`cut`, supplying new data which will be
+binned into the same bins.
 
 .. ipython:: python
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+Any value which falls outside all bins will be assigned a ``NaN`` value.
 
-Generating Ranges of Intervals
+Generating ranges of intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If we need intervals on a regular frequency, we can use the :func:`interval_range` function
@@ -1107,6 +1123,8 @@ the :meth:`~Index.is_unique` attribute.
    weakly_monotonic.is_monotonic_increasing
    weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
+.. _advanced.endpoints_are_inclusive:
+
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1136,7 +1154,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design to make label-based
+specific dates. To enable this, we made the design choice to make label-based
 slicing include both endpoints:
 
 .. ipython:: python
