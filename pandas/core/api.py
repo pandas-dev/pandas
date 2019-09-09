@@ -10,6 +10,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 
+# TODO: Remove get_dummies import when statsmodels updates #18264
 from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.integer import (
@@ -44,9 +45,7 @@ from pandas.core.indexes.interval import Interval, interval_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
 from pandas.core.indexing import IndexSlice
-from pandas.core.reshape.reshape import (  # TODO: Remove get_dummies import when statsmodels updates #18264
-    get_dummies,
-)
+from pandas.core.reshape.reshape import get_dummies
 from pandas.core.series import Series
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.numeric import to_numeric
