@@ -70,12 +70,7 @@ class FrozenList(PandasObject, list):
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
     __add__ = __iadd__ = union
 
-    # Python 2 compat
-    def __getslice__(self, i, j):
-        return self.__class__(super().__getslice__(i, j))
-
     def __getitem__(self, n):
-        # Python 3 compat
         if isinstance(n, slice):
             return self.__class__(super().__getitem__(n))
         return super().__getitem__(n)
