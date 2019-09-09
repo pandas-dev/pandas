@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetimelike,
     is_dtype_equal,
@@ -179,7 +178,7 @@ def merge_ordered(
     """
     Perform merge with optional filling/interpolation designed for ordered
     data like time series data. Optionally perform group-wise merge (see
-    examples)
+    examples).
 
     Parameters
     ----------
@@ -1556,7 +1555,7 @@ class _AsOfMerge(_OrderedMerge):
         # set 'by' columns
         if self.by is not None:
             if self.left_by is not None or self.right_by is not None:
-                raise MergeError("Can only pass by OR left_by " "and right_by")
+                raise MergeError("Can only pass by OR left_by and right_by")
             self.left_by = self.right_by = self.by
         if self.left_by is None and self.right_by is not None:
             raise MergeError("missing left_by")
@@ -1635,7 +1634,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
+            if is_datetimelike(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1958,7 +1957,7 @@ def _should_fill(lname, rname):
 
 
 def _any(x):
-    return x is not None and com._any_not_none(*x)
+    return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):

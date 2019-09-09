@@ -1098,7 +1098,6 @@ class TestTSPlot(TestPlotBase):
                 assert xp == rs
 
     @pytest.mark.slow
-    @pytest.mark.xfail(strict=False, reason="Unreliable test")
     def test_time_change_xlim(self):
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
@@ -1411,7 +1410,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in range(10)]
+        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)

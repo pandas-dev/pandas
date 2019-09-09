@@ -9,14 +9,13 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import importlib
-
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
     is_callable,
     is_instance_factory,
     is_int,
+    is_nonnegative_int,
     is_one_of_factory,
     is_text,
 )
@@ -319,7 +318,7 @@ def is_terminal():
 
 
 with cf.config_prefix("display"):
-    cf.register_option("precision", 6, pc_precision_doc, validator=is_int)
+    cf.register_option("precision", 6, pc_precision_doc, validator=is_nonnegative_int)
     cf.register_option(
         "float_format",
         None,
@@ -333,12 +332,7 @@ with cf.config_prefix("display"):
         pc_max_info_rows_doc,
         validator=is_instance_factory((int, type(None))),
     )
-    cf.register_option(
-        "max_rows",
-        60,
-        pc_max_rows_doc,
-        validator=is_instance_factory([type(None), int]),
-    )
+    cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
         "min_rows",
         10,
@@ -352,10 +346,7 @@ with cf.config_prefix("display"):
     else:
         max_cols = 20  # cannot determine optimal number of columns
     cf.register_option(
-        "max_columns",
-        max_cols,
-        pc_max_cols_doc,
-        validator=is_instance_factory([type(None), int]),
+        "max_columns", max_cols, pc_max_cols_doc, validator=is_nonnegative_int
     )
     cf.register_option(
         "large_repr",
@@ -588,26 +579,12 @@ plotting_backend_doc = """
 
 
 def register_plotting_backend_cb(key):
-    backend_str = cf.get_option(key)
-    if backend_str == "matplotlib":
-        try:
-            import pandas.plotting._matplotlib  # noqa
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            )
-        else:
-            return
+    if key == "matplotlib":
+        # We defer matplotlib validation, since it's the default
+        return
+    from pandas.plotting._core import _get_plot_backend
 
-    try:
-        importlib.import_module(backend_str)
-    except ImportError:
-        raise ValueError(
-            '"{}" does not seem to be an installed module. '
-            "A pandas plotting backend must be a module that "
-            "can be imported".format(backend_str)
-        )
+    _get_plot_backend(key)
 
 
 with cf.config_prefix("plotting"):
@@ -615,8 +592,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=str,
-        cb=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,
     )
 
 

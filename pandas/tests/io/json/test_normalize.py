@@ -287,7 +287,6 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="drop support for 3.5 soon")
     def test_nested_meta_path_with_nested_record_path(self, state_data):
         # GH 27220
         result = json_normalize(
@@ -296,19 +295,20 @@ class TestJSONNormalize:
             meta=["state", "shortname", ["info", "governor"]],
             errors="ignore",
         )
-        ex_data = {
-            0: [
+
+        ex_data = [
+            [
                 i
                 for word in ["Dade", "Broward", "Palm Beach", "Summit", "Cuyahoga"]
                 for i in word
             ],
-            "state": ["Florida"] * 21 + ["Ohio"] * 14,
-            "shortname": ["FL"] * 21 + ["OH"] * 14,
-            "info.governor": ["Rick Scott"] * 21 + ["John Kasich"] * 14,
-        }
-        expected = DataFrame(
-            ex_data, columns=[0, "state", "shortname", "info.governor"]
-        )
+            ["Florida"] * 21 + ["Ohio"] * 14,
+            ["FL"] * 21 + ["OH"] * 14,
+            ["Rick Scott"] * 21 + ["John Kasich"] * 14,
+        ]
+        expected = DataFrame(ex_data).T
+        expected.columns = [0, "state", "shortname", "info.governor"]
+
         tm.assert_frame_equal(result, expected)
 
     def test_meta_name_conflict(self):

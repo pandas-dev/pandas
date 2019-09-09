@@ -687,7 +687,7 @@ read_csv = _make_parser_function("read_csv", default_sep=",")
 read_csv = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
-        summary=("Read a comma-separated values (csv) file " "into DataFrame."),
+        summary=("Read a comma-separated values (csv) file into DataFrame."),
         _default_sep="','",
     )
 )(read_csv)
@@ -770,7 +770,7 @@ def read_fwf(
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
     elif colspecs not in (None, "infer") and widths is not None:
-        raise ValueError("You must specify only one of 'widths' and " "'colspecs'")
+        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
 
     # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
@@ -901,9 +901,7 @@ class TextFileReader(BaseIterator):
 
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
-                raise ValueError(
-                    "Setting mangle_dupe_cols=False is " "not supported yet"
-                )
+                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             else:
                 options[argname] = value
 
@@ -942,7 +940,7 @@ class TextFileReader(BaseIterator):
             # needs to have that attribute ("next" for Python 2.x, "__next__"
             # for Python 3.x)
             if engine != "c" and not hasattr(f, next_attr):
-                msg = "The 'python' engine cannot iterate " "through this file buffer."
+                msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
         return engine
@@ -959,7 +957,7 @@ class TextFileReader(BaseIterator):
         # C engine not supported yet
         if engine == "c":
             if options["skipfooter"] > 0:
-                fallback_reason = "the 'c' engine does not support" " skipfooter"
+                fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
@@ -1395,13 +1393,17 @@ class ParserBase:
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
+            if any(i < 0 for i in self.header):
+                raise ValueError(
+                    "cannot specify multi-index header with negative integers"
+                )
             if kwds.get("usecols"):
                 raise ValueError(
-                    "cannot specify usecols when " "specifying a multi-index header"
+                    "cannot specify usecols when specifying a multi-index header"
                 )
             if kwds.get("names"):
                 raise ValueError(
-                    "cannot specify names when " "specifying a multi-index header"
+                    "cannot specify names when specifying a multi-index header"
                 )
 
             # validate index_col that only contains integers
@@ -1420,6 +1422,13 @@ class ParserBase:
         # GH 16338
         elif self.header is not None and not is_integer(self.header):
             raise ValueError("header must be integer or list of integers")
+
+        # GH 27779
+        elif self.header is not None and self.header < 0:
+            raise ValueError(
+                "Passing negative integer to header is invalid. "
+                "For no header, use header=None instead"
+            )
 
         self._name_processed = False
 
@@ -1611,7 +1620,7 @@ class ParserBase:
 
             if col_names is None:
                 raise ValueError(
-                    ("Must supply column order to use {icol!s} " "as index").format(
+                    ("Must supply column order to use {icol!s} as index").format(
                         icol=icol
                     )
                 )
@@ -2379,7 +2388,7 @@ class PythonParser(ParserBase):
         if sep is None or len(sep) == 1:
             if self.lineterminator:
                 raise ValueError(
-                    "Custom line terminators not supported in " "python parser (yet)"
+                    "Custom line terminators not supported in python parser (yet)"
                 )
 
             class MyDialect(csv.Dialect):
@@ -2662,7 +2671,7 @@ class PythonParser(ParserBase):
                         "number of header fields in the file"
                     )
                 if len(columns) > 1:
-                    raise TypeError("Cannot pass names with multi-index " "columns")
+                    raise TypeError("Cannot pass names with multi-index columns")
 
                 if self.usecols is not None:
                     # Set _use_cols. We don't store columns because they are
@@ -2727,7 +2736,7 @@ class PythonParser(ParserBase):
             elif any(isinstance(u, str) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError(
-                        "If using multiple headers, usecols must " "be integers."
+                        "If using multiple headers, usecols must be integers."
                     )
                 col_indices = []
 
