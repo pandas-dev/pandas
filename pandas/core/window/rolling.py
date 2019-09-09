@@ -635,6 +635,8 @@ class _Window(PandasObject, SelectionMixin):
         """
     Calculate unbiased %(name)s variance.
 
+    %(versionadded)s
+
     Normalized by N-1 by default. This can be changed using the `ddof`
     argument.
 
@@ -1080,13 +1082,13 @@ class Window(_Window):
         nv.validate_window_func("mean", args, kwargs)
         return self._apply("roll_weighted_mean", **kwargs)
 
-    @Substitution(name="window")
+    @Substitution(name="window", versionadded=".. versionadded:: 1.0.0")
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         return self._apply("roll_weighted_var", ddof=ddof, **kwargs)
 
-    @Substitution(name="window")
+    @Substitution(name="window", versionadded=".. versionadded:: 1.0.0")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
@@ -1889,13 +1891,13 @@ class Rolling(_Rolling_and_Expanding):
     def median(self, **kwargs):
         return super().median(**kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
-    @Substitution(name="rolling")
+    @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func("var", args, kwargs)

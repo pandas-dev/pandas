@@ -181,13 +181,13 @@ class Expanding(_Rolling_and_Expanding):
     def median(self, **kwargs):
         return super().median(**kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
