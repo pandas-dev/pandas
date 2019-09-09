@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Any, List
 
 import numpy as np
 
@@ -228,7 +229,7 @@ class EWM(_Rolling):
         block_list = list(blocks)
 
         results = []
-        exclude = []
+        exclude: List[Any] = []
         for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
