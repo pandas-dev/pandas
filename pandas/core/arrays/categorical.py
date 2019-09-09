@@ -1,3 +1,5 @@
+# mypy: allow_untyped_decorators
+
 import operator
 from shutil import get_terminal_size
 import textwrap
