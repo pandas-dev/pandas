@@ -76,7 +76,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
-from pandas.core.meta import PandasMetadataType, default_finalizer
+from pandas.core.meta import PandasMetadata
 from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats import format as fmt
@@ -5177,7 +5177,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
         for name in self._metadata:
-            finalizer = PandasMetadataType._instances.get(name, default_finalizer)
+            finalizer = PandasMetadata(name)
             # TODO: measure perf of this vs. a dict.
             if method == "copy":
                 finalizer.finalize_copy(self, other)
