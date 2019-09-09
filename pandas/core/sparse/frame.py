@@ -569,15 +569,15 @@ class SparseDataFrame(DataFrame):
         ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None):
-        new_data = {}
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
-        for col, series in this.items():
-            new_data[col] = func(series.values, other.values)
+        new_data = {}
+        for col in this.columns:
+            new_data[col] = func(this[col], other)
 
         fill_value = self._get_op_result_fill_value(other, func)
 
@@ -603,7 +603,7 @@ class SparseDataFrame(DataFrame):
         new_data = {}
 
         for col in left.columns:
-            new_data[col] = func(left[col], float(right[col]))
+            new_data[col] = func(left[col], right[col])
 
         return self._constructor(
             new_data,

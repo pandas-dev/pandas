@@ -549,7 +549,8 @@ class DataFrameFormatter(TableFormatter):
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
-        **kwds
+        bold_rows: bool = False,
+        escape: bool = True,
     ):
         self.frame = frame
         self.show_index_names = index_names
@@ -580,7 +581,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.justify = justify
 
-        self.kwds = kwds
+        self.bold_rows = bold_rows
+        self.escape = escape
 
         if columns is not None:
             self.columns = ensure_index(columns)
@@ -886,6 +888,8 @@ class DataFrameFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -900,6 +904,8 @@ class DataFrameFormatter(TableFormatter):
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
+            caption=caption,
+            label=label,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
