@@ -25,11 +25,6 @@ int to_double(char *item, double *p_value, char sci, char decimal,
     return (error == 0) && (!*p_end);
 }
 
-#if PY_VERSION_HEX < 0x02060000
-#define PyBytes_Check PyString_Check
-#define PyBytes_AS_STRING PyString_AS_STRING
-#endif  // PY_VERSION_HEX
-
 int floatify(PyObject *str, double *result, int *maybe_int) {
     int status;
     char *data;
