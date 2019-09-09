@@ -566,8 +566,7 @@ cdef class TextReader:
     def close(self):
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
-        if self.handle is not None and hasattr(self.handle, "close"):
-            # UTF8Recoder does not have `close` attr  # TODO: should it?
+        if self.handle is not None:
             self.handle.close()
 
         # also preemptively free all allocated memory

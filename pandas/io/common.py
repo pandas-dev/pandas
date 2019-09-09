@@ -600,6 +600,9 @@ class UTF8Recoder(BaseIterator):
     def next(self) -> bytes:
         return next(self.reader).encode("utf-8")
 
+    def close(self):
+        self.reader.close()
+
 
 # Keeping these class for now because it provides a necessary convenience
 # for "dropping" the "encoding" argument from our I/O arguments when
