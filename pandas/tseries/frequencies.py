@@ -247,6 +247,7 @@ def infer_freq(index, warn=True):
             )
         index = values
 
+    inferer: _FrequencyInferer
     if is_period_arraylike(index):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
