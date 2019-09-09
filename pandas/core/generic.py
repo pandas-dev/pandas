@@ -5788,11 +5788,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Control raising of exceptions on invalid data for provided dtype.
 
             - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
+            - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
 
-        kwargs : keyword arguments to pass on to the constructor
+        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
@@ -5853,7 +5853,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Convert to ordered categorical type with custom ordering:
 
         >>> cat_dtype = pd.api.types.CategoricalDtype(
-        ...                     categories=[2, 1], ordered=True)
+        ...     categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
         1    2
@@ -5863,7 +5863,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Note that using ``copy=False`` and changing data on a new
         pandas object may propagate changes:
 
-        >>> s1 = pd.Series([1,2])
+        >>> s1 = pd.Series([1, 2])
         >>> s2 = s1.astype('int64', copy=False)
         >>> s2[0] = 10
         >>> s1  # note that s1[0] has changed too

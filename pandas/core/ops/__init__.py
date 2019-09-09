@@ -213,12 +213,6 @@ def _gen_eval_kwargs(name):
             # Exclude commutative operations
             kwargs["reversed"] = True
 
-    if name in ["truediv", "rtruediv"]:
-        kwargs["truediv"] = True
-
-    if name in ["ne"]:
-        kwargs["masker"] = True
-
     return kwargs
 
 
@@ -247,7 +241,7 @@ def _get_frame_op_default_axis(name):
         return "columns"
 
 
-def _get_opstr(op, cls):
+def _get_opstr(op):
     """
     Find the operation string, if any, to pass to numexpr for this
     operation.
@@ -255,19 +249,11 @@ def _get_opstr(op, cls):
     Parameters
     ----------
     op : binary operator
-    cls : class
 
     Returns
     -------
     op_str : string or None
     """
-    # numexpr is available for non-sparse classes
-    subtyp = getattr(cls, "_subtyp", "")
-    use_numexpr = "sparse" not in subtyp
-
-    if not use_numexpr:
-        # if we're not using numexpr, then don't pass a str_rep
-        return None
 
     return {
         operator.add: "+",
@@ -624,7 +610,7 @@ def _arith_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
     construct_result = (
@@ -806,7 +792,13 @@ def _bool_method_SERIES(cls, op, special):
         return result
 
     fill_int = lambda x: x.fillna(0)
-    fill_bool = lambda x: x.fillna(False).astype(bool)
+
+    def fill_bool(x, left=None):
+        # if `left` is specifically not-boolean, we do not cast to bool
+        x = x.fillna(False)
+        if left is None or is_bool_dtype(left.dtype):
+            x = x.astype(bool)
+        return x
 
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
@@ -835,7 +827,7 @@ def _bool_method_SERIES(cls, op, special):
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
             # scalars, list, tuple, np.array
@@ -993,7 +985,7 @@ def _align_method_FRAME(left, right, axis):
 
 
 def _arith_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -1035,7 +1027,7 @@ def _arith_method_FRAME(cls, op, special):
 
 
 def _flex_comp_method_FRAME(cls, op, special):
-    str_rep = _get_opstr(op, cls)
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
@@ -1076,7 +1068,7 @@ def _flex_comp_method_FRAME(cls, op, special):
 
 
 def _comp_method_FRAME(cls, func, special):
-    str_rep = _get_opstr(func, cls)
+    str_rep = _get_opstr(func)
     op_name = _get_op_name(func, special)
 
     @Appender("Wrapper for comparison method {name}".format(name=op_name))
