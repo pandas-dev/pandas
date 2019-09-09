@@ -636,7 +636,13 @@ def _arith_method_SERIES(cls, op, special):
 
         keep_null_freq = isinstance(
             right,
-            (ABCDatetimeIndex, ABCDatetimeArray, ABCTimedeltaIndex, ABCTimedeltaArray, Timestamp),
+            (
+                ABCDatetimeIndex,
+                ABCDatetimeArray,
+                ABCTimedeltaIndex,
+                ABCTimedeltaArray,
+                Timestamp,
+            ),
         )
 
         left, right = _align_method_SERIES(left, right)
@@ -647,7 +653,9 @@ def _arith_method_SERIES(cls, op, special):
 
         rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
-        if should_extension_dispatch(left, rvalues) or isinstance(rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)):
+        if should_extension_dispatch(left, rvalues) or isinstance(
+            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        ):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
         else:
