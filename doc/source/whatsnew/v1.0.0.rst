@@ -145,7 +145,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
--
+- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 
 Missing
 ^^^^^^^
@@ -214,7 +214,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
-- Reindexing a `PeriodIndex` with an index of dtype `Object` no longer uses the `PeriodIndex`'s `_int64index`
+-
 
 .. _whatsnew_1000.contributors:
 
