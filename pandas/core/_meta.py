@@ -5,45 +5,42 @@ This module contains the infrastructure for propagating ``NDFrame._metadata``
 through operations. We perform an operation (say :meth:`pandas.Series.copy`) that
 returns an ``NDFrame`` and would like to propagate the metadata (say ``Series.name``)
 from ``self`` to the new ``NDFrame``.
-
-.. note::
-
-   Currently, pandas doesn't provide a clean, documented API on
-
-   * which methods call finalize
-   * the types passed to finalize for each method
-
-   This is a known limitation we would like to address in the future.
 """
-from collections import defaultdict
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import Any, Dict
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
-
-dispatch = defaultdict(dict)
-dispatch_method_type = Union[Callable[..., "NDFrame"], str]
+from pandas._typing import FrameOrSeries
 
 
-def key_of(method):
-    if isinstance(method, str):
-        # TODO: figure out if this is OK. May be necessary when we have
-        #   things like pd.merge and DataFrame.merge that hit the same finalize.
-        return method
-    elif method:
-        return method.__module__, method.__name__
+class PandasMetadataType(type):
+    """
+    Metaclass controlling creation of metadata finalizers.
+
+    This ensures we have one finalizer instance per name, and
+    provides a place to look up finalizer per name.
+    """
+
+    # TODO(Py35): Replace metaclass with __subclass_init__
+
+    _instances = {}  # type: Dict[str, "PandasMetadata"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        name = args[0]
+        if name in self._instances:
+            return self._instances[name]
+        else:
+            new = super().__call__(name, *args, **kwds)
+            self._instances[name] = new
+            return new
 
 
-class PandasMetadata:
+class PandasMetadata(metaclass=PandasMetadataType):
     """
     Dispatch metadata finalization for pandas metadata.
-
-    Users should instantiate a single `PandasMetadata` instance
-    for their piece of metadata and register finalizers for various
-    pandas methods using :meth:`PandsaMetadata.register`.
 
     Parameters
     ----------
@@ -52,95 +49,61 @@ class PandasMetadata:
 
     Examples
     --------
-    >>> maxmeta = PandasMetadata("attr")
+    If you want the default resolution (copy from a source NDFrame
+    to a new NDFrame), you can just create an instance
 
-    Register a finalizer for a given pandas method:
+    >>> mymeta = PandasMetadata("mymeta")
 
-    >>> @maxmeta.register(pd.concat)
-    ... def _(new, concatenator):
-    ...     new.attr = max(x.attr_meta for x in concatenator.objs)
+    If you need custom metadata resolution, you'll need to subclass.
 
-    >>> pd.DataFrame._metadata = ['attr']
-    >>> x = pd.DataFrame({"x"}); x.attr = 1
-    >>> y = pd.DataFrame({"y"}); y.attr = 2
-    >>> pd.concat([x, y]).attr
-    2
+    >>> class IncrementMetadata:
+    ...     def finalize_default(self, new, other):
+    ...         setattr(new, self.attr, getattr(other, self.name, -1) + 1)
+
+    >>> increment_metadata = IncrementMetadata("attr")
     """
 
     def __init__(self, name: str):
         self.name = name
 
-    def register(self, pandas_method: dispatch_method_type):
+    def __repr__(self):
+        return "PandasMetadata(name='{}')".format(self.name)
+
+    def finalize_default(self, new: "FrameOrSeries", other: Any):
+        # TODO: tighten the type on Any. Union[NDFrame, _Concatenator, ...]
         """
-        A decorator to register a finalizer for a specific pandas method.
+        The default finalizer when this method, attribute hasn't been overridden.
+
+        This copies the ``_metadata`` attribute from ``other`` to ``self``, modifying
+        ``self`` inplace.
 
         Parameters
         ----------
-        pandas_method : callable or str
-            A pandas method, like :meth:`pandas.concat`, that this finalizer
-            should be used for. The function being decorated will be called
-            with the relevant arguments (typically the output and the source NDFrame).
-            When `NDFrame.__finalize__` is called as a result of `pandas_method`,
-            the registered finalizer will be called.
+        new : NDFrame
+            The newly created NDFrame being finalized.
+        other : Any
+            The source object attributes will be extracted from.
         """
+        # TODO: check perf on this isinstance.
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            object.__setattr__(new, self.name, getattr(other, self.name, None))
 
-        def decorate(func):
-            # TODO: warn of collisions?
-            dispatch[key_of(pandas_method)][self.name] = func
+    def finalize_copy(self, new: "FrameOrSeries", other: "FrameOrSeries"):
+        return self.finalize_default(new, other)
 
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            return wrapper
-
-        return decorate
+    def finalize_concat(self, new: "FrameOrSeries", other: Any):
+        # TODO: type other as _Concatenator
+        self.finalize_default(new, other)
 
 
-def default_finalizer(new: "NDFrame", other: Any, *, name: str):
-    """
-    The default finalizer when this method, attribute hasn't been overridden.
-
-    This copies the ``_metadata`` attribute from ``other`` to ``self``, modifying
-    ``self`` inplace.
-
-    Parameters
-    ----------
-    new : NDFrame
-        The newly created NDFrame being finalized.
-    other : NDFrame
-        The source NDFrame attributes will be extracted from.
-    """
-    object.__setattr__(new, name, getattr(other, name, None))
+class NameMetadata(PandasMetadata):
+    """Finalization for Series.name"""
 
 
-# ----------------------------------------------------------------------------
-# Pandas Internals.
+# TODO: having to create this here feels weird.
+name_metadata = NameMetadata("name")
 
-
-def ndframe_finalize(new: "NDFrame", other: Any, method: dispatch_method_type):
-    """
-    Finalize a new NDFrame.
-
-    The finalizer is looked up from finalizers registered with PandasMetadata.
-    `new` is modified inplace, and nothing is returned.
-
-    Parameters
-    ----------
-    new : NDFrame
-    other : NDFrame
-        Or a list of them? TBD
-    method : callable or str
-    """
-    # To avoid one isinstance per _metadata name, we check up front.
-    # Most of the time `other` is an ndframe, but in some cases (e.g. concat)
-    # it's `_Concatenator` object
-    other_is_ndframe = isinstance(other, (ABCSeries, ABCDataFrame))
-
-    for name in new._metadata:
-        finalizer = dispatch.get(key_of(method), {}).get(name)
-
-        if finalizer:
-            finalizer(new, other)
-        elif other_is_ndframe:
-            default_finalizer(new, other, name=name)
+# For backwards compat. Do we care about this?
+# We can pretty easily deprecate, require subclasses to make their
+# own instance.
+default_finalizer = PandasMetadata("pandas")

@@ -3,18 +3,17 @@ import pytest
 import pandas as pd
 from pandas.core._meta import PandasMetadata
 
-mymeta = PandasMetadata("attr")
+
+class MyMeta(PandasMetadata):
+    def finalize_copy(self, new, other):
+        new.attr = other.attr + 1
+
+    def finalize_concat(self, new, other):
+        assert isinstance(other, pd.core.reshape.concat._Concatenator)
+        new.attr = sum(x.attr for x in other.objs)
 
 
-@mymeta.register(pd.core.generic.NDFrame.copy)
-def _(new, other):
-    new.attr = other.attr + 1
-
-
-@mymeta.register("concat")
-def _(new, other):
-    assert isinstance(other, pd.core.reshape.concat._Concatenator)
-    new.attr = sum(x.attr for x in other.objs)
+mymeta = MyMeta("attr")
 
 
 @pytest.fixture
