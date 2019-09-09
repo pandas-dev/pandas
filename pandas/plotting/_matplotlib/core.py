@@ -1196,7 +1196,7 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
-            if i >= len(data.index):
+            if i >= len(data.index) or not is_integer(i):
                 # TODO: is getting here indicative of a larger problem?
                 return ""
             return pprint_thing(data.index[i])
