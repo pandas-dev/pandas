@@ -33,7 +33,7 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.np_datetime import NullFrequencyError, OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
     reverse_ops, cmp_scalar)
 from pandas._libs.tslibs.timezones cimport (

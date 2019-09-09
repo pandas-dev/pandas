@@ -94,15 +94,6 @@ cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
         return lhs >= rhs
 
 
-class NullFrequencyError(ValueError):
-    """
-    Error raised when a null `freq` attribute is used in an operation
-    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
-    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
-    """
-    pass
-
-
 class OutOfBoundsDatetime(ValueError):
     pass
 
