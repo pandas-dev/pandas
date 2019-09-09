@@ -1,3 +1,5 @@
+# mypy: no_strict_equality
+
 """Extend pandas with custom array types"""
 from typing import List, Optional, Tuple, Type
 

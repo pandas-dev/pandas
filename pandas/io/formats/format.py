@@ -1,3 +1,5 @@
+# mypy: no_strict_equality
+
 """
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
