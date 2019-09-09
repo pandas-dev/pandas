@@ -27,7 +27,7 @@ def unpack_and_defer(name: str):
     return wrapper
 
 
-def _unpack_and_defer(method, name):
+def _unpack_and_defer(method, name: str):
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
