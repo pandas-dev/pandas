@@ -318,17 +318,22 @@ def boxplot(
         # if columns is None, use all numeric columns of data, so directly pass
         # if the given 'column' are subset of column index, no matter if data column
         # is multiindex or index, get the subset of data directly
-        # if given 'column' is not subset, and data columns is multiindex, and then
-        # query the columns if column contains at least one element from 'columns'
+        # if columns is None:
+        #     pass
+        # elif isinstance(data.columns, pd.MultiIndex):
+        #
+        #     # if multiindex columns are passed, then the inner level columns will be
+        #     # called for subset
+        #     data = data.loc[:, pd.IndexSlice[:, columns]]
+        # elif isinstance(data.columns, pd.Index):
+        #
+        #     # if a normal column is passed, then select specified columns for subset
+        #     data = data.loc[:, columns]
         if columns is None:
-            pass
-        elif set(column).issubset(data.columns):
-            data = data.loc[:, columns]
-        elif isinstance(data.columns, pd.MultiIndex):
-            columns = [col for col in data.columns if set(columns).intersection(col)]
-            data = data.loc[:, columns]
-
-        columns = data.columns
+            columns = data.columns
+        else:
+            data = data[columns]
+#        columns = data.columns
         result = plot_group(columns, data.values.T, ax)
         ax.grid(grid)
 
