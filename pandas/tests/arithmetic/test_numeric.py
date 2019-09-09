@@ -245,7 +245,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
     )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
         # GH#28080 numeric+datetime64 should raise; Timestamp raises
         #  NullFrequencyError instead of TypeError so is excluded.
         left = tm.box_expected(numeric_idx, box)
