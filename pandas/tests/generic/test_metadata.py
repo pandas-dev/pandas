@@ -1,7 +1,7 @@
 import pytest
 
 import pandas as pd
-from pandas.core._meta import PandasMetadata
+from pandas.core.meta import PandasMetadata
 
 
 class MyMeta(PandasMetadata):

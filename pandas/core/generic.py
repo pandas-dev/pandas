@@ -62,7 +62,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas._typing import Dtype, FilePathOrBuffer
 from pandas.core import missing, nanops
-from pandas.core._meta import PandasMetadataType, default_finalizer
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -77,6 +76,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
+from pandas.core.meta import PandasMetadataType, default_finalizer
 from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats import format as fmt
