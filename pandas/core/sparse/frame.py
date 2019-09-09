@@ -49,7 +49,7 @@ class SparseDataFrame(DataFrame):
     Parameters
     ----------
     data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
-        .. versionchanged :: 0.23.0
+        .. versionchanged:: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
            and later.
 
@@ -425,7 +425,7 @@ class SparseDataFrame(DataFrame):
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
-                raise ValueError("Length of values does not match " "length of index")
+                raise ValueError("Length of values does not match length of index")
             clean = value
 
         elif hasattr(value, "__iter__"):
@@ -435,9 +435,7 @@ class SparseDataFrame(DataFrame):
                     clean = sp_maker(clean)
             else:
                 if len(value) != len(self.index):
-                    raise ValueError(
-                        "Length of values does not match " "length of index"
-                    )
+                    raise ValueError("Length of values does not match length of index")
                 clean = sp_maker(value)
 
         # Scalar
@@ -571,15 +569,15 @@ class SparseDataFrame(DataFrame):
         ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None):
-        new_data = {}
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
         this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
 
-        for col, series in this.items():
-            new_data[col] = func(series.values, other.values)
+        new_data = {}
+        for col in this.columns:
+            new_data[col] = func(this[col], other)
 
         fill_value = self._get_op_result_fill_value(other, func)
 
@@ -605,7 +603,7 @@ class SparseDataFrame(DataFrame):
         new_data = {}
 
         for col in left.columns:
-            new_data[col] = func(left[col], float(right[col]))
+            new_data[col] = func(left[col], right[col])
 
         return self._constructor(
             new_data,
@@ -732,7 +730,7 @@ class SparseDataFrame(DataFrame):
 
         if method is not None or limit is not None:
             raise NotImplementedError(
-                "cannot reindex with a method or limit " "with sparse"
+                "cannot reindex with a method or limit with sparse"
             )
 
         if fill_value is None:
@@ -765,9 +763,7 @@ class SparseDataFrame(DataFrame):
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
         if on is not None:
-            raise NotImplementedError(
-                "'on' keyword parameter is not yet " "implemented"
-            )
+            raise NotImplementedError("'on' keyword parameter is not yet implemented")
         return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_index(self, other, how, lsuffix, rsuffix):

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import warnings
 
 import cython
 
@@ -45,10 +46,6 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
-
-
-def get_value_box(arr: ndarray, loc: object) -> object:
-    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this

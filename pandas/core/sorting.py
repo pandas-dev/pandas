@@ -271,7 +271,6 @@ def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
 
 
 class _KeyMapper:
-
     """
     Ease my suffering. Map compressed group id -> key tuple
     """
@@ -436,7 +435,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
     """
     if not is_list_like(values):
         raise TypeError(
-            "Only list-like objects are allowed to be passed to" "safe_sort as values"
+            "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
     if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):

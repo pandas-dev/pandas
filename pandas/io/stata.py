@@ -138,7 +138,7 @@ Read a Stata dta file in 10,000 line chunks:
     _iterator_params,
 )
 
-_data_method_doc = """\
+_data_method_doc = """
 Read observations from Stata file, converting them into a dataframe
 
 .. deprecated::
@@ -367,7 +367,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
 
-        warnings.warn("Encountered %tC format. Leaving in Stata " "Internal Format.")
+        warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
         conv_dates = Series(dates, dtype=np.object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
@@ -856,7 +856,7 @@ class StataMissingValue:
 
     string = property(
         lambda self: self._str,
-        doc="The Stata representation of the missing value: " "'.', '.a'..'.z'",
+        doc="The Stata representation of the missing value: '.', '.a'..'.z'",
     )
     value = property(
         lambda self: self._value, doc="The binary representation of the missing value."
@@ -1959,7 +1959,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
             new_dict.update({varlist.index(key): convert_dates[key]})
         else:
             if not isinstance(key, int):
-                raise ValueError("convert_dates key must be a " "column or an integer")
+                raise ValueError("convert_dates key must be a column or an integer")
             new_dict.update({key: convert_dates[key]})
     return new_dict
 
@@ -2533,9 +2533,7 @@ class StataWriter(StataParser):
             if col in self._variable_labels:
                 label = self._variable_labels[col]
                 if len(label) > 80:
-                    raise ValueError(
-                        "Variable labels must be 80 characters " "or fewer"
-                    )
+                    raise ValueError("Variable labels must be 80 characters or fewer")
                 is_latin1 = all(ord(c) < 256 for c in label)
                 if not is_latin1:
                     raise ValueError(
@@ -3093,9 +3091,7 @@ class StataWriter117(StataWriter):
             if col in self._variable_labels:
                 label = self._variable_labels[col]
                 if len(label) > 80:
-                    raise ValueError(
-                        "Variable labels must be 80 characters " "or fewer"
-                    )
+                    raise ValueError("Variable labels must be 80 characters or fewer")
                 is_latin1 = all(ord(c) < 256 for c in label)
                 if not is_latin1:
                     raise ValueError(

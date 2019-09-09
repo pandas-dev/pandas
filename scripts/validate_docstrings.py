@@ -13,20 +13,20 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-import os
-import sys
-import json
-import re
-import glob
-import functools
-import collections
 import argparse
-import pydoc
-import inspect
-import importlib
-import doctest
-import tempfile
 import ast
+import collections
+import doctest
+import functools
+import glob
+import importlib
+import inspect
+import json
+import os
+import pydoc
+import re
+import sys
+import tempfile
 import textwrap
 
 import flake8.main.application
@@ -41,24 +41,25 @@ except ImportError:
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ["MPLBACKEND"] = "Template"
-import matplotlib
+import matplotlib  # noqa: E402 isort:skip
 
 matplotlib.rc("figure", max_open_warning=10000)
 
-import numpy
+import numpy  # noqa: E402 isort:skip
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas
+import pandas  # noqa: E402 isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.docscrape import NumpyDocString
-from pandas.io.formats.printing import pprint_thing
+from numpydoc.docscrape import NumpyDocString  # noqa: E402 isort:skip
+from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 DIRECTIVES = ["versionadded", "versionchanged", "deprecated"]
+DIRECTIVE_PATTERN = re.compile(rf"^\s*\.\. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M)
 ALLOWED_SECTIONS = [
     "Parameters",
     "Attributes",
@@ -93,6 +94,7 @@ ERROR_MSGS = {
     "GL07": "Sections are in the wrong order. Correct order is: " "{correct_sections}",
     "GL08": "The object does not have a docstring",
     "GL09": "Deprecation warning should precede extended summary",
+    "GL10": "reST directives {directives} must be followed by two colons",
     "SS01": "No summary found (a short summary in a single line should be "
     "present at the beginning of the docstring)",
     "SS02": "Summary does not start with a capital letter",
@@ -478,6 +480,10 @@ class Docstring:
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
 
+    @property
+    def directives_without_two_colons(self):
+        return DIRECTIVE_PATTERN.findall(self.raw_doc)
+
     def parameter_type(self, param):
         return self.doc_parameters[param][0]
 
@@ -696,6 +702,10 @@ def get_validation_data(doc):
 
     if doc.deprecated and not doc.extended_summary.startswith(".. deprecated:: "):
         errs.append(error("GL09"))
+
+    directives_without_two_colons = doc.directives_without_two_colons
+    if directives_without_two_colons:
+        errs.append(error("GL10", directives=directives_without_two_colons))
 
     if not doc.summary:
         errs.append(error("SS01"))
