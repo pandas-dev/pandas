@@ -28,8 +28,7 @@ class PandasMetadataType(type):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        name = args[0]
+    def __call__(self, name, *args: Any, **kwds: Any) -> Any:  # type: ignore
         if name in self._instances:
             return self._instances[name]
         else:
