@@ -2,6 +2,7 @@
 concat routines
 """
 
+from typing import List, Union
 import warnings
 
 import numpy as np
@@ -543,20 +544,22 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)
+                names: List[Union[int, str]] = []
                 num = 0
                 has_names = False
-                for i, x in enumerate(self.objs):
-                    if not isinstance(x, Series):
+                for obj in self.objs:
+                    if not isinstance(obj, Series):
                         raise TypeError(
                             "Cannot concatenate type 'Series' "
-                            "with object of type {type!r}".format(type=type(x).__name__)
+                            "with object of type {type!r}".format(
+                                type=type(obj).__name__
+                            )
                         )
-                    if x.name is not None:
-                        names[i] = x.name
+                    if obj.name is not None:
+                        names.append(obj.name)
                         has_names = True
                     else:
-                        names[i] = num
+                        names.append(num)
                         num += 1
                 if has_names:
                     return Index(names)
