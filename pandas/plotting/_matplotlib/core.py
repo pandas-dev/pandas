@@ -12,6 +12,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
+    is_float,
     is_iterator,
     is_list_like,
     is_number,
@@ -1196,10 +1197,17 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
-            if i >= len(data.index) or not is_integer(i):
+            if is_float(i) and i == int(i):
+                i = int(i)
+            if not is_integer(i):
                 # TODO: is getting here indicative of a larger problem?
                 return ""
-            return pprint_thing(data.index[i])
+            try:
+                val = data.index[i]
+            except IndexError:
+                # In tests we get here with both positive and negative `i`
+                return ""
+            return pprint_thing(val)
 
         if self._need_to_set_index:
             xticks = ax.get_xticks()
