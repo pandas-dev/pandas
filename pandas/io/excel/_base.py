@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from urllib.request import urlopen
 
 from pandas._config import config
 
@@ -21,6 +20,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
+    urlopen,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -112,7 +112,7 @@ dtype : Type name or dict of column -> type, default None
 
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd.
+    Acceptable values are None, "xlrd", "openpyxl" or "odf".
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -783,11 +783,12 @@ class ExcelFile:
     Parameters
     ----------
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file.
+        a file-like object, xlrd workbook or openpypl workbook.
+        If a string or path object, expected to be a path to xls, xlsx or odf file.
     engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or ``xlrd``.
+        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -837,10 +838,10 @@ class ExcelFile:
         **kwds
     ):
         """
-        Parse specified sheet(s) into a DataFrame
+        Parse specified sheet(s) into a DataFrame.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters
+        docstring for more info on accepted parameters.
 
         Returns
         -------
