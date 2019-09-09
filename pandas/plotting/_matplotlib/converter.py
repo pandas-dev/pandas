@@ -1,5 +1,6 @@
 import datetime as pydt
 from datetime import datetime, timedelta
+from typing import List
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -1049,7 +1050,7 @@ class TimeSeries_DateFormatter(Formatter):
             freq = get_freq(freq)
         self.format = None
         self.freq = freq
-        self.locs = []
+        self.locs: List[float] = []
         self.formatdict = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
