@@ -1487,6 +1487,22 @@ class TestSparseDataFrameArithmetic:
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
+    def test_add_series_retains_dtype(self):
+        # SparseDataFrame._combine_match_columns used to incorrectly cast
+        #  to float
+        d = {0: [2j, 3j], 1: [0, 1]}
+        sdf = SparseDataFrame(data=d, default_fill_value=1)
+        result = sdf + sdf[0]
+
+        df = sdf.to_dense()
+        expected = df + df[0]
+        tm.assert_frame_equal(result.to_dense(), expected)
+
+        # Make it explicit to be on the safe side
+        edata = {0: [4j, 5j], 1: [3j, 1 + 3j]}
+        expected = DataFrame(edata)
+        tm.assert_frame_equal(result.to_dense(), expected)
+
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
