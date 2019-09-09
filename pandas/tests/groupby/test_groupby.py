@@ -1929,7 +1929,7 @@ def test_groupby_axis_1(group_name):
     ],
 )
 def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
-    # GH27992: Check that timezone does not drop in shift, bfill, and ffill
+    # GH19995, GH27992: Check that timezone does not drop in shift, bfill, and ffill
     tz = tz_naive_fixture
     data = {
         "id": ["A", "B", "A", "B", "A", "B"],
