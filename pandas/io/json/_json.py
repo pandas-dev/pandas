@@ -972,13 +972,8 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except ValueError:
+            except (ValueError, OverflowError):
                 continue
-            except OverflowError:
-                # TODO: Why would this be treated different from ValueError?
-                #  In the one test where this is hit, continuing instead of
-                #  breaking doesn't make the test fail
-                break
             return new_data, True
         return data, False
 
