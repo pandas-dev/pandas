@@ -5,7 +5,15 @@ from pandas.core.meta import PandasMetadata
 
 
 class MyMeta(PandasMetadata):
-    def finalize_copy(self, new, other):
+    def finalize(self, new, other, method):
+        if method == "concat":
+            self.finalize_concat(new, other)
+        elif method == "copy":
+            self.finalize_copy(new, other)
+        else:
+            super().finalize(new, other, method)
+
+    def default(self, new, other):
         new.attr = other.attr + 1
 
     def finalize_concat(self, new, other):
@@ -28,7 +36,8 @@ def custom_meta(monkeypatch):
         monkeypatch.setattr(cls, "_metadata", custom_metadata)
 
 
-def test_custom_finalizer(custom_meta):
+@pytest.mark.usefixtures("custom_meta")
+def test_custom_finalizer():
 
     df = pd.DataFrame({"A": [1, 2]})
     df.attr = 0
@@ -37,7 +46,8 @@ def test_custom_finalizer(custom_meta):
     assert result.attr == 1
 
 
-def test_concat(custom_meta):
+@pytest.mark.usefixtures("custom_meta")
+def test_concat():
     df1 = pd.DataFrame({"A": [1, 2]})
     df1.attr = 2
 

@@ -5178,18 +5178,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         for name in self._metadata:
             finalizer = PandasMetadata(name)
-            # TODO: measure perf of this vs. a dict.
-            if method == "copy":
-                finalizer.finalize_copy(self, other)
-            elif method == "concat":
-                finalizer.finalize_concat(self, other)
-            elif method == "getitem_multilevel":
-                finalizer.getitem_multilevel(self, other)
-            elif method == "sort_index":
-                finalizer.getitem_sort_index(self, other)
-
-            else:
-                finalizer.finalize_default(self, other)
+            finalizer.finalize(self, other, method)
 
         return self
 
@@ -6029,7 +6018,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: object
         """
         data = self._data.copy(deep=deep)
-        return self._constructor(data).__finalize__(self, method="copy")
+        return self._constructor(data).__finalize__(self)
 
     def __copy__(self, deep=True):
         return self.copy(deep=deep)
