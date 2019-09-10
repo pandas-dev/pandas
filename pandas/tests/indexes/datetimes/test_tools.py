@@ -901,6 +901,13 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_coerce_malformed(self):
+        # GH 28299
+        ts_strings = ["200622-12-31", "111111-24-11"]
+        result = to_datetime(ts_strings, errors="coerce")
+        expected = Index([NaT, NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
