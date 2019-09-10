@@ -353,10 +353,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         import pyarrow as pa
 
-        if type is not None and not isinstance(type, PeriodType):
+        if type is not None and not isinstance(type, ArrowPeriodType):
             raise TypeError("not supported")
 
-        period_type = PeriodType(self.freqstr)
+        period_type = ArrowPeriodType(self.freqstr)
         storage_array = pa.array(self._data, mask=self.isna(), type="int64")
         return pa.ExtensionArray.from_storage(period_type, storage_array)
 
@@ -1117,7 +1117,7 @@ if _PYARROW_INSTALLED and (
     LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
 ):
 
-    class PeriodType(pyarrow.ExtensionType):
+    class ArrowPeriodType(pyarrow.ExtensionType):
         def __init__(self, freq):
             # attributes need to be set first before calling
             # super init (as that calls serialize)
@@ -1135,7 +1135,7 @@ if _PYARROW_INSTALLED and (
         @classmethod
         def __arrow_ext_deserialize__(cls, storage_type, serialized):
             metadata = json.loads(serialized.decode())
-            return PeriodType(metadata["freq"])
+            return ArrowPeriodType(metadata["freq"])
 
         def __eq__(self, other):
             if isinstance(other, pyarrow.BaseExtensionType):
@@ -1143,6 +1143,9 @@ if _PYARROW_INSTALLED and (
             else:
                 return NotImplemented
 
+        def __hash__(self):
+            return hash((str(self), self.freq))
+
     # register the type with a dummy instance
-    _period_type = PeriodType("D")
+    _period_type = ArrowPeriodType("D")
     pyarrow.register_extension_type(_period_type)

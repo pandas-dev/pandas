@@ -345,6 +345,26 @@ class TestReductions:
     and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
     reason="pyarrow >= 0.15.0 required",
 )
+def test_arrow_extension_type():
+    from pandas.core.arrays.period import ArrowPeriodType
+
+    p1 = ArrowPeriodType("D")
+    p2 = ArrowPeriodType("D")
+    p3 = ArrowPeriodType("M")
+
+    assert p1.freq == "D"
+    assert p1 == p2
+    assert not p1 == p3
+    assert hash(p1) == hash(p2)
+    assert not hash(p1) == hash(p3)
+
+
+@pytest.mark.skipif(
+    not _PYARROW_INSTALLED
+    or _PYARROW_INSTALLED
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
+    reason="pyarrow >= 0.15.0 required",
+)
 @pytest.mark.parametrize(
     "data, freq",
     [
@@ -354,11 +374,11 @@ class TestReductions:
 )
 def test_arrow_array(data, freq):
     import pyarrow as pa
-    from pandas.core.arrays.period import PeriodType
+    from pandas.core.arrays.period import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
     arr = pa.array(periods)
-    assert isinstance(arr.type, PeriodType)
+    assert isinstance(arr.type, ArrowPeriodType)
     assert arr.type.freq == freq
     expected = pa.array(periods.asi8, type="int64")
     assert arr.storage.equals(expected)

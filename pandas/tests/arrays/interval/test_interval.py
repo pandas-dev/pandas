@@ -120,14 +120,35 @@ def test_repr():
     and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
     reason="pyarrow >= 0.15.0 required",
 )
+def test_arrow_extension_type():
+    import pyarrow as pa
+    from pandas.core.arrays.interval import ArrowIntervalType
+
+    p1 = ArrowIntervalType(pa.int64(), "left")
+    p2 = ArrowIntervalType(pa.int64(), "left")
+    p3 = ArrowIntervalType(pa.int64(), "right")
+
+    assert p1.closed == "left"
+    assert p1 == p2
+    assert not p1 == p3
+    assert hash(p1) == hash(p2)
+    assert not hash(p1) == hash(p3)
+
+
+@pytest.mark.skipif(
+    not _PYARROW_INSTALLED
+    or _PYARROW_INSTALLED
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
+    reason="pyarrow >= 0.15.0 required",
+)
 def test_arrow_array():
     import pyarrow as pa
-    from pandas.core.arrays.interval import IntervalType
+    from pandas.core.arrays.interval import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
 
     arr = pa.array(intervals)
-    assert isinstance(arr.type, IntervalType)
+    assert isinstance(arr.type, ArrowIntervalType)
     assert arr.type.closed == intervals.closed
     assert arr.type.subtype == pa.int64()
 

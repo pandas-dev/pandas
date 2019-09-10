@@ -1051,12 +1051,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow as pa
 
-        if type is not None and not isinstance(type, IntervalType):
+        if type is not None and not isinstance(type, ArrowIntervalType):
             raise TypeError("not supported")
 
         # TODO better conversion to arrow type, handle missing values
         subtype = pa.type_for_alias(str(self.dtype.subtype))
-        interval_type = IntervalType(subtype, self.closed)
+        interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pa.StructArray.from_arrays(
             [
                 pa.array(self.left, type=subtype, from_pandas=True),
@@ -1263,7 +1263,7 @@ if _PYARROW_INSTALLED and (
     LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
 ):
 
-    class IntervalType(pyarrow.ExtensionType):
+    class ArrowIntervalType(pyarrow.ExtensionType):
         def __init__(self, subtype, closed):
             # attributes need to be set first before calling
             # super init (as that calls serialize)
@@ -1290,18 +1290,21 @@ if _PYARROW_INSTALLED and (
             metadata = json.loads(serialized.decode())
             subtype = pyarrow.type_for_alias(metadata["subtype"])
             closed = metadata["closed"]
-            return IntervalType(subtype, closed)
+            return ArrowIntervalType(subtype, closed)
 
         def __eq__(self, other):
             if isinstance(other, pyarrow.BaseExtensionType):
                 return (
                     type(self) == type(other)
-                    and self.subtype == other.subtupe
+                    and self.subtype == other.subtype
                     and self.closed == other.closed
                 )
             else:
                 return NotImplemented
 
+        def __hash__(self):
+            return hash((str(self), str(self.subtype), self.closed))
+
     # register the type with a dummy instance
-    _interval_type = IntervalType(pyarrow.int64(), "left")
+    _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
     pyarrow.register_extension_type(_interval_type)
