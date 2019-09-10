@@ -118,6 +118,7 @@ Datetimelike
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 -
 
 
