@@ -1,5 +1,6 @@
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -76,6 +77,9 @@ class HistPlot(LinePlot):
         sharex=False,
         sharey=False,
         layout=None,
+        xlabelsize=None,
+        ylabelsize=None,
+        yrot=None,
         **kwds
     ):
         if "figure" in kwds:
@@ -103,11 +107,14 @@ class HistPlot(LinePlot):
             ax.hist(y, **kwds)
             ax.set_title(pprint_thing(label))
 
-        _set_ticks_props(axes, xrot=xrot)
+        _set_ticks_props(
+            axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
+        )
 
         fig.subplots_adjust(
             bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
         )
+        plt.show()
 
     def _make_plot(self):
         colors = self._get_colors()
