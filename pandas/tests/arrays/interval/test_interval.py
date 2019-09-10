@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
 
@@ -13,6 +15,13 @@ from pandas import (
 )
 from pandas.core.arrays import IntervalArray
 import pandas.util.testing as tm
+
+try:
+    import pyarrow
+
+    _PYARROW_INSTALLED = True
+except ImportError:
+    _PYARROW_INSTALLED = False
 
 
 @pytest.fixture(
@@ -103,3 +112,26 @@ def test_repr():
         "Length: 2, closed: right, dtype: interval[int64]"
     )
     assert result == expected
+
+
+@pytest.mark.skipif(
+    not _PYARROW_INSTALLED
+    or _PYARROW_INSTALLED
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
+    reason="pyarrow >= 0.15.0 required",
+)
+def test_arrow_array():
+    import pyarrow as pa
+    from pandas.core.arrays.interval import IntervalType
+
+    intervals = pd.interval_range(1, 5, freq=1).array
+
+    arr = pa.array(intervals)
+    assert isinstance(arr.type, IntervalType)
+    assert arr.type.closed == intervals.closed
+    assert arr.type.subtype == pa.int64()
+
+    assert arr.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
+
+    with pytest.raises(TypeError):
+        pa.array(intervals, type="float64")

@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+import json
 from operator import le, lt
 import textwrap
 
@@ -38,6 +40,14 @@ from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.base import ensure_index
+
+try:
+    import pyarrow
+
+    _PYARROW_INSTALLED = True
+except ImportError:
+    _PYARROW_INSTALLED = False
+
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
@@ -1035,6 +1045,27 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = Interval(left[i], right[i], closed)
         return result
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        if type is not None and not isinstance(type, IntervalType):
+            raise TypeError("not supported")
+
+        # TODO better conversion to arrow type, handle missing values
+        subtype = pa.type_for_alias(str(self.dtype.subtype))
+        interval_type = IntervalType(subtype, self.closed)
+        storage_array = pa.StructArray.from_arrays(
+            [
+                pa.array(self.left, type=subtype, from_pandas=True),
+                pa.array(self.right, type=subtype, from_pandas=True),
+            ],
+            names=["left", "right"],
+        )
+        return pa.ExtensionArray.from_storage(interval_type, storage_array)
+
     _interval_shared_docs[
         "to_tuples"
     ] = """
@@ -1226,3 +1257,51 @@ def maybe_convert_platform_interval(values):
         values = np.asarray(values)
 
     return maybe_convert_platform(values)
+
+
+if _PYARROW_INSTALLED and (
+    LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
+):
+
+    class IntervalType(pyarrow.ExtensionType):
+        def __init__(self, subtype, closed):
+            # attributes need to be set first before calling
+            # super init (as that calls serialize)
+            assert closed in _VALID_CLOSED
+            self._subtype = pyarrow.type_for_alias(str(subtype))
+            self._closed = closed
+            storage_type = pyarrow.struct([("left", subtype), ("right", subtype)])
+            pyarrow.ExtensionType.__init__(self, storage_type, "pandas.interval")
+
+        @property
+        def subtype(self):
+            return self._subtype
+
+        @property
+        def closed(self):
+            return self._closed
+
+        def __arrow_ext_serialize__(self):
+            metadata = {"subtype": str(self.subtype), "closed": self.closed}
+            return json.dumps(metadata).encode()
+
+        @classmethod
+        def __arrow_ext_deserialize__(cls, storage_type, serialized):
+            metadata = json.loads(serialized.decode())
+            subtype = pyarrow.type_for_alias(metadata["subtype"])
+            closed = metadata["closed"]
+            return IntervalType(subtype, closed)
+
+        def __eq__(self, other):
+            if isinstance(other, pyarrow.BaseExtensionType):
+                return (
+                    type(self) == type(other)
+                    and self.subtype == other.subtupe
+                    and self.closed == other.closed
+                )
+            else:
+                return NotImplemented
+
+    # register the type with a dummy instance
+    _interval_type = IntervalType(pyarrow.int64(), "left")
+    pyarrow.register_extension_type(_interval_type)
