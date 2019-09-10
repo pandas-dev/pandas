@@ -793,15 +793,19 @@ class PlotAccessor(PandasObject):
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
+
+            # process groupby if by argument is defined
             if kwargs.get("by") is not None:
 
                 grouped = data.groupby(kwargs.get("by"))
                 if kwargs.get("column") is not None:
                     grouped = grouped[kwargs.get("column")]
-                d = {}
+
+                # recreate data according to groupby object
+                data_dict = {}
                 for key, group in grouped:
-                    d[key] = group
-                data = DataFrame(d)
+                    data_dict[key] = group
+                data = DataFrame(data_dict)
                 kwargs.pop("column")
         return plot_backend.plot(data, kind=kind, **kwargs)
 
