@@ -623,6 +623,15 @@ class MultiIndex(Index):
         return self.values
 
     @property
+    def shape(self):
+        """
+        Return a tuple of the shape of the underlying data.
+        """
+        # overriding the base Index.shape definition to avoid materializing
+        # the values (GH-27384, GH-27775)
+        return (len(self),)
+
+    @property
     def array(self):
         """
         Raises a ValueError for `MultiIndex` because there's no single
@@ -1241,7 +1250,7 @@ class MultiIndex(Index):
             self.levels[l].rename(name, inplace=True)
 
     names = property(
-        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex\n"""
+        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
 
     @Appender(_index_shared_docs["_get_grouper_for_level"])
@@ -1753,7 +1762,7 @@ class MultiIndex(Index):
 
     def is_lexsorted(self):
         """
-        Return True if the codes are lexicographically sorted
+        Return True if the codes are lexicographically sorted.
 
         Returns
         -------
@@ -2237,7 +2246,7 @@ class MultiIndex(Index):
 
     def reorder_levels(self, order):
         """
-        Rearrange levels using input order. May not drop or duplicate levels
+        Rearrange levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
