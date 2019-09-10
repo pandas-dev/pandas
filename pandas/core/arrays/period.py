@@ -1,4 +1,6 @@
 from datetime import timedelta
+from distutils.version import LooseVersion
+import json
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Union
 
@@ -49,6 +51,13 @@ import pandas.core.common as com
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
+
+try:
+    import pyarrow
+
+    _PYARROW_INSTALLED = True
+except ImportError:
+    _PYARROW_INSTALLED = False
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -337,6 +346,19 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def __array__(self, dtype=None):
         # overriding DatetimelikeArray
         return np.array(list(self), dtype=object)
+
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        if type is not None and not isinstance(type, PeriodType):
+            raise TypeError("not supported")
+
+        period_type = PeriodType(self.freqstr)
+        storage_array = pa.array(self._data, mask=self.isna(), type="int64")
+        return pa.ExtensionArray.from_storage(period_type, storage_array)
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -1089,3 +1111,38 @@ def _make_field_arrays(*fields):
     ]
 
     return arrays
+
+
+if _PYARROW_INSTALLED and (
+    LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
+):
+
+    class PeriodType(pyarrow.ExtensionType):
+        def __init__(self, freq):
+            # attributes need to be set first before calling
+            # super init (as that calls serialize)
+            self._freq = freq
+            pyarrow.ExtensionType.__init__(self, pyarrow.int64(), "pandas.period")
+
+        @property
+        def freq(self):
+            return self._freq
+
+        def __arrow_ext_serialize__(self):
+            metadata = {"freq": self.freq}
+            return json.dumps(metadata).encode()
+
+        @classmethod
+        def __arrow_ext_deserialize__(cls, storage_type, serialized):
+            metadata = json.loads(serialized.decode())
+            return PeriodType(metadata["freq"])
+
+        def __eq__(self, other):
+            if isinstance(other, pyarrow.BaseExtensionType):
+                return type(self) == type(other) and self.freq == other.freq
+            else:
+                return NotImplemented
+
+    # register the type with a dummy instance
+    _period_type = PeriodType("D")
+    pyarrow.register_extension_type(_period_type)

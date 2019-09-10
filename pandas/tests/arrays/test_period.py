@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
 
@@ -9,6 +11,14 @@ from pandas.core.dtypes.dtypes import PeriodDtype, registry
 import pandas as pd
 from pandas.core.arrays import PeriodArray, period_array
 import pandas.util.testing as tm
+
+try:
+    import pyarrow
+
+    _PYARROW_INSTALLED = True
+except ImportError:
+    _PYARROW_INSTALLED = False
+
 
 # ----------------------------------------------------------------------------
 # Dtype
@@ -323,3 +333,35 @@ class TestReductions:
 
         result = arr.max(skipna=skipna)
         assert result is pd.NaT
+
+
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+@pytest.mark.skipif(
+    not _PYARROW_INSTALLED
+    or _PYARROW_INSTALLED
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
+    reason="pyarrow >= 0.15.0 required",
+)
+@pytest.mark.parametrize(
+    "data, freq",
+    [
+        (pd.date_range("2017", periods=3), "D"),
+        (pd.date_range("2017", periods=3, freq="A"), "A-DEC"),
+    ],
+)
+def test_arrow_array(data, freq):
+    import pyarrow as pa
+    from pandas.core.arrays.period import PeriodType
+
+    periods = period_array(data, freq=freq)
+    arr = pa.array(periods)
+    assert isinstance(arr.type, PeriodType)
+    assert arr.type.freq == freq
+    expected = pa.array(periods.asi8, type="int64")
+    assert arr.storage.equals(expected)
+
+    with pytest.raises(TypeError):
+        pa.array(periods, type="float64")
