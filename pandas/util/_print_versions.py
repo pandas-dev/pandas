@@ -5,6 +5,7 @@ import platform
 import struct
 import subprocess
 import sys
+from typing import Optional
 
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
@@ -98,6 +99,7 @@ def show_versions(as_json=False):
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
         )
+        ver: Optional[str]
         if mod:
             ver = _get_version(mod)
         else:
@@ -108,7 +110,9 @@ def show_versions(as_json=False):
         try:
             import json
         except ImportError:
-            import simplejson as json
+            # https://github.com/python/mypy/issues/1153
+            # error: Name 'json' already defined (by an import)
+            import simplejson as json  # type: ignore
 
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 
