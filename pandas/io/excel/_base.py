@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from pandas._config import config
 
@@ -31,6 +32,9 @@ from pandas.io.excel._util import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
 
 _read_excel_doc = (
     """
@@ -424,7 +428,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         # handle same-type duplicates.
         sheets = list(OrderedDict.fromkeys(sheets).keys())
 
-        output = OrderedDict()
+        output: Dict[Union[str, int], Union["Series", DataFrame]] = OrderedDict()
 
         for asheetname in sheets:
             if verbose:
@@ -649,7 +653,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+        self,
+        cells,
+        sheet_name: Optional[str] = None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
     ):
         """
         Write given formatted cells into Excel an excel sheet
@@ -692,7 +701,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.check_extension(ext)
 
         self.path = path
-        self.sheets = {}
+        self.sheets: Dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
@@ -709,7 +718,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     def __fspath__(self):
         return _stringify_path(self.path)
 
-    def _get_sheet_name(self, sheet_name):
+    def _get_sheet_name(self, sheet_name: Optional[str]):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
