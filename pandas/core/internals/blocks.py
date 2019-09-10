@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, lib, tslib
+from pandas._libs import NaT, Timestamp, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -706,7 +706,8 @@ class Block(PandasObject):
         mask = isna(values)
 
         if not self.is_object and not quoting:
-            values = values.astype(str)
+            itemsize = writers.word_len(na_rep)
+            values = values.astype("<U{size}".format(size=itemsize))
         else:
             values = np.array(values, dtype="object")
 

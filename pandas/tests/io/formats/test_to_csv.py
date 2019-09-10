@@ -555,3 +555,15 @@ z
             assert len(zp.filelist) == 1
             archived_file = os.path.basename(zp.filelist[0].filename)
             assert archived_file == expected_arcname
+
+    @pytest.mark.parametrize("df_new_type", ["Int64"])
+    def test_to_csv_na_rep_long_string(self, df_new_type):
+        # see gh-25099
+        df = pd.DataFrame({"c": [float("nan")] * 3})
+        df = df.astype(df_new_type)
+        expected_rows = ["c", "mynull", "mynull", "mynull"]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+
+        result = df.to_csv(index=False, na_rep="mynull", encoding="ascii")
+
+        assert expected == result
