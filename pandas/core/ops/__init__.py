@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -671,9 +670,6 @@ def _comp_method_SERIES(cls, op, special):
 
         if is_object_dtype(x.dtype):
             result = comp_method_OBJECT_ARRAY(op, x, y)
-
-        elif is_datetimelike_v_numeric(x, y):
-            return invalid_comparison(x, y, op)
 
         else:
             method = getattr(x, op_name)
