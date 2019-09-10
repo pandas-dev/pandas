@@ -698,10 +698,7 @@ def _comp_method_SERIES(cls, op, special):
 
         return result
 
-    def wrapper(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
+    def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
         other = lib.item_from_zerodim(other)
@@ -809,7 +806,13 @@ def _bool_method_SERIES(cls, op, special):
         return result
 
     fill_int = lambda x: x.fillna(0)
-    fill_bool = lambda x: x.fillna(False).astype(bool)
+
+    def fill_bool(x, left=None):
+        # if `left` is specifically not-boolean, we do not cast to bool
+        x = x.fillna(False)
+        if left is None or is_bool_dtype(left.dtype):
+            x = x.astype(bool)
+        return x
 
     def wrapper(self, other):
         is_self_int_dtype = is_integer_dtype(self.dtype)
@@ -838,7 +841,7 @@ def _bool_method_SERIES(cls, op, special):
 
         elif isinstance(other, (ABCSeries, ABCIndexClass)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
             # scalars, list, tuple, np.array
@@ -1104,7 +1107,7 @@ def _comp_method_FRAME(cls, func, special):
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func)
-            return res.fillna(True).astype(bool)
+            return res
 
     f.__name__ = op_name
 
