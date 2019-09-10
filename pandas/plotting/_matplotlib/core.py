@@ -10,9 +10,9 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
-    is_float,
     is_iterator,
     is_list_like,
     is_number,
