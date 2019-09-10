@@ -15,6 +15,14 @@ if TYPE_CHECKING:
     from pandas.core.sparse.series import SparseSeries  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
 
+    # TODO: Are we OK with these becoming semi-public?
+    from pandas.core.reshape.concat import _Concatenator as Concatenator  # noqa: F401
+    from pandas.core.reshape.merge import _OrderedMerge as OrderedMerge  # noqa: F401
+    from pandas.core.reshape.merge import _AsOfMerge as AsOfMerge  # noqa: F401
+    from pandas.core.reshape.merge import (  # noqa: F401
+        _MergeOperation as MergeOperation,
+    )
+
 
 AnyArrayLike = TypeVar(
     "AnyArrayLike", "ExtensionArray", "Index", "Series", "SparseSeries", np.ndarray

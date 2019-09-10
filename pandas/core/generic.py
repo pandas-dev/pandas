@@ -5183,6 +5183,11 @@ class NDFrame(PandasObject, SelectionMixin):
                 finalizer.finalize_copy(self, other)
             elif method == "concat":
                 finalizer.finalize_concat(self, other)
+            elif method == "getitem_multilevel":
+                finalizer.getitem_multilevel(self, other)
+            elif method == "sort_index":
+                finalizer.getitem_sort_index(self, other)
+
             else:
                 finalizer.finalize_default(self, other)
 

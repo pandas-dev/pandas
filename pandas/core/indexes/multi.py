@@ -1490,7 +1490,9 @@ class MultiIndex(Index):
             new_index = maybe_droplevels(new_index, k)
             return series._constructor(
                 new_values, index=new_index, name=series.name
-            ).__finalize__(self)
+            ).__finalize__(
+                self
+            )  # TODO: figure out finalize API
 
         try:
             return self._engine.get_value(s, k)
