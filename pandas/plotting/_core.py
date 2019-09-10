@@ -6,6 +6,7 @@ from pandas._config import get_option
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
+from pandas import DataFrame
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -793,7 +794,6 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or data.columns
                     data.columns = label_name
             if kwargs.get("by") is not None:
-                import pandas as pd
 
                 grouped = data.groupby(kwargs.get("by"))
                 if kwargs.get("column") is not None:
@@ -801,7 +801,7 @@ class PlotAccessor(PandasObject):
                 d = {}
                 for key, group in grouped:
                     d[key] = group
-                data = pd.DataFrame(d)
+                data = DataFrame(d)
                 kwargs.pop("column")
         return plot_backend.plot(data, kind=kind, **kwargs)
 
