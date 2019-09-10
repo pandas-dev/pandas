@@ -154,211 +154,322 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
-    def test_frame_default_orient(self):
+    def test_frame_from_json_to_json(self):
+        def _check_orient(
+            df,
+            orient,
+            dtype=None,
+            numpy=False,
+            convert_axes=True,
+            check_dtype=True,
+            raise_ok=None,
+            sort=None,
+            check_index_type=True,
+            check_column_type=True,
+            check_numpy_dtype=False,
+        ):
+            if sort is not None:
+                df = df.sort_values(sort)
+            else:
+                df = df.sort_index()
+
+            # if we are not unique, then check that we are raising ValueError
+            # for the appropriate orients
+            if not df.index.is_unique and orient in ["index", "columns"]:
+                msg = "DataFrame index must be unique for orient='{}'".format(orient)
+                with pytest.raises(ValueError, match=msg):
+                    df.to_json(orient=orient)
+                return
+            if not df.columns.is_unique and orient in ["index", "columns", "records"]:
+                # TODO: not executed. fix this.
+                with pytest.raises(ValueError, match="ksjkajksfjksjfkjs"):
+                    df.to_json(orient=orient)
+                return
+
+            dfjson = df.to_json(orient=orient)
+
+            try:
+                unser = read_json(
+                    dfjson,
+                    orient=orient,
+                    dtype=dtype,
+                    numpy=numpy,
+                    convert_axes=convert_axes,
+                )
+            except Exception as detail:
+                if raise_ok is not None:
+                    if isinstance(detail, raise_ok):
+                        return
+                raise
+
+            if sort is not None and sort in unser.columns:
+                unser = unser.sort_values(sort)
+            else:
+                unser = unser.sort_index()
+
+            if not dtype:
+                check_dtype = False
+
+            if not convert_axes and df.index.dtype.type == np.datetime64:
+                unser.index = DatetimeIndex(unser.index.values.astype("i8") * 1e6)
+            if orient == "records":
+                # index is not captured in this orientation
+                tm.assert_almost_equal(
+                    df.values, unser.values, check_dtype=check_numpy_dtype
+                )
+                tm.assert_index_equal(
+                    df.columns, unser.columns, exact=check_column_type
+                )
+            elif orient == "values":
+                # index and cols are not captured in this orientation
+                if numpy is True and df.shape == (0, 0):
+                    assert unser.shape[0] == 0
+                else:
+                    tm.assert_almost_equal(
+                        df.values, unser.values, check_dtype=check_numpy_dtype
+                    )
+            elif orient == "split":
+                # index and col labels might not be strings
+                unser.index = [str(i) for i in unser.index]
+                unser.columns = [str(i) for i in unser.columns]
+
+                if sort is None:
+                    unser = unser.sort_index()
+                tm.assert_almost_equal(
+                    df.values, unser.values, check_dtype=check_numpy_dtype
+                )
+            else:
+                if convert_axes:
+                    tm.assert_frame_equal(
+                        df,
+                        unser,
+                        check_dtype=check_dtype,
+                        check_index_type=check_index_type,
+                        check_column_type=check_column_type,
+                    )
+                else:
+                    tm.assert_frame_equal(
+                        df, unser, check_less_precise=False, check_dtype=check_dtype
+                    )
+
+        def _check_all_orients(
+            df,
+            dtype=None,
+            convert_axes=True,
+            raise_ok=None,
+            sort=None,
+            check_index_type=True,
+            check_column_type=True,
+        ):
+
+            # numpy=False
+            if convert_axes:
+                _check_orient(
+                    df,
+                    "columns",
+                    dtype=dtype,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "records",
+                    dtype=dtype,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "split",
+                    dtype=dtype,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "index",
+                    dtype=dtype,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "values",
+                    dtype=dtype,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+
+            _check_orient(df, "columns", dtype=dtype, convert_axes=False, sort=sort)
+            _check_orient(df, "records", dtype=dtype, convert_axes=False, sort=sort)
+            _check_orient(df, "split", dtype=dtype, convert_axes=False, sort=sort)
+            _check_orient(df, "index", dtype=dtype, convert_axes=False, sort=sort)
+            _check_orient(df, "values", dtype=dtype, convert_axes=False, sort=sort)
+
+            # numpy=True and raise_ok might be not None, so ignore the error
+            if convert_axes:
+                _check_orient(
+                    df,
+                    "columns",
+                    dtype=dtype,
+                    numpy=True,
+                    raise_ok=raise_ok,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "records",
+                    dtype=dtype,
+                    numpy=True,
+                    raise_ok=raise_ok,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "split",
+                    dtype=dtype,
+                    numpy=True,
+                    raise_ok=raise_ok,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "index",
+                    dtype=dtype,
+                    numpy=True,
+                    raise_ok=raise_ok,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+                _check_orient(
+                    df,
+                    "values",
+                    dtype=dtype,
+                    numpy=True,
+                    raise_ok=raise_ok,
+                    sort=sort,
+                    check_index_type=False,
+                    check_column_type=False,
+                )
+
+            _check_orient(
+                df,
+                "columns",
+                dtype=dtype,
+                numpy=True,
+                convert_axes=False,
+                raise_ok=raise_ok,
+                sort=sort,
+            )
+            _check_orient(
+                df,
+                "records",
+                dtype=dtype,
+                numpy=True,
+                convert_axes=False,
+                raise_ok=raise_ok,
+                sort=sort,
+            )
+            _check_orient(
+                df,
+                "split",
+                dtype=dtype,
+                numpy=True,
+                convert_axes=False,
+                raise_ok=raise_ok,
+                sort=sort,
+            )
+            _check_orient(
+                df,
+                "index",
+                dtype=dtype,
+                numpy=True,
+                convert_axes=False,
+                raise_ok=raise_ok,
+                sort=sort,
+            )
+            _check_orient(
+                df,
+                "values",
+                dtype=dtype,
+                numpy=True,
+                convert_axes=False,
+                raise_ok=raise_ok,
+                sort=sort,
+            )
+
+        # basic
+        _check_all_orients(self.frame)
         assert self.frame.to_json() == self.frame.to_json(orient="columns")
 
-    @pytest.mark.parametrize("dtype", [False, float])
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_simple(self, orient, convert_axes, numpy, dtype):
-        data = self.frame.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
-        )
+        _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
+        _check_all_orients(self.intframe, dtype=False)
 
-        expected = self.frame.copy()
-
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            # TODO: debug why sort is required
-            expected = expected.sort_index()
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", [False, np.int64])
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_intframe(self, orient, convert_axes, numpy, dtype):
-        data = self.intframe.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
-        )
-
-        expected = self.intframe.copy()
-
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            expected = expected.sort_index()
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        if (
-            numpy
-            and (is_platform_32bit() or is_platform_windows())
-            and not dtype
-            and orient != "split"
-        ):
-            # TODO: see what is causing roundtrip dtype loss
-            expected = expected.astype(np.int32)
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
-        df = DataFrame(
+        # big one
+        # index and columns are strings as all unserialised JSON object keys
+        # are assumed to be strings
+        biggie = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
             index=[str(i) for i in range(200)],
-            dtype=dtype,
+        )
+        _check_all_orients(biggie, dtype=False, convert_axes=False)
+
+        # dtypes
+        _check_all_orients(
+            DataFrame(biggie, dtype=np.float64), dtype=np.float64, convert_axes=False
+        )
+        _check_all_orients(
+            DataFrame(biggie, dtype=np.int), dtype=np.int, convert_axes=False
+        )
+        _check_all_orients(
+            DataFrame(biggie, dtype="U3"),
+            dtype="U3",
+            convert_axes=False,
+            raise_ok=ValueError,
         )
 
-        if numpy and dtype == "U3" and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+        # categorical
+        _check_all_orients(self.categorical, sort="sort", raise_ok=ValueError)
 
-        data = df.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
+        # empty
+        _check_all_orients(
+            self.empty_frame, check_index_type=False, check_column_type=False
         )
 
-        expected = df.copy()
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            expected = expected.sort_index()
+        # time series data
+        _check_all_orients(self.tsframe)
 
-        if not dtype:
-            expected = expected.astype(np.int64)
-
-        # index columns, and records orients cannot fully preserve the string
-        # dtype for axes as the index and column labels are used as keys in
-        # JSON objects. JSON keys are by definition strings, so there's no way
-        # to disambiguate whether those keys actually were strings or numeric
-        # beforehand and numeric wins out.
-        # TODO: Split should be able to support this
-        if convert_axes and (orient in ("split", "index", "columns")):
-            expected.columns = expected.columns.astype(np.int64)
-            expected.index = expected.index.astype(np.int64)
-        elif orient == "records" and convert_axes:
-            expected.columns = expected.columns.astype(np.int64)
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, orient, convert_axes, numpy):
-        # TODO: create a better frame to test with and improve coverage
-        if orient in ("index", "columns"):
-            pytest.xfail(
-                "Can't have duplicate index values for orient '{}')".format(orient)
-            )
-
-        data = self.categorical.to_json(orient=orient)
-        if numpy and orient in ("records", "values"):
-            pytest.xfail("Orient {} is broken with numpy=True".format(orient))
-
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy
-        )
-
-        expected = self.categorical.copy()
-        expected.index = expected.index.astype(str)  # Categorical not preserved
-        expected.index.name = None  # index names aren't preserved in JSON
-
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            expected = expected.sort_index()
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy):
-        data = self.empty_frame.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy
-        )
-        expected = self.empty_frame.copy()
-
-        # TODO: both conditions below are probably bugs
-        if convert_axes:
-            expected.index = expected.index.astype(float)
-            expected.columns = expected.columns.astype(float)
-        if numpy and orient == "values":
-            expected = expected.reindex([0], axis=1).reset_index(drop=True)
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_timestamp(self, orient, convert_axes, numpy):
-        # TODO: improve coverage with date_format parameter
-        data = self.tsframe.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy
-        )
-        expected = self.tsframe.copy()
-
-        if not convert_axes:  # one off for ts handling
-            idx = expected.index.astype(np.int64) // 1000000
-            if orient != "split":  # TODO: make this consistent
-                idx = idx.astype(str)
-
-            expected.index = idx
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("convert_axes", [True, False])
-    @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, orient, convert_axes, numpy):
-        if numpy and orient != "split":
-            pytest.xfail("Can't decode directly to array")
-
+        # mixed data
         index = pd.Index(["a", "b", "c", "d", "e"])
-        values = {
+        data = {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
             "B": [0.0, 1.0, 0.0, 1.0, 0.0],
             "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
             "D": [True, False, True, False, True],
         }
-        df = DataFrame(data=values, index=index)
-
-        data = df.to_json(orient=orient)
-        result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, numpy=numpy
-        )
-
-        expected = df.copy()
-        expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
-
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            expected = expected.sort_index()
-
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        df = DataFrame(data=data, index=index)
+        _check_orient(df, "split", check_dtype=False)
+        _check_orient(df, "records", check_dtype=False)
+        _check_orient(df, "values", check_dtype=False)
+        _check_orient(df, "columns", check_dtype=False)
+        # index oriented is problematic as it is read back in in a transposed
+        # state, so the columns are interpreted as having mixed data and
+        # given object dtypes.
+        # force everything to have object dtype beforehand
+        _check_orient(df.transpose().transpose(), "index", dtype=False)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
