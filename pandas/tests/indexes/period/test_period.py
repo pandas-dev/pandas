@@ -354,6 +354,35 @@ class TestPeriodIndex(DatetimeLike):
         df = df.set_index(idx2)
         tm.assert_index_equal(df.index, idx2)
 
+    @pytest.mark.parametrize(
+        "p_values, o_values, values, expected_values",
+        [
+            (
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC"), "All"],
+                [1.0, 1.0],
+                [1.0, 1.0, np.nan],
+            ),
+            (
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [1.0, 1.0],
+                [1.0, 1.0],
+            ),
+        ],
+    )
+    def test_period_reindex_with_object(
+        self, p_values, o_values, values, expected_values
+    ):
+        # GH 28337
+        period_index = PeriodIndex(p_values)
+        object_index = Index(o_values)
+
+        s = pd.Series(values, index=period_index)
+        result = s.reindex(object_index)
+        expected = pd.Series(expected_values, index=object_index)
+        tm.assert_series_equal(result, expected)
+
     def test_factorize(self):
         idx1 = PeriodIndex(
             ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
