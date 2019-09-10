@@ -576,8 +576,12 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
             if align_asobject:
                 # to keep original value's dtype for bool ops
-                left = left.astype(object)
-                right = right.astype(object)
+                if left.dtype.kind not in ["O", "f", "c"]:
+                    # if left can already hold NA, no need to cast
+                    left = left.astype(object)
+                if right.dtype.kind not in ["O", "f", "c"]:
+                    # if right can already hold NA, no need to cast
+                    right = right.astype(object)
 
             left, right = left.align(right, copy=False)
 
@@ -836,14 +840,13 @@ def _bool_method_SERIES(cls, op, special):
                 other = construct_1d_object_array_from_listlike(other)
 
             is_other_int_dtype = is_integer_dtype(other.dtype)
-            # FIXME: what if this converts and object array to e.g. PeriodDtype?
+            # FIXME: what if this converts an object array to e.g. PeriodDtype?
             other = type(self)(other)
             other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
             # i.e. scalar
             is_other_int_dtype = lib.is_integer(other)
-
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
@@ -852,6 +855,8 @@ def _bool_method_SERIES(cls, op, special):
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
         res_values = na_op(lvalues, rvalues)
+        # TODO: can we find a way to call filler before constructor?
+
         unfilled = self._constructor(res_values, index=self.index, name=res_name)
         filled = filler(unfilled)
         return finalizer(filled)
