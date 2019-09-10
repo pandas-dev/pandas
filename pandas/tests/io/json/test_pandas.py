@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, is_platform_32bit, is_platform_windows
+from pandas.compat import PY35, is_platform_32bit
 import pandas.util._test_decorators as td
 
 import pandas as pd
