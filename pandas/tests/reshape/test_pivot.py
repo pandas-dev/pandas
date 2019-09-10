@@ -678,6 +678,7 @@ class TestPivotTable:
         tm.assert_frame_equal(pv, expected)
 
     def test_pivot_periods_with_margins(self):
+        # GH 28323
         df = DataFrame(
             {
                 "a": [1, 1, 2, 2],
