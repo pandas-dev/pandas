@@ -19,7 +19,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
--
+- Bug in :func:`to_datetime` where passing arrays of malformed ``str`` while attempting to coerce errors could incorrectly lead to raising errors instead (:issue:`28299`)
 -
 -
 
