@@ -793,12 +793,15 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or data.columns
                     data.columns = label_name
             if kwargs.get("by") is not None:
+                import pandas as pd
                 grouped = data.groupby(kwargs.get("by"))
                 if kwargs.get("column") is not None:
                     grouped = grouped[kwargs.get("column")]
-
-                data = grouped
-
+                d = {}
+                for key, group in grouped:
+                    d[key] = group
+                data = pd.DataFrame(d)
+                kwargs.pop("column")
         return plot_backend.plot(data, kind=kind, **kwargs)
 
     def line(self, x=None, y=None, **kwargs):

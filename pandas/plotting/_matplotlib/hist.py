@@ -20,22 +20,24 @@ class HistPlot(LinePlot):
     def __init__(self, data, bins=10, bottom=0, **kwargs):
         self.bins = bins  # use mpl default
         self.bottom = bottom
+        self.by = kwargs["by"]
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-        if is_integer(self.bins):
-            # create common bin edge
-            values = self.data._convert(datetime=True)._get_numeric_data()
-            values = np.ravel(values)
-            values = values[~isna(values)]
+        if self.by is None:
+            if is_integer(self.bins):
+                # create common bin edge
+                values = self.data._convert(datetime=True)._get_numeric_data()
+                values = np.ravel(values)
+                values = values[~isna(values)]
 
-            hist, self.bins = np.histogram(
-                values,
-                bins=self.bins,
-                range=self.kwds.get("range", None),
-                weights=self.kwds.get("weights", None),
-            )
+                hist, self.bins = np.histogram(
+                    values,
+                    bins=self.bins,
+                    range=self.kwds.get("range", None),
+                    weights=self.kwds.get("weights", None),
+                )
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
@@ -67,21 +69,38 @@ class HistPlot(LinePlot):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
-        for i, (label, y) in enumerate(self._iter_data()):
-            ax = self._get_ax(i)
+        if self.by is None:
+            for i, (label, y) in enumerate(self._iter_data()):
+                ax = self._get_ax(i)
 
+                kwds = self.kwds.copy()
+                label = pprint_thing(label)
+                kwds["label"] = label
+
+                style, kwds = self._apply_style_colors(colors, kwds, i, label)
+                if style is not None:
+                    kwds["style"] = style
+
+                kwds = self._make_plot_keywords(kwds, y)
+                artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+                self._add_legend_handle(artists[0], label, index=i)
+
+        else:
             kwds = self.kwds.copy()
+            kwds = self._make_plot_keywords(kwds, None)
+            naxes = len(list(self._iter_data()))
 
-            label = pprint_thing(label)
-            kwds["label"] = label
+            fig, axes = _subplots(naxes=naxes)
+            _axes = _flatten(axes)
+            for i, (label, y) in enumerate(self._iter_data()):
+                ax = _axes[i]
 
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
-            if style is not None:
-                kwds["style"] = style
+                ax.hist(y, **kwds)
+                ax.set_title(pprint_thing(label))
 
-            kwds = self._make_plot_keywords(kwds, y)
-            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
-            self._add_legend_handle(artists[0], label, index=i)
+            fig.subplots_adjust(
+                bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
+            )
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""
