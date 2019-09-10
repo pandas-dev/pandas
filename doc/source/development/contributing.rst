@@ -135,35 +135,67 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-* Windows: https://scikit-learn.org/stable/developers/advanced_installation.html#windows
-* Mac: From Xcode 4.2, the C compiler 'Clang' is the default compiler for
-  Mac OS X and new versions of Mac OS X should already have this installed. You
-  can check if you have Clang installed by typing ``clang --version`` in a
-  terminal. If you do not, you can install Clang by typing
-  ``xcode-select --install`` in a terminal. Then follow the pop-up instructions
-  and agree to install the tools. You may also choose to install a different
-  C compiler if you wish.
-* Unix: Some Linux distributions will come with with a C compiler. To find out
-  which compilers (and versions) are installed on your system::
+**Windows**
+
+The building command depends on the architecture of the Python interpreter,
+32-bit or 64-bit. You can check the architecture by running the following in
+``cmd`` or ``powershell`` console::
+
+    python -c "import struct; print(struct.calcsize('P') * 8)"
+
+The above commands assume that you have the Python installation folder in your
+PATH environment variable.
+
+You will need `Build Tools for Visual Studio 2017
+<https://visualstudio.microsoft.com/downloads/>`_.
+
+.. warning::
+	You DO NOT need to install Visual Studio 2019. 
+	You only need "Build Tools for Visual Studio 2019" found by 
+	scrolling down to "All downloads" -> "Tools for Visual Studio 2019". 
+
+For 64-bit Python, configure the build environment with::
+
+    SET DISTUTILS_USE_SDK=1
+    "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+Please be aware that the path above might be different from user to user. 
+The aim is to point to the "vcvarsall.bat" file.
+
+And build pandas from this environment::
+
+    python setup.py install
+
+Replace ``x64`` with ``x86`` to build for 32-bit Python.
+
+**Mac OS**
+
+Information about compiler installation can be found here:
+https://devguide.python.org/setup/#macos
+
+**Unix** 
+
+Some Linux distributions will come with a pre-installed C compiler. To find out
+which compilers (and versions) are installed on your system::
 
     # for Debian/Ubuntu:
     dpkg --list | grep compiler
     # for Red Hat/RHEL/CentOS/Fedora:
     yum list installed | grep -i --color compiler
 
-  `GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used
-  compiler, which supports C and a number of other languages. If GCC is listed
-  as an installed compiler nothing more is required. If no C compiler is
-  installed (or you wish to install a newer version) you can install a compiler
-  (GCC in the example code below) with::
+`GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used
+compiler, which supports C and a number of other languages. If GCC is listed
+as an installed compiler nothing more is required. If no C compiler is
+installed (or you wish to install a newer version) you can install a compiler
+(GCC in the example code below) with::
 
     # for recent Debian/Ubuntu:
     sudo apt install build-essential
     # for Red Had/RHEL/CentOS/Fedora
     yum groupinstall "Development Tools"
 
-  For other Linux distributions, consult your favourite search engine for
-  installation instructions.
+For other Linux distributions, consult your favourite search engine for
+commpiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
