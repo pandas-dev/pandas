@@ -66,10 +66,21 @@ class HistPlot(LinePlot):
         return patches
 
     @classmethod
-    def _group_plot(cls, ax, data, naxes, rot=90, xrot=None, **kwds):
+    def _group_plot(
+        cls, ax, data, naxes, rot=90, xrot=None, sharex=False, sharey=False, **kwds
+    ):
+        if "figure" in kwds:
+            raise ValueError(
+                "Cannot pass 'figure' when using the "
+                "'by' argument, since a new 'Figure' instance "
+                "will be created"
+            )
+
         converter._WARN = False  # no warning for pandas plots
         xrot = xrot or rot
-        fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False)
+        fig, axes = _subplots(
+            naxes=naxes, ax=ax, squeeze=False, sharex=sharex, sharey=sharey
+        )
         _axes = _flatten(axes)
 
         for i, (label, y) in enumerate(data):
