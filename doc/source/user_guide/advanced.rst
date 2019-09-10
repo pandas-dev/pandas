@@ -783,10 +783,12 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. ipython:: python
 
-   df2.iloc[[0]].reindex(['a', 'e'])
-   df2.iloc[[0]].reindex(['a', 'e']).index
-   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
-   df2.iloc[[0]].reindex(pd.Categorical(['a', 'e'], categories=list('abe'))).index
+   df3 = pd.DataFrame({'A': np.arange(3), 'B': pd.Series(list('abc')).astype('category')})
+   df3 = df3.set_index('B')
+   df3.reindex(['a', 'e'])
+   df3.reindex(['a', 'e']).index
+   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
+   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe'))).index
 
 .. warning::
 
