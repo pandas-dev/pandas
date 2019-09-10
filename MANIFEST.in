@@ -3,13 +3,17 @@ include LICENSE
 include RELEASE.md
 include README.md
 include setup.py
+include pyproject.toml
 
 graft doc
-prune doc/build
-
 graft LICENSES
-
 graft pandas
+
+prune doc/build
+prune asv_bench
+prune ci
+prune conda.recipe
+prune scripts
 
 global-exclude *.bz2
 global-exclude *.csv
