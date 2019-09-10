@@ -139,7 +139,7 @@ cpdef assert_almost_equal(a, b,
                     obj, '{0} shapes are different'.format(obj),
                     a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a, b):
+            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
                 from pandas.util.testing import assert_attr_equal
                 assert_attr_equal('dtype', a, b, obj=obj)
 
@@ -188,6 +188,7 @@ cpdef assert_almost_equal(a, b,
         # object comparison
         return True
     if isna(a) and isna(b):
+        # TODO: Should require same-dtype NA?
         # nan / None comparison
         return True
     if is_comparable_as_number(a) and is_comparable_as_number(b):
