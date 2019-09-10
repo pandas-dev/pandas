@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
 
@@ -18,6 +20,13 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
+
+try:
+    import pyarrow
+
+    _PYARROW_INSTALLED = True
+except ImportError:
+    _PYARROW_INSTALLED = False
 
 
 def make_data():
@@ -815,6 +824,20 @@ def test_ufunc_reduce_raises(values):
     a = integer_array(values)
     with pytest.raises(NotImplementedError):
         np.add.reduce(a)
+
+
+@pytest.mark.skipif(
+    not _PYARROW_INSTALLED
+    or _PYARROW_INSTALLED
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
+    reason="pyarrow >= 0.15.0 required",
+)
+def test_arrow_array(data):
+    import pyarrow as pa
+
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    assert arr.equals(expected)
 
 
 # TODO(jreback) - these need testing / are broken
