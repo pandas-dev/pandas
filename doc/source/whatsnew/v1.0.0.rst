@@ -73,6 +73,28 @@ Backwards incompatible API changes
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
 
+.. _whatsnew_0250.api_breaking.series_string_conversion:
+
+String conversion of Series with nan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ When converting into string, :meth:`Series.astype` will not convert ``np.nan`` into string and keep it as missing value (:issue:`25353`)
+
+ *pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.Series(['foo', np.nan]).astype(str)
+   Out[2]:
+   0    foo
+   1    nan
+   dtype: object
+
+*pandas 1.0.0*
+
+.. ipython:: python
+   pd.Series(['foo', np.nan]).astype(str)
+
 .. _whatsnew_1000.api.other:
 
 Other API changes
@@ -200,7 +222,7 @@ Indexing
 Missing
 ^^^^^^^
 
-- When converting into string, :meth:`Series.astype` will keep ``np.nan`` as missing value (:issue:`25353`)
+-
 -
 
 MultiIndex
