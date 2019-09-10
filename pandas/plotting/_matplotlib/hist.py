@@ -12,7 +12,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
-
+import matplotlib.pyplot as plt
 
 class HistPlot(LinePlot):
     _kind = "hist"
@@ -67,7 +67,7 @@ class HistPlot(LinePlot):
 
     @classmethod
     def _group_plot(
-        cls, ax, data, naxes, rot=90, xrot=None, sharex=False, sharey=False, **kwds
+        cls, ax, data, naxes, rot=90, xrot=None, sharex=False, sharey=False, layout=None, **kwds
     ):
         if "figure" in kwds:
             raise ValueError(
@@ -79,7 +79,7 @@ class HistPlot(LinePlot):
         converter._WARN = False  # no warning for pandas plots
         xrot = xrot or rot
         fig, axes = _subplots(
-            naxes=naxes, ax=ax, squeeze=False, sharex=sharex, sharey=sharey
+            naxes=naxes, ax=ax, squeeze=False, sharex=sharex, sharey=sharey, layout=layout
         )
         _axes = _flatten(axes)
 

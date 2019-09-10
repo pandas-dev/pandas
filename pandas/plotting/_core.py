@@ -6,7 +6,7 @@ from pandas._config import get_option
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
-from pandas import DataFrame
+import pandas as pd
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -805,7 +805,7 @@ class PlotAccessor(PandasObject):
                 data_dict = {}
                 for key, group in grouped:
                     data_dict[key] = group
-                data = DataFrame(data_dict)
+                data = pd.DataFrame(data_dict)
                 kwargs.pop("column")
         return plot_backend.plot(data, kind=kind, **kwargs)
 
