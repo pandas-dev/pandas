@@ -680,8 +680,6 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("secondary_y", False),
                 ("sort_columns", False),
-                ("by", None),
-                ("column", None),
             ]
         else:
             raise TypeError(
