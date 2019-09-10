@@ -679,6 +679,8 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("secondary_y", False),
                 ("sort_columns", False),
+                ("by", None),
+                ("column", None),
             ]
         else:
             raise TypeError(
@@ -790,6 +792,12 @@ class PlotAccessor(PandasObject):
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
+            if kwargs.get("by") is not None:
+                grouped = data.groupby(kwargs.get("by"))
+                if kwargs.get("column") is not None:
+                    grouped = grouped[kwargs.get("column")]
+
+                data = grouped
 
         return plot_backend.plot(data, kind=kind, **kwargs)
 
