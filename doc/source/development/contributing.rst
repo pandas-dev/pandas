@@ -137,15 +137,6 @@ platform you're using.
 
 **Windows**
 
-The building command depends on the architecture of the Python interpreter,
-32-bit or 64-bit. You can check the architecture by running the following in
-``cmd`` or ``powershell`` console::
-
-    python -c "import struct; print(struct.calcsize('P') * 8)"
-
-The above commands assume that you have the Python installation folder in your
-PATH environment variable.
-
 You will need `Build Tools for Visual Studio 2017
 <https://visualstudio.microsoft.com/downloads/>`_.
 
@@ -153,20 +144,6 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
-
-For 64-bit Python, configure the build environment with::
-
-    SET DISTUTILS_USE_SDK=1
-    "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
-
-Please be aware that the path above might be different from user to user.
-The aim is to point to the "vcvarsall.bat" file.
-
-And build pandas from this environment::
-
-    python setup.py install
-
-Replace ``x64`` with ``x86`` to build for 32-bit Python.
 
 **Mac OS**
 
