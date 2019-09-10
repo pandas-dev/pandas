@@ -19,7 +19,6 @@ For example, on MacOS installing Python with `pyenv` may lead to an incomplete P
 Bug fixes
 ~~~~~~~~~
 
-
 Categorical
 ^^^^^^^^^^^
 
@@ -36,8 +35,6 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
--
--
 
 Numeric
 ^^^^^^^
@@ -51,24 +48,11 @@ Conversion
 ^^^^^^^^^^
 
 - Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
--
--
-
-Strings
-^^^^^^^
-
--
--
--
-
 
 Interval
 ^^^^^^^^
 
 - Bug in :class:`IntervalIndex` where `dir(obj)` would raise ``ValueError`` (:issue:`27571`)
--
--
--
 
 Indexing
 ^^^^^^^^
@@ -77,7 +61,6 @@ Indexing
 - Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)
 - Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`).
 - Fix regression in ``.ix`` fallback with an ``IntervalIndex`` (:issue:`27865`).
--
 
 Missing
 ^^^^^^^
@@ -90,7 +73,6 @@ I/O
 - Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
 - Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
 - Follow the ``min_rows`` display option (introduced in v0.25.0) correctly in the HTML repr in the notebook (:issue:`27991`).
-- Bug in :meth:`DataFrame.read_excel` with ``engine='ods'`` when ``sheet_name`` argument references a non-existent sheet (:issue:`27676`)
 
 Plotting
 ^^^^^^^^
@@ -99,7 +81,6 @@ Plotting
 - Fixed the re-instatement of Matplotlib datetime converters after calling
   :meth:`pandas.plotting.deregister_matplotlib_converters` (:issue:`27481`).
 - Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`).
--
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -109,7 +90,6 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
 - Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
--
 
 Reshaping
 ^^^^^^^^^
@@ -124,24 +104,6 @@ Sparse
 ^^^^^^
 
 - Bug in reductions for :class:`Series` with Sparse dtypes (:issue:`27080`)
--
--
--
-
-
-Build Changes
-^^^^^^^^^^^^^
-
--
--
--
-
-ExtensionArray
-^^^^^^^^^^^^^^
-
--
--
--
 
 Other
 ^^^^^
