@@ -829,14 +829,18 @@ def _bool_method_SERIES(cls, op, special):
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = other if is_other_int_dtype else fill_bool(other, self)
 
-        else:
-            # scalars, list, tuple, np.array
-            is_other_int_dtype = is_integer_dtype(np.asarray(other).dtype)
-            if is_list_like(other) and not isinstance(other, np.ndarray):
-                # TODO: Can we do this before the is_integer_dtype check?
-                # could the is_integer_dtype check be checking the wrong
-                # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
+        elif is_list_like(other):
+            # list, tuple, np.ndarray
+            if not isinstance(other, np.ndarray):
                 other = construct_1d_object_array_from_listlike(other)
+
+            is_other_int_dtype = is_integer_dtype(other.dtype)
+            other = type(self)(other)
+            other = other if is_other_int_dtype else fill_bool(other, self)
+
+        else:
+            # i.e. scalar
+            is_other_int_dtype = lib.is_integer(other)
 
         # TODO: use extract_array once we handle EA correctly, see GH#27959
         ovalues = lib.values_from_object(other)
