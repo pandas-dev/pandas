@@ -1931,7 +1931,7 @@ def diff(arr, n, axis=0):
         dtype = np.float64
 
     elif is_object_dtype(dtype):
-        if all(np.isin(arr, (True, False), False) == ~isna(arr)):
+        if np.all(np.isin(arr, (True, False), False) | isna(arr)):
             is_obj_bool = True
 
     dtype = np.dtype(dtype)
