@@ -142,9 +142,8 @@ class TestSeriesLogicalOps:
         assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.NaN, "d"])
-        result = s_0123 & s_abNd
-        expected = Series([False, True, False, True])
-        assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+            s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
@@ -159,6 +158,41 @@ class TestSeriesLogicalOps:
         res = s_tft & 1
         expected = s_tft
         assert_series_equal(res, expected)
+
+    def test_logical_ops_bool_dtype_with_ndarray(self):
+        # make sure we operate on ndarray the same as Series
+        left = pd.Series([True, True, True, False, True])
+        right = [True, False, None, True, np.nan]
+
+        expected = pd.Series([True, False, False, False, False])
+        result = left & right
+        tm.assert_series_equal(result, expected)
+        result = left & np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left & pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left & pd.Series(right)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([True, True, True, True, True])
+        result = left | right
+        tm.assert_series_equal(result, expected)
+        result = left | np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left | pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left | pd.Series(right)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([False, True, True, True, True])
+        result = left ^ right
+        tm.assert_series_equal(result, expected)
+        result = left ^ np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left ^ pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left ^ pd.Series(right)
+        tm.assert_series_equal(result, expected)
 
     def test_logical_operators_int_dtype_with_bool_dtype_and_reindex(self):
         # GH#9016: support bitwise op for integer types
