@@ -93,8 +93,13 @@ class TestSetitem:
         tm.assert_extension_array_equal(result, expected)
 
 
-def test_repr_matches():
-    idx = IntervalIndex.from_breaks([1, 2, 3])
-    a = repr(idx)
-    b = repr(idx.values)
-    assert a.replace("Index", "Array") == b
+def test_repr():
+    # GH 25022
+    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
+    result = repr(arr)
+    expected = (
+        "<IntervalArray>\n"
+        "[(0, 1], (1, 2]]\n"
+        "Length: 2, closed: right, dtype: interval[int64]"
+    )
+    assert result == expected
