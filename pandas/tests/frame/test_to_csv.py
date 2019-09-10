@@ -655,7 +655,7 @@ class TestDataFrameToCSV(TestData):
             df = _make_frame(True)
             df.to_csv(path, index=False)
             result = read_csv(path, header=[0, 1])
-            assert com._all_none(*result.columns.names)
+            assert com.all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 
@@ -694,6 +694,20 @@ class TestDataFrameToCSV(TestData):
 
             tm.assert_index_equal(recons.columns, exp.columns)
             assert len(recons) == 0
+
+    def test_to_csv_interval_index(self):
+        # GH 28210
+        df = DataFrame({"A": list("abc"), "B": range(3)}, index=pd.interval_range(0, 3))
+
+        with ensure_clean("__tmp_to_csv_interval_index__.csv") as path:
+            df.to_csv(path)
+            result = self.read_csv(path, index_col=0)
+
+            # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
+            expected = df.copy()
+            expected.index = expected.index.astype(str)
+
+            assert_frame_equal(result, expected)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))

@@ -340,7 +340,6 @@ $1$,$2$
             with open(path, "r") as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=False)
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -515,3 +514,44 @@ z
             df.to_csv(path, compression=to_compression)
             result = pd.read_csv(path, index_col=0, compression=read_compression)
             tm.assert_frame_equal(result, df)
+
+    def test_to_csv_compression_dict(self, compression_only):
+        # GH 26023
+        method = compression_only
+        df = DataFrame({"ABC": [1]})
+        filename = "to_csv_compress_as_dict."
+        filename += "gz" if method == "gzip" else method
+        with tm.ensure_clean(filename) as path:
+            df.to_csv(path, compression={"method": method})
+            read_df = pd.read_csv(path, index_col=0)
+            tm.assert_frame_equal(read_df, df)
+
+    def test_to_csv_compression_dict_no_method_raises(self):
+        # GH 26023
+        df = DataFrame({"ABC": [1]})
+        compression = {"some_option": True}
+        msg = "must have key 'method'"
+
+        with tm.ensure_clean("out.zip") as path:
+            with pytest.raises(ValueError, match=msg):
+                df.to_csv(path, compression=compression)
+
+    @pytest.mark.parametrize("compression", ["zip", "infer"])
+    @pytest.mark.parametrize(
+        "archive_name", [None, "test_to_csv.csv", "test_to_csv.zip"]
+    )
+    def test_to_csv_zip_arguments(self, compression, archive_name):
+        # GH 26023
+        from zipfile import ZipFile
+
+        df = DataFrame({"ABC": [1]})
+        with tm.ensure_clean("to_csv_archive_name.zip") as path:
+            df.to_csv(
+                path, compression={"method": compression, "archive_name": archive_name}
+            )
+            zp = ZipFile(path)
+            expected_arcname = path if archive_name is None else archive_name
+            expected_arcname = os.path.basename(expected_arcname)
+            assert len(zp.filelist) == 1
+            archived_file = os.path.basename(zp.filelist[0].filename)
+            assert archived_file == expected_arcname

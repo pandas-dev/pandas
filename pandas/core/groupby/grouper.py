@@ -25,6 +25,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
@@ -36,7 +37,7 @@ from pandas.io.formats.printing import pprint_thing
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
-    object
+    object.
 
     This specification will select a column via the key parameter, or if the
     level and/or axis parameters are given, a level of the index of the target
@@ -216,7 +217,6 @@ class Grouper:
 
 
 class Grouping:
-
     """
     Holds the grouping information for a single key
 
@@ -423,7 +423,7 @@ class Grouping:
 
 
 def _get_grouper(
-    obj,
+    obj: NDFrame,
     key=None,
     axis=0,
     level=None,
@@ -583,18 +583,22 @@ def _get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key):
         if not _is_label_like(key):
+            items = obj._data.items
             try:
-                obj._data.items.get_loc(key)
-            except Exception:
+                items.get_loc(key)
+            except (KeyError, TypeError):
+                # TypeError shows up here if we pass e.g. Int64Index
                 return False
 
         return True
 
     # if the grouper is obj[name]
     def is_in_obj(gpr):
+        if not hasattr(gpr, "name"):
+            return False
         try:
-            return id(gpr) == id(obj[gpr.name])
-        except Exception:
+            return gpr is obj[gpr.name]
+        except (KeyError, IndexError):
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
@@ -606,10 +610,10 @@ def _get_grouper(
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr)
+                    obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif obj._is_level_reference(gpr):
+            elif obj._is_level_reference(gpr, axis=axis):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)

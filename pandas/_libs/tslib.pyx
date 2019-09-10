@@ -71,7 +71,7 @@ cdef inline object create_time_from_ts(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
+def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                        str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
@@ -344,14 +344,13 @@ def array_with_unit_to_datetime(ndarray values, object unit,
         # try a quick conversion to i8
         # if we have nulls that are not type-compat
         # then need to iterate
-        try:
+        if values.dtype.kind == "i":
+            # Note: this condition makes the casting="same_kind" redundant
             iresult = values.astype('i8', casting='same_kind', copy=False)
             mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
-        except:
-            pass
 
         # check the bounds
         if not need_to_iterate:
@@ -406,7 +405,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
-                    except:
+                    except OverflowError:
                         if is_raise:
                             raise OutOfBoundsDatetime(
                                 "cannot convert input {val} with the unit "
@@ -447,7 +446,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
             else:
                 try:
                     oresult[i] = Timestamp(cast_from_unit(val, unit))
-                except:
+                except OverflowError:
                     oresult[i] = val
 
         elif isinstance(val, str):
@@ -574,7 +573,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         # datetimes/strings, then we must coerce)
                         try:
                             iresult[i] = cast_from_unit(val, 'ns')
-                        except:
+                        except OverflowError:
                             iresult[i] = NPY_NAT
 
                 elif isinstance(val, str):
