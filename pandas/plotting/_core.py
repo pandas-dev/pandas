@@ -794,6 +794,7 @@ class PlotAccessor(PandasObject):
                     data.columns = label_name
             if kwargs.get("by") is not None:
                 import pandas as pd
+
                 grouped = data.groupby(kwargs.get("by"))
                 if kwargs.get("column") is not None:
                     grouped = grouped[kwargs.get("column")]

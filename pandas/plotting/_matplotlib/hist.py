@@ -101,7 +101,9 @@ class HistPlot(LinePlot):
                     kwds["style"] = style
 
                 kwds = self._make_plot_keywords(kwds, y)
-                artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+                artists = self._plot(
+                    ax, y, column_num=i, stacking_id=stacking_id, **kwds
+                )
                 self._add_legend_handle(artists[0], label, index=i)
 
         else:
