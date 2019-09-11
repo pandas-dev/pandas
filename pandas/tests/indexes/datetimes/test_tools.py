@@ -1028,6 +1028,12 @@ class TestToDatetime:
         result = pd.to_datetime(expected).to_datetime64()
         assert result == expected
 
+    @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
+    def test_old_date_out_of_bounds_exception(self, dt_str):
+        # GH 9107
+        with pytest.raises(OutOfBoundsDatetime):
+            pd.to_datetime(dt_str, format="%Y%m%d")
+
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])
