@@ -304,23 +304,6 @@ def _maybe_convert_index(ax, data):
 # Do we need the rest for convenience?
 
 
-def format_timedelta_ticks(x, pos, n_decimals):
-    """
-    Convert seconds to 'D days HH:MM:SS.F'
-    """
-    s, ns = divmod(x, 1e9)
-    m, s = divmod(s, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    decimals = int(ns * 10 ** (n_decimals - 9))
-    s = r"{:02d}:{:02d}:{:02d}".format(int(h), int(m), int(s))
-    if n_decimals > 0:
-        s += ".{{:0{:0d}d}}".format(n_decimals).format(decimals)
-    if d != 0:
-        s = "{:d} days ".format(int(d)) + s
-    return s
-
-
 def _format_coord(freq, t, y):
     return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
 
