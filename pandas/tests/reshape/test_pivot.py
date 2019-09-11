@@ -1672,7 +1672,6 @@ class TestPivotTable:
             {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
             index=pd.Index(["X", "Y", "All"], name="D"),
         )
-        table = result
         tm.assert_frame_equal(result, expected)
 
     def test_categorical_aggfunc(self, observed):
