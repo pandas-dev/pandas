@@ -324,7 +324,11 @@ class NDFrameGroupBy(GroupBy):
                 if cast:
                     result[item] = self._try_cast(result[item], data)
 
-            except ValueError:
+            except ValueError as err:
+                if "Must produce aggregated value" in str(err):
+                    # raised in _aggregate_named, handle at higher level
+                    #  see test_apply_with_mutated_index
+                    raise
                 cannot_agg.append(item)
                 continue
             except TypeError as e:
@@ -349,7 +353,7 @@ class NDFrameGroupBy(GroupBy):
             output_keys = sorted(output)
             try:
                 output_keys.sort()
-            except Exception:  # pragma: no cover
+            except TypeError:
                 pass
 
             if isinstance(labels, MultiIndex):
@@ -649,20 +653,21 @@ class NDFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
-
-            # verify fast path does not change columns (and names), otherwise
-            # its results cannot be joined with those of the slow path
-            if res_fast.columns != group.columns:
-                return path, res
-            # verify numerical equality with the slow path
-            if res.shape == res_fast.shape:
-                res_r = res.values.ravel()
-                res_fast_r = res_fast.values.ravel()
-                mask = notna(res_r)
-                if (res_r[mask] == res_fast_r[mask]).all():
-                    path = fast_path
         except Exception:
-            pass
+            # Hard to know ex-ante what exceptions `fast_path` might raise
+            return path, res
+
+        # verify fast path does not change columns (and names), otherwise
+        # its results cannot be joined with those of the slow path
+        if not isinstance(res_fast, DataFrame):
+            return path, res
+
+        if not res_fast.columns.equals(group.columns):
+            return path, res
+
+        if res_fast.equals(res):
+            path = fast_path
+
         return path, res
 
     def _transform_item_by_item(self, obj, wrapper):
@@ -1008,7 +1013,7 @@ class SeriesGroupBy(GroupBy):
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise Exception("Must produce aggregated value")
+                raise ValueError("Must produce aggregated value")
             result[name] = self._try_cast(output, group)
 
         return result
@@ -1145,6 +1150,10 @@ class SeriesGroupBy(GroupBy):
         ids, _, _ = self.grouper.group_info
 
         val = self.obj._internal_get_values()
+
+        # GH 27951
+        # temporary fix while we wait for NumPy bug 12629 to be fixed
+        val[isna(val)] = np.datetime64("NaT")
 
         try:
             sorter = np.lexsort((val, ids))
