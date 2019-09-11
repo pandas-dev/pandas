@@ -43,7 +43,7 @@ setuptools_kwargs = {
 }
 
 
-min_cython_ver = "0.29.13"  # Note: sync with pyproject.toml
+min_cython_ver = "0.28.2"
 try:
     import Cython
 
@@ -367,7 +367,7 @@ class CheckSDist(sdist_class):
     def run(self):
         if "cython" in cmdclass:
             self.run_command("cython")
-        elif "sdist" not in sys.argv:
+        else:
             # If we are not running cython then
             # compile the extensions correctly
             pyx_files = [(self._pyxfiles, "c"), (self._cpp_pyxfiles, "cpp")]
@@ -531,8 +531,6 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # Avoid trying to look up numpy when installing from sdist
         # https://github.com/pandas-dev/pandas/issues/25193
         # TODO: See if this can be removed after pyproject.toml added.
-        return extensions
-    elif "sdist" in sys.argv:
         return extensions
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
