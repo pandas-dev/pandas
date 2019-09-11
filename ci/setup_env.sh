@@ -116,7 +116,7 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "Building wheel"
-python setup.py bdsist_wheel -d wheelhouse
+python setup.py bdist_wheel -d wheelhouse
 
 echo "Installing wheel"
 python -m pip install --no-deps wheelhouse/pandas*.whl
