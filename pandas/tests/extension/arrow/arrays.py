@@ -88,7 +88,8 @@ class ArrowExtensionArray(ExtensionArray):
             vals = self._data.to_pandas()[item]
             return type(self).from_scalars(vals)
 
-    def __len__(self):
+    @property
+    def size(self) -> int:
         return len(self._data)
 
     def astype(self, dtype, copy=True):

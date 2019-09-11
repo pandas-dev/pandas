@@ -855,7 +855,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         mask = notna(sp_vals)
         return sp_vals[mask]
 
-    def __len__(self) -> int:
+    @property
+    def size(self) -> int:
         return self.sp_index.length
 
     @property

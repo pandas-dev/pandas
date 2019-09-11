@@ -461,8 +461,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __len__(self):
-        return len(self._data)
+    @property
+    def size(self) -> int:
+        return self._data.size
 
     @property
     def nbytes(self):

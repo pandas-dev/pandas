@@ -394,7 +394,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     @property
     def size(self) -> int:
         """The number of elements in this array."""
-        return np.prod(self.shape)
+        return self._data.size
 
     def __len__(self):
         return len(self._data)
