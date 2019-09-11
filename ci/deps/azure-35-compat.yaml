@@ -18,7 +18,7 @@ dependencies:
   - xlsxwriter=0.9.8
   - xlwt=1.2.0
   # universal
-  - cython=0.28.2
+  - cython=0.29.13
   - hypothesis>=3.58.0
   - pytest-xdist
   - pytest-mock
