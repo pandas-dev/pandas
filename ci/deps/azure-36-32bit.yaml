@@ -19,4 +19,4 @@ dependencies:
   - pip
   - pip:
     # Anaconda doesn't build a new enough Cython
-    - cython=0.29.13
+    - cython>=0.29.13
