@@ -36,6 +36,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The :class:`ExtensionArray` interface now requires the author to implement ``size`` instead of ``__len__``.  The ``size`` method must _not_ depend on either ``__len__`` or ``shape`` (:issue:`????`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
