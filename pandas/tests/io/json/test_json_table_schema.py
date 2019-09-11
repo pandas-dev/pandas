@@ -22,6 +22,14 @@ from pandas.io.json._table_schema import (
 )
 
 
+def assert_results_equal(result, expected):
+    """Helper function for comparing deserialized JSON with Py35 compat."""
+    if PY35:
+        assert sorted(result.items()) == sorted(expected.items())
+    else:
+        assert result == expected
+
+
 class TestBuildSchema:
     def setup_method(self, method):
         self.df = DataFrame(
@@ -237,10 +245,7 @@ class TestTableOrient:
             ]
         )
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     def test_to_json(self):
         df = self.df.copy()
@@ -330,10 +335,7 @@ class TestTableOrient:
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1.0, 2.0])
@@ -363,10 +365,7 @@ class TestTableOrient:
             ]
         )
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     def test_to_json_period_index(self):
         idx = pd.period_range("2016", freq="Q-JAN", periods=2)
@@ -387,10 +386,7 @@ class TestTableOrient:
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     def test_to_json_categorical_index(self):
         data = pd.Series(1, pd.CategoricalIndex(["a", "b"]))
@@ -425,10 +421,7 @@ class TestTableOrient:
             ]
         )
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
@@ -565,10 +558,7 @@ class TestTableOrient:
             ]
         )
 
-        if PY35:
-            assert sorted(result.items()) == sorted(expected.items())
-        else:
-            assert result == expected
+        assert_results_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx,nm,prop",
