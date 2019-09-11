@@ -83,6 +83,9 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- Fix bug in :meth:`io.json.json_normalize` when nested meta paths with a nested record path. (:issue:`27220`)
+-
+-
 
 Categorical
 ^^^^^^^^^^^
