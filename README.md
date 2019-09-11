@@ -188,6 +188,15 @@ python setup.py install
 
 or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
 
+
+```sh
+python -m pip install --no-use-pep517 --no-build-isolation -e .
+```
+
+If you have make, you can also use `make develop` to run the same command.
+
+or alternatively
+
 ```sh
 python setup.py develop
 ```
