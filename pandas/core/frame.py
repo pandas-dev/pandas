@@ -393,8 +393,8 @@ class DataFrame(NDFrame):
         index: Optional[Axes] = None,
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
-        copy: Optional[bool] = False,
-    ) -> None:
+        copy: bool = False,
+    ):
         if data is None:
             data = {}
         if dtype is not None:
