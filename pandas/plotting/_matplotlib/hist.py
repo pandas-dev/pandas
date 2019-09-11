@@ -21,7 +21,7 @@ class HistPlot(LinePlot):
     def __init__(self, data, bins=10, bottom=0, **kwargs):
         self.bins = bins  # use mpl default
         self.bottom = bottom
-        self.by = kwargs["by"]
+        self.by = kwargs.get("by")
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
 
@@ -99,11 +99,10 @@ class HistPlot(LinePlot):
             sharey=sharey,
             layout=layout,
         )
-        _axes = _flatten(axes)
 
+        _axes = _flatten(axes)
         for i, (label, y) in enumerate(data):
             ax = _axes[i]
-
             ax.hist(y, **kwds)
             ax.set_title(pprint_thing(label))
 
@@ -114,7 +113,7 @@ class HistPlot(LinePlot):
         fig.subplots_adjust(
             bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
         )
-        plt.show()
+        return axes
 
     def _make_plot(self):
         colors = self._get_colors()
@@ -143,8 +142,7 @@ class HistPlot(LinePlot):
             data = self._iter_data()
             kwds = self.kwds.copy()
             kwds = self._make_plot_keywords(kwds, None)
-            ax = self._get_ax(0)
-            self._group_plot(ax, data, naxes, **kwds)
+            self._group_plot(self._get_ax(0), data, naxes, **kwds)
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""

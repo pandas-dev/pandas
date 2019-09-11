@@ -3229,6 +3229,13 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
+    def test_hist_plot_by_argument(self):
+        # GH 15079
+        df = DataFrame(np.random.randn(30, 2), columns=['A', 'B'])
+        df["C"] = np.random.choice(["a", "b", "c"], 30)
+
+        _check_plot_works(df.plot.hist, column='A', by='C')
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
