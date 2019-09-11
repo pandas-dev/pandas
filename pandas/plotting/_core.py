@@ -10,7 +10,6 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
-from pandas.core.frame import DataFrame
 
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
@@ -794,6 +793,7 @@ class PlotAccessor(PandasObject):
 
             # process groupby if by argument is defined
             if kwargs.get("by") is not None:
+                from pandas.core.frame import DataFrame
 
                 grouped = data.groupby(kwargs.get("by"))
                 if kwargs.get("column") is not None:
