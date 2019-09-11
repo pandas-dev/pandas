@@ -657,9 +657,12 @@ class DataFrameFormatter(TableFormatter):
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
                 # truncate formatter
-                if is_list_like(self.formatters) and self.formatters:
-                    truncate_fmt = cast(List[Callable], self.formatters)
-                    self.formatters = truncate_fmt[:col_num] + truncate_fmt[-col_num:]
+                if isinstance(self.formatters, (list, tuple)):
+                    truncate_fmt = self.formatters
+                    self.formatters = [
+                        *truncate_fmt[:col_num],
+                        *truncate_fmt[-col_num:],
+                    ]
             self.tr_col_num = col_num
         if truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None
