@@ -3229,6 +3229,21 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.DataFrame(columns=["foo"], dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.DataFrame(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
