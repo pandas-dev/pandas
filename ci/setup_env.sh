@@ -119,7 +119,7 @@ echo "Building wheel"
 python setup.py bdsist_wheel -d wheelhouse
 
 echo "Installing wheel"
-python -m pip install --no-deps wheelhouse/*.whl
+python -m pip install --no-deps wheelhouse/pandas*.whl
 
 echo
 echo "conda list"

@@ -192,14 +192,6 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/reference/
 python setup.py develop
 ```
 
-Alternatively, you can use `pip` if you want all the dependencies pulled
-in automatically (the `-e` option is for installing it in [development
-mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
-
-```sh
-pip install -e .
-```
-
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
 
 ## License

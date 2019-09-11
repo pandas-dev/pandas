@@ -4,6 +4,6 @@
 python setup.py bdist_wheel -d wheelhouse
 
 @rem Install wheel
-python -m pip install --no-deps wheelhouse/*.whl
+python -m pip install --no-deps wheelhouse/pandas*.whl
 
 if %errorlevel% neq 0 exit /b %errorlevel%
