@@ -1,9 +1,9 @@
 @rem https://github.com/numba/numba/blob/master/buildscripts/incremental/build.cmd
 
-@rem Build wheel
-python setup.py bdist_wheel -d wheelhouse
+@rem Build extensions
+python setup.py build_ext -q -i
 
-@rem Install wheel
-FOR /F "Tokens=*" %A IN ('DIR "wheelhouse\*.whl"') DO @( python -m pip install --no-deps %~nxA )
+@rem Install pandas
+python -m pip install --no-use-pep517 --no-build-isolation -e .
 
 if %errorlevel% neq 0 exit /b %errorlevel%
