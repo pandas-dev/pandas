@@ -115,9 +115,11 @@ conda list pandas
 
 # Make sure any error below is reported as such
 
-echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace
-python -m pip install -e .
+echo "Building wheel"
+python setup.py bdsist_wheel -d wheelhouse
+
+echo "Installing wheel"
+python -m pip install --no-deps wheelhouse/*.whl
 
 echo
 echo "conda list"
