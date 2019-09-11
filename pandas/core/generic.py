@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_float,
     is_integer,
     is_list_like,
     is_number,
@@ -1525,16 +1526,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.__array_wrap__(arr)
 
     def __invert__(self):
-        try:
-            arr = operator.inv(com.values_from_object(self))
-            return self.__array_wrap__(arr)
-        except Exception:
-
+        if not self.size:
             # inv fails with 0 len
-            if not np.prod(self.shape):
-                return self
+            return self
 
-            raise
+        arr = operator.inv(com.values_from_object(self))
+        return self.__array_wrap__(arr)
 
     def __nonzero__(self):
         raise ValueError(
@@ -5316,11 +5313,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if not self._is_numeric_mixed_type:
 
                 # allow an actual np.nan thru
-                try:
-                    if np.isnan(value):
-                        return True
-                except Exception:
-                    pass
+                if is_float(value) and np.isnan(value):
+                    return True
 
                 raise TypeError(
                     "Cannot do inplace boolean setting on "
