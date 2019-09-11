@@ -118,6 +118,15 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i
 
+# XXX: Some of our environments end up with old verisons of pip (10.x)
+# Adding a new enough verison of pip to the requirements explodes the
+# solve time. Just using pip to update itself.
+# - py35_macos
+# - py35_compat
+# - py36_32bit
+echo "[Updating pip]"
+python -m pip install --no-deps -U pip wheel setuptools
+
 echo "[Install pandas]"
 python -m pip install --no-use-pep517 --no-build-isolation -e .
 
