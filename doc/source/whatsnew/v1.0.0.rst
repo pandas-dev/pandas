@@ -37,7 +37,25 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
--
+- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+   Out[2]:
+   IntervalArray([(0, 1], (2, 3]],
+                 closed='right',
+                 dtype='interval[int64]')
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+
 
 .. _whatsnew_1000.api.other:
 
@@ -145,7 +163,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
--
+- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 
 Missing
 ^^^^^^^
@@ -165,12 +183,14 @@ I/O
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
+- Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 
 Plotting
 ^^^^^^^^
 
 - Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
 -
+- Bug in :meth:`DataFrame.plot` not able to plot when no rows (:issue:`27758`)
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
@@ -187,7 +207,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
 -
 
 Sparse
@@ -214,7 +234,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
-
+-
 
 .. _whatsnew_1000.contributors:
 
