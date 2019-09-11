@@ -238,6 +238,12 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
+    if pyarrow.__version__.startswith("0.14"):
+        pytest.xfail(
+            "Reading fastparquet with pyarrow in 0.14 fails: "
+            "https://issues.apache.org/jira/browse/ARROW-6492"
+        )
+
     df = df_cross_compat
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
