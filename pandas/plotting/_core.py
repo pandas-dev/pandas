@@ -1,7 +1,6 @@
 import importlib
 import warnings
 
-import pandas as pd
 from pandas._config import get_option
 
 from pandas.compat._optional import import_optional_dependency
@@ -11,6 +10,7 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
+from pandas.core.frame import DataFrame
 
 # Trigger matplotlib import, which implicitly registers our
 # converts. Implicit registration is deprecated, and when enforced
@@ -803,7 +803,7 @@ class PlotAccessor(PandasObject):
                 data_dict = {}
                 for key, group in grouped:
                     data_dict[key] = group
-                data = pd.DataFrame(data_dict)
+                data = DataFrame(data_dict)
                 kwargs.pop("column")
         return plot_backend.plot(data, kind=kind, **kwargs)
 
