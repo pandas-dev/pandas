@@ -9,7 +9,7 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas import DataFrame
+from pandas.core.frame import DataFrame
 from pandas.core.base import PandasObject
 
 # Trigger matplotlib import, which implicitly registers our
