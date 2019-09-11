@@ -567,10 +567,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:

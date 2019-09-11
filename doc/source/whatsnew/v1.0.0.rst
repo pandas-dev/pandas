@@ -38,7 +38,25 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
--
+- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+   Out[2]:
+   IntervalArray([(0, 1], (2, 3]],
+                 closed='right',
+                 dtype='interval[int64]')
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+
 
 .. _whatsnew_1000.api.other:
 
@@ -76,8 +94,8 @@ Performance improvements
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
 - Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
+- Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
-
 
 .. _whatsnew_1000.bug_fixes:
 
@@ -98,6 +116,9 @@ Datetimelike
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
+- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
+- Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
+- Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 -
 
 
@@ -143,7 +164,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
--
+- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 
 Missing
 ^^^^^^^
@@ -163,6 +184,7 @@ I/O
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
+- Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in iso format with ``orient="table"`` (:issue:`28130`)
 
 Plotting
@@ -186,7 +208,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
 -
 
 Sparse
@@ -213,7 +235,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
-
+-
 
 .. _whatsnew_1000.contributors:
 

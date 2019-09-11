@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_float,
     is_integer,
     is_list_like,
     is_number,
@@ -1526,16 +1527,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.__array_wrap__(arr)
 
     def __invert__(self):
-        try:
-            arr = operator.inv(com.values_from_object(self))
-            return self.__array_wrap__(arr)
-        except Exception:
-
+        if not self.size:
             # inv fails with 0 len
-            if not np.prod(self.shape):
-                return self
+            return self
 
-            raise
+        arr = operator.inv(com.values_from_object(self))
+        return self.__array_wrap__(arr)
 
     def __nonzero__(self):
         raise ValueError(
@@ -5338,11 +5335,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if not self._is_numeric_mixed_type:
 
                 # allow an actual np.nan thru
-                try:
-                    if np.isnan(value):
-                        return True
-                except Exception:
-                    pass
+                if is_float(value) and np.isnan(value):
+                    return True
 
                 raise TypeError(
                     "Cannot do inplace boolean setting on "
@@ -5802,11 +5796,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Control raising of exceptions on invalid data for provided dtype.
 
             - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
+            - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
 
-        kwargs : keyword arguments to pass on to the constructor
+        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
@@ -5867,7 +5861,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Convert to ordered categorical type with custom ordering:
 
         >>> cat_dtype = pd.api.types.CategoricalDtype(
-        ...                     categories=[2, 1], ordered=True)
+        ...     categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
         1    2
@@ -5877,7 +5871,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Note that using ``copy=False`` and changing data on a new
         pandas object may propagate changes:
 
-        >>> s1 = pd.Series([1,2])
+        >>> s1 = pd.Series([1, 2])
         >>> s2 = s1.astype('int64', copy=False)
         >>> s2[0] = 10
         >>> s1  # note that s1[0] has changed too
