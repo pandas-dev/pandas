@@ -834,7 +834,9 @@ def _bool_method_SERIES(cls, op, special):
             filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
             res_values = na_op(lvalues, rvalues)
-            res_values = filler(res_values)
+            # https://github.com/python/mypy/issues/5128
+            # error: Cannot call function of unknown type
+            res_values = filler(res_values)  # type: ignore
 
         result = self._constructor(res_values, index=self.index, name=res_name)
         return finalizer(result)
