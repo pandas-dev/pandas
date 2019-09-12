@@ -91,11 +91,17 @@ class SparseDataFrame(DataFrame):
                 default_kind = data.default_kind
         elif isinstance(data, (SparseSeries, SparseArray)):
             if index is None:
-                index = data.index
+                # https://github.com/pandas-dev/pandas/issues/28407
+                # error: Item "SparseArray" of "Union[SparseSeries, SparseArray]"
+                # has no attribute "index"
+                index = data.index  # type: ignore
             if default_fill_value is None:
                 default_fill_value = data.fill_value
             if columns is None and hasattr(data, "name"):
-                columns = [data.name]
+                # https://github.com/python/mypy/issues/1424
+                # error: Item "SparseArray" of "Union[SparseSeries, SparseArray]"
+                # has no attribute "name"
+                columns = [data.name]  # type: ignore
             if columns is None:
                 raise Exception("cannot pass a series w/o a name or columns")
             data = {columns[0]: data}
