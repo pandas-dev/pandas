@@ -348,6 +348,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             keys, values = [], []
 
+        # Check that keys and index are the same length so reindex does not drop rows
+        if index is not None and len(index) != len(keys):
+            raise ValueError(
+                "Length of passed values is {val}, "
+                "index implies {ind}".format(val=len(data), ind=len(index))
+            )
+
         # Input is now list-like, so rely on "standard" construction:
         s = Series(values, index=keys, dtype=dtype)
 
