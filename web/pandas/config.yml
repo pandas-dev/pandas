@@ -4,10 +4,12 @@ main:
   ignore:
   - _templates/layout.html
   - config.yml
+  - blog.html  # blog will be added at a later stage
+  - try.html  # the binder page will be added later
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.navbar_add_info
-  - pandas_web.Preprocessors.blog_add_posts
+  # - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
   markdown_extensions:
@@ -53,8 +55,8 @@ navbar:
       target: /community/citing.html
     - name: "Contributing to pandas"
       target: /community/contributing/
-  - name: "Blog"
-    target: /blog.html
+  # - name: "Blog"
+  #  target: /blog.html
   - name: "Donate"
     target: /donate.html
 blog:
