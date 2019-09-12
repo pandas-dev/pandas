@@ -263,8 +263,8 @@ class TestSeriesAnalytics:
 
         # datetime diff (GH3100)
         s = Series(date_range("20130102", periods=5))
-        result = s - s.shift(1)
-        expected = s.diff()
+        result = s.diff()
+        expected = s - s.shift(1)
         assert_series_equal(result, expected)
 
         # timedelta diff
@@ -286,10 +286,10 @@ class TestSeriesAnalytics:
         expected = Series([nan, True, False, True, False])
         assert_series_equal(result, expected)
 
-        # boolean nan series
-        s = Series([False, True, nan, False, False])
+        # object series
+        s = Series([False, True, 5.0, nan, True, False])
         result = s.diff()
-        expected = Series([nan, 1, nan, nan, 0], dtype="object")
+        expected = s - s.shift(1)
         assert_series_equal(result, expected)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
