@@ -2767,8 +2767,7 @@ class TestNLargestNSmallest:
         expected = df.iloc[[3, 2, 1]]
         tm.assert_frame_equal(result, expected)
 
-    def test_data_frame_value_counts(self):
-        # Multi column data frame.
+    def test_data_frame_value_counts_unsorted(self):
         df = pd.DataFrame(
             {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
             index=["falcon", "dog", "cat", "ant"],
@@ -2782,6 +2781,11 @@ class TestNLargestNSmallest:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_ascending(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         result = df.value_counts(ascending=True)
         expected = pd.Series(
             data=[1, 1, 2],
@@ -2791,6 +2795,11 @@ class TestNLargestNSmallest:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_default(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         result = df.value_counts()
         expected = pd.Series(
             data=[2, 1, 1],
@@ -2800,6 +2809,11 @@ class TestNLargestNSmallest:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_normalize(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         result = df.value_counts(normalize=True)
         expected = pd.Series(
             data=[0.5, 0.25, 0.25],
@@ -2809,41 +2823,63 @@ class TestNLargestNSmallest:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_dropna_not_supported_yet(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         with pytest.raises(NotImplementedError, match="not yet supported"):
             df.value_counts(dropna=False)
 
+    def test_data_frame_value_counts_bins_not_supported(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         with pytest.raises(ValueError, match="not supported"):
             df.value_counts(bins=2)
 
-        # Single column data frame.
+    def test_data_frame_value_counts_single_col_default(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
         df_single_col = df[["num_legs"]]
         result = df_single_col.value_counts()
         expected = pd.Series(
-            data=[2, 1, 1], index=pd.Int64Index(data=[4, 6, 2], name="num_legs")
+            data=[2, 1, 1],
+            index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"])
         )
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_single_col_bins(self):
+        df = pd.DataFrame(
+            {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+            index=["falcon", "dog", "cat", "ant"],
+        )
+        df_single_col = df[["num_legs"]]
         result = df_single_col.value_counts(bins=4)
         expected = pd.Series(
             data=[2, 1, 1, 0],
-            index=pd.Index(
-                name="num_legs",
-                data=[
+            index=pd.MultiIndex.from_arrays(
+                [[
                     pd.Interval(3, 4),
                     pd.Interval(5, 6),
                     pd.Interval(1.995, 3),
                     pd.Interval(4, 5),
-                ],
-            ),
+                ]],
+                names=["num_legs"]),
         )
         tm.assert_series_equal(result, expected)
 
-        # Empty data frame.
+    def test_data_frame_value_counts_empty(self):
         df_no_cols = pd.DataFrame()
         result = df_no_cols.value_counts()
         expected = pd.Series([], dtype=np.int64)
         tm.assert_series_equal(result, expected)
 
+    def test_data_frame_value_counts_empty_normalize(self):
+        df_no_cols = pd.DataFrame()
         result = df_no_cols.value_counts(normalize=True)
         expected = pd.Series([], dtype=np.float64)
         tm.assert_series_equal(result, expected)

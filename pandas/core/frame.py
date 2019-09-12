@@ -90,7 +90,7 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import maybe_droplevels, MultiIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -8421,9 +8421,12 @@ class DataFrame(NDFrame):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
         """
+        Return a Series containing counts of unique rows in the DataFrame.
+
         .. versionadded:: 1.0.0
 
-        Return a Series containing counts of unique rows in the DataFrame.
+        The returned Series will have a MultiIndex with one level per input
+        column.
 
         By default, rows that contain any NaN value are omitted from the
         results.
@@ -8434,7 +8437,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         normalize : boolean, default False
-            If True then the object returned will contain the relative
+            If True then the Series returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
             Sort by frequencies.
@@ -8516,7 +8519,10 @@ class DataFrame(NDFrame):
                 dropna=dropna,
             )
             # Move series name into its index, as happens in multi-column case.
-            return Series(data=series.values, index=series.index.set_names(series.name))
+            return Series(
+                data=series.values,
+                index=MultiIndex.from_arrays([series.index.values],
+                                             names=[series.name]))
 
         # Some features are only supported for single-column data.
         if not dropna:
