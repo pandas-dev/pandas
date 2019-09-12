@@ -679,10 +679,25 @@ class DataFrame(NDFrame):
 
             formatter = fmt.DataFrameFormatter(
                 self,
+                columns=None,
+                col_space=None,
+                na_rep="NaN",
+                formatters=None,
+                float_format=None,
+                sparsify=None,
+                justify=None,
+                index_names=True,
+                header=True,
+                index=True,
+                bold_rows=True,
+                escape=True,
                 max_rows=max_rows,
                 min_rows=min_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
+                decimal=".",
+                table_id=None,
+                render_links=False,
             )
             return formatter.to_html(notebook=True)
         else:
