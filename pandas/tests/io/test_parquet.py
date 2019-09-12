@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -237,6 +238,15 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
+
+    if (
+        LooseVersion(pyarrow.__version__) < "0.15"
+        and LooseVersion(pyarrow.__version__) >= "0.13"
+    ):
+        pytest.xfail(
+            "Reading fastparquet with pyarrow in 0.14 fails: "
+            "https://issues.apache.org/jira/browse/ARROW-6492"
+        )
 
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -477,6 +487,18 @@ class TestParquetPyArrow(Base):
         # GH #27339
         df = pd.DataFrame()
         check_round_trip(df, pa)
+
+    @td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+    def test_nullable_integer(self, pa):
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3], dtype="Int64")})
+        # currently de-serialized as plain int
+        expected = df.assign(a=df.a.astype("int64"))
+        check_round_trip(df, pa, expected=expected)
+
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
+        # if missing values currently de-serialized as float
+        expected = df.assign(a=df.a.astype("float64"))
+        check_round_trip(df, pa, expected=expected)
 
 
 class TestParquetFastParquet(Base):
