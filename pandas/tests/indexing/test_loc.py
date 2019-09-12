@@ -690,7 +690,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         )
         tm.assert_series_equal(df[("Respondent", "Duration")], expected)
 
-    def test_loc_assign_non_ns_datetime(self):
+    @pytest.mark.parametrize("unit", ["Y", "M", "D", "h", "m", "s", "ms", "us"])
+    def test_loc_assign_non_ns_datetime(self, unit):
+        # GH 27395, non-ns dtype assignment via .loc should work
+        # and return the same result when using simple assignment
         df = DataFrame(
             {
                 "timestamp": [
@@ -700,53 +703,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             }
         )
 
-        df.loc[:, "year"] = df.loc[:, "timestamp"].values.astype("datetime64[Y]")
-        df.loc[:, "month"] = df.loc[:, "timestamp"].values.astype("datetime64[M]")
-        df.loc[:, "day"] = df.loc[:, "timestamp"].values.astype("datetime64[D]")
-        df.loc[:, "hour"] = df.loc[:, "timestamp"].values.astype("datetime64[h]")
-        df.loc[:, "minute"] = df.loc[:, "timestamp"].values.astype("datetime64[m]")
-        df.loc[:, "second"] = df.loc[:, "timestamp"].values.astype("datetime64[s]")
-        df.loc[:, "millisecond"] = df.loc[:, "timestamp"].values.astype(
-            "datetime64[ms]"
+        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
+            "datetime64[{unit}]".format(unit=unit)
         )
-        result = df.loc[
-            :, ["year", "month", "day", "hour", "minute", "second", "millisecond"]
-        ]
-        expected = DataFrame(
-            {
-                "year": [
-                    np.datetime64("2017-02-11 12:41:29", "Y"),
-                    np.datetime64("1991-11-07 04:22:37", "Y"),
-                ],
-                "month": [
-                    np.datetime64("2017-02-11 12:41:29", "M"),
-                    np.datetime64("1991-11-07 04:22:37", "M"),
-                ],
-                "day": [
-                    np.datetime64("2017-02-11 12:41:29", "D"),
-                    np.datetime64("1991-11-07 04:22:37", "D"),
-                ],
-                "hour": [
-                    np.datetime64("2017-02-11 12:41:29", "h"),
-                    np.datetime64("1991-11-07 04:22:37", "h"),
-                ],
-                "minute": [
-                    np.datetime64("2017-02-11 12:41:29", "m"),
-                    np.datetime64("1991-11-07 04:22:37", "m"),
-                ],
-                "second": [
-                    np.datetime64("2017-02-11 12:41:29", "s"),
-                    np.datetime64("1991-11-07 04:22:37", "s"),
-                ],
-                "millisecond": [
-                    np.datetime64("2017-02-11 12:41:29", "ms"),
-                    np.datetime64("1991-11-07 04:22:37", "ms"),
-                ],
-            }
-        ).reindex(
-            columns=["year", "month", "day", "hour", "minute", "second", "millisecond"]
+        df[:, "expected"] = df.loc[:, "timestamp"].values.astype(
+            "datetime64[{unit}]".format(unit=unit)
         )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(df[:, unit], df[:, "expected"])
 
     def test_loc_setitem_frame(self):
         df = self.frame_labels

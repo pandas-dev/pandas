@@ -1026,6 +1026,9 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
             )
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
+
+                # pandas supports dtype whose granularity is less than [ns]
+                # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("M8[ns]"):
                     if dtype.name == "datetime64":
                         raise ValueError(msg.format(dtype=dtype.name))
@@ -1044,6 +1047,9 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
+
+                # pandas supports dtype whose granularity is less than [ns]
+                # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("m8[ns]"):
                     if dtype.name == "timedelta64":
                         raise ValueError(msg.format(dtype=dtype.name))
