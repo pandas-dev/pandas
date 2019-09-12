@@ -30,7 +30,7 @@ Axis = Union[str, int]
 Ordered = Optional[bool]
 
 # use Collection after we drop support for py35
-Axes = Iterable[Union["Index", Iterable[str]]]
+Axes = Iterable
 
 # to maintain type information across generic functions and parametrization
 _T = TypeVar("_T")
