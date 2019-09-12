@@ -49,7 +49,6 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 -
 -
 -
