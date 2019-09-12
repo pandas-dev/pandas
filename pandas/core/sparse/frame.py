@@ -534,30 +534,9 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def align(self, other, *args, **kwargs):
-        this, other = super().align(other, *args , **kwargs)
+        this, other = super().align(other, *args, **kwargs)
         this._default_fill_value = self._default_fill_value
         return this, other
-
-    def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join="outer", level=level, copy=False)
-
-        new_data = {}
-        if fill_value is not None:
-            # TODO: be a bit more intelligent here
-            for col in this.columns:
-                if col in this and col in other:
-                    dleft = this[col].to_dense()
-                    dright = other[col].to_dense()
-                    result = dleft._binop(dright, func, fill_value=fill_value)
-                    result = result.to_sparse(fill_value=this[col].fill_value)
-                    new_data[col] = result
-        else:
-
-            for col in this.columns:
-                if col in this and col in other:
-                    new_data[col] = func(this[col], other[col])
-
-        return this._construct_result(other, new_data, func)
 
     def _construct_result(self, other, result, func):
         """

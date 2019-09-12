@@ -5313,6 +5313,15 @@ class DataFrame(NDFrame):
             #  overhead if possible by doing this check once
             _arith_op = func
 
+        elif isinstance(self, ABCSparseDataFrame):
+
+            def _arith_op(left, right):
+                # wrap the non-sparse case below with to_dense and to_sparse
+                dleft = left.to_dense()
+                dright = right.to_dense()
+                result = dleft._binop(dright, func, fill_value=fill_value)
+                return result.to_sparse(fill_value=left.fill_value)
+
         else:
 
             def _arith_op(left, right):
@@ -5335,7 +5344,11 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
         # at this point we have `left.index.equals(right.index)`
 
-        if left._is_mixed_type or right._is_mixed_type or isinstance(self, ABCSparseDataFrame):
+        if (
+            left._is_mixed_type
+            or right._is_mixed_type
+            or isinstance(self, ABCSparseDataFrame)
+        ):
             # operate column-wise; avoid costly object-casting in `.values`
             new_data = ops.dispatch_to_series(left, right, func)
         else:
