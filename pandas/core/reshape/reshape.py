@@ -725,8 +725,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = list(this.index.names)
         new_codes = [lab.repeat(levsize) for lab in this.index.codes]
     else:
-        new_levels = [this.index]
-        new_codes = [np.arange(N).repeat(levsize)]
+        old_codes, old_levels = _factorize_from_iterable(this.index)
+        new_levels = [old_levels]
+        new_codes = [old_codes.repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
     new_levels.append(level_vals)

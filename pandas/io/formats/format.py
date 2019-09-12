@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 
 import codecs
 from contextlib import contextmanager
+from datetime import tzinfo
 import decimal
 from functools import partial
 from io import StringIO
@@ -27,8 +28,6 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile
 import numpy as np
 
 from pandas._config.config import get_option, set_option
@@ -888,6 +887,8 @@ class DataFrameFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -902,6 +903,8 @@ class DataFrameFormatter(TableFormatter):
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
+            caption=caption,
+            label=label,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
@@ -1548,9 +1551,7 @@ def _is_dates_only(
 
 
 def _format_datetime64(
-    x: Union[NaTType, Timestamp],
-    tz: Optional[Union[tzfile, tzutc]] = None,
-    nat_rep: str = "NaT",
+    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
 ) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
