@@ -2730,7 +2730,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            to_concat = [self] + to_append
+            # https://github.com/pandas-dev/pandas/issues/28410
+            # error: Unsupported operand types for + ("List[Any]" and "Tuple[Any, ...]")
+            to_concat = [self] + to_append  # type: ignore
         else:
             to_concat = [self, to_append]
         return concat(
@@ -4288,7 +4290,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
     ):
         return super().fillna(
             value=value,
@@ -4297,7 +4298,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
         )
 
     @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
