@@ -134,15 +134,16 @@ def maybe_downcast_to_dtype(result, dtype):
     # a datetimelike
     # GH12821, iNaT is casted to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        try:
-            result = result.astype(dtype)
-        except Exception:
+        if hasattr(dtype, "tz"):
+            # not a numpy dtype
             if dtype.tz:
                 # convert to datetime and change timezone
                 from pandas import to_datetime
 
                 result = to_datetime(result).tz_localize("utc")
                 result = result.tz_convert(dtype.tz)
+        else:
+            result = result.astype(dtype)
 
     elif dtype.type is Period:
         # TODO(DatetimeArray): merge with previous elif
@@ -214,13 +215,12 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             and notna(result).all()
         ):
             new_result = trans(result).astype(dtype)
-            try:
-                if np.allclose(new_result, result, rtol=0):
-                    return new_result
-            except Exception:
-                # comparison of an object dtype with a number type could
-                #  hit here
+            if new_result.dtype.kind == "O" or result.dtype.kind == "O":
+                # np.allclose may raise TypeError on object-dtype
                 if (new_result == result).all():
+                    return new_result
+            else:
+                if np.allclose(new_result, result, rtol=0):
                     return new_result
 
     elif (
@@ -286,14 +286,18 @@ def maybe_upcast_putmask(result, mask, other):
             # length of the boolean
             try:
                 om = other[mask]
+            except (IndexError, TypeError):
+                # IndexError occurs in test_upcast when we have a boolean
+                #  mask of the wrong shape
+                # TypeError occurs in test_upcast when `other` is a bool
+                pass
+            else:
                 om_at = om.astype(result.dtype)
                 if (om == om_at).all():
                     new_result = result.values.copy()
                     new_result[mask] = om_at
                     result[:] = new_result
                     return result, False
-            except Exception:
-                pass
 
             # we are forced to change the dtype of the result as the input
             # isn't compatible
@@ -324,7 +328,8 @@ def maybe_upcast_putmask(result, mask, other):
 
         try:
             np.place(result, mask, other)
-        except Exception:
+        except TypeError:
+            # e.g. int-dtype result and float-dtype other
             return changeit()
 
     return result, False
@@ -636,24 +641,21 @@ def coerce_to_dtypes(result, dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
     def conv(r, dtype):
-        try:
-            if isna(r):
-                pass
-            elif dtype == _NS_DTYPE:
-                r = tslibs.Timestamp(r)
-            elif dtype == _TD_DTYPE:
-                r = tslibs.Timedelta(r)
-            elif dtype == np.bool_:
-                # messy. non 0/1 integers do not get converted.
-                if is_integer(r) and r not in [0, 1]:
-                    return int(r)
-                r = bool(r)
-            elif dtype.kind == "f":
-                r = float(r)
-            elif dtype.kind == "i":
-                r = int(r)
-        except Exception:
+        if np.any(isna(r)):
             pass
+        elif dtype == _NS_DTYPE:
+            r = tslibs.Timestamp(r)
+        elif dtype == _TD_DTYPE:
+            r = tslibs.Timedelta(r)
+        elif dtype == np.bool_:
+            # messy. non 0/1 integers do not get converted.
+            if is_integer(r) and r not in [0, 1]:
+                return int(r)
+            r = bool(r)
+        elif dtype.kind == "f":
+            r = float(r)
+        elif dtype.kind == "i":
+            r = int(r)
 
         return r
 
@@ -794,13 +796,13 @@ def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
                 new_values = lib.maybe_convert_numeric(
                     values, set(), coerce_numeric=True
                 )
-
+            except Exception:
+                pass
+            else:
                 # if we are all nans then leave me alone
                 if not isna(new_values).all():
                     values = new_values
 
-            except Exception:
-                pass
         else:
             # soft-conversion
             values = lib.maybe_convert_objects(values)
@@ -873,11 +875,12 @@ def soft_convert_objects(
     if numeric and is_object_dtype(values.dtype):
         try:
             converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+        except Exception:
+            pass
+        else:
             # If all NaNs, then do not-alter
             values = converted if not isna(converted).all() else values
             values = values.copy() if copy else values
-        except Exception:
-            pass
 
     return values
 
@@ -972,7 +975,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
         try:
             return to_timedelta(v)._ndarray_values.reshape(shape)
-        except Exception:
+        except ValueError:
             return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))

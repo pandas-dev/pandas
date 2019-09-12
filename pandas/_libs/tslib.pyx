@@ -613,7 +613,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             # to check if all arguments have the same tzinfo
                             tz = py_dt.utcoffset()
 
-                        except Exception:
+                        except (ValueError, OverflowError):
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
