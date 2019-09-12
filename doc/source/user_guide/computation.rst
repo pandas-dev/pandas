@@ -182,7 +182,7 @@ assigned the mean of the ranks (by default) for the group:
 
 .. ipython:: python
 
-   s = pd.Series(np.random.np.random.randn(5), index=list('abcde'))
+   s = pd.Series(np.random.randn(5), index=list('abcde'))
    s['d'] = s['b']  # so there's a tie
    s.rank()
 
@@ -192,7 +192,7 @@ ranking.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.np.random.randn(10, 6))
+   df = pd.DataFrame(np.random.randn(10, 6))
    df[4] = df[2][:5]  # some ties
    df
    df.rank(1)
