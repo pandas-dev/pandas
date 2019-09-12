@@ -40,9 +40,7 @@ class TestABCClasses:
         assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCIndexClass)
         assert isinstance(pd.Series([1, 2, 3]), gt.ABCSeries)
         assert isinstance(self.df, gt.ABCDataFrame)
-        assert isinstance(self.sparse_series, gt.ABCSparseSeries)
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
-        assert isinstance(self.sparse_frame, gt.ABCSparseDataFrame)
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period("2012", freq="A-DEC"), gt.ABCPeriod)
 

@@ -43,7 +43,6 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
-    ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
@@ -607,7 +606,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
 
-        if isinstance(data, (type(self), ABCSparseSeries)):
+        if isinstance(data, type(self)):
             # disable normal inference on dtype, sparse_index, & fill_value
             if sparse_index is None:
                 sparse_index = data.sp_index
@@ -1982,7 +1981,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         Returns
         -------
-        s : SparseSeries
+        s : Series
+            A Series with sparse values.
 
         Examples
         --------
@@ -1996,7 +1996,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         matrix([[ 0.,  0.,  1.,  2.],
                 [ 3.,  0.,  0.,  0.],
                 [ 0.,  0.,  0.,  0.]])
-        >>> ss = pd.SparseSeries.from_coo(A)
+        >>> ss = pd.Series.sparse.from_coo(A)
         >>> ss
         0  2    1
            3    2
@@ -2016,7 +2016,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
     def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
         """
-        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
+        Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
         Use row_levels and column_levels to determine the row and column
         coordinates respectively. row_levels and column_levels are the names

@@ -391,48 +391,6 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, b, values, rvalues)
 
 
-class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
-
-    _base = pd.Series
-    _klass = pd.SparseSeries
-
-    def _assert(self, a, b):
-        tm.assert_series_equal(a, b)
-
-    def test_alignment(self, mix, all_arithmetic_functions):
-        op = all_arithmetic_functions
-
-        da = pd.Series(np.arange(4))
-        db = pd.Series(np.arange(4), index=[1, 2, 3, 4])
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=0)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=0
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=np.nan
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        da = pd.Series(np.arange(4))
-        db = pd.Series(np.arange(4), index=[10, 11, 12, 13])
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=0)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=0
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=np.nan
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
 def test_with_list(op):
     arr = pd.SparseArray([0, 1], fill_value=0)

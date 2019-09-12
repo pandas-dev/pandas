@@ -32,7 +32,6 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
-    ABCSparseSeries,
     ABCTimedeltaArray,
     ABCTimedeltaIndex,
 )
@@ -1151,8 +1150,6 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
         if isinstance(other, ABCDataFrame):
             return NotImplemented
         elif isinstance(other, ABCSeries):
-            if not isinstance(other, ABCSparseSeries):
-                other = other.to_sparse(fill_value=self.fill_value)
             return _sparse_series_op(self, other, op, op_name)
         elif is_scalar(other):
             with np.errstate(all="ignore"):

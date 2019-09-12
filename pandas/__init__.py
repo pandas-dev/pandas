@@ -116,8 +116,6 @@ from pandas.core.api import (
 
 from pandas.core.sparse.api import (
     SparseArray,
-    SparseDataFrame,
-    SparseSeries,
     SparseDtype,
 )
 

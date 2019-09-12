@@ -44,7 +44,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCSeries,
     ABCSparseArray,
-    ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -246,7 +245,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif isinstance(data, np.ndarray):
                 pass
-            elif isinstance(data, (ABCSeries, ABCSparseSeries)):
+            elif isinstance(data, ABCSeries):
                 if name is None:
                     name = data.name
                 if index is None:
