@@ -790,6 +790,7 @@ class PlotAccessor(PandasObject):
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
+
         return plot_backend.plot(data, kind=kind, **kwargs)
 
     def line(self, x=None, y=None, **kwargs):
