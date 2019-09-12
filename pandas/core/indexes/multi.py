@@ -373,7 +373,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
+    def from_arrays(cls, arrays, sortorder=None, names=_no_default_names):
         """
         Convert arrays to MultiIndex.
 
@@ -427,7 +427,7 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = _factorize_from_iterables(arrays)
-        if names is None:
+        if names is _no_default_names:
             names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(
@@ -544,13 +544,10 @@ class MultiIndex(Index):
         elif is_iterator(iterables):
             iterables = list(iterables)
 
+        codes, levels = _factorize_from_iterables(iterables)
         if names is _no_default_names:
             names = [getattr(it, "name", None) for it in iterables]
 
-            if all(name is None for name in names):
-                names = None
-
-        codes, levels = _factorize_from_iterables(iterables)
         codes = cartesian_product(codes)
         return MultiIndex(levels, codes, sortorder=sortorder, names=names)
 
