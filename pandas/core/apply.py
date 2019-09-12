@@ -3,7 +3,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import reduction
+from pandas._libs import reduction as libreduction
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -199,20 +199,21 @@ class FrameApply:
             return self.obj.copy()
 
         # we may need to infer
-        reduce = self.result_type == "reduce"
+        should_reduce = self.result_type == "reduce"
 
         from pandas import Series
 
-        if not reduce:
+        if not should_reduce:
 
             EMPTY_SERIES = Series([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
-                reduce = not isinstance(r, Series)
             except Exception:
                 pass
+            else:
+                should_reduce = not isinstance(r, Series)
 
-        if reduce:
+        if should_reduce:
             return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
         else:
             return self.obj.copy()
@@ -221,7 +222,7 @@ class FrameApply:
         """ apply to the values as a numpy array """
 
         try:
-            result = reduction.reduce(self.values, self.f, axis=self.axis)
+            result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
         except Exception:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
@@ -281,7 +282,7 @@ class FrameApply:
             dummy = Series(empty_arr, index=index, dtype=values.dtype)
 
             try:
-                result = reduction.reduce(
+                result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
                 return self.obj._constructor_sliced(result, index=labels)
@@ -306,10 +307,11 @@ class FrameApply:
             for i, v in enumerate(series_gen):
                 try:
                     results[i] = self.f(v)
-                    keys.append(v.name)
-                    successes.append(i)
                 except Exception:
                     pass
+                else:
+                    keys.append(v.name)
+                    successes.append(i)
 
             # so will work with MultiIndex
             if len(successes) < len(res_index):

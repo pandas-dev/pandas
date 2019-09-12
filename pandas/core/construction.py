@@ -413,14 +413,7 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-            except Exception:
-                if raise_cast_failure:  # pragma: no cover
-                    raise
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = lib.maybe_convert_objects(subarr)
-
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
 
@@ -468,30 +461,27 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
         else:
             subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
-    # This is to prevent mixed-type Series getting all casted to
-    # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, str):
-        # GH#16605
-        # If not empty convert the data to dtype
-        # GH#19853: If data is a scalar, subarr has already the result
-        if not lib.is_scalar(data):
-            if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            subarr = np.array(data, dtype=object, copy=copy)
+    if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
+        # This is to prevent mixed-type Series getting all casted to
+        # NumPy string type, e.g. NaN --> '-1#IND'.
+        if issubclass(subarr.dtype.type, str):
+            # GH#16605
+            # If not empty convert the data to dtype
+            # GH#19853: If data is a scalar, subarr has already the result
+            if not lib.is_scalar(data):
+                if not np.all(isna(data)):
+                    data = np.array(data, dtype=dtype, copy=False)
+                subarr = np.array(data, dtype=object, copy=copy)
 
-    if (
-        not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype))
-        and is_object_dtype(subarr.dtype)
-        and not is_object_dtype(dtype)
-    ):
-        inferred = lib.infer_dtype(subarr, skipna=False)
-        if inferred == "period":
-            from pandas.core.arrays import period_array
+        if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
+            inferred = lib.infer_dtype(subarr, skipna=False)
+            if inferred == "period":
+                from pandas.core.arrays import period_array
 
-            try:
-                subarr = period_array(subarr)
-            except IncompatibleFrequency:
-                pass
+                try:
+                    subarr = period_array(subarr)
+                except IncompatibleFrequency:
+                    pass
 
     return subarr
 

@@ -6,7 +6,7 @@ What's new in 0.25.0 (July 18, 2019)
 .. warning::
 
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See :ref:`install.dropping-27` for more details.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
 
 .. warning::
 
@@ -973,6 +973,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated ``cdate_range`` (:issue:`17691`)
 - Removed the previously deprecated ``True`` option for the ``dropna`` keyword argument in :func:`SeriesGroupBy.nth` (:issue:`17493`)
 - Removed the previously deprecated ``convert`` keyword argument in :meth:`Series.take` and :meth:`DataFrame.take` (:issue:`17352`)
+- Removed the previously deprecated behavior of arithmetic operations with ``datetime.date`` objects (:issue:`21152`)
 
 .. _whatsnew_0250.performance:
 
@@ -1266,4 +1267,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: 0.24.x..HEAD
+.. contributors:: v0.24.x..HEAD

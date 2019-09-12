@@ -562,13 +562,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    def _formatting_values(self):
-        """
-        Return the values that can be formatted (used by SeriesFormatter
-        and DataFrameFormatter).
-        """
-        return self._data.formatting_values()
-
     def get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
@@ -682,8 +675,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    4
         dtype: int64
 
-        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
         # same return although index of s is different
+        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
         >>> s.nonzero()
         (array([1, 3]),)
         >>> s.iloc[s.nonzero()[0]]
@@ -955,7 +948,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated:: 0.25.0
         """
         warnings.warn(
-            "`real` has be deprecated and will be removed in a future version",
+            "`real` is deprecated and will be removed in a future version. "
+            "To eliminate this warning for a Series `ser`, use "
+            "`np.real(ser.to_numpy())` or `ser.to_numpy().real`.",
             FutureWarning,
             stacklevel=2,
         )
@@ -973,7 +968,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         .. deprecated:: 0.25.0
         """
         warnings.warn(
-            "`imag` has be deprecated and will be removed in a future version",
+            "`imag` is deprecated and will be removed in a future version. "
+            "To eliminate this warning for a Series `ser`, use "
+            "`np.imag(ser.to_numpy())` or `ser.to_numpy().imag`.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1117,9 +1114,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     return self.__getitem__(new_key)
                 raise
 
-        except Exception:
-            raise
-
         if is_iterator(key):
             key = list(key)
 
@@ -1178,7 +1172,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if com._any_none(*key):
+        if com.any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
@@ -1684,7 +1678,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.items : Equivalent to Series.items for DataFrame.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
 
         Examples
         --------
@@ -2614,9 +2609,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.dot(arr)
         array([24, 14])
         """
-        from pandas.core.frame import DataFrame
-
-        if isinstance(other, (Series, DataFrame)):
+        if isinstance(other, (Series, ABCDataFrame)):
             common = self.index.union(other.index)
             if len(common) > len(self.index) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
@@ -2633,7 +2626,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "Dot product shape mismatch, %s vs %s" % (lvals.shape, rvals.shape)
                 )
 
-        if isinstance(other, DataFrame):
+        if isinstance(other, ABCDataFrame):
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
             ).__finalize__(self)
@@ -3624,7 +3617,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.str.split : Split string values on specified separator.
         Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
             to produce DataFrame.
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         DataFrame.explode : Explode a DataFrame from list-like
             columns to long format.
 
@@ -4169,12 +4162,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         kwargs["inplace"] = validate_bool_kwarg(kwargs.get("inplace", False), "inplace")
 
-        non_mapping = is_scalar(index) or (
-            is_list_like(index) and not is_dict_like(index)
-        )
-        if non_mapping:
+        if callable(index) or is_dict_like(index):
+            return super().rename(index=index, **kwargs)
+        else:
             return self._set_name(index, inplace=kwargs.get("inplace"))
-        return super().rename(index=index, **kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)

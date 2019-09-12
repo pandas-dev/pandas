@@ -167,6 +167,15 @@ class TestSeriesPlots(TestPlotBase):
         ax.legend()  # draw it
         self._check_legend_labels(ax, labels=["LABEL"])
 
+    def test_boolean(self):
+        # GH 23719
+        s = Series([False, False, True])
+        _check_plot_works(s.plot, include_bool=True)
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            _check_plot_works(s.plot)
+
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
         s = Series(values)
@@ -888,3 +897,30 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_plot_xlim_for_series(self, kind):
+        # test if xlim is also correctly plotted in Series for line and area
+        # GH 27686
+        s = Series([2, 3])
+        _, ax = self.plt.subplots()
+        s.plot(kind=kind, ax=ax)
+        xlims = ax.get_xlim()
+
+        assert xlims[0] < 0
+        assert xlims[1] > 1
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.Series(dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.Series(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()

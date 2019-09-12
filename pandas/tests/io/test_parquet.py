@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -32,6 +33,10 @@ try:
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
+)
 
 
 # setup engines & skips
@@ -234,6 +239,15 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
+    if (
+        LooseVersion(pyarrow.__version__) < "0.15"
+        and LooseVersion(pyarrow.__version__) >= "0.13"
+    ):
+        pytest.xfail(
+            "Reading fastparquet with pyarrow in 0.14 fails: "
+            "https://issues.apache.org/jira/browse/ARROW-6492"
+        )
+
     df = df_cross_compat
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
@@ -408,8 +422,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)", strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
