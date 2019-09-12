@@ -17,7 +17,7 @@ A pandas release number is made up of ``MAJOR.MINOR.PATCH``.
 
 API breaking changes should only occur in **major** releases. Theses changes will be documented,
 with clear guidance on what is changing, why it's changing, and how to migrate existing code to the
-new beahvior.
+new behavior.
 
 Whenever possible, a deprecation path will be provided rather than an outright breaking change.
 
@@ -39,5 +39,7 @@ Deprecations will only be enforced in **major** releases.
    invite you to participate in development discussion on the issue
    tracker or mailing list.
 
+These policies do not apply to features marked as **experimental** in the documentation.
+Pandas may change the behavior of experimental features at any time.
 
 .. _SemVer: https://semver.org
