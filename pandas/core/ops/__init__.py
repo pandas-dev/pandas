@@ -663,27 +663,9 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    def na_op(x, y):
-        # TODO:
-        # should have guarantees on what x, y can be type-wise
-        # Extension Dtypes are not called here
-
-        if is_object_dtype(x.dtype):
-            result = comp_method_OBJECT_ARRAY(op, x, y)
-
-        else:
-            method = getattr(x, op_name)
-            with np.errstate(all="ignore"):
-                result = method(y)
-            if result is NotImplemented:
-                return invalid_comparison(x, y, op)
-
-        return result
-
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
-        other = lib.item_from_zerodim(other)
 
         # TODO: shouldn't we be applying finalize whenever
         #  not isinstance(other, ABCSeries)?
@@ -693,10 +675,6 @@ def _comp_method_SERIES(cls, op, special):
             else x
         )
 
-        if isinstance(other, list):
-            # TODO: same for tuples?
-            other = np.asarray(other)
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -704,9 +682,12 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif isinstance(
-            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
-        ):
+        other = lib.item_from_zerodim(other)
+        if isinstance(other, list):
+            # TODO: same for tuples?
+            other = np.asarray(other)
+
+        if isinstance(other, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
@@ -726,9 +707,17 @@ def _comp_method_SERIES(cls, op, special):
             else:
                 res_values = np.zeros(len(lvalues), dtype=bool)
 
+        elif is_object_dtype(lvalues.dtype):
+            res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
+
         else:
+            op_name = "__{op}__".format(op=op.__name__)
+            method = getattr(lvalues, op_name)
             with np.errstate(all="ignore"):
-                res_values = na_op(lvalues, rvalues)
+                res_values = method(rvalues)
+
+            if res_values is NotImplemented:
+                res_values = invalid_comparison(lvalues, rvalues, op)
             if is_scalar(res_values):
                 raise TypeError(
                     "Could not compare {typ} type with Series".format(typ=type(rvalues))
