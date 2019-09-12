@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -672,9 +671,6 @@ def _comp_method_SERIES(cls, op, special):
         if is_object_dtype(x.dtype):
             result = comp_method_OBJECT_ARRAY(op, x, y)
 
-        elif is_datetimelike_v_numeric(x, y):
-            return invalid_comparison(x, y, op)
-
         else:
             method = getattr(x, op_name)
             with np.errstate(all="ignore"):
@@ -791,11 +787,17 @@ def _bool_method_SERIES(cls, op, special):
 
         return result
 
-    fill_int = lambda x: x.fillna(0)
+    fill_int = lambda x: x
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
-        x = x.fillna(False)
+        if x.dtype.kind in ["c", "f", "O"]:
+            # dtypes that can hold NA
+            mask = isna(x)
+            if mask.any():
+                x = x.astype(object)
+                x[mask] = False
+
         if left is None or is_bool_dtype(left.dtype):
             x = x.astype(bool)
         return x
@@ -818,40 +820,35 @@ def _bool_method_SERIES(cls, op, special):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
-        elif should_extension_dispatch(self, other):
-            lvalues = extract_array(self, extract_numpy=True)
-            rvalues = extract_array(other, extract_numpy=True)
+        other = lib.item_from_zerodim(other)
+        if is_list_like(other) and not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = construct_1d_object_array_from_listlike(other)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        if should_extension_dispatch(self, rvalues):
             res_values = dispatch_to_extension_op(op, lvalues, rvalues)
-            result = self._constructor(res_values, index=self.index, name=res_name)
-            return finalizer(result)
-
-        elif isinstance(other, (ABCSeries, ABCIndexClass)):
-            is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other, self)
-
-        elif is_list_like(other):
-            # list, tuple, np.ndarray
-            if not isinstance(other, np.ndarray):
-                other = construct_1d_object_array_from_listlike(other)
-
-            is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = type(self)(other)
-            other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
-            # i.e. scalar
-            is_other_int_dtype = lib.is_integer(other)
+            if isinstance(rvalues, (ABCSeries, ABCIndexClass, np.ndarray)):
+                is_other_int_dtype = is_integer_dtype(rvalues.dtype)
+                rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
 
-        # TODO: use extract_array once we handle EA correctly, see GH#27959
-        ovalues = lib.values_from_object(other)
+            else:
+                # i.e. scalar
+                is_other_int_dtype = lib.is_integer(rvalues)
 
-        # For int vs int `^`, `|`, `&` are bitwise operators and return
-        #   integer dtypes.  Otherwise these are boolean ops
-        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-        res_values = na_op(self.values, ovalues)
-        unfilled = self._constructor(res_values, index=self.index, name=res_name)
-        filled = filler(unfilled)
-        return finalizer(filled)
+            # For int vs int `^`, `|`, `&` are bitwise operators and return
+            #   integer dtypes.  Otherwise these are boolean ops
+            filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
+
+            res_values = na_op(lvalues, rvalues)
+            res_values = filler(res_values)
+
+        result = self._constructor(res_values, index=self.index, name=res_name)
+        return finalizer(result)
 
     wrapper.__name__ = op_name
     return wrapper
