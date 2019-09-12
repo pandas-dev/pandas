@@ -38,3 +38,6 @@ Deprecations will only be enforced in **major** releases.
    API-breaking change is a judgement call. We'll do our best, and we
    invite you to participate in development discussion on the issue
    tracker or mailing list.
+
+
+.. _SemVer: https://semver.org
