@@ -16,10 +16,10 @@ import argparse
 import os
 import re
 import sys
+
 import yaml
 
-
-EXCLUDE = {"python=3"}
+EXCLUDE = {"python=3", "openssl=1.1.1c"}
 RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
 
 

@@ -135,9 +135,44 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-* Windows: https://devguide.python.org/setup/#windows-compiling
-* Mac: https://devguide.python.org/setup/#macos
-* Unix: https://devguide.python.org/setup/#unix-compiling
+**Windows**
+
+You will need `Build Tools for Visual Studio 2017
+<https://visualstudio.microsoft.com/downloads/>`_.
+
+.. warning::
+	You DO NOT need to install Visual Studio 2019.
+	You only need "Build Tools for Visual Studio 2019" found by
+	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+
+**Mac OS**
+
+Information about compiler installation can be found here:
+https://devguide.python.org/setup/#macos
+
+**Unix**
+
+Some Linux distributions will come with a pre-installed C compiler. To find out
+which compilers (and versions) are installed on your system::
+
+    # for Debian/Ubuntu:
+    dpkg --list | grep compiler
+    # for Red Hat/RHEL/CentOS/Fedora:
+    yum list installed | grep -i --color compiler
+
+`GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used
+compiler, which supports C and a number of other languages. If GCC is listed
+as an installed compiler nothing more is required. If no C compiler is
+installed (or you wish to install a newer version) you can install a compiler
+(GCC in the example code below) with::
+
+    # for recent Debian/Ubuntu:
+    sudo apt install build-essential
+    # for Red Had/RHEL/CentOS/Fedora
+    yum groupinstall "Development Tools"
+
+For other Linux distributions, consult your favourite search engine for
+commpiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -699,6 +734,136 @@ You'll also need to
 
 See :ref:`contributing.warnings` for more.
 
+.. _contributing.type_hints:
+
+Type Hints
+----------
+
+*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
+
+Style Guidelines
+~~~~~~~~~~~~~~~~
+
+Types imports should follow the ``from typing import ...`` convention. So rather than
+
+.. code-block:: python
+
+   import typing
+
+   primes = []  # type: typing.List[int]
+
+You should write
+
+.. code-block:: python
+
+   from typing import List, Optional, Union
+
+   primes = []  # type: List[int]
+
+``Optional`` should be used where applicable, so instead of
+
+.. code-block:: python
+
+   maybe_primes = []  # type: List[Union[int, None]]
+
+You should write
+
+.. code-block:: python
+
+   maybe_primes = []  # type: List[Optional[int]]
+
+In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
+
+.. code-block:: python
+
+   class SomeClass1:
+       str = None
+
+The appropriate way to annotate this would be as follows
+
+.. code-block:: python
+
+   str_type = str
+
+   class SomeClass2:
+       str = None  # type: str_type
+
+In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
+
+.. code-block:: python
+
+   from typing import cast
+
+   from pandas.core.dtypes.common import is_number
+
+   def cannot_infer_bad(obj: Union[str, int, float]):
+
+       if is_number(obj):
+           ...
+       else:  # Reasonably only str objects would reach this but...
+           obj = cast(str, obj)  # Mypy complains without this!
+	   return obj.upper()
+
+The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
+
+.. code-block:: python
+
+   def cannot_infer_good(obj: Union[str, int, float]):
+
+       if isinstance(obj, str):
+           return obj.upper()
+       else:
+           ...
+
+With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
+
+Syntax Requirements
+~~~~~~~~~~~~~~~~~~~
+
+Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
+
+.. code-block:: python
+
+   primes = []  # type: List[int]
+
+Whereas this is **NOT** allowed:
+
+.. code-block:: python
+
+   primes: List[int] = []  # not supported in Python 3.5!
+
+Note that function signatures can always be annotated per :pep:`3107`:
+
+.. code-block:: python
+
+   def sum_of_primes(primes: List[int] = []) -> int:
+       ...
+
+
+Pandas-specific Types
+~~~~~~~~~~~~~~~~~~~~~
+
+Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+
+For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+
+.. code-block:: python
+
+   from pandas._typing import Dtype
+
+   def as_type(dtype: Dtype) -> ...:
+       ...
+
+This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
+
+Validating Type Hints
+~~~~~~~~~~~~~~~~~~~~~
+
+*pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+
+.. code-block:: shell
+
+   mypy pandas
 
 .. _contributing.ci:
 

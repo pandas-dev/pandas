@@ -4,8 +4,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
-import http.client
-import lzma
 import os
 import re
 from shutil import rmtree
@@ -26,7 +24,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -69,6 +67,8 @@ from pandas.core.arrays import (
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
+
+lzma = _import_lzma()
 
 N = 30
 K = 4
@@ -211,7 +211,7 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = lzma.LZMAFile(path, "rb")
+        f = _get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -264,9 +264,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        import lzma
-
-        compress_method = lzma.LZMAFile
+        compress_method = _get_lzma_file(lzma)
     else:
         msg = "Unrecognized compression type: {}".format(compression)
         raise ValueError(msg)
@@ -581,7 +579,8 @@ def assert_index_equal(
     check_categorical: bool = True,
     obj: str = "Index",
 ) -> None:
-    """Check that left and right Index are equal.
+    """
+    Check that left and right Index are equal.
 
     Parameters
     ----------
@@ -1082,7 +1081,8 @@ def assert_series_equal(
     check_categorical=True,
     obj="Series",
 ):
-    """Check that left and right Series are equal.
+    """
+    Check that left and right Series are equal.
 
     Parameters
     ----------
@@ -2274,11 +2274,17 @@ _network_errno_vals = (
 # But some tests (test_data yahoo) contact incredibly flakey
 # servers.
 
-# and conditionally raise on these exception types
-_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
+# and conditionally raise on exception types in _get_default_network_errors
 
 
-def can_connect(url, error_classes=_network_error_classes):
+def _get_default_network_errors():
+    # Lazy import for http.client because it imports many things from the stdlib
+    import http.client
+
+    return (IOError, http.client.HTTPException, TimeoutError)
+
+
+def can_connect(url, error_classes=None):
     """Try to connect to the given url. True if succeeds, False if IOError
     raised
 
@@ -2293,6 +2299,10 @@ def can_connect(url, error_classes=_network_error_classes):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
+
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
+
     try:
         with urlopen(url):
             pass
@@ -2308,7 +2318,7 @@ def network(
     url="http://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
-    error_classes=_network_error_classes,
+    error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,
 ):
@@ -2395,6 +2405,9 @@ def network(
     Errors not related to networking will always be raised.
     """
     from pytest import skip
+
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
 
     t.network = True
 

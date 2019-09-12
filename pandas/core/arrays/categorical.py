@@ -471,7 +471,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def dtype(self) -> CategoricalDtype:
         """
-        The :class:`~pandas.api.types.CategoricalDtype` for this instance
+        The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
 
@@ -1840,8 +1840,8 @@ class Categorical(ExtensionArray, PandasObject):
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
-                indexer = np.where(values_codes != -1)
-                codes[indexer] = values_codes[values_codes != -1]
+                indexer = np.where(codes == -1)
+                codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar
             elif is_hashable(value):

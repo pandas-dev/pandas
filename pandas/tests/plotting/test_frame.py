@@ -1881,6 +1881,31 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=["LABEL_b", "LABEL_c"])
         assert df5.columns.tolist() == ["b", "c"]
 
+    def test_missing_marker_multi_plots_on_same_ax(self):
+        # GH 18222
+        df = pd.DataFrame(
+            data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"]
+        )
+        fig, ax = self.plt.subplots(nrows=1, ncols=3)
+        # Left plot
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[0])
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[0])
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[0])
+        self._check_legend_labels(ax[0], labels=["r", "g", "b"])
+        self._check_legend_marker(ax[0], expected_markers=["o", "x", "o"])
+        # Center plot
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[1])
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[1])
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[1])
+        self._check_legend_labels(ax[1], labels=["b", "r", "g"])
+        self._check_legend_marker(ax[1], expected_markers=["o", "o", "x"])
+        # Right plot
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[2])
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[2])
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[2])
+        self._check_legend_labels(ax[2], labels=["g", "b", "r"])
+        self._check_legend_marker(ax[2], expected_markers=["x", "o", "o"])
+
     def test_legend_name(self):
         multi = DataFrame(
             randn(4, 4),
@@ -3151,6 +3176,73 @@ class TestDataFramePlots(TestPlotBase):
         assert labels_position["(2012, 2)"] == 1.0
         assert labels_position["(2013, 1)"] == 2.0
         assert labels_position["(2013, 2)"] == 3.0
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_xlim_plot_line(self, kind):
+        # test if xlim is set correctly in plot.line and plot.area
+        # GH 27686
+        df = pd.DataFrame([2, 4], index=[1, 2])
+        ax = df.plot(kind=kind)
+        xlims = ax.get_xlim()
+        assert xlims[0] < 1
+        assert xlims[1] > 2
+
+    def test_xlim_plot_line_correctly_in_mixed_plot_type(self):
+        # test if xlim is set correctly when ax contains multiple different kinds
+        # of plots, GH 27686
+        fig, ax = self.plt.subplots()
+
+        indexes = ["k1", "k2", "k3", "k4"]
+        df = pd.DataFrame(
+            {
+                "s1": [1000, 2000, 1500, 2000],
+                "s2": [900, 1400, 2000, 3000],
+                "s3": [1500, 1500, 1600, 1200],
+                "secondary_y": [1, 3, 4, 3],
+            },
+            index=indexes,
+        )
+        df[["s1", "s2", "s3"]].plot.bar(ax=ax, stacked=False)
+        df[["secondary_y"]].plot(ax=ax, secondary_y=True)
+
+        xlims = ax.get_xlim()
+        assert xlims[0] < 0
+        assert xlims[1] > 3
+
+        # make sure axis labels are plotted correctly as well
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        assert xticklabels == indexes
+
+    def test_subplots_sharex_false(self):
+        # test when sharex is set to False, two plots should have different
+        # labels, GH 25160
+        df = pd.DataFrame(np.random.rand(10, 2))
+        df.iloc[5:, 1] = np.nan
+        df.iloc[:5, 0] = np.nan
+
+        figs, axs = self.plt.subplots(2, 1)
+        df.plot.line(ax=axs, subplots=True, sharex=False)
+
+        expected_ax1 = np.arange(4.5, 10, 0.5)
+        expected_ax2 = np.arange(-0.5, 5, 0.5)
+
+        tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
+        tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.DataFrame(columns=["foo"], dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.DataFrame(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
 
 
 def _generate_4_axes_via_gridspec():

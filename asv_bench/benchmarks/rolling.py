@@ -1,5 +1,6 @@
-import pandas as pd
 import numpy as np
+
+import pandas as pd
 
 
 class Methods:
@@ -18,6 +19,9 @@ class Methods:
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
     def time_rolling(self, constructor, window, dtype, method):
+        getattr(self.roll, method)()
+
+    def peakmem_rolling(self, constructor, window, dtype, method):
         getattr(self.roll, method)()
 
 
@@ -121,4 +125,4 @@ class PeakMemFixed:
             self.roll.max()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
