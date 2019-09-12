@@ -909,3 +909,18 @@ class TestSeriesPlots(TestPlotBase):
 
         assert xlims[0] < 0
         assert xlims[1] > 1
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.Series(dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.Series(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
