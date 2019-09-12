@@ -8521,8 +8521,10 @@ class DataFrame(NDFrame):
             # Move series name into its index, as happens in multi-column case.
             return Series(
                 data=series.values,
-                index=MultiIndex.from_arrays([series.index.values],
-                                             names=[series.name]))
+                index=MultiIndex.from_arrays(
+                    [series.index.values], names=[series.name]
+                ),
+            )
 
         # Some features are only supported for single-column data.
         if not dropna:

@@ -2848,7 +2848,7 @@ class TestNLargestNSmallest:
         result = df_single_col.value_counts()
         expected = pd.Series(
             data=[2, 1, 1],
-            index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"])
+            index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"]),
         )
         tm.assert_series_equal(result, expected)
 
@@ -2862,13 +2862,16 @@ class TestNLargestNSmallest:
         expected = pd.Series(
             data=[2, 1, 1, 0],
             index=pd.MultiIndex.from_arrays(
-                [[
-                    pd.Interval(3, 4),
-                    pd.Interval(5, 6),
-                    pd.Interval(1.995, 3),
-                    pd.Interval(4, 5),
-                ]],
-                names=["num_legs"]),
+                [
+                    [
+                        pd.Interval(3, 4),
+                        pd.Interval(5, 6),
+                        pd.Interval(1.995, 3),
+                        pd.Interval(4, 5),
+                    ]
+                ],
+                names=["num_legs"],
+            ),
         )
         tm.assert_series_equal(result, expected)
 
