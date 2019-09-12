@@ -82,10 +82,6 @@ def compare(data, vf, version):
     return data
 
 
-def compare_sp_series_ts(res, exp, typ, version):
-    tm.assert_sp_series_equal(res, exp)
-
-
 def compare_series_ts(result, expected, typ, version):
     # GH 7748
     tm.assert_series_equal(result, expected)
@@ -132,10 +128,6 @@ def compare_index_period(result, expected, typ, version):
     assert result.freq == MonthEnd()
     assert result.freqstr == "M"
     tm.assert_index_equal(result.shift(2), expected.shift(2))
-
-
-def compare_sp_frame_float(result, expected, typ, version):
-    tm.assert_sp_frame_equal(result, expected)
 
 
 files = glob.glob(

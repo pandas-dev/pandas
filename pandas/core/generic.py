@@ -5575,9 +5575,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.23.0
 
-        This is useful for SparseDataFrame or for DataFrames containing
-        sparse arrays.
-
         Returns
         -------
         dtype : Series
@@ -5672,7 +5669,6 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.dtypes: Series with just dtype information.
-        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -5687,13 +5683,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1    float64:dense
         2    float64:dense
         3    float64:dense
-        dtype: object
-
-        >>> pd.SparseDataFrame(arr).ftypes  # doctest: +SKIP
-        0    float64:sparse
-        1    float64:sparse
-        2    float64:sparse
-        3    float64:sparse
         dtype: object
         """
         warnings.warn(

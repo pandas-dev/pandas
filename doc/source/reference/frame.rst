@@ -361,10 +361,3 @@ Serialization / IO / conversion
    DataFrame.to_string
    DataFrame.to_clipboard
    DataFrame.style
-
-Sparse
-~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   SparseDataFrame.to_coo

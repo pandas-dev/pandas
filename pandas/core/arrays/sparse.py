@@ -1968,7 +1968,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     @classmethod
     def from_coo(cls, A, dense_index=False):
         """
-        Create a SparseSeries from a scipy.sparse.coo_matrix.
+        Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
         Parameters
         ----------
@@ -2009,7 +2009,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index, sparse_series=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
 
         return result

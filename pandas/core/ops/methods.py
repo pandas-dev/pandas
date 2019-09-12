@@ -61,7 +61,6 @@ def _get_method_wrappers(cls):
         comp_special = _comp_method_SERIES
         bool_special = _bool_method_SERIES
     elif issubclass(cls, ABCDataFrame):
-        # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
         comp_flex = _flex_comp_method_FRAME
         arith_special = _arith_method_FRAME
