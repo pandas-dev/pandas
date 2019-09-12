@@ -1,6 +1,5 @@
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -13,6 +12,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
+from pandas.core.frame import DataFrame
 
 
 class HistPlot(LinePlot):
@@ -22,6 +22,8 @@ class HistPlot(LinePlot):
         self.bins = bins  # use mpl default
         self.bottom = bottom
         self.by = kwargs.get("by")
+        self.column = kwargs.get("column")
+
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
 

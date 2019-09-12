@@ -25,6 +25,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.frame import DataFrame
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
@@ -107,6 +108,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
+        column=None,
         **kwds
     ):
 
@@ -115,6 +117,7 @@ class MPLPlot:
         converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
+        self.column = column
 
         self.kind = kind
 
@@ -398,6 +401,19 @@ class MPLPlot:
             if label is None and data.name is None:
                 label = "None"
             data = data.to_frame(name=label)
+
+        # GH15079 restructure data if by is defined
+        if self.by is not None:
+            grouped = data.groupby(self.by)
+
+            if self.column is not None:
+                grouped = grouped[self.column]
+
+            # recreate data according to groupby object
+            data_dict = {}
+            for key, group in grouped:
+                data_dict[key] = group
+            data = DataFrame(data_dict)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
