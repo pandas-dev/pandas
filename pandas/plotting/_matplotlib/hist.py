@@ -22,7 +22,6 @@ class HistPlot(LinePlot):
         self.bins = bins  # use mpl default
         self.bottom = bottom
         self.by = kwargs.get("by")
-        self.column = kwargs.get("column")
 
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
