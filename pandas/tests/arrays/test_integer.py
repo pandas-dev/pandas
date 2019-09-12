@@ -1,7 +1,7 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.generic import ABCIndexClass
 
@@ -20,13 +20,6 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
-
-try:
-    import pyarrow
-
-    _PYARROW_INSTALLED = True
-except ImportError:
-    _PYARROW_INSTALLED = False
 
 
 def make_data():
@@ -826,13 +819,9 @@ def test_ufunc_reduce_raises(values):
         np.add.reduce(a)
 
 
-@pytest.mark.skipif(
-    not _PYARROW_INSTALLED
-    or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
-    reason="pyarrow >= 0.15.0 required",
-)
+@td.skip_if_no("pyarrow", min_version="0.14.1.dev")
 def test_arrow_array(data):
+    # protocol added in 0.15.0
     import pyarrow as pa
 
     arr = pa.array(data)
