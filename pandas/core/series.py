@@ -2729,8 +2729,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         from pandas.core.reshape.concat import concat
 
-        if isinstance(to_append, (list, tuple)):
+        if isinstance(to_append, list):
             to_concat = [self] + to_append
+        elif isinstance(to_append, tuple):
+            to_concat = [self] + list(to_append)
         else:
             to_concat = [self, to_append]
         return concat(

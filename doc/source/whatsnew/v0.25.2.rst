@@ -101,7 +101,7 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Bug in :meth:`Series.append` where it raised TypeError if tuple of series was passed in 'to_append' param. (:issue:`28410`)
 
 .. _whatsnew_0.252.contributors:
 
