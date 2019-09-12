@@ -206,7 +206,7 @@ class FrameApply:
         if not should_reduce:
             try:
                 r = self.f(Series([]))
-            except (TypeError, KeyError):
+            except Exception:
                 pass
             else:
                 should_reduce = not isinstance(r, Series)
