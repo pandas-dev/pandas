@@ -368,7 +368,7 @@ class CheckSDist(sdist_class):
     def run(self):
         if "cython" in cmdclass:
             self.run_command("cython")
-        elif "sdist" not in sys.argv:
+        else:
             # If we are not running cython then
             # compile the extensions correctly
             pyx_files = [(self._pyxfiles, "c"), (self._cpp_pyxfiles, "cpp")]

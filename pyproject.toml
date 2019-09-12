@@ -1,5 +1,6 @@
 [build-system]
 # Minimum requirements for the build system to execute.
+# See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
 requires = [
     "setuptools",
     "wheel",
