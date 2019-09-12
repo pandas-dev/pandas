@@ -324,7 +324,11 @@ class NDFrameGroupBy(GroupBy):
                 if cast:
                     result[item] = self._try_cast(result[item], data)
 
-            except ValueError:
+            except ValueError as err:
+                if "Must produce aggregated value" in str(err):
+                    # raised in _aggregate_named, handle at higher level
+                    #  see test_apply_with_mutated_index
+                    raise
                 cannot_agg.append(item)
                 continue
             except TypeError as e:
@@ -349,7 +353,7 @@ class NDFrameGroupBy(GroupBy):
             output_keys = sorted(output)
             try:
                 output_keys.sort()
-            except Exception:  # pragma: no cover
+            except TypeError:
                 pass
 
             if isinstance(labels, MultiIndex):
@@ -1009,7 +1013,7 @@ class SeriesGroupBy(GroupBy):
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise Exception("Must produce aggregated value")
+                raise ValueError("Must produce aggregated value")
             result[name] = self._try_cast(output, group)
 
         return result
@@ -1146,6 +1150,10 @@ class SeriesGroupBy(GroupBy):
         ids, _, _ = self.grouper.group_info
 
         val = self.obj._internal_get_values()
+
+        # GH 27951
+        # temporary fix while we wait for NumPy bug 12629 to be fixed
+        val[isna(val)] = np.datetime64("NaT")
 
         try:
             sorter = np.lexsort((val, ids))
