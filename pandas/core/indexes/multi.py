@@ -511,8 +511,8 @@ class MultiIndex(Index):
             level).
         names : list / sequence of str, optional
             Names for the levels in the index. If not provided, these
-            will be inferred from iterables if the iterable has a
-            name attribute.
+            will be inferred from the elements of iterables if an element
+            has a name attribute
 
         Returns
         -------
