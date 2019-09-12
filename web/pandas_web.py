@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """
-pysuerga : Python simple static site generator
+Simple static site generator for the pandas web.
 
-pysuerga takes a directory as parameter, and copies all the files into the
+pandas_web.py takes a directory as parameter, and copies all the files into the
 target directory after converting markdown files into html and rendering both
 markdown and html files with a context. The context is obtained by parsing
-the file ``pysuerga.yml`` in the root of the source directory.
+the file ``config.yml`` in the root of the source directory.
 
 The file should contain:
 ```
-pysuerga:
+main:
   template_path: <path_to_the_jinja2_templates_directory>
   base_template: <template_file_all_other_files_will_extend>
   ignore:
@@ -47,7 +47,7 @@ class Preprocessors:
     Context preprocessors are functions that receive the context used to
     render the templates, and enriches it with additional information.
 
-    The original context is obtained by parsing ``pysuerga.yml``, and
+    The original context is obtained by parsing ``config.yml``, and
     anything else needed just be added with context preprocessors.
     """
 
@@ -115,7 +115,7 @@ class Preprocessors:
     def home_add_releases(context):
         context["releases"] = []
 
-        github_repo_url = context["pysuerga"]["github_repo_url"]
+        github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
@@ -181,7 +181,7 @@ def get_context(config_fname: str, ignore_io_errors: bool, **kwargs):
 
     preprocessors = (
         get_callable(context_prep)
-        for context_prep in context["pysuerga"]["context_preprocessors"]
+        for context_prep in context["main"]["context_preprocessors"]
     )
     for preprocessor in preprocessors:
         context = preprocessor(context)
@@ -222,7 +222,7 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copyings them. ``.md`` files are transformed to HTML.
     """
-    config_fname = os.path.join(source_path, "pysuerga.yml")
+    config_fname = os.path.join(source_path, "config.yml")
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
@@ -231,11 +231,11 @@ def main(
     context = get_context(config_fname, ignore_io_errors, base_url=base_url)
     sys.stderr.write("Context generated\n")
 
-    templates_path = os.path.join(source_path, context["pysuerga"]["templates_path"])
+    templates_path = os.path.join(source_path, context["main"]["templates_path"])
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if fname in context["pysuerga"]["ignore"]:
+        if fname in context["main"]["ignore"]:
             continue
 
         sys.stderr.write(f"Processing {fname}\n")
@@ -248,10 +248,10 @@ def main(
                 content = f.read()
             if extension == ".md":
                 body = markdown.markdown(
-                    content, extensions=context["pysuerga"]["markdown_extensions"]
+                    content, extensions=context["main"]["markdown_extensions"]
                 )
                 content = extend_base_template(
-                    body, context["pysuerga"]["base_template"]
+                    body, context["main"]["base_template"]
                 )
             content = jinja_env.from_string(content).render(**context)
             fname = os.path.splitext(fname)[0] + ".html"
@@ -266,7 +266,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Documentation builder.")
     parser.add_argument(
-        "source_path", help="path to the source directory (must contain pysuerga.yml)"
+        "source_path", help="path to the source directory (must contain config.yml)"
     )
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output"
