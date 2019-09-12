@@ -6,14 +6,11 @@ include setup.py
 include pyproject.toml
 
 graft doc
-graft LICENSES
-graft pandas
-
 prune doc/build
-prune asv_bench
-prune ci
-prune conda.recipe
-prune scripts
+
+graft LICENSES
+
+graft pandas
 
 global-exclude *.bz2
 global-exclude *.csv
