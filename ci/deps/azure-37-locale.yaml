@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython>=0.28.2
+  - cython>=0.29.13
   - html5lib
   - ipython
   - jinja2
