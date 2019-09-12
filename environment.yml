@@ -85,4 +85,4 @@ dependencies:
 
   # temporarily pin openssl
   # https://github.com/pandas-dev/pandas/issues/28402
-  - openssl=1.1.1c 
+  - openssl=1.1.1c
