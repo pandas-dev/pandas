@@ -150,6 +150,8 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
+            raise TypeError("Cannot add NaT to ndarray with dtype {dtype}"
+                            .format(dtype=other.dtype))
 
         return NotImplemented
 
@@ -200,6 +202,10 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
+
+            raise TypeError(
+                "Cannot subtract NaT from ndarray with dtype {dtype}"
+                .format(dtype=other.dtype))
 
         return NotImplemented
 
