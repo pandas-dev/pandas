@@ -434,7 +434,7 @@ class MPLPlot:
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
-            is_empty = numeric_data.empty
+            is_empty = numeric_data.columns.empty
         except AttributeError:
             is_empty = not len(numeric_data)
 
