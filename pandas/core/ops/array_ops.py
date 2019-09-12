@@ -2,20 +2,35 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+import operator
+
 import numpy as np
 
-from pandas._libs import ops as libops
+from pandas._libs import lib, ops as libops
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_upcast_putmask,
 )
-from pandas.core.dtypes.common import is_object_dtype, is_scalar
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.common import (
+    ensure_object,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_list_like,
+    is_object_dtype,
+    is_scalar,
+)
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.ops import missing
+from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.roperator import rpow
 
 
@@ -126,3 +141,135 @@ def define_na_arithmetic_op(op, str_rep, eval_kwargs):
         return missing.dispatch_fill_zeros(op, x, y, result)
 
     return na_op
+
+
+def comparison_op(left, right, op):
+    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
+
+    # NB: We assume extract_array has already been called on left and right
+    lvalues = left
+    rvalues = right
+
+    rvalues = lib.item_from_zerodim(rvalues)
+    if isinstance(rvalues, list):
+        # TODO: same for tuples?
+        rvalues = np.asarray(rvalues)
+
+    if isinstance(rvalues, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
+        # TODO: make this treatment consistent across ops and classes.
+        #  We are not catching all listlikes here (e.g. frozenset, tuple)
+        #  The ambiguous case is object-dtype.  See GH#27803
+        if len(lvalues) != len(rvalues):
+            raise ValueError("Lengths must match to compare")
+
+    if should_extension_dispatch(lvalues, rvalues):
+        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+
+    elif is_scalar(rvalues) and isna(rvalues):
+        # numpy does not like comparisons vs None
+        if op is operator.ne:
+            res_values = np.ones(len(lvalues), dtype=bool)
+        else:
+            res_values = np.zeros(len(lvalues), dtype=bool)
+
+    elif is_object_dtype(lvalues.dtype):
+        res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
+
+    else:
+        op_name = "__{op}__".format(op=op.__name__)
+        method = getattr(lvalues, op_name)
+        with np.errstate(all="ignore"):
+            res_values = method(rvalues)
+
+        if res_values is NotImplemented:
+            res_values = invalid_comparison(lvalues, rvalues, op)
+        if is_scalar(res_values):
+            raise TypeError(
+                "Could not compare {typ} type with Series".format(typ=type(rvalues))
+            )
+
+    return res_values
+
+
+def logical_op(left, right, op):
+    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
+
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            if isinstance(y, np.ndarray):
+                # bool-bool dtype operations should be OK, should not get here
+                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
+                x = ensure_object(x)
+                y = ensure_object(y)
+                result = libops.vec_binop(x, y, op)
+            else:
+                # let null fall thru
+                assert lib.is_scalar(y)
+                if not isna(y):
+                    y = bool(y)
+                try:
+                    result = libops.scalar_binop(x, y, op)
+                except (
+                    TypeError,
+                    ValueError,
+                    AttributeError,
+                    OverflowError,
+                    NotImplementedError,
+                ):
+                    raise TypeError(
+                        "cannot compare a dtyped [{dtype}] array "
+                        "with a scalar of type [{typ}]".format(
+                            dtype=x.dtype, typ=type(y).__name__
+                        )
+                    )
+
+        return result
+
+    fill_int = lambda x: x
+
+    def fill_bool(x, left=None):
+        # if `left` is specifically not-boolean, we do not cast to bool
+        if x.dtype.kind in ["c", "f", "O"]:
+            # dtypes that can hold NA
+            mask = isna(x)
+            if mask.any():
+                x = x.astype(object)
+                x[mask] = False
+
+        if left is None or is_bool_dtype(left.dtype):
+            x = x.astype(bool)
+        return x
+
+    is_self_int_dtype = is_integer_dtype(left.dtype)
+
+    right = lib.item_from_zerodim(right)
+    if is_list_like(right) and not hasattr(right, "dtype"):
+        # e.g. list, tuple
+        right = construct_1d_object_array_from_listlike(right)
+
+    # NB: We assume extract_array has already been called on left and right
+    lvalues = left
+    rvalues = right
+
+    if should_extension_dispatch(lvalues, rvalues):
+        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+
+    else:
+        if isinstance(rvalues, np.ndarray):
+            is_other_int_dtype = is_integer_dtype(rvalues.dtype)
+            rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
+
+        else:
+            # i.e. scalar
+            is_other_int_dtype = lib.is_integer(rvalues)
+
+        # For int vs int `^`, `|`, `&` are bitwise operators and return
+        #   integer dtypes.  Otherwise these are boolean ops
+        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
+
+        res_values = na_op(lvalues, rvalues)
+        res_values = filler(res_values)
+
+    return res_values
