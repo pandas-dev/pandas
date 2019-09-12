@@ -349,6 +349,7 @@ def test_from_arrays_different_lengths(idx1, idx2):
 
 
 def test_from_arrays_respects_none_names():
+    # GH27292
     a = pd.Series([1, 2, 3], name="foo")
     b = pd.Series(["a", "b", "c"], name="bar")
 
@@ -564,6 +565,7 @@ def test_from_product_iterator():
     ],
 )
 def test_from_product_infer_names(a, b, expected_names):
+    # GH27292
     result = MultiIndex.from_product([a, b])
     expected = MultiIndex(
         levels=[[1, 2, 3], ["a", "b"]],
@@ -574,6 +576,7 @@ def test_from_product_infer_names(a, b, expected_names):
 
 
 def test_from_product_respects_none_names():
+    # GH27292
     a = pd.Series([1, 2, 3], name="foo")
     b = pd.Series(["a", "b"], name="bar")
 

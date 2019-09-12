@@ -63,7 +63,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
--
+- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
 .. _whatsnew_1000.deprecations:
