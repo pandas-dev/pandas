@@ -539,6 +539,41 @@ def test_from_product_iterator():
         MultiIndex.from_product(0)
 
 
+@pytest.mark.parametrize(
+    "a, b, expected_names",
+    [
+        (
+            pd.Series([1, 2, 3], name="foo"),
+            pd.Series(["a", "b"], name="bar"),
+            ["foo", "bar"],
+        ),
+        (pd.Series([1, 2, 3], name="foo"), ["a", "b"], ["foo", None]),
+        ([1, 2, 3], ["a", "b"], None),
+    ],
+)
+def test_from_product_infer_names(a, b, expected_names):
+    result = MultiIndex.from_product([a, b])
+    expected = MultiIndex(
+        levels=[[1, 2, 3], ["a", "b"]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        names=expected_names,
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_from_product_respects_none_names():
+    a = pd.Series([1, 2, 3], name="foo")
+    b = pd.Series(["a", "b"], name="bar")
+
+    result = MultiIndex.from_product([a, b], names=None)
+    expected = MultiIndex(
+        levels=[[1, 2, 3], ["a", "b"]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        names=None,
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_create_index_existing_name(idx):
 
     # GH11193, when an existing index is passed, and a new name is not

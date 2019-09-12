@@ -60,6 +60,8 @@ _index_doc_kwargs.update(
     dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
 )
 
+_no_default_names = object()
+
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """
@@ -496,7 +498,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
+    def from_product(cls, iterables, sortorder=None, names=_no_default_names):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
@@ -508,7 +510,8 @@ class MultiIndex(Index):
             Level of sortedness (must be lexicographically sorted by that
             level).
         names : list / sequence of str, optional
-            Names for the levels in the index.
+            Names for the levels in the index. If not provided, these
+            will be inferred from iterables if the iterable has a
 
         Returns
         -------
@@ -540,6 +543,12 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of iterables.")
         elif is_iterator(iterables):
             iterables = list(iterables)
+
+        if names is _no_default_names:
+            names = [getattr(it, "name", None) for it in iterables]
+
+            if all(name is None for name in names):
+                names = None
 
         codes, levels = _factorize_from_iterables(iterables)
         codes = cartesian_product(codes)
