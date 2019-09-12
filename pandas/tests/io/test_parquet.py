@@ -488,6 +488,18 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    @td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+    def test_nullable_integer(self, pa):
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3], dtype="Int64")})
+        # currently de-serialized as plain int
+        expected = df.assign(a=df.a.astype("int64"))
+        check_round_trip(df, pa, expected=expected)
+
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
+        # if missing values currently de-serialized as float
+        expected = df.assign(a=df.a.astype("float64"))
+        check_round_trip(df, pa, expected=expected)
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.2.1")
