@@ -533,9 +533,13 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
+    def align(self, other, *args, **kwargs):
+        this, other = super().align(other, *args , **kwargs)
+        this._default_fill_value = self._default_fill_value
+        return this, other
+
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join="outer", level=level, copy=False)
-        this._default_fill_value = self._default_fill_value
 
         new_data = {}
         if fill_value is not None:
@@ -554,36 +558,6 @@ class SparseDataFrame(DataFrame):
                     new_data[col] = func(this[col], other[col])
 
         return this._construct_result(other, new_data, func)
-
-    def _combine_match_index(self, other, func, level=None):
-        this, other = self.align(other, join="outer", axis=0, level=level, copy=False)
-        this._default_fill_value = self._default_fill_value
-
-        new_data = {}
-        for col in this.columns:
-            new_data[col] = func(this[col], other)
-
-        return this._construct_result(other, new_data, func)
-
-    def _combine_match_columns(self, other, func, level=None):
-        # patched version of DataFrame._combine_match_columns to account for
-        # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
-        # where 3.0 is numpy.float64 and series is a SparseSeries. Still
-        # possible for this to happen, which is bothersome
-
-        left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
-        assert left.columns.equals(right.index)
-        left._default_fill_value = self._default_fill_value
-
-        new_data = {}
-        for col in left.columns:
-            new_data[col] = func(left[col], right[col])
-
-        # TODO: using this changed some behavior, see GH#28025
-        return left._construct_result(other, new_data, func)
-
-    def _combine_const(self, other, func):
-        return self._apply_columns(lambda x: func(x, other))
 
     def _construct_result(self, other, result, func):
         """
@@ -639,7 +613,8 @@ class SparseDataFrame(DataFrame):
             fill_value = self.default_fill_value
 
         else:
-            raise NotImplementedError(type(other))
+            # reached via _combine_const
+            fill_value = self.default_fill_value
 
         return fill_value
 
