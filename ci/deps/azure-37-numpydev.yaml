@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.7.*
   - pytz
-  - Cython>=0.28.2
+  - Cython>=0.29.13
   # universal
   # pytest < 5 until defaults has pytest-xdist>=1.29.0
   - pytest>=4.0.2,<5.0
