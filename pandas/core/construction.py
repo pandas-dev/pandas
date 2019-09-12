@@ -10,7 +10,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -475,13 +475,8 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
 
         if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
             inferred = lib.infer_dtype(subarr, skipna=False)
-            if inferred == "period":
-                from pandas.core.arrays import period_array
-
-                try:
-                    subarr = period_array(subarr)
-                except IncompatibleFrequency:
-                    pass
+            if inferred in {"interval", "period"}:
+                subarr = array(subarr)
 
     return subarr
 

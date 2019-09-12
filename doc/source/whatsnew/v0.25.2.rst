@@ -44,7 +44,7 @@ Conversion
 Interval
 ^^^^^^^^
 
--
+- Bug in :class:`Series` constructor where constructing a ``Series`` from a ``list`` of :class:`Interval` objects resulted in ``object`` dtype instead of :class:`IntervalDtype` (:issue:`23563`)
 
 Indexing
 ^^^^^^^^
