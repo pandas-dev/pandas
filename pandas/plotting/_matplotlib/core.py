@@ -25,8 +25,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.frame import DataFrame
+from pandas import concat
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.index import MultiIndex
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
@@ -126,7 +128,7 @@ class MPLPlot:
         self.subplots = subplots
 
         if sharex is None:
-            if ax is None:
+            if ax is None and by is None:
                 self.sharex = True
             else:
                 # if we get an axis, the users should do the visibility
@@ -263,18 +265,30 @@ class MPLPlot:
         # else:
         #     columns = data.columns
 
-        for col, values in data.items():
-            if keep_index is True:
-                yield col, values
-            else:
-                yield col, values.values
+        if not isinstance(data.columns, ABCMultiIndex):
+            for col, values in data.items():
+                if keep_index is True:
+                    yield col, values
+                else:
+                    yield col, values.values
+        else:
+            cols = data.columns.get_level_values(0).unique()
+
+            for col in cols:
+                if keep_index is True:
+                    yield col, data[col]
+                else:
+                    yield col, data[col].values
 
     @property
     def nseries(self):
         if self.data.ndim == 1:
             return 1
         else:
-            return self.data.shape[1]
+            if not isinstance(self.data.columns, ABCMultiIndex):
+                return self.data.shape[1]
+            else:
+                return len(set(self.data.columns.get_level_values(0)))
 
     def draw(self):
         self.plt.draw_if_interactive()
@@ -404,17 +418,28 @@ class MPLPlot:
 
         # GH15079 restructure data if by is defined
         if self.by is not None:
+            self.subplots = True
             grouped = data.groupby(self.by)
 
             if self.column is not None:
                 grouped = grouped[self.column]
 
-            # recreate data according to groupby object
-            data_dict = {}
-            for key, group in grouped:
-                data_dict[key] = group
-            data = DataFrame(data_dict)
+            if len(self.column) == 1:
+                # recreate data according to groupby object
+                data_dict = {}
+                for key, group in grouped:
+                    data_dict[key] = group
+                data = DataFrame(data_dict)
 
+            else:
+                l = []
+                for key, group in grouped:
+                    columns = MultiIndex.from_product([[key], self.column])
+                    group = group[self.column]
+                    group.columns = columns
+                    l.append(group)
+
+                data = concat(l, axis=1)
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)

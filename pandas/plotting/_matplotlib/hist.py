@@ -12,7 +12,6 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
-from pandas.core.frame import DataFrame
 
 
 class HistPlot(LinePlot):
@@ -70,14 +69,12 @@ class HistPlot(LinePlot):
     @classmethod
     def _group_plot(
         cls,
-        ax,
+        axes,
         data,
-        naxes,
+        fig,
+        labels,
         rot=90,
         xrot=None,
-        sharex=False,
-        sharey=False,
-        layout=None,
         xlabelsize=None,
         ylabelsize=None,
         yrot=None,
@@ -92,19 +89,11 @@ class HistPlot(LinePlot):
 
         converter._WARN = False  # no warning for pandas plots
         xrot = xrot or rot
-        fig, axes = _subplots(
-            naxes=naxes,
-            ax=ax,
-            squeeze=False,
-            sharex=sharex,
-            sharey=sharey,
-            layout=layout,
-        )
 
-        _axes = _flatten(axes)
         for i, (label, y) in enumerate(data):
-            ax = _axes[i]
-            ax.hist(y, **kwds)
+            ax = axes[i]
+            # TODO: now df.hist also has no value for this
+            ax.hist(y, label=labels, **kwds)
             ax.set_title(pprint_thing(label))
 
         _set_ticks_props(
@@ -112,7 +101,7 @@ class HistPlot(LinePlot):
         )
 
         fig.subplots_adjust(
-            bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
+            bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.8, wspace=0.3
         )
         return axes
 
@@ -139,11 +128,10 @@ class HistPlot(LinePlot):
                 self._add_legend_handle(artists[0], label, index=i)
 
         else:
-            naxes = len(list(self._iter_data()))
             data = self._iter_data()
             kwds = self.kwds.copy()
             kwds = self._make_plot_keywords(kwds, None)
-            self._group_plot(self._get_ax(0), data, naxes, **kwds)
+            self._group_plot(self.axes, data, self.fig, self.column, **kwds)
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""
