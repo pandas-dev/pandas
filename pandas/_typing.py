@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Optional, TypeVar, Union
+from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -28,6 +28,9 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
 Ordered = Optional[bool]
+
+# use Collection after we drop support for py35
+Axes = Iterable
 
 # to maintain type information across generic functions and parametrization
 _T = TypeVar("_T")
