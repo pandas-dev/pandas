@@ -32,6 +32,8 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.13.3"
+min_cython_ver = "0.29.13"
+
 setuptools_kwargs = {
     "install_requires": [
         "python-dateutil >= 2.6.1",
@@ -43,7 +45,6 @@ setuptools_kwargs = {
 }
 
 
-min_cython_ver = "0.28.2"
 try:
     import Cython
 

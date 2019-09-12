@@ -20,7 +20,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - cython>=0.28.2
+  - cython>=0.29.13
   - pytest>=5.0.1
   - pytest-xdist>=1.29.0
   - pytest-mock

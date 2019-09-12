@@ -6,7 +6,6 @@ dependencies:
   - gcc_linux-32
   - gcc_linux-32
   - gxx_linux-32
-  - cython=0.28.2
   - numpy=1.14.*
   - python-dateutil
   - python=3.6.*
@@ -18,3 +17,6 @@ dependencies:
   - pytest-azurepipelines
   - hypothesis>=3.58.0
   - pip
+  - pip:
+    # Anaconda doesn't build a new enough Cython
+    - cython>=0.29.13
