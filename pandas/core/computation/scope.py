@@ -9,11 +9,15 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat.chainmap import DeepChainMap
+
+if TYPE_CHECKING:
+    from collections import ChainMap
 
 
 def _ensure_scope(
@@ -106,13 +110,19 @@ class Scope:
     __slots__ = ["level", "scope", "target", "resolvers", "temps"]
 
     def __init__(
-        self, level, global_dict=None, local_dict=None, resolvers=(), target=None
+        self,
+        level,
+        global_dict=None,
+        local_dict: Optional[Union["Scope", Dict]] = None,
+        resolvers=(),
+        target=None,
     ):
+        self.resolvers: "ChainMap"
         self.level = level + 1
 
         # shallow copy because we don't want to keep filling this up with what
         # was there before if there are multiple calls to Scope/_ensure_scope
-        self.scope = DeepChainMap(_DEFAULT_GLOBALS.copy())
+        self.scope: "ChainMap" = DeepChainMap(_DEFAULT_GLOBALS.copy())
         self.target = target
 
         if isinstance(local_dict, Scope):
@@ -137,7 +147,7 @@ class Scope:
         if isinstance(local_dict, Scope):
             resolvers += tuple(local_dict.resolvers.maps)
         self.resolvers = DeepChainMap(*resolvers)
-        self.temps = {}
+        self.temps: Dict[str, object] = {}
 
     def __repr__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
@@ -270,7 +280,7 @@ class Scope:
         finally:
             del stack[:], stack
 
-    def add_tmp(self, value):
+    def add_tmp(self, value: object) -> str:
         """
         Add a temporary variable to the scope.
 
@@ -281,7 +291,7 @@ class Scope:
 
         Returns
         -------
-        name : basestring
+        str
             The name of the temporary variable created.
         """
         name = "{name}_{num}_{hex_id}".format(
