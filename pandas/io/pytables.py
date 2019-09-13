@@ -426,15 +426,12 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, KeyError):
-        if not isinstance(path_or_buf, HDFStore):
-            # if there is an error, close the store if we opened it.
-            try:
-                store.close()
-            except AttributeError:
-                pass
-
-        raise
+    finally:
+        # if there is an error, close the store if we opened it.
+        try:
+            store.close()
+        except AttributeError:
+            pass
 
 
 def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:

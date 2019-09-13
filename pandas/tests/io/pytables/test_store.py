@@ -447,6 +447,25 @@ class TestHDFStore:
         check("w")
         check_default_mode()
 
+    def test_store_closed_on_error(self, mocker):
+        """check hdf store is closed whichever error occurs"""
+        mocker.patch("pandas.io.pytables.HDFStore.select").side_effect = AssertionError(
+            "Gaps in blk ref_locs"
+        )
+        df = tm.makeDataFrame()
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, "df")
+            try:
+                pd.read_hdf(path, "df")
+            except AssertionError:  # this is expected, because of our mock
+                pass
+            try:
+                HDFStore(path, mode="w")
+            except ValueError as exc:
+                pytest.fail(
+                    "store not closed properly, got error {exc}".format(exc=exc)
+                )
+
     def test_reopen_handle(self, setup_path):
 
         with ensure_clean_path(setup_path) as path:
