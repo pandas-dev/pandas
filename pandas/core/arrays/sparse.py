@@ -2046,10 +2046,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
                                                 (2, 1, 'b', 0),
                                                 (2, 1, 'b', 1)],
                                                 names=['A', 'B', 'C', 'D'])
-        >>> ss = s.to_sparse()
-        >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                         column_levels=['C', 'D'],
-                                         sort_labels=True)
+        >>> ss = s.astype("Sparse")
+        >>> A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
+        ...                                     column_levels=['C', 'D'],
+        ...                                     sort_labels=True)
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
                 with 3 stored elements in COOrdinate format>

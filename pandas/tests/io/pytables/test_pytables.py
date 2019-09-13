@@ -71,13 +71,6 @@ _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
-ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-ignore_dataframe_tosparse = pytest.mark.filterwarnings(
-    "ignore:DataFrame.to_sparse:FutureWarning"
-)
-ignore_series_tosparse = pytest.mark.filterwarnings(
-    "ignore:Series.to_sparse:FutureWarning"
-)
 
 # contextmanager to ensure the file cleanup
 
@@ -2677,40 +2670,6 @@ class TestHDFStore(Base):
 
             tm.assert_series_equal(store["a"], ts)
 
-    @ignore_sparse
-    @ignore_dataframe_tosparse
-    def test_sparse_with_compression(self):
-
-        # GH 2931
-
-        # make sparse dataframe
-        arr = np.random.binomial(n=1, p=0.01, size=(1000, 10))
-        df = DataFrame(arr).to_sparse(fill_value=0)
-
-        # case 1: store uncompressed
-        self._check_double_roundtrip(
-            df, tm.assert_frame_equal, compression=False, check_frame_type=True
-        )
-
-        # case 2: store compressed (works)
-        self._check_double_roundtrip(
-            df, tm.assert_frame_equal, compression="zlib", check_frame_type=True
-        )
-
-        # set one series to be completely sparse
-        df[0] = np.zeros(1000)
-
-        # case 3: store df with completely sparse series uncompressed
-        self._check_double_roundtrip(
-            df, tm.assert_frame_equal, compression=False, check_frame_type=True
-        )
-
-        # case 4: try storing df with completely sparse series compressed
-        # (fails)
-        self._check_double_roundtrip(
-            df, tm.assert_frame_equal, compression="zlib", check_frame_type=True
-        )
-
     def test_select(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3858,8 +3817,6 @@ class TestHDFStore(Base):
             expected = df.loc[[0], ["foo", "bar"]]
             tm.assert_frame_equal(result, expected)
 
-    @ignore_sparse
-    @ignore_dataframe_tosparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3899,10 +3856,6 @@ class TestHDFStore(Base):
             df = tm.makeDataFrame()
             df.iloc[3:5, 1:3] = np.nan
             df.iloc[8:10, -2] = np.nan
-            dfs = df.to_sparse()
-            store.put("dfs", dfs)
-            with pytest.raises(NotImplementedError):
-                store.select("dfs", start=0, stop=5)
 
     def test_select_filter_corner(self):
 
