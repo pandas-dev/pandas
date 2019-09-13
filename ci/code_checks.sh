@@ -125,12 +125,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # flake8 check will find bare except E722 in .py files, need to grep
-    #  to find these in cython files
-    MSG='Check for bare except statements' ; echo $MSG
-    invgrep -R --include="*.py*" -E "except:" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for pytest warns' ; echo $MSG
     invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
