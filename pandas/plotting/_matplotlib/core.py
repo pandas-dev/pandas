@@ -128,6 +128,8 @@ class MPLPlot:
         self.subplots = subplots
 
         if sharex is None:
+
+            # if by is defined, subplots are used and sharex should be False
             if ax is None and by is None:
                 self.sharex = True
             else:
@@ -285,6 +287,9 @@ class MPLPlot:
         if self.data.ndim == 1:
             return 1
         else:
+
+            # If MultiIndex column, only return the first level which
+            # corresponds to by argument
             if not isinstance(self.data.columns, ABCMultiIndex):
                 return self.data.shape[1]
             else:
@@ -440,6 +445,7 @@ class MPLPlot:
                     data_list.append(group)
 
                 data = concat(data_list, axis=1)
+
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)

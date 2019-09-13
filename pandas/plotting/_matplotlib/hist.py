@@ -26,6 +26,9 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
+
+        # calculate bin number separately in different subplots
+        # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is None:
                 self.bins = self._caculcate_bins(self.data)
@@ -43,6 +46,8 @@ class HistPlot(LinePlot):
             self.bottom = np.array(self.bottom)
 
     def _caculcate_bins(self, data):
+        """Calculate bins given data"""
+
         values = data._convert(datetime=True)._get_numeric_data()
         values = np.ravel(values)
         values = values[~isna(values)]
