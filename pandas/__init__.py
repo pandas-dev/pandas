@@ -144,38 +144,38 @@ from pandas.core.reshape.api import (
 
 from pandas.util._print_versions import show_versions
 
-from pandas.io.api import (
+io_names = (
     # excel
-    ExcelFile,
-    ExcelWriter,
-    read_excel,
+    "ExcelFile",
+    "ExcelWriter",
+    "read_excel",
     # packers
-    read_msgpack,
-    to_msgpack,
+    "read_msgpack",
+    "to_msgpack",
     # parsers
-    read_csv,
-    read_fwf,
-    read_table,
+    "read_csv",
+    "read_fwf",
+    "read_table",
     # pickle
-    read_pickle,
-    to_pickle,
+    "read_pickle",
+    "to_pickle",
     # pytables
-    HDFStore,
-    read_hdf,
+    "HDFStore",
+    "read_hdf",
     # sql
-    read_sql,
-    read_sql_query,
-    read_sql_table,
+    "read_sql",
+    "read_sql_query",
+    "read_sql_table",
     # misc
-    read_clipboard,
-    read_parquet,
-    read_feather,
-    read_gbq,
-    read_html,
-    read_json,
-    read_stata,
-    read_sas,
-    read_spss,
+    "read_clipboard",
+    "read_parquet",
+    "read_feather",
+    "read_gbq",
+    "read_html",
+    "read_json",
+    "read_stata",
+    "read_sas",
+    "read_spss",
 )
 
 from pandas.util._tester import test
@@ -211,13 +211,59 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+
+        if name in io_names:
+            import importlib
+
+            mod = importlib.import_module("pandas.io.api")
+            obj = getattr(mod, name)
+            return obj
         raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
+
+    def __dir__():
+        return __all__
 
 
 else:
 
     class Panel:
         pass
+
+    from pandas.core.computation.api import eval
+
+    from pandas.io.api import (
+        # excel
+        ExcelFile,
+        ExcelWriter,
+        read_excel,
+        # packers
+        read_msgpack,
+        to_msgpack,
+        # parsers
+        read_csv,
+        read_fwf,
+        read_table,
+        # pickle
+        read_pickle,
+        to_pickle,
+        # pytables
+        HDFStore,
+        read_hdf,
+        # sql
+        read_sql,
+        read_sql_query,
+        read_sql_table,
+        # misc
+        read_clipboard,
+        read_parquet,
+        read_feather,
+        read_gbq,
+        read_html,
+        read_json,
+        read_stata,
+        read_sas,
+        read_spss,
+    )
 
 
 # module level doc-string
@@ -261,3 +307,12 @@ Here are just a few of the things that pandas does well:
     conversion, moving window statistics, moving window linear regressions,
     date shifting and lagging, etc.
 """
+
+import builtins
+__all__ = [x for x in builtins.dir() if not x.startswith("_")]
+__all__.remove("builtins")
+__all__.remove("io_names")
+del builtins
+if pandas.compat.PY37:
+    __all__.extend(list(io_names))
+    __all__.append("Panel")
