@@ -2151,6 +2151,7 @@ class DataFrame(NDFrame):
         index : bool, default True
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
+            If ``None``, RangeIndex will be stored as metadata-only.
 
             .. versionadded:: 0.24.0
 
