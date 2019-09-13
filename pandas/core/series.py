@@ -2730,9 +2730,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            # https://github.com/pandas-dev/pandas/issues/28410
-            # error: Unsupported operand types for + ("List[Any]" and "Tuple[Any, ...]")
-            to_concat = [self] + to_append  # type: ignore
+            to_concat = [self]
+            to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
         return concat(

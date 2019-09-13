@@ -82,7 +82,3 @@ dependencies:
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss
-
-  # temporarily pin openssl
-  # https://github.com/pandas-dev/pandas/issues/28402
-  - openssl=1.1.1c
