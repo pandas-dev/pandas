@@ -1791,7 +1791,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:  # noqa: E722
+        except Exception:
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')

@@ -245,10 +245,10 @@ class SparseDtype(ExtensionDtype):
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
-                result = SparseDtype(sub_type)
-            except Exception:
+            except ValueError:
                 raise TypeError(msg)
             else:
+                result = SparseDtype(sub_type)
                 msg = (
                     "Could not construct SparseDtype from '{}'.\n\nIt "
                     "looks like the fill_value in the string is not "
