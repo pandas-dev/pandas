@@ -18,7 +18,7 @@ black:
 	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
 
 develop: build
-	python -m pip install --no-use-pep517 --no-build-isolation -e .
+	python -m pip install --no-build-isolation -e .
 
 doc:
 	-rm -rf doc/build doc/source/generated

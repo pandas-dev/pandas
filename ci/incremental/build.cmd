@@ -4,6 +4,6 @@
 python setup.py build_ext -q -i
 
 @rem Install pandas
-python -m pip install --no-use-pep517 --no-build-isolation -e .
+python -m pip install --no-build-isolation -e .
 
 if %errorlevel% neq 0 exit /b %errorlevel%

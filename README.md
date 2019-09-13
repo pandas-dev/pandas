@@ -190,7 +190,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/reference/
 
 
 ```sh
-python -m pip install --no-use-pep517 --no-build-isolation -e .
+python -m pip install --no-build-isolation -e .
 ```
 
 If you have `make`, you can also use `make develop` to run the same command.
