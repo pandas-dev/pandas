@@ -20,15 +20,19 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
--
+
 
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
 -
 
 .. _whatsnew_1000.api_breaking:
