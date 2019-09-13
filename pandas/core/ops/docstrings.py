@@ -1,7 +1,7 @@
 """
 Templating for ops docstrings
 """
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from mypy_extensions import TypedDict
