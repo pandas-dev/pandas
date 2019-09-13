@@ -197,14 +197,12 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    def test_cast_nan_to_int(self):
-        s1 = pd.Series([0, 1, np.nan], dtype="category")
-        s2 = pd.Series([0, 1, np.inf], dtype="category")
+    @pytest.mark.parametrize("value", [np.nan, -np.inf, np.inf])
+    def test_cast_nan_to_int(self, value):
+        s = pd.Series([0, 1, value], dtype="category")
 
         with pytest.raises(ValueError):
-            s1.astype(int)
-        with pytest.raises(ValueError):
-            s2.astype(int)
+            s.astype(int)
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
