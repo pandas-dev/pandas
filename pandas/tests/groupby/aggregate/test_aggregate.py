@@ -376,12 +376,12 @@ class TestNamedAggregationSeries:
         expected = pd.DataFrame()
         tm.assert_frame_equal(result, expected)
 
-    def test_series_named_agg_duplicates_raises(self):
-        # This is a limitation of the named agg implementation reusing
-        # aggregate_multiple_funcs. It could maybe be lifted in the future.
+    def test_series_named_agg_duplicates_no_raises(self):
+        # GH28426
         gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
-        with pytest.raises(SpecificationError):
-            gr.agg(a="sum", b="sum")
+        grouped = gr.agg(a="sum", b="sum")
+        expected = pd.DataFrame({"a": [3, 3], "b": [3, 3]})
+        tm.assert_frame_equal(expected, grouped)
 
     def test_mangled(self):
         gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
