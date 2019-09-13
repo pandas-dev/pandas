@@ -20,15 +20,19 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
--
+
 
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
 -
 
 .. _whatsnew_1000.api_breaking:
@@ -115,9 +119,11 @@ Datetimelike
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
+- Bug in :func:`to_datetime` where passing arrays of malformed ``str`` with errors="coerce" could incorrectly lead to raising ``ValueError`` (:issue:`28299`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 -
 
 
@@ -164,6 +170,7 @@ Indexing
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
+- Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 
 Missing
 ^^^^^^^
@@ -220,6 +227,7 @@ Sparse
 Build Changes
 ^^^^^^^^^^^^^
 - Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
+- Added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file (:issue:`20775`)
 
 
 ExtensionArray
@@ -234,7 +242,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
--
+- :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 
 .. _whatsnew_1000.contributors:
 
