@@ -1,7 +1,19 @@
 """
 Templating for ops docstrings
 """
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mypy_extensions import TypedDict
+
+    class _OpDescriptionsBase(TypedDict):
+        op: str
+        desc: str
+
+    class _OpDescriptions(_OpDescriptionsBase, total=False):
+        reverse: Optional[str]
+        series_examples: Optional[str]
+        df_examples: Optional[str]
 
 
 def _make_flex_doc(op_name, typ):
@@ -35,7 +47,7 @@ def _make_flex_doc(op_name, typ):
             equiv=equiv,
             reverse=op_desc["reverse"],
         )
-        if op_desc["series_examples"]:
+        if op_desc["series_examples"] is not None:
             doc = doc_no_examples + op_desc["series_examples"]
         else:
             doc = doc_no_examples
@@ -233,7 +245,8 @@ e    NaN
 dtype: float64
 """
 
-_op_descriptions = {
+
+_op_descriptions: Dict[str, "_OpDescriptions"] = {
     # Arithmetic Operators
     "add": {
         "op": "+",
@@ -310,7 +323,7 @@ _op_descriptions = {
         "reverse": None,
         "series_examples": None,
     },
-}  # type: Dict[str, Dict[str, Optional[str]]]
+}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
