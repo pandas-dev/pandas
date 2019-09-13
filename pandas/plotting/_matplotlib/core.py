@@ -432,14 +432,14 @@ class MPLPlot:
                 data = DataFrame(data_dict)
 
             else:
-                l = []
+                data_list = []
                 for key, group in grouped:
                     columns = MultiIndex.from_product([[key], self.column])
                     group = group[self.column]
                     group.columns = columns
-                    l.append(group)
+                    data_list.append(group)
 
-                data = concat(l, axis=1)
+                data = concat(data_list, axis=1)
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)

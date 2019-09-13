@@ -26,22 +26,34 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-        if self.by is None:
-            if is_integer(self.bins):
-                # create common bin edge
-                values = self.data._convert(datetime=True)._get_numeric_data()
-                values = np.ravel(values)
-                values = values[~isna(values)]
+        if is_integer(self.bins):
+            if self.by is None:
+                self.bins = self._caculcate_bins(self.data)
 
-                hist, self.bins = np.histogram(
-                    values,
-                    bins=self.bins,
-                    range=self.kwds.get("range", None),
-                    weights=self.kwds.get("weights", None),
-                )
+            else:
+                grouped = self.data.groupby(self.by)[self.column]
+                bins_list = []
+                for key, group in grouped:
+                    print(key)
+                    print(group)
+                    bins_list.append(self._caculcate_bins(group))
+                self.bins = bins_list
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
+
+    def _caculcate_bins(self, data):
+        values = data._convert(datetime=True)._get_numeric_data()
+        values = np.ravel(values)
+        values = values[~isna(values)]
+
+        hist, bins = np.histogram(
+            values,
+            bins=self.bins,
+            range=self.kwds.get("range", None),
+            weights=self.kwds.get("weights", None),
+        )
+        return bins
 
     @classmethod
     def _plot(
@@ -73,6 +85,7 @@ class HistPlot(LinePlot):
         data,
         fig,
         labels,
+        bins=None,
         rot=90,
         xrot=None,
         xlabelsize=None,
@@ -92,8 +105,7 @@ class HistPlot(LinePlot):
 
         for i, (label, y) in enumerate(data):
             ax = axes[i]
-            # TODO: now df.hist also has no value for this
-            ax.hist(y, label=labels, **kwds)
+            ax.hist(y, bins[i], label=labels, **kwds)
             ax.set_title(pprint_thing(label))
 
         _set_ticks_props(
@@ -108,7 +120,6 @@ class HistPlot(LinePlot):
     def _make_plot(self):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
-
         if self.by is None:
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -128,9 +139,9 @@ class HistPlot(LinePlot):
                 self._add_legend_handle(artists[0], label, index=i)
 
         else:
-            data = self._iter_data()
             kwds = self.kwds.copy()
             kwds = self._make_plot_keywords(kwds, None)
+            data = self._iter_data()
             self._group_plot(self.axes, data, self.fig, self.column, **kwds)
 
     def _make_plot_keywords(self, kwds, y):
