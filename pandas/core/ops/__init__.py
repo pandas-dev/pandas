@@ -24,24 +24,20 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
     ABCSparseSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
 from pandas.core.ops.array_ops import (
+    arithmetic_op,
     comparison_op,
     define_na_arithmetic_op,
     logical_op,
-    na_arithmetic_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.docstrings import (
@@ -637,30 +633,7 @@ def _arith_method_SERIES(cls, op, special):
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
-        keep_null_freq = isinstance(
-            right,
-            (
-                ABCDatetimeIndex,
-                ABCDatetimeArray,
-                ABCTimedeltaIndex,
-                ABCTimedeltaArray,
-                Timestamp,
-            ),
-        )
-
-        lvalues = extract_array(left, extract_numpy=True)
-        rvalues = extract_array(right, extract_numpy=True)
-
-        rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
-
-        if should_extension_dispatch(left, rvalues) or isinstance(
-            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
-        ):
-            result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
-        else:
-            with np.errstate(all="ignore"):
-                result = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
+        result = arithmetic_op(left, right, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.

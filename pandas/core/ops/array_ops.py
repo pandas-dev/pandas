@@ -6,7 +6,7 @@ import operator
 
 import numpy as np
 
-from pandas._libs import lib, ops as libops
+from pandas._libs import Timestamp, lib, ops as libops
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -22,13 +22,18 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.generic import (
+    ABCDatetimeArray,
+    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
+    ABCTimedeltaArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.construction import extract_array
 from pandas.core.ops import missing
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.roperator import rpow
@@ -147,6 +152,42 @@ def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
         result = masked_arith_op(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
+
+
+def arithmetic_op(left, right, op, str_rep, eval_kwargs):
+
+    from pandas.core.ops import (
+        maybe_upcast_for_op,
+        should_extension_dispatch,
+        dispatch_to_extension_op,
+    )
+
+    keep_null_freq = isinstance(
+        right,
+        (
+            ABCDatetimeIndex,
+            ABCDatetimeArray,
+            ABCTimedeltaIndex,
+            ABCTimedeltaArray,
+            Timestamp,
+        ),
+    )
+
+    lvalues = extract_array(left, extract_numpy=True)
+    rvalues = extract_array(right, extract_numpy=True)
+
+    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
+
+    if should_extension_dispatch(left, rvalues) or isinstance(
+        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+    ):
+        res_values = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
+
+    else:
+        with np.errstate(all="ignore"):
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
+
+    return res_values
 
 
 def comparison_op(left, right, op):
