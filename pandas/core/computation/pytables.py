@@ -2,6 +2,7 @@
 
 import ast
 from functools import partial
+from typing import Callable
 
 import numpy as np
 
@@ -164,6 +165,7 @@ class BinOp(ops.BinOp):
         accepted by pytables """
 
         def stringify(value):
+            encoder: Callable
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
