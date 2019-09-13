@@ -4,6 +4,8 @@ from distutils.version import LooseVersion
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, ensure_clean
@@ -17,6 +19,7 @@ pyarrow_version = LooseVersion(pyarrow.__version__)
 
 
 @pytest.mark.single
+@td.skip_if_no("pyarrow", min_version="0.15.0")  # Sparse
 class TestFeather:
     def check_error_on_write(self, df, exc):
         # check that we are raising the exception
