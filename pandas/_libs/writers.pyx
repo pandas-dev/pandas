@@ -1,7 +1,8 @@
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_SIZE
+from cpython.bytes cimport PyBytes_GET_SIZE
+from cpython.unicode cimport PyUnicode_GET_SIZE
 
 import numpy as np
 from numpy cimport ndarray, uint8_t
