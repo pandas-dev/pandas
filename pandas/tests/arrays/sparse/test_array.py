@@ -1112,7 +1112,6 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor:
     @pytest.mark.parametrize("attr", ["npoints", "density", "fill_value", "sp_values"])
     def test_get_attributes(self, attr):

@@ -200,11 +200,9 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        # multiple FutureWarnings, so can't assert stacklevel
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
             self.series_klass.from_array([1, 2, 3])
 
     def test_sparse_accessor_updates_on_inplace(self):

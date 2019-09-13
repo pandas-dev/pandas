@@ -835,7 +835,6 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestMsgpack:
     """

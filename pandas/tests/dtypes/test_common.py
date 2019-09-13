@@ -23,8 +23,6 @@ from pandas.conftest import (
 )
 import pandas.util.testing as tm
 
-ignore_sparse_warning = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
@@ -178,7 +176,6 @@ def test_is_object():
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
-@ignore_sparse_warning
 def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
 
@@ -191,7 +188,6 @@ def test_is_sparse(check_scipy):
 
 
 @td.skip_if_no_scipy
-@ignore_sparse_warning
 def test_is_scipy_sparse():
     from scipy.sparse import bsr_matrix
 
@@ -583,7 +579,6 @@ def test_is_bool_dtype():
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
-@ignore_sparse_warning
 def test_is_extension_type(check_scipy):
     assert not com.is_extension_type([1, 2, 3])
     assert not com.is_extension_type(np.array([1, 2, 3]))
