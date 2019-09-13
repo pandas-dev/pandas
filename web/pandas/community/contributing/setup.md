@@ -8,8 +8,8 @@ the next software installed:
     to use 4 spaces for tabs.
 
 ---
-The steps below will download around 900Mb for the pandas
-repository, and around 600Mb for Anaconda from the Internet.
+The steps below will download around 150 Mb for the pandas
+repository, and around 74 Mb for the conda environment from the Internet.
 ---
 
 ## Instructions
@@ -117,6 +117,7 @@ To compile these files simply run:
 
     cd <pandas-dir>
     python setup.py build_ext --inplace
+    python -m pip install -e --no-build-isolation .
 
 The process will take several minutes.
 

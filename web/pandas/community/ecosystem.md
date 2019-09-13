@@ -334,7 +334,11 @@ wasted).
 - ``vaex.from_pandas``
 - ``vaex.to_pandas_df``
 
-## Data validation
+## Data cleaning and validation
+
+### [pyjanitor](https://github.com/ericmjl/pyjanitor/)
+
+Pyjanitor provides a clean API for cleaning data, using method chaining.
 
 ### [Engarde](https://engarde.readthedocs.io/en/latest/)
 
