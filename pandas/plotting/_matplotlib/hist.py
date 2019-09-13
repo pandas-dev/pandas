@@ -108,6 +108,7 @@ class HistPlot(LinePlot):
 
         for i, (label, y) in enumerate(data):
             ax = axes[i]
+            y = y[~isna(y)]
             ax.hist(y, bins[i], label=labels, **kwds)
             ax.set_title(pprint_thing(label))
 
