@@ -115,9 +115,20 @@ conda list pandas
 
 # Make sure any error below is reported as such
 
-echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace
-python -m pip install -e .
+echo "[Build extensions]"
+python setup.py build_ext -q -i
+
+# XXX: Some of our environments end up with old verisons of pip (10.x)
+# Adding a new enough verison of pip to the requirements explodes the
+# solve time. Just using pip to update itself.
+# - py35_macos
+# - py35_compat
+# - py36_32bit
+echo "[Updating pip]"
+python -m pip install --no-deps -U pip wheel setuptools
+
+echo "[Install pandas]"
+python -m pip install --no-build-isolation -e .
 
 echo
 echo "conda list"
