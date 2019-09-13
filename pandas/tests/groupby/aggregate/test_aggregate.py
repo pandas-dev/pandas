@@ -441,7 +441,8 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_no_raises(self):
-        # GH 28426, if use lambds on same column, no error should raise
+        # GH 28426, if use same input function on same column,
+        # no error should raise
         df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
 
         grouped = df.groupby("A").agg(a=("B", "min"), b=("B", "min"))
