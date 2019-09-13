@@ -713,6 +713,8 @@ def _get_series_result_type(result, objs=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    # TODO: See if we can just inline with _constructor_expanddim
+    # now that sparse is removed.
     from pandas import DataFrame
 
     # concat Series with axis 1
@@ -727,5 +729,5 @@ def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
     """
-    # TODO: just inline this
+    # TODO: just inline this as _constructor.
     return objs[0]
