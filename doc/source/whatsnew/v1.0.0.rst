@@ -21,6 +21,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
