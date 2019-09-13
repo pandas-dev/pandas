@@ -2163,16 +2163,16 @@ into a flat table.
    data = [{'state': 'Florida',
             'shortname': 'FL',
             'info': {'governor': 'Rick Scott'},
-            'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
+            'county': [{'name': 'Dade', 'population': 12345},
+                       {'name': 'Broward', 'population': 40000},
+                       {'name': 'Palm Beach', 'population': 60000}]},
            {'state': 'Ohio',
             'shortname': 'OH',
             'info': {'governor': 'John Kasich'},
-            'counties': [{'name': 'Summit', 'population': 1234},
-                         {'name': 'Cuyahoga', 'population': 1337}]}]
+            'county': [{'name': 'Summit', 'population': 1234},
+                       {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   pd.json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'county', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
