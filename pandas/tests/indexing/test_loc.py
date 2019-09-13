@@ -690,6 +690,28 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         )
         tm.assert_series_equal(df[("Respondent", "Duration")], expected)
 
+    @pytest.mark.parametrize("unit", ["Y", "M", "D", "h", "m", "s", "ms", "us"])
+    def test_loc_assign_non_ns_datetime(self, unit):
+        # GH 27395, non-ns dtype assignment via .loc should work
+        # and return the same result when using simple assignment
+        df = DataFrame(
+            {
+                "timestamp": [
+                    np.datetime64("2017-02-11 12:41:29"),
+                    np.datetime64("1991-11-07 04:22:37"),
+                ]
+            }
+        )
+
+        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
+            "datetime64[{unit}]".format(unit=unit)
+        )
+        df["expected"] = df.loc[:, "timestamp"].values.astype(
+            "datetime64[{unit}]".format(unit=unit)
+        )
+        expected = Series(df.loc[:, "expected"], name=unit)
+        tm.assert_series_equal(df.loc[:, unit], expected)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
@@ -1069,6 +1091,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         s = Series([1, 2])
         result = s.loc[np.array(0)]
         assert result == 1
+
+    def test_loc_reverse_assignment(self):
+        # GH26939
+        data = [1, 2, 3, 4, 5, 6] + [None] * 4
+        expected = Series(data, index=range(2010, 2020))
+
+        result = pd.Series(index=range(2010, 2020))
+        result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
+
+        tm.assert_series_equal(result, expected)
 
 
 def test_series_loc_getitem_label_list_missing_values():

@@ -1,6 +1,7 @@
 import numpy as np
+
+from pandas import DataFrame, concat, date_range, read_json, timedelta_range
 import pandas.util.testing as tm
-from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
 from ..pandas_vb_common import BaseIO
 
@@ -117,7 +118,7 @@ class ToJSON(BaseIO):
     def time_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def mem_to_json(self, orient, frame):
+    def peakmem_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
     def time_to_json_wide(self, orient, frame):
@@ -125,7 +126,7 @@ class ToJSON(BaseIO):
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
 
-    def mem_to_json_wide(self, orient, frame):
+    def peakmem_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
@@ -214,4 +215,4 @@ class ToJSONMem:
             df.to_json()
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -250,7 +250,22 @@ class IntervalIndex(IntervalMixin, Index):
         return result
 
     @classmethod
-    @Appender(_interval_shared_docs["from_breaks"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_breaks"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_breaks(cls, breaks, closed="right", name=None, copy=False, dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -259,7 +274,22 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs["from_arrays"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_arrays"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_arrays(
         cls, left, right, closed="right", name=None, copy=False, dtype=None
     ):
@@ -270,7 +300,22 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs["from_tuples"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_tuples"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
+        IntervalIndex([(0, 1], (1, 2]],
+                       closed='right',
+                       dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_tuples(cls, data, closed="right", name=None, copy=False, dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
@@ -331,7 +376,8 @@ class IntervalIndex(IntervalMixin, Index):
         >>> idx.to_tuples()
         Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
         >>> idx.to_tuples(na_tuple=False)
-        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
+        """,
         )
     )
     def to_tuples(self, na_tuple=True):
@@ -366,7 +412,27 @@ class IntervalIndex(IntervalMixin, Index):
         """
         return self._data._closed
 
-    @Appender(_interval_shared_docs["set_closed"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["set_closed"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> index = pd.interval_range(0, 3)
+        >>> index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        >>> index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
+                      closed='both',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def set_closed(self, closed):
         if closed not in _VALID_CLOSED:
             msg = "invalid option for 'closed': {closed}"
@@ -788,7 +854,7 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None
+        self, key: Any, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -982,7 +1048,7 @@ class IntervalIndex(IntervalMixin, Index):
             List of indices.
         """
         if self.is_overlapping:
-            return self.get_indexer_non_unique(target, **kwargs)[0]
+            return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
@@ -1095,12 +1161,8 @@ class IntervalIndex(IntervalMixin, Index):
         return header + list(self._format_native_types(**kwargs))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
-        """ actually format my specific types """
-        from pandas.io.formats.format import ExtensionArrayFormatter
-
-        return ExtensionArrayFormatter(
-            values=self, na_rep=na_rep, justify="all", leading_space=False
-        ).get_result()
+        # GH 28210: use base method but with different default na_rep
+        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _format_data(self, name=None):
 
@@ -1171,11 +1233,41 @@ class IntervalIndex(IntervalMixin, Index):
             and self.closed == other.closed
         )
 
-    @Appender(_interval_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["contains"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+                  closed='right',
+                  dtype='interval[int64]')
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
+        """
+            ),
+        )
+    )
     def contains(self, other):
         return self._data.contains(other)
 
-    @Appender(_interval_shared_docs["overlaps"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["overlaps"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def overlaps(self, other):
         return self._data.overlaps(other)
 
