@@ -80,6 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import Axes, Dtype
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -373,7 +374,7 @@ class DataFrame(NDFrame):
     """
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
@@ -389,7 +390,14 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False):
+    def __init__(
+        self,
+        data=None,
+        index: Optional[Axes] = None,
+        columns: Optional[Axes] = None,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+    ):
         if data is None:
             data = {}
         if dtype is not None:
@@ -484,7 +492,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def axes(self):
+    def axes(self) -> List[Index]:
         """
         Return a list representing the axes of the DataFrame.
 
@@ -501,7 +509,7 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
@@ -523,7 +531,7 @@ class DataFrame(NDFrame):
         return len(self.index), len(self.columns)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether all the columns in a DataFrame have the same type.
 

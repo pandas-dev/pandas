@@ -20,15 +20,19 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
--
+
 
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
 -
 
 .. _whatsnew_1000.api_breaking:
@@ -119,6 +123,8 @@ Datetimelike
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
+-
 
 
 Timedelta
