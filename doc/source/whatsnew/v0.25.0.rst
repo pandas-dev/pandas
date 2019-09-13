@@ -353,7 +353,7 @@ Concatenating sparse values
 When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
@@ -366,7 +366,7 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: python
 
    type(pd.concat([df, df]))
 
