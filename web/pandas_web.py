@@ -235,7 +235,7 @@ def main(
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if fname in context["main"]["ignore"]:
+        if os.path.normpath(fname) in context["main"]["ignore"]:
             continue
 
         sys.stderr.write(f"Processing {fname}\n")
