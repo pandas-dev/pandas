@@ -2153,11 +2153,10 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]
-   json_normalize(data)
+   pd.json_normalize(data)
 
 .. ipython:: python
 
@@ -2173,7 +2172,7 @@ into a flat table.
             'counties': [{'name': 'Summit', 'population': 1234},
                          {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
@@ -2186,7 +2185,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, max_level=1)
+    pd.json_normalize(data, max_level=1)
 
 .. _io.jsonl:
 
