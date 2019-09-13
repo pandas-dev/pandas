@@ -1747,7 +1747,12 @@ class _LocIndexer(_LocationIndexer):
             ):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
-                key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
+                key = tuple(
+                    # https://github.com/python/mypy/issues/5492
+                    # error: List item 0 has incompatible type "slice"; expected "str"
+                    [key]
+                    + [slice(None)] * (len(labels.levels) - 1)  # type: ignore
+                )
 
             if isinstance(key, tuple):
                 # Convert (..., '2016-01-01', ...) in tuple to
@@ -1758,7 +1763,12 @@ class _LocIndexer(_LocationIndexer):
                         isinstance(component, str)
                         and labels.levels[i]._supports_partial_string_indexing
                     ):
-                        new_key.append(slice(component, component, None))
+                        new_key.append(
+                            # https://github.com/python/mypy/issues/2410
+                            # # No overload variant of "slice" matches argument types
+                            # "str", "str", "None"
+                            slice(component, component, None)  # type: ignore
+                        )
                     else:
                         new_key.append(component)
                 key = tuple(new_key)
