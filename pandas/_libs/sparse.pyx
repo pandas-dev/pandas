@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-import operator
-import sys
-
-cimport cython
+import cython
 
 import numpy as np
 cimport numpy as cnp
@@ -11,22 +7,11 @@ from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
 cnp.import_array()
 
 
-from distutils.version import LooseVersion
-
-# numpy versioning
-_np_version = np.version.short_version
-_np_version_under1p10 = LooseVersion(_np_version) < LooseVersion('1.10')
-_np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
-
-
 # -----------------------------------------------------------------------------
 # Preamble stuff
 
-cdef float64_t NaN = <float64_t> np.NaN
-cdef float64_t INF = <float64_t> np.inf
-
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
+cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t INF = <float64_t>np.inf
 
 # -----------------------------------------------------------------------------
 
@@ -71,6 +56,10 @@ cdef class IntIndex(SparseIndex):
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
+    @property
+    def nbytes(self):
+        return self.indices.nbytes
+
     def check_integrity(self):
         """
         Checks the following:
@@ -81,9 +70,6 @@ cdef class IntIndex(SparseIndex):
 
         A ValueError is raised if any of these conditions is violated.
         """
-
-        cdef:
-            int32_t index, prev = -1
 
         if self.npoints > self.length:
             msg = ("Too many indices. Expected "
@@ -96,17 +82,15 @@ cdef class IntIndex(SparseIndex):
         if self.npoints == 0:
             return
 
-        if min(self.indices) < 0:
+        if self.indices.min() < 0:
             raise ValueError("No index can be less than zero")
 
-        if max(self.indices) >= self.length:
+        if self.indices.max() >= self.length:
             raise ValueError("All indices must be less than the length")
 
-        for index in self.indices:
-            if prev != -1 and index <= prev:
-                raise ValueError("Indices must be strictly increasing")
-
-            prev = index
+        monotonic = np.all(self.indices[:-1] < self.indices[1:])
+        if not monotonic:
+            raise ValueError("Indices must be strictly increasing")
 
     def equals(self, other):
         if not isinstance(other, IntIndex):
@@ -148,7 +132,7 @@ cdef class IntIndex(SparseIndex):
         new_indices = np.empty(min(
             len(xindices), len(yindices)), dtype=np.int32)
 
-        for xi from 0 <= xi < self.npoints:
+        for xi in range(self.npoints):
             xind = xindices[xi]
 
             while yi < y.npoints and yindices[yi] < xind:
@@ -220,7 +204,7 @@ cdef class IntIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
@@ -249,9 +233,9 @@ cdef class IntIndex(SparseIndex):
         sinds = self.indices
 
         result = np.empty(other.npoints, dtype=np.float64)
-        result.fill(fill_value)
+        result[:] = fill_value
 
-        for 0 <= i < other.npoints:
+        for i in range(other.npoints):
             while oinds[i] > sinds[j] and j < self.npoints:
                 j += 1
 
@@ -274,6 +258,7 @@ cdef class IntIndex(SparseIndex):
                ndarray[int32_t, ndim=1] indices):
         pass
 
+
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
         Py_ssize_t init_len, i, npoints, result_indexer = 0
@@ -292,7 +277,7 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
 
     # TODO: two-pass algorithm faster?
     prev = block = indices[0]
-    for i from 1 <= i < npoints:
+    for i in range(1, npoints):
         cur = indices[i]
         if cur - prev > 1:
             # new block
@@ -313,6 +298,7 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     locs = locs[:result_indexer]
     lens = lens[:result_indexer]
     return locs, lens
+
 
 # -----------------------------------------------------------------------------
 # BlockIndex
@@ -339,8 +325,8 @@ cdef class BlockIndex(SparseIndex):
         self.blengths = np.ascontiguousarray(blengths, dtype=np.int32)
 
         # in case we need
-        self.locbuf = <int32_t*> self.blocs.data
-        self.lenbuf = <int32_t*> self.blengths.data
+        self.locbuf = <int32_t*>self.blocs.data
+        self.lenbuf = <int32_t*>self.blengths.data
 
         self.length = length
         self.nblocks = np.int32(len(self.blocs))
@@ -363,6 +349,10 @@ cdef class BlockIndex(SparseIndex):
         return output
 
     @property
+    def nbytes(self):
+        return self.blocs.nbytes + self.blengths.nbytes
+
+    @property
     def ngaps(self):
         return self.length - self.npoints
 
@@ -383,21 +373,22 @@ cdef class BlockIndex(SparseIndex):
         if len(blocs) != len(blengths):
             raise ValueError('block bound arrays must be same length')
 
-        for i from 0 <= i < self.nblocks:
+        for i in range(self.nblocks):
             if i > 0:
                 if blocs[i] <= blocs[i - 1]:
                     raise ValueError('Locations not in ascending order')
 
             if i < self.nblocks - 1:
                 if blocs[i] + blengths[i] > blocs[i + 1]:
-                    raise ValueError('Block %d overlaps' % i)
+                    raise ValueError('Block {idx} overlaps'.format(idx=i))
             else:
                 if blocs[i] + blengths[i] > self.length:
-                    raise ValueError('Block %d extends beyond end' % i)
+                    raise ValueError('Block {idx} extends beyond end'
+                                     .format(idx=i))
 
             # no zero-length blocks
             if blengths[i] == 0:
-                raise ValueError('Zero-length block %d' % i)
+                raise ValueError('Zero-length block {idx}'.format(idx=i))
 
     def equals(self, other):
         if not isinstance(other, BlockIndex):
@@ -422,10 +413,10 @@ cdef class BlockIndex(SparseIndex):
 
         indices = np.empty(self.npoints, dtype=np.int32)
 
-        for b from 0 <= b < self.nblocks:
+        for b in range(self.nblocks):
             offset = self.locbuf[b]
 
-            for j from 0 <= j < self.lenbuf[b]:
+            for j in range(self.lenbuf[b]):
                 indices[i] = offset + j
                 i += 1
 
@@ -551,7 +542,7 @@ cdef class BlockIndex(SparseIndex):
             return -1
 
         cum_len = 0
-        for i from 0 <= i < self.nblocks:
+        for i in range(self.nblocks):
             if index >= locs[i] and index < locs[i] + lens[i]:
                 return cum_len + index - locs[i]
             cum_len += lens[i]
@@ -574,16 +565,16 @@ cdef class BlockIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
 
-        for i from 0 <= i < n:
+        for i in range(n):
             ind_val = indexer[i]
             if not (ind_val < 0 or self.length <= ind_val):
                 cum_len = 0
-                for j from 0 <= j < self.nblocks:
+                for j in range(self.nblocks):
                     if ind_val >= locs[j] and ind_val < locs[j] + lens[j]:
                         results[i] = cum_len + ind_val - locs[j]
                     cum_len += lens[j]
@@ -622,7 +613,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 
-cdef class BlockMerge(object):
+cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
@@ -664,11 +655,6 @@ cdef class BlockMerge(object):
             self.xi = yi
             self.yi = xi
 
-cdef class BlockIntersection(BlockMerge):
-    """
-    not done yet
-    """
-    pass
 
 cdef class BlockUnion(BlockMerge):
     """
@@ -796,69 +782,14 @@ include "sparse_op_helper.pxi"
 
 
 # -----------------------------------------------------------------------------
-# Indexing operations
-
-def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
-    cdef object idx
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(values)
-    cdef ndarray[int32_t, ndim=1] indexer
-
-    indexer = np.empty(new_length, dtype=np.int32)
-
-    for i in range(new_length):
-        idx = values[i]
-        if idx in index_map:
-            indexer[i] = index_map[idx]
-        else:
-            indexer[i] = -1
-
-    return indexer
-
-# def reindex_block(ndarray[float64_t, ndim=1] values,
-#                   BlockIndex sparse_index,
-#                   ndarray[int32_t, ndim=1] indexer):
-#     cdef:
-#         Py_ssize_t i, length
-#         ndarray[float64_t, ndim=1] out
-
-#     out = np.empty(length, dtype=np.float64)
-
-#     for i from 0 <= i < length:
-#         if indexer[i] == -1:
-#             pass
-
-
-# cdef class SparseCruncher(object):
-#     """
-#     Class to acquire float pointer for convenient operations on sparse data
-#     structures
-#     """
-#     cdef:
-#         SparseIndex index
-#         float64_t* buf
-
-#     def __init__(self, ndarray[float64_t, ndim=1, mode='c'] values,
-#                  SparseIndex index):
-
-#         self.index = index
-#         self.buf = <float64_t*> values.data
-
-
-def reindex_integer(ndarray[float64_t, ndim=1] values,
-                    IntIndex sparse_index,
-                    ndarray[int32_t, ndim=1] indexer):
-    pass
-
-
-# -----------------------------------------------------------------------------
 # SparseArray mask create operations
 
 def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
-    cdef object value
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(arr)
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef:
+        object value
+        Py_ssize_t i
+        Py_ssize_t new_length = len(arr)
+        ndarray[int8_t, ndim=1] mask
 
     mask = np.ones(new_length, dtype=np.int8)
 

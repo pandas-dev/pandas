@@ -1,1873 +1,754 @@
-# -*- coding: utf-8 -*-
-
-import re
-from textwrap import dedent
 from datetime import datetime
-from distutils.version import LooseVersion
+from io import StringIO
+import re
 
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
-from pandas import compat, DataFrame, MultiIndex, option_context, Index
-from pandas.compat import u, lrange, StringIO
+from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
+
 import pandas.io.formats.format as fmt
 
-div_style = ''
-try:
-    import IPython
-    if LooseVersion(IPython.__version__) < LooseVersion('3.0.0'):
-        div_style = ' style="max-width:1500px;overflow:auto;"'
-except (ImportError, AttributeError):
-    pass
+lorem_ipsum = (
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod"
+    " tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"
+    " veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex"
+    " ea commodo consequat. Duis aute irure dolor in reprehenderit in"
+    " voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur"
+    " sint occaecat cupidatat non proident, sunt in culpa qui officia"
+    " deserunt mollit anim id est laborum."
+)
 
 
-class TestToHTML(object):
+def expected_html(datapath, name):
+    """
+    Read HTML file from formats data directory.
 
-    def test_to_html_with_col_space(self):
-        def check_with_width(df, col_space):
-            # check that col_space affects HTML generation
-            # and be very brittle about it.
-            html = df.to_html(col_space=col_space)
-            hdrs = [x for x in html.split(r"\n") if re.search(r"<th[>\s]", x)]
-            assert len(hdrs) > 0
-            for h in hdrs:
-                assert "min-width" in h
-                assert str(col_space) in h
+    Parameters
+    ----------
+    datapath : pytest fixture
+        The datapath fixture injected into a test by pytest.
+    name : str
+        The name of the HTML file without the suffix.
 
-        df = DataFrame(np.random.random(size=(1, 3)))
+    Returns
+    -------
+    str : contents of HTML file.
+    """
+    filename = ".".join([name, "html"])
+    filepath = datapath("io", "formats", "data", "html", filename)
+    with open(filepath, encoding="utf-8") as f:
+        html = f.read()
+    return html.rstrip()
 
-        check_with_width(df, 30)
-        check_with_width(df, 50)
 
-    def test_to_html_with_empty_string_label(self):
-        # GH3547, to_html regards empty string labels as repeated labels
-        data = {'c1': ['a', 'b'], 'c2': ['a', ''], 'data': [1, 2]}
-        df = DataFrame(data).set_index(['c1', 'c2'])
-        res = df.to_html()
-        assert "rowspan" not in res
+@pytest.fixture(params=["mixed", "empty"])
+def biggie_df_fixture(request):
+    """Fixture for a big mixed Dataframe and an empty Dataframe"""
+    if request.param == "mixed":
+        df = DataFrame(
+            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
+            index=np.arange(200),
+        )
+        df.loc[:20, "A"] = np.nan
+        df.loc[:20, "B"] = np.nan
+        return df
+    elif request.param == "empty":
+        df = DataFrame(index=np.arange(200))
+        return df
 
-    def test_to_html_unicode(self):
-        df = DataFrame({u('\u03c3'): np.arange(10.)})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0.0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1.0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2.0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3.0</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4.0</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5.0</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6.0</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7.0</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8.0</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9.0</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
-        assert df.to_html() == expected
-        df = DataFrame({'A': [u('\u03c3')]})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
-        assert df.to_html() == expected
 
-    def test_to_html_decimal(self):
-        # GH 12031
-        df = DataFrame({'A': [6.0, 3.1, 2.2]})
-        result = df.to_html(decimal=',')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: right;">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6,0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>3,1</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2,2</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-        assert result == expected
+@pytest.fixture(params=fmt._VALID_JUSTIFY_PARAMETERS)
+def justify(request):
+    return request.param
 
-    def test_to_html_escaped(self):
-        a = 'str<ing1 &amp;'
-        b = 'stri>ng2 &amp;'
 
-        test_dict = {'co<l1': {a: "<type 'str'>",
-                               b: "<type 'str'>"},
-                     'co>l2': {a: "<type 'str'>",
-                               b: "<type 'str'>"}}
-        rs = DataFrame(test_dict).to_html()
-        xp = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>co&lt;l1</th>
-      <th>co&gt;l2</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>str&lt;ing1 &amp;amp;</th>
-      <td>&lt;type 'str'&gt;</td>
-      <td>&lt;type 'str'&gt;</td>
-    </tr>
-    <tr>
-      <th>stri&gt;ng2 &amp;amp;</th>
-      <td>&lt;type 'str'&gt;</td>
-      <td>&lt;type 'str'&gt;</td>
-    </tr>
-  </tbody>
-</table>"""
+@pytest.mark.parametrize("col_space", [30, 50])
+def test_to_html_with_col_space(col_space):
+    df = DataFrame(np.random.random(size=(1, 3)))
+    # check that col_space affects HTML generation
+    # and be very brittle about it.
+    result = df.to_html(col_space=col_space)
+    hdrs = [x for x in result.split(r"\n") if re.search(r"<th[>\s]", x)]
+    assert len(hdrs) > 0
+    for h in hdrs:
+        assert "min-width" in h
+        assert str(col_space) in h
 
-        assert xp == rs
 
-    def test_to_html_escape_disabled(self):
-        a = 'str<ing1 &amp;'
-        b = 'stri>ng2 &amp;'
+def test_to_html_with_empty_string_label():
+    # GH 3547, to_html regards empty string labels as repeated labels
+    data = {"c1": ["a", "b"], "c2": ["a", ""], "data": [1, 2]}
+    df = DataFrame(data).set_index(["c1", "c2"])
+    result = df.to_html()
+    assert "rowspan" not in result
 
-        test_dict = {'co<l1': {a: "<b>bold</b>",
-                               b: "<b>bold</b>"},
-                     'co>l2': {a: "<b>bold</b>",
-                               b: "<b>bold</b>"}}
-        rs = DataFrame(test_dict).to_html(escape=False)
-        xp = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>co<l1</th>
-      <th>co>l2</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>str<ing1 &amp;</th>
-      <td><b>bold</b></td>
-      <td><b>bold</b></td>
-    </tr>
-    <tr>
-      <th>stri>ng2 &amp;</th>
-      <td><b>bold</b></td>
-      <td><b>bold</b></td>
-    </tr>
-  </tbody>
-</table>"""
 
-        assert xp == rs
+@pytest.mark.parametrize(
+    "df,expected",
+    [
+        (DataFrame({"\u03c3": np.arange(10.0)}), "unicode_1"),
+        (DataFrame({"A": ["\u03c3"]}), "unicode_2"),
+    ],
+)
+def test_to_html_unicode(df, expected, datapath):
+    expected = expected_html(datapath, expected)
+    result = df.to_html()
+    assert result == expected
 
-    def test_to_html_multiindex_index_false(self):
-        # issue 8452
-        df = DataFrame({
-            'a': range(2),
-            'b': range(3, 5),
-            'c': range(5, 7),
-            'd': range(3, 5)
-        })
-        df.columns = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
-        result = df.to_html(index=False)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th colspan="2" halign="left">a</th>
-      <th colspan="2" halign="left">b</th>
-    </tr>
-    <tr>
-      <th>c</th>
-      <th>d</th>
-      <th>c</th>
-      <th>d</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>0</td>
-      <td>3</td>
-      <td>5</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>1</td>
-      <td>4</td>
-      <td>6</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>"""
 
-        assert result == expected
+def test_to_html_decimal(datapath):
+    # GH 12031
+    df = DataFrame({"A": [6.0, 3.1, 2.2]})
+    result = df.to_html(decimal=",")
+    expected = expected_html(datapath, "gh12031_expected_output")
+    assert result == expected
 
-        df.index = Index(df.index.values, name='idx')
-        result = df.to_html(index=False)
-        assert result == expected
 
-    def test_to_html_multiindex_sparsify_false_multi_sparse(self):
-        with option_context('display.multi_sparse', False):
-            index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
-                                           names=['foo', None])
+@pytest.mark.parametrize(
+    "kwargs,string,expected",
+    [
+        (dict(), "<type 'str'>", "escaped"),
+        (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+    ],
+)
+def test_to_html_escaped(kwargs, string, expected, datapath):
+    a = "str<ing1 &amp;"
+    b = "stri>ng2 &amp;"
 
-            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+    test_dict = {"co<l1": {a: string, b: string}, "co>l2": {a: string, b: string}}
+    result = DataFrame(test_dict).to_html(**kwargs)
+    expected = expected_html(datapath, expected)
+    assert result == expected
 
-            result = df.to_html()
-            expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
 
-            assert result == expected
+@pytest.mark.parametrize("index_is_named", [True, False])
+def test_to_html_multiindex_index_false(index_is_named, datapath):
+    # GH 8452
+    df = DataFrame(
+        {"a": range(2), "b": range(3, 5), "c": range(5, 7), "d": range(3, 5)}
+    )
+    df.columns = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+    if index_is_named:
+        df.index = Index(df.index.values, name="idx")
+    result = df.to_html(index=False)
+    expected = expected_html(datapath, "gh8452_expected_output")
+    assert result == expected
 
-            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
-                           columns=index[::2], index=index)
 
-            result = df.to_html()
-            expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th>foo</th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>0</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-            assert result == expected
-
-    def test_to_html_multiindex_sparsify(self):
-        index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
-                                       names=['foo', None])
-
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
-
+@pytest.mark.parametrize(
+    "multi_sparse,expected",
+    [
+        (False, "multiindex_sparsify_false_multi_sparse_1"),
+        (False, "multiindex_sparsify_false_multi_sparse_2"),
+        (True, "multiindex_sparsify_1"),
+        (True, "multiindex_sparsify_2"),
+    ],
+)
+def test_to_html_multiindex_sparsify(multi_sparse, expected, datapath):
+    index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]], names=["foo", None])
+    df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+    if expected.endswith("2"):
+        df.columns = index[::2]
+    with option_context("display.multi_sparse", multi_sparse):
         result = df.to_html()
-        expected = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
+    expected = expected_html(datapath, expected)
+    assert result == expected
 
-        assert result == expected
 
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=index[::2],
-                       index=index)
-
-        result = df.to_html()
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th>foo</th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>0</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        assert result == expected
-
-    def test_to_html_multiindex_odd_even_truncate(self):
-        # GH 14882 - Issue on truncation with odd length DataFrame
-        mi = MultiIndex.from_product([[100, 200, 300],
-                                      [10, 20, 30],
-                                      [1, 2, 3, 4, 5, 6, 7]],
-                                     names=['a', 'b', 'c'])
-        df = DataFrame({'n': range(len(mi))}, index=mi)
-        result = df.to_html(max_rows=60)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th></th>
-      <th>n</th>
-    </tr>
-    <tr>
-      <th>a</th>
-      <th>b</th>
-      <th>c</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="21" valign="top">100</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>17</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>18</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>19</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>20</td>
-    </tr>
-    <tr>
-      <th rowspan="19" valign="top">200</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>23</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>24</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>25</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>26</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>27</td>
-    </tr>
-    <tr>
-      <th rowspan="5" valign="top">20</th>
-      <th>1</th>
-      <td>28</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>29</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>33</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>34</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>35</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>36</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>37</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>38</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>39</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>40</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>41</td>
-    </tr>
-    <tr>
-      <th rowspan="21" valign="top">300</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>42</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>43</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>44</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>45</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>46</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>47</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>48</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>49</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>50</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>51</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>52</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>53</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>54</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>55</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>56</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>57</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>58</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>59</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>60</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>61</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>62</td>
-    </tr>
-  </tbody>
-</table>"""
-        assert result == expected
-
+@pytest.mark.parametrize(
+    "max_rows,expected",
+    [
+        (60, "gh14882_expected_output_1"),
         # Test that ... appears in a middle level
-        result = df.to_html(max_rows=56)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th></th>
-      <th>n</th>
-    </tr>
-    <tr>
-      <th>a</th>
-      <th>b</th>
-      <th>c</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="21" valign="top">100</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>17</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>18</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>19</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>20</td>
-    </tr>
-    <tr>
-      <th rowspan="15" valign="top">200</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>23</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>24</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>25</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>26</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>27</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <th>...</th>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>35</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>36</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>37</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>38</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>39</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>40</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>41</td>
-    </tr>
-    <tr>
-      <th rowspan="21" valign="top">300</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>42</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>43</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>44</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>45</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>46</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>47</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>48</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>49</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>50</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>51</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>52</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>53</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>54</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>55</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>56</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>57</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>58</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>59</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>60</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>61</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>62</td>
-    </tr>
-  </tbody>
-</table>"""
-        assert result == expected
+        (56, "gh14882_expected_output_2"),
+    ],
+)
+def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
+    # GH 14882 - Issue on truncation with odd length DataFrame
+    index = MultiIndex.from_product(
+        [[100, 200, 300], [10, 20, 30], [1, 2, 3, 4, 5, 6, 7]], names=["a", "b", "c"]
+    )
+    df = DataFrame({"n": range(len(index))}, index=index)
+    result = df.to_html(max_rows=max_rows)
+    expected = expected_html(datapath, expected)
+    assert result == expected
 
-    def test_to_html_index_formatter(self):
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=['foo', None],
-                       index=lrange(4))
 
-        f = lambda x: 'abcd' [x]
-        result = df.to_html(formatters={'__index__': f})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>foo</th>
-      <th>None</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>a</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>b</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>c</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>d</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
+@pytest.mark.parametrize(
+    "df,formatters,expected",
+    [
+        (
+            DataFrame(
+                [[0, 1], [2, 3], [4, 5], [6, 7]],
+                columns=["foo", None],
+                index=np.arange(4),
+            ),
+            {"__index__": lambda x: "abcd"[x]},
+            "index_formatter",
+        ),
+        (
+            DataFrame({"months": [datetime(2016, 1, 1), datetime(2016, 2, 2)]}),
+            {"months": lambda x: x.strftime("%Y-%m")},
+            "datetime64_monthformatter",
+        ),
+        (
+            DataFrame(
+                {
+                    "hod": pd.to_datetime(
+                        ["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f"
+                    )
+                }
+            ),
+            {"hod": lambda x: x.strftime("%H:%M")},
+            "datetime64_hourformatter",
+        ),
+    ],
+)
+def test_to_html_formatters(df, formatters, expected, datapath):
+    expected = expected_html(datapath, expected)
+    result = df.to_html(formatters=formatters)
+    assert result == expected
 
-        assert result == expected
 
-    def test_to_html_datetime64_monthformatter(self):
-        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
-        x = DataFrame({'months': months})
+def test_to_html_regression_GH6098():
+    df = DataFrame(
+        {
+            "clé1": ["a", "a", "b", "b", "a"],
+            "clé2": ["1er", "2ème", "1er", "2ème", "1er"],
+            "données1": np.random.randn(5),
+            "données2": np.random.randn(5),
+        }
+    )
 
-        def format_func(x):
-            return x.strftime('%Y-%m')
-        result = x.to_html(formatters={'months': format_func})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>months</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>2016-01</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2016-02</td>
-    </tr>
-  </tbody>
-</table>"""
-        assert result == expected
+    # it works
+    df.pivot_table(index=["clé1"], columns=["clé2"])._repr_html_()
 
-    def test_to_html_datetime64_hourformatter(self):
 
-        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
-                                             format='%H:%M:%S.%f')})
+def test_to_html_truncate(datapath):
+    index = pd.date_range(start="20010101", freq="D", periods=20)
+    df = DataFrame(index=index, columns=range(20))
+    result = df.to_html(max_rows=8, max_cols=4)
+    expected = expected_html(datapath, "truncate")
+    assert result == expected
 
-        def format_func(x):
-            return x.strftime('%H:%M')
-        result = x.to_html(formatters={'hod': format_func})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>hod</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>10:10</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>12:12</td>
-    </tr>
-  </tbody>
-</table>"""
-        assert result == expected
 
-    def test_to_html_regression_GH6098(self):
-        df = DataFrame({
-            u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
-            u('clé2'): [u('1er'), u('2ème'), u('1er'), u('2ème'), u('1er')],
-            'données1': np.random.randn(5),
-            'données2': np.random.randn(5)})
+@pytest.mark.parametrize(
+    "sparsify,expected",
+    [(True, "truncate_multi_index"), (False, "truncate_multi_index_sparse_off")],
+)
+def test_to_html_truncate_multi_index(sparsify, expected, datapath):
+    arrays = [
+        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+        ["one", "two", "one", "two", "one", "two", "one", "two"],
+    ]
+    df = DataFrame(index=arrays, columns=arrays)
+    result = df.to_html(max_rows=7, max_cols=7, sparsify=sparsify)
+    expected = expected_html(datapath, expected)
+    assert result == expected
 
-        # it works
-        df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
-    def test_to_html_truncate(self):
-        pytest.skip("unreliable on travis")
-        index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
-        df = DataFrame(index=index, columns=range(20))
-        fmt.set_option('display.max_rows', 8)
-        fmt.set_option('display.max_columns', 4)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-      <th>...</th>
-      <th>18</th>
-      <th>19</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>2001-01-01</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-02</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-03</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-04</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>2001-01-17</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-18</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-19</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-20</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>20 rows × 20 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        assert result == expected
+@pytest.mark.parametrize(
+    "option,result,expected",
+    [
+        (None, lambda df: df.to_html(), "1"),
+        (None, lambda df: df.to_html(border=0), "0"),
+        (0, lambda df: df.to_html(), "0"),
+        (0, lambda df: df._repr_html_(), "0"),
+    ],
+)
+def test_to_html_border(option, result, expected):
+    df = DataFrame({"A": [1, 2]})
+    if option is None:
+        result = result(df)
+    else:
+        with option_context("display.html.border", option):
+            result = result(df)
+    expected = 'border="{}"'.format(expected)
+    assert expected in result
 
-    def test_to_html_truncate_multi_index(self):
-        pytest.skip("unreliable on travis")
-        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th></th>
-      <th colspan="2" halign="left">bar</th>
-      <th>baz</th>
-      <th>...</th>
-      <th>foo</th>
-      <th colspan="2" halign="left">qux</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>one</th>
-      <th>two</th>
-      <th>one</th>
-      <th>...</th>
-      <th>two</th>
-      <th>one</th>
-      <th>two</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">bar</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>baz</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">qux</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        assert result == expected
 
-    def test_to_html_truncate_multi_index_sparse_off(self):
-        pytest.skip("unreliable on travis")
-        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        fmt.set_option('display.multi_sparse', False)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>bar</th>
-      <th>bar</th>
-      <th>baz</th>
-      <th>...</th>
-      <th>foo</th>
-      <th>qux</th>
-      <th>qux</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>one</th>
-      <th>two</th>
-      <th>one</th>
-      <th>...</th>
-      <th>two</th>
-      <th>one</th>
-      <th>two</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>bar</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>bar</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>baz</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>qux</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>qux</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        assert result == expected
+@pytest.mark.parametrize("biggie_df_fixture", ["mixed"], indirect=True)
+def test_to_html(biggie_df_fixture):
+    # TODO: split this test
+    df = biggie_df_fixture
+    s = df.to_html()
 
-    def test_to_html_border(self):
-        df = DataFrame({'A': [1, 2]})
-        result = df.to_html()
-        assert 'border="1"' in result
+    buf = StringIO()
+    retval = df.to_html(buf=buf)
+    assert retval is None
+    assert buf.getvalue() == s
 
-    def test_to_html_border_option(self):
-        df = DataFrame({'A': [1, 2]})
-        with pd.option_context('display.html.border', 0):
-            result = df.to_html()
-            assert 'border="0"' in result
-            assert 'border="0"' in df._repr_html_()
+    assert isinstance(s, str)
 
-    def test_to_html_border_zero(self):
-        df = DataFrame({'A': [1, 2]})
-        result = df.to_html(border=0)
-        assert 'border="0"' in result
+    df.to_html(columns=["B", "A"], col_space=17)
+    df.to_html(columns=["B", "A"], formatters={"A": lambda x: "{x:.1f}".format(x=x)})
 
-    @tm.capture_stdout
-    def test_display_option_warning(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.options.html.border
+    df.to_html(columns=["B", "A"], float_format=str)
+    df.to_html(columns=["B", "A"], col_space=12, float_format=str)
 
-    def test_to_html(self):
-        # big mixed
-        biggie = DataFrame({'A': np.random.randn(200),
-                            'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
 
-        biggie.loc[:20, 'A'] = np.nan
-        biggie.loc[:20, 'B'] = np.nan
-        s = biggie.to_html()
+@pytest.mark.parametrize("biggie_df_fixture", ["empty"], indirect=True)
+def test_to_html_empty_dataframe(biggie_df_fixture):
+    df = biggie_df_fixture
+    df.to_html()
 
-        buf = StringIO()
-        retval = biggie.to_html(buf=buf)
-        assert retval is None
-        assert buf.getvalue() == s
 
-        assert isinstance(s, compat.string_types)
+def test_to_html_filename(biggie_df_fixture, tmpdir):
+    df = biggie_df_fixture
+    expected = df.to_html()
+    path = tmpdir.join("test.html")
+    df.to_html(path)
+    result = path.read()
+    assert result == expected
 
-        biggie.to_html(columns=['B', 'A'], col_space=17)
-        biggie.to_html(columns=['B', 'A'],
-                       formatters={'A': lambda x: '{x:.1f}'.format(x=x)})
 
-        biggie.to_html(columns=['B', 'A'], float_format=str)
-        biggie.to_html(columns=['B', 'A'], col_space=12, float_format=str)
+def test_to_html_with_no_bold():
+    df = DataFrame({"x": np.random.randn(5)})
+    html = df.to_html(bold_rows=False)
+    result = html[html.find("</thead>")]
+    assert "<strong" not in result
 
-        frame = DataFrame(index=np.arange(200))
-        frame.to_html()
 
-    def test_to_html_filename(self):
-        biggie = DataFrame({'A': np.random.randn(200),
-                            'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
+def test_to_html_columns_arg(float_frame):
+    result = float_frame.to_html(columns=["A"])
+    assert "<th>B</th>" not in result
 
-        biggie.loc[:20, 'A'] = np.nan
-        biggie.loc[:20, 'B'] = np.nan
-        with tm.ensure_clean('test.html') as path:
-            biggie.to_html(path)
-            with open(path, 'r') as f:
-                s = biggie.to_html()
-                s2 = f.read()
-                assert s == s2
 
-        frame = DataFrame(index=np.arange(200))
-        with tm.ensure_clean('test.html') as path:
-            frame.to_html(path)
-            with open(path, 'r') as f:
-                assert frame.to_html() == f.read()
+@pytest.mark.parametrize(
+    "columns,justify,expected",
+    [
+        (
+            MultiIndex.from_tuples(
+                list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+                names=["CL0", "CL1"],
+            ),
+            "left",
+            "multiindex_1",
+        ),
+        (
+            MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+            "right",
+            "multiindex_2",
+        ),
+    ],
+)
+def test_to_html_multiindex(columns, justify, expected, datapath):
+    df = DataFrame([list("abcd"), list("efgh")], columns=columns)
+    result = df.to_html(justify=justify)
+    expected = expected_html(datapath, expected)
+    assert result == expected
 
-    def test_to_html_with_no_bold(self):
-        x = DataFrame({'x': np.random.randn(5)})
-        ashtml = x.to_html(bold_rows=False)
-        assert '<strong' not in ashtml[ashtml.find("</thead>")]
 
-    def test_to_html_columns_arg(self):
-        frame = DataFrame(tm.getSeriesData())
-        result = frame.to_html(columns=['A'])
-        assert '<th>B</th>' not in result
+def test_to_html_justify(justify, datapath):
+    df = DataFrame(
+        {"A": [6, 30000, 2], "B": [1, 2, 70000], "C": [223442, 0, 1]},
+        columns=["A", "B", "C"],
+    )
+    result = df.to_html(justify=justify)
+    expected = expected_html(datapath, "justify").format(justify=justify)
+    assert result == expected
 
-    def test_to_html_multiindex(self):
-        columns = MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
-                                                  np.mod(lrange(4), 2))),
-                                         names=['CL0', 'CL1'])
-        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html(justify='left')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr>\n'
-                    '      <th>CL0</th>\n'
-                    '      <th colspan="2" halign="left">0</th>\n'
-                    '      <th colspan="2" halign="left">1</th>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>CL1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>a</td>\n'
-                    '      <td>b</td>\n'
-                    '      <td>c</td>\n'
-                    '      <td>d</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>e</td>\n'
-                    '      <td>f</td>\n'
-                    '      <td>g</td>\n'
-                    '      <td>h</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
 
-        assert result == expected
+@pytest.mark.parametrize(
+    "justify", ["super-right", "small-left", "noinherit", "tiny", "pandas"]
+)
+def test_to_html_invalid_justify(justify):
+    # GH 17527
+    df = DataFrame()
+    msg = "Invalid value for justify parameter"
 
-        columns = MultiIndex.from_tuples(list(zip(
-            range(4), np.mod(
-                lrange(4), 2))))
-        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
+    with pytest.raises(ValueError, match=msg):
+        df.to_html(justify=justify)
 
-        result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr>\n'
-                    '      <th></th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>2</th>\n'
-                    '      <th>3</th>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th></th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>a</td>\n'
-                    '      <td>b</td>\n'
-                    '      <td>c</td>\n'
-                    '      <td>d</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>e</td>\n'
-                    '      <td>f</td>\n'
-                    '      <td>g</td>\n'
-                    '      <td>h</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
 
-        assert result == expected
+def test_to_html_index(datapath):
+    # TODO: split this test
+    index = ["foo", "bar", "baz"]
+    df = DataFrame(
+        {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
+        columns=["A", "B", "C"],
+        index=index,
+    )
+    expected_with_index = expected_html(datapath, "index_1")
+    assert df.to_html() == expected_with_index
 
-    @pytest.mark.parametrize("justify", fmt._VALID_JUSTIFY_PARAMETERS)
-    def test_to_html_justify(self, justify):
-        df = DataFrame({'A': [6, 30000, 2],
-                        'B': [1, 2, 70000],
-                        'C': [223442, 0, 1]},
-                       columns=['A', 'B', 'C'])
-        result = df.to_html(justify=justify)
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: {justify};">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '      <th>B</th>\n'
-                    '      <th>C</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6</td>\n'
-                    '      <td>1</td>\n'
-                    '      <td>223442</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>30000</td>\n'
-                    '      <td>2</td>\n'
-                    '      <td>0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2</td>\n'
-                    '      <td>70000</td>\n'
-                    '      <td>1</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>'.format(justify=justify))
-        assert result == expected
+    expected_without_index = expected_html(datapath, "index_2")
+    result = df.to_html(index=False)
+    for i in index:
+        assert i not in result
+    assert result == expected_without_index
+    df.index = Index(["foo", "bar", "baz"], name="idx")
+    expected_with_index = expected_html(datapath, "index_3")
+    assert df.to_html() == expected_with_index
+    assert df.to_html(index=False) == expected_without_index
 
-    @pytest.mark.parametrize("justify", ["super-right", "small-left",
-                                         "noinherit", "tiny", "pandas"])
-    def test_to_html_invalid_justify(self, justify):
-        # see gh-17527
-        df = DataFrame()
-        msg = "Invalid value for justify parameter"
+    tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
+    df.index = MultiIndex.from_tuples(tuples)
 
-        with tm.assert_raises_regex(ValueError, msg):
-            df.to_html(justify=justify)
+    expected_with_index = expected_html(datapath, "index_4")
+    assert df.to_html() == expected_with_index
 
-    def test_to_html_index(self):
-        index = ['foo', 'bar', 'baz']
-        df = DataFrame({'A': [1, 2, 3],
-                        'B': [1.2, 3.4, 5.6],
-                        'C': ['one', 'two', np.nan]},
-                       columns=['A', 'B', 'C'],
-                       index=index)
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th>foo</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>baz</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        assert df.to_html() == expected_with_index
+    result = df.to_html(index=False)
+    for i in ["foo", "bar", "car", "bike"]:
+        assert i not in result
+    # must be the same result as normal index
+    assert result == expected_without_index
 
-        expected_without_index = ('<table border="1" class="dataframe">\n'
-                                  '  <thead>\n'
-                                  '    <tr style="text-align: right;">\n'
-                                  '      <th>A</th>\n'
-                                  '      <th>B</th>\n'
-                                  '      <th>C</th>\n'
-                                  '    </tr>\n'
-                                  '  </thead>\n'
-                                  '  <tbody>\n'
-                                  '    <tr>\n'
-                                  '      <td>1</td>\n'
-                                  '      <td>1.2</td>\n'
-                                  '      <td>one</td>\n'
-                                  '    </tr>\n'
-                                  '    <tr>\n'
-                                  '      <td>2</td>\n'
-                                  '      <td>3.4</td>\n'
-                                  '      <td>two</td>\n'
-                                  '    </tr>\n'
-                                  '    <tr>\n'
-                                  '      <td>3</td>\n'
-                                  '      <td>5.6</td>\n'
-                                  '      <td>NaN</td>\n'
-                                  '    </tr>\n'
-                                  '  </tbody>\n'
-                                  '</table>')
-        result = df.to_html(index=False)
-        for i in index:
-            assert i not in result
-        assert result == expected_without_index
-        df.index = Index(['foo', 'bar', 'baz'], name='idx')
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>idx</th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th>foo</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>baz</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        assert df.to_html() == expected_with_index
-        assert df.to_html(index=False) == expected_without_index
+    df.index = MultiIndex.from_tuples(tuples, names=["idx1", "idx2"])
+    expected_with_index = expected_html(datapath, "index_5")
+    assert df.to_html() == expected_with_index
+    assert df.to_html(index=False) == expected_without_index
 
-        tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
-        df.index = MultiIndex.from_tuples(tuples)
 
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th rowspan="2" valign="top">foo</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bike</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        assert df.to_html() == expected_with_index
+@pytest.mark.parametrize("classes", ["sortable draggable", ["sortable", "draggable"]])
+def test_to_html_with_classes(classes, datapath):
+    df = DataFrame()
+    expected = expected_html(datapath, "with_classes")
+    result = df.to_html(classes=classes)
+    assert result == expected
 
-        result = df.to_html(index=False)
-        for i in ['foo', 'bar', 'car', 'bike']:
-            assert i not in result
-        # must be the same result as normal index
-        assert result == expected_without_index
 
-        df.index = MultiIndex.from_tuples(tuples, names=['idx1', 'idx2'])
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>idx1</th>\n'
-                               '      <th>idx2</th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th rowspan="2" valign="top">foo</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bike</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        assert df.to_html() == expected_with_index
-        assert df.to_html(index=False) == expected_without_index
+def test_to_html_no_index_max_rows(datapath):
+    # GH 14998
+    df = DataFrame({"A": [1, 2, 3, 4]})
+    result = df.to_html(index=False, max_rows=1)
+    expected = expected_html(datapath, "gh14998_expected_output")
+    assert result == expected
 
-    def test_to_html_with_classes(self):
-        df = DataFrame()
-        result = df.to_html(classes="sortable draggable")
-        expected = dedent("""
 
-            <table border="1" class="dataframe sortable draggable">
-              <thead>
-                <tr style="text-align: right;">
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
+def test_to_html_multiindex_max_cols(datapath):
+    # GH 6131
+    index = MultiIndex(
+        levels=[["ba", "bb", "bc"], ["ca", "cb", "cc"]],
+        codes=[[0, 1, 2], [0, 1, 2]],
+        names=["b", "c"],
+    )
+    columns = MultiIndex(
+        levels=[["d"], ["aa", "ab", "ac"]],
+        codes=[[0, 0, 0], [0, 1, 2]],
+        names=[None, "a"],
+    )
+    data = np.array(
+        [[1.0, np.nan, np.nan], [np.nan, 2.0, np.nan], [np.nan, np.nan, 3.0]]
+    )
+    df = DataFrame(data, index, columns)
+    result = df.to_html(max_cols=2)
+    expected = expected_html(datapath, "gh6131_expected_output")
+    assert result == expected
 
-        """).strip()
-        assert result == expected
 
-        result = df.to_html(classes=["sortable", "draggable"])
-        assert result == expected
+def test_to_html_multi_indexes_index_false(datapath):
+    # GH 22579
+    df = DataFrame(
+        {"a": range(10), "b": range(10, 20), "c": range(10, 20), "d": range(10, 20)}
+    )
+    df.columns = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+    df.index = MultiIndex.from_product([["a", "b"], ["c", "d", "e", "f", "g"]])
+    result = df.to_html(index=False)
+    expected = expected_html(datapath, "gh22579_expected_output")
+    assert result == expected
 
-    def test_to_html_no_index_max_rows(self):
-        # GH https://github.com/pandas-dev/pandas/issues/14998
-        df = DataFrame({"A": [1, 2, 3, 4]})
-        result = df.to_html(index=False, max_rows=1)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>A</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
 
-    def test_to_html_notebook_has_style(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
-        result = df.to_html(notebook=True)
+@pytest.mark.parametrize("index_names", [True, False])
+@pytest.mark.parametrize("header", [True, False])
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize(
+    "column_index, column_type",
+    [
+        (Index([0, 1]), "unnamed_standard"),
+        (Index([0, 1], name="columns.name"), "named_standard"),
+        (MultiIndex.from_product([["a"], ["b", "c"]]), "unnamed_multi"),
+        (
+            MultiIndex.from_product(
+                [["a"], ["b", "c"]], names=["columns.name.0", "columns.name.1"]
+            ),
+            "named_multi",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "row_index, row_type",
+    [
+        (Index([0, 1]), "unnamed_standard"),
+        (Index([0, 1], name="index.name"), "named_standard"),
+        (MultiIndex.from_product([["a"], ["b", "c"]]), "unnamed_multi"),
+        (
+            MultiIndex.from_product(
+                [["a"], ["b", "c"]], names=["index.name.0", "index.name.1"]
+            ),
+            "named_multi",
+        ),
+    ],
+)
+def test_to_html_basic_alignment(
+    datapath, row_index, row_type, column_index, column_type, index, header, index_names
+):
+    # GH 22747, GH 22579
+    df = DataFrame(np.zeros((2, 2), dtype=int), index=row_index, columns=column_index)
+    result = df.to_html(index=index, header=header, index_names=index_names)
+
+    if not index:
+        row_type = "none"
+    elif not index_names and row_type.startswith("named"):
+        row_type = "un" + row_type
+
+    if not header:
+        column_type = "none"
+    elif not index_names and column_type.startswith("named"):
+        column_type = "un" + column_type
+
+    filename = "index_" + row_type + "_columns_" + column_type
+    expected = expected_html(datapath, filename)
+    assert result == expected
+
+
+@pytest.mark.parametrize("index_names", [True, False])
+@pytest.mark.parametrize("header", [True, False])
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize(
+    "column_index, column_type",
+    [
+        (Index(np.arange(8)), "unnamed_standard"),
+        (Index(np.arange(8), name="columns.name"), "named_standard"),
+        (
+            MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]]),
+            "unnamed_multi",
+        ),
+        (
+            MultiIndex.from_product(
+                [["a", "b"], ["c", "d"], ["e", "f"]], names=["foo", None, "baz"]
+            ),
+            "named_multi",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "row_index, row_type",
+    [
+        (Index(np.arange(8)), "unnamed_standard"),
+        (Index(np.arange(8), name="index.name"), "named_standard"),
+        (
+            MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]]),
+            "unnamed_multi",
+        ),
+        (
+            MultiIndex.from_product(
+                [["a", "b"], ["c", "d"], ["e", "f"]], names=["foo", None, "baz"]
+            ),
+            "named_multi",
+        ),
+    ],
+)
+def test_to_html_alignment_with_truncation(
+    datapath, row_index, row_type, column_index, column_type, index, header, index_names
+):
+    # GH 22747, GH 22579
+    df = DataFrame(np.arange(64).reshape(8, 8), index=row_index, columns=column_index)
+    result = df.to_html(
+        max_rows=4, max_cols=4, index=index, header=header, index_names=index_names
+    )
+
+    if not index:
+        row_type = "none"
+    elif not index_names and row_type.startswith("named"):
+        row_type = "un" + row_type
+
+    if not header:
+        column_type = "none"
+    elif not index_names and column_type.startswith("named"):
+        column_type = "un" + column_type
+
+    filename = "trunc_df_index_" + row_type + "_columns_" + column_type
+    expected = expected_html(datapath, filename)
+    assert result == expected
+
+
+@pytest.mark.parametrize("index", [False, 0])
+def test_to_html_truncation_index_false_max_rows(datapath, index):
+    # GH 15019
+    data = [
+        [1.764052, 0.400157],
+        [0.978738, 2.240893],
+        [1.867558, -0.977278],
+        [0.950088, -0.151357],
+        [-0.103219, 0.410599],
+    ]
+    df = DataFrame(data)
+    result = df.to_html(max_rows=4, index=index)
+    expected = expected_html(datapath, "gh15019_expected_output")
+    assert result == expected
+
+
+@pytest.mark.parametrize("index", [False, 0])
+@pytest.mark.parametrize(
+    "col_index_named, expected_output",
+    [(False, "gh22783_expected_output"), (True, "gh22783_named_columns_index")],
+)
+def test_to_html_truncation_index_false_max_cols(
+    datapath, index, col_index_named, expected_output
+):
+    # GH 22783
+    data = [
+        [1.764052, 0.400157, 0.978738, 2.240893, 1.867558],
+        [-0.977278, 0.950088, -0.151357, -0.103219, 0.410599],
+    ]
+    df = DataFrame(data)
+    if col_index_named:
+        df.columns.rename("columns.name", inplace=True)
+    result = df.to_html(max_cols=4, index=index)
+    expected = expected_html(datapath, expected_output)
+    assert result == expected
+
+
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_notebook_has_style(notebook):
+    df = DataFrame({"A": [1, 2, 3]})
+    result = df.to_html(notebook=notebook)
+
+    if notebook:
         assert "tbody tr th:only-of-type" in result
         assert "vertical-align: middle;" in result
         assert "thead th" in result
-
-    def test_to_html_notebook_has_no_style(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
-        result = df.to_html()
+    else:
         assert "tbody tr th:only-of-type" not in result
         assert "vertical-align: middle;" not in result
         assert "thead th" not in result
 
-    def test_to_html_with_index_names_false(self):
-        # gh-16493
-        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
-                                                        name='myindexname'))
-        result = df.to_html(index_names=False)
-        assert 'myindexname' not in result
 
-    def test_to_html_with_id(self):
-        # gh-8496
-        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
-                                                        name='myindexname'))
-        result = df.to_html(index_names=False, table_id="TEST_ID")
-        assert ' id="TEST_ID"' in result
+def test_to_html_with_index_names_false():
+    # GH 16493
+    df = DataFrame({"A": [1, 2]}, index=Index(["a", "b"], name="myindexname"))
+    result = df.to_html(index_names=False)
+    assert "myindexname" not in result
+
+
+def test_to_html_with_id():
+    # GH 8496
+    df = DataFrame({"A": [1, 2]}, index=Index(["a", "b"], name="myindexname"))
+    result = df.to_html(index_names=False, table_id="TEST_ID")
+    assert ' id="TEST_ID"' in result
+
+
+@pytest.mark.parametrize(
+    "value,float_format,expected",
+    [
+        (0.19999, "%.3f", "gh21625_expected_output"),
+        (100.0, "%.0f", "gh22270_expected_output"),
+    ],
+)
+def test_to_html_float_format_no_fixed_width(value, float_format, expected, datapath):
+    # GH 21625, GH 22270
+    df = DataFrame({"x": [value]})
+    expected = expected_html(datapath, expected)
+    result = df.to_html(float_format=float_format)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "render_links,expected",
+    [(True, "render_links_true"), (False, "render_links_false")],
+)
+def test_to_html_render_links(render_links, expected, datapath):
+    # GH 2679
+    data = [
+        [0, "http://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+        [0, "www.pydata.org", "pydata.org"],
+    ]
+    df = DataFrame(data, columns=["foo", "bar", None])
+
+    result = df.to_html(render_links=render_links)
+    expected = expected_html(datapath, expected)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("to_html", lambda x: lorem_ipsum),
+        ("_repr_html_", lambda x: lorem_ipsum[: x - 4] + "..."),  # regression case
+    ],
+)
+@pytest.mark.parametrize("max_colwidth", [10, 20, 50, 100])
+def test_ignore_display_max_colwidth(method, expected, max_colwidth):
+    # see gh-17004
+    df = DataFrame([lorem_ipsum])
+    with pd.option_context("display.max_colwidth", max_colwidth):
+        result = getattr(df, method)()
+    expected = expected(max_colwidth)
+    assert expected in result
+
+
+@pytest.mark.parametrize("classes", [True, 0])
+def test_to_html_invalid_classes_type(classes):
+    # GH 25608
+    df = DataFrame()
+    msg = "classes must be a string, list, or tuple"
+
+    with pytest.raises(TypeError, match=msg):
+        df.to_html(classes=classes)
+
+
+def test_to_html_round_column_headers():
+    # GH 17280
+    df = DataFrame([1], columns=[0.55555])
+    with pd.option_context("display.precision", 3):
+        html = df.to_html(notebook=False)
+        notebook = df.to_html(notebook=True)
+    assert "0.55555" in html
+    assert "0.556" in notebook
+
+
+@pytest.mark.parametrize("unit", ["100px", "10%", "5em", 150])
+def test_to_html_with_col_space_units(unit):
+    # GH 25941
+    df = DataFrame(np.random.random(size=(1, 3)))
+    result = df.to_html(col_space=unit)
+    result = result.split("tbody")[0]
+    hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    if isinstance(unit, int):
+        unit = str(unit) + "px"
+    for h in hdrs:
+        expected = '<th style="min-width: {unit};">'.format(unit=unit)
+        assert expected in h
+
+
+def test_html_repr_min_rows_default(datapath):
+    # gh-27991
+
+    # default setting no truncation even if above min_rows
+    df = pd.DataFrame({"a": range(20)})
+    result = df._repr_html_()
+    expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
+    assert result == expected
+
+    # default of max_rows 60 triggers truncation if above
+    df = pd.DataFrame({"a": range(61)})
+    result = df._repr_html_()
+    expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "max_rows,min_rows,expected",
+    [
+        # truncated after first two rows
+        (10, 4, "html_repr_max_rows_10_min_rows_4"),
+        # when set to None, follow value of max_rows
+        (12, None, "html_repr_max_rows_12_min_rows_None"),
+        # when set value higher as max_rows, use the minimum
+        (10, 12, "html_repr_max_rows_10_min_rows_12"),
+        # max_rows of None -> never truncate
+        (None, 12, "html_repr_max_rows_None_min_rows_12"),
+    ],
+)
+def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
+    # gh-27991
+
+    df = pd.DataFrame({"a": range(61)})
+    expected = expected_html(datapath, expected)
+    with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
+        result = df._repr_html_()
+    assert result == expected

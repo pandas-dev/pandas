@@ -4,14 +4,10 @@ Engine classes for :func:`~pandas.eval`
 
 import abc
 
-from pandas import compat
-from pandas.compat import map
-import pandas.io.formats.printing as printing
 from pandas.core.computation.align import _align, _reconstruct_object
-from pandas.core.computation.ops import (
-    UndefinedVariableError,
-    _mathops, _reductions)
+from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
 
+import pandas.io.formats.printing as printing
 
 _ne_builtins = frozenset(_mathops + _reductions)
 
@@ -21,7 +17,8 @@ class NumExprClobberingError(NameError):
 
 
 def _check_ne_builtin_clash(expr):
-    """Attempt to prevent foot-shooting in a helpful way.
+    """
+    Attempt to prevent foot-shooting in a helpful way.
 
     Parameters
     ----------
@@ -32,17 +29,15 @@ def _check_ne_builtin_clash(expr):
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ', '.join(map(repr, overlap))
-        raise NumExprClobberingError('Variables in expression "{expr}" '
-                                     'overlap with builtins: ({s})'
-                                     .format(expr=expr, s=s))
+        s = ", ".join(map(repr, overlap))
+        raise NumExprClobberingError(
+            'Variables in expression "{expr}" '
+            "overlap with builtins: ({s})".format(expr=expr, s=s)
+        )
 
 
-class AbstractEngine(object):
-
+class AbstractEngine(metaclass=abc.ABCMeta):
     """Object serving as a base class for all engines."""
-
-    __metaclass__ = abc.ABCMeta
 
     has_neg_frac = False
 
@@ -59,7 +54,8 @@ class AbstractEngine(object):
         return printing.pprint_thing(self.expr)
 
     def evaluate(self):
-        """Run the engine on the expression
+        """
+        Run the engine on the expression.
 
         This method performs alignment which is necessary no matter what engine
         is being used, thus its implementation is in the base class.
@@ -74,8 +70,9 @@ class AbstractEngine(object):
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return _reconstruct_object(self.result_type, res, self.aligned_axes,
-                                   self.expr.terms.return_type)
+        return _reconstruct_object(
+            self.result_type, res, self.aligned_axes, self.expr.terms.return_type
+        )
 
     @property
     def _is_aligned(self):
@@ -83,7 +80,8 @@ class AbstractEngine(object):
 
     @abc.abstractmethod
     def _evaluate(self):
-        """Return an evaluated expression.
+        """
+        Return an evaluated expression.
 
         Parameters
         ----------
@@ -99,15 +97,15 @@ class AbstractEngine(object):
 
 
 class NumExprEngine(AbstractEngine):
-
     """NumExpr engine class"""
+
     has_neg_frac = True
 
     def __init__(self, expr):
-        super(NumExprEngine, self).__init__(expr)
+        super().__init__(expr)
 
     def convert(self):
-        return str(super(NumExprEngine, self).convert())
+        return str(super().convert())
 
     def _evaluate(self):
         import numexpr as ne
@@ -118,7 +116,7 @@ class NumExprEngine(AbstractEngine):
         try:
             env = self.expr.env
             scope = env.full_scope
-            truediv = scope['truediv']
+            truediv = scope["truediv"]
             _check_ne_builtin_clash(self.expr)
             return ne.evaluate(s, local_dict=scope, truediv=truediv)
         except KeyError as e:
@@ -126,20 +124,21 @@ class NumExprEngine(AbstractEngine):
             try:
                 msg = e.message
             except AttributeError:
-                msg = compat.text_type(e)
+                msg = str(e)
             raise UndefinedVariableError(msg)
 
 
 class PythonEngine(AbstractEngine):
-
-    """Evaluate an expression in Python space.
+    """
+    Evaluate an expression in Python space.
 
     Mostly for testing purposes.
     """
+
     has_neg_frac = False
 
     def __init__(self, expr):
-        super(PythonEngine, self).__init__(expr)
+        super().__init__(expr)
 
     def evaluate(self):
         return self.expr()
@@ -148,4 +147,4 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines = {'numexpr': NumExprEngine, 'python': PythonEngine}
+_engines = {"numexpr": NumExprEngine, "python": PythonEngine}

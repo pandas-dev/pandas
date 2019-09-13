@@ -57,10 +57,19 @@ dist
 # wheel files
 *.whl
 **/wheelhouse/*
+pip-wheel-metadata
 # coverage
 .coverage
 coverage.xml
 coverage_html_report
+.mypy_cache
+*.pytest_cache
+# hypothesis test database
+.hypothesis/
+__pycache__
+# pytest-monkeytype
+monkeytype.sqlite3
+
 
 # OS generated files #
 ######################
@@ -88,8 +97,8 @@ scikits
 *.c
 *.cpp
 
-# Performance Testing #
-#######################
+# Unit / Performance Testing #
+##############################
 asv_bench/env/
 asv_bench/html/
 asv_bench/results/
@@ -98,6 +107,8 @@ asv_bench/pandas/
 # Documentation generated files #
 #################################
 doc/source/generated
+doc/source/user_guide/styled.xlsx
+doc/source/reference/api
 doc/source/_static
 doc/source/vbench
 doc/source/vbench.rst
@@ -105,6 +116,5 @@ doc/source/index.rst
 doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
-doc/source/styled.xlsx
-doc/source/templates/
 env/
+doc/source/savefig/

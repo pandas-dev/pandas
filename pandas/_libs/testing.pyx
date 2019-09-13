@@ -1,6 +1,5 @@
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -22,23 +21,29 @@ cdef NUMERIC_TYPES = (
     np.float64,
 )
 
+
 cdef bint is_comparable_as_number(obj):
     return isinstance(obj, NUMERIC_TYPES)
+
 
 cdef bint isiterable(obj):
     return hasattr(obj, '__iter__')
 
+
 cdef bint has_length(obj):
     return hasattr(obj, '__len__')
 
+
 cdef bint is_dictlike(obj):
     return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
+
 
 cdef bint decimal_almost_equal(double desired, double actual, int decimal):
     # Code from
     # http://docs.scipy.org/doc/numpy/reference/generated
     # /numpy.testing.assert_almost_equal.html
     return abs(desired - actual) < (0.5 * 10.0 ** -decimal)
+
 
 cpdef assert_dict_equal(a, b, bint compare_keys=True):
     assert is_dictlike(a) and is_dictlike(b), (
@@ -55,6 +60,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
         assert_almost_equal(a[k], b[k])
 
     return True
+
 
 cpdef assert_almost_equal(a, b,
                           check_less_precise=False,
@@ -101,8 +107,7 @@ cpdef assert_almost_equal(a, b,
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
-    if (isinstance(a, compat.string_types) or
-            isinstance(b, compat.string_types)):
+    if isinstance(a, str) or isinstance(b, str):
         assert a == b, "%r != %r" % (a, b)
         return True
 
@@ -134,7 +139,7 @@ cpdef assert_almost_equal(a, b,
                     obj, '{0} shapes are different'.format(obj),
                     a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a, b):
+            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
                 from pandas.util.testing import assert_attr_equal
                 assert_attr_equal('dtype', a, b, obj=obj)
 
@@ -183,6 +188,7 @@ cpdef assert_almost_equal(a, b,
         # object comparison
         return True
     if isna(a) and isna(b):
+        # TODO: Should require same-dtype NA?
         # nan / None comparison
         return True
     if is_comparable_as_number(a) and is_comparable_as_number(b):

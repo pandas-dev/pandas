@@ -1,26 +1,24 @@
 import numpy as np
+
 from pandas import DataFrame, Series, date_range
 from pandas.core.algorithms import checked_add_with_arr
+
 try:
     import pandas.core.computation.expressions as expr
 except ImportError:
     import pandas.computation.expressions as expr
 
-from .pandas_vb_common import setup # noqa
 
+class Ops:
 
-class Ops(object):
-
-    goal_time = 0.2
-
-    params = [[True, False], ['default', 1]]
-    param_names = ['use_numexpr', 'threads']
+    params = [[True, False], ["default", 1]]
+    param_names = ["use_numexpr", "threads"]
 
     def setup(self, use_numexpr, threads):
         self.df = DataFrame(np.random.randn(20000, 100))
         self.df2 = DataFrame(np.random.randn(20000, 100))
 
-        if threads != 'default':
+        if threads != "default":
             expr.set_numexpr_threads(threads)
         if not use_numexpr:
             expr.set_use_numexpr(False)
@@ -42,21 +40,24 @@ class Ops(object):
         expr.set_numexpr_threads()
 
 
-class Ops2(object):
-
-    goal_time = 0.2
-
+class Ops2:
     def setup(self):
-        N = 10**3
+        N = 10 ** 3
         self.df = DataFrame(np.random.randn(N, N))
         self.df2 = DataFrame(np.random.randn(N, N))
 
-        self.df_int = DataFrame(np.random.randint(np.iinfo(np.int16).min,
-                                                  np.iinfo(np.int16).max,
-                                                  size=(N, N)))
-        self.df2_int = DataFrame(np.random.randint(np.iinfo(np.int16).min,
-                                                   np.iinfo(np.int16).max,
-                                                   size=(N, N)))
+        self.df_int = DataFrame(
+            np.random.randint(
+                np.iinfo(np.int16).min, np.iinfo(np.int16).max, size=(N, N)
+            )
+        )
+        self.df2_int = DataFrame(
+            np.random.randint(
+                np.iinfo(np.int16).min, np.iinfo(np.int16).max, size=(N, N)
+            )
+        )
+
+        self.s = Series(np.random.randn(N))
 
     # Division
 
@@ -80,21 +81,30 @@ class Ops2(object):
     def time_frame_float_mod(self):
         self.df % self.df2
 
+    # Dot product
 
-class Timeseries(object):
+    def time_frame_dot(self):
+        self.df.dot(self.df2)
 
-    goal_time = 0.2
+    def time_series_dot(self):
+        self.s.dot(self.s)
 
-    params = [None, 'US/Eastern']
-    param_names = ['tz']
+    def time_frame_series_dot(self):
+        self.df.dot(self.s)
+
+
+class Timeseries:
+
+    params = [None, "US/Eastern"]
+    param_names = ["tz"]
 
     def setup(self, tz):
-        N = 10**6
+        N = 10 ** 6
         halfway = (N // 2) - 1
-        self.s = Series(date_range('20010101', periods=N, freq='T', tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
         self.ts = self.s[halfway]
 
-        self.s2 = Series(date_range('20010101', periods=N, freq='s', tz=tz))
+        self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
@@ -109,27 +119,22 @@ class Timeseries(object):
         self.s - self.s.shift()
 
 
-class AddOverflowScalar(object):
-
-    goal_time = 0.2
+class AddOverflowScalar:
 
     params = [1, -1, 0]
-    param_names = ['scalar']
+    param_names = ["scalar"]
 
     def setup(self, scalar):
-        N = 10**6
+        N = 10 ** 6
         self.arr = np.arange(N)
 
     def time_add_overflow_scalar(self, scalar):
         checked_add_with_arr(self.arr, scalar)
 
 
-class AddOverflowArray(object):
-
-    goal_time = 0.2
-
+class AddOverflowArray:
     def setup(self):
-        N = 10**6
+        N = 10 ** 6
         self.arr = np.arange(N)
         self.arr_rev = np.arange(-N, 0)
         self.arr_mixed = np.array([1, -1]).repeat(N / 2)
@@ -143,9 +148,12 @@ class AddOverflowArray(object):
         checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1)
 
     def time_add_overflow_b_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed,
-                             b_mask=self.arr_nan_1)
+        checked_add_with_arr(self.arr, self.arr_mixed, b_mask=self.arr_nan_1)
 
     def time_add_overflow_both_arg_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1,
-                             b_mask=self.arr_nan_2)
+        checked_add_with_arr(
+            self.arr, self.arr_mixed, arr_mask=self.arr_nan_1, b_mask=self.arr_nan_2
+        )
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -1,3 +1,1 @@
-# prototypes for sharing
-
-cpdef bint is_period(val)
+cdef bint c_is_list_like(object, bint)

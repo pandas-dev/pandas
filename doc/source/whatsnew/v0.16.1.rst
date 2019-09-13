@@ -1,0 +1,484 @@
+.. _whatsnew_0161:
+
+v0.16.1 (May 11, 2015)
+----------------------
+
+{{ header }}
+
+
+This is a minor bug-fix release from 0.16.0 and includes a a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- Support for a ``CategoricalIndex``, a category based index, see :ref:`here <whatsnew_0161.enhancements.categoricalindex>`
+- New section on how-to-contribute to *pandas*, see :ref:`here <contributing>`
+- Revised "Merge, join, and concatenate" documentation, including graphical examples to make it easier to understand each operations, see :ref:`here <merging>`
+- New method ``sample`` for drawing random samples from Series, DataFrames and Panels. See :ref:`here <whatsnew_0161.enhancements.sample>`
+- The default ``Index`` printing has changed to a more uniform format, see :ref:`here <whatsnew_0161.index_repr>`
+- ``BusinessHour`` datetime-offset is now supported, see :ref:`here <timeseries.businesshour>`
+
+-  Further enhancement to the ``.str`` accessor to make string operations easier, see :ref:`here <whatsnew_0161.enhancements.string>`
+
+.. contents:: What's new in v0.16.1
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0161.enhancements:
+
+.. warning::
+
+   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package (:issue:`8961`).
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0161.enhancements.categoricalindex:
+
+CategoricalIndex
+^^^^^^^^^^^^^^^^
+
+We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
+and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
+setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({'A': np.arange(6),
+       ...:                    'B': pd.Series(list('aabbca'))
+       ...:                           .astype('category', categories=list('cab'))
+       ...:                    })
+       ...:
+
+    In [2]: df
+    Out[2]:
+       A  B
+    0  0  a
+    1  1  a
+    2  2  b
+    3  3  b
+    4  4  c
+    5  5  a
+
+    In [3]: df.dtypes
+    Out[3]:
+    A       int64
+    B    category
+    dtype: object
+
+    In [4]: df.B.cat.categories
+    Out[4]: Index(['c', 'a', 'b'], dtype='object')
+
+
+setting the index, will create create a ``CategoricalIndex``
+
+.. code-block:: ipython
+
+    In [5]: df2 = df.set_index('B')
+
+    In [6]: df2.index
+    Out[6]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
+
+indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an Index with duplicates.
+The indexers MUST be in the category or the operation will raise.
+
+.. code-block:: ipython
+
+    In [7]: df2.loc['a']
+    Out[7]:
+       A
+    B
+    a  0
+    a  1
+    a  5
+
+and preserves the ``CategoricalIndex``
+
+.. code-block:: ipython
+
+    In [8]: df2.loc['a'].index
+    Out[8]: CategoricalIndex(['a', 'a', 'a'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
+
+
+sorting will order by the order of the categories
+
+.. code-block:: ipython
+
+    In [9]: df2.sort_index()
+    Out[9]:
+       A
+    B
+    c  4
+    a  0
+    a  1
+    a  5
+    b  2
+    b  3
+
+groupby operations on the index will preserve the index nature as well
+
+.. code-block:: ipython
+
+    In [10]: df2.groupby(level=0).sum()
+    Out[10]:
+       A
+    B
+    c  4
+    a  6
+    b  5
+
+    In [11]: df2.groupby(level=0).sum().index
+    Out[11]: CategoricalIndex(['c', 'a', 'b'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
+
+
+reindexing operations, will return a resulting index based on the type of the passed
+indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
+values NOT in the categories, similarly to how you can reindex ANY pandas index.
+
+.. code-block:: ipython
+
+    In [12]: df2.reindex(['a', 'e'])
+    Out[12]:
+         A
+    B
+    a  0.0
+    a  1.0
+    a  5.0
+    e  NaN
+
+    In [13]: df2.reindex(['a', 'e']).index
+    Out[13]: pd.Index(['a', 'a', 'a', 'e'], dtype='object', name='B')
+
+    In [14]: df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde')))
+    Out[14]:
+         A
+    B
+    a  0.0
+    a  1.0
+    a  5.0
+    e  NaN
+
+    In [15]: df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde'))).index
+    Out[15]: pd.CategoricalIndex(['a', 'a', 'a', 'e'],
+                                 categories=['a', 'b', 'c', 'd', 'e'],
+                                 ordered=False, name='B',
+                                 dtype='category')
+
+See the :ref:`documentation <indexing.categoricalindex>` for more. (:issue:`7629`, :issue:`10038`, :issue:`10039`)
+
+.. _whatsnew_0161.enhancements.sample:
+
+Sample
+^^^^^^
+
+Series, DataFrames, and Panels now have a new method: :meth:`~pandas.DataFrame.sample`.
+The method accepts a specific number of rows or columns to return, or a fraction of the
+total number or rows or columns. It also has options for sampling with or without replacement,
+for passing in a column for weights for non-uniform sampling, and for setting seed values to
+facilitate replication. (:issue:`2419`)
+
+.. ipython:: python
+
+   example_series = pd.Series([0, 1, 2, 3, 4, 5])
+
+   # When no arguments are passed, returns 1
+   example_series.sample()
+
+   # One may specify either a number of rows:
+   example_series.sample(n=3)
+
+   # Or a fraction of the rows:
+   example_series.sample(frac=0.5)
+
+   # weights are accepted.
+   example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
+   example_series.sample(n=3, weights=example_weights)
+
+   # weights will also be normalized if they do not sum to one,
+   # and missing values will be treated as zeros.
+   example_weights2 = [0.5, 0, 0, 0, None, np.nan]
+   example_series.sample(n=1, weights=example_weights2)
+
+
+When applied to a DataFrame, one may pass the name of a column to specify sampling weights
+when sampling from rows.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': [9, 8, 7, 6],
+                      'weight_column': [0.5, 0.4, 0.1, 0]})
+   df.sample(n=3, weights='weight_column')
+
+
+.. _whatsnew_0161.enhancements.string:
+
+String methods enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`Continuing from v0.16.0 <whatsnew_0160.enhancements.string>`, the following
+enhancements make string operations easier and more consistent with standard python string operations.
+
+
+- Added ``StringMethods`` (``.str`` accessor) to ``Index`` (:issue:`9068`)
+
+  The ``.str`` accessor is now available for both ``Series`` and ``Index``.
+
+  .. ipython:: python
+
+     idx = pd.Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx.str.strip()
+
+  One special case for the `.str` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
+  will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
+  to work naturally:
+
+  .. ipython:: python
+
+     idx = pd.Index(['a1', 'a2', 'b1', 'b2'])
+     s = pd.Series(range(4), index=idx)
+     s
+     idx.str.startswith('a')
+     s[s.index.str.startswith('a')]
+
+- The following new methods are accessible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
+
+  ================  ===============  ===============  ===============  ================
+  ..                ..               Methods          ..               ..
+  ================  ===============  ===============  ===============  ================
+  ``capitalize()``  ``swapcase()``   ``normalize()``  ``partition()``  ``rpartition()``
+  ``index()``       ``rindex()``     ``translate()``
+  ================  ===============  ===============  ===============  ================
+
+- ``split`` now takes ``expand`` keyword to specify whether to expand dimensionality. ``return_type`` is deprecated. (:issue:`9847`)
+
+  .. ipython:: python
+
+     s = pd.Series(['a,b', 'a,c', 'b,c'])
+
+     # return Series
+     s.str.split(',')
+
+     # return DataFrame
+     s.str.split(',', expand=True)
+
+     idx = pd.Index(['a,b', 'a,c', 'b,c'])
+
+     # return Index
+     idx.str.split(',')
+
+     # return MultiIndex
+     idx.str.split(',', expand=True)
+
+
+- Improved ``extract`` and ``get_dummies`` methods for ``Index.str`` (:issue:`9980`)
+
+
+.. _whatsnew_0161.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
+
+  .. ipython:: python
+
+     pd.Timestamp('2014-08-01 09:00') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 07:00') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 16:30') + pd.tseries.offsets.BusinessHour()
+
+- ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
+
+- Allow ``clip``, ``clip_lower``, and ``clip_upper`` to accept array-like arguments as thresholds (This is a regression from 0.11.0). These methods now have an ``axis`` parameter which determines how the Series or DataFrame will be aligned with the threshold(s). (:issue:`6966`)
+
+- ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
+
+- ``drop`` function can now accept ``errors`` keyword to suppress ``ValueError`` raised when any of label does not exist in the target data. (:issue:`6736`)
+
+  .. ipython:: python
+
+    df = pd.DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
+    df.drop(['A', 'X'], axis=1, errors='ignore')
+
+- Add support for separating years and quarters using dashes, for
+  example 2014-Q1.  (:issue:`9688`)
+
+- Allow conversion of values with dtype ``datetime64`` or ``timedelta64`` to strings using ``astype(str)`` (:issue:`9757`)
+- ``get_dummies`` function now accepts ``sparse`` keyword.  If set to ``True``, the return ``DataFrame`` is sparse, e.g. ``SparseDataFrame``. (:issue:`8823`)
+- ``Period`` now accepts ``datetime64`` as value input. (:issue:`9054`)
+
+- Allow timedelta string conversion when leading zero is missing from time definition, ie `0:00:00` vs `00:00:00`. (:issue:`9570`)
+- Allow ``Panel.shift`` with ``axis='items'`` (:issue:`9890`)
+
+- Trying to write an excel file now raises ``NotImplementedError`` if the ``DataFrame`` has a ``MultiIndex`` instead of writing a broken Excel file. (:issue:`9794`)
+- Allow ``Categorical.add_categories`` to accept ``Series`` or ``np.array``. (:issue:`9927`)
+
+- Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
+- Add ``normalize`` as a ``dt`` accessor method. (:issue:`10047`)
+
+- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <extending.subclassing-pandas>`
+
+- ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate. (:issue:`10032`)
+
+
+.. _whatsnew_0161.api:
+
+API changes
+~~~~~~~~~~~
+
+- When passing in an ax to ``df.plot( ..., ax=ax)``, the `sharex` kwarg will now default to `False`.
+  The result is that the visibility of xlabels and xticklabels will not anymore be changed. You
+  have to do that by yourself for the right axes in your figure or set ``sharex=True`` explicitly
+  (but this changes the visible for all axes in the figure, not only the one which is passed in!).
+  If pandas creates the subplots itself (e.g. no passed in `ax` kwarg), then the
+  default is still ``sharex=True`` and the visibility changes are applied.
+
+- :meth:`~pandas.DataFrame.assign` now inserts new columns in alphabetical order. Previously
+  the order was arbitrary. (:issue:`9777`)
+
+- By default, ``read_csv`` and ``read_table`` will now try to infer the compression type based on the file extension. Set ``compression=None`` to restore the previous behavior (no decompression). (:issue:`9770`)
+
+.. _whatsnew_0161.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+- ``Series.str.split``'s ``return_type`` keyword was removed in favor of ``expand`` (:issue:`9847`)
+
+
+.. _whatsnew_0161.index_repr:
+
+Index representation
+~~~~~~~~~~~~~~~~~~~~
+
+The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
+
+Previous behavior
+
+.. code-block:: ipython
+
+   In [2]: pd.Index(range(4), name='foo')
+   Out[2]: Int64Index([0, 1, 2, 3], dtype='int64')
+
+   In [3]: pd.Index(range(104), name='foo')
+   Out[3]: Int64Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, ...], dtype='int64')
+
+   In [4]: pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
+   Out[4]:
+   <class 'pandas.tseries.index.DatetimeIndex'>
+   [2013-01-01 00:00:00-05:00, ..., 2013-01-04 00:00:00-05:00]
+   Length: 4, Freq: D, Timezone: US/Eastern
+
+   In [5]: pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
+   Out[5]:
+   <class 'pandas.tseries.index.DatetimeIndex'>
+   [2013-01-01 00:00:00-05:00, ..., 2013-04-14 00:00:00-04:00]
+   Length: 104, Freq: D, Timezone: US/Eastern
+
+New behavior
+
+.. ipython:: python
+
+   pd.set_option('display.width', 80)
+   pd.Index(range(4), name='foo')
+   pd.Index(range(30), name='foo')
+   pd.Index(range(104), name='foo')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'],
+                       ordered=True, name='foobar')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 10,
+                       ordered=True, name='foobar')
+   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 100,
+                       ordered=True, name='foobar')
+   pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
+   pd.date_range('20130101', periods=25, freq='D')
+   pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
+
+
+.. _whatsnew_0161.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved csv write performance with mixed dtypes, including datetimes by up to 5x (:issue:`9940`)
+- Improved csv write performance generally by 2x (:issue:`9940`)
+- Improved the performance of ``pd.lib.max_len_string_array`` by 5-7x (:issue:`10024`)
+
+
+.. _whatsnew_0161.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug where labels did not appear properly in the legend of ``DataFrame.plot()``, passing ``label=`` arguments works, and Series indices are no longer mutated. (:issue:`9542`)
+- Bug in json serialization causing a segfault when a frame had zero length. (:issue:`9805`)
+- Bug in ``read_csv`` where missing trailing delimiters would cause segfault. (:issue:`5664`)
+- Bug in retaining index name on appending (:issue:`9862`)
+- Bug in ``scatter_matrix`` draws unexpected axis ticklabels (:issue:`5662`)
+- Fixed bug in ``StataWriter`` resulting in changes to input ``DataFrame`` upon save (:issue:`9795`).
+- Bug in ``transform`` causing length mismatch when null entries were present and a fast aggregator was being used (:issue:`9697`)
+- Bug in ``equals`` causing false negatives when block order differed (:issue:`9330`)
+- Bug in grouping with multiple ``pd.Grouper`` where one is non-time based (:issue:`10063`)
+- Bug in ``read_sql_table`` error when reading postgres table with timezone (:issue:`7139`)
+- Bug in ``DataFrame`` slicing may not retain metadata (:issue:`9776`)
+- Bug where ``TimdeltaIndex`` were not properly serialized in fixed ``HDFStore`` (:issue:`9635`)
+- Bug with ``TimedeltaIndex`` constructor ignoring ``name`` when given another ``TimedeltaIndex`` as data (:issue:`10025`).
+- Bug in ``DataFrameFormatter._get_formatted_index`` with not applying ``max_colwidth`` to the ``DataFrame`` index (:issue:`7856`)
+- Bug in ``.loc`` with a read-only ndarray data source (:issue:`10043`)
+- Bug in ``groupby.apply()`` that would raise if a passed user defined function either returned only ``None`` (for all input). (:issue:`9685`)
+- Always use temporary files in pytables tests (:issue:`9992`)
+- Bug in plotting continuously using ``secondary_y`` may not show legend properly. (:issue:`9610`, :issue:`9779`)
+- Bug in ``DataFrame.plot(kind="hist")`` results in ``TypeError`` when ``DataFrame`` contains non-numeric columns  (:issue:`9853`)
+- Bug where repeated plotting of ``DataFrame`` with a ``DatetimeIndex`` may raise ``TypeError`` (:issue:`9852`)
+- Bug in ``setup.py`` that would allow an incompat cython version to build (:issue:`9827`)
+- Bug in plotting ``secondary_y`` incorrectly attaches ``right_ax`` property to secondary axes specifying itself recursively. (:issue:`9861`)
+- Bug in ``Series.quantile`` on empty Series of type ``Datetime`` or ``Timedelta`` (:issue:`9675`)
+- Bug in ``where`` causing incorrect results when upcasting was required (:issue:`9731`)
+- Bug in ``FloatArrayFormatter`` where decision boundary for displaying "small" floats in decimal format is off by one order of magnitude for a given display.precision (:issue:`9764`)
+- Fixed bug where ``DataFrame.plot()`` raised an error when both ``color`` and ``style`` keywords were passed and there was no color symbol in the style strings (:issue:`9671`)
+- Not showing a ``DeprecationWarning`` on combining list-likes with an ``Index`` (:issue:`10083`)
+- Bug in ``read_csv`` and ``read_table`` when using ``skip_rows`` parameter if blank lines are present. (:issue:`9832`)
+- Bug in ``read_csv()`` interprets ``index_col=True`` as ``1`` (:issue:`9798`)
+- Bug in index equality comparisons using ``==`` failing on Index/MultiIndex type incompatibility (:issue:`9785`)
+- Bug in which ``SparseDataFrame`` could not take `nan` as a column name (:issue:`8822`)
+- Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
+- Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
+- Bug causing an exception in slice assignments because ``length_of_indexer`` returns wrong results (:issue:`9995`)
+- Bug in csv parser causing lines with initial white space plus one non-space character to be skipped. (:issue:`9710`)
+- Bug in C csv parser causing spurious NaNs when data started with newline followed by white space. (:issue:`10022`)
+- Bug causing elements with a null group to spill into the final group when grouping by a ``Categorical`` (:issue:`9603`)
+- Bug where .iloc and .loc behavior is not consistent on empty dataframes (:issue:`9964`)
+- Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)
+- Bug in unequal comparisons between categorical data and a scalar, which was not in the categories (e.g. ``Series(Categorical(list("abc"), ordered=True)) > "d"``. This returned ``False`` for all elements, but now raises a ``TypeError``. Equality comparisons also now return ``False`` for ``==`` and ``True`` for ``!=``. (:issue:`9848`)
+- Bug in DataFrame ``__setitem__`` when right hand side is a dictionary (:issue:`9874`)
+- Bug in ``where`` when dtype is ``datetime64/timedelta64``, but dtype of other is not (:issue:`9804`)
+- Bug in ``MultiIndex.sortlevel()`` results in unicode level name breaks (:issue:`9856`)
+- Bug in which ``groupby.transform`` incorrectly enforced output dtypes to match input dtypes. (:issue:`9807`)
+- Bug in ``DataFrame`` constructor when ``columns`` parameter is set, and ``data`` is an empty list (:issue:`9939`)
+- Bug in bar plot with ``log=True`` raises ``TypeError`` if all values are less than 1 (:issue:`9905`)
+- Bug in horizontal bar plot ignores ``log=True`` (:issue:`9905`)
+- Bug in PyTables queries that did not return proper results using the index (:issue:`8265`, :issue:`9676`)
+- Bug where dividing a dataframe containing values of type ``Decimal`` by another ``Decimal`` would raise. (:issue:`9787`)
+- Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
+- Bug causing extra index point when resample BM/BQ (:issue:`9756`)
+- Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
+- Fixed latex output for MultiIndexed dataframes (:issue:`9778`)
+- Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
+- Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
+- Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)
+- Bug in ``transform`` when groups are equal in number and dtype to the input index (:issue:`9700`)
+- Google BigQuery connector now imports dependencies on a per-method basis.(:issue:`9713`)
+- Updated BigQuery connector to no longer use deprecated ``oauth2client.tools.run()`` (:issue:`8327`)
+- Bug in subclassed ``DataFrame``. It may not return the correct class, when slicing or subsetting it. (:issue:`9632`)
+- Bug in ``.median()`` where non-float null values are not handled correctly (:issue:`10040`)
+- Bug in Series.fillna() where it raises if a numerically convertible string is given (:issue:`10092`)
+
+
+.. _whatsnew_0.16.1.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.16.0..v0.16.1

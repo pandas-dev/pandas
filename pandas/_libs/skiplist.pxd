@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
-
-from cython cimport Py_ssize_t
-
-from numpy cimport double_t
-
+# See GH#27465 for reference on related-but-unused cython code
 
 cdef extern from "src/skiplist.h":
     ctypedef struct node_t:
@@ -27,22 +22,3 @@ cdef extern from "src/skiplist.h":
     double skiplist_get(skiplist_t*, int, int*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
-
-
-# Note: Node is declared here so that IndexableSkiplist can be exposed;
-# Node itself not intended to be exposed.
-cdef class Node:
-    cdef public:
-        double_t value
-        list next
-        list width
-
-
-cdef class IndexableSkiplist:
-    cdef:
-        Py_ssize_t size, maxlevels
-        Node head
-
-    cpdef get(self, Py_ssize_t i)
-    cpdef insert(self, double value)
-    cpdef remove(self, double value)

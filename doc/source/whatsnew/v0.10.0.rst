@@ -1,0 +1,531 @@
+.. _whatsnew_0100:
+
+v0.10.0 (December 17, 2012)
+---------------------------
+
+{{ header }}
+
+
+This is a major release from 0.9.1 and includes many new features and
+enhancements along with a large number of bug fixes. There are also a number of
+important API changes that long-time pandas users should pay close attention
+to.
+
+File parsing new features
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The delimited file parsing engine (the guts of ``read_csv`` and ``read_table``)
+has been rewritten from the ground up and now uses a fraction the amount of
+memory while parsing, while being 40% or more faster in most use cases (in some
+cases much faster).
+
+There are also many new features:
+
+- Much-improved Unicode handling via the ``encoding`` option.
+- Column filtering (``usecols``)
+- Dtype specification (``dtype`` argument)
+- Ability to specify strings to be recognized as True/False
+- Ability to yield NumPy record arrays (``as_recarray``)
+- High performance ``delim_whitespace`` option
+- Decimal format (e.g. European format) specification
+- Easier CSV dialect options: ``escapechar``, ``lineterminator``,
+  ``quotechar``, etc.
+- More robust handling of many exceptional kinds of files observed in the wild
+
+API changes
+~~~~~~~~~~~
+
+**Deprecated DataFrame BINOP TimeSeries special case behavior**
+
+The default behavior of binary operations between a DataFrame and a Series has
+always been to align on the DataFrame's columns and broadcast down the rows,
+**except** in the special case that the DataFrame contains time series. Since
+there are now method for each binary operator enabling you to specify how you
+want to broadcast, we are phasing out this special case (Zen of Python:
+*Special cases aren't special enough to break the rules*). Here's what I'm
+talking about:
+
+.. ipython:: python
+   :okwarning:
+
+   import pandas as pd
+   df = pd.DataFrame(np.random.randn(6, 4),
+                     index=pd.date_range('1/1/2000', periods=6))
+   df
+   # deprecated now
+   df - df[0]
+   # Change your code to
+   df.sub(df[0], axis=0)  # align on axis 0 (rows)
+
+You will get a deprecation warning in the 0.10.x series, and the deprecated
+functionality will be removed in 0.11 or later.
+
+**Altered resample default behavior**
+
+The default time series ``resample`` binning behavior of daily ``D`` and
+*higher* frequencies has been changed to ``closed='left', label='left'``. Lower
+nfrequencies are unaffected. The prior defaults were causing a great deal of
+confusion for users, especially resampling data to daily frequency (which
+labeled the aggregated group with the end of the interval: the next day).
+
+.. code-block:: ipython
+
+   In [1]: dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
+
+   In [2]: series = pd.Series(np.arange(len(dates)), index=dates)
+
+   In [3]: series
+   Out[3]:
+   2000-01-01 00:00:00     0
+   2000-01-01 04:00:00     1
+   2000-01-01 08:00:00     2
+   2000-01-01 12:00:00     3
+   2000-01-01 16:00:00     4
+   2000-01-01 20:00:00     5
+   2000-01-02 00:00:00     6
+   2000-01-02 04:00:00     7
+   2000-01-02 08:00:00     8
+   2000-01-02 12:00:00     9
+   2000-01-02 16:00:00    10
+   2000-01-02 20:00:00    11
+   2000-01-03 00:00:00    12
+   2000-01-03 04:00:00    13
+   2000-01-03 08:00:00    14
+   2000-01-03 12:00:00    15
+   2000-01-03 16:00:00    16
+   2000-01-03 20:00:00    17
+   2000-01-04 00:00:00    18
+   2000-01-04 04:00:00    19
+   2000-01-04 08:00:00    20
+   2000-01-04 12:00:00    21
+   2000-01-04 16:00:00    22
+   2000-01-04 20:00:00    23
+   2000-01-05 00:00:00    24
+   Freq: 4H, dtype: int64
+
+   In [4]: series.resample('D', how='sum')
+   Out[4]:
+   2000-01-01     15
+   2000-01-02     51
+   2000-01-03     87
+   2000-01-04    123
+   2000-01-05     24
+   Freq: D, dtype: int64
+
+   In [5]: # old behavior
+   In [6]: series.resample('D', how='sum', closed='right', label='right')
+   Out[6]:
+   2000-01-01      0
+   2000-01-02     21
+   2000-01-03     57
+   2000-01-04     93
+   2000-01-05    129
+   Freq: D, dtype: int64
+
+- Infinity and negative infinity are no longer treated as NA by ``isnull`` and
+  ``notnull``. That they ever were was a relic of early pandas. This behavior
+  can be re-enabled globally by the ``mode.use_inf_as_null`` option:
+
+.. code-block:: ipython
+
+    In [6]: s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+
+    In [7]: pd.isnull(s)
+    Out[7]:
+    0    False
+    1    False
+    2    False
+    3    False
+    Length: 4, dtype: bool
+
+    In [8]: s.fillna(0)
+    Out[8]:
+    0    1.500000
+    1         inf
+    2    3.400000
+    3        -inf
+    Length: 4, dtype: float64
+
+    In [9]: pd.set_option('use_inf_as_null', True)
+
+    In [10]: pd.isnull(s)
+    Out[10]:
+    0    False
+    1     True
+    2    False
+    3     True
+    Length: 4, dtype: bool
+
+    In [11]: s.fillna(0)
+    Out[11]:
+    0    1.5
+    1    0.0
+    2    3.4
+    3    0.0
+    Length: 4, dtype: float64
+
+    In [12]: pd.reset_option('use_inf_as_null')
+
+- Methods with the ``inplace`` option now all return ``None`` instead of the
+  calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
+  may stop working. To fix, simply delete the unnecessary variable assignment.
+
+- ``pandas.merge`` no longer sorts the group keys (``sort=False``) by
+  default. This was done for performance reasons: the group-key sorting is
+  often one of the more expensive parts of the computation and is often
+  unnecessary.
+
+- The default column names for a file with no header have been changed to the
+  integers ``0`` through ``N - 1``. This is to create consistency with the
+  DataFrame constructor with no columns specified. The v0.9.0 behavior (names
+  ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
+
+.. ipython:: python
+
+    import io
+
+    data = ('a,b,c\n'
+            '1,Yes,2\n'
+            '3,No,4')
+    print(data)
+    pd.read_csv(io.StringIO(data), header=None)
+    pd.read_csv(io.StringIO(data), header=None, prefix='X')
+
+- Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
+  though this can be controlled by new ``true_values`` and ``false_values``
+  arguments:
+
+.. ipython:: python
+
+    print(data)
+    pd.read_csv(io.StringIO(data))
+    pd.read_csv(io.StringIO(data), true_values=['Yes'], false_values=['No'])
+
+- The file parsers will not recognize non-string values arising from a
+  converter function as NA if passed in the ``na_values`` argument. It's better
+  to do post-processing using the ``replace`` function instead.
+
+- Calling ``fillna`` on Series or DataFrame with no arguments is no longer
+  valid code. You must either specify a fill value or an interpolation method:
+
+.. ipython:: python
+
+   s = pd.Series([np.nan, 1., 2., np.nan, 4])
+   s
+   s.fillna(0)
+   s.fillna(method='pad')
+
+Convenience methods ``ffill`` and  ``bfill`` have been added:
+
+.. ipython:: python
+
+   s.ffill()
+
+
+- ``Series.apply`` will now operate on a returned value from the applied
+  function, that is itself a series, and possibly upcast the result to a
+  DataFrame
+
+  .. ipython:: python
+
+      def f(x):
+          return pd.Series([x, x**2], index=['x', 'x^2'])
+
+      s = pd.Series(np.random.rand(5))
+      s
+      s.apply(f)
+
+- New API functions for working with pandas options (:issue:`2097`):
+
+  - ``get_option`` / ``set_option`` - get/set the value of an option. Partial
+    names are accepted.  - ``reset_option`` - reset one or more options to
+    their default value. Partial names are accepted.  - ``describe_option`` -
+    print a description of one or more options. When called with no
+    arguments. print all registered options.
+
+  Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
+  functioning), the print options now live under "display.XYZ". For example:
+
+  .. ipython:: python
+
+     pd.get_option("display.max_rows")
+
+- to_string() methods now always return unicode strings  (:issue:`2224`).
+
+New features
+~~~~~~~~~~~~
+
+Wide DataFrame printing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of printing the summary information, pandas now splits the string
+representation across multiple rows by default:
+
+.. ipython:: python
+
+   wide_frame = pd.DataFrame(np.random.randn(5, 16))
+
+   wide_frame
+
+The old behavior of printing out summary information can be achieved via the
+'expand_frame_repr' print option:
+
+.. ipython:: python
+
+   pd.set_option('expand_frame_repr', False)
+
+   wide_frame
+
+.. ipython:: python
+   :suppress:
+
+   pd.reset_option('expand_frame_repr')
+
+The width of each line can be changed via 'line_width' (80 by default):
+
+.. code-block:: python
+
+   pd.set_option('line_width', 40)
+
+   wide_frame
+
+
+Updated PyTables support
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:ref:`Docs <io.hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
+
+.. code-block:: ipython
+
+    In [41]: store = pd.HDFStore('store.h5')
+
+    In [42]: df = pd.DataFrame(np.random.randn(8, 3),
+       ....:                   index=pd.date_range('1/1/2000', periods=8),
+       ....:                   columns=['A', 'B', 'C'])
+
+    In [43]: df
+    Out[43]:
+                       A         B         C
+    2000-01-01 -2.036047  0.000830 -0.955697
+    2000-01-02 -0.898872 -0.725411  0.059904
+    2000-01-03 -0.449644  1.082900 -1.221265
+    2000-01-04  0.361078  1.330704  0.855932
+    2000-01-05 -1.216718  1.488887  0.018993
+    2000-01-06 -0.877046  0.045976  0.437274
+    2000-01-07 -0.567182 -0.888657 -0.556383
+    2000-01-08  0.655457  1.117949 -2.782376
+
+    [8 rows x 3 columns]
+
+    # appending data frames
+    In [44]: df1 = df[0:4]
+
+    In [45]: df2 = df[4:]
+
+    In [46]: store.append('df', df1)
+
+    In [47]: store.append('df', df2)
+
+    In [48]: store
+    Out[48]:
+    <class 'pandas.io.pytables.HDFStore'>
+    File path: store.h5
+    /df            frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
+
+    # selecting the entire store
+    In [49]: store.select('df')
+    Out[49]:
+                       A         B         C
+    2000-01-01 -2.036047  0.000830 -0.955697
+    2000-01-02 -0.898872 -0.725411  0.059904
+    2000-01-03 -0.449644  1.082900 -1.221265
+    2000-01-04  0.361078  1.330704  0.855932
+    2000-01-05 -1.216718  1.488887  0.018993
+    2000-01-06 -0.877046  0.045976  0.437274
+    2000-01-07 -0.567182 -0.888657 -0.556383
+    2000-01-08  0.655457  1.117949 -2.782376
+
+    [8 rows x 3 columns]
+
+.. code-block:: ipython
+
+    In [50]: wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+       ....:               major_axis=pd.date_range('1/1/2000', periods=5),
+       ....:               minor_axis=['A', 'B', 'C', 'D'])
+
+    In [51]: wp
+    Out[51]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 5 (major_axis) x 4 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-01 00:00:00 to 2000-01-05 00:00:00
+    Minor_axis axis: A to D
+
+    # storing a panel
+    In [52]: store.append('wp', wp)
+
+    # selecting via A QUERY
+    In [53]: store.select('wp', [pd.Term('major_axis>20000102'),
+       ....:                     pd.Term('minor_axis', '=', ['A', 'B'])])
+       ....:
+    Out[53]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 3 (major_axis) x 2 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-03 00:00:00 to 2000-01-05 00:00:00
+    Minor_axis axis: A to B
+
+    # removing data from tables
+    In [54]: store.remove('wp', pd.Term('major_axis>20000103'))
+    Out[54]: 8
+
+    In [55]: store.select('wp')
+    Out[55]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 2 (items) x 3 (major_axis) x 4 (minor_axis)
+    Items axis: Item1 to Item2
+    Major_axis axis: 2000-01-01 00:00:00 to 2000-01-03 00:00:00
+    Minor_axis axis: A to D
+
+    # deleting a store
+    In [56]: del store['df']
+
+    In [57]: store
+    Out[57]:
+    <class 'pandas.io.pytables.HDFStore'>
+    File path: store.h5
+    /wp            wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
+
+
+**Enhancements**
+
+- added ability to hierarchical keys
+
+   .. code-block:: ipython
+
+        In [58]: store.put('foo/bar/bah', df)
+
+        In [59]: store.append('food/orange', df)
+
+        In [60]: store.append('food/apple', df)
+
+        In [61]: store
+        Out[61]:
+        <class 'pandas.io.pytables.HDFStore'>
+        File path: store.h5
+        /foo/bar/bah            frame        (shape->[8,3])
+        /food/apple             frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
+        /food/orange            frame_table  (typ->appendable,nrows->8,ncols->3,indexers->[index])
+        /wp                     wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
+
+        # remove all nodes under this level
+        In [62]: store.remove('food')
+
+        In [63]: store
+        Out[63]:
+        <class 'pandas.io.pytables.HDFStore'>
+        File path: store.h5
+        /foo/bar/bah            frame        (shape->[8,3])
+        /wp                     wide_table   (typ->appendable,nrows->12,ncols->2,indexers->[major_axis,minor_axis])
+
+- added mixed-dtype support!
+
+   .. code-block:: ipython
+
+        In [64]: df['string'] = 'string'
+
+        In [65]: df['int'] = 1
+
+        In [66]: store.append('df', df)
+
+        In [67]: df1 = store.select('df')
+
+        In [68]: df1
+        Out[68]:
+                           A         B         C  string  int
+        2000-01-01 -2.036047  0.000830 -0.955697  string    1
+        2000-01-02 -0.898872 -0.725411  0.059904  string    1
+        2000-01-03 -0.449644  1.082900 -1.221265  string    1
+        2000-01-04  0.361078  1.330704  0.855932  string    1
+        2000-01-05 -1.216718  1.488887  0.018993  string    1
+        2000-01-06 -0.877046  0.045976  0.437274  string    1
+        2000-01-07 -0.567182 -0.888657 -0.556383  string    1
+        2000-01-08  0.655457  1.117949 -2.782376  string    1
+
+        [8 rows x 5 columns]
+
+        In [69]: df1.get_dtype_counts()
+        Out[69]:
+        float64    3
+        int64      1
+        object     1
+        dtype: int64
+
+- performance improvements on table writing
+- support for arbitrarily indexed dimensions
+- ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
+- enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
+  to strip arbitrary characters (:issue:`2411`)
+- implement ``value_vars`` in ``melt`` to limit values to certain columns
+  and add ``melt`` to pandas namespace (:issue:`2412`)
+
+**Bug Fixes**
+
+- added ``Term`` method of specifying where conditions (:issue:`1996`).
+- ``del store['df']`` now call ``store.remove('df')`` for store deletion
+- deleting of consecutive rows is much faster than before
+- ``min_itemsize`` parameter can be specified in table creation to force a
+  minimum size for indexing columns (the previous implementation would set the
+  column size based on the first append)
+- indexing support via ``create_table_index`` (requires PyTables >= 2.3)
+  (:issue:`698`).
+- appending on a store would fail if the table was not first created via ``put``
+- fixed issue with missing attributes after loading a pickled dataframe (GH2431)
+- minor change to select and remove: require a table ONLY if where is also
+  provided (and not None)
+
+**Compatibility**
+
+0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
+file and write it out using the new format to take advantage of the updates.
+
+N dimensional Panels (experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
+Here is a taste of what to expect.
+
+.. code-block:: ipython
+
+  In [58]: p4d = Panel4D(np.random.randn(2, 2, 5, 4),
+    ....:       labels=['Label1','Label2'],
+    ....:       items=['Item1', 'Item2'],
+    ....:       major_axis=date_range('1/1/2000', periods=5),
+    ....:       minor_axis=['A', 'B', 'C', 'D'])
+    ....:
+
+  In [59]: p4d
+  Out[59]:
+  <class 'pandas.core.panelnd.Panel4D'>
+  Dimensions: 2 (labels) x 2 (items) x 5 (major_axis) x 4 (minor_axis)
+  Labels axis: Label1 to Label2
+  Items axis: Item1 to Item2
+  Major_axis axis: 2000-01-01 00:00:00 to 2000-01-05 00:00:00
+  Minor_axis axis: A to D
+
+
+
+
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list.
+
+
+.. _whatsnew_0.10.0.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.9.0..v0.10.0

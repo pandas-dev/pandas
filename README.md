@@ -9,18 +9,34 @@
 <table>
 <tr>
   <td>Latest Release</td>
-  <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
+  <td>
+    <a href="https://pypi.org/project/pandas/">
+    <img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" />
+    </a>
+  </td>
 </tr>
   <td></td>
-  <td><img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" /></td>
+  <td>
+    <a href="https://anaconda.org/anaconda/pandas/">
+    <img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" />
+    </a>
+</td>
 </tr>
 <tr>
   <td>Package Status</td>
-  <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+  <td>
+		<a href="https://pypi.org/project/pandas/">
+		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" />
+		</a>
+  </td>
 </tr>
 <tr>
   <td>License</td>
-  <td><img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" /></td>
+  <td>
+    <a href="https://github.com/pandas-dev/pandas/blob/master/LICENSE">
+    <img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" />
+    </a>
+</td>
 </tr>
 <tr>
   <td>Build Status</td>
@@ -33,33 +49,21 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://circleci.com/gh/pandas-dev/pandas">
-    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td></td>
-  <td>
-    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
-    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
+      <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
   </td>
 </tr>
 <tr>
   <td>Coverage</td>
-  <td><img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" /></td>
-</tr>
-<tr>
-  <td>Conda</td>
-  <td>
-    <a href="https://pandas.pydata.org">
-    <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda default downloads" />
+  <td>
+    <a href="https://codecov.io/gh/pandas-dev/pandas">
+    <img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" />
     </a>
   </td>
 </tr>
 <tr>
-  <td>Conda-forge</td>
+  <td>Downloads</td>
   <td>
     <a href="https://pandas.pydata.org">
     <img src="https://anaconda.org/conda-forge/pandas/badges/downloads.svg" alt="conda-forge downloads" />
@@ -67,18 +71,18 @@
   </td>
 </tr>
 <tr>
-  <td>PyPI</td>
-  <td>
-    <a href="https://pypi.python.org/pypi/pandas/">
-    <img src="https://img.shields.io/pypi/dm/pandas.svg" alt="pypi downloads" />
-    </a>
-  </td>
+	<td>Gitter</td>
+	<td>
+		<a href="https://gitter.im/pydata/pandas">
+		<img src="https://badges.gitter.im/Join%20Chat.svg" />
+		</a>
+	</td>
 </tr>
 </table>
 
-[![https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## What is it
+
+## What is it?
 
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
@@ -86,7 +90,7 @@ easy and intuitive. It aims to be the fundamental high-level building block for
 doing practical, **real world** data analysis in Python. Additionally, it has
 the broader goal of becoming **the most powerful and flexible open source data
 analysis / manipulation tool available in any language**. It is already well on
-its way toward this goal.
+its way towards this goal.
 
 ## Main Features
 Here are just a few of the things that pandas does well:
@@ -147,7 +151,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.python.org/pypi/pandas) and on conda.
+package index](https://pypi.org/project/pandas) and on conda.
 
 ```sh
 # conda
@@ -160,9 +164,9 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](http://www.numpy.org): 1.9.0 or higher
+- [NumPy](https://www.numpy.org): 1.13.3 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
-- [pytz](https://pythonhosted.org/pytz): 2011k or higher
+- [pytz](https://pythonhosted.org/pytz): 2015.4 or higher
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.
@@ -184,16 +188,17 @@ python setup.py install
 
 or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
 
+
 ```sh
-python setup.py develop
+python -m pip install --no-build-isolation -e .
 ```
 
-Alternatively, you can use `pip` if you want all the dependencies pulled
-in automatically (the `-e` option is for installing it in [development
-mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
+If you have `make`, you can also use `make develop` to run the same command.
+
+or alternatively
 
 ```sh
-pip install -e .
+python setup.py develop
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
@@ -216,13 +221,18 @@ Further, general questions and discussions can also take place on the [pydata ma
 ## Discussion and Development
 Most development discussion is taking place on github in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
 
-## Contributing to pandas
+## Contributing to pandas [![Open Source Helpers](https://www.codetriage.com/pandas-dev/pandas/badges/users.svg)](https://www.codetriage.com/pandas-dev/pandas)
+
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide.](https://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
-If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
+
+You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
 
 Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’...you can do something about it!
 
 Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Gitter](https://gitter.im/pydata/pandas).
+
+As contributors and maintainers to this project, you are expected to abide by pandas' code of conduct. More information can be found at: [Contributor Code of Conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md)

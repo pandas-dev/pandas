@@ -1,12 +1,30 @@
 """ generic datetimelike tests """
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
-from .common import Base
 import pandas.util.testing as tm
+
+from .common import Base
 
 
 class DatetimeLike(Base):
+    def test_argmax_axis_invalid(self):
+        # GH#23081
+        rng = self.create_index()
+        with pytest.raises(ValueError):
+            rng.argmax(axis=1)
+        with pytest.raises(ValueError):
+            rng.argmin(axis=2)
+        with pytest.raises(ValueError):
+            rng.min(axis=-2)
+        with pytest.raises(ValueError):
+            rng.max(axis=-3)
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_shift_identity(self):
 
@@ -17,23 +35,21 @@ class DatetimeLike(Base):
 
         # test the string repr
         idx = self.create_index()
-        idx.name = 'foo'
-        assert not "length=%s" % len(idx) in str(idx)
+        idx.name = "foo"
+        assert not "length={}".format(len(idx)) in str(idx)
         assert "'foo'" in str(idx)
         assert idx.__class__.__name__ in str(idx)
 
-        if hasattr(idx, 'tz'):
+        if hasattr(idx, "tz"):
             if idx.tz is not None:
                 assert idx.tz in str(idx)
-        if hasattr(idx, 'freq'):
-            assert "freq='%s'" % idx.freqstr in str(idx)
+        if hasattr(idx, "freq"):
+            assert "freq='{idx.freqstr}'".format(idx=idx) in str(idx)
 
-    def test_view(self, indices):
-        super(DatetimeLike, self).test_view(indices)
-
+    def test_view(self):
         i = self.create_index()
 
-        i_view = i.view('i8')
+        i_view = i.view("i8")
         result = self._holder(i)
         tm.assert_index_equal(result, i)
 
@@ -42,9 +58,8 @@ class DatetimeLike(Base):
         tm.assert_index_equal(result, i_view)
 
     def test_map_callable(self):
-
-        expected = self.index + 1
-        result = self.index.map(lambda x: x + 1)
+        expected = self.index + self.index.freq
+        result = self.index.map(lambda x: x + x.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT
@@ -56,9 +71,11 @@ class DatetimeLike(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index)])
+            lambda values, index: pd.Series(values, index),
+        ],
+    )
     def test_map_dictlike(self, mapper):
-        expected = self.index + 1
+        expected = self.index + self.index.freq
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
-from cpython cimport PyObject
+from cpython.object cimport PyObject
 from numpy cimport int64_t, uint64_t, int32_t, uint32_t, float64_t
 
 cdef extern from "khash_python.h":
@@ -57,6 +56,17 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
 
+    ctypedef struct kh_str_starts_t:
+        kh_str_t *table
+        int starts[256]
+
+    kh_str_starts_t* kh_init_str_starts() nogil
+    khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key,
+                                   int* ret) nogil
+    khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) nogil
+    void kh_destroy_str_starts(kh_str_starts_t*) nogil
+    void kh_resize_str_starts(kh_str_starts_t*, khint_t) nogil
+
     ctypedef struct kh_int64_t:
         khint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
@@ -84,9 +94,9 @@ cdef extern from "khash_python.h":
     kh_uint64_t* kh_init_uint64() nogil
     void kh_destroy_uint64(kh_uint64_t*) nogil
     void kh_clear_uint64(kh_uint64_t*) nogil
-    khint_t kh_get_uint64(kh_uint64_t*, int64_t) nogil
+    khint_t kh_get_uint64(kh_uint64_t*, uint64_t) nogil
     void kh_resize_uint64(kh_uint64_t*, khint_t) nogil
-    khint_t kh_put_uint64(kh_uint64_t*, int64_t, int*) nogil
+    khint_t kh_put_uint64(kh_uint64_t*, uint64_t, int*) nogil
     void kh_del_uint64(kh_uint64_t*, khint_t) nogil
 
     bint kh_exist_uint64(kh_uint64_t*, khiter_t) nogil

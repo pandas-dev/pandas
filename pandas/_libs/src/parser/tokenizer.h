@@ -12,14 +12,8 @@ See LICENSE for the license
 #ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 #define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include "Python.h"
-
-#include <ctype.h>
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 
 #define ERROR_OK 0
 #define ERROR_NO_DIGITS 1
@@ -27,32 +21,19 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include "../headers/stdint.h"
+#include "../inline_helper.h"
 
 #include "khash.h"
 
-#define CHUNKSIZE 1024 * 256
-#define KB 1024
-#define MB 1024 * KB
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
-#ifndef P_INLINE
-#if defined(__GNUC__)
-#define P_INLINE static __inline__
-#elif defined(_MSC_VER)
-#define P_INLINE
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define P_INLINE static inline
-#else
-#define P_INLINE
-#endif
-#endif
 
 #if defined(_MSC_VER)
 #define strtoll _strtoi64
-#endif
+#endif  // _MSC_VER
 
 /*
 
@@ -60,32 +41,17 @@ See LICENSE for the license
 
  */
 
-#define FALSE 0
-#define TRUE 1
-
-// Maximum number of columns in a file.
-#define MAX_NUM_COLUMNS 2000
-
-// Maximum number of characters in single field.
-#define FIELD_BUFFER_SIZE 2000
-
 /*
  *  Common set of error types for the read_rows() and tokenize()
  *  functions.
  */
-#define ERROR_OUT_OF_MEMORY 1
-#define ERROR_INVALID_COLUMN_INDEX 10
-#define ERROR_CHANGED_NUMBER_OF_FIELDS 12
-#define ERROR_TOO_MANY_CHARS 21
-#define ERROR_TOO_MANY_FIELDS 22
-#define ERROR_NO_DATA 23
 
 // #define VERBOSE
 #if defined(VERBOSE)
 #define TRACE(X) printf X;
 #else
 #define TRACE(X)
-#endif
+#endif  // VERBOSE
 
 #define PARSER_OUT_OF_MEMORY -1
 
@@ -93,12 +59,6 @@ See LICENSE for the license
  *  XXX Might want to couple count_rows() with read_rows() to avoid duplication
  *      of some file I/O.
  */
-
-/*
- *  WORD_BUFFER_SIZE determines the maximum amount of non-delimiter
- *  text in a row.
- */
-#define WORD_BUFFER_SIZE 4000
 
 typedef enum {
     START_RECORD,
@@ -144,23 +104,24 @@ typedef struct parser_t {
 
     // where to write out tokenized data
     char *stream;
-    int64_t stream_len;
-    int64_t stream_cap;
+    uint64_t stream_len;
+    uint64_t stream_cap;
 
     // Store words in (potentially ragged) matrix for now, hmm
     char **words;
     int64_t *word_starts;   // where we are in the stream
-    int64_t words_len;
-    int64_t words_cap;
+    uint64_t words_len;
+    uint64_t words_cap;
+    uint64_t max_words_cap;  // maximum word cap encountered
 
     char *pword_start;      // pointer to stream start of current field
     int64_t word_start;     // position start of current field
 
     int64_t *line_start;    // position in words for start of line
     int64_t *line_fields;   // Number of fields in each line
-    int64_t lines;          // Number of (good) lines observed
-    int64_t file_lines;     // Number of lines (including bad or skipped)
-    int64_t lines_cap;      // Vector capacity
+    uint64_t lines;         // Number of (good) lines observed
+    uint64_t file_lines;    // Number of lines (including bad or skipped)
+    uint64_t lines_cap;     // Vector capacity
 
     // Tokenizing stuff
     ParserState state;
@@ -172,9 +133,6 @@ typedef struct parser_t {
     char lineterminator;
     int skipinitialspace; /* ignore spaces following delimiter? */
     int quoting;          /* style of quoting to write */
-
-    // krufty, hmm =/
-    int numeric_field;
 
     char commentchar;
     int allow_embedded_newline;
@@ -195,12 +153,12 @@ typedef struct parser_t {
 
     int header;            // Boolean: 1: has header, 0: no header
     int64_t header_start;  // header row start
-    int64_t header_end;    // header row end
+    uint64_t header_end;   // header row end
 
     void *skipset;
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
-    int skip_footer;
+    int64_t skip_footer;
     // pick one, depending on whether the converter requires GIL
     double (*double_converter_nogil)(const char *, char **,
                                      char, char, char, int);
@@ -217,16 +175,16 @@ typedef struct parser_t {
 typedef struct coliter_t {
     char **words;
     int64_t *line_start;
-    int col;
+    int64_t col;
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
 coliter_t *coliter_new(parser_t *self, int i);
 
-#define COLITER_NEXT(iter, word)                          \
-    do {                                                  \
-        const int64_t i = *iter.line_start++ + iter.col;      \
-        word = i < *iter.line_start ? iter.words[i] : ""; \
+#define COLITER_NEXT(iter, word)                           \
+    do {                                                   \
+        const int64_t i = *iter.line_start++ + iter.col;   \
+        word = i >= *iter.line_start ? "" : iter.words[i]; \
     } while (0)
 
 parser_t *parser_new(void);
@@ -269,11 +227,12 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-               int skip_trailing);
-double precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                       char tsep, int skip_trailing);
+               int skip_trailing, int *error, int *maybe_int);
+double precise_xstrtod(const char *p, char **q, char decimal,
+                       char sci, char tsep, int skip_trailing,
+                       int *error, int *maybe_int);
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing);
+                  int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);
 
 #endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_

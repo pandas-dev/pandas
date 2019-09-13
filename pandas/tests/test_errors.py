@@ -1,20 +1,27 @@
-# -*- coding: utf-8 -*-
-
 import pytest
-from warnings import catch_warnings
-import pandas  # noqa
-import pandas as pd
+
 from pandas.errors import AbstractMethodError
-import pandas.util.testing as tm
+
+import pandas as pd  # noqa
 
 
 @pytest.mark.parametrize(
-    "exc", ['UnsupportedFunctionCall', 'UnsortedIndexError',
-            'OutOfBoundsDatetime',
-            'ParserError', 'PerformanceWarning', 'DtypeWarning',
-            'EmptyDataError', 'ParserWarning', 'MergeError'])
+    "exc",
+    [
+        "UnsupportedFunctionCall",
+        "UnsortedIndexError",
+        "OutOfBoundsDatetime",
+        "ParserError",
+        "PerformanceWarning",
+        "DtypeWarning",
+        "EmptyDataError",
+        "ParserWarning",
+        "MergeError",
+    ],
+)
 def test_exception_importable(exc):
     from pandas import errors
+
     e = getattr(errors, exc)
     assert e is not None
 
@@ -27,7 +34,7 @@ def test_catch_oob():
     from pandas import errors
 
     try:
-        pd.Timestamp('15000101')
+        pd.Timestamp("15000101")
     except errors.OutOfBoundsDatetime:
         pass
 
@@ -47,21 +54,15 @@ def test_error_rename():
     except CParserError:
         pass
 
-    with catch_warnings(record=True):
-        try:
-            raise ParserError()
-        except pd.parser.CParserError:
-            pass
-
 
 class Foo:
     @classmethod
     def classmethod(cls):
-        raise AbstractMethodError(cls, methodtype='classmethod')
+        raise AbstractMethodError(cls, methodtype="classmethod")
 
     @property
     def property(self):
-        raise AbstractMethodError(self, methodtype='property')
+        raise AbstractMethodError(self, methodtype="property")
 
     def method(self):
         raise AbstractMethodError(self)
@@ -69,13 +70,13 @@ class Foo:
 
 def test_AbstractMethodError_classmethod():
     xpr = "This classmethod must be defined in the concrete class Foo"
-    with tm.assert_raises_regex(AbstractMethodError, xpr):
+    with pytest.raises(AbstractMethodError, match=xpr):
         Foo.classmethod()
 
     xpr = "This property must be defined in the concrete class Foo"
-    with tm.assert_raises_regex(AbstractMethodError, xpr):
+    with pytest.raises(AbstractMethodError, match=xpr):
         Foo().property
 
     xpr = "This method must be defined in the concrete class Foo"
-    with tm.assert_raises_regex(AbstractMethodError, xpr):
+    with pytest.raises(AbstractMethodError, match=xpr):
         Foo().method()

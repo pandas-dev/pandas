@@ -1,15 +1,20 @@
 # coding: utf-8
 # cython: embedsignature=True
 
-from cpython cimport *
+from cython cimport Py_ssize_t
+
+from cpython.buffer cimport (PyBUF_SIMPLE, PyObject_GetBuffer,
+                             PyBuffer_Release, Py_buffer)
+from cpython.bytes cimport (PyBytes_Size, PyBytes_AsString,
+                            PyBytes_FromStringAndSize)
+from cpython.object cimport PyCallable_Check
+
 cdef extern from "Python.h":
     ctypedef struct PyObject
-    cdef int PyObject_AsReadBuffer(object o, const void** buff,
-                                   Py_ssize_t* buf_len) except -1
 
-from libc.stdlib cimport *
-from libc.string cimport *
-from libc.limits cimport *
+from libc.stdlib cimport free, malloc
+from libc.string cimport memcpy, memmove
+from libc.limits cimport INT_MAX
 
 from pandas.io.msgpack.exceptions import (BufferFull, OutOfData,
                                           UnpackValueError, ExtraData)
@@ -112,16 +117,23 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
 
     See :class:`Unpacker` for options.
     """
-    cdef unpack_context ctx
-    cdef size_t off = 0
-    cdef int ret
+    cdef:
+        unpack_context ctx
+        size_t off = 0
+        int ret
 
-    cdef char* buf
-    cdef Py_ssize_t buf_len
-    cdef char* cenc = NULL
-    cdef char* cerr = NULL
+        char* buf
+        Py_ssize_t buf_len
+        char* cenc = NULL
+        char* cerr = NULL
+        Py_buffer view
+        bytes extra_bytes
 
-    PyObject_AsReadBuffer(packed, <const void**>&buf, &buf_len)
+    # GH#26769 Effectively re-implement deprecated PyObject_AsReadBuffer;
+    # based on https://xpra.org/trac/ticket/1884
+    PyObject_GetBuffer(packed, &view, PyBUF_SIMPLE)
+    buf = <char*>view.buf
+    buf_len = view.len
 
     if encoding is not None:
         if isinstance(encoding, unicode):
@@ -139,11 +151,14 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
     ret = unpack_construct(&ctx, buf, buf_len, &off)
     if ret == 1:
         obj = unpack_data(&ctx)
-        if off < buf_len:
-            raise ExtraData(obj, PyBytes_FromStringAndSize(
-                buf + off, buf_len - off))
+        if <Py_ssize_t> off < buf_len:
+            extra_bytes = PyBytes_FromStringAndSize(buf + off, buf_len - off)
+            PyBuffer_Release(&view)
+            raise ExtraData(obj, extra_bytes)
+        PyBuffer_Release(&view)
         return obj
     else:
+        PyBuffer_Release(&view)
         raise UnpackValueError("Unpack failed: error = {ret}".format(ret=ret))
 
 
@@ -164,7 +179,7 @@ def unpack(object stream, object object_hook=None, object list_hook=None,
                    encoding=encoding, unicode_errors=unicode_errors)
 
 
-cdef class Unpacker(object):
+cdef class Unpacker:
     """Streaming unpacker.
 
     arguments:
@@ -235,16 +250,17 @@ cdef class Unpacker(object):
             for o in unpacker:
                 process(o)
     """
-    cdef unpack_context ctx
-    cdef char* buf
-    cdef size_t buf_size, buf_head, buf_tail
-    cdef object file_like
-    cdef object file_like_read
-    cdef Py_ssize_t read_size
-    # To maintain refcnt.
-    cdef object object_hook, object_pairs_hook, list_hook, ext_hook
-    cdef object encoding, unicode_errors
-    cdef size_t max_buffer_size
+    cdef:
+        unpack_context ctx
+        char* buf
+        size_t buf_size, buf_head, buf_tail
+        object file_like
+        object file_like_read
+        Py_ssize_t read_size
+        # To maintain refcnt.
+        object object_hook, object_pairs_hook, list_hook, ext_hook
+        object encoding, unicode_errors
+        size_t max_buffer_size
 
     def __cinit__(self):
         self.buf = NULL
@@ -262,8 +278,9 @@ cdef class Unpacker(object):
                  Py_ssize_t max_array_len=2147483647,
                  Py_ssize_t max_map_len=2147483647,
                  Py_ssize_t max_ext_len=2147483647):
-        cdef char *cenc=NULL,
-        cdef char *cerr=NULL
+        cdef:
+            char *cenc=NULL,
+            char *cerr=NULL
 
         self.object_hook = object_hook
         self.object_pairs_hook = object_pairs_hook
@@ -367,9 +384,11 @@ cdef class Unpacker(object):
         self.buf_tail = tail + _buf_len
 
     cdef read_from_file(self):
+        # Assume self.max_buffer_size - (self.buf_tail - self.buf_head) >= 0
         next_bytes = self.file_like_read(
             min(self.read_size,
-                self.max_buffer_size - (self.buf_tail - self.buf_head)))
+                <Py_ssize_t>(self.max_buffer_size -
+                             (self.buf_tail - self.buf_head))))
         if next_bytes:
             self.append_buffer(PyBytes_AsString(next_bytes),
                                PyBytes_Size(next_bytes))
@@ -378,9 +397,10 @@ cdef class Unpacker(object):
 
     cdef object _unpack(self, execute_fn execute,
                         object write_bytes, bint iter=0):
-        cdef int ret
-        cdef object obj
-        cdef size_t prev_head
+        cdef:
+            int ret
+            object obj
+            size_t prev_head
 
         if self.buf_head >= self.buf_tail and self.file_like is not None:
             self.read_from_file()
@@ -417,7 +437,9 @@ cdef class Unpacker(object):
     def read_bytes(self, Py_ssize_t nbytes):
         """Read a specified number of raw bytes from the stream"""
         cdef size_t nread
-        nread = min(self.buf_tail - self.buf_head, nbytes)
+
+        # Assume that self.buf_tail - self.buf_head >= 0
+        nread = min(<Py_ssize_t>(self.buf_tail - self.buf_head), nbytes)
         ret = PyBytes_FromStringAndSize(self.buf + self.buf_head, nread)
         self.buf_head += nread
         if len(ret) < nbytes and self.file_like is not None:
