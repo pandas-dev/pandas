@@ -21,7 +21,7 @@ new behavior.
 
 Whenever possible, a deprecation path will be provided rather than an outright breaking change.
 
-Pandas will introduce deprecations in **major** or **minor** releases. These deprecations will
+Pandas will introduce deprecations in **minor** releases. These deprecations will
 preserve the existing behavior while emitting a warning that provide guidance
 
 * How to achieve similar behavior if an alternative is available
@@ -41,5 +41,11 @@ Deprecations will only be enforced in **major** releases.
 
 These policies do not apply to features marked as **experimental** in the documentation.
 Pandas may change the behavior of experimental features at any time.
+
+Python Support
+~~~~~~~~~~~~~~
+
+Pandas will only drop support for specific Python versions (e.g. 3.5.x, 3.6.x) in
+pandas **major** releases.
 
 .. _SemVer: https://semver.org
