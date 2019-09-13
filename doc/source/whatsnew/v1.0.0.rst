@@ -20,15 +20,19 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
--
+
 
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
 -
 
 .. _whatsnew_1000.api_breaking:
@@ -116,9 +120,11 @@ Datetimelike
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
+- Bug in :func:`to_datetime` where passing arrays of malformed ``str`` with errors="coerce" could incorrectly lead to raising ``ValueError`` (:issue:`28299`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 -
 
 
@@ -191,6 +197,7 @@ Plotting
 
 - Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
 -
+- Bug in :meth:`DataFrame.plot` not able to plot when no rows (:issue:`27758`)
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
