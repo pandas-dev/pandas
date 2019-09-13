@@ -144,7 +144,7 @@ from pandas.core.reshape.api import (
 
 from pandas.util._print_versions import show_versions
 
-io_names = (
+__io_names = (
     # excel
     "ExcelFile",
     "ExcelWriter",
@@ -212,7 +212,7 @@ if pandas.compat.PY37:
 
             return Panel
 
-        if name in io_names:
+        if name in __io_names:
             import importlib
 
             mod = importlib.import_module("pandas.io.api")
@@ -311,8 +311,6 @@ Here are just a few of the things that pandas does well:
 import builtins
 __all__ = [x for x in builtins.dir() if not x.startswith("_")]
 __all__.remove("builtins")
-__all__.remove("io_names")
 del builtins
 if pandas.compat.PY37:
-    __all__.extend(list(io_names))
-    __all__.append("Panel")
+    __all__.extend(list(__io_names))
