@@ -3,12 +3,11 @@
 
 from cython cimport Py_ssize_t
 
-from cpython cimport (
-    PyCallable_Check,
-    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release, Py_buffer,
-    PyBytes_Size,
-    PyBytes_FromStringAndSize,
-    PyBytes_AsString)
+from cpython.buffer cimport (PyBUF_SIMPLE, PyObject_GetBuffer,
+                             PyBuffer_Release, Py_buffer)
+from cpython.bytes cimport (PyBytes_Size, PyBytes_AsString,
+                            PyBytes_FromStringAndSize)
+from cpython.object cimport PyCallable_Check
 
 cdef extern from "Python.h":
     ctypedef struct PyObject

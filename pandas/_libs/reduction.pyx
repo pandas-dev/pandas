@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
-from cpython cimport Py_INCREF
+from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
