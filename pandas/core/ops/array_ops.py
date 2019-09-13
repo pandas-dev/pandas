@@ -3,6 +3,7 @@ Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
 import operator
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -154,7 +155,13 @@ def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left, right, op, str_rep, eval_kwargs):
+def arithmetic_op(
+    left: Union[ABCExtensionArray, np.ndarrray],
+    right: Any,
+    op,
+    str_rep: Optional[str],
+    eval_kwargs: dict,
+):
 
     from pandas.core.ops import (
         maybe_upcast_for_op,
@@ -173,7 +180,10 @@ def arithmetic_op(left, right, op, str_rep, eval_kwargs):
         ),
     )
 
-    lvalues = extract_array(left, extract_numpy=True)
+    # NB: We assume that extract_array has already been called on `left`, but
+    #  cannot make the same assumption about `right`.  This is because we need
+    #  to define `keep_null_freq` before calling extract_array on it.
+    lvalues = left
     rvalues = extract_array(right, extract_numpy=True)
 
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
@@ -181,6 +191,9 @@ def arithmetic_op(left, right, op, str_rep, eval_kwargs):
     if should_extension_dispatch(left, rvalues) or isinstance(
         rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
     ):
+        # TimedeltaArray, DatetimeArray, and Timestamp are included here
+        #  because they have `freq` attribute which is handled correctly
+        #  by dispatch_to_extension_op.
         res_values = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
     else:
@@ -190,7 +203,7 @@ def arithmetic_op(left, right, op, str_rep, eval_kwargs):
     return res_values
 
 
-def comparison_op(left, right, op):
+def comparison_op(left: Union[ABCExtensionArray, np.ndarrray], right: Any, op):
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     # NB: We assume extract_array has already been called on left and right
@@ -238,7 +251,7 @@ def comparison_op(left, right, op):
     return res_values
 
 
-def logical_op(left, right, op):
+def logical_op(left: Union[ABCExtensionArray, np.ndarrray], right: Any, op):
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     def na_op(x, y):

@@ -633,7 +633,8 @@ def _arith_method_SERIES(cls, op, special):
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
-        result = arithmetic_op(left, right, op, str_rep, eval_kwargs)
+        lvalues = extract_array(left, extract_numpy=True)
+        result = arithmetic_op(lvalues, right, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
