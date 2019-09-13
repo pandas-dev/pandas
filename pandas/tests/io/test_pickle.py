@@ -49,8 +49,8 @@ def compare_element(result, expected, typ, version=None):
         return
 
     if typ.startswith("sp_"):
-        comparator = getattr(tm, "assert_{typ}_equal".format(typ=typ))
-        comparator(result, expected, exact_indices=False)
+        comparator = tm.assert_equal
+        comparator(result, expected)
     elif typ == "timestamp":
         if expected is pd.NaT:
             assert result is pd.NaT
