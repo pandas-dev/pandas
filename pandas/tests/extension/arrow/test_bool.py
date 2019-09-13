@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 
 pytest.importorskip("pyarrow", minversion="0.10.0")
 
-from .bool import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 
 
 @pytest.fixture
@@ -40,6 +40,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
+
+    def test_view(self, data):
+        # __setitem__ does not work, so we only have a smoke-test
+        data.view()
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):

@@ -349,7 +349,9 @@ class TestCategoricalOps:
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
         ]:
-            msg = r"Series cannot perform the operation {}".format(str_rep)
+            msg = r"Series cannot perform the operation {}|unsupported operand".format(
+                str_rep
+            )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)(df)
 
@@ -375,7 +377,9 @@ class TestCategoricalOps:
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
         ]:
-            msg = r"Series cannot perform the operation {}".format(str_rep)
+            msg = r"Series cannot perform the operation {}|unsupported operand".format(
+                str_rep
+            )
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(2)
 

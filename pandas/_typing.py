@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Optional, TypeVar, Union
+from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
     from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.frame import DataFrame  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.sparse.series import SparseSeries  # noqa: F401
+    from pandas.core.generic import NDFrame  # noqa: F401
 
 
 AnyArrayLike = TypeVar(
@@ -24,7 +24,13 @@ DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timed
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
-FrameOrSeries = TypeVar("FrameOrSeries", "Series", "DataFrame")
+FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float]
 Axis = Union[str, int]
 Ordered = Optional[bool]
+
+# use Collection after we drop support for py35
+Axes = Iterable
+
+# to maintain type information across generic functions and parametrization
+_T = TypeVar("_T")

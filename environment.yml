@@ -13,7 +13,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.28.2
+  - cython>=0.29.13
 
   # code checks
   - black
@@ -71,7 +71,7 @@ dependencies:
   - lxml  # pandas.read_html
   - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - pyarrow>=0.9.0  # pandas.read_paquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
-  - pyqt  # pandas.read_clipbobard
+  - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
   - python-snappy  # required by pyarrow
   - s3fs  # pandas.read_csv... when using 's3://...' path
@@ -80,4 +80,5 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss

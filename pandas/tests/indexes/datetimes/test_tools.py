@@ -741,10 +741,7 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cache",
-        [pytest.param(True, marks=pytest.mark.skipif(True, reason="GH 18111")), False],
-    )
+    @pytest.mark.parametrize("cache", [True, False])
     def test_datetime_bool(self, cache):
         # GH13176
         with pytest.raises(TypeError):
@@ -904,6 +901,13 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_coerce_malformed(self):
+        # GH 28299
+        ts_strings = ["200622-12-31", "111111-24-11"]
+        result = to_datetime(ts_strings, errors="coerce")
+        expected = Index([NaT, NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
@@ -1030,6 +1034,12 @@ class TestToDatetime:
 
         result = pd.to_datetime(expected).to_datetime64()
         assert result == expected
+
+    @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
+    def test_to_datetime_with_format_out_of_bounds(self, dt_str):
+        # GH 9107
+        with pytest.raises(OutOfBoundsDatetime):
+            pd.to_datetime(dt_str, format="%Y%m%d")
 
 
 class TestToDatetimeUnit:
@@ -1622,6 +1632,18 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx4)
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
+
+    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
+    def test_to_datetime_dta_tz(self, klass):
+        # GH#27733
+        dti = date_range("2015-04-05", periods=3).rename("foo")
+        expected = dti.tz_localize("UTC")
+
+        obj = klass(dti)
+        expected = klass(expected)
+
+        result = to_datetime(obj, utc=True)
+        tm.assert_equal(result, expected)
 
 
 class TestGuessDatetimeFormat:
