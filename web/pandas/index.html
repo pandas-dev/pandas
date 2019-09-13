@@ -71,7 +71,7 @@
                     </p>
                 </div>
 				<h4>Get the book</h4>
-				<p>
+				<p class="book">
 					<a href="https://amzn.to/2KI5JJw">
 						<img class="img-fluid" alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
 					</a>
@@ -80,7 +80,7 @@
                     <h4>Previous versions</h4>
                     <ul>
                         {% for release in releases[1:5] %}
-                            <li>
+                            <li class="small">
                                 {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
@@ -96,7 +96,7 @@
                     </p>
                     <ul id="show-more-releases" class="collapse">
                         {% for release in releases[5:] %}
-                            <li>
+                            <li class="small">
                                 {{ release.name }} ({{ release.published.strftime("%Y-%m-%d") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
