@@ -14,7 +14,7 @@ Feel free to ask questions on the [mailing list](https://groups.google.com/forum
 - [Setting up a development environment](setup.html)
 - [Working with git](git.md)
 - [Contributing to the documentation](docs.html)
-  - [Docstring guidelines](docstring_guidelines.html)
+    - [Docstring guidelines](docstring_guidelines.html)
 - [Contributing to the code base](code.html)
 - [Submitting your changes to _pandas_](submit.md)
 
