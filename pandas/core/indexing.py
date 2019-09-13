@@ -170,7 +170,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
-            except Exception:
+            except (TypeError, KeyError):
+                # TypeError e.g. passed a bool
                 pass
 
         if isinstance(key, tuple):
