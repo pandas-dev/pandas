@@ -73,10 +73,10 @@ class TestNumericComparisons:
 
 
 # ------------------------------------------------------------------
-# Numeric dtypes Arithmetic with Timedelta Scalar
+# Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
 
 
-class TestNumericArraylikeArithmeticWithTimedeltaLike:
+class TestNumericArraylikeArithmeticWithDatetimeLike:
 
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
@@ -226,6 +226,30 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike:
     )
     def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
         left = tm.box_expected(numeric_idx, box)
+        with pytest.raises(TypeError):
+            left + other
+        with pytest.raises(TypeError):
+            other + left
+        with pytest.raises(TypeError):
+            left - other
+        with pytest.raises(TypeError):
+            other - left
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            pd.Timestamp.now().to_pydatetime(),
+            pd.Timestamp.now(tz="UTC").to_pydatetime(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.NaT,
+        ],
+    )
+    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+        # GH#28080 numeric+datetime64 should raise; Timestamp raises
+        #  NullFrequencyError instead of TypeError so is excluded.
+        left = tm.box_expected(numeric_idx, box)
+
         with pytest.raises(TypeError):
             left + other
         with pytest.raises(TypeError):
