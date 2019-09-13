@@ -56,6 +56,7 @@ def load_reduce(self):
 
 
 class _LoadSparseSeries:
+    # To load a SparseSeries as a Series[Sparse]
     def __new__(cls) -> Any:
         from pandas import Series
 
@@ -63,6 +64,7 @@ class _LoadSparseSeries:
 
 
 class _LoadSparseFrame:
+    # To load a SparseDataFrame as a DataFrame[Sparse]
     def __new__(cls) -> Any:
         from pandas import DataFrame
 
