@@ -250,9 +250,7 @@ def main(
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
-                content = extend_base_template(
-                    body, context["main"]["base_template"]
-                )
+                content = extend_base_template(body, context["main"]["base_template"])
             content = jinja_env.from_string(content).render(**context)
             fname = os.path.splitext(fname)[0] + ".html"
             with open(os.path.join(target_path, fname), "w") as f:
