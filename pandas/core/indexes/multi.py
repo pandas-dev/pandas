@@ -514,7 +514,7 @@ class MultiIndex(Index):
 
             ..versionchanged 1.0
 
-            If not explicitly provided, names will be inferred from the
+               If not explicitly provided, names will be inferred from the
                elements of iterables if an element has a name attribute
 
         Returns
