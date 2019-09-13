@@ -524,11 +524,9 @@ def maybe_cythonize(extensions, *args, **kwargs):
     """
     Render tempita templates before calling cythonize
     """
-    if len(sys.argv) > 1 and "clean" in sys.argv:
+    if "clean" in sys.argv or "sdist" in sys.argv:
         # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
-        return extensions
-    elif "sdist" in sys.argv:
         return extensions
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
