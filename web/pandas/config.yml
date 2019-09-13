@@ -109,7 +109,7 @@ partners:
     logo: /static/img/partners/numfocus.svg
   - name: "Anaconda"
     url: https://www.anaconda.com/
-    logo: /static/img/partners/anaconda.png
+    logo: /static/img/partners/anaconda.svg
     employs: "Tom Augspurger, Brock Mendel"
   - name: "Two Sigma"
     url: https://www.twosigma.com/
