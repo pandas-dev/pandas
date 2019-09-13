@@ -356,7 +356,6 @@ Serialization / IO / conversion
    DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
-   DataFrame.to_sparse
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
