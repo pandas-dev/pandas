@@ -4,7 +4,7 @@ import warnings
 
 import cython
 
-from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
+from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp

@@ -10,7 +10,8 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyObject_Str, PyUnicode_Join
+from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
