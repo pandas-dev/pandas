@@ -3231,10 +3231,10 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_hist_plot_by_argument(self):
         # GH 15079
-        df = DataFrame(np.random.randn(30, 2), columns=['A', 'B'])
+        df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
 
-        _check_plot_works(df.plot.hist, column='A', by='C')
+        _check_plot_works(df.plot.hist, column="A", by="C")
 
     def test_plot_no_rows(self):
         # GH 27758
