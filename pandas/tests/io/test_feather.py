@@ -4,6 +4,8 @@ from distutils.version import LooseVersion
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, ensure_clean
@@ -48,6 +50,7 @@ class TestFeather:
         ]:
             self.check_error_on_write(obj, ValueError)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_basic(self):
 
         df = pd.DataFrame(
@@ -74,6 +77,7 @@ class TestFeather:
         assert df.dttz.dtype.tz.zone == "US/Eastern"
         self.check_round_trip(df)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_duplicate_columns(self):
 
         # https://github.com/wesm/feather/issues/53
@@ -86,6 +90,7 @@ class TestFeather:
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_read_columns(self):
         # GH 24025
         df = pd.DataFrame(
@@ -106,6 +111,7 @@ class TestFeather:
         # Some versions raise ValueError, others raise ArrowInvalid.
         self.check_error_on_write(df, Exception)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_rw_nthreads(self):
         df = pd.DataFrame({"A": np.arange(100000)})
         expected_warning = (
@@ -123,11 +129,13 @@ class TestFeather:
         # we have an extra FutureWarnings because of #GH23752
         assert any(expected_warning in str(x) for x in w)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_rw_use_threads(self):
         df = pd.DataFrame({"A": np.arange(100000)})
         self.check_round_trip(df, use_threads=True)
         self.check_round_trip(df, use_threads=False)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_write_with_index(self):
 
         df = pd.DataFrame({"A": [1, 2, 3]})
@@ -155,11 +163,13 @@ class TestFeather:
         df.columns = (pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),)
         self.check_error_on_write(df, ValueError)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_path_pathlib(self):
         df = tm.makeDataFrame().reset_index()
         result = tm.round_trip_pathlib(df.to_feather, pd.read_feather)
         tm.assert_frame_equal(df, result)
 
+    @td.skip_if_no("pyarrow", "0.15.0")  # Sparse removal
     def test_path_localpath(self):
         df = tm.makeDataFrame().reset_index()
         result = tm.round_trip_localpath(df.to_feather, pd.read_feather)
