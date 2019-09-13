@@ -932,11 +932,6 @@ class SeriesGroupBy(GroupBy):
         results = OrderedDict()
         for name, func in arg:
             obj = self
-            if name in results:
-                raise SpecificationError(
-                    "Function names must be unique, found multiple named "
-                    "{}".format(name)
-                )
 
             # reset the cache so that we
             # only include the named selection

@@ -440,12 +440,17 @@ class TestNamedAggregationDataFrame:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_duplicate_raises(self):
-        # TODO: we currently raise on multiple lambdas. We could *maybe*
-        # update com.get_callable_name to append `_i` to each lambda.
-        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
-        with pytest.raises(SpecificationError, match="Function names"):
-            df.groupby("A").agg(a=("A", "min"), b=("A", "min"))
+    def test_duplicate_no_raises(self):
+        # GH 28426, if use input function on same column, no raise should raise
+        quant50 = functools.partial(np.percentile, q=50)
+        quant70 = functools.partial(np.percentile, q=70)
+
+        df = pd.DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+
+        grouped = df.groupby("col1").agg(
+            quantile_50=("col2", quant50), quantile_70=("col2", quant70)
+        )
+        assert grouped.columns == ["quantile_50", "quantile_70"]
 
     def test_agg_relabel_with_level(self):
         df = pd.DataFrame(
