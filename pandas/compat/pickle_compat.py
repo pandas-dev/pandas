@@ -5,6 +5,7 @@ Support pre-0.12 series pickle compatibility.
 import copy
 import pickle as pkl
 import sys
+from typing import Any
 
 from pandas import Index
 
@@ -54,6 +55,20 @@ def load_reduce(self):
         raise
 
 
+class _LoadSparseSeries:
+    def __new__(cls) -> Any:
+        from pandas import Series
+
+        return Series()
+
+
+class _LoadSparseFrame:
+    def __new__(cls) -> Any:
+        from pandas import DataFrame
+
+        return DataFrame()
+
+
 # If classes are moved, provide compat here.
 _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
@@ -101,12 +116,12 @@ _class_locations_map = {
         "SparseArray",
     ),
     ("pandas.sparse.series", "SparseSeries"): (
-        "pandas.core.sparse.series",
-        "SparseSeries",
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
     ),
     ("pandas.sparse.frame", "SparseDataFrame"): (
         "pandas.core.sparse.frame",
-        "SparseDataFrame",
+        "_LoadSparseFrame",
     ),
     ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
     ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
@@ -138,6 +153,14 @@ _class_locations_map = {
     ("pandas.indexes.numeric", "Float64Index"): (
         "pandas.core.indexes.numeric",
         "Float64Index",
+    ),
+    ("pandas.core.sparse.series", "SparseSeries"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
+    ),
+    ("pandas.core.sparse.frame", "SparseDataFrame"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseFrame",
     ),
 }
 
