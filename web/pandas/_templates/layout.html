@@ -80,6 +80,10 @@
             $(function () {
               $('[data-toggle="popover"]').popover()
             })
+            $(function () {
+                $(".navbar-brand img").attr("src", $(location).attr("hash").substr(1));
+                $(".navbar-brand img").height(30);
+            });
         </script>
     </body>
 </html>

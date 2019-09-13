@@ -17,7 +17,7 @@ main:
   - tables
   - fenced_code
 static:
-  logo: /static/img/pandas_dark.svg
+  logo: # path to the logo when it's in the repo
   css:
   - /static/css/pandas.css
 navbar:
