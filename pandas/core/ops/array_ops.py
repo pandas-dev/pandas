@@ -98,31 +98,37 @@ def masked_arith_op(x, y, op):
 
 def define_na_arithmetic_op(op, str_rep, eval_kwargs):
     def na_op(x, y):
-        """
-        Return the result of evaluating op on the passed in values.
-
-        If native types are not compatible, try coersion to object dtype.
-
-        Parameters
-        ----------
-        x : array-like
-        y : array-like or scalar
-
-        Returns
-        -------
-        array-like
-
-        Raises
-        ------
-        TypeError : invalid operation
-        """
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
-        except TypeError:
-            result = masked_arith_op(x, y, op)
-
-        return missing.dispatch_fill_zeros(op, x, y, result)
+        return na_arithmetic_op(x, y, op, str_rep, eval_kwargs)
 
     return na_op
+
+
+def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
+    """
+    Return the result of evaluating op on the passed in values.
+
+    If native types are not compatible, try coersion to object dtype.
+
+    Parameters
+    ----------
+    left : np.ndarray
+    right : np.ndarray or scalar
+    str_rep : str or None
+    eval_kwargs : kwargs to pass to expressions
+
+    Returns
+    -------
+    array-like
+
+    Raises
+    ------
+    TypeError : invalid operation
+    """
+    import pandas.core.computation.expressions as expressions
+
+    try:
+        result = expressions.evaluate(op, str_rep, left, right, **eval_kwargs)
+    except TypeError:
+        result = masked_arith_op(left, right, op)
+
+    return missing.dispatch_fill_zeros(op, left, right, result)
