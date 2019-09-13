@@ -1,4 +1,4 @@
-from warnings import catch_warnings, simplefilter
+from warnings import catch_warnings
 
 import numpy as np
 
@@ -17,11 +17,6 @@ class TestABCClasses:
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
-    with catch_warnings():
-        simplefilter("ignore", FutureWarning)
-        sparse_series = pd.Series([1, 2, 3]).to_sparse()
-        sparse_frame = pd.SparseDataFrame({"a": [1, -1, None]})
-
     sparse_array = pd.SparseArray(np.random.randn(10))
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
