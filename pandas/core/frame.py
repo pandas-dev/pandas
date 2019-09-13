@@ -2119,7 +2119,7 @@ class DataFrame(NDFrame):
         fname,
         engine="auto",
         compression="snappy",
-        index=True,
+        index=None,
         partition_cols=None,
         **kwargs
     ):
