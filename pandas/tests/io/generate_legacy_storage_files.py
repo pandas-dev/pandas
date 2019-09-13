@@ -53,10 +53,7 @@ from pandas import (
     Period,
     RangeIndex,
     Series,
-    SparseDataFrame,
-    SparseSeries,
     Timestamp,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
@@ -87,47 +84,6 @@ from pandas.tseries.offsets import (
 )
 
 _loose_version = LooseVersion(pandas.__version__)
-
-
-def _create_sp_series():
-    nan = np.nan
-
-    # nan-based
-    arr = np.arange(15, dtype=np.float64)
-    arr[7:12] = nan
-    arr[-1:] = nan
-
-    bseries = SparseSeries(arr, kind="block")
-    bseries.name = "bseries"
-    return bseries
-
-
-def _create_sp_tsseries():
-    nan = np.nan
-
-    # nan-based
-    arr = np.arange(15, dtype=np.float64)
-    arr[7:12] = nan
-    arr[-1:] = nan
-
-    date_index = bdate_range("1/1/2011", periods=len(arr))
-    bseries = SparseSeries(arr, index=date_index, kind="block")
-    bseries.name = "btsseries"
-    return bseries
-
-
-def _create_sp_frame():
-    nan = np.nan
-
-    data = {
-        "A": [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-        "B": [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-        "C": np.arange(10).astype(np.int64),
-        "D": [0, 1, 2, 3, 4, 5, nan, nan, nan, nan],
-    }
-
-    dates = bdate_range("1/1/2011", periods=10)
-    return SparseDataFrame(data, index=dates)
 
 
 def create_data():
@@ -287,8 +243,6 @@ def create_data():
         index=index,
         scalars=scalars,
         mi=mi,
-        sp_series=dict(float=_create_sp_series(), ts=_create_sp_tsseries()),
-        sp_frame=dict(float=_create_sp_frame()),
         cat=cat,
         timestamp=timestamp,
         offsets=off,
@@ -308,8 +262,6 @@ def _u(x):
 def create_msgpack_data():
     data = create_data()
     # Not supported
-    del data["sp_series"]
-    del data["sp_frame"]
     del data["series"]["cat"]
     del data["series"]["period"]
     del data["frame"]["cat_onecol"]
