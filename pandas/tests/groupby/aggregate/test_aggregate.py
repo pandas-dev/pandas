@@ -442,15 +442,13 @@ class TestNamedAggregationDataFrame:
 
     def test_duplicate_no_raises(self):
         # GH 28426, if use input function on same column, no raise should raise
-        quant50 = functools.partial(np.percentile, q=50)
-        quant70 = functools.partial(np.percentile, q=70)
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
 
-        df = pd.DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
-
-        grouped = df.groupby("col1").agg(
-            quantile_50=("col2", quant50), quantile_70=("col2", quant70)
+        grouped = df.groupby("A").agg(a=("B", "min"), b=("B", "min"))
+        expected = pd.DataFrame(
+            {"a": [1, 3], "b": [1, 3]}, index=pd.Index([0, 1], name="A")
         )
-        assert grouped.columns == ["quantile_50", "quantile_70"]
+        tm.assert_frame_equal(grouped, expected)
 
     def test_agg_relabel_with_level(self):
         df = pd.DataFrame(
