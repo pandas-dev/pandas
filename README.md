@@ -188,16 +188,17 @@ python setup.py install
 
 or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
 
+
 ```sh
-python setup.py develop
+python -m pip install --no-build-isolation -e .
 ```
 
-Alternatively, you can use `pip` if you want all the dependencies pulled
-in automatically (the `-e` option is for installing it in [development
-mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
+If you have `make`, you can also use `make develop` to run the same command.
+
+or alternatively
 
 ```sh
-pip install -e .
+python setup.py develop
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).

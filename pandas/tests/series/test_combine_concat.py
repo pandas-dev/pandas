@@ -54,6 +54,17 @@ class TestSeriesCombine:
         with pytest.raises(ValueError, match=msg):
             pd.concat([s1, s2], verify_integrity=True)
 
+    def test_append_tuples(self):
+        # GH 28410
+        s = pd.Series([1, 2, 3])
+        list_input = [s, s]
+        tuple_input = (s, s)
+
+        expected = s.append(list_input)
+        result = s.append(tuple_input)
+
+        tm.assert_series_equal(expected, result)
+
     def test_combine_scalar(self):
         # GH 21248
         # Note - combine() with another Series is tested elsewhere because

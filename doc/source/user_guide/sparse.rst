@@ -166,7 +166,7 @@ Migrating
 
    ``SparseSeries`` and ``SparseDataFrame`` were removed in pandas 1.0.0. This migration
    guide is present to aid in migrating from previous versions.
-      
+
 In older versions of pandas, the ``SparseSeries`` and ``SparseDataFrame`` classes (documented below)
 were the preferred way to work with sparse data. With the advent of extension arrays, these subclasses
 are no longer needed. Their purpose is better served by using a regular Series or DataFrame with

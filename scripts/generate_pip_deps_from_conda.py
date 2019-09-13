@@ -19,7 +19,7 @@ import sys
 
 import yaml
 
-EXCLUDE = {"python=3", "openssl=1.1.1c"}
+EXCLUDE = {"python=3"}
 RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
 
 
