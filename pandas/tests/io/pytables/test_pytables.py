@@ -2353,38 +2353,6 @@ class TestHDFStore(Base):
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
         self._check_roundtrip(ts3, tm.assert_series_equal, check_index_type=False)
 
-    @ignore_sparse
-    @ignore_series_tosparse
-    def test_sparse_series(self):
-
-        s = tm.makeStringSeries()
-        s.iloc[3:5] = np.nan
-        ss = s.to_sparse()
-        self._check_roundtrip(ss, tm.assert_series_equal, check_series_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_roundtrip(ss2, tm.assert_series_equal, check_series_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_series_equal, check_series_type=True)
-
-    @ignore_sparse
-    @ignore_dataframe_tosparse
-    def test_sparse_frame(self):
-
-        s = tm.makeDataFrame()
-        s.iloc[3:5, 1:3] = np.nan
-        s.iloc[8:10, -2] = np.nan
-        ss = s.to_sparse()
-
-        self._check_double_roundtrip(ss, tm.assert_frame_equal, check_frame_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_double_roundtrip(ss2, tm.assert_frame_equal, check_frame_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_double_roundtrip(ss3, tm.assert_frame_equal, check_frame_type=True)
-
     def test_float_index(self):
 
         # GH #454
