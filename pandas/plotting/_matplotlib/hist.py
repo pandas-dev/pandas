@@ -37,8 +37,6 @@ class HistPlot(LinePlot):
                 grouped = self.data.groupby(self.by)[self.column]
                 bins_list = []
                 for key, group in grouped:
-                    print(key)
-                    print(group)
                     bins_list.append(self._caculcate_bins(group))
                 self.bins = bins_list
 
