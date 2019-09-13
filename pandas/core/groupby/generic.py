@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
 from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
-from pandas.core.base import DataError, SpecificationError
+from pandas.core.base import DataError
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
