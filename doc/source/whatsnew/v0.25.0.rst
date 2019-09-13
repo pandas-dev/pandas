@@ -903,7 +903,6 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 **Previous way**
 
 .. code-block:: python
-   :okwarning:
 
    df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
    df.dtypes
