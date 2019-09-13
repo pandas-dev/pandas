@@ -706,10 +706,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
             "datetime64[{unit}]".format(unit=unit)
         )
-        df[:, "expected"] = df.loc[:, "timestamp"].values.astype(
+        df["expected"] = df.loc[:, "timestamp"].values.astype(
             "datetime64[{unit}]".format(unit=unit)
         )
-        tm.assert_series_equal(df[:, unit], df[:, "expected"])
+        expected = Series(df.loc[:, "expected"], name="day")
+        tm.assert_series_equal(df.loc[:, unit], expected)
 
     def test_loc_setitem_frame(self):
         df = self.frame_labels
