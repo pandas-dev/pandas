@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_extension_type,
     is_list_like,
+    is_sparse,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -40,8 +41,7 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
-    SparseDataFrame,
-    SparseSeries,
+    SparseArray,
     TimedeltaIndex,
     concat,
     isna,
@@ -173,12 +173,7 @@ use the format='fixed(f)|table(t)' keyword instead
 """
 
 # map object types
-_TYPE_MAP = {
-    Series: "series",
-    SparseSeries: "sparse_series",
-    DataFrame: "frame",
-    SparseDataFrame: "sparse_frame",
-}
+_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -186,9 +181,9 @@ _STORER_MAP = {
     "DataFrame": "LegacyFrameFixed",
     "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
-    "sparse_series": "SparseSeriesFixed",
+    "sparse_series": "SeriesFixed",
     "frame": "FrameFixed",
-    "sparse_frame": "SparseFrameFixed",
+    "sparse_frame": "FrameFixed",
 }
 
 # table class map
@@ -2754,6 +2749,16 @@ class GenericFixed(Fixed):
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
 
+            if dtype == "Sparse":
+                if start or stop:
+                    raise NotImplementedError(
+                        "start and/or stop are not supported in fixed Sparse reading"
+                    )
+                sp_index = self.read_index("{}_sp_index".format(key))
+                ret = SparseArray(
+                    ret, sparse_index=sp_index, fill_value=self.attrs.fill_value
+                )
+
         if transposed:
             return ret.T
         else:
@@ -3004,7 +3009,7 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
         else:
-            if empty_array:
+            if empty_array and not is_sparse(value):
                 self.write_array_empty(key, value)
             else:
                 if is_datetime64_dtype(value.dtype):
@@ -3021,6 +3026,15 @@ class GenericFixed(Fixed):
                 elif is_timedelta64_dtype(value.dtype):
                     self._handle.create_array(self.group, key, value.view("i8"))
                     getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+                elif is_sparse(value):
+                    # TODO: think about EA API for this.
+                    # value._write_hdf5(self)
+                    self.write_index("{}_sp_index".format(key), value.sp_index)
+                    self._handle.create_array(self.group, key, value.sp_values)
+                    getattr(self.group, key)._v_attrs.value_type = "Sparse"
+                    self.attrs.fill_value = value.fill_value
+                    self.attrs.kind = value.kind
+                    self.attributes.extend(["fill_value", "kind"])
                 else:
                     self._handle.create_array(self.group, key, value)
 
@@ -3076,83 +3090,6 @@ class SeriesFixed(GenericFixed):
         self.write_index("index", obj.index)
         self.write_array("values", obj.values)
         self.attrs.name = obj.name
-
-
-class SparseFixed(GenericFixed):
-    def validate_read(self, kwargs):
-        """
-        we don't support start, stop kwds in Sparse
-        """
-        kwargs = super().validate_read(kwargs)
-        if "start" in kwargs or "stop" in kwargs:
-            raise NotImplementedError(
-                "start and/or stop are not supported in fixed Sparse reading"
-            )
-        return kwargs
-
-
-class SparseSeriesFixed(SparseFixed):
-    pandas_kind = "sparse_series"
-    attributes = ["name", "fill_value", "kind"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index("index")
-        sp_values = self.read_array("sp_values")
-        sp_index = self.read_index("sp_index")
-        return SparseSeries(
-            sp_values,
-            index=index,
-            sparse_index=sp_index,
-            kind=self.kind or "block",
-            fill_value=self.fill_value,
-            name=self.name,
-        )
-
-    def write(self, obj, **kwargs):
-        super().write(obj, **kwargs)
-        self.write_index("index", obj.index)
-        self.write_index("sp_index", obj.sp_index)
-        self.write_array("sp_values", obj.sp_values)
-        self.attrs.name = obj.name
-        self.attrs.fill_value = obj.fill_value
-        self.attrs.kind = obj.kind
-
-
-class SparseFrameFixed(SparseFixed):
-    pandas_kind = "sparse_frame"
-    attributes = ["default_kind", "default_fill_value"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        columns = self.read_index("columns")
-        sdict = {}
-        for c in columns:
-            key = "sparse_series_{columns}".format(columns=c)
-            s = SparseSeriesFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[c] = s.read()
-        return SparseDataFrame(
-            sdict,
-            columns=columns,
-            default_kind=self.default_kind,
-            default_fill_value=self.default_fill_value,
-        )
-
-    def write(self, obj, **kwargs):
-        """ write it as a collection of individual sparse series """
-        super().write(obj, **kwargs)
-        for name, ss in obj.items():
-            key = "sparse_series_{name}".format(name=name)
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseSeriesFixed(self.parent, node)
-            s.write(ss)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index("columns", obj.columns)
 
 
 class BlockManagerFixed(GenericFixed):

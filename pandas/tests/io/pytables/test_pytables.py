@@ -71,14 +71,6 @@ _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
-ignore_sparse = pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-ignore_dataframe_tosparse = pytest.mark.filterwarnings(
-    "ignore:DataFrame.to_sparse:FutureWarning"
-)
-ignore_series_tosparse = pytest.mark.filterwarnings(
-    "ignore:Series.to_sparse:FutureWarning"
-)
-
 # contextmanager to ensure the file cleanup
 
 
@@ -2353,36 +2345,32 @@ class TestHDFStore(Base):
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
         self._check_roundtrip(ts3, tm.assert_series_equal, check_index_type=False)
 
-    @ignore_sparse
-    @ignore_series_tosparse
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
         s.iloc[3:5] = np.nan
-        ss = s.to_sparse()
+        ss = s.astype("Sparse")
         self._check_roundtrip(ss, tm.assert_series_equal, check_series_type=True)
 
-        ss2 = s.to_sparse(kind="integer")
+        ss2 = pd.Series(pd.SparseArray(s, kind="integer"))
         self._check_roundtrip(ss2, tm.assert_series_equal, check_series_type=True)
 
-        ss3 = s.to_sparse(fill_value=0)
+        ss3 = pd.Series(pd.SparseArray(s, fill_value=0))
         self._check_roundtrip(ss3, tm.assert_series_equal, check_series_type=True)
 
-    @ignore_sparse
-    @ignore_dataframe_tosparse
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
         s.iloc[3:5, 1:3] = np.nan
         s.iloc[8:10, -2] = np.nan
-        ss = s.to_sparse()
+        ss = s.astype("Sparse")
 
         self._check_double_roundtrip(ss, tm.assert_frame_equal, check_frame_type=True)
 
-        ss2 = s.to_sparse(kind="integer")
+        ss2 = s.apply(lambda x: pd.SparseArray(x, kind="integer"))
         self._check_double_roundtrip(ss2, tm.assert_frame_equal, check_frame_type=True)
 
-        ss3 = s.to_sparse(fill_value=0)
+        ss3 = s.apply(lambda x: pd.SparseArray(x, fill_value=0))
         self._check_double_roundtrip(ss3, tm.assert_frame_equal, check_frame_type=True)
 
     def test_float_index(self):
@@ -2709,15 +2697,13 @@ class TestHDFStore(Base):
 
             tm.assert_series_equal(store["a"], ts)
 
-    @ignore_sparse
-    @ignore_dataframe_tosparse
     def test_sparse_with_compression(self):
 
         # GH 2931
 
         # make sparse dataframe
         arr = np.random.binomial(n=1, p=0.01, size=(1000, 10))
-        df = DataFrame(arr).to_sparse(fill_value=0)
+        df = DataFrame(arr).apply(lambda x: pd.SparseArray(x, fill_value=0))
 
         # case 1: store uncompressed
         self._check_double_roundtrip(
@@ -3890,8 +3876,6 @@ class TestHDFStore(Base):
             expected = df.loc[[0], ["foo", "bar"]]
             tm.assert_frame_equal(result, expected)
 
-    @ignore_sparse
-    @ignore_dataframe_tosparse
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3931,7 +3915,7 @@ class TestHDFStore(Base):
             df = tm.makeDataFrame()
             df.iloc[3:5, 1:3] = np.nan
             df.iloc[8:10, -2] = np.nan
-            dfs = df.to_sparse()
+            dfs = df.apply(pd.SparseArray)
             store.put("dfs", dfs)
             with pytest.raises(NotImplementedError):
                 store.select("dfs", start=0, stop=5)
