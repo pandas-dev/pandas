@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
 from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
-from pandas.core.base import DataError
+from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
@@ -230,6 +230,13 @@ class NDFrameGroupBy(GroupBy):
         elif func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+        elif isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
 
         func = _maybe_mangle_lambdas(func)
 
@@ -857,6 +864,12 @@ class SeriesGroupBy(GroupBy):
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
+        elif isinstance(func, list) and len(func) > len(set(func)):
+            # GH 28426 will raise error if duplicated function names are used and
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)

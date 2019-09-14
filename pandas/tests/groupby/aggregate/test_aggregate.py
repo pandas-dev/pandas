@@ -9,6 +9,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas.core.base import SpecificationError
 from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -347,6 +348,18 @@ def test_uint64_type_handling(dtype, how):
     result = df.groupby("y").agg({"x": how})
     result.x = result.x.astype(np.int64)
     tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_func_duplicates_raises():
+    # GH28426
+    gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
+    msg = "Function names"
+    with pytest.raises(SpecificationError, match=msg):
+        gr.agg(['sum', 'sum'])
+
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+    with pytest.raises(SpecificationError, match=msg):
+        df.groupby("A").agg(['min', 'min'])
 
 
 class TestNamedAggregationSeries:
