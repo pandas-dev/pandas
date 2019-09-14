@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.algorithms import take_1d
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -75,9 +74,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         result = np.asarray(result)
 
-        # blow up if we operate on categories
         if self.orig is not None:
-            result = take_1d(result, self.orig.cat.codes)
             index = self.orig.index
         else:
             index = self._parent.index
@@ -324,7 +321,11 @@ class CombinedDatetimelikeProperties(
 
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
-            data = Series(orig.values.categories, name=orig.name, copy=False)
+            data = Series(
+                orig.values.astype(orig.values.categories.dtype),
+                name=orig.name,
+                copy=False,
+            )
 
         if is_datetime64_dtype(data.dtype):
             return DatetimeProperties(data, orig)
