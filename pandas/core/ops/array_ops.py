@@ -3,7 +3,6 @@ Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
 import operator
-from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -155,13 +154,7 @@ def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(
-    left: Union[ABCExtensionArray, np.ndarray],
-    right: Any,
-    op,
-    str_rep: Optional[str],
-    eval_kwargs: dict,
-):
+def arithmetic_op(left, right, op, str_rep, eval_kwargs):
 
     from pandas.core.ops import (
         maybe_upcast_for_op,
@@ -203,7 +196,7 @@ def arithmetic_op(
     return res_values
 
 
-def comparison_op(left: Union[ABCExtensionArray, np.ndarray], right: Any, op):
+def comparison_op(left, right, op):
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     # NB: We assume extract_array has already been called on left and right
@@ -251,7 +244,7 @@ def comparison_op(left: Union[ABCExtensionArray, np.ndarray], right: Any, op):
     return res_values
 
 
-def logical_op(left: Union[ABCExtensionArray, np.ndarray], right: Any, op):
+def logical_op(left, right, op):
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     def na_op(x, y):
