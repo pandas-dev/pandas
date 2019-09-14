@@ -47,14 +47,14 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.aligned_axes = None
         self.result_type = None
 
-    def convert(self):
+    def convert(self) -> str:
         """Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """
         return printing.pprint_thing(self.expr)
 
-    def evaluate(self):
+    def evaluate(self) -> object:
         """
         Run the engine on the expression.
 
@@ -76,7 +76,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         )
 
     @property
-    def _is_aligned(self):
+    def _is_aligned(self) -> bool:
         return self.aligned_axes is not None and self.result_type is not None
 
     @abc.abstractmethod
@@ -102,12 +102,6 @@ class NumExprEngine(AbstractEngine):
 
     has_neg_frac = True
 
-    def __init__(self, expr):
-        super().__init__(expr)
-
-    def convert(self):
-        return str(super().convert())
-
     def _evaluate(self):
         import numexpr as ne
 
@@ -120,12 +114,8 @@ class NumExprEngine(AbstractEngine):
             _check_ne_builtin_clash(self.expr)
             return ne.evaluate(s, local_dict=scope)
         except KeyError as e:
-            # python 3 compat kludge
-            try:
-                msg = e.message
-            except AttributeError:
-                msg = str(e)
-            raise UndefinedVariableError(msg)
+            name = str(e)
+            raise UndefinedVariableError(name=name)
 
 
 class PythonEngine(AbstractEngine):
@@ -137,13 +127,10 @@ class PythonEngine(AbstractEngine):
 
     has_neg_frac = False
 
-    def __init__(self, expr):
-        super().__init__(expr)
-
     def evaluate(self):
         return self.expr()
 
-    def _evaluate(self):
+    def _evaluate(self) -> None:
         pass
 
 

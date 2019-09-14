@@ -5,7 +5,7 @@ from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
 import operator as op
-from typing import Callable, Iterable, Union
+from typing import Callable, Iterable, Optional, Union
 
 import numpy as np
 
@@ -56,7 +56,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local):
+    def __init__(self, name: str, is_local: Optional[bool] = None):
         if is_local:
             msg = "local variable {0!r} is not defined"
         else:

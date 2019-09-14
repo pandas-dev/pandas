@@ -481,11 +481,13 @@ class TestDataFrameQueryNumExprPandas:
         assert_frame_equal(res, expected)
 
         # no local variable c
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(
+            UndefinedVariableError, match="local variable 'c' is not defined"
+        ):
             df.query("@a > b > @c", engine=engine, parser=parser)
 
         # no column named 'c'
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'c' is not defined"):
             df.query("@a > b > c", engine=engine, parser=parser)
 
     def test_query_doesnt_pickup_local(self):
@@ -496,7 +498,7 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list("abc"))
 
         # we don't pick up the local 'sin'
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'sin' is not defined"):
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
@@ -590,7 +592,7 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(np.random.randn(5, 3))
 
         # can't reference ourself b/c we're a local so @ is necessary
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
             df.query("df > 0", engine=self.engine, parser=self.parser)
 
     def test_local_syntax(self):
@@ -653,9 +655,9 @@ class TestDataFrameQueryNumExprPandas:
         skip_if_no_pandas_parser(parser)
 
         df = DataFrame(np.random.rand(10, 2), columns=list("ab"))
-        msg = "local variable 'c' is not defined"
-
-        with pytest.raises(UndefinedVariableError, match=msg):
+        with pytest.raises(
+            UndefinedVariableError, match="local variable 'c' is not defined"
+        ):
             df.query("a == @c", engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
@@ -787,7 +789,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         with pytest.raises(SyntaxError):
             df.query("(@df>0) & (@df2>0)", engine=engine, parser=parser)
 
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
             df.query("(df>0) & (df2>0)", engine=engine, parser=parser)
 
         expected = df[(df > 0) & (df2 > 0)]
