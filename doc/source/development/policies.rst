@@ -11,7 +11,7 @@ Version Policy
 
 .. versionchanged:: 1.0.0
 
-Pandas uses a version of `SemVer`_ to govern deprecations, API compatibility, and version numbering.
+Pandas uses a variant of `SemVer`_ to govern deprecations, API compatibility, and version numbering.
 
 A pandas release number is made up of ``MAJOR.MINOR.PATCH``.
 
