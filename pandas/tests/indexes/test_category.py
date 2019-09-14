@@ -1140,7 +1140,6 @@ class TestCategoricalIndex(Base):
     @pytest.mark.parametrize("accessor", [("year"), ("month"), ("day")])
     def test_dt_other_accessors(self, accessor):
         # GH 27952
-        tz = None
         datetimes = pd.Series(
             ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
         )
