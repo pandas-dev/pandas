@@ -3488,44 +3488,30 @@ class DataFrame(NDFrame):
                 )
             )
 
-        # empty include/exclude -> defaults to True
-        # three cases (we've already raised if both are empty)
-        # case 1: empty include, nonempty exclude
-        # we have True, True, ... True for include, same for exclude
-        # in the loop below we get the excluded
-        # and when we call '&' below we get only the excluded
-        # case 2: nonempty include, empty exclude
-        # same as case 1, but with include
-        # case 3: both nonempty
-        # the "union" of the logic of case 1 and case 2:
-        # we get the included and excluded, and return their logical and
-        include_these = Series(not bool(include), index=self.columns)
-        exclude_these = Series(not bool(exclude), index=self.columns)
-
+        # We raise when both include and exclude are empty
+        # Hence, we can just shrink the columns we want to keep
+        keep_these = Series(True, index=self.columns)
         unique_dtypes = self.dtypes.unique()
 
-        if include:
-            included_dtypes = [
+        def filter_unique_dtypes_on(selection, unqiue_dtypes):
+            result = [
                 dtype
                 for dtype in unique_dtypes
                 if any(
-                    issubclass(dtype.type, included_type) for included_type in include
+                    issubclass(dtype.type, selected_type) for selected_type in selection
                 )
             ]
-            include_these |= self.dtypes.isin(included_dtypes)
+            return result
+
+        if include:
+            included_dtypes = filter_unique_dtypes_on(include, unique_dtypes)
+            keep_these &= self.dtypes.isin(included_dtypes)
 
         if exclude:
-            excluded_dtypes = [
-                dtype
-                for dtype in unique_dtypes
-                if any(
-                    issubclass(dtype.type, excluded_type) for excluded_type in exclude
-                )
-            ]
-            exclude_these |= ~self.dtypes.isin(excluded_dtypes)
+            excluded_dtypes = filter_unique_dtypes_on(exclude, unique_dtypes)
+            keep_these &= ~self.dtypes.isin(excluded_dtypes)
 
-        dtype_indexer = include_these & exclude_these
-        return self.loc[_get_info_slice(self, dtype_indexer)]
+        return self.loc[_get_info_slice(self, keep_these)]
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
