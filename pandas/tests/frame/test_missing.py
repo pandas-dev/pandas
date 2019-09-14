@@ -671,6 +671,14 @@ class TestDataFrameMissingData:
         expected = df.astype(float).fillna(method="ffill", axis=1)
         assert_frame_equal(result, expected)
 
+    def test_fillna_columns(self):
+        df = DataFrame(np.random.randn(10, 4))
+        df.iloc[1:4, 1:4] = nan
+        expected = df.copy()
+        expected.iloc[1:4, 1:4] = 0
+        result = df.fillna(value=0, axis=1)
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna_invalid_method(self, float_frame):
         with pytest.raises(ValueError, match="ffil"):
             float_frame.fillna(method="ffil")

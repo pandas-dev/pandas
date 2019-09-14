@@ -386,7 +386,7 @@ class Block(PandasObject):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
@@ -398,13 +398,10 @@ class Block(PandasObject):
                 raise ValueError("Limit must be an integer")
             if limit < 1:
                 raise ValueError("Limit must be greater than 0")
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
+            mask[mask.cumsum(int(axis == 0 and self.ndim > 1)) > limit] = False
 
         if not self._can_hold_na:
-            if inplace:
-                return self
-            else:
-                return self.copy()
+            return self if inplace else self.copy()
 
         if self._can_hold_element(value):
             # equivalent: _try_coerce_args(value) would not raise
@@ -1842,7 +1839,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         placement = placement or slice(0, len(values), 1)
         return self.make_block_same_class(values, ndim=self.ndim, placement=placement)
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
         return [
@@ -2406,15 +2403,15 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return ObjectBlock(values, ndim=self.ndim, placement=placement)
         return super().concat_same_type(to_concat, placement)
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         if self._can_hold_element(value):
-            return super().fillna(value, limit, inplace, downcast)
+            return super().fillna(value, axis, limit, inplace, downcast)
 
         # different timezones, or a non-tz
         return self.astype(object).fillna(
-            value, limit=limit, inplace=inplace, downcast=downcast
+            value, axis=axis, limit=limit, inplace=inplace, downcast=downcast
         )
 
     def setitem(self, indexer, value):
