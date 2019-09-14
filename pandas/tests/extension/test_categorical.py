@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical
+from pandas import Categorical, CategoricalIndex
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -197,9 +197,10 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
+    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
     @pytest.mark.parametrize("value", [np.nan, -np.inf, np.inf])
-    def test_cast_nan_to_int(self, value):
-        s = pd.Series([0, 1, value], dtype="category")
+    def test_cast_nan_to_int(self, cls, value):
+        s = cls([0, 1, value])
 
         with pytest.raises(ValueError):
             s.astype(int)
