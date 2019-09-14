@@ -202,7 +202,7 @@ class TestCasting(base.BaseCastingTests):
     def test_cast_nan_to_int(self, cls, value):
         s = cls([0, 1, value])
 
-        with pytest.raises(ValueError):
+        with pytest.raises((ValueError, TypeError)):
             s.astype(int)
 
 
