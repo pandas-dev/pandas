@@ -610,10 +610,13 @@ class Describe:
 
 
 class SelectDtypes:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10, 100000))
+    params = [10, 100, 1000, 10000, 100000]
+    param_names = ["n"]
 
-    def time_select_dtypes(self):
+    def setup(self, n):
+        self.df = DataFrame(np.random.randn(10, n))
+
+    def time_select_dtypes(self, n):
         self.df.select_dtypes(include="int")
 
 
