@@ -1046,7 +1046,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._is_cython_func(how) or how
+        how = self._get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1194,7 +1194,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._is_cython_func(how) or how
+        how = self._get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1630,15 +1630,14 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):
-    from pandas.core.api import Series, DataFrame
 
-    if isinstance(obj, Series):
+    if isinstance(obj, ABCSeries):
         new_values = algos.take_1d(obj.values, indexer)
-        return Series(new_values, index=new_index, name=obj.name)
-    elif isinstance(obj, DataFrame):
+        return obj._constructor(new_values, index=new_index, name=obj.name)
+    elif isinstance(obj, ABCDataFrame):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
-        return DataFrame(
+        return obj._constructor(
             obj._data.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         )
     else:

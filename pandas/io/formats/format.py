@@ -3,10 +3,17 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
+import codecs
+from contextlib import contextmanager
+from datetime import tzinfo
+import decimal
 from functools import partial
 from io import StringIO
+import math
+import re
 from shutil import get_terminal_size
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -14,7 +21,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TextIO,
     Tuple,
     Type,
     Union,
@@ -22,10 +28,7 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile
 import numpy as np
-from numpy import float64, int32, ndarray
 
 from pandas._config.config import get_option, set_option
 
@@ -33,6 +36,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -66,7 +70,7 @@ from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _expand_user, _stringify_path
+from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -80,8 +84,8 @@ float_format_type = Union[str, Callable, "EngFormatter"]
 common_docstring = """
         Parameters
         ----------
-        buf : StringIO-like, optional
-            Buffer to write to.
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
@@ -151,8 +155,9 @@ _VALID_JUSTIFY_PARAMETERS = (
 return_docstring = """
         Returns
         -------
-        str (or unicode, depending on data and options)
-            String representation of the dataframe.
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns
+            None.
     """
 
 
@@ -160,7 +165,7 @@ class CategoricalFormatter:
     def __init__(
         self,
         categorical: "Categorical",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
@@ -223,7 +228,7 @@ class SeriesFormatter:
     def __init__(
         self,
         series: "Series",
-        buf: Optional[TextIO] = None,
+        buf: Optional[IO[str]] = None,
         length: bool = True,
         header: bool = True,
         index: bool = True,
@@ -330,9 +335,11 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self) -> List[str]:
-        values_to_format = self.tr_series._formatting_values()
         return format_array(
-            values_to_format, None, float_format=self.float_format, na_rep=self.na_rep
+            self.tr_series._values,
+            None,
+            float_format=self.float_format,
+            na_rep=self.na_rep,
         )
 
     def to_string(self) -> str:
@@ -462,6 +469,50 @@ class TableFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
+    @contextmanager
+    def get_buffer(
+        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
+    ):
+        """
+        Context manager to open, yield and close buffer for filenames or Path-like
+        objects, otherwise yield buf unchanged.
+        """
+        if buf is not None:
+            buf = _stringify_path(buf)
+        else:
+            buf = StringIO()
+
+        if encoding is None:
+            encoding = "utf-8"
+
+        if hasattr(buf, "write"):
+            yield buf
+        elif isinstance(buf, str):
+            with codecs.open(buf, "w", encoding=encoding) as f:
+                yield f
+        else:
+            raise TypeError("buf is not a file name and it has no write method")
+
+    def write_result(self, buf: IO[str]) -> None:
+        """
+        Write the result of serialization to buf.
+        """
+        raise AbstractMethodError(self)
+
+    def get_result(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Perform serialization. Write to buf or return as string if buf is None.
+        """
+        with self.get_buffer(buf, encoding=encoding) as f:
+            self.write_result(buf=f)
+            if buf is None:
+                return f.getvalue()
+            return None
+
 
 class DataFrameFormatter(TableFormatter):
     """
@@ -479,7 +530,6 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        buf: Optional[FilePathOrBuffer] = None,
         columns: Optional[List[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, List[str]] = True,
@@ -498,13 +548,10 @@ class DataFrameFormatter(TableFormatter):
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
-        **kwds
+        bold_rows: bool = False,
+        escape: bool = True,
     ):
         self.frame = frame
-        if buf is not None:
-            self.buf = _expand_user(_stringify_path(buf))
-        else:
-            self.buf = StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -533,7 +580,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.justify = justify
 
-        self.kwds = kwds
+        self.bold_rows = bold_rows
+        self.escape = escape
 
         if columns is not None:
             self.columns = ensure_index(columns)
@@ -726,7 +774,7 @@ class DataFrameFormatter(TableFormatter):
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def to_string(self) -> None:
+    def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -781,10 +829,10 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        self.buf.writelines(text)
+        buf.writelines(text)
 
         if self.should_show_dimensions:
-            self.buf.write(
+            buf.write(
                 "\n\n[{nrows} rows x {ncols} columns]".format(
                     nrows=len(frame), ncols=len(frame.columns)
                 )
@@ -827,49 +875,43 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
+    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
+        return self.get_result(buf=buf)
+
     def to_latex(
         self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         column_format: Optional[str] = None,
         longtable: bool = False,
         encoding: Optional[str] = None,
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-    ) -> None:
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
+    ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
         from pandas.io.formats.latex import LatexFormatter
 
-        latex_renderer = LatexFormatter(
+        return LatexFormatter(
             self,
             column_format=column_format,
             longtable=longtable,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
-        )
-
-        if encoding is None:
-            encoding = "utf-8"
-
-        if hasattr(self.buf, "write"):
-            latex_renderer.write_result(self.buf)
-        elif isinstance(self.buf, str):
-            import codecs
-
-            with codecs.open(self.buf, "w", encoding=encoding) as f:
-                latex_renderer.write_result(f)
-        else:
-            raise TypeError("buf is not a file name and it has no write " "method")
+            caption=caption,
+            label=label,
+        ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
-        values_to_format = frame.iloc[:, i]._formatting_values()
         return format_array(
-            values_to_format,
+            frame.iloc[:, i]._values,
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -879,10 +921,11 @@ class DataFrameFormatter(TableFormatter):
 
     def to_html(
         self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
-    ) -> None:
+    ) -> Optional[str]:
         """
         Render a DataFrame to a html table.
 
@@ -900,14 +943,7 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        html = Klass(self, classes=classes, border=border).render()
-        if hasattr(self.buf, "write"):
-            buffer_put_lines(self.buf, html)
-        elif isinstance(self.buf, str):
-            with open(self.buf, "w") as f:
-                buffer_put_lines(f, html)
-        else:
-            raise TypeError("buf is not a file name and it has no write " " method")
+        return Klass(self, classes=classes, border=border).get_result(buf=buf)
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
@@ -1124,7 +1160,7 @@ class GenericArrayFormatter:
         self.fixed_width = fixed_width
         self.leading_space = leading_space
 
-    def get_result(self) -> Union[ndarray, List[str]]:
+    def get_result(self) -> List[str]:
         fmt_values = self._format_strings()
         return _make_fixed_width(fmt_values, self.justify)
 
@@ -1260,7 +1296,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         return formatter
 
-    def get_result_as_array(self) -> Union[ndarray, List[str]]:
+    def get_result_as_array(self) -> np.ndarray:
         """
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
@@ -1300,9 +1336,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    return _trim_zeros_complex(values, na_rep)
+                    result = _trim_zeros_complex(values, na_rep)
                 else:
-                    return _trim_zeros_float(values, na_rep)
+                    result = _trim_zeros_float(values, na_rep)
+                return np.asarray(result, dtype="object")
 
             return values
 
@@ -1367,7 +1404,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs
@@ -1424,7 +1461,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
 def format_percentiles(
     percentiles: Union[
-        ndarray, List[Union[int, float]], List[float], List[Union[str, float]]
+        np.ndarray, List[Union[int, float]], List[float], List[Union[str, float]]
     ]
 ) -> List[str]:
     """
@@ -1492,7 +1529,9 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def _is_dates_only(values: Union[ndarray, DatetimeArray, Index, DatetimeIndex]) -> bool:
+def _is_dates_only(
+    values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
+) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
     assert values.ndim == 1
 
@@ -1512,9 +1551,7 @@ def _is_dates_only(values: Union[ndarray, DatetimeArray, Index, DatetimeIndex]) 
 
 
 def _format_datetime64(
-    x: Union[NaTType, Timestamp],
-    tz: Optional[Union[tzfile, tzutc]] = None,
-    nat_rep: str = "NaT",
+    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
 ) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
@@ -1556,7 +1593,7 @@ def _get_format_datetime64(
 
 
 def _get_format_datetime64_from_values(
-    values: Union[ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
+    values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
 
@@ -1588,7 +1625,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
 class Timedelta64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[ndarray, TimedeltaIndex],
+        values: Union[np.ndarray, TimedeltaIndex],
         nat_rep: str = "NaT",
         box: bool = False,
         **kwargs
@@ -1597,16 +1634,15 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.nat_rep = nat_rep
         self.box = box
 
-    def _format_strings(self) -> ndarray:
+    def _format_strings(self) -> List[str]:
         formatter = self.formatter or _get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )
-        fmt_values = np.array([formatter(x) for x in self.values])
-        return fmt_values
+        return [formatter(x) for x in self.values]
 
 
 def _get_format_timedelta64(
-    values: Union[ndarray, TimedeltaIndex, TimedeltaArray],
+    values: Union[np.ndarray, TimedeltaIndex, TimedeltaArray],
     nat_rep: str = "NaT",
     box: bool = False,
 ) -> Callable:
@@ -1651,11 +1687,11 @@ def _get_format_timedelta64(
 
 
 def _make_fixed_width(
-    strings: Union[ndarray, List[str]],
+    strings: List[str],
     justify: str = "right",
     minimum: Optional[int] = None,
     adj: Optional[TextAdjustment] = None,
-) -> Union[ndarray, List[str]]:
+) -> List[str]:
 
     if len(strings) == 0 or justify == "all":
         return strings
@@ -1683,26 +1719,19 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(str_complexes: ndarray, na_rep: str = "NaN") -> List[str]:
+def _trim_zeros_complex(str_complexes: np.ndarray, na_rep: str = "NaN") -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-
-    def separate_and_trim(str_complex, na_rep):
-        num_arr = str_complex.split("+")
-        return (
-            _trim_zeros_float([num_arr[0]], na_rep)
-            + ["+"]
-            + _trim_zeros_float([num_arr[1][:-1]], na_rep)
-            + ["j"]
-        )
-
-    return ["".join(separate_and_trim(x, na_rep)) for x in str_complexes]
+    return [
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), na_rep))
+        for x in str_complexes
+    ]
 
 
 def _trim_zeros_float(
-    str_floats: Union[ndarray, List[str]], na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], na_rep: str = "NaN"
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
@@ -1729,7 +1758,7 @@ def _trim_zeros_float(
 
 def _has_names(index: Index) -> bool:
     if isinstance(index, ABCMultiIndex):
-        return com._any_not_none(*index.names)
+        return com.any_not_none(*index.names)
     else:
         return index.name is not None
 
@@ -1766,7 +1795,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: Union[float64, int, float]) -> str:
+    def __call__(self, num: Union[int, float]) -> str:
         """ Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
@@ -1787,9 +1816,6 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        import decimal
-        import math
-
         dnum = decimal.Decimal(str(num))
 
         if decimal.Decimal.is_nan(dnum):
@@ -1846,7 +1872,7 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _binify(cols: List[int32], line_width: Union[int32, int]) -> List[int]:
+def _binify(cols: List[np.int32], line_width: Union[np.int32, int]) -> List[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0
@@ -1908,7 +1934,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(buf: TextIO, lines: List[str]) -> None:
+def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     """
     Appends lines to a buffer.
 

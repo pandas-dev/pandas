@@ -1,5 +1,5 @@
 """ common type operations """
-from typing import Any, Union
+from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
@@ -141,7 +141,7 @@ def ensure_categorical(arr):
     return arr
 
 
-def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
@@ -207,12 +207,12 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     return new_value
 
 
-def classes(*klasses):
+def classes(*klasses) -> Callable:
     """ evaluate if the tipo is a subclass of the klasses """
     return lambda tipo: issubclass(tipo, klasses)
 
 
-def classes_and_not_datetimelike(*klasses):
+def classes_and_not_datetimelike(*klasses) -> Callable:
     """
     evaluate if the tipo is a subclass of the klasses
     and not a datetimelike
@@ -355,7 +355,7 @@ def is_scipy_sparse(arr):
     return _is_scipy_sparse(arr)
 
 
-def is_categorical(arr):
+def is_categorical(arr) -> bool:
     """
     Check whether an array-like is a Categorical instance.
 
@@ -676,7 +676,7 @@ def is_interval_dtype(arr_or_dtype):
     return IntervalDtype.is_dtype(arr_or_dtype)
 
 
-def is_categorical_dtype(arr_or_dtype):
+def is_categorical_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Categorical dtype.
 
@@ -899,7 +899,7 @@ def is_dtype_equal(source, target):
         return False
 
 
-def is_any_int_dtype(arr_or_dtype):
+def is_any_int_dtype(arr_or_dtype) -> bool:
     """Check whether the provided array or dtype is of an integer dtype.
 
     In this function, timedelta64 instances are also considered "any-integer"
@@ -1161,7 +1161,7 @@ def is_int64_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
-def is_datetime64_any_dtype(arr_or_dtype):
+def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64 dtype.
 
@@ -1321,7 +1321,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
-def _is_unorderable_exception(e):
+def _is_unorderable_exception(e: TypeError) -> bool:
     """
     Check if the exception raised is an unorderable exception.
 
@@ -1617,7 +1617,7 @@ def is_float_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.floating))
 
 
-def is_bool_dtype(arr_or_dtype):
+def is_bool_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a boolean dtype.
 
@@ -1790,7 +1790,7 @@ def is_extension_array_dtype(arr_or_dtype):
     return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
 
 
-def is_complex_dtype(arr_or_dtype):
+def is_complex_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a complex dtype.
 
@@ -1823,7 +1823,7 @@ def is_complex_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.complexfloating))
 
 
-def _is_dtype(arr_or_dtype, condition):
+def _is_dtype(arr_or_dtype, condition) -> bool:
     """
     Return a boolean if the condition is satisfied for the arr_or_dtype.
 
@@ -1884,7 +1884,7 @@ def _get_dtype(arr_or_dtype):
     return pandas_dtype(arr_or_dtype)
 
 
-def _is_dtype_type(arr_or_dtype, condition):
+def _is_dtype_type(arr_or_dtype, condition) -> bool:
     """
     Return a boolean if the condition is satisfied for the arr_or_dtype.
 
@@ -1993,7 +1993,7 @@ def infer_dtype_from_object(dtype):
     return infer_dtype_from_object(np.dtype(dtype))
 
 
-def _validate_date_like_dtype(dtype):
+def _validate_date_like_dtype(dtype) -> None:
     """
     Check whether the dtype is a date-like dtype. Raises an error if invalid.
 
@@ -2049,10 +2049,8 @@ def pandas_dtype(dtype):
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except Exception:
-        # we don't want to force a repr of the non-string
-        if not isinstance(dtype, str):
-            raise TypeError("data type not understood")
+    except SyntaxError:
+        # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError("data type '{}' not understood".format(dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.

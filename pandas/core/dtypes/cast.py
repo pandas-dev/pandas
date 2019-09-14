@@ -46,6 +46,7 @@ from .common import (
 )
 from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
 from .generic import (
+    ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCPeriodArray,
@@ -95,12 +96,13 @@ def maybe_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    do_round = False
 
     if is_scalar(result):
         return result
-
-    def trans(x):
-        return x
+    elif isinstance(result, ABCDataFrame):
+        # occurs in pivot_table doctest
+        return result
 
     if isinstance(dtype, str):
         if dtype == "infer":
@@ -118,83 +120,115 @@ def maybe_downcast_to_dtype(result, dtype):
             elif inferred_type == "floating":
                 dtype = "int64"
                 if issubclass(result.dtype.type, np.number):
-
-                    def trans(x):  # noqa
-                        return x.round()
+                    do_round = True
 
             else:
                 dtype = "object"
 
-    if isinstance(dtype, str):
         dtype = np.dtype(dtype)
 
-    try:
+    converted = maybe_downcast_numeric(result, dtype, do_round)
+    if converted is not result:
+        return converted
 
-        # don't allow upcasts here (except if empty)
-        if dtype.kind == result.dtype.kind:
-            if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
-                return result
+    # a datetimelike
+    # GH12821, iNaT is casted to float
+    if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
+        if hasattr(dtype, "tz"):
+            # not a numpy dtype
+            if dtype.tz:
+                # convert to datetime and change timezone
+                from pandas import to_datetime
 
-        if is_bool_dtype(dtype) or is_integer_dtype(dtype):
+                result = to_datetime(result).tz_localize("utc")
+                result = result.tz_convert(dtype.tz)
+        else:
+            result = result.astype(dtype)
 
-            # if we don't have any elements, just astype it
-            if not np.prod(result.shape):
-                return trans(result).astype(dtype)
+    elif dtype.type is Period:
+        # TODO(DatetimeArray): merge with previous elif
+        from pandas.core.arrays import PeriodArray
 
-            # do a test on the first element, if it fails then we are done
-            r = result.ravel()
-            arr = np.array([r[0]])
-
-            # if we have any nulls, then we are done
-            if isna(arr).any() or not np.allclose(
-                arr, trans(arr).astype(dtype), rtol=0
-            ):
-                return result
-
-            # a comparable, e.g. a Decimal may slip in here
-            elif not isinstance(
-                r[0], (np.integer, np.floating, np.bool, int, float, bool)
-            ):
-                return result
-
-            if (
-                issubclass(result.dtype.type, (np.object_, np.number))
-                and notna(result).all()
-            ):
-                new_result = trans(result).astype(dtype)
-                try:
-                    if np.allclose(new_result, result, rtol=0):
-                        return new_result
-                except Exception:
-
-                    # comparison of an object dtype with a number type could
-                    # hit here
-                    if (new_result == result).all():
-                        return new_result
-        elif issubclass(dtype.type, np.floating) and not is_bool_dtype(result.dtype):
-            return result.astype(dtype)
-
-        # a datetimelike
-        # GH12821, iNaT is casted to float
-        elif dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-            try:
-                result = result.astype(dtype)
-            except Exception:
-                if dtype.tz:
-                    # convert to datetime and change timezone
-                    from pandas import to_datetime
-
-                    result = to_datetime(result).tz_localize("utc")
-                    result = result.tz_convert(dtype.tz)
-
-        elif dtype.type == Period:
-            # TODO(DatetimeArray): merge with previous elif
-            from pandas.core.arrays import PeriodArray
-
+        try:
             return PeriodArray(result, freq=dtype.freq)
+        except TypeError:
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            pass
 
-    except Exception:
-        pass
+    return result
+
+
+def maybe_downcast_numeric(result, dtype, do_round: bool = False):
+    """
+    Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
+
+    Parameters
+    ----------
+    result : ndarray or ExtensionArray
+    dtype : np.dtype or ExtensionDtype
+    do_round : bool
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    if not isinstance(dtype, np.dtype):
+        # e.g. SparseDtype has no itemsize attr
+        return result
+
+    if isinstance(result, list):
+        # reached via groupoby.agg _ohlc; really this should be handled
+        #  earlier
+        result = np.array(result)
+
+    def trans(x):
+        if do_round:
+            return x.round()
+        return x
+
+    if dtype.kind == result.dtype.kind:
+        # don't allow upcasts here (except if empty)
+        if result.dtype.itemsize <= dtype.itemsize and result.size:
+            return result
+
+    if is_bool_dtype(dtype) or is_integer_dtype(dtype):
+
+        if not result.size:
+            # if we don't have any elements, just astype it
+            return trans(result).astype(dtype)
+
+        # do a test on the first element, if it fails then we are done
+        r = result.ravel()
+        arr = np.array([r[0]])
+
+        if isna(arr).any() or not np.allclose(arr, trans(arr).astype(dtype), rtol=0):
+            # if we have any nulls, then we are done
+            return result
+
+        elif not isinstance(r[0], (np.integer, np.floating, np.bool, int, float, bool)):
+            # a comparable, e.g. a Decimal may slip in here
+            return result
+
+        if (
+            issubclass(result.dtype.type, (np.object_, np.number))
+            and notna(result).all()
+        ):
+            new_result = trans(result).astype(dtype)
+            if new_result.dtype.kind == "O" or result.dtype.kind == "O":
+                # np.allclose may raise TypeError on object-dtype
+                if (new_result == result).all():
+                    return new_result
+            else:
+                if np.allclose(new_result, result, rtol=0):
+                    return new_result
+
+    elif (
+        issubclass(dtype.type, np.floating)
+        and not is_bool_dtype(result.dtype)
+        and not is_string_dtype(result.dtype)
+    ):
+        return result.astype(dtype)
 
     return result
 
@@ -252,14 +286,18 @@ def maybe_upcast_putmask(result, mask, other):
             # length of the boolean
             try:
                 om = other[mask]
+            except (IndexError, TypeError):
+                # IndexError occurs in test_upcast when we have a boolean
+                #  mask of the wrong shape
+                # TypeError occurs in test_upcast when `other` is a bool
+                pass
+            else:
                 om_at = om.astype(result.dtype)
                 if (om == om_at).all():
                     new_result = result.values.copy()
                     new_result[mask] = om_at
                     result[:] = new_result
                     return result, False
-            except Exception:
-                pass
 
             # we are forced to change the dtype of the result as the input
             # isn't compatible
@@ -290,7 +328,8 @@ def maybe_upcast_putmask(result, mask, other):
 
         try:
             np.place(result, mask, other)
-        except Exception:
+        except TypeError:
+            # e.g. int-dtype result and float-dtype other
             return changeit()
 
     return result, False
@@ -602,24 +641,21 @@ def coerce_to_dtypes(result, dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
     def conv(r, dtype):
-        try:
-            if isna(r):
-                pass
-            elif dtype == _NS_DTYPE:
-                r = tslibs.Timestamp(r)
-            elif dtype == _TD_DTYPE:
-                r = tslibs.Timedelta(r)
-            elif dtype == np.bool_:
-                # messy. non 0/1 integers do not get converted.
-                if is_integer(r) and r not in [0, 1]:
-                    return int(r)
-                r = bool(r)
-            elif dtype.kind == "f":
-                r = float(r)
-            elif dtype.kind == "i":
-                r = int(r)
-        except Exception:
+        if np.any(isna(r)):
             pass
+        elif dtype == _NS_DTYPE:
+            r = tslibs.Timestamp(r)
+        elif dtype == _TD_DTYPE:
+            r = tslibs.Timedelta(r)
+        elif dtype == np.bool_:
+            # messy. non 0/1 integers do not get converted.
+            if is_integer(r) and r not in [0, 1]:
+                return int(r)
+            r = bool(r)
+        elif dtype.kind == "f":
+            r = float(r)
+        elif dtype.kind == "i":
+            r = int(r)
 
         return r
 
@@ -760,13 +796,13 @@ def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
                 new_values = lib.maybe_convert_numeric(
                     values, set(), coerce_numeric=True
                 )
-
+            except Exception:
+                pass
+            else:
                 # if we are all nans then leave me alone
                 if not isna(new_values).all():
                     values = new_values
 
-            except Exception:
-                pass
         else:
             # soft-conversion
             values = lib.maybe_convert_objects(values)
@@ -839,11 +875,12 @@ def soft_convert_objects(
     if numeric and is_object_dtype(values.dtype):
         try:
             converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+        except Exception:
+            pass
+        else:
             # If all NaNs, then do not-alter
             values = converted if not isna(converted).all() else values
             values = values.copy() if copy else values
-        except Exception:
-            pass
 
     return values
 
@@ -938,7 +975,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
         try:
             return to_timedelta(v)._ndarray_values.reshape(shape)
-        except Exception:
+        except ValueError:
             return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
@@ -992,7 +1029,10 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
             )
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
-                if dtype.name in ("datetime64", "datetime64[ns]"):
+
+                # pandas supports dtype whose granularity is less than [ns]
+                # e.g., [ps], [fs], [as]
+                if dtype <= np.dtype("M8[ns]"):
                     if dtype.name == "datetime64":
                         raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _NS_DTYPE
@@ -1010,7 +1050,10 @@ def maybe_cast_to_datetime(value, dtype, errors="raise"):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
-                if dtype.name in ("timedelta64", "timedelta64[ns]"):
+
+                # pandas supports dtype whose granularity is less than [ns]
+                # e.g., [ps], [fs], [as]
+                if dtype <= np.dtype("m8[ns]"):
                     if dtype.name == "timedelta64":
                         raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _TD_DTYPE

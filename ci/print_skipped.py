@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import math
 import os
 import sys
-import math
 import xml.etree.ElementTree as et
 
 

@@ -1860,3 +1860,91 @@ def test_groupby_groups_in_BaseGrouper():
     result = df.groupby(["beta", pd.Grouper(level="alpha")])
     expected = df.groupby(["beta", "alpha"])
     assert result.groups == expected.groups
+
+
+@pytest.mark.parametrize("group_name", ["x", ["x"]])
+def test_groupby_axis_1(group_name):
+    # GH 27614
+    df = pd.DataFrame(
+        np.arange(12).reshape(3, 4), index=[0, 1, 0], columns=[10, 20, 10, 20]
+    )
+    df.index.name = "y"
+    df.columns.name = "x"
+
+    results = df.groupby(group_name, axis=1).sum()
+    expected = df.T.groupby(group_name).sum().T
+    assert_frame_equal(results, expected)
+
+    # test on MI column
+    iterables = [["bar", "baz", "foo"], ["one", "two"]]
+    mi = pd.MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
+    df = pd.DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
+    results = df.groupby(group_name, axis=1).sum()
+    expected = df.T.groupby(group_name).sum().T
+    assert_frame_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (
+            "shift",
+            {
+                "time": [
+                    None,
+                    None,
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    None,
+                    None,
+                ]
+            },
+        ),
+        (
+            "bfill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+        (
+            "ffill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+    ],
+)
+def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
+    # GH19995, GH27992: Check that timezone does not drop in shift, bfill, and ffill
+    tz = tz_naive_fixture
+    data = {
+        "id": ["A", "B", "A", "B", "A", "B"],
+        "time": [
+            Timestamp("2019-01-01 12:00:00"),
+            Timestamp("2019-01-01 12:30:00"),
+            None,
+            None,
+            Timestamp("2019-01-01 14:00:00"),
+            Timestamp("2019-01-01 14:30:00"),
+        ],
+    }
+    df = DataFrame(data).assign(time=lambda x: x.time.dt.tz_localize(tz))
+
+    grouped = df.groupby("id")
+    result = getattr(grouped, op)()
+    expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
+    assert_frame_equal(result, expected)

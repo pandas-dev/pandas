@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import warnings
+import weakref
 
 import numpy as np
 
@@ -63,7 +64,10 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 
     _delegate_class = PeriodArray
     _delegated_properties = PeriodArray._datetimelike_ops
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | {"_addsub_int_array"}
+    _delegated_methods = set(PeriodArray._datetimelike_methods) | {
+        "_addsub_int_array",
+        "strftime",
+    }
     _raw_properties = {"is_leap_year"}
 
 
@@ -173,6 +177,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _data = None
 
     _engine_type = libindex.PeriodEngine
+    _supports_partial_string_indexing = True
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -437,7 +442,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+        # To avoid a reference cycle, pass a weakref of self to _engine_type.
+        period = weakref.ref(self)
+        return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
     def __contains__(self, key):
@@ -644,10 +651,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(target, PeriodIndex):
             target = target.asi8
+            self_index = self._int64index
+        else:
+            self_index = self
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
-        return Index.get_indexer(self._int64index, target, method, limit, tolerance)
+        return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -805,7 +815,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def _get_string_slice(self, key):
         if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for " "ordered time series")
+            raise ValueError("Partial indexing only valid for ordered time series")
 
         key, parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
@@ -822,7 +832,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
         if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match " "target index size")
+            raise ValueError("list-like tolerance size must match target index size")
         return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):
@@ -931,11 +941,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return the first element of the underlying data as a python
         scalar
 
-        .. deprecated 0.25.0
+        .. deprecated:: 0.25.0
 
         """
         warnings.warn(
-            "`item` has been deprecated and will be removed in a " "future version",
+            "`item` has been deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
@@ -943,10 +953,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if len(self) == 1:
             return self[0]
         else:
+            # TODO: is this still necessary?
             # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError(
-                "can only convert an array of size 1 to a " "Python scalar"
-            )
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def data(self):
@@ -988,7 +997,7 @@ PeriodIndex._add_datetimelike_methods()
 def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
     Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency
+    frequency.
 
     Parameters
     ----------

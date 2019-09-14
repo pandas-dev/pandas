@@ -1,22 +1,23 @@
 import warnings
 
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
-    Series,
-    DataFrame,
-    MultiIndex,
-    Int64Index,
-    UInt64Index,
-    Float64Index,
-    IntervalIndex,
     CategoricalIndex,
+    DataFrame,
+    Float64Index,
     IndexSlice,
+    Int64Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    UInt64Index,
     concat,
     date_range,
     option_context,
     period_range,
 )
+import pandas.util.testing as tm
 
 
 class NumericSeriesIndexing:
@@ -129,10 +130,6 @@ class NonNumericSeriesIndexing:
     def time_getitem_pos_slice(self, index, index_structure):
         self.s[:80000]
 
-    def time_get_value(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.s.get_value(self.lbl)
-
     def time_getitem_scalar(self, index, index_structure):
         self.s[self.lbl]
 
@@ -150,10 +147,6 @@ class DataFrameStringIndexing:
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
         self.bool_obj_indexer = self.bool_indexer.astype(object)
-
-    def time_get_value(self):
-        with warnings.catch_warnings(record=True):
-            self.df.get_value(self.idx_scalar, self.col_scalar)
 
     def time_ix(self):
         with warnings.catch_warnings(record=True):
@@ -379,4 +372,4 @@ class ChainIndexing:
                 df2["C"] = 1.0
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

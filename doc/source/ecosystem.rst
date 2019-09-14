@@ -23,6 +23,21 @@ or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 We'd like to make it easier for users to find these projects, if you know of other
 substantial projects that you feel should be on this list, please let us know.
 
+.. _ecosystem.data_cleaning_and_validation:
+
+Data cleaning and validation
+----------------------------
+
+`pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pyjanitor provides a clean API for cleaning data, using method chaining.
+
+`Engarde <https://engarde.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Engarde is a lightweight library used to explicitly state assumptions about your datasets
+and check that they're *actually* true.
 
 .. _ecosystem.stats:
 
@@ -71,6 +86,17 @@ Bokeh is a Python interactive visualization library for large datasets that nati
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
 graphics in the style of Protovis/D3, while delivering high-performance interactivity over
 large data to thin clients.
+
+`Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
+for Bokeh that can be loaded as a native Pandas plotting backend via
+
+.. code:: python
+
+    pd.set_option("plotting.backend", "pandas_bokeh")
+
+It is very similar to the matplotlib plotting backend, but provides interactive
+web-based charts and maps.
+
 
 `seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -317,18 +343,6 @@ Increasingly, packages are being built on top of pandas to address specific need
 
  * vaex.from_pandas
  * vaex.to_pandas_df
-
-
-.. _ecosystem.data_validation:
-
-Data validation
----------------
-
-`Engarde <https://engarde.readthedocs.io/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Engarde is a lightweight library used to explicitly state your assumptions about your datasets
-and check that they're *actually* true.
 
 .. _ecosystem.extensions:
 

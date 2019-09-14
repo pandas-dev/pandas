@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.construction import extract_array
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -202,19 +203,19 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
 
         # we are already a Categorical
         if is_categorical_dtype(key):
-            c = key
+            cat = key
 
         # create the Categorical
         else:
-            c = Categorical(key, ordered=True)
+            cat = Categorical(key, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError("invalid na_position: {!r}".format(na_position))
 
-        n = len(c.categories)
-        codes = c.codes.copy()
+        n = len(cat.categories)
+        codes = cat.codes.copy()
 
-        mask = c.codes == -1
+        mask = cat.codes == -1
         if order:  # ascending
             if na_position == "last":
                 codes = np.where(mask, n, codes)
@@ -240,8 +241,6 @@ def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
     handles NaNs. It adds ascending and na_position parameters.
     GH #6399, #5231
     """
-    from pandas.core.internals.arrays import extract_array
-
     items = extract_array(items)
     mask = np.asarray(isna(items))
 
@@ -272,7 +271,6 @@ def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
 
 
 class _KeyMapper:
-
     """
     Ease my suffering. Map compressed group id -> key tuple
     """
@@ -437,7 +435,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
     """
     if not is_list_like(values):
         raise TypeError(
-            "Only list-like objects are allowed to be passed to" "safe_sort as values"
+            "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
     if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):

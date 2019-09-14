@@ -1,9 +1,10 @@
-import string
 from itertools import product
+import string
 
 import numpy as np
-from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+
 import pandas as pd
+from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
 
 
 class Melt:
@@ -214,6 +215,7 @@ class Cut:
         self.datetime_series = pd.Series(
             np.random.randint(N, size=N), dtype="datetime64[ns]"
         )
+        self.interval_bins = pd.IntervalIndex.from_breaks(np.linspace(0, N, bins))
 
     def time_cut_int(self, bins):
         pd.cut(self.int_series, bins)
@@ -239,6 +241,14 @@ class Cut:
     def time_qcut_datetime(self, bins):
         pd.qcut(self.datetime_series, bins)
 
+    def time_cut_interval(self, bins):
+        # GH 27668
+        pd.cut(self.int_series, self.interval_bins)
+
+    def peakmem_cut_interval(self, bins):
+        # GH 27668
+        pd.cut(self.int_series, self.interval_bins)
+
 
 class Explode:
     param_names = ["n_rows", "max_list_length"]
@@ -253,4 +263,4 @@ class Explode:
         self.series.explode()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

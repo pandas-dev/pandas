@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
@@ -52,6 +53,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 
@@ -120,7 +122,7 @@ class SparseDtype(ExtensionDtype):
 
         if not is_scalar(fill_value):
             raise ValueError(
-                "fill_value must be a scalar. Got {} " "instead".format(fill_value)
+                "fill_value must be a scalar. Got {} instead".format(fill_value)
             )
         self._dtype = dtype
         self._fill_value = fill_value
@@ -243,10 +245,10 @@ class SparseDtype(ExtensionDtype):
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
-                result = SparseDtype(sub_type)
-            except Exception:
+            except ValueError:
                 raise TypeError(msg)
             else:
+                result = SparseDtype(sub_type)
                 msg = (
                     "Could not construct SparseDtype from '{}'.\n\nIt "
                     "looks like the fill_value in the string is not "
@@ -601,10 +603,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         dtype=None,
         copy=False,
     ):
-        from pandas.core.internals import SingleBlockManager
-
-        if isinstance(data, SingleBlockManager):
-            data = data.internal_values()
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
@@ -664,7 +662,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not is_array_like(data):
             try:
                 # probably shared code in sanitize_series
-                from pandas.core.internals.construction import sanitize_array
 
                 data = sanitize_array(data, index=None)
             except ValueError:
@@ -843,7 +840,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
@@ -858,7 +855,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         mask = notna(sp_vals)
         return sp_vals[mask]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.sp_index.length
 
     @property
@@ -872,7 +869,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.fill_value == fill_value
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
@@ -890,7 +887,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return r
 
     @property
-    def npoints(self):
+    def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
 
@@ -1143,7 +1140,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
             raise ValueError(
-                "'indices' must be an array, not a " "scalar '{}'.".format(indices)
+                "'indices' must be an array, not a scalar '{}'.".format(indices)
             )
         indices = np.asarray(indices, dtype=np.int32)
 
@@ -1180,7 +1177,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 taken.fill(fill_value)
                 return taken
             else:
-                raise IndexError("cannot do a non-empty take from an empty " "axes.")
+                raise IndexError("cannot do a non-empty take from an empty axes.")
 
         sp_indexer = self.sp_index.lookup_array(indices)
 
@@ -1230,7 +1227,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if (indices.max() >= n) or (indices.min() < -n):
             if n == 0:
-                raise IndexError("cannot do a non-empty take from an " "empty axes.")
+                raise IndexError("cannot do a non-empty take from an empty axes.")
             else:
                 raise IndexError("out of bounds value in 'indices'.")
 
@@ -1697,6 +1694,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
+            elif is_scalar(sp_values):
+                # e.g. reductions
+                return sp_values
 
             return self._simple_new(
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
@@ -1736,12 +1736,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
-        def sparse_arithmetic_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+        def sparse_arithmetic_method(self, other):
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to dispatch to us.
                 return NotImplemented
+
+            other = lib.item_from_zerodim(other)
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
@@ -1785,11 +1787,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        def cmp_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
+        if op_name in {"and_", "or_"}:
+            op_name = op_name[:-1]
 
-            if op_name in {"and_", "or_"}:
-                op_name = op_name[:-1]
+        def cmp_method(self, other):
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
@@ -1857,15 +1859,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 SparseArray._add_arithmetic_ops()
 SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
-
-
-def _maybe_to_dense(obj):
-    """
-    try to convert to dense
-    """
-    if hasattr(obj, "to_dense"):
-        return obj.to_dense()
-    return obj
 
 
 def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
@@ -2115,7 +2108,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
-    .. versionadded :: 0.25.0
+    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
