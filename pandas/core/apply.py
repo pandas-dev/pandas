@@ -199,20 +199,21 @@ class FrameApply:
             return self.obj.copy()
 
         # we may need to infer
-        reduce = self.result_type == "reduce"
+        should_reduce = self.result_type == "reduce"
 
         from pandas import Series
 
-        if not reduce:
+        if not should_reduce:
 
             EMPTY_SERIES = Series([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
-                reduce = not isinstance(r, Series)
             except Exception:
                 pass
+            else:
+                should_reduce = not isinstance(r, Series)
 
-        if reduce:
+        if should_reduce:
             return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
         else:
             return self.obj.copy()
@@ -306,10 +307,11 @@ class FrameApply:
             for i, v in enumerate(series_gen):
                 try:
                     results[i] = self.f(v)
-                    keys.append(v.name)
-                    successes.append(i)
                 except Exception:
                     pass
+                else:
+                    keys.append(v.name)
+                    successes.append(i)
 
             # so will work with MultiIndex
             if len(successes) < len(res_index):
