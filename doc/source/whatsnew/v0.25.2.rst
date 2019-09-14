@@ -6,6 +6,13 @@ What's new in 0.25.2 (October XX, 2019)
 These are the changes in pandas 0.25.2. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. _whatsnew_0252.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improves :meth:`DataFrame.select_dtypes` performance by using vectorization instead of iterating over a loop. With this improvement :meth:`DataFrame.select_dtypes` becomes feasible for dataframes with lots of columns. (:issue:`28317`)
+
 .. _whatsnew_0252.bug_fixes:
 
 Bug fixes
