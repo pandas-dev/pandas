@@ -451,9 +451,9 @@ def pipe(obj, func, *args, **kwargs):
         string indicating the keyword of `callable`` that expects the
         object.
     *args : iterable, optional
-        positional arguments passed into ``func``.
+        Positional arguments passed into ``func``.
     **kwargs : dict, optional
-        a dictionary of keyword arguments passed into ``func``.
+        A dictionary of keyword arguments passed into ``func``.
 
     Returns
     -------
