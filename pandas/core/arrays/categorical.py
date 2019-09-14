@@ -1,3 +1,4 @@
+import operator
 from shutil import get_terminal_size
 import textwrap
 from typing import Type, Union, cast
@@ -77,7 +78,9 @@ _take_msg = textwrap.dedent(
 )
 
 
-def _cat_compare_op(opname):
+def _cat_compare_op(op):
+    opname = "__{op}__".format(op=op.__name__)
+
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
@@ -88,6 +91,9 @@ def _cat_compare_op(opname):
             return NotImplemented
 
         other = lib.item_from_zerodim(other)
+        if is_list_like(other) and len(other) != len(self):
+            # TODO: Could this fail if the categories are listlike objects?
+            raise ValueError("Lengths must match.")
 
         if not self.ordered:
             if opname in ["__lt__", "__gt__", "__le__", "__ge__"]:
@@ -465,7 +471,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def dtype(self) -> CategoricalDtype:
         """
-        The :class:`~pandas.api.types.CategoricalDtype` for this instance
+        The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
 
@@ -1240,12 +1246,12 @@ class Categorical(ExtensionArray, PandasObject):
                 new_categories = new_categories.insert(len(new_categories), np.nan)
             return np.take(new_categories, self._codes)
 
-    __eq__ = _cat_compare_op("__eq__")
-    __ne__ = _cat_compare_op("__ne__")
-    __lt__ = _cat_compare_op("__lt__")
-    __gt__ = _cat_compare_op("__gt__")
-    __le__ = _cat_compare_op("__le__")
-    __ge__ = _cat_compare_op("__ge__")
+    __eq__ = _cat_compare_op(operator.eq)
+    __ne__ = _cat_compare_op(operator.ne)
+    __lt__ = _cat_compare_op(operator.lt)
+    __gt__ = _cat_compare_op(operator.gt)
+    __le__ = _cat_compare_op(operator.le)
+    __ge__ = _cat_compare_op(operator.ge)
 
     # for Series/ndarray like compat
     @property
@@ -1834,8 +1840,8 @@ class Categorical(ExtensionArray, PandasObject):
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
-                indexer = np.where(values_codes != -1)
-                codes[indexer] = values_codes[values_codes != -1]
+                indexer = np.where(codes == -1)
+                codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar
             elif is_hashable(value):

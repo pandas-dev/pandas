@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import warnings
+import weakref
 
 import numpy as np
 
@@ -441,7 +442,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+        # To avoid a reference cycle, pass a weakref of self to _engine_type.
+        period = weakref.ref(self)
+        return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
     def __contains__(self, key):
@@ -648,10 +651,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(target, PeriodIndex):
             target = target.asi8
+            self_index = self._int64index
+        else:
+            self_index = self
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
-        return Index.get_indexer(self._int64index, target, method, limit, tolerance)
+        return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -991,7 +997,7 @@ PeriodIndex._add_datetimelike_methods()
 def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
     Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency
+    frequency.
 
     Parameters
     ----------

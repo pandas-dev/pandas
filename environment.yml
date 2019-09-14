@@ -5,7 +5,7 @@ channels:
 dependencies:
   # required
   - numpy>=1.15
-  - python=3.7.3
+  - python=3
   - python-dateutil>=2.6.1
   - pytz
 
@@ -13,7 +13,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.28.2
+  - cython>=0.29.13
 
   # code checks
   - black
@@ -80,4 +80,5 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss

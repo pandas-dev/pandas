@@ -2,11 +2,12 @@ import io
 import random
 import string
 import textwrap
-import pytest
-import numpy as np
-import pandas as pd
 
+import numpy as np
+import pytest
 import validate_docstrings
+
+import pandas as pd
 
 validate_one = validate_docstrings.validate_one
 

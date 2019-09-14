@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython>=0.28.2
+  - cython>=0.29.13
   - html5lib
   - ipython
   - jinja2
@@ -17,7 +17,7 @@ dependencies:
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.7.3
+  - python=3.7.*
   - pytz
   - s3fs
   - scipy

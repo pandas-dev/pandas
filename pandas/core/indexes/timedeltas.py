@@ -44,7 +44,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # which we we dont' want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + ["_box_values"]
+    _delegated_methods = TimedeltaArray._datetimelike_methods + [
+        "_box_values",
+        "__neg__",
+        "__pos__",
+        "__abs__",
+    ]
     _raw_properties = {"components"}
     _raw_methods = {"to_pytimedelta"}
 
@@ -56,27 +61,27 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     TimedeltaArray,
     TimedeltaDelegateMixin._delegated_methods,
     typ="method",
-    overwrite=False,
+    overwrite=True,
 )
 class TimedeltaIndex(
     DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
-    which can be boxed to timedelta objects
+    which can be boxed to timedelta objects.
 
     Parameters
     ----------
     data  : array-like (1-dimensional), optional
-        Optional timedelta-like data to construct index with
+        Optional timedelta-like data to construct index with.
     unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
-        which is an integer/float number
-    freq : string or pandas offset object, optional
+        Which is an integer/float number.
+    freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
-        inferred frequency upon creation
+        inferred frequency upon creation.
     copy  : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     start : starting value, timedelta-like, optional
         If data is None, start is used as the start point in generating regular
         timedelta data.
@@ -85,24 +90,24 @@ class TimedeltaIndex(
 
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
+        over end argument.
 
         .. deprecated:: 0.24.0
 
     end : end time, timedelta-like, optional
         If periods is none, generated index will extend to first conforming
-        time on or just past end argument
+        time on or just past end argument.
 
         .. deprecated:: 0.24. 0
 
-    closed : string or None, default None
+    closed : str or None, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
         .. deprecated:: 0.24. 0
 
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -278,14 +283,6 @@ class TimedeltaIndex(
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def _maybe_update_attributes(self, attrs):
-        """ Update Index attributes (e.g. freq) depending on op """
-        freq = attrs.get("freq", None)
-        if freq is not None:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return attrs
 
     # -------------------------------------------------------------------
     # Rendering Methods
@@ -689,7 +686,6 @@ class TimedeltaIndex(
 
 
 TimedeltaIndex._add_comparison_ops()
-TimedeltaIndex._add_numeric_methods_unary()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
@@ -717,7 +713,7 @@ def timedelta_range(
 ):
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
-    frequency
+    frequency.
 
     Parameters
     ----------

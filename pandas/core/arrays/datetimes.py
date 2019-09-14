@@ -195,11 +195,11 @@ def _dt_array_cmp(cls, op):
                 return invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
-                # We have to use _comp_method_OBJECT_ARRAY instead of numpy
+                # We have to use comp_method_OBJECT_ARRAY instead of numpy
                 #  comparison otherwise it would fail to raise when
                 #  comparing tz-aware and tz-naive
                 with np.errstate(all="ignore"):
-                    result = ops._comp_method_OBJECT_ARRAY(
+                    result = ops.comp_method_OBJECT_ARRAY(
                         op, self.astype(object), other
                     )
                 o_mask = isna(other)
@@ -222,8 +222,6 @@ def _dt_array_cmp(cls, op):
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
-
-            result = com.values_from_object(result)
 
             if o_mask.any():
                 result[o_mask] = nat_result
@@ -1065,6 +1063,7 @@ default 'raise'
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
+
         >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:30:00',
         ...                               '2018-10-28 02:00:00',
         ...                               '2018-10-28 02:30:00',
@@ -1096,6 +1095,7 @@ default 'raise'
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
         or `'shift_backwards'`.
+
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
         ...                               '2015-03-29 03:30:00']))
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
@@ -1160,7 +1160,7 @@ default 'raise'
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects
+        objects.
 
         Returns
         -------
@@ -1285,7 +1285,7 @@ default 'raise'
         """
         Calculate TimedeltaArray of difference between index
         values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets
+        freq. Used for vectorized offsets.
 
         Parameters
         ----------
@@ -2284,7 +2284,8 @@ def _infer_tz_from_endpoints(start, end, tz):
     """
     try:
         inferred_tz = timezones.infer_tzinfo(start, end)
-    except Exception:
+    except AssertionError:
+        # infer_tzinfo raises AssertionError if passed mismatched timezones
         raise TypeError(
             "Start and end cannot both be tz-aware with different timezones"
         )

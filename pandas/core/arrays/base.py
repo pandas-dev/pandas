@@ -514,7 +514,7 @@ class ExtensionArray:
 
     def dropna(self):
         """
-        Return ExtensionArray without NA values
+        Return ExtensionArray without NA values.
 
         Returns
         -------
@@ -957,7 +957,7 @@ class ExtensionArray:
         cls, to_concat: Sequence[ABCExtensionArray]
     ) -> ABCExtensionArray:
         """
-        Concatenate multiple array
+        Concatenate multiple array.
 
         Parameters
         ----------

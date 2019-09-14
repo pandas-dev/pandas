@@ -7,7 +7,17 @@ import operator
 import pickle
 import re
 from textwrap import dedent
-from typing import Callable, Dict, FrozenSet, List, Optional, Set
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+)
 import warnings
 import weakref
 
@@ -34,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_float,
     is_integer,
     is_list_like,
     is_number,
@@ -50,7 +61,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype
+from pandas._typing import Dtype, FilePathOrBuffer
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -122,6 +133,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
     return result
 
 
+bool_t = bool  # Need alias because NDFrame has def bool:
+
+
 class NDFrame(PandasObject, SelectionMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -131,7 +145,7 @@ class NDFrame(PandasObject, SelectionMixin):
     ----------
     data : BlockManager
     axes : list
-    copy : boolean, default False
+    copy : bool, default False
     """
 
     _internal_names = [
@@ -280,7 +294,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ns=None,
         docs=None,
     ):
-        """Provide axes setup for the major PandasObjects.
+        """
+        Provide axes setup for the major PandasObjects.
 
         Parameters
         ----------
@@ -288,8 +303,8 @@ class NDFrame(PandasObject, SelectionMixin):
         info_axis_num : the axis of the selector dimension (int)
         stat_axis_num : the number of axis for the default stats (int)
         aliases : other names for a single axis (dict)
-        axes_are_reversed : boolean whether to treat passed axes as
-            reversed (DataFrame)
+        axes_are_reversed : bool
+            Whether to treat passed axes as reversed (DataFrame).
         build_axes : setup the axis properties (default True)
         """
 
@@ -676,7 +691,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         args : %(args_transpose)s
-        copy : boolean, default False
+        copy : bool, default False
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
         **kwargs
@@ -1511,16 +1526,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.__array_wrap__(arr)
 
     def __invert__(self):
-        try:
-            arr = operator.inv(com.values_from_object(self))
-            return self.__array_wrap__(arr)
-        except Exception:
-
+        if not self.size:
             # inv fails with 0 len
-            if not np.prod(self.shape):
-                return self
+            return self
 
-            raise
+        arr = operator.inv(com.values_from_object(self))
+        return self.__array_wrap__(arr)
 
     def __nonzero__(self):
         raise ValueError(
@@ -1874,7 +1885,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # can we get a better explanation of this?
     def keys(self):
         """
-        Get the 'info axis' (see Indexing for more)
+        Get the 'info axis' (see Indexing for more).
 
         This is index for Series, columns for DataFrame.
 
@@ -2179,6 +2190,12 @@ class NDFrame(PandasObject, SelectionMixin):
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
+    ExcelWriter can also be used to append to an existing Excel file:
+
+    >>> with pd.ExcelWriter('output.xlsx',
+    ...                     mode='a') as writer:  # doctest: +SKIP
+    ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+
     To set the library that is used to write the Excel file,
     you can pass the `engine` keyword (the default engine is
     automatically chosen depending on the file extension):
@@ -2251,10 +2268,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : string or file handle, optional
+        path_or_buf : str or file handle, optional
             File path or object. If not specified, the result is returned as
             a string.
-        orient : string
+        orient : str
             Indication of expected JSON string format.
 
             * Series
@@ -2533,7 +2550,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_sql(
         self,
-        name,
+        name: str,
         con,
         schema=None,
         if_exists="fail",
@@ -2551,12 +2568,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        name : string
+        name : str
             Name of SQL table.
         con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects.
-        schema : string, optional
+        schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
@@ -2569,18 +2586,19 @@ class NDFrame(PandasObject, SelectionMixin):
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
             name in the table.
-        index_label : string or sequence, default None
+        index_label : str or sequence, default None
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Rows will be written in batches of this size at a time. By default,
-            all rows will be written at once.
-        dtype : dict, optional
-            Specifying the datatype for columns. The keys should be the column
-            names and the values should be the SQLAlchemy types or strings for
-            the sqlite3 legacy mode.
-        method : {None, 'multi', callable}, default None
+            Specify the number of rows in each batch to be written at a time.
+            By default, all rows will be written at once.
+        dtype : dict or scalar, optional
+            Specifying the datatype for columns. If a dictionary is used, the
+            keys should be the column names and the values should be the
+            SQLAlchemy types or strings for the sqlite3 legacy mode. If a
+            scalar is provided, it will be applied to all columns.
+        method : {None, 'multi', callable}, optional
             Controls the SQL insertion clause used:
 
             * None : Uses standard SQL ``INSERT`` clause (one per row).
@@ -2904,15 +2922,21 @@ class NDFrame(PandasObject, SelectionMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
+        caption=None,
+        label=None,
     ):
         r"""
-        Render an object to a LaTeX tabular environment table.
+        Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
-        Render an object to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \usepackage{booktabs}.
+        Requires ``\usepackage{booktabs}``.  The output can be copy/pasted
+        into a main LaTeX document or read from an external file
+        with ``\input{table.tex}``.
 
         .. versionchanged:: 0.20.2
-           Added to Series
+           Added to Series.
+
+        .. versionchanged:: 1.0.0
+           Added caption and label arguments.
 
         Parameters
         ----------
@@ -2981,6 +3005,17 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
+
+        caption : str, optional
+            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+
+            .. versionadded:: 1.0.0
+
+        label : str, optional
+            The LaTeX label to be placed inside ``\label{}`` in the output.
+            This is used with ``\ref{}`` in the main ``.tex`` file.
+
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
@@ -2993,7 +3028,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']})
-        >>> print(df.to_latex(index=False)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{tabular}{lll}
          \toprule
                name &    mask &    weapon \\
@@ -3040,30 +3075,32 @@ class NDFrame(PandasObject, SelectionMixin):
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
+            caption=caption,
+            label=label,
         )
 
     def to_csv(
         self,
-        path_or_buf=None,
-        sep=",",
-        na_rep="",
-        float_format=None,
-        columns=None,
-        header=True,
-        index=True,
-        index_label=None,
-        mode="w",
-        encoding=None,
-        compression="infer",
-        quoting=None,
-        quotechar='"',
-        line_terminator=None,
-        chunksize=None,
-        date_format=None,
-        doublequote=True,
-        escapechar=None,
-        decimal=".",
-    ):
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        sep: str = ",",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[bool_t, List[str]] = True,
+        index: bool_t = True,
+        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        mode: str = "w",
+        encoding: Optional[str] = None,
+        compression: Optional[Union[str, Dict[str, str]]] = "infer",
+        quoting: Optional[int] = None,
+        quotechar: str = '"',
+        line_terminator: Optional[str] = None,
+        chunksize: Optional[int] = None,
+        date_format: Optional[str] = None,
+        doublequote: bool_t = True,
+        escapechar: Optional[str] = None,
+        decimal: Optional[str] = ".",
+    ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -3110,16 +3147,21 @@ class NDFrame(PandasObject, SelectionMixin):
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
-        compression : str, default 'infer'
-            Compression mode among the following possible values: {'infer',
-            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
-            is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
-            compression).
+        compression : str or dict, default 'infer'
+            If str, represents compression mode. If dict, value at 'method' is
+            the compression mode. Compression mode may be any of the following
+            possible values: {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. If
+            compression mode is 'infer' and `path_or_buf` is path-like, then
+            detect compression mode from the following extensions: '.gz',
+            '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
+            and mode is 'zip' or inferred as 'zip', other entries passed as
+            additional compression options.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 0.25.0
 
-               'infer' option added and set to default.
+               May now be a dict with key 'method' as compression mode
+               and other entries as additional compression options if
+               compression mode is 'zip'.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3164,6 +3206,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'weapon': ['sai', 'bo staff']})
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+
+        # create 'out.zip' containing 'out.csv'
+        >>> compression_opts = dict(method='zip',
+        ...                         archive_name='out.csv')  # doctest: +SKIP
+
+        >>> df.to_csv('out.zip', index=False,
+        ...           compression=compression_opts)  # doctest: +SKIP
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
@@ -3196,6 +3245,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
+
+        return None
 
     # ----------------------------------------------------------------------
     # Fancy Indexing
@@ -3245,11 +3296,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        clear : boolean, default False
-            clear the item cache
-        verify_is_copy : boolean, default True
-            provide is_copy checks
-
+        clear : bool, default False
+            Clear the item cache.
+        verify_is_copy : bool, default True
+            Provide is_copy checks.
         """
 
         cacher = getattr(self, "_cacher", None)
@@ -3615,11 +3665,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        stacklevel : integer, default 4
+        stacklevel : int, default 4
            the level to show of the stack when the error is output
-        t : string, the type of setting error
-        force : boolean, default False
-           if True, then force showing an error
+        t : str, the type of setting error
+        force : bool, default False
+           If True, then force showing an error.
 
         validate if we are doing a setitem on a chained copy.
 
@@ -3948,9 +3998,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        verify_is_copy : boolean, default True
-            provide is_copy checks
-
+        verify_is_copy : bool, default True
+            Provide is_copy checks.
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
@@ -4565,9 +4614,9 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         items : list-like
             Keep labels from axis which are in items.
-        like : string
+        like : str
             Keep labels from axis for which "like in label == True".
-        regex : string (regular expression)
+        regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
@@ -5227,8 +5276,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        inplace : boolean, default False
-            If False return new object, otherwise modify existing object
+        inplace : bool, default False
+            If False return new object, otherwise modify existing object.
 
         Returns
         -------
@@ -5264,11 +5313,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if not self._is_numeric_mixed_type:
 
                 # allow an actual np.nan thru
-                try:
-                    if np.isnan(value):
-                        return True
-                except Exception:
-                    pass
+                if is_float(value) and np.isnan(value):
+                    return True
 
                 raise TypeError(
                     "Cannot do inplace boolean setting on "
@@ -5674,11 +5720,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        copy : boolean, default True
+        copy : bool, default True
 
         Returns
         -------
-        values : a dict of dtype -> Constructor Types
+        dict
+            Mapping dtype -> Constructor Types.
         """
         warnings.warn(
             "as_blocks is deprecated and will be removed in a future version",
@@ -5727,11 +5774,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Control raising of exceptions on invalid data for provided dtype.
 
             - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
+            - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
 
-        kwargs : keyword arguments to pass on to the constructor
+        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
@@ -5792,7 +5839,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Convert to ordered categorical type with custom ordering:
 
         >>> cat_dtype = pd.api.types.CategoricalDtype(
-        ...                     categories=[2, 1], ordered=True)
+        ...     categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
         1    2
@@ -5802,7 +5849,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Note that using ``copy=False`` and changing data on a new
         pandas object may propagate changes:
 
-        >>> s1 = pd.Series([1,2])
+        >>> s1 = pd.Series([1, 2])
         >>> s2 = s1.astype('int64', copy=False)
         >>> s2[0] = 10
         >>> s1  # note that s1[0] has changed too
@@ -5987,17 +6034,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        datetime : boolean, default False
+        datetime : bool, default False
             If True, convert to date where possible.
-        numeric : boolean, default False
+        numeric : bool, default False
             If True, attempt to convert to numbers (including strings), with
             unconvertible values becoming NaN.
-        timedelta : boolean, default False
+        timedelta : bool, default False
             If True, convert to timedelta where possible.
-        coerce : boolean, default False
+        coerce : bool, default False
             If True, force conversion with unconvertible values converted to
-            nulls (NaN or NaT)
-        copy : boolean, default True
+            nulls (NaN or NaT).
+        copy : bool, default True
             If True, return a copy even if no copy is necessary (e.g. no
             conversion was done). Note: This is meant for internal use, and
             should not be confused with inplace.
@@ -6636,11 +6683,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 for k, v in items:
                     keys, values = list(zip(*v.items())) or ([], [])
-                    if set(keys) & set(values):
-                        raise ValueError(
-                            "Replacement not allowed with "
-                            "overlapping keys and values"
-                        )
+
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
 
@@ -7864,7 +7907,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        freq : DateOffset object, or string
+        freq : DateOffset or str
         method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
@@ -8665,7 +8708,7 @@ class NDFrame(PandasObject, SelectionMixin):
         level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
-        copy : boolean, default True
+        copy : bool, default True
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
         fill_value : scalar, default np.NaN
@@ -9457,7 +9500,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Truncate all rows after this index value.
         axis : {0 or 'index', 1 or 'columns'}, optional
             Axis to truncate. Truncates the index (rows) by default.
-        copy : boolean, default is True,
+        copy : bool, default is True,
             Return a copy of the truncated section.
 
         Returns
@@ -9601,13 +9644,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        tz : string or pytz.timezone object
+        tz : str or tzinfo object
         axis : the axis to convert
         level : int, str, default None
-            If axis ia a MultiIndex, convert a specific level. Otherwise
-            must be None
-        copy : boolean, default True
-            Also make a copy of the underlying data
+            If axis is a MultiIndex, convert a specific level. Otherwise
+            must be None.
+        copy : bool, default True
+            Also make a copy of the underlying data.
 
         Returns
         -------
@@ -9661,12 +9704,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        tz : string or pytz.timezone object
+        tz : str or tzinfo
         axis : the axis to localize
         level : int, str, default None
             If axis ia a MultiIndex, localize a specific level. Otherwise
             must be None
-        copy : boolean, default True
+        copy : bool, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
@@ -11003,7 +11046,7 @@ Parameters
 ----------
 axis : {0 or 'index', 1 or 'columns'}, default 0
     The index or the name of the axis. 0 is equivalent to None or 'index'.
-skipna : boolean, default True
+skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
 *args, **kwargs :
