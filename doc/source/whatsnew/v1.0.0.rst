@@ -21,7 +21,6 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 -
 
