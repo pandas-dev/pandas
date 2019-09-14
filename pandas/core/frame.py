@@ -6261,18 +6261,31 @@ class DataFrame(NDFrame):
         3    3  1
         3    4  1
         """
-
-        if not (is_scalar(column) or isinstance(column, tuple)):
-            raise ValueError("column must be a scalar")
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        result = self[column].explode()
-        return (
-            self.drop([column], axis=1)
-            .join(result)
-            .reindex(columns=self.columns, copy=False)
-        )
+        if isinstance(columns, str):
+            columns = [columns]
+
+        if not isinstance(columns, list):
+            raise TypeError("columns value not list or sting")
+
+        if not all([c in self.columns for c in columns]):
+            raise ValueError("column name(s) not in index")
+
+        tmp = pd.DataFrame()
+        lengths_equal = []
+        for row in self[columns].iterrows():
+            r = row[1]
+            lengths_equal.append(len(set([len(r[c]) for c in columns]))==1)
+        if all(lengths_equal):
+            for c in columns:
+                tmp[c] = self[c].explode()
+        else:
+            ValueError("lengths of lists in the same row not equal")
+
+        results = self.drop(columns, axis=1).join(tmp)
+        return(results)
 
     def unstack(self, level=-1, fill_value=None):
         """
