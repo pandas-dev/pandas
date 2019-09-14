@@ -864,12 +864,6 @@ class SeriesGroupBy(GroupBy):
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
-        elif isinstance(func, list) and len(func) > len(set(func)):
-            # GH 28426 will raise error if duplicated function names are used and
-            raise SpecificationError(
-                "Function names must be unique if there is no new column "
-                "names assigned"
-            )
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
