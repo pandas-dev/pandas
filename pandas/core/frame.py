@@ -10,7 +10,6 @@ labeling information
 """
 import collections
 from collections import OrderedDict, abc
-import functools
 from io import StringIO
 import itertools
 import sys
@@ -3503,16 +3502,27 @@ class DataFrame(NDFrame):
         include_these = Series(not bool(include), index=self.columns)
         exclude_these = Series(not bool(exclude), index=self.columns)
 
-        def is_dtype_instance_mapper(idx, dtype):
-            return idx, functools.partial(issubclass, dtype.type)
+        unique_dtypes = self.dtypes.unique()
 
-        for idx, f in itertools.starmap(
-            is_dtype_instance_mapper, enumerate(self.dtypes)
-        ):
-            if include:  # checks for the case of empty include or exclude
-                include_these.iloc[idx] = any(map(f, include))
-            if exclude:
-                exclude_these.iloc[idx] = not any(map(f, exclude))
+        if include:
+            included_dtypes = [
+                dtype
+                for dtype in unique_dtypes
+                if any(
+                    issubclass(dtype.type, included_type) for included_type in include
+                )
+            ]
+            include_these |= self.dtypes.isin(included_dtypes)
+
+        if exclude:
+            excluded_dtypes = [
+                dtype
+                for dtype in unique_dtypes
+                if any(
+                    issubclass(dtype.type, excluded_type) for excluded_type in exclude
+                )
+            ]
+            exclude_these |= ~self.dtypes.isin(excluded_dtypes)
 
         dtype_indexer = include_these & exclude_these
         return self.loc[_get_info_slice(self, dtype_indexer)]
