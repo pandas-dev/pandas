@@ -117,9 +117,8 @@ class NumExprEngine(AbstractEngine):
         try:
             env = self.expr.env
             scope = env.full_scope
-            truediv = scope["truediv"]
             _check_ne_builtin_clash(self.expr)
-            return ne.evaluate(s, local_dict=scope, truediv=truediv)
+            return ne.evaluate(s, local_dict=scope)
         except KeyError as e:
             # python 3 compat kludge
             try:

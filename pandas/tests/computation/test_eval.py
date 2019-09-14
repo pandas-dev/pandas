@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
+import re
 import warnings
 
 import numpy as np
@@ -1196,32 +1197,27 @@ class TestOperationsNumExprPandas:
         df2 = self.eval("df", local_dict={"df": df})
         assert_frame_equal(df, df2)
 
-    def test_truediv(self):
+    def test_div(self):
         s = np.array([1])
         ex = "s / 1"
         d = {"s": s}  # noqa
 
-        res = self.eval(ex, truediv=False)
+        res = self.eval(ex)
         tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-        res = self.eval(ex, truediv=True)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        res = self.eval("1 / 2", truediv=True)
+        res = self.eval("1 / 2")
         expec = 0.5
         assert res == expec
 
-        res = self.eval("1 / 2", truediv=False)
+        res = self.eval("s / 2")
         expec = 0.5
         assert res == expec
 
-        res = self.eval("s / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        res = self.eval("s / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
+    def test_truediv_kwarg_raises(self):
+        # gh-28446
+        msg = re.escape("eval() got an unexpected keyword argument 'truediv'")
+        with pytest.raises(TypeError, match=msg):
+            self.eval("1 / 2", truediv=False)
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa

@@ -565,8 +565,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
-        truediv = self.env.scope["truediv"]
-        return lambda lhs, rhs: Div(lhs, rhs, truediv)
+        return lambda lhs, rhs: Div(lhs, rhs)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -812,18 +811,14 @@ class Expr:
     engine : str, optional, default 'numexpr'
     parser : str, optional, default 'pandas'
     env : Scope, optional, default None
-    truediv : bool, optional, default True
     level : int, optional, default 2
     """
 
-    def __init__(
-        self, expr, engine="numexpr", parser="pandas", env=None, truediv=True, level=0
-    ):
+    def __init__(self, expr, engine="numexpr", parser="pandas", env=None, level=0):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self.env.scope["truediv"] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 

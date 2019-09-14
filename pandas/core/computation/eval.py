@@ -171,7 +171,6 @@ def eval(
     expr,
     parser="pandas",
     engine: Optional[str] = None,
-    truediv=True,
     local_dict=None,
     global_dict=None,
     resolvers=(),
@@ -219,8 +218,6 @@ def eval(
 
         More backends may be available in the future.
 
-    truediv : bool, optional
-        Whether to use true division, like in Python >= 3
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional
@@ -320,7 +317,7 @@ def eval(
             target=target,
         )
 
-        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env, truediv=truediv)
+        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]

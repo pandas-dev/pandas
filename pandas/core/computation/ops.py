@@ -5,6 +5,7 @@ from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
 import operator as op
+from typing import Callable, Iterable, Union
 
 import numpy as np
 
@@ -196,10 +197,10 @@ class Op:
     Hold an operator of arbitrary arity.
     """
 
-    def __init__(self, op, operands, *args, **kwargs):
+    def __init__(self, op: str, operands: Iterable[Union[Term, "Op"]], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
-        self.encoding = kwargs.get("encoding", None)
+        self.encoding = encoding
 
     def __iter__(self):
         return iter(self.operands)
@@ -333,11 +334,11 @@ class BinOp(Op):
     Parameters
     ----------
     op : str
-    left : Term or Op
-    right : Term or Op
+    lhs : Term or Op
+    rhs : Term or Op
     """
 
-    def __init__(self, op, lhs, rhs, **kwargs):
+    def __init__(self, op: str, lhs: Union[Term, Op], rhs: Union[Term, Op]):
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -369,10 +370,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-        # handle truediv
-        if self.op == "/" and env.scope["truediv"]:
-            self.func = op.truediv
-
         # recurse over the left/right nodes
         left = self.lhs(env)
         right = self.rhs(env)
@@ -431,6 +428,7 @@ class BinOp(Op):
         """
 
         def stringify(value):
+            encoder: Callable
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
@@ -483,13 +481,10 @@ class Div(BinOp):
     ----------
     lhs, rhs : Term or Op
         The Terms or Ops in the ``/`` expression.
-    truediv : bool
-        Whether or not to use true division. With Python 3 this happens
-        regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv, *args, **kwargs):
-        super().__init__("/", lhs, rhs, *args, **kwargs)
+    def __init__(self, lhs: Union[Term, Op], rhs: Union[Term, Op]):
+        super().__init__("/", lhs, rhs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
