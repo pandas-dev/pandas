@@ -20,7 +20,6 @@ class HistPlot(LinePlot):
     def __init__(self, data, bins=10, bottom=0, **kwargs):
         self.bins = bins  # use mpl default
         self.bottom = bottom
-        self.by = kwargs.get("by")
 
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
@@ -108,8 +107,11 @@ class HistPlot(LinePlot):
 
         for i, (label, y) in enumerate(data):
             ax = axes[i]
-            y = y[~isna(y)]
-            ax.hist(y, bins[i], label=labels, **kwds)
+            if len(y.shape) > 1:
+                y_notna = np.array(col[~isna(col)] for col in y.T).T
+            else:
+                y_notna = y[~isna(y)]
+            ax.hist(y_notna, bins[i], label=labels, **kwds)
             ax.set_title(pprint_thing(label))
 
         _set_ticks_props(
