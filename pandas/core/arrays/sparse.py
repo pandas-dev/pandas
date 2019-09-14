@@ -5,7 +5,7 @@ from collections import abc
 import numbers
 import operator
 import re
-from typing import Any, Callable
+from typing import Any, Callable, List, Tuple, Union
 import warnings
 
 import numpy as np
@@ -215,7 +215,7 @@ class SparseDtype(ExtensionDtype):
         return SparseArray
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str) -> "SparseDtype":
         """
         Construct a SparseDtype from a string form.
 
@@ -263,7 +263,7 @@ class SparseDtype(ExtensionDtype):
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype):
+    def _parse_subtype(dtype: str) -> Tuple[str, Union[bool, str]]:
         """
         Parse a string to get the subtype
 
@@ -277,7 +277,7 @@ class SparseDtype(ExtensionDtype):
 
         Returns
         -------
-        subtype : str
+        str, Union[bool, str]
 
         Raises
         ------
@@ -286,7 +286,7 @@ class SparseDtype(ExtensionDtype):
         """
         xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(?P<fill_value>.*?)?\]$")
         m = xpr.match(dtype)
-        has_fill_value = False
+        has_fill_value: Union[bool, str] = False
         if m:
             subtype = m.groupdict()["subtype"]
             has_fill_value = m.groupdict()["fill_value"] or has_fill_value
@@ -1137,13 +1137,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             return libindex.get_value_at(self.sp_values, sp_loc)
 
-    def take(self, indices, allow_fill=False, fill_value=None):
+    def take(self, indices, allow_fill: bool = False, fill_value=None):
         if is_scalar(indices):
             raise ValueError(
                 "'indices' must be an array, not a scalar '{}'.".format(indices)
             )
         indices = np.asarray(indices, dtype=np.int32)
 
+        result: List
         if indices.size == 0:
             result = []
             kwargs = {"dtype": self.dtype}
