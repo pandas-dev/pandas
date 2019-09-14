@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import List, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -516,6 +516,7 @@ class BusinessMixin:
         return self._offset
 
     def _repr_attrs(self):
+        attrs: Optional[List[str]]
         if self.offset:
             attrs = ["offset={offset!r}".format(offset=self.offset)]
         else:
