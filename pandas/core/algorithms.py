@@ -1110,7 +1110,7 @@ def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     Returns:
         ndarray
             An ndarray of the percentiles if valid.
-    Raises: ValueError if percentiles are not in given interval([0, 1]). 
+    Raises: ValueError if percentiles are not in given interval([0, 1]).
     """
     msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
     q_arr = np.asarray(q)
@@ -1119,7 +1119,7 @@ def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
             raise ValueError(msg.format(q_arr / 100.0))
     else:
         if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q / 100.0))
+            raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
 
 
