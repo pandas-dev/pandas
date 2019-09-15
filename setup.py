@@ -32,6 +32,8 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.13.3"
+min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
+
 setuptools_kwargs = {
     "install_requires": [
         "python-dateutil >= 2.6.1",
@@ -43,7 +45,6 @@ setuptools_kwargs = {
 }
 
 
-min_cython_ver = "0.28.2"
 try:
     import Cython
 
@@ -277,6 +278,7 @@ class CleanCommand(Command):
                     ".pyo",
                     ".pyd",
                     ".c",
+                    ".cpp",
                     ".orig",
                 ):
                     self._clean_me.append(filepath)
@@ -300,12 +302,12 @@ class CleanCommand(Command):
         for clean_me in self._clean_me:
             try:
                 os.unlink(clean_me)
-            except Exception:
+            except OSError:
                 pass
         for clean_tree in self._clean_trees:
             try:
                 shutil.rmtree(clean_tree)
-            except Exception:
+            except OSError:
                 pass
 
 
@@ -526,10 +528,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
         return extensions
-    if not cython:
-        # Avoid trying to look up numpy when installing from sdist
-        # https://github.com/pandas-dev/pandas/issues/25193
-        # TODO: See if this can be removed after pyproject.toml added.
+    elif "sdist" in sys.argv:
         return extensions
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
