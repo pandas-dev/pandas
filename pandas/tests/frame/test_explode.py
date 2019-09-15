@@ -121,81 +121,65 @@ def test_usecase():
 
 
 @pytest.mark.parametrize(
-    "df, expected",
+    "input_col, input_other_col, input_index, expected_col, expected_other_col, expected_index",
     [
         (
-            pd.DataFrame({"col": [[1, 2], [3, 4]]}, index=[0, 0]),
-            pd.DataFrame({"col": [1, 2, 3, 4]}, index=[0, 0, 0, 0], dtype=object),
+            [[1, 2], [3, 4]],
+            ["foo", "bar"],
+            [0, 0],
+            [1, 2, 3, 4],
+            ["foo", "foo", "bar", "bar"],
+            [0, 0, 0, 0],
         ),
         (
-            pd.DataFrame(
-                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"]}, index=[0, 0]
+            [[1, 2], [3, 4]],
+            ["foo", "bar"],
+            pd.Index([0, 0], name="my_index"),
+            [1, 2, 3, 4],
+            ["foo", "foo", "bar", "bar"],
+            pd.Index([0, 0, 0, 0], name="my_index"),
+        ),
+        (
+            [[1, 2], [3, 4]],
+            ["foo", "bar"],
+            pd.MultiIndex.from_arrays(
+                [[0, 0], [1, 1]], names=["my_first_index", "my_second_index"]
             ),
-            pd.DataFrame(
-                {"col": [1, 2, 3, 4], "other_col": ["a", "a", "b", "b"]},
-                index=[0, 0, 0, 0],
-                dtype=object,
-            ),
-        ),
-        (
-            pd.DataFrame(
-                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"], "my_index": [0, 0]}
-            ).set_index("my_index"),
-            pd.DataFrame(
-                {
-                    "col": [1, 2, 3, 4],
-                    "other_col": ["a", "a", "b", "b"],
-                    "my_index": [0, 0, 0, 0],
-                },
-                dtype=object,
-            ).set_index("my_index"),
-        ),
-        (
-            pd.DataFrame(
-                {
-                    "col": [[1, 2], [3, 4]],
-                    "other_col": ["a", "b"],
-                    "my_first_index": [0, 0],
-                    "my_second_index": [1, 1],
-                }
-            ).set_index(["my_first_index", "my_second_index"]),
-            pd.DataFrame(
-                {
-                    "col": [1, 2, 3, 4],
-                    "other_col": ["a", "a", "b", "b"],
-                    "my_first_index": [0, 0, 0, 0],
-                    "my_second_index": [1, 1, 1, 1],
-                },
-                dtype=object,
-            ).set_index(["my_first_index", "my_second_index"]),
-        ),
-        (
-            pd.DataFrame(
-                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"]},
-                pd.MultiIndex.from_tuples([(0, 1), (0, 1)]),
-            ),
-            pd.DataFrame(
-                {"col": [1, 2, 3, 4], "other_col": ["a", "a", "b", "b"]},
-                pd.MultiIndex.from_tuples([(0, 1), (0, 1), (0, 1), (0, 1)]),
-                dtype=object,
+            [1, 2, 3, 4],
+            ["foo", "foo", "bar", "bar"],
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0], [1, 1, 1, 1]],
+                names=["my_first_index", "my_second_index"],
             ),
         ),
         (
-            pd.DataFrame(
-                {"col": [[1, 2], [3, 4]], "other_col": ["a", "b"]},
-                pd.MultiIndex.from_arrays([[0, 0], [1, 1]], names=["foo", None]),
-            ),
-            pd.DataFrame(
-                {"col": [1, 2, 3, 4], "other_col": ["a", "a", "b", "b"]},
-                pd.MultiIndex.from_arrays(
-                    [[0, 0, 0, 0], [1, 1, 1, 1]], names=["foo", None]
-                ),
-                dtype=object,
+            [[1, 2], [3, 4]],
+            ["foo", "bar"],
+            pd.MultiIndex.from_arrays([[0, 0], [1, 1]], names=["my_first_index", None]),
+            [1, 2, 3, 4],
+            ["foo", "foo", "bar", "bar"],
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0], [1, 1, 1, 1]], names=["my_first_index", None]
             ),
         ),
     ],
 )
-def test_duplicate_index(df, expected):
+def test_duplicate_index(
+    input_col,
+    input_other_col,
+    input_index,
+    expected_col,
+    expected_other_col,
+    expected_index,
+):
     # GH 28005
+    df = pd.DataFrame(
+        {"col": input_col, "other_col": input_other_col}, index=input_index
+    )
     result = df.explode("col")
+    expected = pd.DataFrame(
+        {"col": expected_col, "other_col": expected_other_col},
+        index=expected_index,
+        dtype=object,
+    )
     tm.assert_frame_equal(result, expected)
