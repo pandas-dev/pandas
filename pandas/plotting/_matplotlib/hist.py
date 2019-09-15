@@ -102,13 +102,13 @@ class HistPlot(LinePlot):
                 "will be created"
             )
 
-        converter._WARN = False  # no warning for pandas plots
         xrot = xrot or rot
 
         for i, (label, y) in enumerate(data):
             ax = axes[i]
             if len(y.shape) > 1:
-                y_notna = np.array(col[~isna(col)] for col in y.T).T
+                notna = [col[~isna(col)] for col in y.T]
+                y_notna = np.array(np.array(notna).T)
             else:
                 y_notna = y[~isna(y)]
             ax.hist(y_notna, bins[i], label=labels, **kwds)
