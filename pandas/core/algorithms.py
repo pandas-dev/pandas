@@ -1916,7 +1916,6 @@ def diff(arr, n, axis=0):
 
     is_timedelta = False
     is_bool = False
-    is_obj_bool = False
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view("i8")
@@ -1929,10 +1928,6 @@ def diff(arr, n, axis=0):
 
     elif is_integer_dtype(dtype):
         dtype = np.float64
-
-    elif is_object_dtype(dtype):
-        if np.all(np.isin(arr, (True, False), False) | isna(arr)):
-            is_obj_bool = True
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
@@ -1973,13 +1968,6 @@ def diff(arr, n, axis=0):
             out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
-
-    if is_obj_bool:
-        # converting numbers to bool
-        na_index = isna(out_arr)
-        out_arr = out_arr.astype(bool).astype(object)
-        # resetting nan previously converted to True
-        out_arr[na_index] = np.nan
 
     if is_timedelta:
         out_arr = out_arr.astype("int64").view("timedelta64[ns]")
