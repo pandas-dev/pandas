@@ -4713,6 +4713,9 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
+        pself, ptarget = self._maybe_promote(target)
+        if pself is not self or ptarget is not target:
+            return pself.get_indexer_non_unique(ptarget)
 
         if is_categorical(target):
             tgt_values = target.__array__()
