@@ -1369,6 +1369,7 @@ class TestDataFrameConstructors:
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
         from dataclasses import make_dataclass
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
         with pytest.raises(TypeError):
