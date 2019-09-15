@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from cpython cimport PyObject
+from cpython.object cimport PyObject
 from numpy cimport int64_t, uint64_t, int32_t, uint32_t, float64_t
 
 cdef extern from "khash_python.h":
