@@ -608,6 +608,72 @@ class TestGetDummies:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            ["baz", "zoo"],
+            np.array(["baz", "zoo"]),
+            pd.Series(["baz", "zoo"]),
+            pd.Index(["baz", "zoo"]),
+        ],
+    )
+    @pytest.mark.parametrize("method", [True])
+    def test_get_dummies_with_list_like_values(self, values, method):
+        # issue #17160
+        df = pd.DataFrame(
+            {
+                "bar": [1, 2, 3, 4, 5, 6],
+                "foo": ["one", "one", "one", "two", "two", "two"],
+                "baz": ["A", "B", "C", "A", "B", "C"],
+                "zoo": ["x", "y", "z", "q", "w", "t"],
+            }
+        )
+
+        if method:
+            result = pd.get_dummies(df, columns=values,dtype="int64")
+        else:
+            result = pd.get_dummies(df, columns=values,dtype="int64")
+
+        data = [[1, 'one', 1, 0, 0, 0, 0, 0, 1, 0, 0],
+                [2, 'one', 0, 1, 0, 0, 0, 0, 0, 1, 0],
+                [3, 'one', 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                [4, 'two', 1, 0, 0, 1, 0, 0, 0, 0, 0],
+                [5, 'two', 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                [6, 'two', 0, 0, 1, 0, 1, 0, 0, 0, 0]]
+        columns = ['bar', 'foo', 'baz_A', 'baz_B', 'baz_C', 'zoo_q',
+                     'zoo_t', 'zoo_w', 'zoo_x', 'zoo_y', 'zoo_z']
+        expected = DataFrame(data=data, columns=columns)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            "baz",
+            "zoo",
+        ],
+    )
+    @pytest.mark.parametrize("method", [True])
+    def test_get_dummies_with_string_values(self, values, method):
+        # issue #17160
+        df = pd.DataFrame(
+            {
+                "bar": [1, 2, 3, 4, 5, 6],
+                "foo": ["one", "one", "one", "two", "two", "two"],
+                "baz": ["A", "B", "C", "A", "B", "C"],
+                "zoo": ["x", "y", "z", "q", "w", "t"],
+            }
+        )
+
+        msg="Input must be a list-like of list-likes"
+
+        with pytest.raises(TypeError, match=msg):
+            if method:
+                result = pd.get_dummies(df, columns=values)
+            else:
+                result = pd.get_dummies(df, columns=values)
+
+
+
 
 class TestCategoricalReshape:
     def test_reshaping_multi_index_categorical(self):
