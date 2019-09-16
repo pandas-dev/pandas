@@ -69,7 +69,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
-- :func:`read_hdf` now reads sparse values into a :class:`Series` or :class:`DataFrame` with sparse values rather than a ``SparseDataFrame`` or ``SparseSeries`` (:issue:``)
+- :func:`read_hdf` now reads sparse values into a :class:`Series` or :class:`DataFrame` with sparse values rather than a ``SparseDataFrame`` or ``SparseSeries`` (:issue:`28456`)
 -
 
 .. _whatsnew_1000.deprecations:
