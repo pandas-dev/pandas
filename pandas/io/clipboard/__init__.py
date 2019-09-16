@@ -583,7 +583,7 @@ def determine_clipboard():
         try:
             # qtpy is a small abstraction layer that lets you write applications
             # using a single api call to either PyQt or PySide.
-            # https://pypi.python.org/pypi/QtPy
+            # https://pypi.python.org/project/QtPy
             import qtpy  # check if qtpy is installed
         except ImportError:
             # If qtpy isn't installed, fall back on importing PyQt4.
