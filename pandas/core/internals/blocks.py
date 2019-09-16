@@ -81,6 +81,7 @@ import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
 from pandas.io.formats.printing import pprint_thing
+from pandas_typing import Axis
 
 
 class Block(PandasObject):
@@ -386,7 +387,7 @@ class Block(PandasObject):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis: Axis = 0):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
@@ -1839,7 +1840,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         placement = placement or slice(0, len(values), 1)
         return self.make_block_same_class(values, ndim=self.ndim, placement=placement)
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis: Axis = 0):
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
         return [
@@ -2403,7 +2404,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return ObjectBlock(values, ndim=self.ndim, placement=placement)
         return super().concat_same_type(to_concat, placement)
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis: Axis = 0):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         if self._can_hold_element(value):
