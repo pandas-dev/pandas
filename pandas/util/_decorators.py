@@ -347,3 +347,34 @@ def indent(text: Optional[str], indents: int = 1) -> str:
         return ""
     jointext = "".join(["\n"] + ["    "] * indents)
     return jointext.join(text.split("\n"))
+
+
+_deprecation_registry = {}
+
+
+def strict_deprecation(msg, deprecated_in, remove_in):
+    def deprecator(arg):
+        if isinstance(arg, str):
+            key = arg
+        else:
+            key = arg.__name__
+
+        _deprecation_registry[key] = (msg, deprecated_in, remove_in)
+
+        return arg
+
+    return deprecator
+
+
+def check_deprecations(version):
+    from distutils.version import LooseVersion
+
+    version = LooseVersion(version)
+
+    for key in _deprecation_registry:
+        value = _deprecation_registry[key]
+        remove_in = _deprecation_registry[key][-1]
+        remove_in = LooseVersion(remove_in)
+
+        if remove_in <= version:
+            raise AssertionError(key, value)

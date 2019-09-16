@@ -1,3 +1,5 @@
+from pandas.util._decorators import check_deprecations
+
 import pandas as pd
 from pandas import api, compat
 from pandas.util import testing as tm
@@ -232,3 +234,7 @@ class TestTesting(Base):
         from pandas import testing
 
         self.check(testing, self.funcs)
+
+
+def test_deprecations_removed():
+    check_deprecations(pd.__version__)

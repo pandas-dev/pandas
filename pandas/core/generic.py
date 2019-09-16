@@ -30,7 +30,12 @@ from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    rewrite_axis_style_signature,
+    strict_deprecation,
+)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
@@ -5334,6 +5339,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
+    @strict_deprecation("Example usage", deprecated_in="0.23.0", remove_in="0.26.0")
     def as_matrix(self, columns=None):
         """
         Convert the frame to its Numpy-array representation.
