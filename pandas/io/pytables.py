@@ -183,7 +183,7 @@ _STORER_MAP = {
     "series": "SeriesFixed",
     "sparse_series": "SeriesFixed",
     "frame": "FrameFixed",
-    "sparse_frame": "SparseFrameFixed",
+    "sparse_frame": "FrameFixed",
 }
 
 # table class map
@@ -2722,18 +2722,6 @@ class GenericFixed(Fixed):
 
     def read_array(self, key, start=None, stop=None):
         """ read an array for the specified node (off of group """
-        if (
-            self.pandas_type == "sparse_series" or "sp_index_length" in self.attrs
-        ) and key not in self.group:
-            # Compatibility for files written with pandas 0.25.1 and earlier.
-            if "sp_values" in self.group:
-                key = "sp_values"
-            dtype = "Sparse"
-            sp_index = self.read_index("sp_index".format(key))
-        else:
-            dtype = None
-            sp_index = None
-
         import tables
 
         node = getattr(self.group, key)
@@ -2744,7 +2732,7 @@ class GenericFixed(Fixed):
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
         else:
-            dtype = getattr(attrs, "value_type", dtype)
+            dtype = getattr(attrs, "value_type", None)
             shape = getattr(attrs, "shape", None)
 
             if shape is not None:
@@ -2766,8 +2754,7 @@ class GenericFixed(Fixed):
                     raise NotImplementedError(
                         "start and/or stop are not supported in fixed Sparse reading"
                     )
-                if sp_index is None:
-                    sp_index = self.read_index("{}_sp_index".format(key))
+                sp_index = self.read_index("{}_sp_index".format(key))
                 ret = SparseArray(
                     ret, sparse_index=sp_index, fill_value=self.attrs.fill_value
                 )
@@ -3092,10 +3079,10 @@ class SeriesFixed(GenericFixed):
         except (TypeError, AttributeError):
             return None
 
-    def read(self, key="values", **kwargs):
+    def read(self, **kwargs):
         kwargs = self.validate_read(kwargs)
         index = self.read_index("index", **kwargs)
-        values = self.read_array(key, **kwargs)
+        values = self.read_array("values", **kwargs)
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):
@@ -3195,22 +3182,6 @@ class BlockManagerFixed(GenericFixed):
 class FrameFixed(BlockManagerFixed):
     pandas_kind = "frame"
     obj_type = DataFrame
-
-
-class SparseFrameFixed(GenericFixed):
-    pandas_kind = "sparse_frame"
-    attributes = ["default_kind", "default_fill_value"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        columns = self.read_index("columns")
-        sdict = {}
-        for c in columns:
-            key = "sparse_series_{columns}".format(columns=c)
-            s = SeriesFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[c] = s.read(key=key)
-        return DataFrame(sdict)
 
 
 class Table(Fixed):
