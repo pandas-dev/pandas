@@ -322,9 +322,10 @@ class CombinedDatetimelikeProperties(
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
             data = Series(
-                orig.values.astype(orig.values.categories.dtype),
+                orig.values.__array__(),
                 name=orig.name,
                 copy=False,
+                dtype=orig.values.categories.dtype,
             )
 
         if is_datetime64_dtype(data.dtype):
