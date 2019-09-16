@@ -559,14 +559,14 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def _repr_fits_vertical_(self):
+    def _repr_fits_vertical_(self) -> bool:
         """
         Check length against max_rows.
         """
         max_rows = get_option("display.max_rows")
         return len(self) <= max_rows
 
-    def _repr_fits_horizontal_(self, ignore_width=False):
+    def _repr_fits_horizontal_(self, ignore_width: bool = False) -> bool:
         """
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
@@ -620,7 +620,7 @@ class DataFrame(NDFrame):
 
         return repr_width < width
 
-    def _info_repr(self):
+    def _info_repr(self) -> bool:
         """
         True if the repr should show the info view.
         """
@@ -629,7 +629,7 @@ class DataFrame(NDFrame):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular DataFrame.
         """
@@ -659,7 +659,7 @@ class DataFrame(NDFrame):
 
         return buf.getvalue()
 
-    def _repr_html_(self):
+    def _repr_html_(self) -> Optional[str]:
         """
         Return a html representation for a particular DataFrame.
 
@@ -716,24 +716,24 @@ class DataFrame(NDFrame):
     def to_string(
         self,
         buf=None,
-        columns=None,
-        col_space=None,
-        header=True,
-        index=True,
-        na_rep="NaN",
-        formatters=None,
-        float_format=None,
-        sparsify=None,
-        index_names=True,
-        justify=None,
-        max_rows=None,
-        min_rows=None,
-        max_cols=None,
-        show_dimensions=False,
-        decimal=".",
-        line_width=None,
-        max_colwidth=None,
-    ):
+        columns: Optional[List[str]] = None,
+        col_space: Optional[Union[str, int]] = None,
+        header: Union[bool, List[str]] = True,
+        index: bool = True,
+        na_rep: str = "NaN",
+        formatters: Optional[fmt.formatters_type] = None,
+        float_format: Optional[fmt.float_format_type] = None,
+        sparsify: Optional[bool] = None,
+        index_names: bool = True,
+        justify: Optional[str] = None,
+        max_rows: Optional[int] = None,
+        min_rows: Optional[int] = None,
+        max_cols: Optional[int] = None,
+        show_dimensions: bool = False,
+        decimal: str = ".",
+        line_width: Optional[int] = None,
+        max_colwidth: Optional[int] = None,
+    ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
