@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List, Set, Tuple
 import warnings
 
 import numpy as np
@@ -32,6 +32,9 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -1024,7 +1027,7 @@ def str_extractall(arr, pat, flags=0):
     return result
 
 
-def str_get_dummies(arr, sep="|"):
+def str_get_dummies(arr, sep: str = "|") -> Tuple:
     """
     Split each string in the Series by sep and return a DataFrame
     of dummy/indicator variables.
@@ -1064,10 +1067,10 @@ def str_get_dummies(arr, sep="|"):
     except TypeError:
         arr = sep + arr.astype(str) + sep
 
-    tags = set()
+    tags_: Set[str] = set()
     for ts in arr.str.split(sep):
-        tags.update(ts)
-    tags = sorted(tags - {""})
+        tags_.update(ts)
+    tags = sorted(tags_ - {""})
 
     dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
 
@@ -1995,7 +1998,7 @@ class StringMethods(NoNewAttributesMixin):
         self, result, use_codes=True, name=None, expand=None, fill_value=np.nan
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, Series, MultiIndex  # noqa: F811
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2075,7 +2078,7 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
-    def _get_series_list(self, others):
+    def _get_series_list(self, others) -> List["Series"]:
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
         into a list of Series (elements without an index must match the length
@@ -2090,7 +2093,7 @@ class StringMethods(NoNewAttributesMixin):
         -------
         list : others transformed into list of Series
         """
-        from pandas import Series, DataFrame
+        from pandas import Series, DataFrame  # noqa: F811
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
@@ -2117,7 +2120,7 @@ class StringMethods(NoNewAttributesMixin):
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
-                los = []
+                los: List[Series] = []
                 while others:  # iterate through list and append each element
                     los = los + self._get_series_list(others.pop(0))
                 return los
@@ -2266,7 +2269,7 @@ class StringMethods(NoNewAttributesMixin):
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
-        from pandas import Index, Series, concat
+        from pandas import Index, Series, concat  # noqa: F811
 
         if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
