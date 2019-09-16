@@ -227,8 +227,12 @@ def to_parquet(
         Name of the compression to use. Use ``None`` for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
-        ``False``, they will not be written to the file. If ``None``, the
-        engine's default behavior will be used.
+        ``False``, they will not be written to the file.
+        If ``None``, similar to ``True`` the dataframe's index(es)
+        will be saved. However, instead of being saved as values,
+        the RangeIndex will be stored as a range in the metadata so it
+        doesn't require much space and is faster. Other indexes will
+        be included as columns in the file output.
 
         .. versionadded:: 0.24.0
 
