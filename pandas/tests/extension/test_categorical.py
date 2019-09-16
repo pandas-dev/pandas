@@ -198,10 +198,9 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
-    @pytest.mark.parametrize("value", [np.nan, -np.inf, np.inf])
-    def test_cast_nan_to_int(self, cls, value):
+    def test_cast_nan_to_int(self, cls):
         # GH 28406
-        s = cls([0, 1, value])
+        s = cls([0, 1, np.nan])
 
         with pytest.raises((ValueError, TypeError), match="Cannot cast"):
             s.astype(int)

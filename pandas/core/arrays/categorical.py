@@ -520,7 +520,7 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
-        if is_integer_dtype(dtype) and self.isin([np.nan, -np.inf, np.inf]).any():
+        if is_integer_dtype(dtype) and self.isna().any():
             msg = "Cannot cast to int."
             raise ValueError(msg)
         return np.array(self, dtype=dtype, copy=copy)
