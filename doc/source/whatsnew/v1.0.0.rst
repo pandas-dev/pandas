@@ -21,6 +21,8 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+- :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
+-
 
 .. _whatsnew_1000.enhancements.other:
 
@@ -200,6 +202,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
+- Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 
 Plotting
 ^^^^^^^^
