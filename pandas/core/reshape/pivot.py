@@ -1,3 +1,5 @@
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
 
 from pandas.util._decorators import Appender, Substitution
@@ -6,6 +8,7 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas._typing import Axis
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
@@ -206,6 +209,7 @@ def _add_margins(
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
 
+    key: Union[str, Tuple[str, ...]]
     if len(rows) > 1:
         key = (margins_name,) + ("",) * (len(rows) - 1)
     else:
@@ -432,13 +436,13 @@ def crosstab(
     index,
     columns,
     values=None,
-    rownames=None,
-    colnames=None,
-    aggfunc=None,
-    margins=False,
-    margins_name="All",
-    dropna=True,
-    normalize=False,
+    rownames: Optional[Sequence] = None,
+    colnames: Optional[Sequence] = None,
+    aggfunc: Optional[Callable] = None,
+    margins: bool = False,
+    margins_name: str = "All",
+    dropna: bool = True,
+    normalize: Union[bool, Axis] = False,
 ):
     """
     Compute a simple cross tabulation of two (or more) factors. By default
@@ -543,7 +547,7 @@ def crosstab(
 
     common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
 
-    data = {}
+    data: Dict = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
@@ -582,9 +586,10 @@ def crosstab(
     return table
 
 
-def _normalize(table, normalize, margins, margins_name="All"):
+def _normalize(table, normalize: Union[bool, Axis], margins: bool, margins_name="All"):
 
     if not isinstance(normalize, (bool, str)):
+        # TODO: can NDFrame._get_axis_name be used here instead?
         axis_subs = {0: "index", 1: "columns"}
         try:
             normalize = axis_subs[normalize]
@@ -594,7 +599,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
     if margins is False:
 
         # Actual Normalizations
-        normalizers = {
+        normalizers: Dict[Union[bool, str], Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
@@ -663,7 +668,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
     return table
 
 
-def _get_names(arrs, names, prefix="row"):
+def _get_names(arrs, names, prefix: str = "row") -> List:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):
