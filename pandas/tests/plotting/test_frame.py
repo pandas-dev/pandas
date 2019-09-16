@@ -582,7 +582,7 @@ class TestDataFramePlots(TestPlotBase):
                 pd.to_datetime("2017-08-02 00:00:00"),
             ],
         }
-        testdata = pd.DataFrame(data)
+        testdata = DataFrame(data)
         ax_period = testdata.plot(x="numeric", y="period")
         assert (
             ax_period.get_lines()[0].get_data()[1] == testdata["period"].values
@@ -952,7 +952,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
     def test_bar_user_colors(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )
         # This should *only* work when `y` is specified, else
@@ -1114,13 +1114,13 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_categorical(self):
         # GH 13019
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             np.random.randn(6, 5),
             index=pd.Index(list("ABCDEF")),
             columns=pd.Index(list("abcde")),
         )
         # categorical index must behave the same
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             np.random.randn(6, 5),
             index=pd.CategoricalIndex(list("ABCDEF")),
             columns=pd.CategoricalIndex(list("abcde")),
@@ -1167,7 +1167,7 @@ class TestDataFramePlots(TestPlotBase):
         # interfere with x-axis label and ticklabels with
         # ipython inline backend.
         random_array = np.random.random((1000, 3))
-        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         ax1 = df.plot.scatter(x="A label", y="B label")
         ax2 = df.plot.scatter(x="A label", y="B label", c="C label")
@@ -1190,7 +1190,7 @@ class TestDataFramePlots(TestPlotBase):
         # interfere with x-axis label and ticklabels with
         # ipython inline backend.
         random_array = np.random.random((1000, 3))
-        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         ax = df.plot.hexbin("A label", "B label", gridsize=12)
         assert all(vis.get_visible() for vis in ax.xaxis.get_minorticklabels())
@@ -1202,7 +1202,7 @@ class TestDataFramePlots(TestPlotBase):
         import matplotlib.pyplot as plt
 
         random_array = np.random.random((1000, 3))
-        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         fig, axes = plt.subplots(1, 2)
         df.plot.scatter("A label", "B label", c="C label", ax=axes[0])
@@ -1218,7 +1218,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
         # GH 16199
-        df = pd.DataFrame(
+        df = DataFrame(
             {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
         )
 
@@ -1883,7 +1883,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_missing_marker_multi_plots_on_same_ax(self):
         # GH 18222
-        df = pd.DataFrame(
+        df = DataFrame(
             data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"]
         )
         fig, ax = self.plt.subplots(nrows=1, ncols=3)
@@ -2023,7 +2023,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
-        pd.DataFrame(np.random.rand(10, 2)).plot(color=colors)
+        DataFrame(np.random.rand(10, 2)).plot(color=colors)
         assert len(colors) == 3
 
     @pytest.mark.slow
@@ -3114,7 +3114,7 @@ class TestDataFramePlots(TestPlotBase):
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         colormap = mpl.colors.ListedColormap(color_tuples)
-        barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
+        barplot = DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     def test_rcParams_bar_colors(self):
@@ -3122,14 +3122,14 @@ class TestDataFramePlots(TestPlotBase):
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         with mpl.rc_context(rc={"axes.prop_cycle": mpl.cycler("color", color_tuples)}):
-            barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
+            barplot = DataFrame([[1, 2, 3]]).plot(kind="bar")
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     @pytest.mark.parametrize("method", ["line", "barh", "bar"])
     def test_secondary_axis_font_size(self, method):
         # GH: 12565
         df = (
-            pd.DataFrame(np.random.randn(15, 2), columns=list("AB"))
+            DataFrame(np.random.randn(15, 2), columns=list("AB"))
             .assign(C=lambda df: df.B.cumsum())
             .assign(D=lambda df: df.C * 1.1)
         )
@@ -3145,7 +3145,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_x_string_values_ticks(self):
         # Test if string plot index have a fixed xtick position
         # GH: 7612, GH: 22334
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "sales": [3, 2, 3],
                 "visits": [20, 42, 28],
@@ -3166,7 +3166,7 @@ class TestDataFramePlots(TestPlotBase):
         # Test if multiindex plot index have a fixed xtick position
         # GH: 15912
         index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
-        df = pd.DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
+        df = DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
         ax = df.plot()
         ax.set_xlim(-1, 4)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
@@ -3181,7 +3181,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_xlim_plot_line(self, kind):
         # test if xlim is set correctly in plot.line and plot.area
         # GH 27686
-        df = pd.DataFrame([2, 4], index=[1, 2])
+        df = DataFrame([2, 4], index=[1, 2])
         ax = df.plot(kind=kind)
         xlims = ax.get_xlim()
         assert xlims[0] < 1
@@ -3193,7 +3193,7 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
 
         indexes = ["k1", "k2", "k3", "k4"]
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "s1": [1000, 2000, 1500, 2000],
                 "s2": [900, 1400, 2000, 3000],
@@ -3216,7 +3216,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = pd.DataFrame(np.random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
@@ -3238,7 +3238,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_no_rows(self):
         # GH 27758
-        df = pd.DataFrame(columns=["foo"], dtype=int)
+        df = DataFrame(columns=["foo"], dtype=int)
         assert df.empty
         ax = df.plot()
         assert len(ax.get_lines()) == 1
@@ -3247,7 +3247,7 @@ class TestDataFramePlots(TestPlotBase):
         assert len(line.get_ydata()) == 0
 
     def test_plot_no_numeric_data(self):
-        df = pd.DataFrame(["a", "b", "c"])
+        df = DataFrame(["a", "b", "c"])
         with pytest.raises(TypeError):
             df.plot()
 
