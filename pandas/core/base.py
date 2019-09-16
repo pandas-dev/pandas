@@ -1289,17 +1289,17 @@ class IndexOpsMixin:
 
         Parameters
         ----------
-        normalize : boolean, default False
+        normalize : bool, default False
             If True then the object returned will contain the relative
             frequencies of the unique values.
-        sort : boolean, default True
+        sort : bool, default True
             Sort by frequencies.
-        ascending : boolean, default False
+        ascending : bool, default False
             Sort in ascending order.
-        bins : integer, optional
+        bins : int, optional
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with numeric data.
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
@@ -1496,7 +1496,7 @@ class IndexOpsMixin:
         size_hint="",
         sort=textwrap.dedent(
             """\
-            sort : boolean, default False
+            sort : bool, default False
                 Sort `uniques` and shuffle `labels` to maintain the
                 relationship.
             """

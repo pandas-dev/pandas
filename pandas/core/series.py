@@ -1785,7 +1785,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        kind : {'block', 'integer'}, default 'block'
+        kind : {'block', 'int'}, default 'block'
         fill_value : float, defaults to NaN (missing)
             Value to use for filling NaN values.
 
