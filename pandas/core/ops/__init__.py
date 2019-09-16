@@ -40,12 +40,12 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
-from pandas.core.ops.common import unpack_and_defer
 from pandas.core.ops.array_ops import (
     comp_method_OBJECT_ARRAY,
     define_na_arithmetic_op,
     na_arithmetic_op,
 )
+from pandas.core.ops.common import unpack_and_defer
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -631,8 +631,6 @@ def _arith_method_SERIES(cls, op, special):
     construct_result = (
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
-
-    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
 
     @unpack_and_defer(op_name)
     def wrapper(left, right):
