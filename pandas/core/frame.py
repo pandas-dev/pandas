@@ -3481,7 +3481,7 @@ class DataFrame(NDFrame):
 
         # We raise when both include and exclude are empty
         # Hence, we can just shrink the columns we want to keep
-        keep_these = Series(True, index=self.columns)
+        keep_these = np.full(self.shape[1], True)
 
         def extract_unique_dtypes_from_dtypes_list(
             dtypes_list: List[Type], unique_dtypes: List[Type]
