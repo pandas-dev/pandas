@@ -6205,16 +6205,16 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+    def explode(self, columns: Union[str, List[str]]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating index values.
+        Transform each element of a list-like to a row, replicating the
+        index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
         column : str or tuple
-            Column to explode.
 
         Returns
         -------
@@ -6230,8 +6230,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
-            index labels.
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
+            index labels
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format
         Series.explode : Explode a DataFrame from list-like columns to long format.
 
         Notes
@@ -6260,30 +6260,60 @@ class DataFrame(NDFrame):
         2  NaN  1
         3    3  1
         3    4  1
+
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 
+                               'B': 1,
+                               'C': [[7,8,9],'bar',[],[8,7]]})
+        >>> df
+                   A  B          C
+        0  [1, 2, 3]  1  [7, 8, 9]
+        1        foo  1        bar
+        2         []  1         []
+        3     [3, 4]  1     [8, 7]        
+        
+        >>> df.explode(['A','C'])        
+           B    A    C
+        0  1    1    7
+        0  1    2    8
+        0  1    3    9
+        1  1  foo  bar
+        2  1  NaN  NaN
+        3  1    3    8
+        3  1    4    7        
         """
+        
+        # Validate data
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
-
+        
         if isinstance(columns, str):
             columns = [columns]
-
+        
         if not isinstance(columns, list):
             raise TypeError("columns value not list or sting")
-
+            
         if not all([c in self.columns for c in columns]):
             raise ValueError("column name(s) not in index")
-
-        tmp = pd.DataFrame()
+        
+        tmp = self.iloc[0:0,0:0].copy() # creates empty temp df
         lengths_equal = []
+        
         for row in self[columns].iterrows():
-            r = row[1]
-            lengths_equal.append(len(set([len(r[c]) for c in columns]))==1)
+            # converts non-lists into 1 element lists
+            r=row[1].apply(lambda x: x if type(x) in (list,tuple) else [x]) 
+            
+            # make sure all lists in the same record are the same length
+            row_is_ok = len(set([len(r[c]) for c in columns])) == 1
+            lengths_equal.append(row_is_ok) 
+            
+        # Explode all columns if lengths match
         if all(lengths_equal):
             for c in columns:
                 tmp[c] = self[c].explode()
         else:
-            ValueError("lengths of lists in the same row not equal")
-
+            raise ValueError("lengths of lists in the same row not equal")
+        
+        # join in exploded columns
         results = self.drop(columns, axis=1).join(tmp)
         return(results)
 
