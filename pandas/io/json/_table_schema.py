@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 
+import pandas
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
@@ -264,7 +265,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
         schema["primaryKey"] = primary_key
 
     if version:
-        schema["pandas_version"] = "0.20.0"
+        schema["pandas_version"] = pandas.__version__
     return schema
 
 
