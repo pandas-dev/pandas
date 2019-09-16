@@ -733,6 +733,8 @@ void Buffer_AppendIndentNewlineUnchecked(JSONObjectEncoder *enc)
   if (enc->indent > 0) Buffer_AppendCharUnchecked(enc, '\n');
 }
 
+// This function could be refactored to only accept enc as an argument,
+// but this is a straight vendor from ujson source
 void Buffer_AppendIndentUnchecked(JSONObjectEncoder *enc, JSINT32 value)
 {
   int i;
