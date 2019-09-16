@@ -6261,7 +6261,7 @@ class DataFrame(NDFrame):
         3    3  1
         3    4  1
 
-        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 
+        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]],
                                'B': 1,
                                'C': [[7,8,9],'bar',[],[8,7]]})
         >>> df
@@ -6270,8 +6270,8 @@ class DataFrame(NDFrame):
         1        foo  1        bar
         2         []  1         []
         3     [3, 4]  1     [8, 7]        
-        
-        >>> df.explode(['A','C'])        
+
+        >>> df.explode(['A','C'])
            B    A    C
         0  1    1    7
         0  1    2    8
@@ -6279,7 +6279,7 @@ class DataFrame(NDFrame):
         1  1  foo  bar
         2  1  NaN  NaN
         3  1    3    8
-        3  1    4    7        
+        3  1    4    7
         """
 
         # Validate data
@@ -6295,23 +6295,24 @@ class DataFrame(NDFrame):
         if not all([c in self.columns for c in columns]):
             raise ValueError("column name(s) not in index")
 
-        tmp = self.iloc[0:0,0:0].copy() # creates empty temp df
+        tmp = self.iloc[0:0, 0:0].copy() # creates empty temp df
         lengths_equal = []
 
         for row in self[columns].iterrows():
             # converts non-lists into 1 element lists so len() is valid
-            r=row[1].apply(lambda x: x if type(x) in (list,tuple) else [x]) 
-            
+            r = row[1].apply(lambda x: x if type(x) in (list, tuple) else [x])
+
             # make sure all lists in the same record are the same length
             row_is_ok = len(set([len(r[c]) for c in columns])) == 1
-            lengths_equal.append(row_is_ok) 
+            lengths_equal.append(row_is_ok)
 
         # Explode all columns if lengths match
         if all(lengths_equal):
             for c in columns:
                 tmp[c] = self[c].explode()
         else:
-            raise ValueError("Exploded lists from `columns` do not have equivalent length within the same record")
+            e = "Elements from `columns` do not have equivalent length within in the same row"
+            raise ValueError(e)
 
         # join in exploded columns
         results = self.drop(columns, axis=1).join(tmp)
