@@ -6310,7 +6310,7 @@ class DataFrame(NDFrame):
             for c in columns:
                 tmp[c] = self[c].explode()
         else:
-            raise ValueError("lengths of lists in the same row not equal")
+            raise ValueError("Exploded lists from `columns` do not have equivalent length within the same record")
         
         # join in exploded columns
         results = self.drop(columns, axis=1).join(tmp)
