@@ -630,9 +630,9 @@ class TestGetDummies:
         )
 
         if method:
-            result = pd.get_dummies(df, columns=values,dtype="int64")
+            result = pd.get_dummies(df, columns=values, dtype="int64")
         else:
-            result = pd.get_dummies(df, columns=values,dtype="int64")
+            result = pd.get_dummies(df, columns=values, dtype="int64")
 
         data = [[1, 'one', 1, 0, 0, 0, 0, 0, 1, 0, 0],
                 [2, 'one', 0, 1, 0, 0, 0, 0, 0, 1, 0],
@@ -640,8 +640,8 @@ class TestGetDummies:
                 [4, 'two', 1, 0, 0, 1, 0, 0, 0, 0, 0],
                 [5, 'two', 0, 1, 0, 0, 0, 1, 0, 0, 0],
                 [6, 'two', 0, 0, 1, 0, 1, 0, 0, 0, 0]]
-        columns = ['bar', 'foo', 'baz_A', 'baz_B', 'baz_C', 'zoo_q',
-                     'zoo_t', 'zoo_w', 'zoo_x', 'zoo_y', 'zoo_z']
+        columns = ['bar', 'foo', 'baz_A', 'baz_B', 'baz_C', 'zoo_q', 'zoo_t', 'zoo_w'
+                   , 'zoo_x', 'zoo_y', 'zoo_z']
         expected = DataFrame(data=data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
@@ -664,15 +664,13 @@ class TestGetDummies:
             }
         )
 
-        msg="Input must be a list-like of list-likes"
+        msg = "Input must be a list-like of list-likes"
 
         with pytest.raises(TypeError, match=msg):
             if method:
-                result = pd.get_dummies(df, columns=values)
+                pd.get_dummies(df, columns=values)
             else:
-                result = pd.get_dummies(df, columns=values)
-
-
+                pd.get_dummies(df, columns=values)
 
 
 class TestCategoricalReshape:
