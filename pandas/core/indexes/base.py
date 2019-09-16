@@ -4718,7 +4718,7 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer_non_unique(ptarget)
 
         if is_categorical(target):
-            tgt_values = target.__array__()
+            tgt_values = np.asarray(target)
         elif self.is_all_dates:
             tgt_values = target.asi8
         else:
