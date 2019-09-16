@@ -522,10 +522,12 @@ macros.append(("NPY_NO_DEPRECATED_API", "0"))
 # re-compile.
 def maybe_cythonize(extensions, *args, **kwargs):
     """
-    Render tempita templates before calling cythonize
+    Render tempita templates before calling cythonize. This is skipped for
+
+    * clean
+    * sdist
     """
     if "clean" in sys.argv or "sdist" in sys.argv:
-        # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
