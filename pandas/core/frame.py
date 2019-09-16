@@ -80,7 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype
+from pandas._typing import Axes, Dtype, FilePathOrBuffer
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -715,9 +715,9 @@ class DataFrame(NDFrame):
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
         self,
-        buf=None,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         columns: Optional[List[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[int] = None,
         header: Union[bool, List[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
