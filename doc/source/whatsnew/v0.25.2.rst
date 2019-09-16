@@ -100,7 +100,7 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Bug in `io.json.build_table_schema` always returned version 0.20.0 regardless of Pandas version (:issue: `28455`)
 
 .. _whatsnew_0.252.contributors:
 
