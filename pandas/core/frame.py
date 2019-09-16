@@ -6298,7 +6298,7 @@ class DataFrame(NDFrame):
         lengths_equal = []
         
         for row in self[columns].iterrows():
-            # converts non-lists into 1 element lists
+            # converts non-lists into 1 element lists so len() is valid
             r=row[1].apply(lambda x: x if type(x) in (list,tuple) else [x]) 
             
             # make sure all lists in the same record are the same length
