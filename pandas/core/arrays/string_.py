@@ -54,7 +54,7 @@ class StringDtype(ExtensionDtype):
         return "string"
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> ExtensionDtype:
         if string == "string":
             return cls()
         return super().construct_from_string(string)
