@@ -4883,6 +4883,29 @@ class TestHDFStore(Base):
             result = store["p"]
             assert_frame_equal(result, expected)
 
+    def test_read_legacy_sparse(self, datapath):
+        """
+        Generated with pandas 0.25.1 and
+
+        >>> s = pd.Series([1, None, 2, 3]).to_sparse()
+        >>> df = pd.DataFrame({"A": [1, None, 2, 3], "B": [1, 0, 0, 0]}).to_sparse()
+        >>> s.to_hdf("pandas/tests/io/data/legacy_hdf/legacy_sparse.h5", "series")
+        >>> df.to_hdf("pandas/tests/io/data/legacy_hdf/legacy_sparse.h5", "frame")
+        """
+        result = pd.read_hdf(
+            datapath("io", "data", "legacy_hdf", "legacy_sparse.h5"), "series"
+        )
+        expected = pd.Series(pd.SparseArray([1, None, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        result = pd.read_hdf(
+            datapath("io", "data", "legacy_hdf", "legacy_sparse.h5"), "frame"
+        )
+        expected = pd.DataFrame(
+            {"A": pd.SparseArray([1, None, 2, 3]), "B": pd.SparseArray([1, 0, 0, 0])}
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
     def test_select_empty_where(self, where):
         # GH26610
