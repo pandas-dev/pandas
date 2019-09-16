@@ -66,10 +66,6 @@ EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
     For more information, please visit https://pyperclip.readthedocs.io/en/latest/introduction.html#not-implemented-error """
 
-PY2 = sys.version_info[0] == 2
-
-STR_OR_UNICODE = unicode if PY2 else str # For paste(): Python 3 uses str, Python 2 uses unicode.
-
 ENCODING = 'utf-8'
 
 # The "which" unix command finds where a command is.
@@ -95,13 +91,10 @@ class PyperclipWindowsException(PyperclipException):
 
 
 def _stringifyText(text):
-    if PY2:
-        acceptedTypes = (unicode, str, int, float, bool)
-    else:
-        acceptedTypes = (str, int, float, bool)
+    acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
         raise PyperclipException('only str, int, float, and bool values can be copied to the clipboard, not %s' % (text.__class__.__name__))
-    return STR_OR_UNICODE(text)
+    return str(text)
 
 
 def init_osx_pbcopy_clipboard():
@@ -186,7 +179,7 @@ def init_qt_clipboard():
 
     def paste_qt():
         cb = app.clipboard()
-        return STR_OR_UNICODE(cb.text())
+        return str(cb.text())
 
     return copy_qt, paste_qt
 
@@ -300,12 +293,8 @@ def init_no_clipboard():
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 
-        if PY2:
-            def __nonzero__(self):
-                return False
-        else:
-            def __bool__(self):
-                return False
+        def __bool__(self):
+            return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()
 
