@@ -2756,7 +2756,10 @@ class GenericFixed(Fixed):
                     )
                 sp_index = self.read_index("{}_sp_index".format(key))
                 ret = SparseArray(
-                    ret, sparse_index=sp_index, fill_value=self.attrs.fill_value
+                    ret,
+                    sparse_index=sp_index,
+                    fill_value=self.attrs["{}_fill_value".format(key)],
+                    kind=self.attrs["{}_kind".format(key)],
                 )
 
         if transposed:
@@ -3032,9 +3035,11 @@ class GenericFixed(Fixed):
                     self.write_index("{}_sp_index".format(key), value.sp_index)
                     self._handle.create_array(self.group, key, value.sp_values)
                     getattr(self.group, key)._v_attrs.value_type = "Sparse"
-                    self.attrs.fill_value = value.fill_value
-                    self.attrs.kind = value.kind
-                    self.attributes.extend(["fill_value", "kind"])
+                    setattr(self.attrs, "{}_fill_value".format(key), value.fill_value)
+                    setattr(self.attrs, "{}_kind".format(key), value.kind)
+                    self.attributes.extend(
+                        ["{}_fill_value".format(key), "{}_kind".format(key)]
+                    )
                 else:
                     self._handle.create_array(self.group, key, value)
 

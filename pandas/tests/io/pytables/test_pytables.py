@@ -2373,6 +2373,17 @@ class TestHDFStore(Base):
         ss3 = s.apply(lambda x: pd.SparseArray(x, fill_value=0))
         self._check_double_roundtrip(ss3, tm.assert_frame_equal, check_frame_type=True)
 
+    def test_mixed_sparse_dense_frame(self):
+        df = pd.DataFrame(
+            {
+                "A": [0, 1, 2, 3],
+                "B": pd.SparseArray([0, 1, 2, 3], kind="block"),
+                "C": [0.0, 1.0, 2.0, 3.0],
+                "D": pd.SparseArray([0.0, 1.0, 2.0, 3.0], kind="integer"),
+            }
+        )
+        self._check_roundtrip(df, tm.assert_frame_equal)
+
     def test_float_index(self):
 
         # GH #454
