@@ -386,7 +386,7 @@ class Block(PandasObject):
 
         return result
 
-    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
@@ -1839,7 +1839,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         placement = placement or slice(0, len(values), 1)
         return self.make_block_same_class(values, ndim=self.ndim, placement=placement)
 
-    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
         return [
@@ -2403,15 +2403,15 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return ObjectBlock(values, ndim=self.ndim, placement=placement)
         return super().concat_same_type(to_concat, placement)
 
-    def fillna(self, value, axis=0, limit=None, inplace=False, downcast=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None, axis=0):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         if self._can_hold_element(value):
-            return super().fillna(value, axis, limit, inplace, downcast)
+            return super().fillna(value, limit, inplace, downcast, axis)
 
         # different timezones, or a non-tz
         return self.astype(object).fillna(
-            value, axis=axis, limit=limit, inplace=inplace, downcast=downcast
+            value, limit=limit, inplace=inplace, downcast=downcast, axis=axis
         )
 
     def setitem(self, indexer, value):

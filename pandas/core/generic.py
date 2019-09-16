@@ -6274,8 +6274,8 @@ class NDFrame(PandasObject, SelectionMixin):
                     )
 
                 new_data = self._data.fillna(
-                    value=value, axis=axis, limit=limit, inplace=inplace,
-                    downcast=downcast
+                    value=value, limit=limit, inplace=inplace,
+                    downcast=downcast, axis=axis
                 )
 
             elif isinstance(value, (dict, ABCSeries)):
