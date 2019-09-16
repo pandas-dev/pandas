@@ -6269,7 +6269,7 @@ class DataFrame(NDFrame):
         0  [1, 2, 3]  1  [7, 8, 9]
         1        foo  1        bar
         2         []  1         []
-        3     [3, 4]  1     [8, 7]        
+        3     [3, 4]  1     [8, 7]
 
         >>> df.explode(['A','C'])
            B    A    C
@@ -6295,7 +6295,7 @@ class DataFrame(NDFrame):
         if not all([c in self.columns for c in columns]):
             raise ValueError("column name(s) not in index")
 
-        tmp = self.iloc[0:0, 0:0].copy() # creates empty temp df
+        tmp = self.iloc[0:0, 0:0].copy()  # creates empty temp df
         lengths_equal = []
 
         for row in self[columns].iterrows():
@@ -6311,7 +6311,7 @@ class DataFrame(NDFrame):
             for c in columns:
                 tmp[c] = self[c].explode()
         else:
-            e = "Elements from `columns` do not have equivalent length within in the same row"
+            e = "Elements in `columns` do not have equal length in the same row"
             raise ValueError(e)
 
         # join in exploded columns
