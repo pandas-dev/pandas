@@ -194,7 +194,7 @@ I/O
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
-- Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in iso format with ``orient="table"`` (:issue:`28130`)  
+- Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)  
 
 Plotting
 ^^^^^^^^
