@@ -35,6 +35,8 @@ dependencies:
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
+  - dask
+  - distributed
 
   # web (jinja2 is also needed, but it's also an optional pandas dependency)
   - markdown
