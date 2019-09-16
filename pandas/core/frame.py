@@ -6207,14 +6207,15 @@ class DataFrame(NDFrame):
 
     def explode(self, columns: Union[str, List[str]]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating the index values.
+        Transform each element of a list-like to a row, replicating index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
-        column : str or tuple
-
+        columns : str or list
+            the column(s) to be exploded
+            
         Returns
         -------
         DataFrame
