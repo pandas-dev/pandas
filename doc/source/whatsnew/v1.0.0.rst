@@ -78,9 +78,9 @@ Backwards incompatible API changes
 String conversion of Series with nan
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- When converting into string, :meth:`Series.astype` will not convert ``np.nan`` into string and keep it as missing value (:issue:`25353`)
+:meth:Series.astype(str) previously would coerce a np.nan to the string nan. Now pandas will preserve the missing value indicator (:issue:`25353`)
 
- *pandas 0.25.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -90,7 +90,7 @@ String conversion of Series with nan
    1    nan
    dtype: object
 
-*pandas 1.0.0*
+*New behavior*:
 
 .. ipython:: python
    pd.Series(['foo', np.nan]).astype(str)
