@@ -610,7 +610,7 @@ class Describe:
 
 
 class SelectDtypes:
-    params = [10, 100, 1000, 10000, 100000]
+    params = [100, 1000]
     param_names = ["n"]
 
     def setup(self, n):
