@@ -3455,15 +3455,6 @@ class DataFrame(NDFrame):
         5  False  2.0
         """
 
-        def _get_info_slice(obj, indexer):
-            """Slice the info axis of `obj` with `indexer`."""
-            if not hasattr(obj, "_info_axis_number"):
-                msg = "object of type {typ!r} has no info axis"
-                raise TypeError(msg.format(typ=type(obj).__name__))
-            slices = [slice(None)] * obj.ndim
-            slices[obj._info_axis_number] = indexer
-            return tuple(slices)
-
         if not is_list_like(include):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
@@ -3491,27 +3482,31 @@ class DataFrame(NDFrame):
         # We raise when both include and exclude are empty
         # Hence, we can just shrink the columns we want to keep
         keep_these = Series(True, index=self.columns)
+
+        def extract_unique_dtypes_from_dtypes_list(
+            dtypes_list: List[Type], unique_dtypes: List[Type]
+        ) -> List[Type]:
+            extracted_dtypes = []
+            for unique_dtype in unique_dtypes:
+                if any(issubclass(unique_dtype.type, dtype) for dtype in dtypes_list):
+                    extracted_dtypes.append(unique_dtype)
+            return extracted_dtypes
+
         unique_dtypes = self.dtypes.unique()
 
-        def filter_unique_dtypes_on(selection, unqiue_dtypes):
-            result = [
-                dtype
-                for dtype in unique_dtypes
-                if any(
-                    issubclass(dtype.type, selected_type) for selected_type in selection
-                )
-            ]
-            return result
-
         if include:
-            included_dtypes = filter_unique_dtypes_on(include, unique_dtypes)
+            included_dtypes = extract_unique_dtypes_from_dtypes_list(
+                include, unique_dtypes
+            )
             keep_these &= self.dtypes.isin(included_dtypes)
 
         if exclude:
-            excluded_dtypes = filter_unique_dtypes_on(exclude, unique_dtypes)
+            excluded_dtypes = extract_unique_dtypes_from_dtypes_list(
+                exclude, unique_dtypes
+            )
             keep_these &= ~self.dtypes.isin(excluded_dtypes)
 
-        return self.loc[_get_info_slice(self, keep_these)]
+        return self.iloc[:, keep_these.values]
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
