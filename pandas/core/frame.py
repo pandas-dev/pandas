@@ -6215,7 +6215,7 @@ class DataFrame(NDFrame):
         ----------
         columns : str or list
             the column(s) to be exploded
-            
+
         Returns
         -------
         DataFrame
@@ -6281,23 +6281,23 @@ class DataFrame(NDFrame):
         3  1    3    8
         3  1    4    7        
         """
-        
+
         # Validate data
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
-        
+
         if isinstance(columns, str):
             columns = [columns]
-        
+
         if not isinstance(columns, list):
             raise TypeError("columns value not list or sting")
-            
+
         if not all([c in self.columns for c in columns]):
             raise ValueError("column name(s) not in index")
-        
+
         tmp = self.iloc[0:0,0:0].copy() # creates empty temp df
         lengths_equal = []
-        
+
         for row in self[columns].iterrows():
             # converts non-lists into 1 element lists so len() is valid
             r=row[1].apply(lambda x: x if type(x) in (list,tuple) else [x]) 
@@ -6305,14 +6305,14 @@ class DataFrame(NDFrame):
             # make sure all lists in the same record are the same length
             row_is_ok = len(set([len(r[c]) for c in columns])) == 1
             lengths_equal.append(row_is_ok) 
-            
+
         # Explode all columns if lengths match
         if all(lengths_equal):
             for c in columns:
                 tmp[c] = self[c].explode()
         else:
             raise ValueError("Exploded lists from `columns` do not have equivalent length within the same record")
-        
+
         # join in exploded columns
         results = self.drop(columns, axis=1).join(tmp)
         return(results)
