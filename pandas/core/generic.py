@@ -2415,10 +2415,7 @@ class NDFrame(PandasObject, SelectionMixin):
             date_format = "epoch"
 
         config.is_nonnegative_int(indent)
-        if indent is None:
-            int_indent = 0
-        else:
-            int_indent = indent
+        indent = indent or 0
 
         return json.to_json(
             path_or_buf=path_or_buf,
@@ -2432,7 +2429,7 @@ class NDFrame(PandasObject, SelectionMixin):
             lines=lines,
             compression=compression,
             index=index,
-            indent=int_indent,
+            indent=indent,
         )
 
     def to_hdf(self, path_or_buf, key, **kwargs):
