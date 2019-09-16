@@ -671,7 +671,8 @@ class TestDataFrameMissingData:
         expected = df.astype(float).fillna(method="ffill", axis=1)
         assert_frame_equal(result, expected)
 
-    def test_fillna_columns(self):
+    def test_fillna_rows(self):
+        #GH17399
         df = DataFrame(np.random.randn(10, 4))
         df.iloc[1:4, 1:4] = nan
         expected = df.copy()
