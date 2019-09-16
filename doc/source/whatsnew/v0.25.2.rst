@@ -100,7 +100,6 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
-- Remove error raised due to duplicated input functions in named aggregation in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`28426`)
 
 .. _whatsnew_0.252.contributors:
 
