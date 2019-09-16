@@ -6207,14 +6207,15 @@ class DataFrame(NDFrame):
 
     def explode(self, columns: Union[str, List[str]]) -> "DataFrame":
         """
-        Transform each element of a list-like to a row, replicating the index values.
+        Transform each element of a list-like to a row, replicating index values.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
-        column : str or tuple
-
+        columns : str or list
+            the column(s) to be exploded
+            
         Returns
         -------
         DataFrame
@@ -6298,7 +6299,7 @@ class DataFrame(NDFrame):
         lengths_equal = []
         
         for row in self[columns].iterrows():
-            # converts non-lists into 1 element lists
+            # converts non-lists into 1 element lists so len() is valid
             r=row[1].apply(lambda x: x if type(x) in (list,tuple) else [x]) 
             
             # make sure all lists in the same record are the same length
