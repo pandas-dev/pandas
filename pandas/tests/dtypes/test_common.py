@@ -678,7 +678,7 @@ def test__get_dtype_sparse():
         (None, "Cannot deduce dtype from null object"),
         (1, "data type not understood"),
         (1.2, "data type not understood"),
-        ("random string", "data type 'random string' not understood"),
+        ("random string", 'data type "random string" not understood'),
         (pd.DataFrame([1, 2]), "data type not understood"),
     ],
 )

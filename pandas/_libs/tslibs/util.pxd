@@ -1,5 +1,5 @@
 
-from cpython cimport PyTypeObject
+from cpython.object cimport PyTypeObject
 
 cdef extern from *:
     """

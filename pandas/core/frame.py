@@ -80,6 +80,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import Axes, Dtype
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -370,7 +371,7 @@ class DataFrame(NDFrame):
     """
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
 
     _constructor_sliced = Series  # type: Type[Series]
@@ -386,7 +387,14 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False):
+    def __init__(
+        self,
+        data=None,
+        index: Optional[Axes] = None,
+        columns: Optional[Axes] = None,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+    ):
         if data is None:
             data = {}
         if dtype is not None:
@@ -481,7 +489,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def axes(self):
+    def axes(self) -> List[Index]:
         """
         Return a list representing the axes of the DataFrame.
 
@@ -498,7 +506,7 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
@@ -520,7 +528,7 @@ class DataFrame(NDFrame):
         return len(self.index), len(self.columns)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether all the columns in a DataFrame have the same type.
 
@@ -633,6 +641,7 @@ class DataFrame(NDFrame):
         max_rows = get_option("display.max_rows")
         min_rows = get_option("display.min_rows")
         max_cols = get_option("display.max_columns")
+        max_colwidth = get_option("display.max_colwidth")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = console.get_console_size()
@@ -644,6 +653,7 @@ class DataFrame(NDFrame):
             min_rows=min_rows,
             max_cols=max_cols,
             line_width=width,
+            max_colwidth=max_colwidth,
             show_dimensions=show_dimensions,
         )
 
@@ -722,12 +732,17 @@ class DataFrame(NDFrame):
         show_dimensions=False,
         decimal=".",
         line_width=None,
+        max_colwidth=None,
     ):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
+        max_colwidth : int, optional
+            Max width to truncate each column in characters. By default, no limit.
+
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
@@ -744,26 +759,29 @@ class DataFrame(NDFrame):
         2     3     6
         """
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            formatters=formatters,
-            float_format=float_format,
-            sparsify=sparsify,
-            justify=justify,
-            index_names=index_names,
-            header=header,
-            index=index,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            max_cols=max_cols,
-            show_dimensions=show_dimensions,
-            decimal=decimal,
-            line_width=line_width,
-        )
-        return formatter.to_string(buf=buf)
+        from pandas import option_context
+
+        with option_context("display.max_colwidth", max_colwidth):
+            formatter = fmt.DataFrameFormatter(
+                self,
+                columns=columns,
+                col_space=col_space,
+                na_rep=na_rep,
+                formatters=formatters,
+                float_format=float_format,
+                sparsify=sparsify,
+                justify=justify,
+                index_names=index_names,
+                header=header,
+                index=index,
+                min_rows=min_rows,
+                max_rows=max_rows,
+                max_cols=max_cols,
+                show_dimensions=show_dimensions,
+                decimal=decimal,
+                line_width=line_width,
+            )
+            return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 
@@ -2165,8 +2183,12 @@ class DataFrame(NDFrame):
             Name of the compression to use. Use ``None`` for no compression.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
-            If ``False``, they will not be written to the file. If ``None``,
-            the behavior depends on the chosen engine.
+            If ``False``, they will not be written to the file.
+            If ``None``, similar to ``True`` the dataframe's index(es)
+            will be saved. However, instead of being saved as values,
+            the RangeIndex will be stored as a range in the metadata so it
+            doesn't require much space and is faster. Other indexes will
+            be included as columns in the file output.
 
             .. versionadded:: 0.24.0
 

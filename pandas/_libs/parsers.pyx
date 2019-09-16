@@ -17,12 +17,11 @@ from libc.string cimport strncpy, strlen, strcasecmp
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString,
-                      PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch,
-                      PyUnicode_Decode)
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
 
 
 cdef extern from "Python.h":
@@ -567,10 +566,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
