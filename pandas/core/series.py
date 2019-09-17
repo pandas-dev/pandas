@@ -1114,9 +1114,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     return self.__getitem__(new_key)
                 raise
 
-        except Exception:
-            raise
-
         if is_iterator(key):
             key = list(key)
 
@@ -1788,7 +1785,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        kind : {'block', 'integer'}, default 'block'
+        kind : {'block', 'int'}, default 'block'
         fill_value : float, defaults to NaN (missing)
             Value to use for filling NaN values.
 
@@ -2733,7 +2730,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            to_concat = [self] + to_append
+            to_concat = [self]
+            to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
         return concat(
@@ -3620,7 +3618,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.str.split : Split string values on specified separator.
         Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
             to produce DataFrame.
-        DataFrame.melt : Unpivot a DataFrame from wide format to long format
+        DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         DataFrame.explode : Explode a DataFrame from list-like
             columns to long format.
 

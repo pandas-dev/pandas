@@ -11,6 +11,7 @@ from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
+from urllib.error import URLError
 
 import numpy as np
 import pytest
@@ -21,7 +22,6 @@ from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas.util.testing as tm
 
-from pandas.io.common import URLError
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
 
@@ -1865,6 +1865,23 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_infinity_parsing(all_parsers, na_filter):
+    parser = all_parsers
+    data = """\
+,A
+a,Infinity
+b,-Infinity
+c,+Infinity
+"""
+    expected = DataFrame(
+        {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
+        index=["a", "b", "c"],
+    )
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -1898,7 +1915,10 @@ def test_null_byte_char(all_parsers):
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
-        msg = "NULL byte detected"
+        if compat.PY38:
+            msg = "line contains NUL"
+        else:
+            msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), names=names)
 

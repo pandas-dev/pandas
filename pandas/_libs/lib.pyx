@@ -9,9 +9,12 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
-                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
-                      PyUnicode_Join, PyList_New)
+from cpython.list cimport PyList_New
+from cpython.object cimport (PyObject_Str, PyObject_RichCompareBool, Py_EQ,
+                             Py_SIZE)
+from cpython.ref cimport Py_INCREF
+from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
+from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -235,7 +238,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
     if sort is None:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             # TODO: RuntimeWarning?
             pass
 
@@ -264,7 +267,7 @@ def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -304,7 +307,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -1410,7 +1413,7 @@ def infer_datetimelike_array(arr: object) -> object:
         try:
             array_to_datetime(objs, errors='raise')
             return 'datetime'
-        except:
+        except (ValueError, TypeError):
             pass
 
         # we are *not* going to infer from strings

@@ -2049,10 +2049,8 @@ def pandas_dtype(dtype):
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except Exception:
-        # we don't want to force a repr of the non-string
-        if not isinstance(dtype, str):
-            raise TypeError("data type not understood")
+    except SyntaxError:
+        # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError("data type '{}' not understood".format(dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.

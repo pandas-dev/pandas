@@ -10,7 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
-from pandas.core.groupby.generic import _maybe_mangle_lambdas
+from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
@@ -560,3 +560,150 @@ class TestLambdaMangling:
         result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
         expected = pd.DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
+
+    def test_agg_with_one_lambda(self):
+        # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
+        df = pd.DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0],
+                "weight": [7.9, 7.5, 9.9, 198.0],
+            }
+        )
+
+        # sort for 35 and earlier
+        columns = ["height_sqr_min", "height_max", "weight_max"]
+        if compat.PY35:
+            columns = ["height_max", "height_sqr_min", "weight_max"]
+        expected = pd.DataFrame(
+            {
+                "height_sqr_min": [82.81, 36.00],
+                "height_max": [9.5, 34.0],
+                "weight_max": [9.9, 198.0],
+            },
+            index=pd.Index(["cat", "dog"], name="kind"),
+            columns=columns,
+        )
+
+        # check pd.NameAgg case
+        result1 = df.groupby(by="kind").agg(
+            height_sqr_min=pd.NamedAgg(
+                column="height", aggfunc=lambda x: np.min(x ** 2)
+            ),
+            height_max=pd.NamedAgg(column="height", aggfunc="max"),
+            weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
+        )
+        tm.assert_frame_equal(result1, expected)
+
+        # check agg(key=(col, aggfunc)) case
+        result2 = df.groupby(by="kind").agg(
+            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_max=("height", "max"),
+            weight_max=("weight", "max"),
+        )
+        tm.assert_frame_equal(result2, expected)
+
+    def test_agg_multiple_lambda(self):
+        # GH25719, test for DataFrameGroupby.agg with multiple lambdas
+        # with mixed aggfunc
+        df = pd.DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0],
+                "weight": [7.9, 7.5, 9.9, 198.0],
+            }
+        )
+        # sort for 35 and earlier
+        columns = [
+            "height_sqr_min",
+            "height_max",
+            "weight_max",
+            "height_max_2",
+            "weight_min",
+        ]
+        if compat.PY35:
+            columns = [
+                "height_max",
+                "height_max_2",
+                "height_sqr_min",
+                "weight_max",
+                "weight_min",
+            ]
+        expected = pd.DataFrame(
+            {
+                "height_sqr_min": [82.81, 36.00],
+                "height_max": [9.5, 34.0],
+                "weight_max": [9.9, 198.0],
+                "height_max_2": [9.5, 34.0],
+                "weight_min": [7.9, 7.5],
+            },
+            index=pd.Index(["cat", "dog"], name="kind"),
+            columns=columns,
+        )
+
+        # check agg(key=(col, aggfunc)) case
+        result1 = df.groupby(by="kind").agg(
+            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_max=("height", "max"),
+            weight_max=("weight", "max"),
+            height_max_2=("height", lambda x: np.max(x)),
+            weight_min=("weight", lambda x: np.min(x)),
+        )
+        tm.assert_frame_equal(result1, expected)
+
+        # check pd.NamedAgg case
+        result2 = df.groupby(by="kind").agg(
+            height_sqr_min=pd.NamedAgg(
+                column="height", aggfunc=lambda x: np.min(x ** 2)
+            ),
+            height_max=pd.NamedAgg(column="height", aggfunc="max"),
+            weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
+            height_max_2=pd.NamedAgg(column="height", aggfunc=lambda x: np.max(x)),
+            weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
+        )
+        tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize(
+        "order, expected_reorder",
+        [
+            (
+                [
+                    ("height", "<lambda>"),
+                    ("height", "max"),
+                    ("weight", "max"),
+                    ("height", "<lambda>"),
+                    ("weight", "<lambda>"),
+                ],
+                [
+                    ("height", "<lambda>_0"),
+                    ("height", "max"),
+                    ("weight", "max"),
+                    ("height", "<lambda>_1"),
+                    ("weight", "<lambda>"),
+                ],
+            ),
+            (
+                [
+                    ("col2", "min"),
+                    ("col1", "<lambda>"),
+                    ("col1", "<lambda>"),
+                    ("col1", "<lambda>"),
+                ],
+                [
+                    ("col2", "min"),
+                    ("col1", "<lambda>_0"),
+                    ("col1", "<lambda>_1"),
+                    ("col1", "<lambda>_2"),
+                ],
+            ),
+            (
+                [("col", "<lambda>"), ("col", "<lambda>"), ("col", "<lambda>")],
+                [("col", "<lambda>_0"), ("col", "<lambda>_1"), ("col", "<lambda>_2")],
+            ),
+        ],
+    )
+    def test_make_unique(self, order, expected_reorder):
+        # GH 27519, test if make_unique function reorders correctly
+        result = _make_unique(order)
+
+        assert result == expected_reorder
