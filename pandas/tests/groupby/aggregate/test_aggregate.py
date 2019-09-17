@@ -460,8 +460,6 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(grouped, expected)
 
         # Example in GH28426
-        # TODO: this result is not correct, should be solved in Series.agg to
-        # TODO: allow named aggregation
         quant50 = functools.partial(np.percentile, q=50)
         quant70 = functools.partial(np.percentile, q=70)
 
