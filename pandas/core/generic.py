@@ -33,7 +33,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -968,15 +967,12 @@ class NDFrame(PandasObject, SelectionMixin):
         1
         """
         axis = self._AXIS_NAMES if axis is None else (self._get_axis_number(axis),)
-        try:
-            return self.iloc[
-                tuple(
-                    0 if i in axis and len(a) == 1 else slice(None)
-                    for i, a in enumerate(self.axes)
-                )
-            ]
-        except Exception:
-            return self
+        return self.iloc[
+            tuple(
+                0 if i in axis and len(a) == 1 else slice(None)
+                for i, a in enumerate(self.axes)
+            )
+        ]
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
@@ -9053,22 +9049,9 @@ class NDFrame(PandasObject, SelectionMixin):
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
 
-                            try:
-                                new_other = com.values_from_object(self)
-                                new_other = new_other.copy()
-                                new_other[icond] = other
-                                other = new_other
-                            except Exception:
-                                try_quick = False
-
-                        # let's create a new (if we failed at the above
-                        # or not try_quick
-                        if not try_quick:
-
-                            dtype, fill_value = maybe_promote(other.dtype)
-                            new_other = np.empty(len(icond), dtype=dtype)
-                            new_other.fill(fill_value)
-                            maybe_upcast_putmask(new_other, icond, other)
+                            new_other = com.values_from_object(self)
+                            new_other = new_other.copy()
+                            new_other[icond] = other
                             other = new_other
 
                     else:
