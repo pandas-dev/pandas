@@ -478,34 +478,28 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "data,msg,orient",
         [
-            (StringIO('{"key":b:a:d}'), "Expected object or value", "columns"),
+            ('{"key":b:a:d}', "Expected object or value", "columns"),
             # too few indices
             (
-                StringIO(
-                    '{"columns":["A","B"],'
-                    '"index":["2","3"],'
-                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-                ),
+                '{"columns":["A","B"],'
+                '"index":["2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
                 r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
                 "split",
             ),
             # too many columns
             (
-                StringIO(
-                    '{"columns":["A","B","C"],'
-                    '"index":["1","2","3"],'
-                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-                ),
+                '{"columns":["A","B","C"],'
+                '"index":["1","2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
                 "3 columns passed, passed data had 2 columns",
                 "split",
             ),
             # bad key
             (
-                StringIO(
-                    '{"badkey":["A","B"],'
-                    '"index":["2","3"],'
-                    '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}'
-                ),
+                '{"badkey":["A","B"],'
+                '"index":["2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
                 r"unexpected key\(s\): badkey",
                 "split",
             ),
@@ -513,7 +507,7 @@ class TestPandasContainer:
     )
     def test_frame_from_json_bad_data_raises(self, data, msg, orient):
         with pytest.raises(ValueError, match=msg):
-            read_json(data, orient=orient)
+            read_json(StringIO(data), orient=orient)
 
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
