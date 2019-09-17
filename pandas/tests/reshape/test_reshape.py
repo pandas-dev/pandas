@@ -617,9 +617,8 @@ class TestGetDummies:
             pd.Index(["baz", "zoo"]),
         ],
     )
-    @pytest.mark.parametrize("method", [True])
-    def test_get_dummies_with_list_like_values(self, values, method):
-        # issue #17160
+    def test_get_dummies_with_list_like_values(self, values):
+        # issue #28383
         df = pd.DataFrame(
             {
                 "bar": [1, 2, 3, 4, 5, 6],
@@ -629,10 +628,7 @@ class TestGetDummies:
             }
         )
 
-        if method:
-            result = pd.get_dummies(df, columns=values, dtype="int64")
-        else:
-            result = pd.get_dummies(df, columns=values, dtype="int64")
+        result = pd.get_dummies(df, columns=values, dtype="int64")
 
         data = [
             [1, "one", 1, 0, 0, 0, 0, 0, 1, 0, 0],
@@ -659,9 +655,8 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("values", ["baz", "zoo"])
-    @pytest.mark.parametrize("method", [True])
-    def test_get_dummies_with_string_values(self, values, method):
-        # issue #17160
+    def test_get_dummies_with_string_values(self, values):
+        # issue #28383
         df = pd.DataFrame(
             {
                 "bar": [1, 2, 3, 4, 5, 6],
@@ -674,10 +669,7 @@ class TestGetDummies:
         msg = "Input must be a list-like of list-likes"
 
         with pytest.raises(TypeError, match=msg):
-            if method:
-                pd.get_dummies(df, columns=values)
-            else:
-                pd.get_dummies(df, columns=values)
+            pd.get_dummies(df, columns=values)
 
 
 class TestCategoricalReshape:
