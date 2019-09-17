@@ -1854,10 +1854,10 @@ def makeStringSeries(name=None):
 
 
 def makeObjectSeries(name=None):
-    dateIndex = makeDateIndex(N)
-    dateIndex = Index(dateIndex, dtype=object)
+    data = makeStringIndex(N)
+    data = Index(data, dtype=object)
     index = makeStringIndex(N)
-    return Series(dateIndex, index=index, name=name)
+    return Series(data, index=index, name=name)
 
 
 def getSeriesData():
