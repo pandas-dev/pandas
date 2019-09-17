@@ -3483,7 +3483,7 @@ class DataFrame(NDFrame):
         # Hence, we can just shrink the columns we want to keep
         keep_these = np.full(self.shape[1], True)
 
-        def extract_unique_dtypes_from_dtypes_list(
+        def extract_unique_dtypes_from_dtypes_set(
             dtypes_set: FrozenSet[Dtype], unique_dtypes: np.ndarray
         ) -> List[Dtype]:
             extracted_dtypes = [
@@ -3496,13 +3496,13 @@ class DataFrame(NDFrame):
         unique_dtypes = self.dtypes.unique()
 
         if include:
-            included_dtypes = extract_unique_dtypes_from_dtypes_list(
+            included_dtypes = extract_unique_dtypes_from_dtypes_set(
                 include, unique_dtypes
             )
             keep_these &= self.dtypes.isin(included_dtypes)
 
         if exclude:
-            excluded_dtypes = extract_unique_dtypes_from_dtypes_list(
+            excluded_dtypes = extract_unique_dtypes_from_dtypes_set(
                 exclude, unique_dtypes
             )
             keep_these &= ~self.dtypes.isin(excluded_dtypes)
