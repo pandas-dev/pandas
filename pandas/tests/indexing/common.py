@@ -212,7 +212,8 @@ class Base:
 
                 try:
                     xp = self.get_result(obj, method2, k2, a)
-                except Exception:
+                except (KeyError, IndexError):
+                    # TODO: why is this allowed?
                     result = "no comp"
                     _print(result)
                     return
@@ -222,10 +223,8 @@ class Base:
                 try:
                     if is_scalar(rs) and is_scalar(xp):
                         assert rs == xp
-                    elif xp.ndim == 1:
-                        tm.assert_series_equal(rs, xp)
-                    elif xp.ndim == 2:
-                        tm.assert_frame_equal(rs, xp)
+                    else:
+                        tm.assert_equal(rs, xp)
                     result = "ok"
                 except AssertionError as e:
                     detail = str(e)
@@ -242,7 +241,7 @@ class Base:
 
             except AssertionError:
                 raise
-            except Exception as detail:
+            except (IndexError, TypeError, KeyError) as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:

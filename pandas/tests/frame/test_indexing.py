@@ -2172,10 +2172,9 @@ class TestDataFrameIndexing(TestData):
         index[0] = ["a", "b"]
         df.index = index
 
-        try:
-            repr(df)
-        except Exception as e:
-            assert type(e) != UnboundLocalError
+        # Note: this used to be a test that any exception that _is_
+        #  raised by repr is _not_ an UnboundLocalError.
+        repr(df)
 
     @pytest.mark.parametrize(
         "method,expected_values",
