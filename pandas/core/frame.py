@@ -8444,10 +8444,18 @@ class DataFrame(NDFrame):
         ascending : boolean, default False
             Sort in ascending order.
         bins : integer, optional
+            This parameter is not yet supported and must be set to None (the
+            default value). It exists to ensure compatibiliy with
+            `Series.value_counts`.
+
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with single-column numeric
             data.
         dropna : boolean, default True
+            This parameter is not yet supported and must be set to True (the
+            default value). It exists to ensure compatibiliy with
+            `Series.value_counts`.
+
             Don't include counts of rows containing NaN.
 
         Returns
@@ -8519,28 +8527,14 @@ class DataFrame(NDFrame):
                 "`bins` parameter not yet supported for dataframes."
             )
 
-        # Delegate to Series.value_counts for single-column data frames.
-        if len(self.columns) == 1:
-            series = self[self.columns[0]].value_counts(
-                normalize=normalize,
-                sort=sort,
-                ascending=ascending,
-                bins=bins,
-                dropna=dropna,
-            )
-            # Move series name into its index, as happens in multi-column case.
-            return Series(
-                data=series.values,
-                index=MultiIndex.from_arrays(
-                    [series.index.values], names=[series.name]
-                ),
-            )
-
         counts = self.groupby(self.columns.tolist()).size()
         if sort:
             counts.sort_values(ascending=ascending, inplace=True)
         if normalize:
             counts /= counts.sum()
+        # Force MultiIndex index.
+        if len(self.columns) == 1:
+            counts.index = MultiIndex.from_arrays([counts.index])
         return counts
 
     # ----------------------------------------------------------------------
