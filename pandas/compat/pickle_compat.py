@@ -68,7 +68,7 @@ Loading a saved '{cls}' as a {new} with sparse values.
 
 class _LoadSparseSeries:
     # To load a SparseSeries as a Series[Sparse]
-    def __new__(cls) -> FrameOrSeries:
+    def __new__(cls) -> "FrameOrSeries":
         from pandas import Series
 
         warnings.warn(
@@ -82,7 +82,7 @@ class _LoadSparseSeries:
 
 class _LoadSparseFrame:
     # To load a SparseDataFrame as a DataFrame[Sparse]
-    def __new__(cls) -> FrameOrSeries:
+    def __new__(cls) -> "FrameOrSeries":
         from pandas import DataFrame
 
         warnings.warn(
