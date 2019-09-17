@@ -181,6 +181,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
+- Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 
