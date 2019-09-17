@@ -360,6 +360,20 @@ def test_array_equivalent_str():
         )
 
 
+def test_array_equivalent_nested():
+    # reached in groupby aggregations, make sure we use np.any when checking
+    #  if the comparison is truthy
+    left = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
+    right = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
+
+    assert array_equivalent(left, right, strict_nan=True)
+    assert not array_equivalent(left, right[::-1], strict_nan=True)
+
+    left = np.array([np.array([50, 50, 50]), np.array([40, 40, 40])], dtype=object)
+    right = np.array([50, 40])
+    assert not array_equivalent(left, right, strict_nan=True)
+
+
 @pytest.mark.parametrize(
     "dtype, na_value",
     [
