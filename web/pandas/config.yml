@@ -53,8 +53,6 @@ navbar:
       target: /community/coc.html
     - name: "Citing pandas"
       target: /community/citing.html
-    - name: "Contributing to pandas"
-      target: /community/contributing/
   # - name: "Blog"
   #  target: /blog.html
   - name: "Donate"
