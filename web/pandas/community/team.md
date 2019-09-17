@@ -42,7 +42,7 @@ Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
 ## Governance
 
-The project governance is available in the [governance document](governance.html).
+The project governance is available in the [project governance documents](https://github.com/pandas-dev/pandas-governance).
 
 ## NumFOCUS
 
