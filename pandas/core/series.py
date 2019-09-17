@@ -1282,11 +1282,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if is_scalar(key):
                 key = [key]
-            elif not isinstance(key, (list, Series, np.ndarray)):
-                try:
-                    key = list(key)
-                except Exception:
-                    key = [key]
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
@@ -1785,7 +1780,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        kind : {'block', 'integer'}, default 'block'
+        kind : {'block', 'int'}, default 'block'
         fill_value : float, defaults to NaN (missing)
             Value to use for filling NaN values.
 
@@ -2730,7 +2725,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            to_concat = [self] + to_append
+            to_concat = [self]
+            to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
         return concat(

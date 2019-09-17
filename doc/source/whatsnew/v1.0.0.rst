@@ -20,7 +20,8 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+
+- :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 -
 
 .. _whatsnew_1000.enhancements.other:
@@ -28,8 +29,22 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
 -
--
+
+
+Build Changes
+^^^^^^^^^^^^^
+
+Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
 
 .. _whatsnew_1000.api_breaking:
 
@@ -101,6 +116,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 
 Categorical
 ^^^^^^^^^^^
@@ -115,9 +131,11 @@ Datetimelike
 - Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
+- Bug in :func:`to_datetime` where passing arrays of malformed ``str`` with errors="coerce" could incorrectly lead to raising ``ValueError`` (:issue:`28299`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 -
 
 
@@ -163,7 +181,9 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
+- Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
+- Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 
 Missing
 ^^^^^^^
@@ -183,12 +203,15 @@ I/O
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
+- Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
+- Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 
 Plotting
 ^^^^^^^^
 
 - Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
 -
+- Bug in :meth:`DataFrame.plot` not able to plot when no rows (:issue:`27758`)
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
@@ -214,12 +237,6 @@ Sparse
 -
 -
 
-
-Build Changes
-^^^^^^^^^^^^^
-- Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
-
-
 ExtensionArray
 ^^^^^^^^^^^^^^
 
@@ -232,7 +249,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
--
+- :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 
 .. _whatsnew_1000.contributors:
 

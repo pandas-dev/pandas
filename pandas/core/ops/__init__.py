@@ -9,7 +9,7 @@ from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import Timedelta, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -41,7 +40,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
-from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY, define_na_arithmetic_op
+from pandas.core.ops.array_ops import (
+    comp_method_OBJECT_ARRAY,
+    define_na_arithmetic_op,
+    na_arithmetic_op,
+)
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -149,13 +152,24 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
     if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif isinstance(obj, np.datetime64):
+        # GH#28080 numpy casts integer-dtype to datetime64 when doing
+        #  array[int] + datetime64, which we do not allow
+        if isna(obj):
+            # Avoid possible ambiguities with pd.NaT
+            obj = obj.astype("datetime64[ns]")
+            right = np.broadcast_to(obj, shape)
+            return DatetimeArray(right)
+
+        return Timestamp(obj)
+
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
@@ -499,12 +513,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
+    return new_data
 
 
 def dispatch_to_extension_op(
@@ -617,37 +626,37 @@ def _arith_method_SERIES(cls, op, special):
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
 
-    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
-
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
-        keep_null_freq = isinstance(
-            right,
-            (ABCDatetimeIndex, ABCDatetimeArray, ABCTimedeltaIndex, ABCTimedeltaArray),
-        )
-
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+
+        keep_null_freq = isinstance(
+            right,
+            (
+                ABCDatetimeIndex,
+                ABCDatetimeArray,
+                ABCTimedeltaIndex,
+                ABCTimedeltaArray,
+                Timestamp,
+            ),
+        )
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
 
         rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
-        if should_extension_dispatch(lvalues, rvalues):
-            result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
-        elif is_timedelta64_dtype(rvalues) or isinstance(rvalues, ABCDatetimeArray):
-            # We should only get here with td64 rvalues with non-scalar values
-            #  for rvalues upcast by maybe_upcast_for_op
-            assert not isinstance(rvalues, (np.timedelta64, np.ndarray))
+        if should_extension_dispatch(left, rvalues) or isinstance(
+            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        ):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
         else:
             with np.errstate(all="ignore"):
-                result = na_op(lvalues, rvalues)
+                result = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
@@ -664,30 +673,9 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    def na_op(x, y):
-        # TODO:
-        # should have guarantees on what x, y can be type-wise
-        # Extension Dtypes are not called here
-
-        if is_object_dtype(x.dtype):
-            result = comp_method_OBJECT_ARRAY(op, x, y)
-
-        elif is_datetimelike_v_numeric(x, y):
-            return invalid_comparison(x, y, op)
-
-        else:
-            method = getattr(x, op_name)
-            with np.errstate(all="ignore"):
-                result = method(y)
-            if result is NotImplemented:
-                return invalid_comparison(x, y, op)
-
-        return result
-
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
-        other = lib.item_from_zerodim(other)
 
         # TODO: shouldn't we be applying finalize whenever
         #  not isinstance(other, ABCSeries)?
@@ -697,10 +685,6 @@ def _comp_method_SERIES(cls, op, special):
             else x
         )
 
-        if isinstance(other, list):
-            # TODO: same for tuples?
-            other = np.asarray(other)
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -708,9 +692,12 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif isinstance(
-            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
-        ):
+        other = lib.item_from_zerodim(other)
+        if isinstance(other, list):
+            # TODO: same for tuples?
+            other = np.asarray(other)
+
+        if isinstance(other, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
@@ -730,9 +717,17 @@ def _comp_method_SERIES(cls, op, special):
             else:
                 res_values = np.zeros(len(lvalues), dtype=bool)
 
+        elif is_object_dtype(lvalues.dtype):
+            res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
+
         else:
+            op_name = "__{op}__".format(op=op.__name__)
+            method = getattr(lvalues, op_name)
             with np.errstate(all="ignore"):
-                res_values = na_op(lvalues, rvalues)
+                res_values = method(rvalues)
+
+            if res_values is NotImplemented:
+                res_values = invalid_comparison(lvalues, rvalues, op)
             if is_scalar(res_values):
                 raise TypeError(
                     "Could not compare {typ} type with Series".format(typ=type(rvalues))
@@ -791,11 +786,17 @@ def _bool_method_SERIES(cls, op, special):
 
         return result
 
-    fill_int = lambda x: x.fillna(0)
+    fill_int = lambda x: x
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
-        x = x.fillna(False)
+        if x.dtype.kind in ["c", "f", "O"]:
+            # dtypes that can hold NA
+            mask = isna(x)
+            if mask.any():
+                x = x.astype(object)
+                x[mask] = False
+
         if left is None or is_bool_dtype(left.dtype):
             x = x.astype(bool)
         return x
@@ -818,40 +819,35 @@ def _bool_method_SERIES(cls, op, special):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
-        elif should_extension_dispatch(self, other):
-            lvalues = extract_array(self, extract_numpy=True)
-            rvalues = extract_array(other, extract_numpy=True)
+        other = lib.item_from_zerodim(other)
+        if is_list_like(other) and not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = construct_1d_object_array_from_listlike(other)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        if should_extension_dispatch(self, rvalues):
             res_values = dispatch_to_extension_op(op, lvalues, rvalues)
-            result = self._constructor(res_values, index=self.index, name=res_name)
-            return finalizer(result)
-
-        elif isinstance(other, (ABCSeries, ABCIndexClass)):
-            is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = other if is_other_int_dtype else fill_bool(other, self)
-
-        elif is_list_like(other):
-            # list, tuple, np.ndarray
-            if not isinstance(other, np.ndarray):
-                other = construct_1d_object_array_from_listlike(other)
-
-            is_other_int_dtype = is_integer_dtype(other.dtype)
-            other = type(self)(other)
-            other = other if is_other_int_dtype else fill_bool(other, self)
 
         else:
-            # i.e. scalar
-            is_other_int_dtype = lib.is_integer(other)
+            if isinstance(rvalues, (ABCSeries, ABCIndexClass, np.ndarray)):
+                is_other_int_dtype = is_integer_dtype(rvalues.dtype)
+                rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
 
-        # TODO: use extract_array once we handle EA correctly, see GH#27959
-        ovalues = lib.values_from_object(other)
+            else:
+                # i.e. scalar
+                is_other_int_dtype = lib.is_integer(rvalues)
 
-        # For int vs int `^`, `|`, `&` are bitwise operators and return
-        #   integer dtypes.  Otherwise these are boolean ops
-        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-        res_values = na_op(self.values, ovalues)
-        unfilled = self._constructor(res_values, index=self.index, name=res_name)
-        filled = filler(unfilled)
-        return finalizer(filled)
+            # For int vs int `^`, `|`, `&` are bitwise operators and return
+            #   integer dtypes.  Otherwise these are boolean ops
+            filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
+
+            res_values = na_op(lvalues, rvalues)
+            res_values = filler(res_values)
+
+        result = self._constructor(res_values, index=self.index, name=res_name)
+        return finalizer(result)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -1056,7 +1052,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            return dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            return self._construct_result(other, new_data, na_op)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1086,7 +1083,8 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            return dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep)
+            return self._construct_result(other, new_data, func)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(

@@ -452,7 +452,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         elif data is None or is_scalar(data):
-            cls._scalar_data_error(data)
+            raise cls._scalar_data_error(data)
         else:
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
@@ -4020,7 +4020,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _scalar_data_error(cls, data):
-        raise TypeError(
+        # We return the TypeError so that we can raise it from the constructor
+        #  in order to keep mypy happy
+        return TypeError(
             "{0}(...) must be called with a collection of some "
             "kind, {1} was passed".format(cls.__name__, repr(data))
         )
@@ -4048,7 +4050,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not isinstance(data, (np.ndarray, Index)):
             if data is None or is_scalar(data):
-                cls._scalar_data_error(data)
+                raise cls._scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):

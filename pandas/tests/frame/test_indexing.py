@@ -2160,23 +2160,6 @@ class TestDataFrameIndexing(TestData):
                 expected = float_frame.at[row, col]
                 assert result == expected
 
-    def test_nested_exception(self):
-        # Ignore the strange way of triggering the problem
-        # (which may get fixed), it's just a way to trigger
-        # the issue or reraising an outer exception without
-        # a named argument
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
-            ["a", "b"]
-        )
-        index = list(df.index)
-        index[0] = ["a", "b"]
-        df.index = index
-
-        try:
-            repr(df)
-        except Exception as e:
-            assert type(e) != UnboundLocalError
-
     @pytest.mark.parametrize(
         "method,expected_values",
         [
