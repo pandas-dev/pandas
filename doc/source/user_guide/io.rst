@@ -4658,9 +4658,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 Write to a feather file.
 
-.. TODO(Arrow 0.15): remove change these back to .. ipython blocks.
-
-.. code-block:: python
+.. ipython:: python
 
    >>> df.to_feather('example.feather')
 
