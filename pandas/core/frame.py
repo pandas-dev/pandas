@@ -15,7 +15,7 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
+from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -716,9 +716,9 @@ class DataFrame(NDFrame):
     def to_string(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
-        columns: Optional[List[str]] = None,
+        columns: Optional[Sequence[str]] = None,
         col_space: Optional[int] = None,
-        header: Union[bool, List[str]] = True,
+        header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: Optional[fmt.formatters_type] = None,
