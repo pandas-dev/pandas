@@ -8509,6 +8509,16 @@ class DataFrame(NDFrame):
         dtype: int64
         """
 
+        # Some features not supported yet.
+        if not dropna:
+            raise NotImplementedError(
+                "`dropna=False` not yet supported for dataframes."
+            )
+        if bins is not None:
+            raise NotImplementedError(
+                "`bins` parameter not yet supported for dataframes."
+            )
+
         # Delegate to Series.value_counts for single-column data frames.
         if len(self.columns) == 1:
             series = self[self.columns[0]].value_counts(
@@ -8524,16 +8534,6 @@ class DataFrame(NDFrame):
                 index=MultiIndex.from_arrays(
                     [series.index.values], names=[series.name]
                 ),
-            )
-
-        # Some features are only supported for single-column data.
-        if not dropna:
-            raise NotImplementedError(
-                "`dropna=False` not yet supported for multi-column dataframes."
-            )
-        if bins is not None:
-            raise ValueError(
-                "`bins` parameter not supported for multi-column dataframes."
             )
 
         counts = self.groupby(self.columns.tolist()).size()

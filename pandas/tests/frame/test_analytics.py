@@ -2836,7 +2836,7 @@ class TestNLargestNSmallest:
             {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
             index=["falcon", "dog", "cat", "ant"],
         )
-        with pytest.raises(ValueError, match="not supported"):
+        with pytest.raises(NotImplementedError, match="not yet supported"):
             df.value_counts(bins=2)
 
     def test_data_frame_value_counts_single_col_default(self):
@@ -2858,22 +2858,8 @@ class TestNLargestNSmallest:
             index=["falcon", "dog", "cat", "ant"],
         )
         df_single_col = df[["num_legs"]]
-        result = df_single_col.value_counts(bins=4)
-        expected = pd.Series(
-            data=[2, 1, 1, 0],
-            index=pd.MultiIndex.from_arrays(
-                [
-                    [
-                        pd.Interval(3, 4),
-                        pd.Interval(5, 6),
-                        pd.Interval(1.995, 3),
-                        pd.Interval(4, 5),
-                    ]
-                ],
-                names=["num_legs"],
-            ),
-        )
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(NotImplementedError, match="not yet supported"):
+            _ = df_single_col.value_counts(bins=4)
 
     def test_data_frame_value_counts_empty(self):
         df_no_cols = pd.DataFrame()
