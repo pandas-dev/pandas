@@ -85,6 +85,7 @@ from pandas.tseries.offsets import (
 )
 
 try:
+    # TODO: remove try/except when 0.24.0 is the legacy version.
     from pandas.arrays import SparseArray
 except ImportError:
     from pandas.core.sparse.api import SparseArray
