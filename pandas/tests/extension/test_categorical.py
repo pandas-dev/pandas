@@ -202,7 +202,8 @@ class TestCasting(base.BaseCastingTests):
         # GH 28406
         s = cls([0, 1, np.nan])
 
-        with pytest.raises((ValueError, TypeError), match="Cannot cast"):
+        msg = "Cannot (cast|convert)"
+        with pytest.raises((ValueError, TypeError), match=msg):
             s.astype(int)
 
 
