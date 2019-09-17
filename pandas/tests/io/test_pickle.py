@@ -228,6 +228,32 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
+def test_legacy_sparse_warning(datapath):
+    """
+
+    Generated with
+
+    >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
+    >>> df.to_pickle("pandas/tests/io/data/sparseframe-0.20.3.pickle.gz",
+    ...              compression="gzip")
+
+    >>> s = df['B']
+    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    ...             compression="gzip")
+    """
+    with tm.assert_produces_warning(FutureWarning):
+        simplefilter("ignore", DeprecationWarning)  # from boto
+        pd.read_pickle(
+            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+        )
+
+    with tm.assert_produces_warning(FutureWarning):
+        simplefilter("ignore", DeprecationWarning)  # from boto
+        pd.read_pickle(
+            datapath("io", "data", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+        )
+
+
 # ---------------------
 # test pickle compression
 # ---------------------

@@ -5,9 +5,13 @@ Support pre-0.12 series pickle compatibility.
 import copy
 import pickle as pkl
 import sys
-from typing import Any
+from typing import TYPE_CHECKING
+import warnings
 
 from pandas import Index
+
+if TYPE_CHECKING:
+    from pandas._typing import FrameOrSeries
 
 
 def load_reduce(self):
@@ -55,18 +59,37 @@ def load_reduce(self):
         raise
 
 
+_sparse_msg = """\
+
+Loading a saved '{cls}' as a {new} with sparse values.
+'{cls}' is now removed. You should re-save this dataset in its new format.
+"""
+
+
 class _LoadSparseSeries:
     # To load a SparseSeries as a Series[Sparse]
-    def __new__(cls) -> Any:
+    def __new__(cls) -> FrameOrSeries:
         from pandas import Series
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseSeries", new="Series"),
+            FutureWarning,
+            stacklevel=6,
+        )
 
         return Series()
 
 
 class _LoadSparseFrame:
     # To load a SparseDataFrame as a DataFrame[Sparse]
-    def __new__(cls) -> Any:
+    def __new__(cls) -> FrameOrSeries:
         from pandas import DataFrame
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
+            FutureWarning,
+            stacklevel=6,
+        )
 
         return DataFrame()
 
