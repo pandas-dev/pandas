@@ -161,7 +161,7 @@ def arithmetic_op(
     op,
     str_rep: str,
     eval_kwargs: Dict[str, str],
-) -> Union[np.ndarray, ABCExtensionArray]:
+):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
