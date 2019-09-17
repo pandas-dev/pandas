@@ -80,6 +80,16 @@
             $(function () {
               $('[data-toggle="popover"]').popover()
             })
+            $(function () {
+                // temporary functionality to test different logos
+                var img = $(location).attr("hash").substr(1);
+                if (!img.includes("."))
+                    img += ".png";
+                if (!img.startsWith("http"))
+                    img = "https://datapythonista.github.io/pandas_logos/" + img;
+                $(".navbar-brand img").attr("src", img);
+                $(".navbar-brand img").height(30);
+            });
         </script>
     </body>
 </html>

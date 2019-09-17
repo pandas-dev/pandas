@@ -10,27 +10,27 @@ If you want to support pandas development, you can find information in the [dona
 
 <div class="row maintainers">
     {% for row in maintainers.people | batch(6, "") %}
-        <div class="card-deck maintainers">
+        <div class="card-group maintainers">
             {% for person in row %}
-                <div class="col-sm-6 col-md-2">
-                    {% if person %}
-                        <div class="card">
-                            <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
-                            <div class="card-body">
-                                <h6 class="card-title">
-                                    {% if person.blog %}
-                                        <a href="{{ person.blog }}">
-                                            {{ person.name or person.login }}
-                                        </a>
-                                    {% else %}
+                {% if person %}
+                    <div class="card">
+                        <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                {% if person.blog %}
+                                    <a href="{{ person.blog }}">
                                         {{ person.name or person.login }}
-                                    {% endif %}
-                                </h6>
-                                <p class="card-text"><a href="{{ person.html_url }}">{{ person.login }}</a></p>
-                            </div>
+                                    </a>
+                                {% else %}
+                                    {{ person.name or person.login }}
+                                {% endif %}
+                            </h6>
+                            <p class="card-text small"><a href="{{ person.html_url }}">{{ person.login }}</a></p>
                         </div>
-                    {% endif %}
-                </div>
+                    </div>
+                {% else %}
+                    <div class="card border-0"></div>
+                {% endif %}
             {% endfor %}
         </div>
     {% endfor %}

@@ -9,7 +9,7 @@ from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import Timedelta, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -148,13 +148,24 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
     if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif isinstance(obj, np.datetime64):
+        # GH#28080 numpy casts integer-dtype to datetime64 when doing
+        #  array[int] + datetime64, which we do not allow
+        if isna(obj):
+            # Avoid possible ambiguities with pd.NaT
+            obj = obj.astype("datetime64[ns]")
+            right = np.broadcast_to(obj, shape)
+            return DatetimeArray(right)
+
+        return Timestamp(obj)
+
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
@@ -624,7 +635,13 @@ def _arith_method_SERIES(cls, op, special):
 
         keep_null_freq = isinstance(
             right,
-            (ABCDatetimeIndex, ABCDatetimeArray, ABCTimedeltaIndex, ABCTimedeltaArray),
+            (
+                ABCDatetimeIndex,
+                ABCDatetimeArray,
+                ABCTimedeltaIndex,
+                ABCTimedeltaArray,
+                Timestamp,
+            ),
         )
 
         left, right = _align_method_SERIES(left, right)
@@ -635,13 +652,9 @@ def _arith_method_SERIES(cls, op, special):
 
         rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
-        if should_extension_dispatch(lvalues, rvalues):
-            result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
-        elif is_timedelta64_dtype(rvalues) or isinstance(rvalues, ABCDatetimeArray):
-            # We should only get here with td64 rvalues with non-scalar values
-            #  for rvalues upcast by maybe_upcast_for_op
-            assert not isinstance(rvalues, (np.timedelta64, np.ndarray))
+        if should_extension_dispatch(left, rvalues) or isinstance(
+            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        ):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
         else:
@@ -663,27 +676,9 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    def na_op(x, y):
-        # TODO:
-        # should have guarantees on what x, y can be type-wise
-        # Extension Dtypes are not called here
-
-        if is_object_dtype(x.dtype):
-            result = comp_method_OBJECT_ARRAY(op, x, y)
-
-        else:
-            method = getattr(x, op_name)
-            with np.errstate(all="ignore"):
-                result = method(y)
-            if result is NotImplemented:
-                return invalid_comparison(x, y, op)
-
-        return result
-
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
-        other = lib.item_from_zerodim(other)
 
         # TODO: shouldn't we be applying finalize whenever
         #  not isinstance(other, ABCSeries)?
@@ -693,10 +688,6 @@ def _comp_method_SERIES(cls, op, special):
             else x
         )
 
-        if isinstance(other, list):
-            # TODO: same for tuples?
-            other = np.asarray(other)
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -704,9 +695,12 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        elif isinstance(
-            other, (np.ndarray, ABCExtensionArray, ABCIndexClass, ABCSeries)
-        ):
+        other = lib.item_from_zerodim(other)
+        if isinstance(other, list):
+            # TODO: same for tuples?
+            other = np.asarray(other)
+
+        if isinstance(other, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
             # TODO: make this treatment consistent across ops and classes.
             #  We are not catching all listlikes here (e.g. frozenset, tuple)
             #  The ambiguous case is object-dtype.  See GH#27803
@@ -726,9 +720,17 @@ def _comp_method_SERIES(cls, op, special):
             else:
                 res_values = np.zeros(len(lvalues), dtype=bool)
 
+        elif is_object_dtype(lvalues.dtype):
+            res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
+
         else:
+            op_name = "__{op}__".format(op=op.__name__)
+            method = getattr(lvalues, op_name)
             with np.errstate(all="ignore"):
-                res_values = na_op(lvalues, rvalues)
+                res_values = method(rvalues)
+
+            if res_values is NotImplemented:
+                res_values = invalid_comparison(lvalues, rvalues, op)
             if is_scalar(res_values):
                 raise TypeError(
                     "Could not compare {typ} type with Series".format(typ=type(rvalues))

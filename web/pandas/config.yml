@@ -5,7 +5,7 @@ main:
   - _templates/layout.html
   - config.yml
   - blog.html  # blog will be added at a later stage
-  - try.html  # the binder page will be added later
+  - try.md  # the binder page will be added later
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.navbar_add_info
@@ -17,7 +17,7 @@ main:
   - tables
   - fenced_code
 static:
-  logo: /static/img/pandas_dark.svg
+  logo: # path to the logo when it's in the repo
   css:
   - /static/css/pandas.css
 navbar:
@@ -64,6 +64,7 @@ blog:
   - https://tomaugspurger.github.io/feed
   - https://jorisvandenbossche.github.io/feeds/all.atom.xml
   - https://datapythonista.github.io/blog/feeds/pandas.atom.xml
+  - https://numfocus.org/tag/pandas/feed/
 maintainers:
   active:
   - wesm
@@ -106,7 +107,7 @@ partners:
     logo: /static/img/partners/numfocus.svg
   - name: "Anaconda"
     url: https://www.anaconda.com/
-    logo: /static/img/partners/anaconda.png
+    logo: /static/img/partners/anaconda.svg
     employs: "Tom Augspurger, Brock Mendel"
   - name: "Two Sigma"
     url: https://www.twosigma.com/

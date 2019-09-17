@@ -235,7 +235,7 @@ def main(
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if fname in context["main"]["ignore"]:
+        if os.path.normpath(fname) in context["main"]["ignore"]:
             continue
 
         sys.stderr.write(f"Processing {fname}\n")
@@ -250,9 +250,7 @@ def main(
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
-                content = extend_base_template(
-                    body, context["main"]["base_template"]
-                )
+                content = extend_base_template(body, context["main"]["base_template"])
             content = jinja_env.from_string(content).render(**context)
             fname = os.path.splitext(fname)[0] + ".html"
             with open(os.path.join(target_path, fname), "w") as f:
