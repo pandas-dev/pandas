@@ -4845,7 +4845,7 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
 
 .. _io.sql:
