@@ -570,13 +570,6 @@ class TestDataFrameMissingData:
         result = df.interpolate(method="linear", max_gap=2, limit_area="inside")
         assert_frame_equal(result, expected_df)
 
-        expected_s = Series(
-            [nan, 1.0, 1, 2.0, 2.0, 2.0, 5.0, nan, nan, nan, -1.0, nan, nan]
-        )
-        expected_df = pd.concat([expected_s, expected_s], axis=1)
-        result = df.interpolate(method="pad", max_gap=2, limit_area="inside")
-        assert_frame_equal(result, expected_df)
-
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 
@@ -812,6 +805,19 @@ class TestDataFrameInterpolate:
         df = df.set_index("A")
         with pytest.raises(NotImplementedError):
             df.interpolate(method="values")
+
+    def test_interp_pad(self):
+        # Test for GH 12918
+        df = DataFrame(
+            {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
+        )
+        df = df.set_index("C")
+        expected = df.copy()
+
+        result = df.interpolate(method="pad")
+        expected.A.loc[3] = 2
+        expected.A.loc[13] = 5
+        assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_interp_various(self):
