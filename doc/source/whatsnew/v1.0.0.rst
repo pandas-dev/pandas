@@ -218,7 +218,8 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
--
+- Added test to assert the :func:`get_dummies` raises TypeError message when the value to `columns` isn't a list-like value (:issue:`28383`)
+- 
 
 Sparse
 ^^^^^^
