@@ -513,12 +513,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
+    return new_data
 
 
 def dispatch_to_extension_op(
@@ -1057,7 +1052,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            return dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            return self._construct_result(other, new_data, na_op)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1087,7 +1083,8 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            return dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep)
+            return self._construct_result(other, new_data, func)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
