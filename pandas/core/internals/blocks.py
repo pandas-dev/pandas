@@ -600,41 +600,42 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if self.is_extension:
-                values = self.values.astype(dtype)
-            else:
-                if issubclass(dtype.type, str):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
-                else:
-                    values = self.get_values(dtype=dtype)
-
-                # _astype_nansafe works fine with 1-d only
-                vals1d = values.ravel()
-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-            # TODO(extension)
-            # should we make this attribute?
-            if isinstance(values, np.ndarray):
-                values = values.reshape(self.shape)
-
-        except Exception:
-            # e.g. astype_nansafe can fail on object-dtype of strings
-            #  trying to convert to float
-            if errors == "raise":
-                raise
-            newb = self.copy() if copy else self
+        # force the copy here
+        if self.is_extension:
+            # TODO: Should we try/except this astype?
+            values = self.values.astype(dtype)
         else:
-            newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+            if issubclass(dtype.type, str):
+
+                # use native type formatting for datetime/tz/timedelta
+                if self.is_datelike:
+                    values = self.to_native_types()
+
+                # astype formatting
+                else:
+                    values = self.get_values()
+
+            else:
+                values = self.get_values(dtype=dtype)
+
+            # _astype_nansafe works fine with 1-d only
+            vals1d = values.ravel()
+            try:
+                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+            except (ValueError, TypeError):
+                # e.g. astype_nansafe can fail on object-dtype of strings
+                #  trying to convert to float
+                if errors == "raise":
+                    raise
+                newb = self.copy() if copy else self
+                return newb
+
+        # TODO(extension)
+        # should we make this attribute?
+        if isinstance(values, np.ndarray):
+            values = values.reshape(self.shape)
+
+        newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
