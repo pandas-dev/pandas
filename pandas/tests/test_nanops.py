@@ -911,10 +911,11 @@ class TestEnsureNumeric:
         msg = "Could not convert foo to numeric"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric("foo")
-        msg = "Could not convert {} to numeric"
+
+        # with the wrong type, python raises TypeError for us
+        msg = "argument must be a string or a number"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric({})
-        msg = r"Could not convert \[\] to numeric"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric([])
 

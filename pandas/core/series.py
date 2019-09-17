@@ -1277,11 +1277,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if is_scalar(key):
                 key = [key]
-            elif not isinstance(key, (list, Series, np.ndarray)):
-                try:
-                    key = list(key)
-                except Exception:
-                    key = [key]
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
