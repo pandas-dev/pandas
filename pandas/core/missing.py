@@ -529,10 +529,10 @@ def interpolate_1d_fill(
     dtype=None,
 ):
     """
-    This a modification of `interpolate_2d`, which is used for methods `pad`
+    This is a  1D-versoin of `interpolate_2d`, which is used for methods `pad`
     and `backfill` when interpolating. This 1D-version is necessary to be
     able to handle kwargs `max_gap` and `limit_area` via the function
-    ` _derive_indices_of_nans_to_preserve. It is used the same way as the
+    ` _derive_indices_of_nans_to_preserve`. It is used the same way as the
     1D-interpolation functions which are based on scipy-interpolation, i.e.
     via np.apply_along_axis.
     """
@@ -549,19 +549,13 @@ def interpolate_1d_fill(
     invalid = isna(yvalues)
     valid = ~invalid
 
-    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
-
-    # reshape a 1 dim if needed
-    ndim = values.ndim
-    if values.ndim == 1:
-        if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+    if values.ndim > 1:
+        raise AssertionError('This only works with 1D data.')
 
     if fill_value is None:
         mask = None
     else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
+        mask = mask_missing(values, fill_value)
 
     preserve_nans = _derive_indices_of_nans_to_preserve(
         yvalues=yvalues,
@@ -575,15 +569,9 @@ def interpolate_1d_fill(
 
     method = clean_fill_method(method)
     if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        values = pad_1d(values, limit=limit, mask=mask, dtype=dtype)
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
-
-    # reshape back
-    if ndim == 1:
-        values = values[0]
+        values = backfill_1d(values, limit=limit, mask=mask, dtype=dtype)
 
     if orig_values.dtype.kind == "M":
         # convert float back to datetime64

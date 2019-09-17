@@ -570,6 +570,13 @@ class TestDataFrameMissingData:
         result = df.interpolate(method="linear", max_gap=2, limit_area="inside")
         assert_frame_equal(result, expected_df)
 
+        expected_s = Series(
+            [nan, 1.0, 1.0, 2.0, 2.0, 2.0, 5.0, nan, nan, nan, -1.0, nan, nan]
+        )
+        expected_df = pd.concat([expected_s, expected_s], axis=1)
+        result = df.interpolate(method="pad", max_gap=2, limit_area="inside")
+        assert_frame_equal(result, expected_df)
+
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 
