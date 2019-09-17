@@ -379,6 +379,6 @@ def logical_op(
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_op(lvalues, rvalues)
-        res_values = filler(res_values)
+        res_values = filler(res_values)  # type: ignore
 
     return res_values
