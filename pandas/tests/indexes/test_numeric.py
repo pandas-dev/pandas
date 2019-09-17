@@ -246,6 +246,12 @@ class TestFloat64Index(Numeric):
             with pytest.raises(ValueError, match=msg):
                 i.astype(dtype)
 
+    def test_cannot_cast_inf_to_int(self):
+        idx = pd.Float64Index([1, 2, np.inf])
+
+        with pytest.raises(ValueError, match="Cannot convert infinity to integer"):
+            idx.astype(int)
+
     def test_type_coercion_fail(self, any_int_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"

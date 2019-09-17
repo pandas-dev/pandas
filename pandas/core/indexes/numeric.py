@@ -367,12 +367,13 @@ class Float64Index(NumericIndex):
                 "values are required for conversion"
             ).format(dtype=dtype)
             raise TypeError(msg)
-        elif (
-            is_integer_dtype(dtype) and not is_extension_array_dtype(dtype)
-        ) and self.hasnans:
+        elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            raise ValueError("Cannot convert NA to integer")
+            if self.hasnans:
+                raise ValueError("Cannot convert NA to integer")
+            elif not np.isfinite(self).all():
+                raise ValueError("Cannot convert infinity to integer")
         return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
