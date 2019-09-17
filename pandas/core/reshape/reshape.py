@@ -864,7 +864,7 @@ def get_dummies(
         if columns is None:
             data_to_encode = data.select_dtypes(include=dtypes_to_encode)
         elif not is_list_like(columns):
-            raise TypeError("Input must be a list-like of list-likes")
+            raise TypeError("Input must be a list-like for parameter `columns`")
         else:
             data_to_encode = data[columns]
 
