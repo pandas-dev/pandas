@@ -1198,6 +1198,11 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
         fill_value = self._try_coerce_args(fill_value)
 
+        # We have to distinguish two cases:
+        # 1. When kwargs `max_gap` or `limit_area` are used: They are not
+        #    supported by `missing.interpolate_2d()`. Using these kwargs only
+        #    works by applying the fill along a certain axis.
+        # 2. All other cases: Then, `missing.interpolate_2d()` can be used.
         if (max_gap is not None) or (limit_area is not None):
 
             def func(x):
