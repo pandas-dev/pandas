@@ -873,6 +873,7 @@ class SeriesGroupBy(GroupBy):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
+            print(func)
             ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
             if relabeling:
                 ret.columns = columns
@@ -933,8 +934,7 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                columns.append(com.get_callable_name(f) or f)
-
+                columns.append(com.get_callable_name(f, incl_keywords=True) or f)
             arg = zip(columns, arg)
 
         results = OrderedDict()
