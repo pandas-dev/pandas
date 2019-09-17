@@ -459,6 +459,25 @@ class TestNamedAggregationDataFrame:
         )
         tm.assert_frame_equal(grouped, expected)
 
+        # Example in GH28426
+        # TODO: this result is not correct, should be solved in Series.agg to
+        # TODO: allow named aggregation
+        quant50 = functools.partial(np.percentile, q=50)
+        quant70 = functools.partial(np.percentile, q=70)
+
+        test = pd.DataFrame(
+            {"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]}
+        )
+
+        grouped = test.groupby("col1").agg(
+            quantile_50=("col2", quant50), quantile_70=("col2", quant70)
+        )
+        expected = pd.DataFrame(
+            {"quantile_50": [1.7, 4.4], "quantile_70": [1.7, 4.4]},
+            index=pd.Index(["a", "b"], name="col1"),
+        )
+        tm.assert_frame_equal(grouped, expected)
+
     def test_agg_relabel_with_level(self):
         df = pd.DataFrame(
             {"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]},
