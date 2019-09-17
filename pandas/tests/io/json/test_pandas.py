@@ -97,21 +97,17 @@ class TestPandasContainer:
 
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "orient,expected",
-        [
-            (
-                "split",
-                DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"]),
-            ),
-            ("records", DataFrame([["a", "b"], ["c", "d"]], columns=["x", "y"])),
-            ("values", DataFrame([["a", "b"], ["c", "d"]])),
-        ],
-    )
-    def test_frame_non_unique_index(self, orient, expected):
+    @pytest.mark.parametrize("orient", ["split", "records", "values"])
+    def test_frame_non_unique_index(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
-
         result = read_json(df.to_json(orient=orient), orient=orient)
+        expected = df.copy()
+
+        if orient == "records" or orient == "values":
+            expected = expected.reset_index(drop=True)
+        if orient == "values":
+            expected.columns = range(len(expected.columns))
+
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("orient", ["index", "columns"])
