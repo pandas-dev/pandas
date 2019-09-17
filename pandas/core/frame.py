@@ -3484,12 +3484,13 @@ class DataFrame(NDFrame):
         keep_these = np.full(self.shape[1], True)
 
         def extract_unique_dtypes_from_dtypes_list(
-            dtypes_list: FrozenSet[Dtype], unique_dtypes: np.ndarray
+            dtypes_set: FrozenSet[Dtype], unique_dtypes: np.ndarray
         ) -> List[Dtype]:
-            extracted_dtypes = []
-            for unique_dtype in unique_dtypes:
-                if any(issubclass(unique_dtype.type, dtype) for dtype in dtypes_list):
-                    extracted_dtypes.append(unique_dtype)
+            extracted_dtypes = [
+                unique_dtype
+                for unique_dtype in unique_dtypes
+                if issubclass(unique_dtype.type, tuple(dtypes_set))
+            ]
             return extracted_dtypes
 
         unique_dtypes = self.dtypes.unique()
