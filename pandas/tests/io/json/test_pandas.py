@@ -140,7 +140,11 @@ class TestPandasContainer:
         if orient == "values":
             expected = pd.DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
+                # orient == "values" by default will write Timestamp objects out
+                # in milliseconds; these are internally stored in nanosecond,
+                # so divide to get where we need
+                # TODO: a to_epoch method would also solve; see GH 14772
+                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1_000_000
         elif orient == "split":
             expected = df
 
