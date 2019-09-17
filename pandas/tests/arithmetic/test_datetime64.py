@@ -78,17 +78,6 @@ def assert_invalid_comparison(left, right, box):
         right >= left
 
 
-def assert_all(obj):
-    """
-    Test helper to call call obj.all() the appropriate number of times on
-    a Series or DataFrame.
-    """
-    if isinstance(obj, pd.DataFrame):
-        assert obj.all().all()
-    else:
-        assert obj.all()
-
-
 # ------------------------------------------------------------------
 # Comparisons
 
@@ -578,17 +567,17 @@ class TestDatetimeIndexComparisons:
             op(dz, np.array(list(dr), dtype=object))
 
         # The aware==aware and naive==naive comparisons should *not* raise
-        assert_all(dr == dr)
-        assert_all(dr == list(dr))
-        assert_all(list(dr) == dr)
-        assert_all(np.array(list(dr), dtype=object) == dr)
-        assert_all(dr == np.array(list(dr), dtype=object))
+        assert np.all(dr == dr)
+        assert np.all(dr == list(dr))
+        assert np.all(list(dr) == dr)
+        assert np.all(np.array(list(dr), dtype=object) == dr)
+        assert np.all(dr == np.array(list(dr), dtype=object))
 
-        assert_all(dz == dz)
-        assert_all(dz == list(dz))
-        assert_all(list(dz) == dz)
-        assert_all(np.array(list(dz), dtype=object) == dz)
-        assert_all(dz == np.array(list(dz), dtype=object))
+        assert np.all(dz == dz)
+        assert np.all(dz == list(dz))
+        assert np.all(list(dz) == dz)
+        assert np.all(np.array(list(dz), dtype=object) == dz)
+        assert np.all(dz == np.array(list(dz), dtype=object))
 
     @pytest.mark.parametrize(
         "op",
@@ -606,12 +595,12 @@ class TestDatetimeIndexComparisons:
         ts = pd.Timestamp("2000-03-14 01:59")
         ts_tz = pd.Timestamp("2000-03-14 01:59", tz="Europe/Amsterdam")
 
-        assert_all(dr > ts)
+        assert np.all(dr > ts)
         msg = "Cannot compare tz-naive and tz-aware"
         with pytest.raises(TypeError, match=msg):
             op(dr, ts_tz)
 
-        assert_all(dz > ts_tz)
+        assert np.all(dz > ts_tz)
         with pytest.raises(TypeError, match=msg):
             op(dz, ts)
 

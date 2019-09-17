@@ -132,10 +132,7 @@ class Base:
         elif klass is DateOffset:
             klass = klass(days=value, normalize=normalize)
         else:
-            try:
-                klass = klass(value, normalize=normalize)
-            except Exception:
-                klass = klass(normalize=normalize)
+            klass = klass(value, normalize=normalize)
         return klass
 
     def test_apply_out_of_range(self, tz_naive_fixture):
