@@ -8,6 +8,8 @@ from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
 from pandas.util._validators import validate_bool_kwarg
 
+import pandas as pd
+
 from .common import (
     _INT64_DTYPE,
     _NS_DTYPE,
@@ -696,6 +698,8 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         if is_object_dtype(dtype):
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
+            if pd.isnull(arr).any():
+                raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
         # allow frequency conversions

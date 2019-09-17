@@ -3,6 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -731,3 +732,11 @@ def test__is_dtype_type_sparse():
     result = np.dtype("int32")
     assert com._is_dtype_type(ser, lambda tipo: tipo == result)
     assert com._is_dtype_type(ser.dtype, lambda tipo: tipo == result)
+
+
+def test__nansafe_nat_to_int():
+    arr = np.array([np.datetime64("NaT")])
+
+    msg = "Cannot convert NaT values to integer"
+    with pytest.raises(ValueError, match=msg):
+        astype_nansafe(arr, dtype=np.int64)
