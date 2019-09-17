@@ -332,14 +332,14 @@ class TestExpressions:
         testit()
 
     @pytest.mark.parametrize(
-        "op,name", list(zip(["/", "//", "**"], ["truediv", "floordiv", "pow"]))
+        "op_str,opname", list(zip(["/", "//", "**"], ["truediv", "floordiv", "pow"]))
     )
-    def test_bool_ops_raise_on_arithmetic(self, op, name):
+    def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
         msg = "operator %r not implemented for bool dtypes"
-        f = getattr(operator, name)
-        err_msg = re.escape(msg % op)
+        f = getattr(operator, opname)
+        err_msg = re.escape(msg % op_str)
 
         with pytest.raises(NotImplementedError, match=err_msg):
             f(df, df)
@@ -360,19 +360,19 @@ class TestExpressions:
             f(df, True)
 
     @pytest.mark.parametrize(
-        "op,name", list(zip(["+", "*", "-"], ["add", "mul", "sub"]))
+        "op_str,opname", list(zip(["+", "*", "-"], ["add", "mul", "sub"]))
     )
-    def test_bool_ops_warn_on_arithmetic(self, op, name):
+    def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
         n = 10
         df = DataFrame({"a": np.random.rand(n) > 0.5, "b": np.random.rand(n) > 0.5})
 
         subs = {"+": "|", "*": "&", "-": "^"}
         sub_funcs = {"|": "or_", "&": "and_", "^": "xor"}
 
-        f = getattr(operator, name)
-        fe = getattr(operator, sub_funcs[subs[op]])
+        f = getattr(operator, opname)
+        fe = getattr(operator, sub_funcs[subs[op_str]])
 
-        if op == "-":
+        if op_str == "-":
             # raises TypeError
             return
 
