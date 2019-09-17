@@ -4524,10 +4524,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # check if we are a multi reindex
         if self._needs_reindex_multi(axes, method, level):
-            try:
-                return self._reindex_multi(axes, copy, fill_value)
-            except Exception:
-                pass
+            return self._reindex_multi(axes, copy, fill_value)
 
         # perform the reindex on the axes
         return self._reindex_axes(
@@ -9050,23 +9047,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
-
-                            try:
-                                new_other = com.values_from_object(self)
-                                new_other = new_other.copy()
-                                new_other[icond] = other
-                                other = new_other
-                            except Exception:
-                                try_quick = False
-
-                        # let's create a new (if we failed at the above
-                        # or not try_quick
-                        if not try_quick:
-
-                            dtype, fill_value = maybe_promote(other.dtype)
-                            new_other = np.empty(len(icond), dtype=dtype)
-                            new_other.fill(fill_value)
-                            maybe_upcast_putmask(new_other, icond, other)
+                            new_other = com.values_from_object(self)
+                            new_other = new_other.copy()
+                            new_other[icond] = other
                             other = new_other
 
                     else:
