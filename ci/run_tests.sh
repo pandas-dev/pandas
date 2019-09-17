@@ -13,7 +13,8 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     if [[ "$LOCALE_OVERRIDE" != "$PANDAS_LOCALE" ]]; then
         echo "pandas could not detect the locale. System locale: $LOCALE_OVERRIDE, pandas detected: $PANDAS_LOCALE"
         # TODO Not really aborting the tests until https://github.com/pandas-dev/pandas/issues/23923 is fixed
-        # exit 1
+        # Testing if this is still failing
+        exit 1
     fi
 fi
 
