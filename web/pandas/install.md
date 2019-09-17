@@ -21,9 +21,8 @@ the [advanced installation page](https://pandas.pydata.org/pandas-docs/stable/in
 
     <img class="img-fluid" alt="" src="{{ base_url }}/static/img/install/pandas_import_and_version.png"/>
 
-5. Now you are ready to use pandas you can write your code in the next cells:
+5. Now you are ready to use pandas you can write your code in the next cells.
 
-    <img class="img-fluid" alt="" src="{{ base_url }}/static/img/install/pandas_fibonacci.png"/>
 
-6. You can learn more about pandas in the [tutorials](#), and more about JupyterLab
-   in the [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/user/interface.html).
+You can learn more about pandas in the [tutorials](#), and more about JupyterLab
+in the [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/user/interface.html).
