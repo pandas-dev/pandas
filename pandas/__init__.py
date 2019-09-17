@@ -208,9 +208,13 @@ if pandas.compat.PY37:
 
             return Panel
         elif name in {"SparseSeries", "SparseDataFrame"}:
-            warnings.warn("The {} class is removed from pandas. Accessing it from "
-                          "the top-level namespace will also be removed in the next "
-                          "version".format(name), FutureWarning, stacklevel=2)
+            warnings.warn(
+                "The {} class is removed from pandas. Accessing it from "
+                "the top-level namespace will also be removed in the next "
+                "version".format(name),
+                FutureWarning,
+                stacklevel=2,
+            )
 
             return type(name, (), {})
 
