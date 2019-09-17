@@ -21,6 +21,8 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+- :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
+-
 
 .. _whatsnew_1000.enhancements.other:
 
@@ -34,6 +36,15 @@ Other enhancements
   pandas (so it will become an integer or float dtype depending on the presence of missing data).
   (:issue:`28368`)
 -
+
+
+Build Changes
+^^^^^^^^^^^^^
+
+Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
 
 .. _whatsnew_1000.api_breaking:
 
@@ -105,6 +116,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 
 Categorical
 ^^^^^^^^^^^
@@ -169,6 +181,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
+- Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 
@@ -191,6 +204,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
 - Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
+- Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 
 Plotting
 ^^^^^^^^
@@ -222,13 +236,6 @@ Sparse
 - Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
 -
 -
-
-
-Build Changes
-^^^^^^^^^^^^^
-- Fixed pyqt development dependency issue because of different pyqt package name in conda and PyPI (:issue:`26838`)
-- Added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file (:issue:`20775`)
-
 
 ExtensionArray
 ^^^^^^^^^^^^^^

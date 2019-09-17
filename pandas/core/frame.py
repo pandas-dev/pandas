@@ -641,6 +641,7 @@ class DataFrame(NDFrame):
         max_rows = get_option("display.max_rows")
         min_rows = get_option("display.min_rows")
         max_cols = get_option("display.max_columns")
+        max_colwidth = get_option("display.max_colwidth")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
             width, _ = console.get_console_size()
@@ -652,6 +653,7 @@ class DataFrame(NDFrame):
             min_rows=min_rows,
             max_cols=max_cols,
             line_width=width,
+            max_colwidth=max_colwidth,
             show_dimensions=show_dimensions,
         )
 
@@ -730,12 +732,17 @@ class DataFrame(NDFrame):
         show_dimensions=False,
         decimal=".",
         line_width=None,
+        max_colwidth=None,
     ):
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
+        max_colwidth : int, optional
+            Max width to truncate each column in characters. By default, no limit.
+
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
@@ -752,26 +759,29 @@ class DataFrame(NDFrame):
         2     3     6
         """
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            formatters=formatters,
-            float_format=float_format,
-            sparsify=sparsify,
-            justify=justify,
-            index_names=index_names,
-            header=header,
-            index=index,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            max_cols=max_cols,
-            show_dimensions=show_dimensions,
-            decimal=decimal,
-            line_width=line_width,
-        )
-        return formatter.to_string(buf=buf)
+        from pandas import option_context
+
+        with option_context("display.max_colwidth", max_colwidth):
+            formatter = fmt.DataFrameFormatter(
+                self,
+                columns=columns,
+                col_space=col_space,
+                na_rep=na_rep,
+                formatters=formatters,
+                float_format=float_format,
+                sparsify=sparsify,
+                justify=justify,
+                index_names=index_names,
+                header=header,
+                index=index,
+                min_rows=min_rows,
+                max_rows=max_rows,
+                max_cols=max_cols,
+                show_dimensions=show_dimensions,
+                decimal=decimal,
+                line_width=line_width,
+            )
+            return formatter.to_string(buf=buf)
 
     # ----------------------------------------------------------------------
 
@@ -2173,8 +2183,12 @@ class DataFrame(NDFrame):
             Name of the compression to use. Use ``None`` for no compression.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
-            If ``False``, they will not be written to the file. If ``None``,
-            the behavior depends on the chosen engine.
+            If ``False``, they will not be written to the file.
+            If ``None``, similar to ``True`` the dataframe's index(es)
+            will be saved. However, instead of being saved as values,
+            the RangeIndex will be stored as a range in the metadata so it
+            doesn't require much space and is faster. Other indexes will
+            be included as columns in the file output.
 
             .. versionadded:: 0.24.0
 
@@ -5314,7 +5328,6 @@ class DataFrame(NDFrame):
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join="outer", level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
 
         if fill_value is None:
             # since _arith_op may be called in a loop, avoid function call
@@ -5332,14 +5345,12 @@ class DataFrame(NDFrame):
 
         if ops.should_series_dispatch(this, other, func):
             # iterate over columns
-            return ops.dispatch_to_series(this, other, _arith_op)
+            new_data = ops.dispatch_to_series(this, other, _arith_op)
         else:
             with np.errstate(all="ignore"):
-                result = _arith_op(this.values, other.values)
-            result = dispatch_fill_zeros(func, this.values, other.values, result)
-            return self._constructor(
-                result, index=new_index, columns=new_columns, copy=False
-            )
+                res_values = _arith_op(this.values, other.values)
+            new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
+        return this._construct_result(other, new_data, _arith_op)
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
@@ -5347,23 +5358,49 @@ class DataFrame(NDFrame):
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
-            return ops.dispatch_to_series(left, right, func)
+            new_data = ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
                 new_data = func(left.values.T, right.values).T
-            return self._constructor(
-                new_data, index=left.index, columns=self.columns, copy=False
-            )
+        return left._construct_result(other, new_data, func)
 
     def _combine_match_columns(self, other: Series, func, level=None):
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
         # at this point we have `left.columns.equals(right.index)`
-        return ops.dispatch_to_series(left, right, func, axis="columns")
+        new_data = ops.dispatch_to_series(left, right, func, axis="columns")
+        return left._construct_result(right, new_data, func)
 
     def _combine_const(self, other, func):
         # scalar other or np.ndim(other) == 0
-        return ops.dispatch_to_series(self, other, func)
+        new_data = ops.dispatch_to_series(self, other, func)
+        return self._construct_result(other, new_data, func)
+
+    def _construct_result(self, other, result, func):
+        """
+        Wrap the result of an arithmetic, comparison, or logical operation.
+
+        Parameters
+        ----------
+        other : object
+        result : DataFrame
+        func : binary operator
+
+        Returns
+        -------
+        DataFrame
+
+        Notes
+        -----
+        `func` is included for compat with SparseDataFrame signature, is not
+        needed here.
+        """
+        out = self._constructor(result, index=self.index, copy=False)
+        # Pin columns instead of passing to constructor for compat with
+        #  non-unique columns case
+        out.columns = self.columns
+        return out
+        # TODO: finalize?  we do for SparseDataFrame
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -6267,12 +6304,13 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        result = self[column].explode()
-        return (
-            self.drop([column], axis=1)
-            .join(result)
-            .reindex(columns=self.columns, copy=False)
-        )
+        df = self.reset_index(drop=True)
+        result = df[column].explode()
+        result = df.drop([column], axis=1).join(result)
+        result.index = self.index.take(result.index)
+        result = result.reindex(columns=self.columns, copy=False)
+
+        return result
 
     def unstack(self, level=-1, fill_value=None):
         """
