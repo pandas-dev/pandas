@@ -2440,13 +2440,13 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
-
     def test_crosstab_dup_index_names(self):
-        s1 = pd.Series(range(3), name='foo')
+        # Duplicate names/index/rows in crosstab are not supported
+
+        s1 = pd.Series(range(3), name="foo")
         s2 = s1 + 1
 
-        msg = "Column and rows cannot share the same names. " \
-              "Repeated names: foo"
+        msg = "Column and rows cannot share the same names. Repeated names: foo"
         with pytest.raises(ValueError, match=msg):
             pd.crosstab(s1, s2)
         with pytest.raises(ValueError, match=msg):
@@ -2463,7 +2463,6 @@ class TestCrosstab:
             pd.crosstab([s1, s1], s2.rename("bar"))
         with pytest.raises(ValueError, match=msg):
             pd.crosstab([s1, s1, s1.rename("one")], s2.rename("bar"))
-
 
     @pytest.mark.parametrize("names", [["a", ("b", "c")], [("a", "b"), "c"]])
     def test_crosstab_tuple_name(self, names):

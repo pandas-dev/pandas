@@ -550,9 +550,12 @@ def crosstab(
 
     repeated_names = set(rownames).intersection(set(colnames))
     if repeated_names:
-        raise ValueError("Column and rows cannot share the same names. "
-                         "Repeated names: {repeated_names}"
-                         .format(repeated_names=", ".join(repeated_names)))
+        raise ValueError(
+            "Column and rows cannot share the same names. "
+            "Repeated names: {repeated_names}".format(
+                repeated_names=", ".join(repeated_names)
+            )
+        )
 
     data = {}
     data.update(zip(rownames, index))
