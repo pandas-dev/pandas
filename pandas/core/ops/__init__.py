@@ -9,7 +9,7 @@ from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import Timedelta, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -40,7 +40,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
-from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY, define_na_arithmetic_op
+from pandas.core.ops.array_ops import (
+    comp_method_OBJECT_ARRAY,
+    define_na_arithmetic_op,
+    na_arithmetic_op,
+)
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -148,13 +152,24 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
     if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif isinstance(obj, np.datetime64):
+        # GH#28080 numpy casts integer-dtype to datetime64 when doing
+        #  array[int] + datetime64, which we do not allow
+        if isna(obj):
+            # Avoid possible ambiguities with pd.NaT
+            obj = obj.astype("datetime64[ns]")
+            right = np.broadcast_to(obj, shape)
+            return DatetimeArray(right)
+
+        return Timestamp(obj)
+
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
@@ -611,37 +626,37 @@ def _arith_method_SERIES(cls, op, special):
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
 
-    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
-
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
-        keep_null_freq = isinstance(
-            right,
-            (ABCDatetimeIndex, ABCDatetimeArray, ABCTimedeltaIndex, ABCTimedeltaArray),
-        )
-
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+
+        keep_null_freq = isinstance(
+            right,
+            (
+                ABCDatetimeIndex,
+                ABCDatetimeArray,
+                ABCTimedeltaIndex,
+                ABCTimedeltaArray,
+                Timestamp,
+            ),
+        )
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
 
         rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
-        if should_extension_dispatch(lvalues, rvalues):
-            result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
-        elif is_timedelta64_dtype(rvalues) or isinstance(rvalues, ABCDatetimeArray):
-            # We should only get here with td64 rvalues with non-scalar values
-            #  for rvalues upcast by maybe_upcast_for_op
-            assert not isinstance(rvalues, (np.timedelta64, np.ndarray))
+        if should_extension_dispatch(left, rvalues) or isinstance(
+            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        ):
             result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
 
         else:
             with np.errstate(all="ignore"):
-                result = na_op(lvalues, rvalues)
+                result = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
