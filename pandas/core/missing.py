@@ -328,7 +328,7 @@ def _derive_indices_of_nans_to_preserve(
         # Generate array where the NaN-gap-width is filled in as value
         # at each NaN location.
         cumsum = np.cumsum(invalid).astype("float")
-        diff = np.zeros_like(yvalues)
+        diff = np.zeros_like(yvalues, dtype='float')
         diff[~invalid] = np.pad(np.diff(cumsum[~invalid]), (1, 0), mode="constant")
         diff[invalid] = np.nan
         diff = bfill_nan(diff)
