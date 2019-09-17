@@ -666,7 +666,7 @@ class TestGetDummies:
             }
         )
 
-        msg = "Input must be a list-like of list-likes"
+        msg = "Input must be a list-like for parameter `columns`"
 
         with pytest.raises(TypeError, match=msg):
             pd.get_dummies(df, columns=values)
