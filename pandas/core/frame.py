@@ -3484,8 +3484,8 @@ class DataFrame(NDFrame):
         keep_these = np.full(self.shape[1], True)
 
         def extract_unique_dtypes_from_dtypes_list(
-            dtypes_list: List[Type], unique_dtypes: List[Type]
-        ) -> List[Type]:
+            dtypes_list: FrozenSet[Dtype], unique_dtypes: np.ndarray
+        ) -> List[Dtype]:
             extracted_dtypes = []
             for unique_dtype in unique_dtypes:
                 if any(issubclass(unique_dtype.type, dtype) for dtype in dtypes_list):
