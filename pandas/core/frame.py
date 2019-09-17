@@ -6304,12 +6304,13 @@ class DataFrame(NDFrame):
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        result = self[column].explode()
-        return (
-            self.drop([column], axis=1)
-            .join(result)
-            .reindex(columns=self.columns, copy=False)
-        )
+        df = self.reset_index(drop=True)
+        result = df[column].explode()
+        result = df.drop([column], axis=1).join(result)
+        result.index = self.index.take(result.index)
+        result = result.reindex(columns=self.columns, copy=False)
+
+        return result
 
     def unstack(self, level=-1, fill_value=None):
         """
