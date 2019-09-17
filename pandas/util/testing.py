@@ -511,7 +511,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception:
+            except OSError:
                 print(
                     "Couldn't close file descriptor: {fdesc} (file: {fname})".format(
                         fdesc=fd, fname=filename
@@ -520,7 +520,7 @@ def ensure_clean(filename=None, return_filelike=False):
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
-            except Exception as e:
+            except OSError as e:
                 print("Exception on removing file: {error}".format(error=e))
 
 
@@ -539,7 +539,7 @@ def ensure_clean_dir():
     finally:
         try:
             rmtree(directory_name)
-        except Exception:
+        except OSError:
             pass
 
 
@@ -1854,10 +1854,10 @@ def makeStringSeries(name=None):
 
 
 def makeObjectSeries(name=None):
-    dateIndex = makeDateIndex(N)
-    dateIndex = Index(dateIndex, dtype=object)
+    data = makeStringIndex(N)
+    data = Index(data, dtype=object)
     index = makeStringIndex(N)
-    return Series(dateIndex, index=index, name=name)
+    return Series(data, index=index, name=name)
 
 
 def getSeriesData():
@@ -2675,7 +2675,8 @@ def assert_produces_warning(
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except Exception:
+                except AttributeError:
+                    # module may not have __warningregistry__
                     pass
 
         saw_warning = False
