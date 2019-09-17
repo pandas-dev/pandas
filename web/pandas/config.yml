@@ -25,14 +25,16 @@ navbar:
     target: /install.html
   - name: "Documentation"
     target:
-    - name: "Tutorials"
-      target: "#"
+    - name: "Getting started"
+      target: https://pandas.pydata.org/pandas-docs/stable/getting_started/index.html
     - name: "User guide"
-      target: "#"
+      target: https://pandas.pydata.org/pandas-docs/stable/user_guide/index.html
     - name: "API reference"
-      target: "#"
+      target: https://pandas.pydata.org/pandas-docs/stable/reference/index.html
+    - name: "Contributing to pandas"
+      target: https://pandas.pydata.org/pandas-docs/stable/development/index.html
     - name: "Release notes"
-      target: "#"
+      target: https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html
   - name: "Community"
     target:
     - name: "About pandas"
@@ -47,8 +49,6 @@ navbar:
       target: https://groups.google.com/forum/#!forum/pydata
     - name: "Team"
       target: /community/team.html
-    - name: "License"
-      target: /community/license.html
     - name: "Code of Conduct"
       target: /community/coc.html
     - name: "Citing pandas"
