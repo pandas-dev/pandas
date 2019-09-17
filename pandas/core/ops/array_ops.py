@@ -162,6 +162,22 @@ def arithmetic_op(
     str_rep: str,
     eval_kwargs: Dict[str, str],
 ) -> Union[np.ndarray, ABCExtensionArray]:
+    """
+    Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
+
+    Parameters
+    ----------
+    left : np.ndarray or ExtensionArray
+    right : object
+        Cannot be a DataFrame or Index.  Series is *not* excluded.
+    op : {operator.add, operator.sub, ...}
+        Or one of the reversed variants from roperator.
+
+    Returns
+    -------
+    ndarrray or ExtensionArray
+        Or a 2-tuple of these in the case of divmod or rdivmod.
+    """
 
     from pandas.core.ops import (
         maybe_upcast_for_op,
@@ -206,6 +222,20 @@ def arithmetic_op(
 def comparison_op(
     left: Union[np.ndarray, ABCExtensionArray], right: Any, op
 ) -> Union[np.ndarray, ABCExtensionArray]:
+    """
+    Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
+
+    Parameters
+    ----------
+    left : np.ndarray or ExtensionArray
+    right : object
+        Cannot be a DataFrame, Series, or Index.
+    op : {operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le}
+
+    Returns
+    -------
+    ndarrray or ExtensionArray
+    """
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     # NB: We assume extract_array has already been called on left and right
@@ -256,6 +286,21 @@ def comparison_op(
 def logical_op(
     left: Union[np.ndarray, ABCExtensionArray], right: Any, op
 ) -> Union[np.ndarray, ABCExtensionArray]:
+    """
+    Evaluate a logical operation `|`, `&`, or `^`.
+
+    Parameters
+    ----------
+    left : np.ndarray or ExtensionArray
+    right : object
+        Cannot be a DataFrame, Series, or Index.
+    op : {operator.and_, operator.or_, operator.xor}
+        Or one of the reversed variants from roperator.
+
+    Returns
+    -------
+    ndarrray or ExtensionArray
+    """
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     def na_op(x, y):
