@@ -143,7 +143,7 @@ class TestFloatSubtype(Base):
         tm.assert_index_equal(result, expected)
 
         # raises with NA
-        msg = "Cannot convert NA to integer"
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
         with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 

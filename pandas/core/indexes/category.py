@@ -194,7 +194,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             # if data is None, then categories must be provided
             if is_scalar(data):
                 if data is not None or categories is None:
-                    cls._scalar_data_error(data)
+                    raise cls._scalar_data_error(data)
                 data = []
 
         data = cls._create_categorical(data, dtype=dtype)
