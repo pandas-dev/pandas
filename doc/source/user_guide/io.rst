@@ -4642,6 +4642,14 @@ Several caveats.
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
+
+.. ipython:: python
 
    df = pd.DataFrame({'a': list('abc'),
                       'b': list(range(1, 4)),
@@ -4659,38 +4667,25 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
-   >>> df.to_feather('example.feather')
+   df.to_feather('example.feather')
 
 Read from a feather file.
 
-.. code-block:: python
+.. ipython:: python
+   :okwarning:
 
-   >>> result = pd.read_feather('example.feather')
-   >>> result
-         a  b  c    d      e  f          g                         h                             i
-   0  a  1  3  4.0   True  a 2013-01-01 2013-01-01 00:00:00-05:00 2013-01-01 00:00:00.000000000
-   1  b  2  4  5.0  False  b 2013-01-02 2013-01-02 00:00:00-05:00 2013-01-01 00:00:00.000000001
-   2  c  3  5  6.0   True  c 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-01 00:00:00.000000002
+   result = pd.read_feather('example.feather')
+   result
 
-   >>> # we preserve dtypes
-   >>> result.dtypes
-   a                        object
-   b                         int64
-   c                         uint8
-   d                       float64
-   e                          bool
-   f                      category
-   g                datetime64[ns]
-   h    datetime64[ns, US/Eastern]
-   i                datetime64[ns]
-   dtype: object
+   # we preserve dtypes
+   result.dtypes
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists("example.feather"):
-       os.remove('example.feather')
+   os.remove('example.feather')
 
 
 .. _io.parquet:
