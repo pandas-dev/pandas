@@ -40,7 +40,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
-from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY, define_na_arithmetic_op
+from pandas.core.ops.array_ops import (
+    comp_method_OBJECT_ARRAY,
+    define_na_arithmetic_op,
+    na_arithmetic_op,
+)
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -509,12 +513,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
+    return new_data
 
 
 def dispatch_to_extension_op(
@@ -627,11 +626,12 @@ def _arith_method_SERIES(cls, op, special):
         _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
     )
 
-    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
-
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
+
+        left, right = _align_method_SERIES(left, right)
+        res_name = get_op_result_name(left, right)
 
         keep_null_freq = isinstance(
             right,
@@ -643,9 +643,6 @@ def _arith_method_SERIES(cls, op, special):
                 Timestamp,
             ),
         )
-
-        left, right = _align_method_SERIES(left, right)
-        res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
@@ -659,7 +656,7 @@ def _arith_method_SERIES(cls, op, special):
 
         else:
             with np.errstate(all="ignore"):
-                result = na_op(lvalues, rvalues)
+                result = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
@@ -1055,7 +1052,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            return dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            return self._construct_result(other, new_data, na_op)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1085,7 +1083,8 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            return dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep)
+            return self._construct_result(other, new_data, func)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(

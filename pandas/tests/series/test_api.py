@@ -697,6 +697,7 @@ class TestCategoricalSeries:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            # FIXME: don't leave commented-out
             # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]
@@ -729,20 +730,11 @@ class TestCategoricalSeries:
                     res = getattr(c.dt, func)(*args, **kwargs)
                     exp = getattr(s.dt, func)(*args, **kwargs)
 
-                if isinstance(res, DataFrame):
-                    tm.assert_frame_equal(res, exp)
-                elif isinstance(res, Series):
-                    tm.assert_series_equal(res, exp)
-                else:
-                    tm.assert_almost_equal(res, exp)
+                tm.assert_equal(res, exp)
 
             for attr in attr_names:
-                try:
-                    res = getattr(c.dt, attr)
-                    exp = getattr(s.dt, attr)
-                except Exception as e:
-                    print(name, attr)
-                    raise e
+                res = getattr(c.dt, attr)
+                exp = getattr(s.dt, attr)
 
             if isinstance(res, DataFrame):
                 tm.assert_frame_equal(res, exp)
