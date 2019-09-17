@@ -5,6 +5,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import Appender, cache_readonly
 
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
@@ -370,10 +371,8 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            if self.hasnans:
-                raise ValueError("Cannot convert NA to integer")
-            elif not np.isfinite(self).all():
-                raise ValueError("Cannot convert infinity to integer")
+            arr = astype_nansafe(self.values, dtype=dtype)
+            return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
