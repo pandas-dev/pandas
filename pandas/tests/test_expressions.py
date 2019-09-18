@@ -79,7 +79,7 @@ class TestExpressions:
         self.run_arithmetic(self.integer, self.integer)
         self.run_arithmetic(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    def run_binary(self, df, other, test_flex=False):
+    def run_binary(self, df, other):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -89,20 +89,21 @@ class TestExpressions:
         expr.set_test_mode(True)
         operations = ["gt", "lt", "ge", "le", "eq", "ne"]
 
-        for arith in operations:
-            if test_flex:
-                op = lambda x, y: getattr(df, arith)(y)
-                op.__name__ = arith
-            else:
-                op = getattr(operator, arith)
-            expr.set_use_numexpr(False)
-            expected = op(df, other)
-            expr.set_use_numexpr(True)
-            expr.get_test_result()
-            result = op(df, other)
-            used_numexpr = expr.get_test_result()
-            assert used_numexpr, "Did not use numexpr as expected."
-            tm.assert_equal(expected, result)
+        for test_flex in [True, False]:
+            for arith in operations:
+                if test_flex:
+                    op = lambda x, y: getattr(df, arith)(y)
+                    op.__name__ = arith
+                else:
+                    op = getattr(operator, arith)
+                expr.set_use_numexpr(False)
+                expected = op(df, other)
+                expr.set_use_numexpr(True)
+                expr.get_test_result()
+                result = op(df, other)
+                used_numexpr = expr.get_test_result()
+                assert used_numexpr, "Did not use numexpr as expected."
+                tm.assert_equal(expected, result)
 
     def run_frame(self, df, other, run_binary=True):
         self.run_arithmetic(df, other)
@@ -110,16 +111,14 @@ class TestExpressions:
             expr.set_use_numexpr(False)
             binary_comp = other + 1
             expr.set_use_numexpr(True)
-            self.run_binary(df, binary_comp, test_flex=False)
-            self.run_binary(df, binary_comp, test_flex=True)
+            self.run_binary(df, binary_comp)
 
     def run_series(self, ser, other):
         self.run_arithmetic(ser, other)
         # FIXME: dont leave commented-out
         # series doesn't uses vec_compare instead of numexpr...
         # binary_comp = other + 1
-        # self.run_binary(ser, binary_comp, test_flex=False)
-        # self.run_binary(ser, binary_comp, test_flex=True)
+        # self.run_binary(ser, binary_comp)
 
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
