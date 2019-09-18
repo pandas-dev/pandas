@@ -184,6 +184,7 @@ Indexing
 - Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
+- Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
 
 Missing
 ^^^^^^^
@@ -240,7 +241,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 -
 
 
