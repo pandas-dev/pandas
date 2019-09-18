@@ -56,7 +56,7 @@ class TestExpressions:
     def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
-    def run_arithmetic(self, df, other, assert_func, check_dtype=False, test_flex=True):
+    def run_arithmetic(self, df, other, check_dtype=False, test_flex=True):
         expr._MIN_ELEMENTS = 0
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
         for arith in operations:
@@ -75,21 +75,16 @@ class TestExpressions:
             expr.set_use_numexpr(True)
 
             result = op(df, other)
-            try:
-                if check_dtype:
-                    if arith == "truediv":
-                        assert expected.dtype.kind == "f"
-                assert_func(expected, result)
-            except Exception:
-                pprint_thing("Failed test with operator {op.__name__!r}".format(op=op))
-                raise
+            if check_dtype:
+                if arith == "truediv":
+                    assert expected.dtype.kind == "f"
+            tm.assert_equal(expected, result)
 
     def test_integer_arithmetic(self):
-        self.run_arithmetic(self.integer, self.integer, assert_frame_equal)
+        self.run_arithmetic(self.integer, self.integer)
         self.run_arithmetic(
             self.integer.iloc[:, 0],
             self.integer.iloc[:, 0],
-            assert_series_equal,
             check_dtype=True,
         )
 
@@ -134,8 +129,8 @@ class TestExpressions:
                 raise
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True, **kwargs):
-        self.run_arithmetic(df, other, assert_frame_equal, test_flex=False, **kwargs)
-        self.run_arithmetic(df, other, assert_frame_equal, test_flex=True, **kwargs)
+        self.run_arithmetic(df, other, test_flex=False, **kwargs)
+        self.run_arithmetic(df, other, test_flex=True, **kwargs)
         if run_binary:
             if binary_comp is None:
                 expr.set_use_numexpr(False)
@@ -148,9 +143,9 @@ class TestExpressions:
                 df, binary_comp, assert_frame_equal, test_flex=True, **kwargs
             )
 
-    def run_series(self, ser, other, binary_comp=None, **kwargs):
-        self.run_arithmetic(ser, other, assert_series_equal, test_flex=False, **kwargs)
-        self.run_arithmetic(ser, other, assert_almost_equal, test_flex=True, **kwargs)
+    def run_series(self, ser, other):
+        self.run_arithmetic(ser, other, test_flex=False)
+        self.run_arithmetic(ser, other, test_flex=True)
         # FIXME: dont leave commented-out
         # series doesn't uses vec_compare instead of numexpr...
         # if binary_comp is None:
@@ -180,28 +175,21 @@ class TestExpressions:
 
     def test_mixed_arithmetic_series(self):
         for col in self.mixed2.columns:
-            self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
+            self.run_series(self.mixed2[col], self.mixed2[col])
 
     def test_float_arithemtic(self):
-        self.run_arithmetic(self.frame, self.frame, assert_frame_equal)
-        self.run_arithmetic(
-            self.frame.iloc[:, 0],
-            self.frame.iloc[:, 0],
-            assert_series_equal,
-            check_dtype=True,
-        )
+        self.run_arithmetic(self.frame, self.frame)
+        self.run_arithmetic(self.frame.iloc[:, 0], self.frame.iloc[:, 0], check_dtype=True,)
 
     def test_mixed_arithmetic(self):
-        self.run_arithmetic(self.mixed, self.mixed, assert_frame_equal)
+        self.run_arithmetic(self.mixed, self.mixed)
         for col in self.mixed.columns:
-            self.run_arithmetic(self.mixed[col], self.mixed[col], assert_series_equal)
+            self.run_arithmetic(self.mixed[col], self.mixed[col])
 
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
-        self.run_arithmetic(self.integer, self.integer, assert_frame_equal)
-        self.run_arithmetic(
-            self.integer.iloc[:, 0], self.integer.iloc[:, 0], assert_series_equal
-        )
+        self.run_arithmetic(self.integer, self.integer)
+        self.run_arithmetic(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     def test_invalid(self):
 
@@ -245,20 +233,20 @@ class TestExpressions:
                     op = getattr(operator, "truediv", None)
                 else:
                     op = getattr(operator, opname, None)
-                if op is not None:
-                    result = expr._can_use_numexpr(op, op_str, f, f, "evaluate")
-                    assert result != f._is_mixed_type
+                
+                result = expr._can_use_numexpr(op, op_str, f, f, "evaluate")
+                assert result != f._is_mixed_type
 
-                    result = expr.evaluate(op, op_str, f, f, use_numexpr=True)
-                    expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
+                result = expr.evaluate(op, op_str, f, f, use_numexpr=True)
+                expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
 
-                    if isinstance(result, DataFrame):
-                        tm.assert_frame_equal(result, expected)
-                    else:
-                        tm.assert_numpy_array_equal(result, expected.values)
+                if isinstance(result, DataFrame):
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    tm.assert_numpy_array_equal(result, expected.values)
 
-                    result = expr._can_use_numexpr(op, op_str, f2, f2, "evaluate")
-                    assert not result
+                result = expr._can_use_numexpr(op, op_str, f2, f2, "evaluate")
+                assert not result
 
         expr.set_use_numexpr(False)
         testit()
