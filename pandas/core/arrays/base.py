@@ -65,6 +65,7 @@ class ExtensionArray:
     take
     unique
     view
+    _accumulate
     _concat_same_type
     _formatter
     _from_factorized
@@ -114,8 +115,9 @@ class ExtensionArray:
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
-    One can implement methods to handle array reductions.
+    One can implement methods to handle array accumulations or reductions.
 
+    * _accumulate
     * _reduce
 
     One can implement methods to handle parsing from strings that will be used
@@ -407,6 +409,7 @@ class ExtensionArray:
 
         * ``na_values._is_boolean`` should be True
         * `na_values` should implement :func:`ExtensionArray._reduce`
+        * `na_values` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
@@ -991,6 +994,35 @@ class ExtensionArray:
         array : ndarray
         """
         return np.array(self)
+
+    def _accumulate(self, name, skipna=True, **kwargs):
+        """
+        Return an array result of performing the accumulation operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { cummin, cummax, cumsum, cumprod }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, no is the only supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        TypeError : subclass does not define accumulations
+        """
+        raise TypeError(
+            "cannot perform {name} with type {dtype}".format(
+                name=name, dtype=self.dtype
+            )
+        )
 
     def _reduce(self, name, skipna=True, **kwargs):
         """
