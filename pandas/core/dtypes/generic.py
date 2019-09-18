@@ -52,12 +52,7 @@ ABCIndexClass = create_pandas_abc_type(
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
-ABCSparseDataFrame = create_pandas_abc_type(
-    "ABCSparseDataFrame", "_subtyp", ("sparse_frame",)
-)
-ABCSparseSeries = create_pandas_abc_type(
-    "ABCSparseSeries", "_subtyp", ("sparse_series", "sparse_time_series")
-)
+
 ABCSparseArray = create_pandas_abc_type(
     "ABCSparseArray", "_subtyp", ("sparse_array", "sparse_series")
 )

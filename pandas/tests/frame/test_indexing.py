@@ -1548,13 +1548,6 @@ class TestDataFrameIndexing(TestData):
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        df = SparseDataFrame({"A": [999, 1]}, default_fill_value=999)
-        assert len(df["A"].sp_values) == len(df.iloc[:, 0].sp_values)
-
     def test_iat(self, float_frame):
 
         for i, row in enumerate(float_frame.index):
@@ -1562,23 +1555,6 @@ class TestDataFrameIndexing(TestData):
                 result = float_frame.iat[i, j]
                 expected = float_frame.at[row, col]
                 assert result == expected
-
-    def test_nested_exception(self):
-        # Ignore the strange way of triggering the problem
-        # (which may get fixed), it's just a way to trigger
-        # the issue or reraising an outer exception without
-        # a named argument
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
-            ["a", "b"]
-        )
-        index = list(df.index)
-        index[0] = ["a", "b"]
-        df.index = index
-
-        try:
-            repr(df)
-        except Exception as e:
-            assert type(e) != UnboundLocalError
 
     @pytest.mark.parametrize(
         "method,expected_values",

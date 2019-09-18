@@ -1,0 +1,16 @@
+body {
+    padding-top: 5em;
+    padding-bottom: 3em;
+}
+code {
+    white-space: pre;
+}
+a.navbar-brand img {
+    max-height: 2em;
+}
+div.card {
+    margin: 0 0 .2em .2em !important;
+}
+.book {
+    padding: 0 20%;
+}

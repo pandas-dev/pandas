@@ -26,8 +26,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
 
 import pandas as pd
@@ -538,11 +536,11 @@ class PandasSQLTest:
         assert ix_cols == [["A"]]
 
     def _transaction_test(self):
-        self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
-
-        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        with self.pandasSQL.run_transaction() as trans:
+            trans.execute("CREATE TABLE test_trans (A INT, B TEXT)")
 
         # Make sure when transaction is rolled back, no rows get inserted
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
         try:
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
@@ -2213,8 +2211,6 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._to_sql_save_index()
 
     def test_transactions(self):
-        if PY36:
-            pytest.skip("not working on python > 3.5")
         self._transaction_test()
 
     def _get_sqlite_column_type(self, table, column):
