@@ -50,7 +50,7 @@ class TestExpressions:
     def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
-    def run_arithmetic(self, df, other, check_dtype=False, test_flex=True):
+    def run_arithmetic(self, df, other, test_flex=True):
         expr._MIN_ELEMENTS = 0
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
         for arith in operations:
@@ -67,16 +67,16 @@ class TestExpressions:
             expr.set_use_numexpr(True)
 
             result = op(df, other)
-            if check_dtype:
-                if arith == "truediv":
+            if arith == "truediv":
+                if expected.ndim == 1:
                     assert expected.dtype.kind == "f"
+                else:
+                    assert all(x.kind == "f" for x in expected.dtypes.values)
             tm.assert_equal(expected, result)
 
     def test_integer_arithmetic(self):
         self.run_arithmetic(self.integer, self.integer)
-        self.run_arithmetic(
-            self.integer.iloc[:, 0], self.integer.iloc[:, 0], check_dtype=True
-        )
+        self.run_arithmetic(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     def run_binary(self, df, other, test_flex=False):
         """
@@ -146,9 +146,7 @@ class TestExpressions:
 
     def test_float_arithemtic(self):
         self.run_arithmetic(self.frame, self.frame)
-        self.run_arithmetic(
-            self.frame.iloc[:, 0], self.frame.iloc[:, 0], check_dtype=True
-        )
+        self.run_arithmetic(self.frame.iloc[:, 0], self.frame.iloc[:, 0])
 
     def test_mixed_arithmetic(self):
         self.run_arithmetic(self.mixed, self.mixed)
