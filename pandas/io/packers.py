@@ -105,6 +105,17 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     It is recommended to use pyarrow for on-the-wire transmission of
     pandas objects.
 
+    Example pyarrow usage:
+
+    >>> import pandas as pd
+    >>> import pyarrow as pa
+    >>> df = pd.DataFrame({'A': [1, 2, 3]})
+    >>> context = pa.default_serialization_context()
+    >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
+
+    For documentation on pyarrow, see `here
+    <https://arrow.apache.org/docs/python/index.html>`__.
+
     Parameters
     ----------
     path_or_buf : string File path, buffer-like, or None
@@ -120,7 +131,9 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         "to_msgpack is deprecated and will be removed in a "
         "future version.\n"
         "It is recommended to use pyarrow for on-the-wire "
-        "transmission of pandas objects.",
+        "transmission of pandas objects.\n"
+        "For a full example, check\n"
+        "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_msgpack.html",  # noqa: E501
         FutureWarning,
         stacklevel=3,
     )
