@@ -76,8 +76,10 @@ class TestExpressions:
                 tm.assert_equal(expected, result)
 
     def test_integer_arithmetic(self):
-        self.run_arithmetic(self.integer, self.integer)
-        self.run_arithmetic(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
+        df = self.integer
+        self.run_arithmetic(df, df)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def run_binary(self, df, other):
         """
