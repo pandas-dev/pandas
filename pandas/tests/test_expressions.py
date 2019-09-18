@@ -44,7 +44,6 @@ class TestExpressions:
         self.frame2 = _frame2.copy()
         self.mixed = _mixed.copy()
         self.mixed2 = _mixed2.copy()
-        self.integer = _integer.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
     def teardown_method(self, method):
@@ -74,10 +73,6 @@ class TestExpressions:
                     else:
                         assert all(x.kind == "f" for x in expected.dtypes.values)
                 tm.assert_equal(expected, result)
-
-    def test_integer_arithmetic(self):
-        df = self.integer
-        self.run_frame(df, df)
 
     def run_binary(self, df, other):
         """
@@ -120,8 +115,16 @@ class TestExpressions:
             # binary_comp = other.iloc[:, i] + 1
             # self.run_binary(df.iloc[:, i], binary_comp)
 
-    def test_integer_arithmetic2(self):
-        df = _integer2
+    @pytest.mark.parametrize(
+        "df",
+        [
+            _integer,
+            _integer2,
+            # randint to get a case with zeros
+            _integer * np.random.randint(0, 2, size=np.shape(_integer)),
+        ],
+    )
+    def test_integer_arithmetic(self, df):
         self.run_frame(df, df)
 
     def test_float_arithmetic(self):
@@ -155,7 +158,7 @@ class TestExpressions:
             self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_integer_with_zeros(self):
-        df = self.integer * np.random.randint(0, 2, size=np.shape(self.integer))
+        df = _integer * np.random.randint(0, 2, size=np.shape(_integer))
         self.run_arithmetic(df, df)
         for i in range(len(df.columns)):
             self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
