@@ -25,6 +25,9 @@ import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
 from pandas.util import testing as tm
 
+now = pd.Timestamp.now()
+utcnow = pd.Timestamp.now("UTC")
+
 
 @pytest.mark.parametrize("notna_f", [notna, notnull])
 def test_notna_notnull(notna_f):
@@ -333,19 +336,17 @@ def test_array_equivalent():
 
 
 @pytest.mark.parametrize(
-    "lvalue",
+    "lvalue, rvalue",
     [
-        pd.Timestamp.now(),
-        pd.Timestamp.now().to_datetime64(),
-        pd.Timestamp.now().to_pydatetime(),
-    ],
-)
-@pytest.mark.parametrize(
-    "rvalue",
-    [
-        pd.Timestamp.now("UTC"),
-        pd.Timestamp.now().to_datetime64(),
-        pd.Timestamp.now("UTC").to_pydatetime(),
+        # There are 3 variants for each of lvalue and rvalue. We include all
+        #  three for the tz-naive `now` and exclude the datetim64 variant
+        #  for utcnow because it drops tzinfo.
+        (now, utcnow),
+        (now.to_datetime64(), utcnow),
+        (now.to_pydatetime(), utcnow),
+        (now, utcnow),
+        (now.to_datetime64(), utcnow.to_pydatetime()),
+        (now.to_pydatetime(), utcnow.to_pydatetime()),
     ],
 )
 def test_array_equivalent_tzawareness(lvalue, rvalue):
