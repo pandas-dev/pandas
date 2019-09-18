@@ -50,29 +50,30 @@ class TestExpressions:
     def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
-    def run_arithmetic(self, df, other, test_flex=True):
+    def run_arithmetic(self, df, other):
         expr._MIN_ELEMENTS = 0
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
-        for arith in operations:
+        for test_flex in [True, False]:
+            for arith in operations:
 
-            operator_name = arith
+                operator_name = arith
 
-            if test_flex:
-                op = lambda x, y: getattr(x, arith)(y)
-                op.__name__ = arith
-            else:
-                op = getattr(operator, operator_name)
-            expr.set_use_numexpr(False)
-            expected = op(df, other)
-            expr.set_use_numexpr(True)
-
-            result = op(df, other)
-            if arith == "truediv":
-                if expected.ndim == 1:
-                    assert expected.dtype.kind == "f"
+                if test_flex:
+                    op = lambda x, y: getattr(x, arith)(y)
+                    op.__name__ = arith
                 else:
-                    assert all(x.kind == "f" for x in expected.dtypes.values)
-            tm.assert_equal(expected, result)
+                    op = getattr(operator, operator_name)
+                expr.set_use_numexpr(False)
+                expected = op(df, other)
+                expr.set_use_numexpr(True)
+
+                result = op(df, other)
+                if arith == "truediv":
+                    if expected.ndim == 1:
+                        assert expected.dtype.kind == "f"
+                    else:
+                        assert all(x.kind == "f" for x in expected.dtypes.values)
+                tm.assert_equal(expected, result)
 
     def test_integer_arithmetic(self):
         self.run_arithmetic(self.integer, self.integer)
@@ -104,8 +105,7 @@ class TestExpressions:
             tm.assert_equal(expected, result)
 
     def run_frame(self, df, other, run_binary=True):
-        self.run_arithmetic(df, other, test_flex=False)
-        self.run_arithmetic(df, other, test_flex=True)
+        self.run_arithmetic(df, other)
         if run_binary:
             expr.set_use_numexpr(False)
             binary_comp = other + 1
@@ -114,8 +114,7 @@ class TestExpressions:
             self.run_binary(df, binary_comp, test_flex=True)
 
     def run_series(self, ser, other):
-        self.run_arithmetic(ser, other, test_flex=False)
-        self.run_arithmetic(ser, other, test_flex=True)
+        self.run_arithmetic(ser, other)
         # FIXME: dont leave commented-out
         # series doesn't uses vec_compare instead of numexpr...
         # binary_comp = other + 1
