@@ -283,6 +283,40 @@ def comparison_op(
     return res_values
 
 
+def na_logical_op(x, y, op):
+    try:
+        result = op(x, y)
+    except TypeError:
+        if isinstance(y, np.ndarray):
+            # bool-bool dtype operations should be OK, should not get here
+            assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
+            x = ensure_object(x)
+            y = ensure_object(y)
+            result = libops.vec_binop(x, y, op)
+        else:
+            # let null fall thru
+            assert lib.is_scalar(y)
+            if not isna(y):
+                y = bool(y)
+            try:
+                result = libops.scalar_binop(x, y, op)
+            except (
+                TypeError,
+                ValueError,
+                AttributeError,
+                OverflowError,
+                NotImplementedError,
+            ):
+                raise TypeError(
+                    "cannot compare a dtyped [{dtype}] array "
+                    "with a scalar of type [{typ}]".format(
+                        dtype=x.dtype, typ=type(y).__name__
+                    )
+                )
+
+    return result
+
+
 def logical_op(
     left: Union[np.ndarray, ABCExtensionArray], right: Any, op
 ) -> Union[np.ndarray, ABCExtensionArray]:
@@ -302,39 +336,6 @@ def logical_op(
     ndarrray or ExtensionArray
     """
     from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
-
-    def na_op(x, y):
-        try:
-            result = op(x, y)
-        except TypeError:
-            if isinstance(y, np.ndarray):
-                # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
-                x = ensure_object(x)
-                y = ensure_object(y)
-                result = libops.vec_binop(x, y, op)
-            else:
-                # let null fall thru
-                assert lib.is_scalar(y)
-                if not isna(y):
-                    y = bool(y)
-                try:
-                    result = libops.scalar_binop(x, y, op)
-                except (
-                    TypeError,
-                    ValueError,
-                    AttributeError,
-                    OverflowError,
-                    NotImplementedError,
-                ):
-                    raise TypeError(
-                        "cannot compare a dtyped [{dtype}] array "
-                        "with a scalar of type [{typ}]".format(
-                            dtype=x.dtype, typ=type(y).__name__
-                        )
-                    )
-
-        return result
 
     fill_int = lambda x: x
 
@@ -378,7 +379,7 @@ def logical_op(
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
-        res_values = na_op(lvalues, rvalues)
+        res_values = na_logical_op(lvalues, rvalues, op)
         res_values = filler(res_values)  # type: ignore
 
     return res_values
