@@ -734,9 +734,11 @@ def test__is_dtype_type_sparse():
     assert com._is_dtype_type(ser.dtype, lambda tipo: tipo == result)
 
 
-def test__nansafe_nat_to_int():
-    arr = np.array([np.datetime64("NaT")])
+@pytest.mark.parametrize("val", [np.datetime64("NaT")])
+@pytest.mark.parametrize("typ", [np.int8, np.int16, np.int32, np.int64])
+def test_astype_nansafe(val, typ):
+    arr = np.array([val])
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=np.int64)
+        astype_nansafe(arr, dtype=typ)
