@@ -77,7 +77,7 @@ class TestExpressions:
 
     def test_integer_arithmetic(self):
         df = self.integer
-        self.run_arithmetic(df, df)
+        self.run_frame(df, df)
         for i in range(len(df.columns)):
             self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
@@ -129,7 +129,10 @@ class TestExpressions:
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     def test_float_arithemtic_frame(self):
-        self.run_frame(self.frame2, self.frame2)
+        df = self.frame2
+        self.run_frame(df, df)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_float_arithmetic_series(self):
         df = self.frame2
@@ -141,6 +144,8 @@ class TestExpressions:
         # frame instead of by-column
         df = self.mixed2
         self.run_frame(df, df, run_binary=False)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_mixed_arithmetic_series(self):
         df = self.mixed2
@@ -160,9 +165,10 @@ class TestExpressions:
             self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_integer_with_zeros(self):
-        self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
-        self.run_arithmetic(self.integer, self.integer)
-        self.run_arithmetic(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
+        df = self.integer * np.random.randint(0, 2, size=np.shape(self.integer))
+        self.run_arithmetic(df, df)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_invalid(self):
 
