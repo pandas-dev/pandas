@@ -121,7 +121,7 @@ jobs:
 
   - script: |
       source activate pandas-dev
-      python web/pandas_web.py pandas
+      python web/pandas_web.py web/pandas
     displayName: 'Build website'
 
   - script: |
