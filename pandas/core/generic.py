@@ -2524,6 +2524,17 @@ class NDFrame(PandasObject, SelectionMixin):
         It is recommended to use pyarrow for on-the-wire transmission of
         pandas objects.
 
+        Example pyarrow usage:
+
+        >>> import pandas as pd
+        >>> import pyarrow as pa
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+        >>> context = pa.default_serialization_context()
+        >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
+
+        For documentation on pyarrow, see `here
+        <https://arrow.apache.org/docs/python/index.html>`__.
+
         Parameters
         ----------
         path : str, buffer-like, or None
