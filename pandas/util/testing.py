@@ -2292,7 +2292,7 @@ def network(
                 )
 
             try:
-                e_str = traceback.format_exc(e)
+                e_str = traceback.format_exc()
             except Exception:
                 e_str = str(e)
 
