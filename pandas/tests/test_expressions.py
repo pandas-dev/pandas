@@ -92,7 +92,6 @@ class TestExpressions:
         self,
         df,
         other,
-        assert_func,
         test_flex=False,
         numexpr_ops={"gt", "lt", "ge", "le", "eq", "ne"},
     ):
@@ -117,16 +116,11 @@ class TestExpressions:
             expr.get_test_result()
             result = op(df, other)
             used_numexpr = expr.get_test_result()
-            try:
-                if arith in numexpr_ops:
-                    assert used_numexpr, "Did not use numexpr as expected."
-                else:
-                    assert not used_numexpr, "Used numexpr unexpectedly."
-                assert_func(expected, result)
-            except Exception:
-                pprint_thing("Failed test with operation {arith!r}".format(arith=arith))
-                pprint_thing("test_flex was {test_flex!r}".format(test_flex=test_flex))
-                raise
+            if arith in numexpr_ops:
+                assert used_numexpr, "Did not use numexpr as expected."
+            else:
+                assert not used_numexpr, "Used numexpr unexpectedly."
+            tm.assert_equal(expected, result)
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True, **kwargs):
         self.run_arithmetic(df, other, test_flex=False, **kwargs)
@@ -137,10 +131,10 @@ class TestExpressions:
                 binary_comp = other + 1
                 expr.set_use_numexpr(True)
             self.run_binary(
-                df, binary_comp, assert_frame_equal, test_flex=False, **kwargs
+                df, binary_comp, test_flex=False, **kwargs
             )
             self.run_binary(
-                df, binary_comp, assert_frame_equal, test_flex=True, **kwargs
+                df, binary_comp, test_flex=True, **kwargs
             )
 
     def run_series(self, ser, other):
@@ -150,10 +144,8 @@ class TestExpressions:
         # series doesn't uses vec_compare instead of numexpr...
         # if binary_comp is None:
         #     binary_comp = other + 1
-        # self.run_binary(ser, binary_comp, assert_frame_equal,
-        # test_flex=False, **kwargs)
-        # self.run_binary(ser, binary_comp, assert_frame_equal,
-        # test_flex=True, **kwargs)
+        # self.run_binary(ser, binary_comp, test_flex=False, **kwargs)
+        # self.run_binary(ser, binary_comp, test_flex=True, **kwargs)
 
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
@@ -219,7 +211,7 @@ class TestExpressions:
 
     @pytest.mark.parametrize(
         "opname,op_str",
-        [("add", "+"), ("sub", "-"), ("mul", "*"), ("div", "/"), ("pow", "**")],
+        [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
     )
     def test_binary_ops(self, opname, op_str):
         def testit():
@@ -229,10 +221,7 @@ class TestExpressions:
                 if opname == "pow":
                     continue
 
-                if opname == "div":
-                    op = getattr(operator, "truediv", None)
-                else:
-                    op = getattr(operator, opname, None)
+                op = getattr(operator, opname)
                 
                 result = expr._can_use_numexpr(op, op_str, f, f, "evaluate")
                 assert result != f._is_mixed_type
