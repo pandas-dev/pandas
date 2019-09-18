@@ -3489,7 +3489,7 @@ class DataFrame(NDFrame):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))
+                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
             ]
             return extracted_dtypes
 
