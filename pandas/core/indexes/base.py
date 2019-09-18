@@ -4715,13 +4715,13 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
-        if is_categorical(target):
-            target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if self.is_all_dates:
+        if is_categorical(target):
+            tgt_values = np.asarray(target)
+        elif self.is_all_dates:
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
@@ -4733,7 +4733,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Guaranteed return of an indexer even when non-unique.
 
-        This dispatches to get_indexer or get_indexer_nonunique
+        This dispatches to get_indexer or get_indexer_non_unique
         as appropriate.
 
         Returns
