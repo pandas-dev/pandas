@@ -132,7 +132,7 @@ class TestExpressions:
         # TODO: FIGURE OUT HOW TO GET RUN_BINARY TO WORK WITH MIXED=...
         # can't do arithmetic because comparison methods try to do *entire*
         # frame instead of by-column
-        kinds = set(x.kind for x in df.dtypes.values)
+        kinds = {x.kind for x in df.dtypes.values}
         should = len(kinds) == 1
 
         self.run_frame(df, df, run_binary=should)
