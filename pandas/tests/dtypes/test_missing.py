@@ -332,10 +332,26 @@ def test_array_equivalent():
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
 
-def test_array_equivalent_tzawareness():
+@pytest.mark.parametrize(
+    "lvalue",
+    [
+        pd.Timestamp.now(),
+        pd.Timestamp.now().to_datetime64(),
+        pd.Timestamp.now().to_pydatetime(),
+    ],
+)
+@pytest.mark.parametrize(
+    "rvalue",
+    [
+        pd.Timestamp.now("UTC"),
+        pd.Timestamp.now().to_datetime64(),
+        pd.Timestamp.now("UTC").to_pydatetime(),
+    ],
+)
+def test_array_equivalent_tzawareness(lvalue, rvalue):
     # we shouldn't raise if comparing tzaware and tznaive datetimes
-    left = np.array([pd.Timestamp.now()], dtype=object)
-    right = np.array([pd.Timestamp.now("UTC")], dtype=object)
+    left = np.array([lvalue], dtype=object)
+    right = np.array([rvalue], dtype=object)
 
     assert not array_equivalent(left, right, strict_nan=True)
     assert not array_equivalent(left, right, strict_nan=False)

@@ -522,22 +522,20 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         x = left[i]
         y = right[i]
 
-        # Avoid raising TypeError on tzawareness mismatch
-        if PyDateTime_Check(x) and PyDateTime_Check(y):
-            if x is NaT and y is NaT:
-                pass
-            elif x.tzinfo is None and y.tzinfo is not None:
-                return False
-            elif x.tzinfo is not None and y.tzinfo is None:
-                return False
-            elif x != y:
-                return False
-
         # we are either not equal or both nan
         # I think None == None will be true here
-        elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                (x is None or is_nan(x)) and (y is None or is_nan(y))):
-            return False
+        try:
+            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+                return False
+        except TypeError as err:
+            # Avoid raising TypeError on tzawareness mismatch
+            # TODO: This try/except can be removed if/when Timestamp
+            #  comparisons are change dto match datetime, see GH#28507
+            if "tz-naive and tz-aware" in str(err):
+                return False
+            raise
+
     return True
 
 
