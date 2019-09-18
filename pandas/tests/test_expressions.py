@@ -130,26 +130,32 @@ class TestExpressions:
         self.run_frame(self.frame2, self.frame2)
 
     def test_float_arithmetic_series(self):
-        self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
+        df = self.frame2
+        self.run_series(df.iloc[:, 0], df.iloc[:, 0])
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
         # can't do arithmetic because comparison methods try to do *entire*
         # frame instead of by-column
-        self.run_frame(self.mixed2, self.mixed2, run_binary=False)
+        df = self.mixed2
+        self.run_frame(df, df, run_binary=False)
 
     def test_mixed_arithmetic_series(self):
-        for col in self.mixed2.columns:
-            self.run_series(self.mixed2[col], self.mixed2[col])
+        df = self.mixed2
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_float_arithemtic(self):
-        self.run_arithmetic(self.frame, self.frame)
-        self.run_arithmetic(self.frame.iloc[:, 0], self.frame.iloc[:, 0])
+        df = self.frame
+        self.run_arithmetic(df, df)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_mixed_arithmetic(self):
-        self.run_arithmetic(self.mixed, self.mixed)
-        for col in self.mixed.columns:
-            self.run_arithmetic(self.mixed[col], self.mixed[col])
+        df = self.mixed
+        self.run_arithmetic(df, df)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
