@@ -55,8 +55,7 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -523,9 +522,20 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         x = left[i]
         y = right[i]
 
+        # Avoid raising TypeError on tzawareness mismatch
+        if PyDateTime_Check(x) and PyDateTime_Check(y):
+            if x is NaT and y is NaT:
+                pass
+            elif x.tzinfo is None and y.tzinfo is not None:
+                return False
+            elif x.tzinfo is not None and y.tzinfo is None:
+                return False
+            elif x != y:
+                return False
+
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+        elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                 (x is None or is_nan(x)) and (y is None or is_nan(y))):
             return False
     return True

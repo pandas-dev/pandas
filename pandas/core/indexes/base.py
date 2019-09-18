@@ -4324,12 +4324,9 @@ class Index(IndexOpsMixin, PandasObject):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
-        try:
-            return array_equivalent(
-                com.values_from_object(self), com.values_from_object(other)
-            )
-        except Exception:
-            return False
+        return array_equivalent(
+            com.values_from_object(self), com.values_from_object(other)
+        )
 
     def identical(self, other):
         """

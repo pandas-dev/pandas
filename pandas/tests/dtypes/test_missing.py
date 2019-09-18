@@ -332,6 +332,15 @@ def test_array_equivalent():
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
 
+def test_array_equivalent_tzawareness():
+    # we shouldn't raise if comparing tzaware and tznaive datetimes
+    left = np.array([pd.Timestamp.now()], dtype=object)
+    right = np.array([pd.Timestamp.now("UTC")], dtype=object)
+
+    assert not array_equivalent(left, right, strict_nan=True)
+    assert not array_equivalent(left, right, strict_nan=False)
+
+
 def test_array_equivalent_compat():
     # see gh-13388
     m = np.array([(1, 2), (3, 4)], dtype=[("a", int), ("b", float)])
