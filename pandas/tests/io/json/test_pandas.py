@@ -813,20 +813,11 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, None])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_object(self, orient, numpy, dtype):
-        # TODO: see why tm.makeObjectSeries provides back DTA
-        dtSeries = Series(
-            [str(d) for d in self.objSeries],
-            index=self.objSeries.index,
-            name=self.objSeries.name,
-        )
-        data = dtSeries.to_json(orient=orient)
+        data = self.objSeries.to_json(orient=orient)
         result = pd.read_json(
             data, typ="series", orient=orient, numpy=numpy, dtype=dtype
         )
-        if dtype is False:
-            expected = dtSeries.copy()
-        else:
-            expected = self.objSeries.copy()
+        expected = self.objSeries.copy()
 
         if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
@@ -895,6 +886,19 @@ class TestPandasContainer:
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ="series", dtype=np.int64)
         expected = Series([4] * 3)
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype,expected",
+        [
+            (True, Series(["2000-01-01"], dtype="datetime64[ns]")),
+            (False, Series([946684800000])),
+        ],
+    )
+    def test_series_with_dtype_datetime(self, dtype, expected):
+        s = Series(["2000-01-01"], dtype="datetime64[ns]")
+        data = s.to_json()
+        result = pd.read_json(data, typ="series", dtype=dtype)
         assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
