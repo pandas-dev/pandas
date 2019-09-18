@@ -9,12 +9,8 @@ from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal,
     assert_frame_equal,
-    assert_series_equal,
 )
-
-from pandas.io.formats.printing import pprint_thing
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -83,9 +79,7 @@ class TestExpressions:
     def test_integer_arithmetic(self):
         self.run_arithmetic(self.integer, self.integer)
         self.run_arithmetic(
-            self.integer.iloc[:, 0],
-            self.integer.iloc[:, 0],
-            check_dtype=True,
+            self.integer.iloc[:, 0], self.integer.iloc[:, 0], check_dtype=True
         )
 
     def run_binary(
@@ -93,7 +87,6 @@ class TestExpressions:
         df,
         other,
         test_flex=False,
-        numexpr_ops={"gt", "lt", "ge", "le", "eq", "ne"},
     ):
         """
         tests solely that the result is the same whether or not numexpr is
@@ -103,6 +96,7 @@ class TestExpressions:
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ["gt", "lt", "ge", "le", "eq", "ne"]
+        numexpr_ops = {"gt", "lt", "ge", "le", "eq", "ne"}
 
         for arith in operations:
             if test_flex:
@@ -122,30 +116,24 @@ class TestExpressions:
                 assert not used_numexpr, "Used numexpr unexpectedly."
             tm.assert_equal(expected, result)
 
-    def run_frame(self, df, other, binary_comp=None, run_binary=True, **kwargs):
-        self.run_arithmetic(df, other, test_flex=False, **kwargs)
-        self.run_arithmetic(df, other, test_flex=True, **kwargs)
+    def run_frame(self, df, other, run_binary=True):
+        self.run_arithmetic(df, other, test_flex=False)
+        self.run_arithmetic(df, other, test_flex=True)
         if run_binary:
-            if binary_comp is None:
-                expr.set_use_numexpr(False)
-                binary_comp = other + 1
-                expr.set_use_numexpr(True)
-            self.run_binary(
-                df, binary_comp, test_flex=False, **kwargs
-            )
-            self.run_binary(
-                df, binary_comp, test_flex=True, **kwargs
-            )
+            expr.set_use_numexpr(False)
+            binary_comp = other + 1
+            expr.set_use_numexpr(True)
+            self.run_binary(df, binary_comp, test_flex=False)
+            self.run_binary(df, binary_comp, test_flex=True)
 
     def run_series(self, ser, other):
         self.run_arithmetic(ser, other, test_flex=False)
         self.run_arithmetic(ser, other, test_flex=True)
         # FIXME: dont leave commented-out
         # series doesn't uses vec_compare instead of numexpr...
-        # if binary_comp is None:
-        #     binary_comp = other + 1
-        # self.run_binary(ser, binary_comp, test_flex=False, **kwargs)
-        # self.run_binary(ser, binary_comp, test_flex=True, **kwargs)
+        # binary_comp = other + 1
+        # self.run_binary(ser, binary_comp, test_flex=False)
+        # self.run_binary(ser, binary_comp, test_flex=True)
 
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
@@ -171,7 +159,9 @@ class TestExpressions:
 
     def test_float_arithemtic(self):
         self.run_arithmetic(self.frame, self.frame)
-        self.run_arithmetic(self.frame.iloc[:, 0], self.frame.iloc[:, 0], check_dtype=True,)
+        self.run_arithmetic(
+            self.frame.iloc[:, 0], self.frame.iloc[:, 0], check_dtype=True
+        )
 
     def test_mixed_arithmetic(self):
         self.run_arithmetic(self.mixed, self.mixed)
@@ -222,7 +212,7 @@ class TestExpressions:
                     continue
 
                 op = getattr(operator, opname)
-                
+
                 result = expr._can_use_numexpr(op, op_str, f, f, "evaluate")
                 assert result != f._is_mixed_type
 
