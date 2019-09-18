@@ -16,7 +16,7 @@ from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
@@ -2353,7 +2353,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
 
-        algorithms.check_percentile(q)
+        validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
         #  about 2D cases.

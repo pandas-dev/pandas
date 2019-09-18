@@ -32,7 +32,7 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     rewrite_axis_style_signature,
 )
-from pandas.util._validators import validate_axis_style_args, validate_bool_kwarg
+from pandas.util._validators import validate_axis_style_args, validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
@@ -8225,7 +8225,7 @@ class DataFrame(NDFrame):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
-        algorithms.check_percentile(q)
+        validate_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)

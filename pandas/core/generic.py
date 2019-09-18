@@ -31,7 +31,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs, validate_percentile
 
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
@@ -10169,7 +10169,7 @@ class NDFrame(PandasObject, SelectionMixin):
             percentiles = list(percentiles)
 
             # get them all to be in [0, 1]
-            algos.check_percentile(percentiles)
+            validate_percentile(percentiles)
 
             # median should always be included
             if 0.5 not in percentiles:

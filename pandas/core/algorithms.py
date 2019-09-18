@@ -114,10 +114,10 @@ def _ensure_data(values, dtype=None):
 
     # datetimelike
     if (
-        needs_i8_conversion(values)
-        or is_period_dtype(dtype)
-        or is_datetime64_any_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
+            needs_i8_conversion(values)
+            or is_period_dtype(dtype)
+            or is_datetime64_any_dtype(dtype)
+            or is_timedelta64_dtype(dtype)
     ):
         if is_period_dtype(values) or is_period_dtype(dtype):
             from pandas import PeriodIndex
@@ -146,7 +146,7 @@ def _ensure_data(values, dtype=None):
         return values.asi8, dtype, "int64"
 
     elif is_categorical_dtype(values) and (
-        is_categorical_dtype(dtype) or dtype is None
+            is_categorical_dtype(dtype) or dtype is None
     ):
         values = getattr(values, "values", values)
         values = values.codes
@@ -248,7 +248,6 @@ def _get_hashtable_algo(values):
 
 
 def _get_data_algo(values, func_map):
-
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
@@ -299,7 +298,6 @@ def match(to_match, values, na_sentinel=-1):
     result = table.lookup(to_match)
 
     if na_sentinel != -1:
-
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
@@ -657,9 +655,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         values, dtype, _ = _ensure_data(values)
 
         if (
-            is_datetime64_any_dtype(original)
-            or is_timedelta64_dtype(original)
-            or is_period_dtype(original)
+                is_datetime64_any_dtype(original)
+                or is_timedelta64_dtype(original)
+                or is_period_dtype(original)
         ):
             na_value = na_value_for_dtype(original.dtype)
         else:
@@ -690,7 +688,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
 
 def value_counts(
-    values, sort=True, ascending=False, normalize=False, bins=None, dropna=True
+        values, sort=True, ascending=False, normalize=False, bins=None, dropna=True
 ):
     """
     Compute a histogram of the counts of non-null values.
@@ -993,10 +991,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
+                ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
+                or (
+                        (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+                ).any()
         )
 
     if to_raise:
@@ -1102,37 +1100,6 @@ def quantile(x, q, interpolation_method="fraction"):
         return result
 
 
-def check_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
-    """
-    Validate percentiles (used by describe and quantile).
-
-    This function checks if the given float oriterable of floats is a valid percentile otherwise raises a ValueError.
-
-    Args
-    ----
-    q: float or iterable of floats
-        A single percentile or an iterable of percentiles.
-
-    Returns
-    -------
-    ndarray
-        An ndarray of the percentiles if valid.
-
-    Raises
-    ------
-    ValueError if percentiles are not in given interval([0, 1]).
-    """
-    msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
-    q_arr = np.asarray(q)
-    if q_arr.ndim == 0:
-        if not 0 <= q_arr <= 1:
-            raise ValueError(msg.format(q_arr / 100.0))
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q_arr / 100.0))
-    return q_arr
-
-
 # --------------- #
 # select n        #
 # --------------- #
@@ -1160,8 +1127,8 @@ class SelectN:
         nsmallest/nlargest methods
         """
         return (
-            is_numeric_dtype(dtype) and not is_complex_dtype(dtype)
-        ) or needs_i8_conversion(dtype)
+                       is_numeric_dtype(dtype) and not is_complex_dtype(dtype)
+               ) or needs_i8_conversion(dtype)
 
 
 class SelectNSeries(SelectN):
@@ -1196,7 +1163,6 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-
             reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
             slc = np.s_[::-1] if reverse_it else np.s_[:]
@@ -1634,7 +1600,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
 
 def take_nd(
-    arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
+        arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1751,7 +1717,7 @@ take_1d = take_nd
 
 
 def take_2d_multi(
-    arr, indexer, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
+        arr, indexer, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1810,7 +1776,6 @@ def take_2d_multi(
         if func is not None:
             func = _convert_wrapper(func, out.dtype)
     if func is None:
-
         def func(arr, indexer, out, fill_value=np.nan):
             _take_2d_multi_object(
                 arr, indexer, out, fill_value=fill_value, mask_info=mask_info
@@ -1873,9 +1838,9 @@ def searchsorted(arr, value, side="left", sorter=None):
         sorter = ensure_platform_int(sorter)
 
     if (
-        isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr)
-        and (is_integer(value) or is_integer_dtype(value))
+            isinstance(arr, np.ndarray)
+            and is_integer_dtype(arr)
+            and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be
         # recast by numpy, causing a slow search.
@@ -1895,7 +1860,7 @@ def searchsorted(arr, value, side="left", sorter=None):
         else:
             value = array(value, dtype=dtype)
     elif not (
-        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
+            is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
         from pandas.core.series import Series
 
