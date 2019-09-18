@@ -585,49 +585,6 @@ class TestNDFrame(TestPackers):
         assert_frame_equal(result_3, expected_3)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
-class TestSparse(TestPackers):
-    def _check_roundtrip(self, obj, comparator, **kwargs):
-
-        # currently these are not implemetned
-        # i_rec = self.encode_decode(obj)
-        # comparator(obj, i_rec, **kwargs)
-        msg = r"msgpack sparse (series|frame) is not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            self.encode_decode(obj)
-
-    def test_sparse_series(self):
-
-        s = tm.makeStringSeries()
-        s[3:5] = np.nan
-        ss = s.to_sparse()
-        self._check_roundtrip(ss, tm.assert_series_equal, check_series_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_roundtrip(ss2, tm.assert_series_equal, check_series_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_series_equal, check_series_type=True)
-
-    def test_sparse_frame(self):
-
-        s = tm.makeDataFrame()
-        s.loc[3:5, 1:3] = np.nan
-        s.loc[8:10, -2] = np.nan
-        ss = s.to_sparse()
-
-        self._check_roundtrip(ss, tm.assert_frame_equal, check_frame_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_roundtrip(ss2, tm.assert_frame_equal, check_frame_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_frame_equal, check_frame_type=True)
-
-
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCompression(TestPackers):
     """See https://github.com/pandas-dev/pandas/pull/9783
@@ -878,7 +835,6 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestMsgpack:
     """
