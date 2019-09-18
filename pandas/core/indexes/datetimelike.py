@@ -192,7 +192,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
-            except Exception:
+            except (ValueError, TypeError):
                 return False
 
         if not is_dtype_equal(self.dtype, other.dtype):

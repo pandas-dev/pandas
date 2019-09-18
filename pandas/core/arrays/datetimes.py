@@ -1918,6 +1918,9 @@ def sequence_to_dt64ns(
     tz = validate_tz_from_dtype(dtype, tz)
 
     if isinstance(data, ABCIndexClass):
+        if data.nlevels > 1:
+            # MultiIndex
+            raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
         data = data._data
 
     # By this point we are assured to have either a numpy array or Index
