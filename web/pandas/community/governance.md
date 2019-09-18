@@ -2,9 +2,7 @@
 
 The official version of this document, along with a list of
 individuals and institutions in the roles defined in the governance
-section below, is contained in The Project Governance Repository at:
-
-[https://github.com/pydata/pandas-governance](https://github.com/pydata/pandas-governance)
+section below, is contained in the pandas website.
 
 The Project
 ===========
@@ -14,10 +12,9 @@ with the 501(c)3 NumFOCUS Foundation. The goal of The Project is to develop open
 source software for data ingest, data preparation, data analysis, and data
 visualization for the Python programming language. The Software developed by
 The Project is released under the BSD (or similar) open source license,
-developed openly and hosted in public GitHub repositories under the [PyData
-GitHub organization](https://github.com/pydata). Examples of Project Software
-include the main pandas code repository, pandas-website, and the
-pandas-datareader add-on library.
+developed openly and hosted in public GitHub repositories under the [pandas
+GitHub organization](https://github.com/pandas-dev). Examples of Project Software
+include the main pandas code repository, and the pandas-datareader add-on library.
 
 Through its affiliation with NumFOCUS, The Project has the right to receive
 tax-deductible donations in the United States of America.
@@ -34,7 +31,7 @@ transparency.
 
 Here is a list of the current Contributors to the main pandas repository:
 
-[https://github.com/pydata/pandas/graphs/contributors](https://github.com/pydata/pandas/graphs/contributors)
+[https://github.com/pandas-dev/pandas/graphs/contributors](https://github.com/pandas-dev/pandas/graphs/contributors)
 
 There are also many other Contributors listed in the logs of other repositories of
 the pandas project.
@@ -310,7 +307,7 @@ Changing the Governance Documents
 
 Changes to the governance documents are submitted via a GitHub pull request to
 The Project's governance documents GitHub repository at
-[https://github.com/pydata/pandas-governance](https://github.com/pydata/pandas-governance).
+[https://github.com/pandas-dev/pandas/blob/master/web/pandas/community/governance.md](https://github.com/pandas-dev/pandas/blob/master/web/pandas/community/governance.md).
 The pull request is then refined in response to public comment and review, with
 the goal being consensus in the community.  After this open period, a Core Team
 Member proposes to the Core Team that the changes be ratified and the pull
