@@ -393,8 +393,7 @@ used in the ``pandas`` implementation (:issue:`12644`, :issue:`12638`, :issue:`1
 
 An example of this signature augmentation is illustrated below:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    sp = pd.SparseDataFrame([1, 2, 3])
    sp
@@ -409,8 +408,7 @@ Previous behaviour:
 
 New behaviour:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    np.cumsum(sp, axis=0)
 
