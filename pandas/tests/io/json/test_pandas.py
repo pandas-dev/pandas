@@ -813,20 +813,11 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [False, None])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_object(self, orient, numpy, dtype):
-        # TODO: see why tm.makeObjectSeries provides back DTA
-        dtSeries = Series(
-            [str(d) for d in self.objSeries],
-            index=self.objSeries.index,
-            name=self.objSeries.name,
-        )
-        data = dtSeries.to_json(orient=orient)
+        data = self.objSeries.to_json(orient=orient)
         result = pd.read_json(
             data, typ="series", orient=orient, numpy=numpy, dtype=dtype
         )
-        if dtype is False:
-            expected = dtSeries.copy()
-        else:
-            expected = self.objSeries.copy()
+        expected = self.objSeries.copy()
 
         if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
@@ -895,6 +886,19 @@ class TestPandasContainer:
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ="series", dtype=np.int64)
         expected = Series([4] * 3)
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype,expected",
+        [
+            (True, Series(["2000-01-01"], dtype="datetime64[ns]")),
+            (False, Series([946684800000])),
+        ],
+    )
+    def test_series_with_dtype_datetime(self, dtype, expected):
+        s = Series(["2000-01-01"], dtype="datetime64[ns]")
+        data = s.to_json()
+        result = pd.read_json(data, typ="series", dtype=dtype)
         assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
@@ -1276,21 +1280,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
         df.loc[:8] = np.nan
 
-        sdf = df.to_sparse()
+        sdf = df.astype("Sparse")
         expected = df.to_json()
         assert expected == sdf.to_json()
 
         s = pd.Series(np.random.randn(10))
         s.loc[:8] = np.nan
-        ss = s.to_sparse()
+        ss = s.astype("Sparse")
 
         expected = s.to_json()
         assert expected == ss.to_json()
@@ -1613,3 +1614,156 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = pd.DataFrame([[1]], index=[("a", "b")], columns=[("c", "d")])
         result = df.to_json(orient=orient)
         assert result == expected
+
+    @pytest.mark.parametrize("indent", [1, 2, 4])
+    def test_to_json_indent(self, indent):
+        # GH 12004
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
+
+        result = df.to_json(indent=indent)
+        spaces = " " * indent
+        expected = """{{
+{spaces}"a":{{
+{spaces}{spaces}"0":"foo",
+{spaces}{spaces}"1":"baz"
+{spaces}}},
+{spaces}"b":{{
+{spaces}{spaces}"0":"bar",
+{spaces}{spaces}"1":"qux"
+{spaces}}}
+}}""".format(
+            spaces=spaces
+        )
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            (
+                "split",
+                """{
+    "columns":[
+        "a",
+        "b"
+    ],
+    "index":[
+        0,
+        1
+    ],
+    "data":[
+        [
+            "foo",
+            "bar"
+        ],
+        [
+            "baz",
+            "qux"
+        ]
+    ]
+}""",
+            ),
+            (
+                "records",
+                """[
+    {
+        "a":"foo",
+        "b":"bar"
+    },
+    {
+        "a":"baz",
+        "b":"qux"
+    }
+]""",
+            ),
+            (
+                "index",
+                """{
+    "0":{
+        "a":"foo",
+        "b":"bar"
+    },
+    "1":{
+        "a":"baz",
+        "b":"qux"
+    }
+}""",
+            ),
+            (
+                "columns",
+                """{
+    "a":{
+        "0":"foo",
+        "1":"baz"
+    },
+    "b":{
+        "0":"bar",
+        "1":"qux"
+    }
+}""",
+            ),
+            (
+                "values",
+                """[
+    [
+        "foo",
+        "bar"
+    ],
+    [
+        "baz",
+        "qux"
+    ]
+]""",
+            ),
+            (
+                "table",
+                """{
+    "schema":{
+        "fields":[
+            {
+                "name":"index",
+                "type":"integer"
+            },
+            {
+                "name":"a",
+                "type":"string"
+            },
+            {
+                "name":"b",
+                "type":"string"
+            }
+        ],
+        "primaryKey":[
+            "index"
+        ],
+        "pandas_version":"0.20.0"
+    },
+    "data":[
+        {
+            "index":0,
+            "a":"foo",
+            "b":"bar"
+        },
+        {
+            "index":1,
+            "a":"baz",
+            "b":"qux"
+        }
+    ]
+}""",
+            ),
+        ],
+    )
+    def test_json_indent_all_orients(self, orient, expected):
+        # GH 12004
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
+        result = df.to_json(orient=orient, indent=4)
+
+        if PY35:
+            assert json.loads(result) == json.loads(expected)
+        else:
+            assert result == expected
+
+    def test_json_negative_indent_raises(self):
+        with pytest.raises(ValueError, match="must be a nonnegative integer"):
+            pd.DataFrame().to_json(indent=-1)
