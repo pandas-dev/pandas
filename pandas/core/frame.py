@@ -706,6 +706,7 @@ class DataFrame(NDFrame):
             return None
 
     @Substitution(
+        header_type="bool or sequence",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
@@ -2234,6 +2235,7 @@ class DataFrame(NDFrame):
         )
 
     @Substitution(
+        header_type="bool",
         header="Whether to print column labels, default True",
         col_space_type="str or int",
         col_space="The minimum width of each column in CSS length "
