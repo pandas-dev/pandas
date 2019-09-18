@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 
 import codecs
 from contextlib import contextmanager
+from datetime import tzinfo
 import decimal
 from functools import partial
 from io import StringIO
@@ -27,8 +28,6 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from dateutil.tz.tz import tzutc
-from dateutil.zoneinfo import tzfile
 import numpy as np
 
 from pandas._config.config import get_option, set_option
@@ -658,6 +657,13 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
+                # truncate formatter
+                if isinstance(self.formatters, (list, tuple)):
+                    truncate_fmt = self.formatters
+                    self.formatters = [
+                        *truncate_fmt[:col_num],
+                        *truncate_fmt[-col_num:],
+                    ]
             self.tr_col_num = col_num
         if truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None
@@ -1552,9 +1558,7 @@ def _is_dates_only(
 
 
 def _format_datetime64(
-    x: Union[NaTType, Timestamp],
-    tz: Optional[Union[tzfile, tzutc]] = None,
-    nat_rep: str = "NaT",
+    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
 ) -> str:
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep

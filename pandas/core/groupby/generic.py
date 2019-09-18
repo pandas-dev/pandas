@@ -58,7 +58,6 @@ from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -258,12 +257,6 @@ class NDFrameGroupBy(GroupBy):
                         result.columns.levels[0], name=self._selected_obj.columns.name
                     )
 
-                    if isinstance(self.obj, SparseDataFrame):
-                        # Backwards compat for groupby.agg() with sparse
-                        # values. concat no longer converts DataFrame[Sparse]
-                        # to SparseDataFrame, so we do it here.
-                        result = SparseDataFrame(result._data)
-
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
@@ -324,7 +317,11 @@ class NDFrameGroupBy(GroupBy):
                 if cast:
                     result[item] = self._try_cast(result[item], data)
 
-            except ValueError:
+            except ValueError as err:
+                if "Must produce aggregated value" in str(err):
+                    # raised in _aggregate_named, handle at higher level
+                    #  see test_apply_with_mutated_index
+                    raise
                 cannot_agg.append(item)
                 continue
             except TypeError as e:
@@ -1009,7 +1006,7 @@ class SeriesGroupBy(GroupBy):
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise Exception("Must produce aggregated value")
+                raise ValueError("Must produce aggregated value")
             result[name] = self._try_cast(output, group)
 
         return result

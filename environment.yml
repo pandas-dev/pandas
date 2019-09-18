@@ -13,7 +13,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.28.2
+  - cython>=0.29.13
 
   # code checks
   - black
@@ -35,6 +35,12 @@ dependencies:
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
+
+  # web (jinja2 is also needed, but it's also an optional pandas dependency)
+  - markdown
+  - feedparser
+  - pyyaml
+  - requests
 
   # testing
   - boto3
