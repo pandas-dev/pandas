@@ -27,7 +27,7 @@ def main(filename):
 if __name__ == "__main__":
     print("SKIPPED TESTS:")
     i = 1
-    for file_type in ("-single", "-multi", ""):
+    for file_type in ("-single", "-multiple", ""):
         for test_data in main("test-data{}.xml".format(file_type)):
             if test_data is None:
                 print("-" * 80)
