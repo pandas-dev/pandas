@@ -104,7 +104,7 @@ jobs:
     displayName: 'Running benchmarks'
     condition: true
 
-- job: 'Web and Docs'
+- job: 'Web_and_Docs'
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
