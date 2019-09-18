@@ -136,7 +136,7 @@ jobs:
       mkdir -p to_deploy/docs
       cp -r web/build/* to_deploy/
       cp -r doc/build/html/* to_deploy/docs/
-    display: 'Merge website and docs'
+    displayName: 'Merge website and docs'
 
   - script: |
       cd to_deploy
