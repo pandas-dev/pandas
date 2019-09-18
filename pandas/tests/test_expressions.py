@@ -8,9 +8,7 @@ import pytest
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_frame_equal,
-)
+from pandas.util.testing import assert_frame_equal
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -58,8 +56,6 @@ class TestExpressions:
         for arith in operations:
 
             operator_name = arith
-            if arith == "div":
-                operator_name = "truediv"
 
             if test_flex:
                 op = lambda x, y: getattr(x, arith)(y)
@@ -82,12 +78,7 @@ class TestExpressions:
             self.integer.iloc[:, 0], self.integer.iloc[:, 0], check_dtype=True
         )
 
-    def run_binary(
-        self,
-        df,
-        other,
-        test_flex=False,
-    ):
+    def run_binary(self, df, other, test_flex=False):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -96,7 +87,6 @@ class TestExpressions:
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ["gt", "lt", "ge", "le", "eq", "ne"]
-        numexpr_ops = {"gt", "lt", "ge", "le", "eq", "ne"}
 
         for arith in operations:
             if test_flex:
@@ -110,10 +100,7 @@ class TestExpressions:
             expr.get_test_result()
             result = op(df, other)
             used_numexpr = expr.get_test_result()
-            if arith in numexpr_ops:
-                assert used_numexpr, "Did not use numexpr as expected."
-            else:
-                assert not used_numexpr, "Used numexpr unexpectedly."
+            assert used_numexpr, "Did not use numexpr as expected."
             tm.assert_equal(expected, result)
 
     def run_frame(self, df, other, run_binary=True):
