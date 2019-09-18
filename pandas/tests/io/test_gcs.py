@@ -75,14 +75,15 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     )
 
     class MockGCSFileSystem:
-        def open(self, path, mode='r', *args):
-            if 'w' not in mode:
+        def open(self, path, mode="r", *args):
+            if "w" not in mode:
                 raise FileNotFoundError
-            return open(os.path.join(tmpdir, 'test.parquet'), mode)
+            return open(os.path.join(tmpdir, "test.parquet"), mode)
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
-    df1.to_parquet("gs://test/test.csv", index=True, engine='fastparquet',
-                   compression=None)
+    df1.to_parquet(
+        "gs://test/test.csv", index=True, engine="fastparquet", compression=None
+    )
 
 
 @td.skip_if_no("gcsfs")
