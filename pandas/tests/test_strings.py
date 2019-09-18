@@ -3288,7 +3288,6 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "string"
             result = result.astype(object)
-        tm.assert_series_equal(result, expected)
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == "string")
