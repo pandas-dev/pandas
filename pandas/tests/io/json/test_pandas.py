@@ -1610,3 +1610,156 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = pd.DataFrame([[1]], index=[("a", "b")], columns=[("c", "d")])
         result = df.to_json(orient=orient)
         assert result == expected
+
+    @pytest.mark.parametrize("indent", [1, 2, 4])
+    def test_to_json_indent(self, indent):
+        # GH 12004
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
+
+        result = df.to_json(indent=indent)
+        spaces = " " * indent
+        expected = """{{
+{spaces}"a":{{
+{spaces}{spaces}"0":"foo",
+{spaces}{spaces}"1":"baz"
+{spaces}}},
+{spaces}"b":{{
+{spaces}{spaces}"0":"bar",
+{spaces}{spaces}"1":"qux"
+{spaces}}}
+}}""".format(
+            spaces=spaces
+        )
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            (
+                "split",
+                """{
+    "columns":[
+        "a",
+        "b"
+    ],
+    "index":[
+        0,
+        1
+    ],
+    "data":[
+        [
+            "foo",
+            "bar"
+        ],
+        [
+            "baz",
+            "qux"
+        ]
+    ]
+}""",
+            ),
+            (
+                "records",
+                """[
+    {
+        "a":"foo",
+        "b":"bar"
+    },
+    {
+        "a":"baz",
+        "b":"qux"
+    }
+]""",
+            ),
+            (
+                "index",
+                """{
+    "0":{
+        "a":"foo",
+        "b":"bar"
+    },
+    "1":{
+        "a":"baz",
+        "b":"qux"
+    }
+}""",
+            ),
+            (
+                "columns",
+                """{
+    "a":{
+        "0":"foo",
+        "1":"baz"
+    },
+    "b":{
+        "0":"bar",
+        "1":"qux"
+    }
+}""",
+            ),
+            (
+                "values",
+                """[
+    [
+        "foo",
+        "bar"
+    ],
+    [
+        "baz",
+        "qux"
+    ]
+]""",
+            ),
+            (
+                "table",
+                """{
+    "schema":{
+        "fields":[
+            {
+                "name":"index",
+                "type":"integer"
+            },
+            {
+                "name":"a",
+                "type":"string"
+            },
+            {
+                "name":"b",
+                "type":"string"
+            }
+        ],
+        "primaryKey":[
+            "index"
+        ],
+        "pandas_version":"0.20.0"
+    },
+    "data":[
+        {
+            "index":0,
+            "a":"foo",
+            "b":"bar"
+        },
+        {
+            "index":1,
+            "a":"baz",
+            "b":"qux"
+        }
+    ]
+}""",
+            ),
+        ],
+    )
+    def test_json_indent_all_orients(self, orient, expected):
+        # GH 12004
+        df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
+        result = df.to_json(orient=orient, indent=4)
+
+        if PY35:
+            assert json.loads(result) == json.loads(expected)
+        else:
+            assert result == expected
+
+    def test_json_negative_indent_raises(self):
+        with pytest.raises(ValueError, match="must be a nonnegative integer"):
+            pd.DataFrame().to_json(indent=-1)

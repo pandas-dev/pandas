@@ -5,6 +5,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas.compat import PY35
+
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
 
 import pandas as pd
@@ -18,6 +20,14 @@ from pandas.io.json._table_schema import (
     convert_pandas_type_to_json_field,
     set_default_names,
 )
+
+
+def assert_results_equal(result, expected):
+    """Helper function for comparing deserialized JSON with Py35 compat."""
+    if PY35:
+        assert sorted(result.items()) == sorted(expected.items())
+    else:
+        assert result == expected
 
 
 class TestBuildSchema:
@@ -234,7 +244,8 @@ class TestTableOrient:
                 ),
             ]
         )
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     def test_to_json(self):
         df = self.df.copy()
@@ -323,7 +334,8 @@ class TestTableOrient:
             ),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1.0, 2.0])
@@ -352,7 +364,8 @@ class TestTableOrient:
                 ),
             ]
         )
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     def test_to_json_period_index(self):
         idx = pd.period_range("2016", freq="Q-JAN", periods=2)
@@ -372,7 +385,8 @@ class TestTableOrient:
             OrderedDict([("index", "2016-02-01T00:00:00.000Z"), ("values", 1)]),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     def test_to_json_categorical_index(self):
         data = pd.Series(1, pd.CategoricalIndex(["a", "b"]))
@@ -406,7 +420,8 @@ class TestTableOrient:
                 ),
             ]
         )
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
@@ -542,7 +557,8 @@ class TestTableOrient:
                 ),
             ]
         )
-        assert result == expected
+
+        assert_results_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx,nm,prop",
@@ -596,7 +612,8 @@ class TestTableOrient:
         )
         result = df.to_json(orient="table")
         js = json.loads(result)
-        assert js["schema"]["fields"][1]["name"] == 1451606400000
+        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
+        # TODO - below expectation is not correct; see GH 28256
         assert js["schema"]["fields"][2]["name"] == 10000
 
     @pytest.mark.parametrize(
