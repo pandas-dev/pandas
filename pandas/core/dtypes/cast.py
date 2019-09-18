@@ -695,7 +695,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
             return tslib.ints_to_pydatetime(arr.view(np.int64))
-        elif dtype == np.int64:
+        elif is_integer_dtype(dtype):
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
