@@ -38,11 +38,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import (
-    ABCIndexClass,
-    ABCSeries,
-    ABCSparseArray,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas._typing import Dtype
