@@ -380,7 +380,9 @@ class TestInference:
         assert not libmissing.isneginf_scalar("a")
 
     @pytest.mark.parametrize("maybe_int", [True, False])
-    @pytest.mark.parametrize("infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"])
+    @pytest.mark.parametrize(
+        "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
+    )
     def test_maybe_convert_numeric_infinities(self, infinity, maybe_int):
         # see gh-13274
         na_values = {"", "NULL", "nan"}
@@ -413,9 +415,7 @@ class TestInference:
         # too many characters
         with pytest.raises(ValueError, match=msg):
             lib.maybe_convert_numeric(
-                np.array(["foo_" + infinity], dtype=object),
-                na_values,
-                maybe_int,
+                np.array(["foo_" + infinity], dtype=object), na_values, maybe_int
             )
 
     def test_maybe_convert_numeric_post_floatify_nan(self, coerce):
