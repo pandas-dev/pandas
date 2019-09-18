@@ -29,6 +29,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
   ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
@@ -78,7 +79,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
--
+- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
 .. _whatsnew_1000.deprecations:
@@ -91,8 +92,17 @@ Deprecations
 
 .. _whatsnew_1000.prior_deprecations:
 
+
+Removed SparseSeries and SparseDataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
+We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
+See :ref:`sparse.migration` for help with migrating existing code.
+
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
