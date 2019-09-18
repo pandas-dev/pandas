@@ -236,10 +236,10 @@ dtype: float64
 _eq_example_SERIES = """
 Examples
 --------
->>>s1=pd.Series((1,2,3,4,5))
->>>s2=pd.Series((1,2,5,9,2))
+>>> s1=pd.Series([1, 2, 3, 4, 5])
+>>> s2=pd.Series([1, 2, 5, 9, 2])
 
->>>s1.eq(s2)
+>>> s1.eq(s2)
 Out:
 0     True
 1     True
@@ -248,10 +248,10 @@ Out:
 4    False
 dtype: bool
 
->>>s1=pd.Series((1,2,3,4,5))
->>>s2=pd.Series((1,2,3))
+>>> s1=pd.Series([1, 2, 3, 4, 5])
+>>> s2=pd.Series([1, 2, 3])
 
->>>s1.eq(s2)
+>>> s1.eq(s2)
 Out:
 0     True
 1     True
@@ -260,10 +260,10 @@ Out:
 4    False
 dtype: bool
 
->>>s1=pd.Series((1,2))
->>>s2=pd.Series((1,2,3,1,7,2))
+>>> s1=pd.Series([1, 2])
+>>> s2=pd.Series([1, 2, 3, 1, 7, 2])
 
->>>s1.eq(s2)
+>>> s1.eq(s2)
 Out:
 0     True
 1     True
@@ -273,10 +273,10 @@ Out:
 5    False
 dtype: bool
 
->>>s1=pd.Series((1,2))
->>>s2=pd.Series((1,2,3,1,9,9,9))
+>>> s1=pd.Series([1, 2])
+>>> s2=pd.Series([1, 2, 3, 1, 9, 9, 9])
 
->>>s1.eq(s2,fill_value=9)
+>>> s1.eq(s2, fill_value=9)
 Out:
 0     True
 1     True
