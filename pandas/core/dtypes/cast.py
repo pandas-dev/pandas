@@ -796,7 +796,7 @@ def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
                 new_values = lib.maybe_convert_numeric(
                     values, set(), coerce_numeric=True
                 )
-            except Exception:
+            except (ValueError, TypeError):
                 pass
             else:
                 # if we are all nans then leave me alone
