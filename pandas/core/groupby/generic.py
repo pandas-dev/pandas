@@ -873,7 +873,6 @@ class SeriesGroupBy(GroupBy):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
-            print(func)
             ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
             if relabeling:
                 ret.columns = columns
