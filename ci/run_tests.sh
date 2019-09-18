@@ -4,7 +4,6 @@
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
-export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE"
@@ -16,6 +15,10 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
         # exit 1
     fi
 fi
+if [[ "not network" == *"$PATTERN"* ]]; then
+    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
+fi
+
 
 if [ -n "$PATTERN" ]; then
     PATTERN=" and $PATTERN"
