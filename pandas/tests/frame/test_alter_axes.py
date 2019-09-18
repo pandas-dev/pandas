@@ -27,7 +27,6 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestDataFrameAlterAxes:
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame
@@ -1452,7 +1451,6 @@ class TestDataFrameAlterAxes:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestIntervalIndex:
     def test_setitem(self):
 

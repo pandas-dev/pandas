@@ -6,12 +6,6 @@
 Sparse data structures
 **********************
 
-.. note::
-
-   ``SparseSeries`` and ``SparseDataFrame`` have been deprecated. Their purpose
-   is served equally well by a :class:`Series` or :class:`DataFrame` with
-   sparse values. See :ref:`sparse.migration` for tips on migrating.
-
 Pandas provides data structures for efficiently storing sparse data.
 These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
 objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
@@ -167,6 +161,11 @@ the correct dense result.
 
 Migrating
 ---------
+
+.. note::
+
+   ``SparseSeries`` and ``SparseDataFrame`` were removed in pandas 1.0.0. This migration
+   guide is present to aid in migrating from previous versions.
 
 In older versions of pandas, the ``SparseSeries`` and ``SparseDataFrame`` classes (documented below)
 were the preferred way to work with sparse data. With the advent of extension arrays, these subclasses
@@ -366,12 +365,3 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
    ss_dense = pd.Series.sparse.from_coo(A, dense_index=True)
    ss_dense
-
-
-.. _sparse.subclasses:
-
-Sparse subclasses
------------------
-
-The :class:`SparseSeries` and :class:`SparseDataFrame` classes are deprecated. Visit their
-API pages for usage.

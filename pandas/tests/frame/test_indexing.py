@@ -2145,13 +2145,6 @@ class TestDataFrameIndexing(TestData):
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        df = SparseDataFrame({"A": [999, 1]}, default_fill_value=999)
-        assert len(df["A"].sp_values) == len(df.iloc[:, 0].sp_values)
-
     def test_iat(self, float_frame):
 
         for i, row in enumerate(float_frame.index):

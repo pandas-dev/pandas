@@ -190,38 +190,6 @@ class TestDataFrameSubclassing(TestData):
             assert isinstance(row, tm.SubclassedSeries)
             tm.assert_series_equal(row, df.loc[i])
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_subclass_sparse_slice(self):
-        rows = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]
-        ssdf = tm.SubclassedSparseDataFrame(rows)
-        ssdf.testattr = "testattr"
-
-        tm.assert_sp_frame_equal(ssdf.loc[:2], tm.SubclassedSparseDataFrame(rows[:3]))
-        tm.assert_sp_frame_equal(ssdf.iloc[:2], tm.SubclassedSparseDataFrame(rows[:2]))
-        tm.assert_sp_frame_equal(ssdf[:2], tm.SubclassedSparseDataFrame(rows[:2]))
-        assert ssdf.loc[:2].testattr == "testattr"
-        assert ssdf.iloc[:2].testattr == "testattr"
-        assert ssdf[:2].testattr == "testattr"
-
-        tm.assert_sp_series_equal(
-            ssdf.loc[1],
-            tm.SubclassedSparseSeries(rows[1]),
-            check_names=False,
-            check_kind=False,
-        )
-        tm.assert_sp_series_equal(
-            ssdf.iloc[1],
-            tm.SubclassedSparseSeries(rows[1]),
-            check_names=False,
-            check_kind=False,
-        )
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_subclass_sparse_transpose(self):
-        ossdf = tm.SubclassedSparseDataFrame([[1, 2, 3], [4, 5, 6]])
-        essdf = tm.SubclassedSparseDataFrame([[1, 4], [2, 5], [3, 6]])
-        tm.assert_sp_frame_equal(ossdf.T, essdf)
-
     def test_subclass_stack(self):
         # GH 15564
         df = tm.SubclassedDataFrame(

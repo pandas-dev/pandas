@@ -576,18 +576,7 @@ Serialization / IO / conversion
    Series.to_sql
    Series.to_msgpack
    Series.to_json
-   Series.to_sparse
    Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex
-
-
-Sparse
-------
-
-.. autosummary::
-   :toctree: api/
-
-   SparseSeries.to_coo
-   SparseSeries.from_coo

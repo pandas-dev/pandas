@@ -32,7 +32,6 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
-    ABCSparseSeries,
     ABCTimedeltaArray,
     ABCTimedeltaIndex,
 )
@@ -1104,78 +1103,6 @@ def _comp_method_FRAME(cls, func, special):
 
 # -----------------------------------------------------------------------------
 # Sparse
-
-
-def _cast_sparse_series_op(left, right, opname):
-    """
-    For SparseSeries operation, coerce to float64 if the result is expected
-    to have NaN or inf values
-
-    Parameters
-    ----------
-    left : SparseArray
-    right : SparseArray
-    opname : str
-
-    Returns
-    -------
-    left : SparseArray
-    right : SparseArray
-    """
-    from pandas.core.sparse.api import SparseDtype
-
-    opname = opname.strip("_")
-
-    # TODO: This should be moved to the array?
-    if is_integer_dtype(left) and is_integer_dtype(right):
-        # series coerces to float64 if result should have NaN/inf
-        if opname in ("floordiv", "mod") and (right.to_dense() == 0).any():
-            left = left.astype(SparseDtype(np.float64, left.fill_value))
-            right = right.astype(SparseDtype(np.float64, right.fill_value))
-        elif opname in ("rfloordiv", "rmod") and (left.to_dense() == 0).any():
-            left = left.astype(SparseDtype(np.float64, left.fill_value))
-            right = right.astype(SparseDtype(np.float64, right.fill_value))
-
-    return left, right
-
-
-def _arith_method_SPARSE_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    op_name = _get_op_name(op, special)
-
-    def wrapper(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-        elif isinstance(other, ABCSeries):
-            if not isinstance(other, ABCSparseSeries):
-                other = other.to_sparse(fill_value=self.fill_value)
-            return _sparse_series_op(self, other, op, op_name)
-        elif is_scalar(other):
-            with np.errstate(all="ignore"):
-                new_values = op(self.values, other)
-            return self._constructor(new_values, index=self.index, name=self.name)
-        else:  # pragma: no cover
-            raise TypeError(
-                "operation with {other} not supported".format(other=type(other))
-            )
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def _sparse_series_op(left, right, op, name):
-    left, right = left.align(right, join="outer", copy=False)
-    new_index = left.index
-    new_name = get_op_result_name(left, right)
-
-    from pandas.core.arrays.sparse import _sparse_array_op
-
-    lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
-    result = _sparse_array_op(lvalues, rvalues, op, name)
-    return left._constructor(result, index=new_index, name=new_name)
 
 
 def maybe_dispatch_ufunc_to_dunder_op(

@@ -960,9 +960,8 @@ def test_is_bool_dtype(dtype, expected):
     assert result is expected
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    result = is_bool_dtype(pd.Series(pd.SparseArray([True, False])))
     assert result is True
 
 

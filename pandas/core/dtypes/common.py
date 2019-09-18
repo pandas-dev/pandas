@@ -273,8 +273,6 @@ def is_sparse(arr):
 
     See Also
     --------
-    DataFrame.to_sparse : Convert DataFrame to a SparseDataFrame.
-    Series.to_sparse : Convert Series to SparseSeries.
     Series.to_dense : Return dense representation of a Series.
 
     Examples
@@ -283,7 +281,7 @@ def is_sparse(arr):
 
     >>> is_sparse(pd.SparseArray([0, 0, 1, 0]))
     True
-    >>> is_sparse(pd.SparseSeries([0, 0, 1, 0]))
+    >>> is_sparse(pd.Series(pd.SparseArray([0, 0, 1, 0])))
     True
 
     Returns `False` if the parameter is not sparse.
@@ -300,14 +298,6 @@ def is_sparse(arr):
     False
 
     Returns `False` if the parameter has more than one dimension.
-
-    >>> df = pd.SparseDataFrame([389., 24., 80.5, np.nan],
-                                columns=['max_speed'],
-                                index=['falcon', 'parrot', 'lion', 'monkey'])
-    >>> is_sparse(df)
-    False
-    >>> is_sparse(df.max_speed)
-    True
     """
     from pandas.core.arrays.sparse import SparseDtype
 
@@ -339,8 +329,6 @@ def is_scipy_sparse(arr):
     >>> is_scipy_sparse(bsr_matrix([1, 2, 3]))
     True
     >>> is_scipy_sparse(pd.SparseArray([1, 2, 3]))
-    False
-    >>> is_scipy_sparse(pd.SparseSeries([1, 2, 3]))
     False
     """
 
@@ -1715,9 +1703,6 @@ def is_extension_type(arr):
     True
     >>> is_extension_type(pd.SparseArray([1, 2, 3]))
     True
-    >>> is_extension_type(pd.SparseSeries([1, 2, 3]))
-    True
-    >>>
     >>> from scipy.sparse import bsr_matrix
     >>> is_extension_type(bsr_matrix([1, 2, 3]))
     False

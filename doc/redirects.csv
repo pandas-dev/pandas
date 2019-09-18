@@ -503,7 +503,6 @@ generated/pandas.DataFrame.to_parquet,../reference/api/pandas.DataFrame.to_parqu
 generated/pandas.DataFrame.to_period,../reference/api/pandas.DataFrame.to_period
 generated/pandas.DataFrame.to_pickle,../reference/api/pandas.DataFrame.to_pickle
 generated/pandas.DataFrame.to_records,../reference/api/pandas.DataFrame.to_records
-generated/pandas.DataFrame.to_sparse,../reference/api/pandas.DataFrame.to_sparse
 generated/pandas.DataFrame.to_sql,../reference/api/pandas.DataFrame.to_sql
 generated/pandas.DataFrame.to_stata,../reference/api/pandas.DataFrame.to_stata
 generated/pandas.DataFrame.to_string,../reference/api/pandas.DataFrame.to_string
@@ -1432,7 +1431,6 @@ generated/pandas.Series.to_msgpack,../reference/api/pandas.Series.to_msgpack
 generated/pandas.Series.to_numpy,../reference/api/pandas.Series.to_numpy
 generated/pandas.Series.to_period,../reference/api/pandas.Series.to_period
 generated/pandas.Series.to_pickle,../reference/api/pandas.Series.to_pickle
-generated/pandas.Series.to_sparse,../reference/api/pandas.Series.to_sparse
 generated/pandas.Series.to_sql,../reference/api/pandas.Series.to_sql
 generated/pandas.Series.to_string,../reference/api/pandas.Series.to_string
 generated/pandas.Series.to_timestamp,../reference/api/pandas.Series.to_timestamp

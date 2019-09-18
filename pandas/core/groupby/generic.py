@@ -58,7 +58,6 @@ from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -257,12 +256,6 @@ class NDFrameGroupBy(GroupBy):
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
                     )
-
-                    if isinstance(self.obj, SparseDataFrame):
-                        # Backwards compat for groupby.agg() with sparse
-                        # values. concat no longer converts DataFrame[Sparse]
-                        # to SparseDataFrame, so we do it here.
-                        result = SparseDataFrame(result._data)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
