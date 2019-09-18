@@ -78,8 +78,6 @@ class TestExpressions:
     def test_integer_arithmetic(self):
         df = self.integer
         self.run_frame(df, df)
-        for i in range(len(df.columns)):
-            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
 
     def run_binary(self, df, other):
         """
@@ -115,28 +113,20 @@ class TestExpressions:
             expr.set_use_numexpr(True)
             self.run_binary(df, binary_comp)
 
-    def run_series(self, ser, other):
-        self.run_arithmetic(ser, other)
-        # FIXME: dont leave commented-out
-        # series doesn't uses vec_compare instead of numexpr...
-        # binary_comp = other + 1
-        # self.run_binary(ser, binary_comp)
+        for i in range(len(df.columns)):
+            self.run_arithmetic(df.iloc[:, i], other.iloc[:, i])
+            # FIXME: dont leave commented-out
+            # series doesn't uses vec_compare instead of numexpr...
+            # binary_comp = other.iloc[:, i] + 1
+            # self.run_binary(df.iloc[:, i], binary_comp)
 
-    def test_integer_arithmetic_frame(self):
-        self.run_frame(self.integer, self.integer)
+    def test_integer_arithmetic2(self):
+        df = _integer2
+        self.run_frame(df, df)
 
-    def test_integer_arithmetic_series(self):
-        self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
-
-    def test_float_arithemtic_frame(self):
+    def test_float_arithmetic(self):
         df = self.frame2
         self.run_frame(df, df)
-        for i in range(len(df.columns)):
-            self.run_arithmetic(df.iloc[:, i], df.iloc[:, i])
-
-    def test_float_arithmetic_series(self):
-        df = self.frame2
-        self.run_series(df.iloc[:, 0], df.iloc[:, 0])
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
