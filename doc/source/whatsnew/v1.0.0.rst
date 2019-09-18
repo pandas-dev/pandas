@@ -29,6 +29,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
   ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
@@ -78,7 +79,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
--
+- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
 .. _whatsnew_1000.deprecations:
