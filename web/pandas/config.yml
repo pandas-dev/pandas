@@ -26,15 +26,15 @@ navbar:
   - name: "Documentation"
     target:
     - name: "Getting started"
-      target: https://pandas.pydata.org/pandas-docs/stable/getting_started/index.html
+      target: /docs/getting_started/index.html
     - name: "User guide"
-      target: https://pandas.pydata.org/pandas-docs/stable/user_guide/index.html
+      target: /docs/user_guide/index.html
     - name: "API reference"
-      target: https://pandas.pydata.org/pandas-docs/stable/reference/index.html
+      target: /docs/reference/index.html
     - name: "Contributing to pandas"
-      target: https://pandas.pydata.org/pandas-docs/stable/development/index.html
+      target: /docs/development/index.html
     - name: "Release notes"
-      target: https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html
+      target: /docs/whatsnew/index.html
   - name: "Community"
     target:
     - name: "About pandas"
