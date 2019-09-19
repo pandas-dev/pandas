@@ -433,21 +433,31 @@ def test_frame_groupby_columns(tsframe):
         assert len(v.columns) == 2
 
 
-def test_frame_groupby_avoids_mutate():
+@pytest.mark.parametrize(
+    "func, args",
+    [
+        ("sum", []),
+        ("prod", []),
+        ("min", []),
+        ("max", []),
+        ("nth", [0]),
+        ("last", []),
+        ("first", []),
+    ],
+)
+def test_frame_groupby_avoids_mutate(func, args):
     # GH28523
     df = pd.DataFrame({"A": ["foo", "bar", "foo", "bar"], "B": [1, 2, 3, 4]})
     grouped = df.groupby("A")
 
     expected = grouped.apply(lambda x: x)
 
-    funcs = ["sum", "prod", "min", "max", "last", "first"]
-    for fn in funcs:
-        func = getattr(grouped, fn)
-        func()
+    fn = getattr(grouped, func)
+    fn(*args)
 
     result = grouped.apply(lambda x: x)
 
-    assert tm.assert_frame_equal(expected, result)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_frame_set_name_single(df):

@@ -1364,27 +1364,27 @@ class GroupBy(_GroupBy):
                 if "min_count" not in kwargs:
                     kwargs["min_count"] = min_count
 
-                self._set_group_selection()
+                with _group_selection_context(self):
 
-                # try a cython aggregation if we can
-                try:
-                    return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError as e:
-                    raise SpecificationError(str(e))
-                except Exception:
-                    pass
+                    # try a cython aggregation if we can
+                    try:
+                        return self._cython_agg_general(alias, alt=npfunc, **kwargs)
+                    except AssertionError as e:
+                        raise SpecificationError(str(e))
+                    except Exception:
+                        pass
 
-                # apply a non-cython aggregation
-                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+                    # apply a non-cython aggregation
+                    result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
 
-                # coerce the resulting columns if we can
-                if isinstance(result, DataFrame):
-                    for col in result.columns:
-                        result[col] = self._try_cast(result[col], self.obj[col])
-                else:
-                    result = self._try_cast(result, self.obj)
+                    # coerce the resulting columns if we can
+                    if isinstance(result, DataFrame):
+                        for col in result.columns:
+                            result[col] = self._try_cast(result[col], self.obj[col])
+                    else:
+                        result = self._try_cast(result, self.obj)
 
-                return result
+                    return result
 
             set_function_name(f, name, cls)
 
@@ -1757,28 +1757,30 @@ class GroupBy(_GroupBy):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            self._set_group_selection()
 
-            mask_left = np.in1d(self._cumcount_array(), nth_array)
-            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)
-            mask = mask_left | mask_right
+            with _group_selection_context(self):
+                mask_left = np.in1d(self._cumcount_array(), nth_array)
+                mask_right = np.in1d(
+                    self._cumcount_array(ascending=False) + 1, -nth_array
+                )
+                mask = mask_left | mask_right
 
-            ids, _, _ = self.grouper.group_info
+                ids, _, _ = self.grouper.group_info
 
-            # Drop NA values in grouping
-            mask = mask & (ids != -1)
+                # Drop NA values in grouping
+                mask = mask & (ids != -1)
 
-            out = self._selected_obj[mask]
-            if not self.as_index:
-                return out
+                out = self._selected_obj[mask]
+                if not self.as_index:
+                    return out
 
-            result_index = self.grouper.result_index
-            out.index = result_index[ids[mask]]
+                result_index = self.grouper.result_index
+                out.index = result_index[ids[mask]]
 
-            if not self.observed and isinstance(result_index, CategoricalIndex):
-                out = out.reindex(result_index)
+                if not self.observed and isinstance(result_index, CategoricalIndex):
+                    out = out.reindex(result_index)
 
-            return out.sort_index() if self.sort else out
+                return out.sort_index() if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):
