@@ -195,12 +195,18 @@ class TestPivotTable:
             }
         )
         pv_col = df.pivot_table(
-            "metric_value", "metric_name", ["measurer", "product"], dropna=False,
-            keep_only_observed_nancols=True
+            "metric_value",
+            "metric_name",
+            ["measurer", "product"],
+            dropna=False,
+            keep_only_observed_nancols=True,
         )
         pv_ind = df.pivot_table(
-            "metric_value", ["measurer", "product"], "metric_name", dropna=False,
-            keep_only_observed_nancols=True
+            "metric_value",
+            ["measurer", "product"],
+            "metric_name",
+            dropna=False,
+            keep_only_observed_nancols=True,
         )
 
         m = MultiIndex.from_tuples(
