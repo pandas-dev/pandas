@@ -20,10 +20,6 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [ -n "$PATTERN" ]; then
-    PATTERN=" and $PATTERN"
-fi
-
 if [ "$COVERAGE" ]; then
     COVERAGE_FNAME="/tmp/test_coverage.xml"
     COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
