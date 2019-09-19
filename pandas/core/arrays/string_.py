@@ -1,5 +1,5 @@
 import operator
-from typing import Type
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 
@@ -14,6 +14,10 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
+from pandas.core.missing import isna
+
+if TYPE_CHECKING:
+    from pandas._typing import Scalar, ArrayLike
 
 
 @register_extension_dtype
@@ -38,7 +42,7 @@ class StringDtype(ExtensionDtype):
     """
 
     @property
-    def na_value(self):
+    def na_value(self) -> "Scalar":
         """
         StringDtype uses :attr:`numpy.nan` as the missing NA value.
         """
@@ -210,14 +214,20 @@ class StringArray(PandasArray):
         return value_counts(self._ndarray, dropna=dropna)
 
 
-def _add(array, other, op):
+def _add(array: StringArray, other: "ArrayLike", op):
     if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
         return NotImplemented
 
-    mask = array.isna()
     if isinstance(other, type(array)):
-        mask |= other.isna()
-        other = other._ndarray[~mask]
+        other = other._ndarray
+
+    other = np.asarray(other)
+
+    mask = array.isna()
+    if not lib.is_scalar(other):
+        mask |= isna(other)
+
+        other = other[~mask]
 
     valid = ~mask
 

@@ -60,6 +60,19 @@ def test_add():
     tm.assert_series_equal(result, expected)
 
 
+def test_add_sequence():
+    a = pd.array(["a", "b", None, None], dtype="string")
+    other = ["x", None, "y", None]
+
+    result = a + other
+    expected = pd.array(["ax", None, None, None], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = other + a
+    expected = pd.array(["xa", None, None, None], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings():
     array = pd.array(["a", "b", "c", "d"], dtype="string")
