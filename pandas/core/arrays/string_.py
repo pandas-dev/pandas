@@ -221,10 +221,9 @@ def _add(array: StringArray, other: "ArrayLike", op):
     if isinstance(other, type(array)):
         other = other._ndarray
 
-    other = np.asarray(other)
-
     mask = array.isna()
     if not lib.is_scalar(other):
+        other = np.asarray(other)
         mask |= isna(other)
 
         other = other[~mask]
