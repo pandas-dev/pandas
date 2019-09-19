@@ -797,7 +797,6 @@ def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
                     values, set(), coerce_numeric=True
                 )
             except Exception:
-                raise
                 pass
             else:
                 # if we are all nans then leave me alone
@@ -877,7 +876,6 @@ def soft_convert_objects(
         try:
             converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
         except Exception:
-            raise
             pass
         else:
             # If all NaNs, then do not-alter
@@ -965,7 +963,6 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
                 pass
 
         except Exception:
-            raise
             pass
 
         return v.reshape(shape)
