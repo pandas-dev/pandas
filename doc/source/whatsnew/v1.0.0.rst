@@ -218,6 +218,7 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
+- Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
 
 Plotting
 ^^^^^^^^
