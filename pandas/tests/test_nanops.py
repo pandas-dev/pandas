@@ -165,25 +165,17 @@ class TestnanopsDataFrame:
                 else:
                     targ = targfunc(targartempval, axis=axis, **kwargs)
 
-                try:
-                    res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+                res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+                self.check_results(targ, res, axis, check_dtype=check_dtype)
+                if skipna:
+                    res = testfunc(testarval, axis=axis, **kwargs)
                     self.check_results(targ, res, axis, check_dtype=check_dtype)
-                    if skipna:
-                        res = testfunc(testarval, axis=axis, **kwargs)
-                        self.check_results(targ, res, axis, check_dtype=check_dtype)
-                    if axis is None:
-                        res = testfunc(testarval, skipna=skipna, **kwargs)
-                        self.check_results(targ, res, axis, check_dtype=check_dtype)
-                    if skipna and axis is None:
-                        res = testfunc(testarval, **kwargs)
-                        self.check_results(targ, res, axis, check_dtype=check_dtype)
-                except BaseException as exc:
-                    exc.args += (
-                        "axis: {axis} of {of}".format(axis=axis, of=testarval.ndim - 1),
-                        "skipna: {skipna}".format(skipna=skipna),
-                        "kwargs: {kwargs}".format(kwargs=kwargs),
-                    )
-                    raise
+                if axis is None:
+                    res = testfunc(testarval, skipna=skipna, **kwargs)
+                    self.check_results(targ, res, axis, check_dtype=check_dtype)
+                if skipna and axis is None:
+                    res = testfunc(testarval, **kwargs)
+                    self.check_results(targ, res, axis, check_dtype=check_dtype)
 
         if testarval.ndim <= 1:
             return
@@ -222,23 +214,15 @@ class TestnanopsDataFrame:
         testarval = getattr(self, testar)
         targarval = getattr(self, targar)
         targarnanval = getattr(self, targarnan)
-        try:
-            self.check_fun_data(
-                testfunc,
-                targfunc,
-                testarval,
-                targarval,
-                targarnanval,
-                empty_targfunc=empty_targfunc,
-                **kwargs
-            )
-        except BaseException as exc:
-            exc.args += (
-                "testar: {testar}".format(testar=testar),
-                "targar: {targar}".format(targar=targar),
-                "targarnan: {targarnan}".format(targarnan=targarnan),
-            )
-            raise
+        self.check_fun_data(
+            testfunc,
+            targfunc,
+            testarval,
+            targarval,
+            targarnanval,
+            empty_targfunc=empty_targfunc,
+            **kwargs
+        )
 
     def check_funs(
         self,
@@ -753,15 +737,12 @@ class TestnanopsDataFrame:
 
     def check_bool(self, func, value, correct, *args, **kwargs):
         while getattr(value, "ndim", True):
-            try:
-                res0 = func(value, *args, **kwargs)
-                if correct:
-                    assert res0
-                else:
-                    assert not res0
-            except BaseException as exc:
-                exc.args += ("dim: {}".format(getattr(value, "ndim", value)),)
-                raise
+            res0 = func(value, *args, **kwargs)
+            if correct:
+                assert res0
+            else:
+                assert not res0
+
             if not hasattr(value, "ndim"):
                 break
             try:
@@ -796,21 +777,13 @@ class TestnanopsDataFrame:
 
         for arr, correct in pairs:
             val = getattr(self, arr)
-            try:
-                self.check_bool(nanops._has_infs, val, correct)
-            except BaseException as exc:
-                exc.args += (arr,)
-                raise
+            self.check_bool(nanops._has_infs, val, correct)
 
         for arr, correct in pairs_float:
             val = getattr(self, arr)
-            try:
-                self.check_bool(nanops._has_infs, val, correct)
-                self.check_bool(nanops._has_infs, val.astype("f4"), correct)
-                self.check_bool(nanops._has_infs, val.astype("f2"), correct)
-            except BaseException as exc:
-                exc.args += (arr,)
-                raise
+            self.check_bool(nanops._has_infs, val, correct)
+            self.check_bool(nanops._has_infs, val.astype("f4"), correct)
+            self.check_bool(nanops._has_infs, val.astype("f2"), correct)
 
     def test__isfinite(self):
         pairs = [
@@ -844,21 +817,13 @@ class TestnanopsDataFrame:
 
         for arr, correct in pairs:
             val = getattr(self, arr)
-            try:
-                self.check_bool(func1, val, correct)
-            except BaseException as exc:
-                exc.args += (arr,)
-                raise
+            self.check_bool(func1, val, correct)
 
         for arr, correct in pairs_float:
             val = getattr(self, arr)
-            try:
-                self.check_bool(func1, val, correct)
-                self.check_bool(func1, val.astype("f4"), correct)
-                self.check_bool(func1, val.astype("f2"), correct)
-            except BaseException as exc:
-                exc.args += (arr,)
-                raise
+            self.check_bool(func1, val, correct)
+            self.check_bool(func1, val.astype("f4"), correct)
+            self.check_bool(func1, val.astype("f2"), correct)
 
     def test__bn_ok_dtype(self):
         assert nanops._bn_ok_dtype(self.arr_float.dtype, "test")
