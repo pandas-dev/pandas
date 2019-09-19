@@ -382,7 +382,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     otherwise raises a ValueError.
 
     Parameters
-    ----
+    -------
     q: float or iterable of floats
         A single percentile or an iterable of percentiles.
 
@@ -392,7 +392,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
         An ndarray of the percentiles if valid.
 
     Raises
-    ------
+    -------
     ValueError if percentiles are not in given interval([0, 1]).
     """
     msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
