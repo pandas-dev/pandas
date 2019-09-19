@@ -511,7 +511,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception:
+            except OSError:
                 print(
                     "Couldn't close file descriptor: {fdesc} (file: {fname})".format(
                         fdesc=fd, fname=filename
@@ -520,7 +520,7 @@ def ensure_clean(filename=None, return_filelike=False):
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
-            except Exception as e:
+            except OSError as e:
                 print("Exception on removing file: {error}".format(error=e))
 
 
@@ -539,7 +539,7 @@ def ensure_clean_dir():
     finally:
         try:
             rmtree(directory_name)
-        except Exception:
+        except OSError:
             pass
 
 
@@ -1332,8 +1332,6 @@ def assert_frame_equal(
     _check_isinstance(left, right, DataFrame)
 
     if check_frame_type:
-        # ToDo: There are some tests using rhs is SparseDataFrame
-        # lhs is DataFrame. Should use assert_class_equal in future
         assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
@@ -1560,142 +1558,6 @@ def assert_sp_array_equal(
     assert_numpy_array_equal(left.to_dense(), right.to_dense(), check_dtype=check_dtype)
 
 
-def assert_sp_series_equal(
-    left,
-    right,
-    check_dtype=True,
-    exact_indices=True,
-    check_series_type=True,
-    check_names=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-    obj="SparseSeries",
-):
-    """Check that the left and right SparseSeries are equal.
-
-    Parameters
-    ----------
-    left : SparseSeries
-    right : SparseSeries
-    check_dtype : bool, default True
-        Whether to check the Series dtype is identical.
-    exact_indices : bool, default True
-    check_series_type : bool, default True
-        Whether to check the SparseSeries class is identical.
-    check_names : bool, default True
-        Whether to check the SparseSeries name attribute.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
-    obj : str, default 'SparseSeries'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-    _check_isinstance(left, right, pd.SparseSeries)
-
-    if check_series_type:
-        assert_class_equal(left, right, obj=obj)
-
-    assert_index_equal(left.index, right.index, obj="{obj}.index".format(obj=obj))
-
-    assert_sp_array_equal(
-        left.values,
-        right.values,
-        check_kind=check_kind,
-        check_fill_value=check_fill_value,
-        consolidate_block_indices=consolidate_block_indices,
-    )
-
-    if check_names:
-        assert_attr_equal("name", left, right)
-    if check_dtype:
-        assert_attr_equal("dtype", left, right)
-
-    assert_numpy_array_equal(np.asarray(left.values), np.asarray(right.values))
-
-
-def assert_sp_frame_equal(
-    left,
-    right,
-    check_dtype=True,
-    exact_indices=True,
-    check_frame_type=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-    obj="SparseDataFrame",
-):
-    """Check that the left and right SparseDataFrame are equal.
-
-    Parameters
-    ----------
-    left : SparseDataFrame
-    right : SparseDataFrame
-    check_dtype : bool, default True
-        Whether to check the Series dtype is identical.
-    exact_indices : bool, default True
-        SparseSeries SparseIndex objects must be exactly the same,
-        otherwise just compare dense representations.
-    check_frame_type : bool, default True
-        Whether to check the SparseDataFrame class is identical.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
-    obj : str, default 'SparseDataFrame'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-    _check_isinstance(left, right, pd.SparseDataFrame)
-
-    if check_frame_type:
-        assert_class_equal(left, right, obj=obj)
-
-    assert_index_equal(left.index, right.index, obj="{obj}.index".format(obj=obj))
-    assert_index_equal(left.columns, right.columns, obj="{obj}.columns".format(obj=obj))
-
-    if check_fill_value:
-        assert_attr_equal("default_fill_value", left, right, obj=obj)
-
-    for col, series in left.items():
-        assert col in right
-        # trade-off?
-
-        if exact_indices:
-            assert_sp_series_equal(
-                series,
-                right[col],
-                check_dtype=check_dtype,
-                check_kind=check_kind,
-                check_fill_value=check_fill_value,
-                consolidate_block_indices=consolidate_block_indices,
-            )
-        else:
-            assert_series_equal(
-                series.to_dense(), right[col].to_dense(), check_dtype=check_dtype
-            )
-
-    # do I care?
-    # assert(left.default_kind == right.default_kind)
-
-    for col in right:
-        assert col in left
-
-
 # -----------------------------------------------------------------------------
 # Others
 
@@ -1857,10 +1719,10 @@ def makeStringSeries(name=None):
 
 
 def makeObjectSeries(name=None):
-    dateIndex = makeDateIndex(N)
-    dateIndex = Index(dateIndex, dtype=object)
+    data = makeStringIndex(N)
+    data = Index(data, dtype=object)
     index = makeStringIndex(N)
-    return Series(dateIndex, index=index, name=name)
+    return Series(data, index=index, name=name)
 
 
 def getSeriesData():
@@ -2678,7 +2540,8 @@ def assert_produces_warning(
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except Exception:
+                except AttributeError:
+                    # module may not have __warningregistry__
                     pass
 
         saw_warning = False
@@ -2876,30 +2739,6 @@ class SubclassedDataFrame(DataFrame):
     @property
     def _constructor_sliced(self):
         return SubclassedSeries
-
-
-class SubclassedSparseSeries(pd.SparseSeries):
-    _metadata = ["testattr"]
-
-    @property
-    def _constructor(self):
-        return SubclassedSparseSeries
-
-    @property
-    def _constructor_expanddim(self):
-        return SubclassedSparseDataFrame
-
-
-class SubclassedSparseDataFrame(pd.SparseDataFrame):
-    _metadata = ["testattr"]
-
-    @property
-    def _constructor(self):
-        return SubclassedSparseDataFrame
-
-    @property
-    def _constructor_sliced(self):
-        return SubclassedSparseSeries
 
 
 class SubclassedCategorical(Categorical):

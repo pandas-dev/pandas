@@ -235,19 +235,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if not lib.is_scalar(value):
             value = np.asarray(value)
 
-        values = self._ndarray
-        if isinstance(value, str):
-            # Avoid issues with result_type and typecodes.
-            t = object
-        else:
-            t = np.result_type(value, values)
-        if t != self._ndarray.dtype:
-            values = values.astype(t, casting="safe")
-            values[key] = value
-            self._dtype = PandasDtype(t)
-            self._ndarray = values
-        else:
-            self._ndarray[key] = value
+        value = np.asarray(value, dtype=self._ndarray.dtype)
+        self._ndarray[key] = value
 
     def __len__(self) -> int:
         return len(self._ndarray)
