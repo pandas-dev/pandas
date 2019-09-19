@@ -11,13 +11,14 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
+from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
-    from pandas._typing import Scalar, ArrayLike
+    from pandas._typing import Scalar
 
 
 @register_extension_dtype
@@ -199,12 +200,6 @@ class StringArray(PandasArray):
             return self
         return super().astype(dtype, copy)
 
-    def __add__(self, other):
-        return _add(self, other, operator.add)
-
-    def __radd__(self, other):
-        return _add(self, other, ops.radd)
-
     def _reduce(self, name, skipna=True, **kwargs):
         raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
 
@@ -213,25 +208,48 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna)
 
+    # Overrride parent, because we have different return types.
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        def method(self, other):
+            if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
+                return NotImplemented
 
-def _add(array: StringArray, other: "ArrayLike", op):
-    if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
-        return NotImplemented
+            elif isinstance(other, cls):
+                other = other._ndarray
 
-    if isinstance(other, type(array)):
-        other = other._ndarray
+            mask = isna(self) | isna(other)
+            valid = ~mask
 
-    mask = array.isna()
-    if not lib.is_scalar(other):
-        other = np.asarray(other)
-        mask |= isna(other)
+            if not lib.is_scalar(other):
+                other = np.asarray(other)
+                other = other[valid]
 
-        other = other[~mask]
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = np.nan
+            result[valid] = op(self._ndarray[valid], other)
 
-    valid = ~mask
+            if op.__name__ in {"add", "radd", "mul", "rmul"}:
+                new = StringArray
+            elif mask.any():
+                new = lambda x: np.asarray(x, dtype="object")
+            else:
+                new = lambda x: np.asarray(x, dtype="bool")
 
-    out = np.empty_like(array._ndarray, dtype="object")
-    out[mask] = np.nan
-    out[valid] = op(array._ndarray[valid], other)
+            return new(result)
 
-    return type(array)(out)
+        return compat.set_function_name(method, "__{}__".format(op.__name__), cls)
+
+    @classmethod
+    def _add_arithmetic_ops(cls):
+        cls.__add__ = cls._create_arithmetic_method(operator.add)
+        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
+
+        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
+        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
+
+    _create_comparison_method = _create_arithmetic_method
+
+
+StringArray._add_arithmetic_ops()
+StringArray._add_comparison_ops()

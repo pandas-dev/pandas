@@ -40,6 +40,14 @@ def test_string_methods(input, method):
     tm.assert_series_equal(result.astype(object), expected)
 
 
+def test_astype_roundtrip():
+    s = pd.Series(pd.date_range("2000", periods=12))
+    s[0] = None
+
+    result = s.astype("string").astype("datetime64[ns]")
+    tm.assert_series_equal(result, s)
+
+
 def test_add():
     a = pd.Series(["a", "b", "c", None, None], dtype="string")
     b = pd.Series(["x", "y", None, "z", None], dtype="string")
@@ -70,6 +78,16 @@ def test_add_sequence():
 
     result = other + a
     expected = pd.array(["xa", None, None, None], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_mul():
+    a = pd.array(["a", "b", None], dtype="string")
+    result = a * 2
+    expected = pd.array(["aa", "bb", None], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = 2 * a
     tm.assert_extension_array_equal(result, expected)
 
 
