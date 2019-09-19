@@ -717,3 +717,24 @@ def test_astype_nansafe(val, typ):
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
         astype_nansafe(arr, dtype=typ)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+@pytest.mark.parametrize(
+    "to_type",
+    [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.float16,
+        np.float32,
+    ],
+)
+def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
+    arr = np.array([from_type("2018")])
+
+    with pytest.raises(TypeError, match="cannot astype"):
+        astype_nansafe(arr, dtype=to_type)
