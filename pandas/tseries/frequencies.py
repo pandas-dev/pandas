@@ -174,12 +174,7 @@ def to_offset(freq):
                     delta = offset
                 else:
                     delta = delta + offset
-        except (ValueError, TypeError, AttributeError):
-            # AttributeError is raised e.g. when trying to add 1W+1D and it
-            #  finds Day has no "weekday" attribute
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
-        except Exception:
-            raise
+        except (ValueError, TypeError):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     if delta is None:
