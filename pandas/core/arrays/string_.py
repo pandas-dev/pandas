@@ -46,6 +46,10 @@ class StringDtype(ExtensionDtype):
     def na_value(self) -> "Scalar":
         """
         StringDtype uses :attr:`numpy.nan` as the missing NA value.
+
+        .. warning::
+
+           `na_value` may change in a future release.
         """
         return np.nan
 
@@ -84,6 +88,9 @@ class StringArray(PandasArray):
 
        StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
+
+       In particular, the NA value used may change to no longer be
+       ``numpy.nan``.
 
     Parameters
     ----------
