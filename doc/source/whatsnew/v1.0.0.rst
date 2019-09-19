@@ -19,10 +19,11 @@ We'll continue to *introduce* deprecations in major and minor releases (e.g.
 1.0.0, 1.1.0, ...). Those deprecations will be *enforced* in the next major
 release.
 
-Note that *behavior changes* and *API breaking changes* are not identical. If we
-consider a behavior to be a bug, and fixing that bug induces a behavior change,
-we'll release that change in a minor release. This is a sometimes difficult
-judgment call that we'll do our best on.
+Note that *behavior changes* and *API breaking changes* are not identical. API
+breaking changes will only be released in major versions. If we consider a
+behavior to be a bug, and fixing that bug induces a behavior change, we'll
+release that change in a minor release. This is a sometimes difficult judgment
+call that we'll do our best on.
 
 This doesn't mean that pandas' pace of development will slow down. In the `2019
 Pandas User Survey`_, about 95% of the respondents said they considered pandas
