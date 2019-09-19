@@ -28,6 +28,7 @@ def pivot_table(
     fill_value=None,
     margins=False,
     dropna=True,
+    keep_only_observed_nancols=False,
     margins_name="All",
     observed=False,
 ):
@@ -127,17 +128,18 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        if table.index.nlevels > 1:
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.index.levels), names=table.index.names
-            )
-            table = table.reindex(m, axis=0)
+        if not keep_only_observed_nancols:
+            if table.index.nlevels > 1:
+                m = MultiIndex.from_arrays(
+                    cartesian_product(table.index.levels), names=table.index.names
+                )
+                table = table.reindex(m, axis=0)
 
-        if table.columns.nlevels > 1:
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.columns.levels), names=table.columns.names
-            )
-            table = table.reindex(m, axis=1)
+            if table.columns.nlevels > 1:
+                m = MultiIndex.from_arrays(
+                    cartesian_product(table.columns.levels), names=table.columns.names
+                )
+                table = table.reindex(m, axis=1)
 
     if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
