@@ -955,6 +955,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # then these stay as object dtype, xref GH19671
             from pandas._libs.tslibs import conversion
             from pandas import DatetimeIndex
+
             try:
 
                 values, tz = conversion.datetime_to_datetime64(v)
