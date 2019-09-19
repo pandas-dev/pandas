@@ -709,8 +709,8 @@ def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
 
 
-@pytest.mark.parametrize("val", [np.datetime64("NaT")])
-@pytest.mark.parametrize("typ", [np.int8, np.int16, np.int32, np.int64])
+@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
+@pytest.mark.parametrize("typ", [np.int64])
 def test_astype_nansafe(val, typ):
     arr = np.array([val])
 
