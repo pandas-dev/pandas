@@ -673,11 +673,17 @@ class TestDataFrameMissingData:
 
     def test_fillna_rows(self):
         #GH17399
-        df = DataFrame(np.random.randn(10, 4))
-        df.iloc[1:4, 1:4] = nan
-        expected = df.copy()
-        expected.iloc[1:4, 1:4] = 0
-        result = df.fillna(value=0, axis=1)
+        df = pd.DataFrame({
+            "a": [1,2,3,4],
+            "b": [5,np.nan,7,8],
+            "c": [9,10,11,np.nan]})
+
+        expected = pd.DataFrame({
+            "a": [1,2,3,4],
+            "b": [5,6,7,8],
+            "c": [9,10,11,6]})
+
+        result = df.fillna(df.mean(axis=1))
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self, float_frame):
