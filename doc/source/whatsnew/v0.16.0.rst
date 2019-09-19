@@ -39,7 +39,7 @@ New features
 
 .. _whatsnew_0160.enhancements.assign:
 
-DataFrame Assign
+DataFrame assign
 ^^^^^^^^^^^^^^^^
 
 Inspired by `dplyr's
@@ -91,7 +91,7 @@ Interaction with scipy.sparse
 
 Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
@@ -120,7 +120,7 @@ Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:is
 The from_coo method is a convenience method for creating a ``SparseSeries``
 from a ``scipy.sparse.coo_matrix``:
 
-.. ipython:: python
+.. code-block:: python
 
    from scipy import sparse
    A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
@@ -133,7 +133,7 @@ from a ``scipy.sparse.coo_matrix``:
 
 .. _whatsnew_0160.enhancements.string:
 
-String Methods Enhancements
+String methods enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Following new methods are accessible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9282`, :issue:`9352`, :issue:`9386`, :issue:`9387`, :issue:`9439`)
@@ -226,7 +226,7 @@ sub-class of ``datetime.timedelta``. Mentioned :ref:`here <whatsnew_0150.timedel
 
 So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``. Further, the component values are still available through the ``.components`` accessor. This affects the ``.seconds`` and ``.microseconds`` accessors, and removes the ``.hours``, ``.minutes``, ``.milliseconds`` accessors. These changes affect ``TimedeltaIndex`` and the Series ``.dt`` accessor as well. (:issue:`9185`, :issue:`9139`)
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
@@ -241,7 +241,7 @@ Previous Behavior
    In [5]: t.microseconds
    Out[5]: 123
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -259,7 +259,7 @@ Using ``.components`` allows the full component access
 
 .. _whatsnew_0160.api_breaking.indexing:
 
-Indexing Changes
+Indexing changes
 ^^^^^^^^^^^^^^^^
 
 The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:issue:`8613`). Furthermore we have improved the content of the error messages that are raised:
@@ -275,7 +275,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      s = pd.Series(range(5), [-2, -1, 1, 2, 3])
      s
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: ipython
 
@@ -285,7 +285,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
      In [6]: s.loc[-10:3]
      KeyError: 'start bound [-10] is not the [index]'
 
-  New Behavior
+  New behavior
 
   .. ipython:: python
 
@@ -294,14 +294,14 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - Allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: ipython
 
      In [8]: s.ix[-1.0:2]
      TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
 
-  New Behavior
+  New behavior
 
   .. code-block:: python
 
@@ -314,14 +314,14 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - Provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: python
 
      In [4]: df.loc[2:3]
      KeyError: 'start bound [2] is not the [index]'
 
-  New Behavior
+  New behavior
 
   .. code-block:: ipython
 
@@ -331,14 +331,14 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 .. _whatsnew_0160.api_breaking.categorical:
 
-Categorical Changes
+Categorical changes
 ^^^^^^^^^^^^^^^^^^^
 
 In prior versions, ``Categoricals`` that had an unspecified ordering (meaning no ``ordered`` keyword was passed) were defaulted as ``ordered`` Categoricals. Going forward, the ``ordered`` keyword in the ``Categorical`` constructor will default to ``False``. Ordering must now be explicit.
 
 Furthermore, previously you *could* change the ``ordered`` attribute of a Categorical by just setting the attribute, e.g. ``cat.ordered=True``; This is now deprecated and you should use ``cat.as_ordered()`` or ``cat.as_unordered()``. These will by default return a **new** object and not modify the existing object. (:issue:`9347`, :issue:`9190`)
 
-Previous Behavior
+Previous behavior
 
 .. code-block:: ipython
 
@@ -365,7 +365,7 @@ Previous Behavior
    dtype: category
    Categories (3, int64): [0, 1, 2]
 
-New Behavior
+New behavior
 
 .. ipython:: python
 
@@ -411,7 +411,7 @@ For ease of creation of series of categorical data, we have added the ability to
 
 .. _whatsnew_0160.api_breaking.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - ``Index.duplicated`` now returns ``np.array(dtype=bool)`` rather than ``Index(dtype=object)`` containing ``bool`` values. (:issue:`8875`)
@@ -441,7 +441,7 @@ Other API Changes
 
 - ``Series`` now supports bitwise operation for integral types (:issue:`9016`). Previously even if the input dtypes were integral, the output dtype was coerced to ``bool``.
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: ipython
 
@@ -453,7 +453,7 @@ Other API Changes
      d    True
      dtype: bool
 
-  New Behavior. If the input dtypes are integral, the output dtype is also integral and the output
+  New behavior. If the input dtypes are integral, the output dtype is also integral and the output
   values are the result of the bitwise operation.
 
   .. code-block:: ipython
@@ -469,7 +469,7 @@ Other API Changes
 
 - During division involving a ``Series`` or ``DataFrame``, ``0/0`` and ``0//0`` now give ``np.nan`` instead of ``np.inf``. (:issue:`9144`, :issue:`8445`)
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: ipython
 
@@ -489,7 +489,7 @@ Other API Changes
 
 
 
-  New Behavior
+  New behavior
 
   .. ipython:: python
 
@@ -528,7 +528,7 @@ Deprecations
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_ for similar
   but more refined functionality (:issue:`3445`).
   The documentation includes some examples how to convert your existing code
-  using ``rplot`` to seaborn: :ref:`rplot docs <rplot>`.
+  from ``rplot`` to seaborn `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html#trellis-plotting-interface>`__.
 
 - The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
@@ -553,7 +553,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0160.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed a performance regression for ``.loc`` indexing with an array or list-like (:issue:`9126`:).
@@ -571,7 +571,7 @@ Performance Improvements
 
 .. _whatsnew_0160.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Changed ``.to_html`` to remove leading/trailing spaces in table body (:issue:`4987`)
@@ -636,7 +636,7 @@ Bug Fixes
 
 - ``Series`` number formatting inconsistent when truncated (:issue:`8532`).
 
-  Previous Behavior
+  Previous behavior
 
   .. code-block:: python
 
@@ -653,7 +653,7 @@ Bug Fixes
     129    1.0000
     Length: 130, dtype: float64
 
-  New Behavior
+  New behavior
 
   .. code-block:: python
 

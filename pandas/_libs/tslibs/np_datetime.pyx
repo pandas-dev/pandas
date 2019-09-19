@@ -1,4 +1,4 @@
-from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
+from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -31,7 +31,7 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    int parse_iso_8601_datetime(const char *str, int len,
+    int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
@@ -170,11 +170,12 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
 
 
 cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
-                               int* out_local, int* out_tzoffset) except? -1:
+                               int* out_local, int* out_tzoffset,
+                               bint want_exc) except? -1:
     cdef:
         Py_ssize_t length
         const char* buf
 
     buf = get_c_string_buf_and_size(val, &length)
-    return parse_iso_8601_datetime(buf, length,
+    return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_local, out_tzoffset)

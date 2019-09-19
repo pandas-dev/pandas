@@ -2,7 +2,7 @@
 
 Whether you are a novice or experienced software developer, all contributions and suggestions are welcome!
 
-Our main contributing guide can be found [in this repo](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst) or [on the website](https://pandas-docs.github.io/pandas-docs-travis/contributing.html). If you do not want to read it in its entirety, we will summarize the main ways in which you can contribute and point to relevant sections of that document for further information.
+Our main contributing guide can be found [in this repo](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst) or [on the website](https://pandas-docs.github.io/pandas-docs-travis/development/contributing.html). If you do not want to read it in its entirety, we will summarize the main ways in which you can contribute and point to relevant sections of that document for further information.
 
 ## Getting Started
 

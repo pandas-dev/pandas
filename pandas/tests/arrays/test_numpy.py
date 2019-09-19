@@ -11,15 +11,17 @@ from pandas.core.arrays.numpy_ import PandasDtype
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[
-    np.array(['a', 'b'], dtype=object),
-    np.array([0, 1], dtype=float),
-    np.array([0, 1], dtype=int),
-    np.array([0, 1 + 2j], dtype=complex),
-    np.array([True, False], dtype=bool),
-    np.array([0, 1], dtype='datetime64[ns]'),
-    np.array([0, 1], dtype='timedelta64[ns]'),
-])
+@pytest.fixture(
+    params=[
+        np.array(["a", "b"], dtype=object),
+        np.array([0, 1], dtype=float),
+        np.array([0, 1], dtype=int),
+        np.array([0, 1 + 2j], dtype=complex),
+        np.array([True, False], dtype=bool),
+        np.array([0, 1], dtype="datetime64[ns]"),
+        np.array([0, 1], dtype="timedelta64[ns]"),
+    ]
+)
 def any_numpy_array(request):
     """
     Parametrized fixture for NumPy arrays with different dtypes.
@@ -32,35 +34,42 @@ def any_numpy_array(request):
 # ----------------------------------------------------------------------------
 # PandasDtype
 
-@pytest.mark.parametrize('dtype, expected', [
-    ('bool', True),
-    ('int', True),
-    ('uint', True),
-    ('float', True),
-    ('complex', True),
-    ('str', False),
-    ('bytes', False),
-    ('datetime64[ns]', False),
-    ('object', False),
-    ('void', False),
-])
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        ("bool", True),
+        ("int", True),
+        ("uint", True),
+        ("float", True),
+        ("complex", True),
+        ("str", False),
+        ("bytes", False),
+        ("datetime64[ns]", False),
+        ("object", False),
+        ("void", False),
+    ],
+)
 def test_is_numeric(dtype, expected):
     dtype = PandasDtype(dtype)
     assert dtype._is_numeric is expected
 
 
-@pytest.mark.parametrize('dtype, expected', [
-    ('bool', True),
-    ('int', False),
-    ('uint', False),
-    ('float', False),
-    ('complex', False),
-    ('str', False),
-    ('bytes', False),
-    ('datetime64[ns]', False),
-    ('object', False),
-    ('void', False)
-])
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        ("bool", True),
+        ("int", False),
+        ("uint", False),
+        ("float", False),
+        ("complex", False),
+        ("str", False),
+        ("bytes", False),
+        ("datetime64[ns]", False),
+        ("object", False),
+        ("void", False),
+    ],
+)
 def test_is_boolean(dtype, expected):
     dtype = PandasDtype(dtype)
     assert dtype._is_boolean is expected
@@ -80,8 +89,9 @@ def test_constructor_from_string():
 # ----------------------------------------------------------------------------
 # Construction
 
+
 def test_constructor_no_coercion():
-    with pytest.raises(ValueError, match='NumPy array'):
+    with pytest.raises(ValueError, match="NumPy array"):
         PandasArray([1, 2, 3])
 
 
@@ -100,9 +110,9 @@ def test_series_constructor_with_astype():
 
 
 def test_from_sequence_dtype():
-    arr = np.array([1, 2, 3], dtype='int64')
-    result = PandasArray._from_sequence(arr, dtype='uint64')
-    expected = PandasArray(np.array([1, 2, 3], dtype='uint64'))
+    arr = np.array([1, 2, 3], dtype="int64")
+    result = PandasArray._from_sequence(arr, dtype="uint64")
+    expected = PandasArray(np.array([1, 2, 3], dtype="uint64"))
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -122,6 +132,7 @@ def test_constructor_with_data(any_numpy_array):
 # ----------------------------------------------------------------------------
 # Conversion
 
+
 def test_to_numpy():
     arr = PandasArray(np.array([1, 2, 3]))
     result = arr.to_numpy()
@@ -130,13 +141,14 @@ def test_to_numpy():
     result = arr.to_numpy(copy=True)
     assert result is not arr._ndarray
 
-    result = arr.to_numpy(dtype='f8')
-    expected = np.array([1, 2, 3], dtype='f8')
+    result = arr.to_numpy(dtype="f8")
+    expected = np.array([1, 2, 3], dtype="f8")
     tm.assert_numpy_array_equal(result, expected)
 
 
 # ----------------------------------------------------------------------------
 # Setitem
+
 
 def test_setitem_series():
     ser = pd.Series([1, 2, 3])
@@ -158,8 +170,9 @@ def test_setitem(any_numpy_array):
 # ----------------------------------------------------------------------------
 # Reductions
 
+
 def test_bad_reduce_raises():
-    arr = np.array([1, 2, 3], dtype='int64')
+    arr = np.array([1, 2, 3], dtype="int64")
     arr = PandasArray(arr)
     msg = "cannot perform not_a_method with type int"
     with pytest.raises(TypeError, match=msg):
@@ -198,3 +211,18 @@ def test_basic_binop():
     result = x + x
     expected = PandasArray(np.array([2, 4, 6]))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [None, object])
+def test_setitem_object_typecode(dtype):
+    arr = PandasArray(np.array(["a", "b", "c"], dtype=dtype))
+    arr[0] = "t"
+    expected = PandasArray(np.array(["t", "b", "c"], dtype=dtype))
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_no_coercion():
+    # https://github.com/pandas-dev/pandas/issues/28150
+    arr = PandasArray(np.array([1, 2, 3]))
+    with pytest.raises(ValueError, match="int"):
+        arr[0] = "a"

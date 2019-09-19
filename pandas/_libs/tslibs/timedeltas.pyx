@@ -4,7 +4,7 @@ import warnings
 
 import cython
 
-from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
+from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
@@ -117,7 +117,7 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 
         value = arr[i]
         if value == NPY_NAT:
-            result[i] = NaT
+            result[i] = <object>NaT
         else:
             if box:
                 result[i] = Timedelta(value)
@@ -228,8 +228,13 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i])
-    except:
+            if values[i] is NaT:
+                # we allow this check in the fast-path because NaT is a C-object
+                #  so this is an inexpensive check
+                iresult[i] = NPY_NAT
+            else:
+                result[i] = parse_timedelta_string(values[i])
+    except (TypeError, ValueError):
         unit = parse_timedelta_unit(unit)
         for i in range(n):
             try:
@@ -309,7 +314,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cdef inline parse_timedelta_string(object ts):
+cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -950,6 +955,64 @@ cdef class _Timedelta(timedelta):
         return np.int64(self.value).view('m8[ns]')
 
     @property
+    def resolution_string(self):
+        """
+        Return a string representing the lowest timedelta resolution.
+
+        Each timedelta has a defined resolution that represents the lowest OR
+        most granular level of precision. Each level of resolution is
+        represented by a short string as defined below:
+
+        Resolution:     Return value
+
+        * Days:         'D'
+        * Hours:        'H'
+        * Minutes:      'T'
+        * Seconds:      'S'
+        * Milliseconds: 'L'
+        * Microseconds: 'U'
+        * Nanoseconds:  'N'
+
+        Returns
+        -------
+        str
+            Timedelta resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.resolution
+        'N'
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+        >>> td.resolution
+        'U'
+
+        >>> td = pd.Timedelta('2 min 3 s')
+        >>> td.resolution
+        'S'
+
+        >>> td = pd.Timedelta(36, unit='us')
+        >>> td.resolution
+        'U'
+        """
+        self._ensure_components()
+        if self._ns:
+            return "N"
+        elif self._us:
+            return "U"
+        elif self._ms:
+            return "L"
+        elif self._s:
+            return "S"
+        elif self._m:
+            return "T"
+        elif self._h:
+            return "H"
+        else:
+            return "D"
+
+    @property
     def resolution(self):
         """
         Return a string representing the lowest timedelta resolution.
@@ -991,22 +1054,13 @@ cdef class _Timedelta(timedelta):
         >>> td.resolution
         'U'
         """
-
-        self._ensure_components()
-        if self._ns:
-            return "N"
-        elif self._us:
-            return "U"
-        elif self._ms:
-            return "L"
-        elif self._s:
-            return "S"
-        elif self._m:
-            return "T"
-        elif self._h:
-            return "H"
-        else:
-            return "D"
+        # See GH#21344
+        warnings.warn("Timedelta.resolution is deprecated, in a future "
+                      "version will behave like the standard library "
+                      "datetime.timedelta.resolution attribute.  "
+                      "Use Timedelta.resolution_string instead.",
+                      FutureWarning)
+        return self.resolution_string
 
     @property
     def nanoseconds(self):
@@ -1231,7 +1285,8 @@ class Timedelta(_Timedelta):
         else:
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+                "float, timedelta or convertible, not {typ}"
+                .format(typ=type(value).__name__))
 
         if is_timedelta64_object(value):
             value = value.view('i8')

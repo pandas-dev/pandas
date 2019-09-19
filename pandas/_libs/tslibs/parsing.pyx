@@ -7,11 +7,21 @@ from io import StringIO
 
 from libc.string cimport strchr
 
+import cython
+from cython import Py_ssize_t
+
+from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_Join
+
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
 import_datetime()
 
 import numpy as np
+cimport numpy as cnp
+from numpy cimport (PyArray_GETITEM, PyArray_ITER_DATA, PyArray_ITER_NEXT,
+                    PyArray_IterNew, flatiter, float64_t)
+cnp.import_array()
 
 # dateutil compat
 from dateutil.tz import (tzoffset,
@@ -26,10 +36,15 @@ from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
+
+cdef extern from "../src/parser/tokenizer.h":
+    double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
+                   int skip_trailing, int *error, int *maybe_int)
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -302,20 +317,48 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     return parsed, parsed, reso
 
 
-cpdef bint _does_string_look_like_datetime(object date_string):
-    if date_string.startswith('0'):
-        # Strings starting with 0 are more consistent with a
-        # date-like string than a number
-        return True
+cpdef bint _does_string_look_like_datetime(object py_string):
+    """
+    Checks whether given string is a datetime: it has to start with '0' or
+    be greater than 1000.
 
-    try:
-        if float(date_string) < 1000:
+    Parameters
+    ----------
+    py_string: object
+
+    Returns
+    -------
+    whether given string is a datetime
+    """
+    cdef:
+        const char *buf
+        char *endptr = NULL
+        Py_ssize_t length = -1
+        double converted_date
+        char first
+        int error = 0
+
+    buf = get_c_string_buf_and_size(py_string, &length)
+    if length >= 1:
+        first = buf[0]
+        if first == b'0':
+            # Strings starting with 0 are more consistent with a
+            # date-like string than a number
+            return True
+        elif py_string in _not_datelike_strings:
             return False
-    except ValueError:
-        pass
-
-    if date_string in _not_datelike_strings:
-        return False
+        else:
+            # xstrtod with such paramaters copies behavior of python `float`
+            # cast; for example, " 35.e-1 " is valid string for this cast so,
+            # for correctly xstrtod call necessary to pass these params:
+            # b'.' - a dot is used as separator, b'e' - an exponential form of
+            # a float number can be used, b'\0' - not to use a thousand
+            # separator, 1 - skip extra spaces before and after,
+            converted_date = xstrtod(buf, &endptr,
+                                     b'.', b'e', b'\0', 1, &error, NULL)
+            # if there were no errors and the whole line was parsed, then ...
+            if error == 0 and endptr == buf + length:
+                return converted_date >= 1000
 
     return True
 
@@ -545,15 +588,11 @@ def try_parse_dates(object[:] values, parser=None,
     else:
         parse_date = parser
 
-        try:
-            for i in range(n):
-                if values[i] == '':
-                    result[i] = np.nan
-                else:
-                    result[i] = parse_date(values[i])
-        except Exception:
-            # raise if passed parser and it failed
-            raise
+        for i in range(n):
+            if values[i] == '':
+                result[i] = np.nan
+            else:
+                result[i] = parse_date(values[i])
 
     return result.base  # .base to access underlying ndarray
 
@@ -566,7 +605,8 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
         object[:] result
 
     n = len(dates)
-    if len(times) != n:
+    # Cast to avoid build warning see GH#26757
+    if <Py_ssize_t>len(times) != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -602,7 +642,8 @@ def try_parse_year_month_day(object[:] years, object[:] months,
         object[:] result
 
     n = len(years)
-    if len(months) != n or len(days) != n:
+    # Cast to avoid build warning see GH#26757
+    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -627,8 +668,10 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    if (len(months) != n or len(days) != n or len(hours) != n or
-            len(minutes) != n or len(seconds) != n):
+    # Cast to avoid build warning see GH#26757
+    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
+            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
+            <Py_ssize_t>len(seconds) != n):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
@@ -768,7 +811,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
     if dt_str_parse is None or dt_str_split is None:
         return None
 
-    if not isinstance(dt_str, (str, unicode)):
+    if not isinstance(dt_str, str):
         return None
 
     day_attribute_and_format = (('day',), '%d', 2)
@@ -794,19 +837,16 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
 
     try:
         parsed_datetime = dt_str_parse(dt_str, dayfirst=dayfirst)
-    except:
+    except (ValueError, OverflowError):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
 
     if parsed_datetime is None:
         return None
 
-    try:
-        tokens = dt_str_split(dt_str)
-    except:
-        # In case the datetime string can't be split, its format cannot
-        # be guessed
-        return None
+    # the default dt_str_split from dateutil will never raise here; we assume
+    #  that any user-provided function will not either.
+    tokens = dt_str_split(dt_str)
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
@@ -857,3 +897,117 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
         return guessed_format
     else:
         return None
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline object convert_to_unicode(object item,
+                                      bint keep_trivial_numbers):
+    """
+    Convert `item` to str.
+
+    Parameters
+    ----------
+    item : object
+    keep_trivial_numbers : bool
+        if True, then conversion (to string from integer/float zero)
+        is not performed
+
+    Returns
+    -------
+    str or int or float
+    """
+    cdef:
+        float64_t float_item
+
+    if keep_trivial_numbers:
+        if isinstance(item, int):
+            if <int>item == 0:
+                return item
+        elif isinstance(item, float):
+            float_item = item
+            if float_item == 0.0 or float_item != float_item:
+                return item
+
+    if not isinstance(item, str):
+        item = PyObject_Str(item)
+
+    return item
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+    """
+    Concatenates elements from numpy arrays in `date_cols` into strings.
+
+    Parameters
+    ----------
+    date_cols : tuple of numpy arrays
+    keep_trivial_numbers : bool, default True
+        if True and len(date_cols) == 1, then
+        conversion (to string from integer/float zero) is not performed
+
+    Returns
+    -------
+    arr_of_rows : ndarray (dtype=object)
+
+    Examples
+    --------
+    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
+    >>> times=np.array(['11:20', '10:45'], dtype=object)
+    >>> result = _concat_date_cols((dates, times))
+    >>> result
+    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
+    """
+    cdef:
+        Py_ssize_t rows_count = 0, col_count = len(date_cols)
+        Py_ssize_t col_idx, row_idx
+        list list_to_join
+        cnp.ndarray[object] iters
+        object[::1] iters_view
+        flatiter it
+        cnp.ndarray[object] result
+        object[:] result_view
+
+    if col_count == 0:
+        return np.zeros(0, dtype=object)
+
+    if not all(is_array(array) for array in date_cols):
+        raise ValueError("not all elements from date_cols are numpy arrays")
+
+    rows_count = min(len(array) for array in date_cols)
+    result = np.zeros(rows_count, dtype=object)
+    result_view = result
+
+    if col_count == 1:
+        array = date_cols[0]
+        it = <flatiter>PyArray_IterNew(array)
+        for row_idx in range(rows_count):
+            item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+            result_view[row_idx] = convert_to_unicode(item,
+                                                      keep_trivial_numbers)
+            PyArray_ITER_NEXT(it)
+    else:
+        # create fixed size list - more effecient memory allocation
+        list_to_join = [None] * col_count
+        iters = np.zeros(col_count, dtype=object)
+
+        # create memoryview of iters ndarray, that will contain some
+        # flatiter's for each array in `date_cols` - more effecient indexing
+        iters_view = iters
+        for col_idx, array in enumerate(date_cols):
+            iters_view[col_idx] = PyArray_IterNew(array)
+
+        # array elements that are on the same line are converted to one string
+        for row_idx in range(rows_count):
+            for col_idx, array in enumerate(date_cols):
+                # this cast is needed, because we did not find a way
+                # to efficiently store `flatiter` type objects in ndarray
+                it = <flatiter>iters_view[col_idx]
+                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+                list_to_join[col_idx] = convert_to_unicode(item, False)
+                PyArray_ITER_NEXT(it)
+            result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
+
+    return result

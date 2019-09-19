@@ -169,7 +169,7 @@ Experimental
 
 .. _whatsnew_0141.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
 - Bug in Panel indexing with a MultiIndex axis (:issue:`7516`)
@@ -247,7 +247,7 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` comparison doesn't handle ``NaT`` properly (:issue:`7529`)
 - Bug in passing input with ``tzinfo`` to some offsets ``apply``, ``rollforward`` or ``rollback`` resets ``tzinfo`` or raises ``ValueError`` (:issue:`7465`)
 - Bug in ``DatetimeIndex.to_period``, ``PeriodIndex.asobject``, ``PeriodIndex.to_timestamp`` doesn't preserve ``name`` (:issue:`7485`)
-- Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestanp`` handle ``NaT`` incorrectly (:issue:`7228`)
+- Bug in ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` handle ``NaT`` incorrectly (:issue:`7228`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may return normal ``datetime`` (:issue:`7502`)
 - Bug in ``resample`` raises ``ValueError`` when target contains ``NaT`` (:issue:`7227`)
 - Bug in ``Timestamp.tz_localize`` resets ``nanosecond`` info (:issue:`7534`)

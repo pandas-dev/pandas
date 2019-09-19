@@ -5,22 +5,25 @@ channels:
 dependencies:
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.28.2
+  - cython>=0.29.13
   - dask
   - fastparquet>=0.2.1
   - gcsfs
   - geopandas
   - html5lib
   - matplotlib
+  - moto
   - nomkl
   - numexpr
   - numpy=1.15.*
+  - odfpy
   - openpyxl
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271
   - google-cloud-bigquery<=1.11
   - psycopg2
-  - pyarrow=0.9.0
+  # pyarrow segfaults on load: https://github.com/pandas-dev/pandas/issues/26716
+  # - pyarrow=0.9.0
   - pymysql
   - pytables
   - python-snappy
@@ -36,16 +39,14 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
-  - isort
   - pip
   - pip:
     - brotlipy
     - coverage
-    - moto
     - pandas-datareader
     - python-dateutil

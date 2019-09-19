@@ -33,6 +33,12 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
 
+        py36_32bit:
+          ENV_FILE: ci/deps/azure-36-32bit.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
+          BITS32: "yes"
+
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
@@ -50,21 +56,25 @@ jobs:
   steps:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
+        echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
         echo "Creating Environment"
         ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
+
     - script: |
-        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
-    - script: |
-        export PATH=$HOME/miniconda3/bin:$PATH
-        source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+
+    - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      displayName: 'Build versions'
+
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+      displayName: 'Publish test results'
+
     - powershell: |
         $junitXml = "test-data-single.xml"
         $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
@@ -89,4 +99,9 @@ jobs:
           # note that this will produce $LASTEXITCODE=1
           Write-Error "$($matches[1]) tests failed"
         }
-      displayName: Check for test failures
+      displayName: 'Check for test failures'
+
+    - script: |
+        source activate pandas-dev
+        python ci/print_skipped.py
+      displayName: 'Print skipped tests'

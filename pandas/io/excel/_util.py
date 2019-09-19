@@ -1,5 +1,7 @@
 import warnings
 
+from pandas.compat._optional import import_optional_dependency
+
 from pandas.core.dtypes.common import is_integer, is_list_like
 
 _writers = {}
@@ -35,12 +37,12 @@ def _get_default_writer(ext):
     str
         The default engine for the extension.
     """
-    _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
-    try:
-        import xlsxwriter  # noqa
-        _default_writers['xlsx'] = 'xlsxwriter'
-    except ImportError:
-        pass
+    _default_writers = {"xlsx": "openpyxl", "xlsm": "openpyxl", "xls": "xlwt"}
+    xlsxwriter = import_optional_dependency(
+        "xlsxwriter", raise_on_missing=False, on_version="warn"
+    )
+    if xlsxwriter:
+        _default_writers["xlsx"] = "xlsxwriter"
     return _default_writers[ext]
 
 
@@ -48,8 +50,7 @@ def get_writer(engine_name):
     try:
         return _writers[engine_name]
     except KeyError:
-        raise ValueError("No Excel writer '{engine}'"
-                         .format(engine=engine_name))
+        raise ValueError("No Excel writer '{engine}'".format(engine=engine_name))
 
 
 def _excel2num(x):
@@ -135,10 +136,15 @@ def _maybe_convert_usecols(usecols):
         return usecols
 
     if is_integer(usecols):
-        warnings.warn(("Passing in an integer for `usecols` has been "
-                       "deprecated. Please pass in a list of int from "
-                       "0 to `usecols` inclusive instead."),
-                      FutureWarning, stacklevel=2)
+        warnings.warn(
+            (
+                "Passing in an integer for `usecols` has been "
+                "deprecated. Please pass in a list of int from "
+                "0 to `usecols` inclusive instead."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
         return list(range(usecols + 1))
 
     if isinstance(usecols, str):
@@ -149,14 +155,15 @@ def _maybe_convert_usecols(usecols):
 
 def _validate_freeze_panes(freeze_panes):
     if freeze_panes is not None:
-        if (
-            len(freeze_panes) == 2 and
-            all(isinstance(item, int) for item in freeze_panes)
+        if len(freeze_panes) == 2 and all(
+            isinstance(item, int) for item in freeze_panes
         ):
             return True
 
-        raise ValueError("freeze_panes must be of form (row, column)"
-                         " where row and column are integers")
+        raise ValueError(
+            "freeze_panes must be of form (row, column)"
+            " where row and column are integers"
+        )
 
     # freeze_panes wasn't specified, return False so it won't be applied
     # to output sheet
@@ -166,7 +173,7 @@ def _validate_freeze_panes(freeze_panes):
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     # xlrd uses '' , openpyxl None
-    while len(row) > 0 and (row[0] == '' or row[0] is None):
+    while len(row) > 0 and (row[0] == "" or row[0] is None):
         row = row[1:]
     return row
 
@@ -185,7 +192,7 @@ def _fill_mi_header(row, control_row):
         different indexes.
 
     Returns
-    ----------
+    -------
     Returns changed row and control_row
     """
     last = row[0]
@@ -193,7 +200,7 @@ def _fill_mi_header(row, control_row):
         if not control_row[i]:
             last = row[i]
 
-        if row[i] == '' or row[i] is None:
+        if row[i] == "" or row[i] is None:
             row[i] = last
         else:
             control_row[i] = False
@@ -226,4 +233,4 @@ def _pop_header_name(row, index_col):
     header_name = row[i]
     header_name = None if header_name == "" else header_name
 
-    return header_name, row[:i] + [''] + row[i + 1:]
+    return header_name, row[:i] + [""] + row[i + 1 :]

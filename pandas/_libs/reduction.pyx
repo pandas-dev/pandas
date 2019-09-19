@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
-from cpython cimport Py_INCREF
+from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
@@ -15,7 +15,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects, values_from_object
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -26,6 +26,14 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
         raise ValueError('function does not reduce')
 
     return np.empty(size, dtype='O')
+
+
+cdef bint _is_sparse_array(object obj):
+    # TODO can be removed one SparseArray.values is removed (GH26421)
+    if hasattr(obj, '_subtyp'):
+        if obj._subtyp == 'sparse_array':
+            return True
+    return False
 
 
 cdef class Reducer:
@@ -146,7 +154,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res, 'values') and util.is_array(res.values):
+                if (not _is_sparse_array(res) and hasattr(res, 'values')
+                        and util.is_array(res.values)):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
@@ -287,8 +296,6 @@ cdef class SeriesBinGrouper:
                 islider.advance(group_size)
                 vslider.advance(group_size)
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
@@ -416,8 +423,6 @@ cdef class SeriesGrouper:
 
                     group_size = 0
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
@@ -432,7 +437,8 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values') and util.is_array(res.values):
+    if (not _is_sparse_array(res) and hasattr(res, 'values')
+            and util.is_array(res.values)):
         res = res.values
     if not np.isscalar(res):
         if util.is_array(res):
@@ -522,7 +528,8 @@ def apply_frame_axis0(object frame, object f, object names,
 
             try:
                 piece = f(chunk)
-            except:
+            except Exception:
+                # We can't be more specific without knowing something about `f`
                 raise InvalidApply('Let this error raise above us')
 
             # Need to infer if low level index slider will cause segfaults
@@ -533,6 +540,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 else:
                     mutated = True
             except AttributeError:
+                # `piece` might not have an index, could be e.g. an int
                 pass
 
             results.append(piece)
@@ -618,7 +626,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def reduce(arr, f, axis=0, dummy=None, labels=None):
+def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
     """
 
     Parameters
@@ -635,8 +643,7 @@ def reduce(arr, f, axis=0, dummy=None, labels=None):
             raise Exception('Cannot use shortcut')
 
         # pass as an ndarray
-        if hasattr(labels, 'values'):
-            labels = labels.values
+        labels = values_from_object(labels)
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

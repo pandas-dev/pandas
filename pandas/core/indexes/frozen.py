@@ -22,12 +22,12 @@ from pandas.io.formats.printing import pprint_thing
 
 
 class FrozenList(PandasObject, list):
-
     """
     Container that doesn't allow setting item *but*
     because it's technically non-hashable, will be used
     for lookups, appropriately, etc.
     """
+
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
@@ -70,12 +70,7 @@ class FrozenList(PandasObject, list):
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
     __add__ = __iadd__ = union
 
-    # Python 2 compat
-    def __getslice__(self, i, j):
-        return self.__class__(super().__getslice__(i, j))
-
     def __getitem__(self, n):
-        # Python 3 compat
         if isinstance(n, slice):
             return self.__class__(super().__getitem__(n))
         return super().__getitem__(n)
@@ -105,16 +100,15 @@ class FrozenList(PandasObject, list):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." %
-                        self.__class__.__name__)
+        raise TypeError(
+            "'%s' does not support mutable operations." % self.__class__.__name__
+        )
 
-    def __unicode__(self):
-        return pprint_thing(self, quote_strings=True,
-                            escape_chars=('\t', '\r', '\n'))
+    def __str__(self):
+        return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__,
-                           str(self))
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
@@ -124,9 +118,12 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     # no __array_finalize__ for now because no metadata
     def __new__(cls, data, dtype=None, copy=False):
-        warnings.warn("\nFrozenNDArray is deprecated and will be removed in a "
-                      "future version.\nPlease use `numpy.ndarray` instead.\n",
-                      FutureWarning, stacklevel=2)
+        warnings.warn(
+            "\nFrozenNDArray is deprecated and will be removed in a "
+            "future version.\nPlease use `numpy.ndarray` instead.\n",
+            FutureWarning,
+            stacklevel=2,
+        )
 
         if copy is None:
             copy = not isinstance(data, FrozenNDArray)
@@ -135,8 +132,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." %
-                        self.__class__)
+        raise TypeError("'%s' does not support mutable operations." % self.__class__)
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     put = itemset = fill = _disabled
@@ -149,12 +145,11 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for this object.
+        Return a string representation for this object.
         """
-        prepr = pprint_thing(self, escape_chars=('\t', '\r', '\n'),
-                             quote_strings=True)
+        prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
     @deprecate_kwarg(old_arg_name="v", new_arg_name="value")

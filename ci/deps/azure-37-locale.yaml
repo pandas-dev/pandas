@@ -4,12 +4,13 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython>=0.28.2
+  - cython>=0.29.13
   - html5lib
   - ipython
   - jinja2
   - lxml
   - matplotlib
+  - moto
   - nomkl
   - numexpr
   - numpy
@@ -25,11 +26,10 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2
-  - pytest-xdist
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-mock
-  - isort
+  - pytest-azurepipelines
   - pip
   - pip:
     - hypothesis>=3.58.0
-    - moto  # latest moto in conda-forge fails with 3.7, move to conda dependencies when this is fixed

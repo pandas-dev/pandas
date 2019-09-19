@@ -94,6 +94,12 @@ echo
 echo "conda env create -q --file=${ENV_FILE}"
 time conda env create -q --file="${ENV_FILE}"
 
+
+if [[ "$BITS32" == "yes" ]]; then
+    # activate 32-bit compiler
+    export CONDA_BUILD=1
+fi
+
 echo "activate pandas-dev"
 source activate pandas-dev
 
@@ -109,27 +115,32 @@ conda list pandas
 
 # Make sure any error below is reported as such
 
-echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace
-python -m pip install -e .
+echo "[Build extensions]"
+python setup.py build_ext -q -i
+
+# XXX: Some of our environments end up with old verisons of pip (10.x)
+# Adding a new enough verison of pip to the requirements explodes the
+# solve time. Just using pip to update itself.
+# - py35_macos
+# - py35_compat
+# - py36_32bit
+echo "[Updating pip]"
+python -m pip install --no-deps -U pip wheel setuptools
+
+echo "[Install pandas]"
+python -m pip install --no-build-isolation -e .
 
 echo
 echo "conda list"
 conda list
 
 # Install DB for Linux
-export DISPLAY=":99."
-if [ ${TRAVIS_OS_NAME} == "linux" ]; then
+if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
-
-  echo
-  echo "sh -e /etc/init.d/xvfb start"
-  sh -e /etc/init.d/xvfb start
-  sleep 3
 else
-   echo "not using dbs on non-linux"
+   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
 
 echo "done"

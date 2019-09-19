@@ -11,22 +11,22 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+import argparse
+import csv
 import importlib
-import sys
 import os
 import shutil
-import csv
 import subprocess
-import argparse
+import sys
 import webbrowser
+
 import docutils
 import docutils.parsers.rst
 
-
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
-SOURCE_PATH = os.path.join(DOC_PATH, 'source')
-BUILD_PATH = os.path.join(DOC_PATH, 'build')
-REDIRECTS_FILE = os.path.join(DOC_PATH, 'redirects.csv')
+SOURCE_PATH = os.path.join(DOC_PATH, "source")
+BUILD_PATH = os.path.join(DOC_PATH, "build")
+REDIRECTS_FILE = os.path.join(DOC_PATH, "redirects.csv")
 
 
 class DocBuilder:
@@ -36,8 +36,15 @@ class DocBuilder:
     All public methods of this class can be called as parameters of the
     script.
     """
-    def __init__(self, num_jobs=0, include_api=True, single_doc=None,
-                 verbosity=0, warnings_are_errors=False):
+
+    def __init__(
+        self,
+        num_jobs=0,
+        include_api=True,
+        single_doc=None,
+        verbosity=0,
+        warnings_are_errors=False,
+    ):
         self.num_jobs = num_jobs
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
@@ -45,16 +52,15 @@ class DocBuilder:
         if single_doc:
             single_doc = self._process_single_doc(single_doc)
             include_api = False
-            os.environ['SPHINX_PATTERN'] = single_doc
+            os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
-            os.environ['SPHINX_PATTERN'] = '-api'
+            os.environ["SPHINX_PATTERN"] = "-api"
 
         self.single_doc_html = None
-        if single_doc and single_doc.endswith('.rst'):
-            self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
+        if single_doc and single_doc.endswith(".rst"):
+            self.single_doc_html = os.path.splitext(single_doc)[0] + ".html"
         elif single_doc:
-            self.single_doc_html = 'reference/api/pandas.{}.html'.format(
-                single_doc)
+            self.single_doc_html = "reference/api/pandas.{}.html".format(single_doc)
 
     def _process_single_doc(self, single_doc):
         """
@@ -66,26 +72,30 @@ class DocBuilder:
         (e.g. reference/api/pandas.DataFrame.head.rst).
         """
         base_name, extension = os.path.splitext(single_doc)
-        if extension in ('.rst', '.ipynb'):
+        if extension in (".rst", ".ipynb"):
             if os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
                 return single_doc
             else:
-                raise FileNotFoundError('File {} not found'.format(single_doc))
+                raise FileNotFoundError("File {} not found".format(single_doc))
 
-        elif single_doc.startswith('pandas.'):
+        elif single_doc.startswith("pandas."):
             try:
                 obj = pandas  # noqa: F821
-                for name in single_doc.split('.'):
+                for name in single_doc.split("."):
                     obj = getattr(obj, name)
             except AttributeError:
-                raise ImportError('Could not import {}'.format(single_doc))
+                raise ImportError("Could not import {}".format(single_doc))
             else:
-                return single_doc[len('pandas.'):]
+                return single_doc[len("pandas.") :]
         else:
-            raise ValueError(('--single={} not understood. Value should be a '
-                              'valid path to a .rst or .ipynb file, or a '
-                              'valid pandas object (e.g. categorical.rst or '
-                              'pandas.DataFrame.head)').format(single_doc))
+            raise ValueError(
+                (
+                    "--single={} not understood. Value should be a "
+                    "valid path to a .rst or .ipynb file, or a "
+                    "valid pandas object (e.g. categorical.rst or "
+                    "pandas.DataFrame.head)"
+                ).format(single_doc)
+            )
 
     @staticmethod
     def _run_os(*args):
@@ -117,52 +127,55 @@ class DocBuilder:
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ('html', 'latex'):
-            raise ValueError('kind must be html or latex, '
-                             'not {}'.format(kind))
+        if kind not in ("html", "latex"):
+            raise ValueError("kind must be html or latex, " "not {}".format(kind))
 
-        cmd = ['sphinx-build', '-b', kind]
+        cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ['-j', str(self.num_jobs)]
+            cmd += ["-j", str(self.num_jobs)]
         if self.warnings_are_errors:
-            cmd += ['-W', '--keep-going']
+            cmd += ["-W", "--keep-going"]
         if self.verbosity:
-            cmd.append('-{}'.format('v' * self.verbosity))
-        cmd += ['-d', os.path.join(BUILD_PATH, 'doctrees'),
-                SOURCE_PATH, os.path.join(BUILD_PATH, kind)]
+            cmd.append("-{}".format("v" * self.verbosity))
+        cmd += [
+            "-d",
+            os.path.join(BUILD_PATH, "doctrees"),
+            SOURCE_PATH,
+            os.path.join(BUILD_PATH, kind),
+        ]
         return subprocess.call(cmd)
 
     def _open_browser(self, single_doc_html):
         """
         Open a browser tab showing single
         """
-        url = os.path.join('file://', DOC_PATH, 'build', 'html',
-                           single_doc_html)
+        url = os.path.join("file://", DOC_PATH, "build", "html", single_doc_html)
         webbrowser.open(url, new=2)
 
     def _get_page_title(self, page):
         """
         Open the rst file `page` and extract its title.
         """
-        fname = os.path.join(SOURCE_PATH, '{}.rst'.format(page))
+        fname = os.path.join(SOURCE_PATH, "{}.rst".format(page))
         option_parser = docutils.frontend.OptionParser(
-            components=(docutils.parsers.rst.Parser,))
-        doc = docutils.utils.new_document(
-            '<doc>',
-            option_parser.get_default_values())
+            components=(docutils.parsers.rst.Parser,)
+        )
+        doc = docutils.utils.new_document("<doc>", option_parser.get_default_values())
         with open(fname) as f:
             data = f.read()
 
         parser = docutils.parsers.rst.Parser()
         # do not generate any warning when parsing the rst
-        with open(os.devnull, 'a') as f:
+        with open(os.devnull, "a") as f:
             doc.reporter.stream = f
             parser.parse(data, doc)
 
-        section = next(node for node in doc.children
-                       if isinstance(node, docutils.nodes.section))
-        title = next(node for node in section.children
-                     if isinstance(node, docutils.nodes.title))
+        section = next(
+            node for node in doc.children if isinstance(node, docutils.nodes.section)
+        )
+        title = next(
+            node for node in section.children if isinstance(node, docutils.nodes.title)
+        )
 
         return title.astext()
 
@@ -171,7 +184,7 @@ class DocBuilder:
         Create in the build directory an html file with a redirect,
         for every row in REDIRECTS_FILE.
         """
-        html = '''
+        html = """
         <html>
             <head>
                 <meta http-equiv="refresh" content="0;URL={url}"/>
@@ -182,16 +195,14 @@ class DocBuilder:
                 </p>
             </body>
         <html>
-        '''
+        """
         with open(REDIRECTS_FILE) as mapping_fd:
             reader = csv.reader(mapping_fd)
             for row in reader:
-                if not row or row[0].strip().startswith('#'):
+                if not row or row[0].strip().startswith("#"):
                     continue
 
-                path = os.path.join(BUILD_PATH,
-                                    'html',
-                                    *row[0].split('/')) + '.html'
+                path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
 
                 try:
                     title = self._get_page_title(row[1])
@@ -199,51 +210,54 @@ class DocBuilder:
                     # the file can be an ipynb and not an rst, or docutils
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
-                    title = 'this page'
+                    title = "this page"
 
                 if os.path.exists(path):
-                    raise RuntimeError((
-                        'Redirection would overwrite an existing file: '
-                        '{}').format(path))
+                    raise RuntimeError(
+                        ("Redirection would overwrite an existing file: " "{}").format(
+                            path
+                        )
+                    )
 
-                with open(path, 'w') as moved_page_fd:
+                with open(path, "w") as moved_page_fd:
                     moved_page_fd.write(
-                        html.format(url='{}.html'.format(row[1]),
-                                    title=title))
+                        html.format(url="{}.html".format(row[1]), title=title)
+                    )
 
     def html(self):
         """
         Build HTML documentation.
         """
-        ret_code = self._sphinx_build('html')
-        zip_fname = os.path.join(BUILD_PATH, 'html', 'pandas.zip')
+        ret_code = self._sphinx_build("html")
+        zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
             os.remove(zip_fname)
 
-        if self.single_doc_html is not None:
-            self._open_browser(self.single_doc_html)
-        else:
-            self._add_redirects()
+        if ret_code == 0:
+            if self.single_doc_html is not None:
+                self._open_browser(self.single_doc_html)
+            else:
+                self._add_redirects()
         return ret_code
 
     def latex(self, force=False):
         """
         Build PDF documentation.
         """
-        if sys.platform == 'win32':
-            sys.stderr.write('latex build has not been tested on windows\n')
+        if sys.platform == "win32":
+            sys.stderr.write("latex build has not been tested on windows\n")
         else:
-            ret_code = self._sphinx_build('latex')
-            os.chdir(os.path.join(BUILD_PATH, 'latex'))
+            ret_code = self._sphinx_build("latex")
+            os.chdir(os.path.join(BUILD_PATH, "latex"))
             if force:
                 for i in range(3):
-                    self._run_os('pdflatex',
-                                 '-interaction=nonstopmode',
-                                 'pandas.tex')
-                raise SystemExit('You should check the file '
-                                 '"build/latex/pandas.pdf" for problems.')
+                    self._run_os("pdflatex", "-interaction=nonstopmode", "pandas.tex")
+                raise SystemExit(
+                    "You should check the file "
+                    '"build/latex/pandas.pdf" for problems.'
+                )
             else:
-                self._run_os('make')
+                self._run_os("make")
             return ret_code
 
     def latex_forced(self):
@@ -258,84 +272,101 @@ class DocBuilder:
         Clean documentation generated files.
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'reference', 'api'),
-                      ignore_errors=True)
+        shutil.rmtree(os.path.join(SOURCE_PATH, "reference", "api"), ignore_errors=True)
 
     def zip_html(self):
         """
         Compress HTML documentation into a zip file.
         """
-        zip_fname = os.path.join(BUILD_PATH, 'html', 'pandas.zip')
+        zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
             os.remove(zip_fname)
-        dirname = os.path.join(BUILD_PATH, 'html')
+        dirname = os.path.join(BUILD_PATH, "html")
         fnames = os.listdir(dirname)
         os.chdir(dirname)
-        self._run_os('zip',
-                     zip_fname,
-                     '-r',
-                     '-q',
-                     *fnames)
+        self._run_os("zip", zip_fname, "-r", "-q", *fnames)
 
 
 def main():
-    cmds = [method for method in dir(DocBuilder) if not method.startswith('_')]
+    cmds = [method for method in dir(DocBuilder) if not method.startswith("_")]
 
     argparser = argparse.ArgumentParser(
-        description='pandas documentation builder',
-        epilog='Commands: {}'.format(','.join(cmds)))
-    argparser.add_argument('command',
-                           nargs='?',
-                           default='html',
-                           help='command to run: {}'.format(', '.join(cmds)))
-    argparser.add_argument('--num-jobs',
-                           type=int,
-                           default=0,
-                           help='number of jobs used by sphinx-build')
-    argparser.add_argument('--no-api',
-                           default=False,
-                           help='omit api and autosummary',
-                           action='store_true')
-    argparser.add_argument('--single',
-                           metavar='FILENAME',
-                           type=str,
-                           default=None,
-                           help=('filename (relative to the "source" folder)'
-                                 ' of section or method name to compile, e.g. '
-                                 '"development/contributing.rst",'
-                                 ' "ecosystem.rst", "pandas.DataFrame.join"'))
-    argparser.add_argument('--python-path',
-                           type=str,
-                           default=os.path.dirname(DOC_PATH),
-                           help='path')
-    argparser.add_argument('-v', action='count', dest='verbosity', default=0,
-                           help=('increase verbosity (can be repeated), '
-                                 'passed to the sphinx build command'))
-    argparser.add_argument('--warnings-are-errors', '-W',
-                           action='store_true',
-                           help='fail if warnings are raised')
+        description="pandas documentation builder",
+        epilog="Commands: {}".format(",".join(cmds)),
+    )
+    argparser.add_argument(
+        "command",
+        nargs="?",
+        default="html",
+        help="command to run: {}".format(", ".join(cmds)),
+    )
+    argparser.add_argument(
+        "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
+    )
+    argparser.add_argument(
+        "--no-api", default=False, help="omit api and autosummary", action="store_true"
+    )
+    argparser.add_argument(
+        "--single",
+        metavar="FILENAME",
+        type=str,
+        default=None,
+        help=(
+            'filename (relative to the "source" folder)'
+            " of section or method name to compile, e.g. "
+            '"development/contributing.rst",'
+            ' "ecosystem.rst", "pandas.DataFrame.join"'
+        ),
+    )
+    argparser.add_argument(
+        "--python-path", type=str, default=os.path.dirname(DOC_PATH), help="path"
+    )
+    argparser.add_argument(
+        "-v",
+        action="count",
+        dest="verbosity",
+        default=0,
+        help=(
+            "increase verbosity (can be repeated), "
+            "passed to the sphinx build command"
+        ),
+    )
+    argparser.add_argument(
+        "--warnings-are-errors",
+        "-W",
+        action="store_true",
+        help="fail if warnings are raised",
+    )
     args = argparser.parse_args()
 
     if args.command not in cmds:
-        raise ValueError('Unknown command {}. Available options: {}'.format(
-            args.command, ', '.join(cmds)))
+        raise ValueError(
+            "Unknown command {}. Available options: {}".format(
+                args.command, ", ".join(cmds)
+            )
+        )
 
     # Below we update both os.environ and sys.path. The former is used by
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
     # the import within the module, injecting it into the global namespace
-    os.environ['PYTHONPATH'] = args.python_path
+    os.environ["PYTHONPATH"] = args.python_path
     sys.path.insert(0, args.python_path)
-    globals()['pandas'] = importlib.import_module('pandas')
+    globals()["pandas"] = importlib.import_module("pandas")
 
     # Set the matplotlib backend to the non-interactive Agg backend for all
     # child processes.
-    os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
+    os.environ["MPLBACKEND"] = "module://matplotlib.backends.backend_agg"
 
-    builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
-                         args.verbosity, args.warnings_are_errors)
+    builder = DocBuilder(
+        args.num_jobs,
+        not args.no_api,
+        args.single,
+        args.verbosity,
+        args.warnings_are_errors,
+    )
     return getattr(builder, args.command)()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

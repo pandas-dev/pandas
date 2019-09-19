@@ -3,20 +3,44 @@ missing types & inference
 """
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
 from .common import (
-    _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
-    is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
-    is_float_dtype, is_integer_dtype, is_object_dtype, is_period_dtype,
-    is_scalar, is_string_dtype, is_string_like_dtype, is_timedelta64_dtype,
-    needs_i8_conversion, pandas_dtype)
+    _NS_DTYPE,
+    _TD_DTYPE,
+    ensure_object,
+    is_bool_dtype,
+    is_complex_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_datetimelike,
+    is_datetimelike_v_numeric,
+    is_dtype_equal,
+    is_extension_array_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_period_dtype,
+    is_scalar,
+    is_string_dtype,
+    is_string_like_dtype,
+    is_timedelta64_dtype,
+    needs_i8_conversion,
+    pandas_dtype,
+)
 from .generic import (
-    ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
-    ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
+    ABCDatetimeArray,
+    ABCExtensionArray,
+    ABCGeneric,
+    ABCIndexClass,
+    ABCMultiIndex,
+    ABCSeries,
+    ABCTimedeltaArray,
+)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -109,15 +133,25 @@ def _isna_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ABCExtensionArray,
-                          ABCDatetimeArray, ABCTimedeltaArray)):
+    elif isinstance(obj, type):
+        return False
+    elif isinstance(
+        obj,
+        (
+            ABCSeries,
+            np.ndarray,
+            ABCIndexClass,
+            ABCExtensionArray,
+            ABCDatetimeArray,
+            ABCTimedeltaArray,
+        ),
+    ):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
     elif isinstance(obj, list):
         return _isna_ndarraylike(np.asarray(obj, dtype=object))
-    elif hasattr(obj, '__array__'):
+    elif hasattr(obj, "__array__"):
         return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -139,13 +173,15 @@ def _isna_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
     elif isinstance(obj, list):
         return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
-    elif hasattr(obj, '__array__'):
+    elif hasattr(obj, "__array__"):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
@@ -173,12 +209,11 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas._config import get_option
     flag = get_option(key)
     if flag:
-        globals()['_isna'] = _isna_old
+        globals()["_isna"] = _isna_old
     else:
-        globals()['_isna'] = _isna_new
+        globals()["_isna"] = _isna_new
 
 
 def _isna_ndarraylike(obj):
@@ -187,7 +222,7 @@ def _isna_ndarraylike(obj):
     if not is_extension:
         # Avoid accessing `.values` on things like
         # PeriodIndex, which may be expensive.
-        values = getattr(obj, 'values', obj)
+        values = getattr(obj, "values", obj)
     else:
         values = obj
 
@@ -216,20 +251,19 @@ def _isna_ndarraylike(obj):
 
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
-        result = values.view('i8') == iNaT
+        result = values.view("i8") == iNaT
     else:
         result = np.isnan(values)
 
     # box
     if isinstance(obj, ABCSeries):
-        result = obj._constructor(
-            result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
 
 def _isna_ndarraylike_old(obj):
-    values = getattr(obj, 'values', obj)
+    values = getattr(obj, "values", obj)
     dtype = values.dtype
 
     if is_string_dtype(dtype):
@@ -245,14 +279,13 @@ def _isna_ndarraylike_old(obj):
 
     elif is_datetime64_dtype(dtype):
         # this is the NaT pattern
-        result = values.view('i8') == iNaT
+        result = values.view("i8") == iNaT
     else:
         result = ~np.isfinite(values)
 
     # box
     if isinstance(obj, ABCSeries):
-        result = obj._constructor(
-            result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -353,8 +386,7 @@ def _isna_compat(arr, fill_value=np.nan):
     """
     dtype = arr.dtype
     if isna(fill_value):
-        return not (is_bool_dtype(dtype) or
-                    is_integer_dtype(dtype))
+        return not (is_bool_dtype(dtype) or is_integer_dtype(dtype))
     return True
 
 
@@ -402,18 +434,18 @@ def array_equivalent(left, right, strict_nan=False):
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
             return lib.array_equivalent_object(
-                ensure_object(left.ravel()), ensure_object(right.ravel()))
+                ensure_object(left.ravel()), ensure_object(right.ravel())
+            )
 
         for left_value, right_value in zip(left, right):
             if left_value is NaT and right_value is not NaT:
                 return False
 
             elif isinstance(left_value, float) and np.isnan(left_value):
-                if (not isinstance(right_value, float) or
-                        not np.isnan(right_value)):
+                if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if left_value != right_value:
+                if np.any(left_value != right_value):
                     return False
         return True
 
@@ -434,12 +466,11 @@ def array_equivalent(left, right, strict_nan=False):
         if not is_dtype_equal(left.dtype, right.dtype):
             return False
 
-        left = left.view('i8')
-        right = right.view('i8')
+        left = left.view("i8")
+        right = right.view("i8")
 
     # if we have structured dtypes, compare first
-    if (left.dtype.type is np.void or
-            right.dtype.type is np.void):
+    if left.dtype.type is np.void or right.dtype.type is np.void:
         if left.dtype != right.dtype:
             return False
 
@@ -457,13 +488,13 @@ def _infer_fill_value(val):
         val = [val]
     val = np.array(val, copy=False)
     if is_datetimelike(val):
-        return np.array('NaT', dtype=val.dtype)
+        return np.array("NaT", dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
-        if dtype in ['datetime', 'datetime64']:
-            return np.array('NaT', dtype=_NS_DTYPE)
-        elif dtype in ['timedelta', 'timedelta64']:
-            return np.array('NaT', dtype=_TD_DTYPE)
+        if dtype in ["datetime", "datetime64"]:
+            return np.array("NaT", dtype=_NS_DTYPE)
+        elif dtype in ["timedelta", "timedelta64"]:
+            return np.array("NaT", dtype=_TD_DTYPE)
     return np.nan
 
 
@@ -506,8 +537,12 @@ def na_value_for_dtype(dtype, compat=True):
 
     if is_extension_array_dtype(dtype):
         return dtype.na_value
-    if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
-            is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
+    if (
+        is_datetime64_dtype(dtype)
+        or is_datetime64tz_dtype(dtype)
+        or is_timedelta64_dtype(dtype)
+        or is_period_dtype(dtype)
+    ):
         return NaT
     elif is_float_dtype(dtype):
         return np.nan
@@ -528,3 +563,27 @@ def remove_na_arraylike(arr):
         return arr[notna(arr)]
     else:
         return arr[notna(lib.values_from_object(arr))]
+
+
+def is_valid_nat_for_dtype(obj, dtype):
+    """
+    isna check that excludes incompatible dtypes
+
+    Parameters
+    ----------
+    obj : object
+    dtype : np.datetime64, np.timedelta64, DatetimeTZDtype, or PeriodDtype
+
+    Returns
+    -------
+    bool
+    """
+    if not lib.is_scalar(obj) or not isna(obj):
+        return False
+    if dtype.kind == "M":
+        return not isinstance(obj, np.timedelta64)
+    if dtype.kind == "m":
+        return not isinstance(obj, np.datetime64)
+
+    # must be PeriodDType
+    return not isinstance(obj, (np.datetime64, np.timedelta64))

@@ -275,6 +275,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         - iso8601 string object
         - python datetime object
         - another timestamp object
+
+    Raises
+    ------
+    OutOfBoundsDatetime : ts cannot be converted within implementation bounds
     """
     cdef:
         _TSObject obj
@@ -294,6 +298,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         if obj.value != NPY_NAT:
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
+        try:
+            ts = <int64_t>ts
+        except OverflowError:
+            # GH#26651 re-raise as OutOfBoundsDatetime
+            raise OutOfBoundsDatetime(ts)
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -392,6 +401,45 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
+cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
+                                               int tzoffset, object tz=None):
+    """
+    Convert a datetimestruct `dts`, along with initial timezone offset
+    `tzoffset` to a _TSObject (with timezone object `tz` - optional).
+
+    Parameters
+    ----------
+    dts: npy_datetimestruct
+    tzoffset: int
+    tz : tzinfo or None
+        timezone for the timezone-aware output.
+
+    Returns
+    -------
+    obj : _TSObject
+    """
+    cdef:
+        _TSObject obj = _TSObject()
+        int64_t value  # numpy dt64
+        datetime dt
+
+    value = dtstruct_to_dt64(&dts)
+    obj.dts = dts
+    obj.tzinfo = pytz.FixedOffset(tzoffset)
+    obj.value = tz_convert_single(value, obj.tzinfo, UTC)
+    if tz is None:
+        check_overflows(obj)
+        return obj
+
+    # Keep the converter same as PyDateTime's
+    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                  obj.dts.us, obj.tzinfo)
+    obj = convert_datetime_to_tsobject(
+        dt, tz, nanos=obj.dts.ps // 1000)
+    return obj
+
+
 cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
@@ -420,14 +468,12 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     obj : _TSObject
     """
     cdef:
-        _TSObject obj
+        npy_datetimestruct dts
         int out_local = 0, out_tzoffset = 0
-        datetime dt
+        bint do_parse_datetime_string = False
 
     if tz is not None:
         tz = maybe_get_tz(tz)
-
-    obj = _TSObject()
 
     assert isinstance(ts, str)
 
@@ -443,34 +489,22 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         ts = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
+        string_to_dts_failed = _string_to_dts(
+            ts, &dts, &out_local,
+            &out_tzoffset, False
+        )
         try:
-            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-            obj.value = dtstruct_to_dt64(&obj.dts)
-            check_dts_bounds(&obj.dts)
-            if out_local == 1:
-                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
-                if tz is None:
-                    check_dts_bounds(&obj.dts)
-                    check_overflows(obj)
-                    return obj
+            if not string_to_dts_failed:
+                check_dts_bounds(&dts)
+                if out_local == 1:
+                    return create_tsobject_tz_using_offset(dts,
+                                                           out_tzoffset, tz)
                 else:
-                    # Keep the converter same as PyDateTime's
-                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                              None, 0, 0)
-                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                  obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(
-                        dt, tz, nanos=obj.dts.ps // 1000)
-                    return obj
-
-            else:
-                ts = obj.value
-                if tz is not None:
-                    # shift for localize_tso
-                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise')[0]
+                    ts = dtstruct_to_dt64(&dts)
+                    if tz is not None:
+                        # shift for localize_tso
+                        ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                                ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -479,6 +513,9 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             raise
 
         except ValueError:
+            do_parse_datetime_string = True
+
+        if string_to_dts_failed or do_parse_datetime_string:
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)

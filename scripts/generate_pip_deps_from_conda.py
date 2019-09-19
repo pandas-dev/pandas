@@ -16,11 +16,11 @@ import argparse
 import os
 import re
 import sys
+
 import yaml
 
-
-EXCLUDE = {'python=3'}
-RENAME = {'pytables': 'tables'}
+EXCLUDE = {"python=3"}
+RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
 
 
 def conda_package_to_pip(package):
@@ -36,15 +36,15 @@ def conda_package_to_pip(package):
     if package in EXCLUDE:
         return
 
-    package = re.sub('(?<=[^<>])=', '==', package).strip()
-    for compare in ('<=', '>=', '=='):
+    package = re.sub("(?<=[^<>])=", "==", package).strip()
+    for compare in ("<=", ">=", "=="):
         if compare not in package:
             continue
 
         pkg, version = package.split(compare)
 
         if pkg in RENAME:
-            return ''.join((RENAME[pkg], compare, version))
+            return "".join((RENAME[pkg], compare, version))
 
         break
 
@@ -73,7 +73,7 @@ def main(conda_fname, pip_fname, compare=False):
         True if the comparison fails, False otherwise
     """
     with open(conda_fname) as conda_fd:
-        deps = yaml.safe_load(conda_fd)['dependencies']
+        deps = yaml.safe_load(conda_fd)["dependencies"]
 
     pip_deps = []
     for dep in deps:
@@ -81,42 +81,51 @@ def main(conda_fname, pip_fname, compare=False):
             conda_dep = conda_package_to_pip(dep)
             if conda_dep:
                 pip_deps.append(conda_dep)
-        elif isinstance(dep, dict) and len(dep) == 1 and 'pip' in dep:
-            pip_deps += dep['pip']
+        elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
+            pip_deps += dep["pip"]
         else:
-            raise ValueError('Unexpected dependency {}'.format(dep))
+            raise ValueError("Unexpected dependency {}".format(dep))
 
-    pip_content = '\n'.join(pip_deps)
+    pip_content = "\n".join(pip_deps)
 
     if compare:
         with open(pip_fname) as pip_fd:
             return pip_content != pip_fd.read()
     else:
-        with open(pip_fname, 'w') as pip_fd:
+        with open(pip_fname, "w") as pip_fd:
             pip_fd.write(pip_content)
         return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
-        description='convert (or compare) conda file to pip')
-    argparser.add_argument('--compare',
-                           action='store_true',
-                           help='compare whether the two files are equivalent')
-    argparser.add_argument('--azure',
-                           action='store_true',
-                           help='show the output in azure-pipelines format')
+        description="convert (or compare) conda file to pip"
+    )
+    argparser.add_argument(
+        "--compare",
+        action="store_true",
+        help="compare whether the two files are equivalent",
+    )
+    argparser.add_argument(
+        "--azure", action="store_true", help="show the output in azure-pipelines format"
+    )
     args = argparser.parse_args()
 
     repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-    res = main(os.path.join(repo_path, 'environment.yml'),
-               os.path.join(repo_path, 'requirements-dev.txt'),
-               compare=args.compare)
+    res = main(
+        os.path.join(repo_path, "environment.yml"),
+        os.path.join(repo_path, "requirements-dev.txt"),
+        compare=args.compare,
+    )
     if res:
-        msg = ('`requirements-dev.txt` has to be generated with `{}` after '
-               '`environment.yml` is modified.\n'.format(sys.argv[0]))
+        msg = (
+            "`requirements-dev.txt` has to be generated with `{}` after "
+            "`environment.yml` is modified.\n".format(sys.argv[0])
+        )
         if args.azure:
-            msg = ('##vso[task.logissue type=error;'
-                   'sourcepath=requirements-dev.txt]{}'.format(msg))
+            msg = (
+                "##vso[task.logissue type=error;"
+                "sourcepath=requirements-dev.txt]{}".format(msg)
+            )
         sys.stderr.write(msg)
     sys.exit(res)

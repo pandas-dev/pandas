@@ -2,7 +2,6 @@
 # See LICENSE for the license
 import bz2
 import gzip
-import lzma
 import os
 import sys
 import time
@@ -18,12 +17,11 @@ from libc.string cimport strncpy, strlen, strcasecmp
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString,
-                      PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch,
-                      PyUnicode_Decode)
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
 
 
 cdef extern from "Python.h":
@@ -41,7 +39,7 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str, kh_resize_str,
+    kh_get_str, kh_destroy_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
     kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
@@ -49,7 +47,6 @@ from pandas._libs.khash cimport (
     kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
     kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
-import pandas.compat as compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_float_dtype,
@@ -60,8 +57,11 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
+from pandas.compat import _import_lzma, _get_lzma_file
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
+
+lzma = _import_lzma()
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -120,24 +120,24 @@ cdef extern from "parser/tokenizer.h":
 
         # where to write out tokenized data
         char *stream
-        int64_t stream_len
-        int64_t stream_cap
+        uint64_t stream_len
+        uint64_t stream_cap
 
         # Store words in (potentially ragged) matrix for now, hmm
         char **words
         int64_t *word_starts  # where we are in the stream
-        int64_t words_len
-        int64_t words_cap
-        int64_t max_words_cap    # maximum word cap encountered
+        uint64_t words_len
+        uint64_t words_cap
+        uint64_t max_words_cap   # maximum word cap encountered
 
         char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
 
         int64_t *line_start      # position in words for start of line
         int64_t *line_fields     # Number of fields in each line
-        int64_t lines            # Number of lines observed
-        int64_t file_lines       # Number of lines observed (with bad/skipped)
-        int64_t lines_cap        # Vector capacity
+        uint64_t lines           # Number of lines observed
+        uint64_t file_lines      # Number of lines observed (with bad/skipped)
+        uint64_t lines_cap       # Vector capacity
 
         # Tokenizing stuff
         ParserState state
@@ -149,9 +149,6 @@ cdef extern from "parser/tokenizer.h":
         char lineterminator
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
-
-        # hmm =/
-        # int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -172,7 +169,7 @@ cdef extern from "parser/tokenizer.h":
 
         int header                  # Boolean: 1: has header, 0: no header
         int64_t header_start        # header row start
-        int64_t header_end          # header row end
+        uint64_t header_end         # header row end
 
         void *skipset
         PyObject *skipfunc
@@ -301,7 +298,6 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
-        object tupleize_cols
         object usecols
         list dtype_cast_order
         set unnamed_cols
@@ -355,7 +351,6 @@ cdef class TextReader:
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  tupleize_cols=False,
                   float_precision=None,
                   skip_blank_lines=True):
 
@@ -374,7 +369,6 @@ cdef class TextReader:
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols = mangle_dupe_cols
-        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []
@@ -477,14 +471,19 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.parser.double_converter_nogil = xstrtod
-        self.parser.double_converter_withgil = NULL
-        if float_precision == 'high':
-            self.parser.double_converter_nogil = precise_xstrtod
-            self.parser.double_converter_withgil = NULL
-        elif float_precision == 'round_trip':  # avoid gh-15140
+
+        if float_precision == "round_trip":
+            # see gh-15140
+            #
+            # Our current roundtrip implementation requires the GIL.
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
+        elif float_precision == "high":
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = precise_xstrtod
+        else:
+            self.parser.double_converter_withgil = NULL
+            self.parser.double_converter_nogil = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -567,10 +566,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
@@ -647,9 +644,9 @@ cdef class TextReader:
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = lzma.LZMAFile(source, 'rb')
+                    source = _get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = lzma.LZMAFile(filename=source)
+                    source = _get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
@@ -1693,6 +1690,10 @@ cdef:
     char* cposinf = b'+inf'
     char* cneginf = b'-inf'
 
+    char* cinfty = b'Infinity'
+    char* cposinfty = b'+Infinity'
+    char* cneginfty = b'-Infinity'
+
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
@@ -1772,9 +1773,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif strcasecmp(word, cneginf) == 0:
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1793,9 +1797,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0 or
+                        strcasecmp(word, cinfty) == 0 or
+                        strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1
