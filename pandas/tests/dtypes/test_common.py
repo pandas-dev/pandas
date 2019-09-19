@@ -3,6 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -706,3 +707,14 @@ def test__get_dtype_fails(input_param, expected_error_message):
 )
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+@pytest.mark.parametrize(
+    "to_type", [np.int8, np.int16, np.int32, np.float16, np.float32]
+)
+def test_astype_datetime64_bad_dtype(from_type, to_type):
+    arr = np.array([from_type("2018")])
+
+    with pytest.raises(TypeError, match="cannot astype"):
+        astype_nansafe(arr, dtype=to_type)
