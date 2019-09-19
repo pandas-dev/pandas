@@ -181,13 +181,10 @@ class TestnanopsDataFrame:
         if testarval.ndim <= 1:
             return
 
-        try:
-            testarval2 = np.take(testarval, 0, axis=-1)
-            targarval2 = np.take(targarval, 0, axis=-1)
-            targarnanval2 = np.take(targarnanval, 0, axis=-1)
-        except ValueError:
-            raise  # See if this is hit
-            return
+        testarval2 = np.take(testarval, 0, axis=-1)
+        targarval2 = np.take(targarval, 0, axis=-1)
+        targarnanval2 = np.take(targarnanval, 0, axis=-1)
+
         self.check_fun_data(
             testfunc,
             targfunc,
@@ -209,6 +206,7 @@ class TestnanopsDataFrame:
         empty_targfunc=None,
         **kwargs
     ):
+        assert targarnan is None, targarnan
         if targar is None:
             targar = testar
         if targarnan is None:
@@ -267,14 +265,9 @@ class TestnanopsDataFrame:
             objs += [self.arr_str.astype("O"), self.arr_utf.astype("O")]
 
         if allow_date:
-            try:
-                targfunc(self.arr_date)
-            except TypeError:
-                raise  # see if this is hit
-                pass
-            else:
-                self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
-                objs += [self.arr_date.astype("O")]
+            targfunc(self.arr_date)
+            self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
+            objs += [self.arr_date.astype("O")]
 
         if allow_tdelta:
             try:
