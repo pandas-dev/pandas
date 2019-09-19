@@ -71,33 +71,16 @@ jobs:
 
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'test-data-*.xml'
+        testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
 
     - powershell: |
-        $junitXml = "test-data-single.xml"
-        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0)
-        {
-          Write-Host "No test failures in test-data-single"
-        }
-        else
-        {
-          # note that this will produce $LASTEXITCODE=1
-          Write-Error "$($matches[1]) tests failed"
-        }
-
-        $junitXmlMulti = "test-data-multiple.xml"
-        $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0)
-        {
-          Write-Host "No test failures in test-data-multi"
-        }
-        else
-        {
-          # note that this will produce $LASTEXITCODE=1
-          Write-Error "$($matches[1]) tests failed"
+        $(Get-Content "test-data.xml" | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0) {
+          Write-Host "No test failures in test-data"
+        } else {
+          Write-Error "$($matches[1]) tests failed"  # will produce $LASTEXITCODE=1
         }
       displayName: 'Check for test failures'
 
