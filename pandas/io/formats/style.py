@@ -1350,8 +1350,11 @@ class Styler:
             Function to apply to the Styler.  Alternatively, a
             ``(callable, keyword)`` tuple where ``keyword`` is a string
             indicating the keyword of ``callable`` that expects the Styler.
-        *args, **kwargs :
-            Arguments passed to `func`.
+        *args : optional
+            Positional arguments passed into ``func``.
+        **kwargs : optional
+            A dictionary of keyword arguments passed into ``func``.
+
 
         Returns
         -------
