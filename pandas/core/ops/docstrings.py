@@ -344,7 +344,12 @@ _op_descriptions = {
         "df_examples": None,
     },
     # Comparison Operators
-    "eq": {"op": "==", "desc": "Equal to", "reverse": None, "series_examples": None},
+    "eq": {
+        "op": "==",
+        "desc": "Equal to",
+        "reverse": None,
+        "series_examples": _eq_example_SERIES}
+    ,
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
