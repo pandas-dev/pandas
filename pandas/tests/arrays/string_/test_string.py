@@ -60,14 +60,34 @@ def test_add():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="TODO")  # failing when adding np.nan to ndarray(['y'])
+@pytest.mark.xfail(reason="GH-28527")
+def test_add_strings():
+    array = pd.array(["a", "b", "c", "d"], dtype="string")
+    df = pd.DataFrame([["t", "u", "v", "w"]])
+    assert array.__add__(df) is NotImplemented
+
+    result = array + df
+    expected = pd.DataFrame([["at", "bu", "cv", "dw"]]).astype("string")
+    tm.assert_frame_equal(result, expected)
+
+    result = df + array
+    expected = pd.DataFrame([["ta", "ub", "vc", "wd"]]).astype("string")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="GH-28527")
 def test_add_frame():
     array = pd.array(["a", "b", np.nan, np.nan], dtype="string")
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 
     assert array.__add__(df) is NotImplemented
+
     result = array + df
-    expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]])
+    expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype("string")
+    tm.assert_frame_equal(result, expected)
+
+    result = df + array
+    expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype("string")
     tm.assert_frame_equal(result, expected)
 
 
