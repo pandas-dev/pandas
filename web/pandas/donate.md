@@ -7,7 +7,7 @@ You can find more information about current developers and supporters in the [te
 Financial contributions will mainly be used to advance in the [pandas roadmap](community/roadmap.html).
 
 - If your **company or organization** is interested in helping make pandas better, please contact us at [info@numfocus.org](mailto:info@numfocus.org)
-- If you want to contribute to _pandas_ with your **time**, please visit the [contributing page](https://pandas.pydata.org/pandas-docs/stable/development/index.html)
+- If you want to contribute to _pandas_ with your **time**, please visit the [contributing page]({{ base_url }}/docs/development/index.html)
 - If you want to support _pandas_ with a **donation**, please use the form below:
 
 

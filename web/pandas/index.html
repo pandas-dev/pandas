@@ -20,16 +20,16 @@
                         <ul>
                             <!-- <li><a href="{{ base_url }}/try.html">Try pandas online</a></li> -->
                             <li><a href="{{ base_url }}/install.html">Install pandas</a></li>
-                            <li><a href="https://pandas.pydata.org/pandas-docs/stable/getting_started/index.html">Getting started</a></li>
+                            <li><a href="{{ base_url }}/docs/getting_started/index.html">Getting started</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <h5>Documentation</h5>
                         <ul>
-                            <li><a href="https://pandas.pydata.org/pandas-docs/stable/user_guide/index.html">User guide</a></li>
-                            <li><a href="https://pandas.pydata.org/pandas-docs/stable/reference/index.html">API reference</a></li>
-                            <li><a href="https://pandas.pydata.org/pandas-docs/stable/development/index.html">Contributing to pandas</a></li>
-                            <li><a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html">Release notes</a></li>
+                            <li><a href="{{ base_url }}/docs/user_guide/index.html">User guide</a></li>
+                            <li><a href="{{ base_url }}/docs/reference/index.html">API reference</a></li>
+                            <li><a href="{{ base_url }}/docs/development/index.html">Contributing to pandas</a></li>
+                            <li><a href="{{ base_url }}/docs/whatsnew/index.html">Release notes</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
@@ -58,10 +58,10 @@
                 {% if releases %}
                     <h4>Latest version: {{ releases[0].name }}</h4>
                     <ul>
-                        <li><a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/v0.25.0.html">What's new in {{ releases[0].name }}</a></li>
+                        <li><a href="docs/whatsnew/v0.25.0.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
-                        <li><a href="https://pandas.pydata.org/pandas-docs/stable/">Documentation (web)</a></li>
-                        <li><a href="https://pandas.pydata.org/pandas-docs/stable/pandas.pdf">Documentation (pdf)</a></li>
+                        <li><a href="{{ base_url}}/docs/">Documentation (web)</a></li>
+                        <li><a href="{{ base_url }}/docs/pandas.pdf">Documentation (pdf)</a></li>
                         <li><a href="{{ releases[0].url }}">Download source code</a></li>
                     </ul>
                 {% endif %}
