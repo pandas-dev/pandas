@@ -439,26 +439,16 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
-    def test_nanmin(self):
+    @pytest.mark.parametrize("nanop,npop", [
+        (nanops.nanmin, np.min),
+        (nanops.nanmax, np.max),
+    ])
+    def test_nanminmax(self, nanop, npop):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             self.check_funs(
-                nanops.nanmin,
-                np.min,
-                allow_complex=True,
-                allow_all_nan=True,
-                allow_str=False,
-                allow_date=True,
-                allow_tdelta=True,
-                allow_obj=False,
-            )
-
-    def test_nanmax(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(
-                nanops.nanmax,
-                np.max,
+                nanop,
+                npop,
                 allow_complex=True,
                 allow_all_nan=True,
                 allow_str=False,
