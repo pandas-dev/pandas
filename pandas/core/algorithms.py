@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict, Iterable, Union
+from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
