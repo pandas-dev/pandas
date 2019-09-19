@@ -1,5 +1,5 @@
-import os
 from io import StringIO
+import os
 
 import numpy as np
 import pytest
