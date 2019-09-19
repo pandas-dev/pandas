@@ -73,6 +73,11 @@ class StringArray(PandasArray):
 
     .. versionadded:: 1.0.0
 
+    .. warning::
+
+       StringArray is considered experimental. The implementation and
+       parts of the API may change without warning.
+
     Parameters
     ----------
     values : array-like

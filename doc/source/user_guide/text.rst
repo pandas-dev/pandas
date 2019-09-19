@@ -31,6 +31,11 @@ for many reasons:
 3. When reading code, the contents of an ``object`` dtype array is less clear
    than ``string``.
 
+
+.. warning::
+
+   StringArray is currently considered experimental.
+
 For backwards-compatibility, ``object`` dtype remains the default type we
 infer a list of strings to
 
