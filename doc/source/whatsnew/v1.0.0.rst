@@ -73,7 +73,19 @@ Backwards incompatible API changes
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
 
-.. _whatsnew_0250.api_breaking.series_string_conversion:
+.. _whatsnew_1000.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
+- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+-
+
+.. _whatsnew_1000.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
 
 String conversion of Series with nan
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -94,23 +106,6 @@ String conversion of Series with nan
 
 .. ipython:: python
    pd.Series(['foo', np.nan]).astype(str)
-
-.. _whatsnew_1000.api.other:
-
-Other API changes
-^^^^^^^^^^^^^^^^^
-
-- :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
-- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
--
-
-.. _whatsnew_1000.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
-
--
--
 
 .. _whatsnew_1000.prior_deprecations:
 
