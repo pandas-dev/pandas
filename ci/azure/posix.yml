@@ -60,15 +60,21 @@ jobs:
         echo "Creating Environment"
         ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
+
     - script: |
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
+
     - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      displayName: 'Build versions'
+
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+      displayName: 'Publish test results'
+
     - powershell: |
         $junitXml = "test-data-single.xml"
         $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
@@ -94,6 +100,7 @@ jobs:
           Write-Error "$($matches[1]) tests failed"
         }
       displayName: 'Check for test failures'
+
     - script: |
         source activate pandas-dev
         python ci/print_skipped.py
