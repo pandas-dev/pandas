@@ -58,3 +58,22 @@ def test_add():
     result = a.add(b, fill_value="-")
     expected = pd.Series(["ax", "by", "c-", "-z", None], dtype="string")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="TODO")  # failing when adding np.nan to ndarray(['y'])
+def test_add_frame():
+    array = pd.array(["a", "b", np.nan, np.nan], dtype="string")
+    df = pd.DataFrame([["x", np.nan, "y", np.nan]])
+
+    assert array.__add__(df) is NotImplemented
+    result = array + df
+    expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_constructor_raises():
+    with pytest.raises(ValueError, match="object-dtype ndarray"):
+        pd.arrays.StringArray(np.array(["a", "b"], dtype="S1"))
+
+    with pytest.raises(ValueError, match="object-dtype ndarray"):
+        pd.arrays.StringArray(np.array([]))

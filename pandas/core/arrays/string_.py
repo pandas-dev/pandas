@@ -1,3 +1,4 @@
+import operator
 from typing import Type
 
 import numpy as np
@@ -7,9 +8,10 @@ from pandas._libs import lib
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
+from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
 
@@ -132,7 +134,12 @@ class StringArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("Must provide strings")
+            raise ValueError("StringArray requires an object-dtype ndarray of strings.")
+        if self._ndarray.dtype != "object":
+            raise ValueError(
+                "StringArray requires an object-dtype ndarray. Got "
+                "'{}' instead.".format(self._ndarray.dtype)
+            )
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -152,7 +159,9 @@ class StringArray(PandasArray):
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
+            # extract_array doesn't extract PandasArray subclasses
             value = value._ndarray
+
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
         if scalar_key and not scalar_value:
@@ -187,10 +196,10 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def __add__(self, other):
-        return _add(self, other)
+        return _add(self, other, operator.add)
 
     def __radd__(self, other):
-        return _add(self, other, reversed=True)
+        return _add(self, other, ops.radd)
 
     def _reduce(self, name, skipna=True, **kwargs):
         raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
@@ -201,8 +210,8 @@ class StringArray(PandasArray):
         return value_counts(self._ndarray, dropna=dropna)
 
 
-def _add(array, other, reversed=False):
-    if isinstance(other, (ABCIndexClass, ABCSeries)):
+def _add(array, other, op):
+    if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
         return NotImplemented
 
     mask = array.isna()
@@ -214,9 +223,6 @@ def _add(array, other, reversed=False):
 
     out = np.empty_like(array._ndarray, dtype="object")
     out[mask] = np.nan
-    if reversed:
-        out[valid] = other + array._ndarray[valid]
-    else:
-        out[valid] = array._ndarray[valid] + other
+    out[valid] = op(array._ndarray[valid], other)
 
     return type(array)(out)
