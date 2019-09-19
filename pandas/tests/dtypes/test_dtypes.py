@@ -30,7 +30,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 import pandas.util.testing as tm
 
 
