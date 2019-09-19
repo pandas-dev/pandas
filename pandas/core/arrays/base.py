@@ -409,7 +409,6 @@ class ExtensionArray:
 
         * ``na_values._is_boolean`` should be True
         * `na_values` should implement :func:`ExtensionArray._reduce`
-        * `na_values` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
@@ -995,20 +994,27 @@ class ExtensionArray:
         """
         return np.array(self)
 
-    def _accumulate(self, name, skipna=True, **kwargs):
+    def _accumulate(self, name, skipna=True, **kwargs) -> ABCExtensionArray:
         """
-        Return an array result of performing the accumulation operation.
+        Return an ExtensionArray performing the accumulation operation.
+        The underlying data type might change
+        # TODO Clarify
 
         Parameters
         ----------
         name : str
             Name of the function, supported values are:
-            { cummin, cummax, cumsum, cumprod }.
+            # TODO Add function signatures
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
         skipna : bool, default True
-            If True, skip NaN values.
+            If True, skip NA values.
         **kwargs
             Additional keyword arguments passed to the accumulation function.
-            Currently, no is the only supported kwarg.
+            # TODO check if kwargs are needed
+            Currently, there is no supported kwarg.
 
         Returns
         -------
