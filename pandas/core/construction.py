@@ -9,7 +9,7 @@ from typing import Optional, Sequence, Union, cast
 import numpy as np
 import numpy.ma as ma
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 
 from pandas.core.dtypes.cast import (
@@ -275,7 +275,7 @@ def array(
         if inferred_dtype == "period":
             try:
                 return period_array(data, copy=copy)
-            except tslibs.IncompatibleFrequency:
+            except IncompatibleFrequency:
                 # We may have a mixture of frequencies.
                 # We choose to return an ndarray, rather than raising.
                 pass
@@ -365,7 +365,9 @@ def extract_array(obj, extract_numpy=False):
     return obj
 
 
-def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False):
+def sanitize_array(
+    data, index, dtype=None, copy: bool = False, raise_cast_failure: bool = False
+):
     """
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
@@ -486,13 +488,19 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
     return subarr
 
 
-def _try_cast(arr, dtype, copy, raise_cast_failure):
+def _try_cast(
+    arr,
+    dtype: Optional[Union[np.dtype, "ExtensionDtype"]],
+    copy: bool,
+    raise_cast_failure: bool,
+):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : array-like
+    arr : ndarray, list, tuple, iterator (catchall)
+        Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
         If False, don't copy the data if not needed.

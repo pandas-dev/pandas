@@ -1310,9 +1310,8 @@ def construct_1d_ndarray_preserving_na(values, dtype=None, copy=False):
     >>> np.array([1.0, 2.0, None], dtype='str')
     array(['1.0', '2.0', 'None'], dtype='<U4')
 
-    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype='str')
-
-
+    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype=np.dtype('str'))
+    array(['1.0', '2.0', None], dtype=object)
     """
     subarr = np.array(values, dtype=dtype, copy=copy)
 
