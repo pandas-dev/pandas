@@ -1,4 +1,5 @@
 from functools import partial
+import operator
 import warnings
 
 import numpy as np
@@ -300,20 +301,14 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
-    def test_nanany(self):
+    @pytest.mark.parametrize("npop,nanop", [
+        (np.any, nanops.nanany),
+        (np.all, nanops.nanall)
+    ])
+    def test_nan_bool_reductions(self, npop, nanop):
         self.check_funs(
-            nanops.nanany,
-            np.any,
-            allow_all_nan=False,
-            allow_str=False,
-            allow_date=False,
-            allow_tdelta=False,
-        )
-
-    def test_nanall(self):
-        self.check_funs(
-            nanops.nanall,
-            np.all,
+            nanop,
+            npop,
             allow_all_nan=False,
             allow_str=False,
             allow_date=False,
@@ -707,29 +702,17 @@ class TestnanopsDataFrame:
             except ValueError:
                 break
 
-    def test_nangt(self):
-        targ0 = self.arr_float > self.arr_float1
-        self.check_nancomp(nanops.nangt, targ0)
-
-    def test_nange(self):
-        targ0 = self.arr_float >= self.arr_float1
-        self.check_nancomp(nanops.nange, targ0)
-
-    def test_nanlt(self):
-        targ0 = self.arr_float < self.arr_float1
-        self.check_nancomp(nanops.nanlt, targ0)
-
-    def test_nanle(self):
-        targ0 = self.arr_float <= self.arr_float1
-        self.check_nancomp(nanops.nanle, targ0)
-
-    def test_naneq(self):
-        targ0 = self.arr_float == self.arr_float1
-        self.check_nancomp(nanops.naneq, targ0)
-
-    def test_nanne(self):
-        targ0 = self.arr_float != self.arr_float1
-        self.check_nancomp(nanops.nanne, targ0)
+    @pytest.mark.parametrize("op,nanop", [
+        (operator.eq, nanops.naneq),
+        (operator.ne, nanops.nanne),
+        (operator.gt, nanops.nangt),
+        (operator.ge, nanops.nange),
+        (operator.lt, nanops.nanlt),
+        (operator.le, nanops.nanle),
+    ])
+    def test_nan_comparison(self, op, nanop):
+        targ0 = op(self.arr_float, self.arr_float1)
+        self.check_nancomp(nanop, targ0)
 
     def check_bool(self, func, value, correct, *args, **kwargs):
         while getattr(value, "ndim", True):
