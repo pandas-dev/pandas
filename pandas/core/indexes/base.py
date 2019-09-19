@@ -3136,7 +3136,6 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 indexer = self.slice_indexer(start, stop, step, kind=kind)
             except Exception:
-                raise
                 if is_index_slice:
                     if self.is_integer():
                         raise
@@ -4329,8 +4328,7 @@ class Index(IndexOpsMixin, PandasObject):
             return array_equivalent(
                 com.values_from_object(self), com.values_from_object(other)
             )
-        except TypeError:
-            # FIXME: array_equivalent can raise TypeError for tzawareness_compat
+        except Exception:
             return False
 
     def identical(self, other):

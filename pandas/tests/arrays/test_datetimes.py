@@ -15,11 +15,6 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor:
-    def test_from_sequence_invalid_type(self):
-        mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
-        with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
-            DatetimeArray._from_sequence(mi)
-
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
 

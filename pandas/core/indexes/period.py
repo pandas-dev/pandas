@@ -457,10 +457,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 self.get_loc(key)
                 return True
-            except KeyError:
-                return False
             except Exception:
-                raise
                 return False
 
     @cache_readonly
@@ -769,7 +766,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except Exception:
-                raise
                 raise KeyError(label)
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
