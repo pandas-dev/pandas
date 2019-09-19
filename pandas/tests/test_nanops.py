@@ -153,11 +153,12 @@ class TestnanopsDataFrame:
         targfunc,
         testarval,
         targarval,
-        targarnanval,
         check_dtype=True,
         empty_targfunc=None,
         **kwargs
     ):
+        targarnanval = testarval
+
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
@@ -183,14 +184,12 @@ class TestnanopsDataFrame:
 
         testarval2 = np.take(testarval, 0, axis=-1)
         targarval2 = np.take(targarval, 0, axis=-1)
-        targarnanval2 = np.take(targarnanval, 0, axis=-1)
 
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval2,
             targarval2,
-            targarnanval2,
             check_dtype=check_dtype,
             empty_targfunc=empty_targfunc,
             **kwargs
@@ -202,24 +201,24 @@ class TestnanopsDataFrame:
         targfunc,
         testar,
         targar=None,
-        targarnan=None,
-        empty_targfunc=None,
         **kwargs
     ):
-        assert targarnan is None, targarnan
+
+        empty_targfunc = None
+        if testfunc.__name__ not in ["nanargmin", "nanargmax"]:
+            # TODO: why not these two?
+            empty_targfunc = getattr(np, testfunc.__name__, None)
+
+
         if targar is None:
             targar = testar
-        if targarnan is None:
-            targarnan = testar
         testarval = getattr(self, testar)
         targarval = getattr(self, targar)
-        targarnanval = getattr(self, targarnan)
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval,
             targarval,
-            targarnanval,
             empty_targfunc=empty_targfunc,
             **kwargs
         )
@@ -238,7 +237,7 @@ class TestnanopsDataFrame:
     ):
         # TODO: do we *ever* allow_str?
         self.check_fun(testfunc, targfunc, "arr_float", **kwargs)
-        self.check_fun(testfunc, targfunc, "arr_float_nan", "arr_float", **kwargs)
+        self.check_fun(testfunc, targfunc, "arr_float_nan", targar="arr_float", **kwargs)
         self.check_fun(testfunc, targfunc, "arr_int", **kwargs)
         self.check_fun(testfunc, targfunc, "arr_bool", **kwargs)
         objs = [
@@ -324,7 +323,6 @@ class TestnanopsDataFrame:
             allow_tdelta=True,
             allow_obj=True,
             check_dtype=False,
-            empty_targfunc=np.nansum,
         )
 
     def test_nanmean(self):
@@ -552,7 +550,6 @@ class TestnanopsDataFrame:
             allow_date=False,
             allow_tdelta=False,
             allow_obj=True,
-            empty_targfunc=np.nanprod,
         )
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
