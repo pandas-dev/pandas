@@ -645,7 +645,7 @@ class Styler:
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs : dict
+        **kwargs : dict
             pass along to ``func``
 
         Returns
