@@ -40,8 +40,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
-    SparseDataFrame,
-    SparseSeries,
     TimedeltaIndex,
     concat,
     isna,
@@ -173,12 +171,7 @@ use the format='fixed(f)|table(t)' keyword instead
 """
 
 # map object types
-_TYPE_MAP = {
-    Series: "series",
-    SparseSeries: "sparse_series",
-    DataFrame: "frame",
-    SparseDataFrame: "sparse_frame",
-}
+_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -186,9 +179,7 @@ _STORER_MAP = {
     "DataFrame": "LegacyFrameFixed",
     "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
-    "sparse_series": "SparseSeriesFixed",
     "frame": "FrameFixed",
-    "sparse_frame": "SparseFrameFixed",
 }
 
 # table class map
@@ -429,7 +420,6 @@ def _is_metadata_of(group, parent_group):
 
 
 class HDFStore:
-
     """
     Dict-like IO interface for storing pandas objects in PyTables.
 
@@ -1546,7 +1536,6 @@ class HDFStore:
 
 
 class TableIterator:
-
     """ define the iteration interface on a table
 
         Parameters
@@ -1654,7 +1643,6 @@ class TableIterator:
 
 
 class IndexCol:
-
     """ an index column description class
 
         Parameters
@@ -1794,7 +1782,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:  # noqa: E722
+        except Exception:
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -1968,7 +1956,6 @@ class IndexCol:
 
 
 class GenericIndexCol(IndexCol):
-
     """ an index which is not represented in the data of the table """
 
     @property
@@ -2006,7 +1993,6 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-
     """ a data holding column, by definition this is not indexable
 
         Parameters
@@ -2456,7 +2442,6 @@ class DataCol(IndexCol):
 
 
 class DataIndexableCol(DataCol):
-
     """ represent a data column that can be indexed """
 
     is_data_indexable = True
@@ -2479,7 +2464,6 @@ class DataIndexableCol(DataCol):
 
 
 class GenericDataIndexableCol(DataIndexableCol):
-
     """ represent a generic pytables data column """
 
     def get_attr(self):
@@ -2487,7 +2471,6 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-
     """ represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
@@ -2655,7 +2638,6 @@ class Fixed:
 
 
 class GenericFixed(Fixed):
-
     """ a generified fixed version """
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
@@ -2911,7 +2893,12 @@ class GenericFixed(Fixed):
             kwargs["freq"] = node._v_attrs["freq"]
 
         if "tz" in node._v_attrs:
-            kwargs["tz"] = node._v_attrs["tz"]
+            if isinstance(node._v_attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = node._v_attrs["tz"]
 
         if kind in ("date", "datetime"):
             index = factory(
@@ -3082,83 +3069,6 @@ class SeriesFixed(GenericFixed):
         self.attrs.name = obj.name
 
 
-class SparseFixed(GenericFixed):
-    def validate_read(self, kwargs):
-        """
-        we don't support start, stop kwds in Sparse
-        """
-        kwargs = super().validate_read(kwargs)
-        if "start" in kwargs or "stop" in kwargs:
-            raise NotImplementedError(
-                "start and/or stop are not supported in fixed Sparse reading"
-            )
-        return kwargs
-
-
-class SparseSeriesFixed(SparseFixed):
-    pandas_kind = "sparse_series"
-    attributes = ["name", "fill_value", "kind"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index("index")
-        sp_values = self.read_array("sp_values")
-        sp_index = self.read_index("sp_index")
-        return SparseSeries(
-            sp_values,
-            index=index,
-            sparse_index=sp_index,
-            kind=self.kind or "block",
-            fill_value=self.fill_value,
-            name=self.name,
-        )
-
-    def write(self, obj, **kwargs):
-        super().write(obj, **kwargs)
-        self.write_index("index", obj.index)
-        self.write_index("sp_index", obj.sp_index)
-        self.write_array("sp_values", obj.sp_values)
-        self.attrs.name = obj.name
-        self.attrs.fill_value = obj.fill_value
-        self.attrs.kind = obj.kind
-
-
-class SparseFrameFixed(SparseFixed):
-    pandas_kind = "sparse_frame"
-    attributes = ["default_kind", "default_fill_value"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        columns = self.read_index("columns")
-        sdict = {}
-        for c in columns:
-            key = "sparse_series_{columns}".format(columns=c)
-            s = SparseSeriesFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[c] = s.read()
-        return SparseDataFrame(
-            sdict,
-            columns=columns,
-            default_kind=self.default_kind,
-            default_fill_value=self.default_fill_value,
-        )
-
-    def write(self, obj, **kwargs):
-        """ write it as a collection of individual sparse series """
-        super().write(obj, **kwargs)
-        for name, ss in obj.items():
-            key = "sparse_series_{name}".format(name=name)
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseSeriesFixed(self.parent, node)
-            s.write(ss)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index("columns", obj.columns)
-
-
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
     is_shape_reversed = False
@@ -3252,7 +3162,6 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-
     """ represent a table:
           facilitate read/write of various types of tables
 
@@ -4127,7 +4036,6 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-
     """ a write-once read-many table: this format DOES NOT ALLOW appending to a
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
@@ -4149,7 +4057,6 @@ class WORMTable(Table):
 
 
 class LegacyTable(Table):
-
     """ an appendable table: allow append/query/delete operations to a
           (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
@@ -4603,7 +4510,6 @@ class GenericTable(AppendableFrameTable):
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
-
     """ a frame with a multi-index """
 
     table_type = "appendable_multiframe"
@@ -4962,7 +4868,6 @@ def _need_convert(kind):
 
 
 class Selection:
-
     """
     Carries out a selection operation on a tables.Table object.
 

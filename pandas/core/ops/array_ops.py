@@ -11,7 +11,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     maybe_upcast_putmask,
 )
-from pandas.core.dtypes.common import is_object_dtype, is_period_dtype, is_scalar
+from pandas.core.dtypes.common import is_object_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import notna
 
@@ -57,9 +57,9 @@ def masked_arith_op(x, y, op):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
-        # PeriodIndex.ravel() returns int64 dtype, so we have
-        # to work around that case.  See GH#19956
-        yrav = y if is_period_dtype(y) else y.ravel()
+        # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
+        #  we would get int64 dtype, see GH#19956
+        yrav = y.ravel()
         mask = notna(xrav) & notna(yrav)
 
         if yrav.shape != mask.shape:
@@ -82,9 +82,9 @@ def masked_arith_op(x, y, op):
         mask = notna(xrav)
 
         # 1 ** np.nan is 1. So we have to unmask those.
-        if op == pow:
+        if op is pow:
             mask = np.where(x == 1, False, mask)
-        elif op == rpow:
+        elif op is rpow:
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
@@ -98,31 +98,37 @@ def masked_arith_op(x, y, op):
 
 def define_na_arithmetic_op(op, str_rep, eval_kwargs):
     def na_op(x, y):
-        """
-        Return the result of evaluating op on the passed in values.
-
-        If native types are not compatible, try coersion to object dtype.
-
-        Parameters
-        ----------
-        x : array-like
-        y : array-like or scalar
-
-        Returns
-        -------
-        array-like
-
-        Raises
-        ------
-        TypeError : invalid operation
-        """
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
-        except TypeError:
-            result = masked_arith_op(x, y, op)
-
-        return missing.dispatch_fill_zeros(op, x, y, result)
+        return na_arithmetic_op(x, y, op, str_rep, eval_kwargs)
 
     return na_op
+
+
+def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
+    """
+    Return the result of evaluating op on the passed in values.
+
+    If native types are not compatible, try coersion to object dtype.
+
+    Parameters
+    ----------
+    left : np.ndarray
+    right : np.ndarray or scalar
+    str_rep : str or None
+    eval_kwargs : kwargs to pass to expressions
+
+    Returns
+    -------
+    array-like
+
+    Raises
+    ------
+    TypeError : invalid operation
+    """
+    import pandas.core.computation.expressions as expressions
+
+    try:
+        result = expressions.evaluate(op, str_rep, left, right, **eval_kwargs)
+    except TypeError:
+        result = masked_arith_op(left, right, op)
+
+    return missing.dispatch_fill_zeros(op, left, right, result)

@@ -9,8 +9,6 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import importlib
-
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
@@ -150,10 +148,10 @@ float_format_doc = """
 """
 
 max_colwidth_doc = """
-: int
+: int or None
     The maximum width in characters of a column in the repr of
     a pandas data structure. When the column overflows, a "..."
-    placeholder is embedded in the output.
+    placeholder is embedded in the output. A 'None' value means unlimited.
 """
 
 colheader_justify_doc = """
@@ -342,7 +340,9 @@ with cf.config_prefix("display"):
         validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
-    cf.register_option("max_colwidth", 50, max_colwidth_doc, validator=is_int)
+    cf.register_option(
+        "max_colwidth", 50, max_colwidth_doc, validator=is_nonnegative_int
+    )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
     else:
@@ -581,26 +581,12 @@ plotting_backend_doc = """
 
 
 def register_plotting_backend_cb(key):
-    backend_str = cf.get_option(key)
-    if backend_str == "matplotlib":
-        try:
-            import pandas.plotting._matplotlib  # noqa
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            )
-        else:
-            return
+    if key == "matplotlib":
+        # We defer matplotlib validation, since it's the default
+        return
+    from pandas.plotting._core import _get_plot_backend
 
-    try:
-        importlib.import_module(backend_str)
-    except ImportError:
-        raise ValueError(
-            '"{}" does not seem to be an installed module. '
-            "A pandas plotting backend must be a module that "
-            "can be imported".format(backend_str)
-        )
+    _get_plot_backend(key)
 
 
 with cf.config_prefix("plotting"):
@@ -608,8 +594,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=str,
-        cb=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,
     )
 
 

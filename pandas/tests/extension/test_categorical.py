@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical
+from pandas import Categorical, CategoricalIndex, Timestamp
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -197,7 +197,15 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
+    @pytest.mark.parametrize("values", [[1, np.nan], [Timestamp("2000"), pd.NaT]])
+    def test_cast_nan_to_int(self, cls, values):
+        # GH 28406
+        s = cls(values)
+
+        msg = "Cannot (cast|convert)"
+        with pytest.raises((ValueError, TypeError), match=msg):
+            s.astype(int)
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):

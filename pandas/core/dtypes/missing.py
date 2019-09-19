@@ -445,7 +445,7 @@ def array_equivalent(left, right, strict_nan=False):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if left_value != right_value:
+                if np.any(left_value != right_value):
                     return False
         return True
 

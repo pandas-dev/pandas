@@ -520,6 +520,9 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
+        if is_integer_dtype(dtype) and self.isna().any():
+            msg = "Cannot convert float NaN to integer"
+            raise ValueError(msg)
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
