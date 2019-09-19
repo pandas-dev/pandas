@@ -141,10 +141,6 @@ def to_offset(freq):
         except ValueError:
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
-        except Exception:
-            raise
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
-
     else:
         delta = None
         stride_sign = None
