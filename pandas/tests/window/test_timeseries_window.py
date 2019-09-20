@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, Timestamp, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    to_datetime,
+)
 import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
@@ -710,8 +718,8 @@ class TestRollingTS:
 
         df = DataFrame({"column": [3, 4, 4, 2, 1]}, index=reversed(index))
         result = df.rolling("2s").min()
-        expected = (
-            DataFrame({"column": [3.0, 3.0, 3.0, 2.0, 1.0]}, index=reversed(index)),
+        expected = DataFrame(
+            {"column": [3.0, 3.0, 3.0, 2.0, 1.0]}, index=reversed(index)
         )
         tm.assert_frame_equal(result, expected)
 
@@ -724,7 +732,7 @@ class TestRollingTS:
             ),
         )
         result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
-        expected = (
-            DataFrame({"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index),
+        expected = DataFrame(
+            {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
         )
         tm.assert_frame_equal(result, expected)
