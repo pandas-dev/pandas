@@ -1604,9 +1604,6 @@ class NonConsolidatableMixIn:
 
     @property
     def shape(self):
-        #if self.values.ndim == 2:
-        #    # DTA
-        #    return self.values.shape
         if self.ndim == 1:
             return ((len(self.values)),)
         return (len(self.mgr_locs), len(self.values))
@@ -2286,8 +2283,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return DatetimeArray
 
     def _maybe_coerce_values(self, values):
-        """
-        Input validation for values passed to __init__. Ensure that
+        """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
         Parameters
@@ -2305,9 +2301,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
-        #if values.ndim == 2:
-        #    assert values.shape[0] == 1, values
-        #    values = values[0]
         return values
 
     @property
@@ -3175,9 +3168,6 @@ def _safe_reshape(arr, new_shape):
         arr = arr._values
     if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
-    #elif hasattr(arr, "reshape"):
-    #    # DTA/TDA
-    #    arr = arr.reshape(new_shape)
     return arr
 
 

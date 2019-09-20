@@ -1042,10 +1042,6 @@ class BlockManager(PandasObject):
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
-            #if hasattr(value, "reshape"):
-            #    # DTA/TDA
-            #    if value.ndim == self.ndim - 1:
-            #        value = _safe_reshape(value, (1,) + value.shape)
 
             def value_getitem(placement):
                 return value
