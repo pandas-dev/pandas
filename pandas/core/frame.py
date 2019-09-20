@@ -5979,9 +5979,8 @@ class DataFrame(NDFrame):
         fill_value=None,
         margins=False,
         dropna=True,
-        keep_only_observed_nancols=False,
         margins_name="All",
-        observed=False,
+        observed=True,
     ):
         from pandas.core.reshape.pivot import pivot_table
 
@@ -5994,7 +5993,6 @@ class DataFrame(NDFrame):
             fill_value=fill_value,
             margins=margins,
             dropna=dropna,
-            keep_only_observed_nancols=keep_only_observed_nancols,
             margins_name=margins_name,
             observed=observed,
         )

@@ -28,9 +28,8 @@ def pivot_table(
     fill_value=None,
     margins=False,
     dropna=True,
-    keep_only_observed_nancols=False,
     margins_name="All",
-    observed=False,
+    observed=True,
 ):
     index = _convert_by(index)
     columns = _convert_by(columns)
@@ -93,11 +92,12 @@ def pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed)
+    if dropna:
+        grouped = data.groupby(keys, observed=observed)
+    else:
+        grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
-        agged = agged.dropna(how="all")
-
         # gh-21133
         # we want to down cast if
         # the original values are ints
@@ -128,18 +128,17 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        if not keep_only_observed_nancols:
-            if table.index.nlevels > 1:
-                m = MultiIndex.from_arrays(
-                    cartesian_product(table.index.levels), names=table.index.names
-                )
-                table = table.reindex(m, axis=0)
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
 
-            if table.columns.nlevels > 1:
-                m = MultiIndex.from_arrays(
-                    cartesian_product(table.columns.levels), names=table.columns.names
-                )
-                table = table.reindex(m, axis=1)
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
 
     if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
@@ -173,10 +172,6 @@ def pivot_table(
 
     if len(index) == 0 and len(columns) > 0:
         table = table.T
-
-    # GH 15193 Make sure empty columns are removed if dropna=True
-    if isinstance(table, ABCDataFrame) and dropna:
-        table = table.dropna(how="all", axis=1)
 
     return table
 
