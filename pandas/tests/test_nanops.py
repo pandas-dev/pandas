@@ -1,5 +1,4 @@
 from functools import partial
-import operator
 import warnings
 
 import numpy as np
@@ -153,12 +152,11 @@ class TestnanopsDataFrame:
         targfunc,
         testarval,
         targarval,
+        targarnanval,
         check_dtype=True,
         empty_targfunc=None,
         **kwargs
     ):
-        targarnanval = testarval
-
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
@@ -182,14 +180,18 @@ class TestnanopsDataFrame:
         if testarval.ndim <= 1:
             return
 
-        testarval2 = np.take(testarval, 0, axis=-1)
-        targarval2 = np.take(targarval, 0, axis=-1)
-
+        try:
+            testarval2 = np.take(testarval, 0, axis=-1)
+            targarval2 = np.take(targarval, 0, axis=-1)
+            targarnanval2 = np.take(targarnanval, 0, axis=-1)
+        except ValueError:
+            return
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval2,
             targarval2,
+            targarnanval2,
             check_dtype=check_dtype,
             empty_targfunc=empty_targfunc,
             **kwargs
@@ -201,24 +203,23 @@ class TestnanopsDataFrame:
         targfunc,
         testar,
         targar=None,
+        targarnan=None,
+        empty_targfunc=None,
         **kwargs
     ):
-
-        empty_targfunc = None
-        if testfunc.__name__ not in ["nanargmin", "nanargmax"]:
-            # TODO: why not these two?
-            empty_targfunc = getattr(np, testfunc.__name__, None)
-
-
         if targar is None:
             targar = testar
+        if targarnan is None:
+            targarnan = testar
         testarval = getattr(self, testar)
         targarval = getattr(self, targar)
+        targarnanval = getattr(self, targarnan)
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval,
             targarval,
+            targarnanval,
             empty_targfunc=empty_targfunc,
             **kwargs
         )
@@ -235,9 +236,8 @@ class TestnanopsDataFrame:
         allow_obj=True,
         **kwargs
     ):
-        # TODO: do we *ever* allow_str?
         self.check_fun(testfunc, targfunc, "arr_float", **kwargs)
-        self.check_fun(testfunc, targfunc, "arr_float_nan", targar="arr_float", **kwargs)
+        self.check_fun(testfunc, targfunc, "arr_float_nan", "arr_float", **kwargs)
         self.check_fun(testfunc, targfunc, "arr_int", **kwargs)
         self.check_fun(testfunc, targfunc, "arr_bool", **kwargs)
         objs = [
@@ -264,15 +264,18 @@ class TestnanopsDataFrame:
             objs += [self.arr_str.astype("O"), self.arr_utf.astype("O")]
 
         if allow_date:
-            targfunc(self.arr_date)
-            self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
-            objs += [self.arr_date.astype("O")]
+            try:
+                targfunc(self.arr_date)
+            except TypeError:
+                pass
+            else:
+                self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
+                objs += [self.arr_date.astype("O")]
 
         if allow_tdelta:
             try:
                 targfunc(self.arr_tdelta)
             except TypeError:
-                # FIXME: this is hit, but shouldnt be (looks like #28289 doesnt fix)
                 pass
             else:
                 self.check_fun(testfunc, targfunc, "arr_tdelta", **kwargs)
@@ -297,32 +300,35 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
-    @pytest.mark.parametrize(
-        "npop,nanop", [(np.any, nanops.nanany), (np.all, nanops.nanall)]
-    )
-    def test_nan_bool_reductions(self, npop, nanop):
+    def test_nanany(self):
         self.check_funs(
-            nanop,
-            npop,
-            allow_complex=True,
+            nanops.nanany,
+            np.any,
             allow_all_nan=False,
             allow_str=False,
             allow_date=False,
             allow_tdelta=False,
-            allow_obj=True,
+        )
+
+    def test_nanall(self):
+        self.check_funs(
+            nanops.nanall,
+            np.all,
+            allow_all_nan=False,
+            allow_str=False,
+            allow_date=False,
+            allow_tdelta=False,
         )
 
     def test_nansum(self):
         self.check_funs(
             nanops.nansum,
             np.sum,
-            allow_complex=True,
-            allow_all_nan=True,
             allow_str=False,
             allow_date=False,
             allow_tdelta=True,
-            allow_obj=True,
             check_dtype=False,
+            empty_targfunc=np.nansum,
         )
 
     def test_nanmean(self):
@@ -330,11 +336,10 @@ class TestnanopsDataFrame:
             nanops.nanmean,
             np.mean,
             allow_complex=False,
-            allow_all_nan=True,
-            allow_str=False,
-            allow_date=False,  # FIXME: this should be allowed
-            allow_tdelta=True,
             allow_obj=False,
+            allow_str=False,
+            allow_date=False,
+            allow_tdelta=True,
         )
 
     def test_nanmean_overflow(self):
@@ -350,31 +355,22 @@ class TestnanopsDataFrame:
             assert result == np_result
             assert result.dtype == np.float64
 
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            np.int16,
-            np.int32,
-            np.int64,
-            np.float32,
-            np.float64,
-            getattr(np, "float128", None),
-        ],
-    )
-    def test_returned_dtype(self, dtype):
-        if dtype is None:
-            # No float128 available
-            return
+    def test_returned_dtype(self):
 
-        ser = Series(range(10), dtype=dtype)
-        group_a = ["mean", "std", "var", "skew", "kurt"]
-        group_b = ["min", "max"]
-        for method in group_a + group_b:
-            result = getattr(ser, method)()
-            if is_integer_dtype(dtype) and method in group_a:
-                assert result.dtype == np.float64
-            else:
-                assert result.dtype == dtype
+        dtypes = [np.int16, np.int32, np.int64, np.float32, np.float64]
+        if hasattr(np, "float128"):
+            dtypes.append(np.float128)
+
+        for dtype in dtypes:
+            s = Series(range(10), dtype=dtype)
+            group_a = ["mean", "std", "var", "skew", "kurt"]
+            group_b = ["min", "max"]
+            for method in group_a + group_b:
+                result = getattr(s, method)()
+                if is_integer_dtype(dtype) and method in group_a:
+                    assert result.dtype == np.float64
+                else:
+                    assert result.dtype == dtype
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
@@ -383,31 +379,34 @@ class TestnanopsDataFrame:
                 nanops.nanmedian,
                 np.median,
                 allow_complex=False,
-                allow_all_nan=True,
                 allow_str=False,
                 allow_date=False,
                 allow_tdelta=True,
                 allow_obj="convert",
             )
 
-    @pytest.mark.parametrize(
-        "nanop,npop,allow_tdelta",
-        [
-            (nanops.nanvar, np.var, True),  # FIXME: #28289 should disallow tdelta
-            (nanops.nanstd, np.std, True),
-            # TODO: nice way of getting test_nansem in here?
-        ],
-    )
     @pytest.mark.parametrize("ddof", range(3))
-    def test_ddof_nanop(self, ddof, nanop, npop, allow_tdelta):
+    def test_nanvar(self, ddof):
         self.check_funs(
-            nanop,
-            npop,
+            nanops.nanvar,
+            np.var,
             allow_complex=False,
-            allow_all_nan=True,
             allow_str=False,
             allow_date=False,
-            allow_tdelta=allow_tdelta,
+            allow_tdelta=True,
+            allow_obj="convert",
+            ddof=ddof,
+        )
+
+    @pytest.mark.parametrize("ddof", range(3))
+    def test_nanstd(self, ddof):
+        self.check_funs(
+            nanops.nanstd,
+            np.std,
+            allow_complex=False,
+            allow_str=False,
+            allow_date=False,
+            allow_tdelta=True,
             allow_obj="convert",
             ddof=ddof,
         )
@@ -422,7 +421,6 @@ class TestnanopsDataFrame:
                 nanops.nansem,
                 sem,
                 allow_complex=False,
-                allow_all_nan=True,
                 allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
@@ -430,23 +428,25 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
-    @pytest.mark.parametrize("nanop,npop", [
-        (nanops.nanmin, np.min),
-        (nanops.nanmax, np.max),
-    ])
-    def test_nanminmax(self, nanop, npop):
+    def _minmax_wrap(self, value, axis=None, func=None):
+
+        # numpy warns if all nan
+        res = func(value, axis)
+        if res.dtype.kind == "m":
+            res = np.atleast_1d(res)
+        return res
+
+    def test_nanmin(self):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(
-                nanop,
-                npop,
-                allow_complex=True,
-                allow_all_nan=True,
-                allow_str=False,
-                allow_date=True,
-                allow_tdelta=True,
-                allow_obj=False,
-            )
+            func = partial(self._minmax_wrap, func=np.min)
+            self.check_funs(nanops.nanmin, func, allow_str=False, allow_obj=False)
+
+    def test_nanmax(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            func = partial(self._minmax_wrap, func=np.max)
+            self.check_funs(nanops.nanmax, func, allow_str=False, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -470,28 +470,17 @@ class TestnanopsDataFrame:
             self.check_funs(
                 nanops.nanargmax,
                 func,
-                allow_complex=True,
-                allow_all_nan=True,
                 allow_str=False,
+                allow_obj=False,
                 allow_date=True,
                 allow_tdelta=True,
-                allow_obj=False,
             )
 
     def test_nanargmin(self):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmin)
-            self.check_funs(
-                nanops.nanargmin,
-                func,
-                allow_complex=True,
-                allow_all_nan=True,
-                allow_str=False,
-                allow_date=True,
-                allow_tdelta=True,
-                allow_obj=False,
-            )
+            self.check_funs(nanops.nanargmin, func, allow_str=False, allow_obj=False)
 
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):
@@ -515,11 +504,9 @@ class TestnanopsDataFrame:
                 nanops.nanskew,
                 func,
                 allow_complex=False,
-                allow_all_nan=True,
                 allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
-                allow_obj=True,
             )
 
     @td.skip_if_no_scipy
@@ -533,23 +520,19 @@ class TestnanopsDataFrame:
                 nanops.nankurt,
                 func,
                 allow_complex=False,
-                allow_all_nan=True,
                 allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
-                allow_obj=True,
             )
 
     def test_nanprod(self):
         self.check_funs(
             nanops.nanprod,
             np.prod,
-            allow_complex=True,
-            allow_all_nan=True,
             allow_str=False,
             allow_date=False,
             allow_tdelta=False,
-            allow_obj=True,
+            empty_targfunc=np.nanprod,
         )
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
@@ -724,24 +707,33 @@ class TestnanopsDataFrame:
             except ValueError:
                 break
 
-    @pytest.mark.parametrize(
-        "op,nanop",
-        [
-            (operator.eq, nanops.naneq),
-            (operator.ne, nanops.nanne),
-            (operator.gt, nanops.nangt),
-            (operator.ge, nanops.nange),
-            (operator.lt, nanops.nanlt),
-            (operator.le, nanops.nanle),
-        ],
-    )
-    def test_nan_comparison(self, op, nanop):
-        targ0 = op(self.arr_float, self.arr_float1)
-        self.check_nancomp(nanop, targ0)
+    def test_nangt(self):
+        targ0 = self.arr_float > self.arr_float1
+        self.check_nancomp(nanops.nangt, targ0)
 
-    def check_bool(self, func, value, correct):
+    def test_nange(self):
+        targ0 = self.arr_float >= self.arr_float1
+        self.check_nancomp(nanops.nange, targ0)
+
+    def test_nanlt(self):
+        targ0 = self.arr_float < self.arr_float1
+        self.check_nancomp(nanops.nanlt, targ0)
+
+    def test_nanle(self):
+        targ0 = self.arr_float <= self.arr_float1
+        self.check_nancomp(nanops.nanle, targ0)
+
+    def test_naneq(self):
+        targ0 = self.arr_float == self.arr_float1
+        self.check_nancomp(nanops.naneq, targ0)
+
+    def test_nanne(self):
+        targ0 = self.arr_float != self.arr_float1
+        self.check_nancomp(nanops.nanne, targ0)
+
+    def check_bool(self, func, value, correct, *args, **kwargs):
         while getattr(value, "ndim", True):
-            res0 = func(value)
+            res0 = func(value, *args, **kwargs)
             if correct:
                 assert res0
             else:
