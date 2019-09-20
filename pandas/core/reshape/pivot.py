@@ -534,42 +534,38 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-
-    index = com.maybe_make_list(index)
-    columns = com.maybe_make_list(columns)
-
-    rownames = _get_names(index, rownames, prefix="row")
-    colnames = _get_names(columns, colnames, prefix="col")
-
-    common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
-
-    if len(set(rownames)) != len(rownames):
-        raise ValueError("Duplicated index/row names not allowed")
-    if len(set(colnames)) != len(colnames):
-        raise ValueError("Duplicated column names not allowed")
-
-    repeated_names = set(rownames).intersection(set(colnames))
-    if repeated_names:
-        raise ValueError(
-            "Column and rows cannot share the same names. "
-            "Repeated names: {repeated_names}".format(
-                repeated_names=", ".join(repeated_names)
-            )
-        )
-
-    data = {}
-    data.update(zip(rownames, index))
-    data.update(zip(colnames, columns))
-
     if values is None and aggfunc is not None:
         raise ValueError("aggfunc cannot be used without values.")
 
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
+
+    common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
+
+    rownames = _get_names(index, rownames, prefix="row")
+    colnames = _get_names(columns, colnames, prefix="col")
+
+    # We create our own mapping of row and columns names
+    # to prevent issues with duplicate columns. GH Issue: #22529
+    shared_col_row_names = set(rownames).intersection(set(colnames))
+    row_names_mapper, unique_row_names = _build_names_mapper(
+        rownames, shared_col_row_names, "row"
+    )
+    col_names_mapper, unique_col_names = _build_names_mapper(
+        colnames, shared_col_row_names, "col"
+    )
+
     from pandas import DataFrame
 
+    data = {}
+    data.update(zip(unique_row_names, index))
+    data.update(zip(unique_col_names, columns))
+
     df = DataFrame(data, index=common_idx)
+
     if values is None:
         df["__dummy__"] = 0
         kwargs = {"aggfunc": len, "fill_value": 0}
@@ -579,12 +575,12 @@ def crosstab(
 
     table = df.pivot_table(
         "__dummy__",
-        index=rownames,
-        columns=colnames,
+        index=unique_row_names,
+        columns=unique_col_names,
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs
+        **kwargs,
     )
 
     # Post-process
@@ -592,6 +588,11 @@ def crosstab(
         table = _normalize(
             table, normalize=normalize, margins=margins, margins_name=margins_name
         )
+
+    print(row_names_mapper)
+    print(col_names_mapper)
+    table = table.rename_axis(index=row_names_mapper, axis=0)
+    table = table.rename_axis(columns=col_names_mapper, axis=1)
 
     return table
 
@@ -692,3 +693,44 @@ def _get_names(arrs, names, prefix="row"):
             names = list(names)
 
     return names
+
+
+def _get_duplicate_count(names_list):
+    seen_names = set()
+    duplicate_names = {}
+    for name in names_list:
+        if name not in seen_names:
+            duplicate_names[name] = 0
+            seen_names.add(name)
+        else:
+            duplicate_names[name] += 1
+
+    return duplicate_names
+
+
+def _build_names_mapper(names, shared_col_row_names, suffix):
+
+    dup_names_count = _get_duplicate_count(names)
+    names_mapper = {}
+    unique_names = []
+
+    # We reserve the names so the number are in order of appearance
+    for name in reversed(names):
+        mapped_name = name
+        num_duplicates = dup_names_count[name]
+
+        # Add a number if it is duplicated
+        if num_duplicates > 0:
+            mapped_name = f"{mapped_name}_{num_duplicates}"
+            dup_names_count[name] -= 1
+
+        # Add suffix if it is shared between column and rows
+        if name in shared_col_row_names:
+            mapped_name = f"{mapped_name}_{suffix}"
+
+        names_mapper[mapped_name] = name
+
+        # Creates a list of names in the original order
+        unique_names.insert(0, mapped_name)
+
+    return names_mapper, unique_names

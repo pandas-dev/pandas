@@ -2441,28 +2441,49 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_dup_index_names(self):
-        # Duplicate names/index/rows in crosstab are not supported
+        # We test that duplicated column names do not produce issues
+        # GH Issue: #22529
 
+        # Duplicate name shared between rows and columns
         s1 = pd.Series(range(3), name="foo")
         s2 = s1 + 1
+        expected = pd.crosstab(s1, s2.rename("bar"))
+        result = pd.crosstab(s1, s2)
+        tm.assert_frame_equal(
+            result, expected.rename_axis(columns={"bar": "foo"}, axis=1)
+        )
+        assert result.index.names == ["foo"]
+        assert result.columns.names == ["foo"]
 
-        msg = "Column and rows cannot share the same names. Repeated names: foo"
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab(s1, s2)
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab(s1, [s2, s2.rename("bar")])
+        # Row names duplicated
+        s1 = pd.Series(range(3), name="foo")
+        s2 = s1 + 1
+        s3 = pd.Series(range(3), name="bar_col")
 
-        msg = "Duplicated column names not allowed"
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab(s1.rename("bar"), [s2, s2])
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab(s1.rename("bar"), [s2.rename("one"), s2, s2])
+        expected = pd.crosstab([s1, s2.rename("bar")], s3)
+        result = pd.crosstab([s1, s2], s3)
 
-        msg = "Duplicated index/row names not allowed"
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab([s1, s1], s2.rename("bar"))
-        with pytest.raises(ValueError, match=msg):
-            pd.crosstab([s1, s1, s1.rename("one")], s2.rename("bar"))
+        tm.assert_frame_equal(
+            result, expected.rename_axis(index={"bar": "foo"}, axis=0)
+        )
+
+        assert result.index.names == ["foo", "foo"]
+        assert result.columns.names == ["bar_col"]
+
+        # Column names duplicated
+        s1 = pd.Series(range(3), name="foo")
+        s2 = s1 + 1
+        s3 = pd.Series(range(3), name="bar_row")
+
+        expected = pd.crosstab(s3, [s1, s2.rename("bar")])
+        result = pd.crosstab(s3, [s1, s2])
+
+        tm.assert_frame_equal(
+            result, expected.rename_axis(columns={"bar": "foo"}, axis=1)
+        )
+
+        assert result.index.names == ["bar_row"]
+        assert result.columns.names == ["foo", "foo"]
 
     @pytest.mark.parametrize("names", [["a", ("b", "c")], [("a", "b"), "c"]])
     def test_crosstab_tuple_name(self, names):
