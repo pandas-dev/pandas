@@ -198,15 +198,13 @@ class TestPivotTable:
             "metric_value",
             "metric_name",
             ["measurer", "product"],
-            dropna=False,
-            keep_only_observed_nancols=True,
+            dropna=True,
         )
         pv_ind = df.pivot_table(
             "metric_value",
             ["measurer", "product"],
             "metric_name",
-            dropna=False,
-            keep_only_observed_nancols=True,
+            dropna=True,
         )
 
         m = MultiIndex.from_tuples(
