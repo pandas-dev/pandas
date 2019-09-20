@@ -346,22 +346,31 @@ class TestnanopsDataFrame:
             assert result == np_result
             assert result.dtype == np.float64
 
-    def test_returned_dtype(self):
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            np.int16,
+            np.int32,
+            np.int64,
+            np.float32,
+            np.float64,
+            getattr(np, "float128", None),
+        ],
+    )
+    def test_returned_dtype(self, dtype):
+        if dtype is None:
+            # no float128 available
+            return
 
-        dtypes = [np.int16, np.int32, np.int64, np.float32, np.float64]
-        if hasattr(np, "float128"):
-            dtypes.append(np.float128)
-
-        for dtype in dtypes:
-            s = Series(range(10), dtype=dtype)
-            group_a = ["mean", "std", "var", "skew", "kurt"]
-            group_b = ["min", "max"]
-            for method in group_a + group_b:
-                result = getattr(s, method)()
-                if is_integer_dtype(dtype) and method in group_a:
-                    assert result.dtype == np.float64
-                else:
-                    assert result.dtype == dtype
+        s = Series(range(10), dtype=dtype)
+        group_a = ["mean", "std", "var", "skew", "kurt"]
+        group_b = ["min", "max"]
+        for method in group_a + group_b:
+            result = getattr(s, method)()
+            if is_integer_dtype(dtype) and method in group_a:
+                assert result.dtype == np.float64
+            else:
+                assert result.dtype == dtype
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
