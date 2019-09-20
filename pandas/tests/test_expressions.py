@@ -213,25 +213,22 @@ class TestExpressions:
     @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
     def test_comparison_ops(self, opname, op_str, left, right):
         def testit():
-            f11 = left
             f12 = left + 1
-
-            f21 = right
             f22 = right + 1
 
             op = getattr(operator, opname)
 
-            result = expr._can_use_numexpr(op, op_str, f11, f12, "evaluate")
-            assert result != f11._is_mixed_type
+            result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
+            assert result != left._is_mixed_type
 
-            result = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
-            expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
+            result = expr.evaluate(op, op_str, left, f12, use_numexpr=True)
+            expected = expr.evaluate(op, op_str, left, f12, use_numexpr=False)
             if isinstance(result, DataFrame):
                 tm.assert_frame_equal(result, expected)
             else:
                 tm.assert_numpy_array_equal(result, expected.values)
 
-            result = expr._can_use_numexpr(op, op_str, f21, f22, "evaluate")
+            result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
             assert not result
 
         expr.set_use_numexpr(False)
