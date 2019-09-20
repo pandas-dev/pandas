@@ -364,7 +364,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         apply box func to passed values
         """
-        return lib.map_infer(values.ravel(), self._box_func).reshape(values.shape)
+        return lib.map_infer(values, self._box_func)
 
     def __iter__(self):
         if self.ndim > 1:
