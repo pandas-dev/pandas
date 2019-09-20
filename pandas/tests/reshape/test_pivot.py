@@ -185,7 +185,7 @@ class TestPivotTable:
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
-    def test_pivot_table_keep_nancols(self):
+    def test_pivot_table_keep_nancols(self):  # GH18030
         df = pd.DataFrame(
             {
                 "metric_value": [10, 11, 0, 3, np.nan, np.nan, 100, 20],
@@ -223,6 +223,22 @@ class TestPivotTable:
         )
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
+
+        expected_pv_col = pd.DataFrame(
+            {
+                ("Bill", "B"): {"m": 0.0, "n": np.nan, "x": np.nan},
+                ("Bill", "C"): {"m": np.nan, "n": np.nan, "x": np.nan},
+                ("Bill", "D"): {"m": 100.0, "n": np.nan, "x": np.nan},
+                ("Tom", "A"): {"m": 10.0, "n": 11.0, "x": np.nan},
+                ("Tom", "B"): {"m": np.nan, "n": np.nan, "x": 3.0},
+                ("Tom", "C"): {"m": np.nan, "n": np.nan, "x": np.nan},
+                ("Tom", "D"): {"m": np.nan, "n": 20.0, "x": np.nan},
+            }
+        )
+        expected_pv_col.index.name = "metric_name"
+        expected_pv_col.columns.names = ["measurer", "product"]
+
+        tm.assert_frame_equal(pv_col, expected_pv_col)
 
     def test_pivot_table_categorical(self):
 
