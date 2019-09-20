@@ -707,7 +707,6 @@ def _get_duplicate_count(names_list):
 
 
 def _build_names_mapper(names, shared_col_row_names, suffix):
-
     dup_names_count = _get_duplicate_count(names)
     names_mapper = {}
     unique_names = []
