@@ -1,4 +1,5 @@
 from functools import partial
+import operator
 import warnings
 
 import numpy as np
@@ -15,6 +16,7 @@ import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
 use_bn = nanops._USE_BOTTLENECK
+has_c16 = hasattr(np, "complex128")
 
 
 class TestnanopsDataFrame:
@@ -131,14 +133,9 @@ class TestnanopsDataFrame:
                 if targ.dtype.kind != "O":
                     res = res.astype(targ.dtype)
                 else:
-                    try:
-                        res = res.astype("c16")
-                    except RuntimeError:
-                        res = res.astype("f8")
-                    try:
-                        targ = targ.astype("c16")
-                    except RuntimeError:
-                        targ = targ.astype("f8")
+                    cast_dtype = "c16" if has_c16 else "f8"
+                    res = res.astype(cast_dtype)
+                    targ = targ.astype(cast_dtype)
             # there should never be a case where numpy returns an object
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == "O":
@@ -180,12 +177,10 @@ class TestnanopsDataFrame:
         if testarval.ndim <= 1:
             return
 
-        try:
-            testarval2 = np.take(testarval, 0, axis=-1)
-            targarval2 = np.take(targarval, 0, axis=-1)
-            targarnanval2 = np.take(targarnanval, 0, axis=-1)
-        except ValueError:
-            return
+        # Recurse on lower-dimension
+        testarval2 = np.take(testarval, 0, axis=-1)
+        targarval2 = np.take(targarval, 0, axis=-1)
+        targarnanval2 = np.take(targarnanval, 0, axis=-1)
         self.check_fun_data(
             testfunc,
             targfunc,
@@ -264,13 +259,9 @@ class TestnanopsDataFrame:
             objs += [self.arr_str.astype("O"), self.arr_utf.astype("O")]
 
         if allow_date:
-            try:
-                targfunc(self.arr_date)
-            except TypeError:
-                pass
-            else:
-                self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
-                objs += [self.arr_date.astype("O")]
+            targfunc(self.arr_date)
+            self.check_fun(testfunc, targfunc, "arr_date", **kwargs)
+            objs += [self.arr_date.astype("O")]
 
         if allow_tdelta:
             try:
@@ -695,41 +686,30 @@ class TestnanopsDataFrame:
             res2 = checkfun(arr_float_nan, arr_nan_float1)
             tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
 
-            try:
-                arr_float = np.take(arr_float, 0, axis=-1)
-                arr_float1 = np.take(arr_float1, 0, axis=-1)
-                arr_nan = np.take(arr_nan, 0, axis=-1)
-                arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
-                arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
-                arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
-                arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
-                targ0 = np.take(targ0, 0, axis=-1)
-            except ValueError:
-                break
+            # Lower dimension for next step in the loop
+            arr_float = np.take(arr_float, 0, axis=-1)
+            arr_float1 = np.take(arr_float1, 0, axis=-1)
+            arr_nan = np.take(arr_nan, 0, axis=-1)
+            arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
+            arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
+            arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
+            arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
+            targ0 = np.take(targ0, 0, axis=-1)
 
-    def test_nangt(self):
-        targ0 = self.arr_float > self.arr_float1
-        self.check_nancomp(nanops.nangt, targ0)
-
-    def test_nange(self):
-        targ0 = self.arr_float >= self.arr_float1
-        self.check_nancomp(nanops.nange, targ0)
-
-    def test_nanlt(self):
-        targ0 = self.arr_float < self.arr_float1
-        self.check_nancomp(nanops.nanlt, targ0)
-
-    def test_nanle(self):
-        targ0 = self.arr_float <= self.arr_float1
-        self.check_nancomp(nanops.nanle, targ0)
-
-    def test_naneq(self):
-        targ0 = self.arr_float == self.arr_float1
-        self.check_nancomp(nanops.naneq, targ0)
-
-    def test_nanne(self):
-        targ0 = self.arr_float != self.arr_float1
-        self.check_nancomp(nanops.nanne, targ0)
+    @pytest.mark.parametrize(
+        "op,nanop",
+        [
+            (operator.eq, nanops.naneq),
+            (operator.ne, nanops.nanne),
+            (operator.gt, nanops.nangt),
+            (operator.ge, nanops.nange),
+            (operator.lt, nanops.nanlt),
+            (operator.le, nanops.nanle),
+        ],
+    )
+    def test_nan_comparison(self, op, nanop):
+        targ0 = op(self.arr_float, self.arr_float1)
+        self.check_nancomp(nanop, targ0)
 
     def check_bool(self, func, value, correct, *args, **kwargs):
         while getattr(value, "ndim", True):
@@ -741,10 +721,9 @@ class TestnanopsDataFrame:
 
             if not hasattr(value, "ndim"):
                 break
-            try:
-                value = np.take(value, 0, axis=-1)
-            except ValueError:
-                break
+
+            # Reduce dimension for next step in the loop
+            value = np.take(value, 0, axis=-1)
 
     def test__has_infs(self):
         pairs = [
