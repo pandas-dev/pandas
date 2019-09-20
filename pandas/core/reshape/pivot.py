@@ -589,8 +589,6 @@ def crosstab(
             table, normalize=normalize, margins=margins, margins_name=margins_name
         )
 
-    print(row_names_mapper)
-    print(col_names_mapper)
     table = table.rename_axis(index=row_names_mapper, axis=0)
     table = table.rename_axis(columns=col_names_mapper, axis=1)
 
