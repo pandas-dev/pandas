@@ -76,6 +76,17 @@ _i8_message = """
 """
 
 
+def compat_2d(meth):
+    def new_meth(self, *args, **kwargs):
+        if self.ndim > 1:
+            result = meth(self.ravel(), *args, **kwargs)
+            return result.reshape(self.shape)
+        return meth(self, *args, **kwargs)
+
+    new_meth.__name__ = meth.__name__
+    return new_meth
+
+
 def tz_to_dtype(tz):
     """
     Return a datetime64[ns] dtype appropriate for the given timezone.
@@ -361,8 +372,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
-        if values.ndim != 1:
-            raise ValueError("Only 1-dimensional input arrays are supported.")
+        #if values.ndim != 1:
+        #    raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == "i8":
             # for compat with datetime/timedelta/period shared methods,
@@ -818,6 +829,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             new_values[arr_mask] = iNaT
         return new_values.view("timedelta64[ns]")
 
+    @compat_2d
     def _add_offset(self, offset):
         assert not isinstance(offset, Tick)
         try:
@@ -825,6 +837,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
+
             result = offset.apply_index(values)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
@@ -962,6 +975,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
+    @compat_2d
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise", errors=None):
         """
         Localize tz-naive Datetime Array/Index to tz-aware

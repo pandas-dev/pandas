@@ -55,7 +55,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
 
         result = libops.vec_compare(x, y, op)
     else:
-        result = libops.scalar_compare(x, y, op)
+        result = libops.scalar_compare(x.ravel(), y, op).reshape(x.shape)
     return result
 
 
@@ -155,12 +155,22 @@ def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
+def array_op(left, right, op, str_rep, eval_kwargs):
+    op_name = op.__name__.strip("_")
+    if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
+        return comparison_op(left, right, op, str_rep, eval_kwargs)
+    elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
+        return logical_op(left, right, op, str_rep, eval_kwargs)
+    else:
+        return arithmetic_op(left, right, op, str_rep, eval_kwargs)
+
+
 def arithmetic_op(
     left: Union[np.ndarray, ABCExtensionArray],
     right: Any,
     op,
     str_rep: str,
-    eval_kwargs: Dict[str, str],
+    eval_kwargs: Dict[str, bool],
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
@@ -220,7 +230,7 @@ def arithmetic_op(
 
 
 def comparison_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
+    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep, eval_kwargs
 ) -> Union[np.ndarray, ABCExtensionArray]:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
@@ -259,10 +269,11 @@ def comparison_op(
 
     elif is_scalar(rvalues) and isna(rvalues):
         # numpy does not like comparisons vs None
+        # TODO: Should we be using invalid_comparison here?
         if op is operator.ne:
-            res_values = np.ones(len(lvalues), dtype=bool)
+            res_values = np.ones(lvalues.shape, dtype=bool)
         else:
-            res_values = np.zeros(len(lvalues), dtype=bool)
+            res_values = np.zeros(lvalues.shape, dtype=bool)
 
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
@@ -318,7 +329,7 @@ def na_logical_op(x, y, op):
 
 
 def logical_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
+    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep, eval_kwargs
 ) -> Union[np.ndarray, ABCExtensionArray]:
     """
     Evaluate a logical operation `|`, `&`, or `^`.

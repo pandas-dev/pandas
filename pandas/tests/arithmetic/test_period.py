@@ -755,18 +755,18 @@ class TestPeriodIndexArithmetic:
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
+    def test_pi_add_offset_n_gt1(self, box_with_array):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
-        box, transpose = box_transpose_fail
+        box = box_with_array
 
         per = pd.Period("2016-01", freq="2M")
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(["2016-03"], freq="2M")
 
-        pi = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        pi = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)

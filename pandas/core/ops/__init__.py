@@ -34,6 +34,7 @@ from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
+    array_op,
     comparison_op,
     define_na_arithmetic_op,
     logical_op,
@@ -455,7 +456,7 @@ def should_series_dispatch(left, right, op):
     return False
 
 
-def dispatch_to_series(left, right, func, str_rep=None, axis=None):
+def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -474,10 +475,55 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
+    eval_kwargs = eval_kwargs or {}
+
     import pandas.core.computation.expressions as expressions
 
     right = lib.item_from_zerodim(right)
+
     if lib.is_scalar(right) or np.ndim(right) == 0:
+
+        new_blocks = []
+        mgr = left._data
+        for blk in mgr.blocks:
+            # Reshape for EA Block
+            blk_vals = blk.values
+            if hasattr(blk_vals, "reshape"):
+                # DTA/TDA/PA
+                blk_vals = blk_vals.reshape(blk.shape)
+                blk_vals = blk_vals.T
+            new_vals = array_op(blk_vals, right, func, str_rep, eval_kwargs)
+
+            # Reshape for EA Block
+            #new_vals = new_vals.reshape(blk.values.shape[::-1]).T
+            if is_extension_array_dtype(new_vals.dtype):
+                from pandas.core.internals.blocks import make_block
+                if hasattr(new_vals, "reshape"):
+                    # DTA/TDA/PA
+                    new_vals = new_vals.reshape(blk.shape[::-1])
+                    assert new_vals.shape[-1] == len(blk.mgr_locs), (new_vals.dtype, new_vals.shape, blk.mgr_locs)
+                    for i in range(new_vals.shape[-1]):
+                        nb = make_block(new_vals[..., i], placement=[blk.mgr_locs[i]])
+                        new_blocks.append(nb)
+                else:
+                    # Categorical, IntegerArray
+                    assert len(blk.mgr_locs) == 1
+                    assert new_vals.shape == (blk.shape[-1],), (new_vals.shape, blk.shape)
+                    nb = make_block(new_vals, placement=blk.mgr_locs, ndim=2)
+                    new_blocks.append(nb)
+            elif blk.values.ndim == 1:
+                # need to bump up to 2D
+                new_vals = new_vals.reshape(-1, 1)
+                assert new_vals.T.shape == blk.shape
+                nb = blk.make_block(new_vals.T)
+                new_blocks.append(nb)
+            else:
+                assert new_vals.T.shape == blk.shape
+                nb = blk.make_block(new_vals.T)
+                new_blocks.append(nb)
+
+        bm = type(mgr)(new_blocks, mgr.axes)
+        return type(left)(bm)
 
         def column_op(a, b):
             return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
@@ -667,7 +713,7 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op)
+        res_values = comparison_op(lvalues, rvalues, op, None, {})
 
         result = self._constructor(res_values, index=self.index)
         result = finalizer(result)
@@ -707,7 +753,7 @@ def _bool_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = logical_op(lvalues, rvalues, op)
+        res_values = logical_op(lvalues, rvalues, op, None, {})
         result = self._constructor(res_values, index=self.index, name=res_name)
         return finalizer(result)
 
@@ -914,7 +960,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep, {})
             return self._construct_result(other, new_data, na_op)
 
         elif isinstance(other, ABCSeries):
@@ -945,7 +991,7 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            new_data = dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep, {})
             return self._construct_result(other, new_data, func)
 
         elif isinstance(other, ABCSeries):

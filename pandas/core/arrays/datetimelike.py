@@ -327,6 +327,31 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     and that the inheriting class has methods:
         _generate_range
     """
+    @property
+    def ndim(self):
+        return self._data.ndim
+
+    @property
+    def shape(self):
+        return self._data.shape
+
+    def __len__(self):
+        return self.shape[0]
+
+    @property
+    def T(self):
+        # Note: we drop any freq
+        return type(self)(self._data.T, dtype=self.dtype)
+
+    def reshape(self, *args, **kwargs):
+        # Note: we drop any freq
+        data = self._data.reshape(*args, **kwargs)
+        return type(self)(data, dtype=self.dtype)
+
+    def ravel(self, *args, **kwargs):
+        # Note: we drop any freq
+        data = self._data.ravel(*args, **kwargs)
+        return type(self)(data, dtype=self.dtype)
 
     @property
     def _box_func(self):
@@ -339,9 +364,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        return lib.map_infer(values.ravel(), self._box_func).reshape(values.shape)
 
     def __iter__(self):
+        if self.ndim > 1:
+            return (self[i] for i in range(len(self)))
         return (self._box_func(v) for v in self.asi8)
 
     @property
@@ -416,7 +443,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
-            return self._box_func(val)
+            if np.ndim(val) == 0:
+                return self._box_func(val)
+            # In 2D case, we reduce to 1D
+            return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -1032,7 +1062,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
-        result = np.zeros(len(self), dtype=np.int64)
+        result = np.zeros(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
@@ -1046,7 +1076,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # For datetime64 dtypes by convention we treat NaT as a datetime, so
         # this subtraction returns a timedelta64 dtype.
         # For period dtype, timedelta64 is a close-enough return dtype.
-        result = np.zeros(len(self), dtype=np.int64)
+        result = np.zeros(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return result.view("timedelta64[ns]")
 
