@@ -441,10 +441,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
-            if np.ndim(val) == 0:
-                return self._box_func(val)
-            # In 2D case, we reduce to 1D
-            return type(self)(val, dtype=self.dtype)
+            return self._box_func(val)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
