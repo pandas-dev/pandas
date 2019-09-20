@@ -151,6 +151,7 @@ Performance improvements
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
 - Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
+- Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 
 .. _whatsnew_1000.bug_fixes:
 
