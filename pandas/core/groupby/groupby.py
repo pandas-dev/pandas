@@ -702,7 +702,6 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
@@ -737,6 +736,13 @@ b  2""",
                 # except if the udf is trying an operation that
                 # fails on *some* columns, e.g. a numeric operation
                 # on a string grouper column
+
+                # GH 28549
+                # This block should only be hit
+                # because of an operation failing on a
+                # grouper column if is_index=False.
+                # Otherwise it will only be hit by an operation
+                # failing on another column, and will fail both attempts
 
                 return self._python_apply_general(f)
 

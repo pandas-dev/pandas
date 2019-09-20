@@ -104,7 +104,6 @@ def test_builtins_apply(keys, f):
 
     # GH 28549
     # grouping keys should not be included in output
-    # without set_index=True
     if isinstance(keys, list):
         result_shape = len(df.columns) - len(keys)
     else:
@@ -128,9 +127,9 @@ def test_builtins_apply(keys, f):
 
     # GH 28549
     # grouping keys should not be in output
-    dropped = df.drop(keys, 1)
+    df = df.drop(keys, 1)
 
-    tm.assert_series_equal(getattr(result, fname)(), getattr(dropped, fname)())
+    tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
 
 
 def test_arg_passthru():

@@ -98,7 +98,8 @@ def test_basic():
 
     # GH 28549
     # grouper key should not be present after apply
-    # with as_index=True
+    # with as_index=True.
+    # TODO split this into multiple tests
     dropped = x.drop("person_id", 1)
 
     expected = dropped.iloc[[0, 1]].copy()
