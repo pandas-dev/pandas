@@ -723,7 +723,7 @@ def test__is_dtype_type(input_param, result):
         np.float32,
     ],
 )
-def test_astype_datetime64_bad_dtype(from_type, to_type):
+def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
     arr = np.array([from_type("2018")])
 
     with pytest.raises(TypeError, match="cannot astype"):
