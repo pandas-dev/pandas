@@ -11,7 +11,6 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -366,7 +365,6 @@ def boxplot_frame(
 ):
     import matplotlib.pyplot as plt
 
-    converter._WARN = False  # no warning for pandas plots
     ax = boxplot(
         self,
         column=column,
@@ -398,7 +396,6 @@ def boxplot_frame_groupby(
     sharey=True,
     **kwds
 ):
-    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(

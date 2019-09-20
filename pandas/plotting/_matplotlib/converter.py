@@ -1,6 +1,7 @@
+import contextlib
 import datetime as pydt
 from datetime import datetime, timedelta
-import warnings
+import functools
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -23,6 +24,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas import get_option
 import pandas.core.common as com
 from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
@@ -39,7 +41,6 @@ SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
 MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
 
-_WARN = True  # Global for whether pandas has registered the units explicitly
 _mpl_units = {}  # Cache for units overwritten by us
 
 
@@ -55,13 +56,43 @@ def get_pairs():
     return pairs
 
 
-def register(explicit=True):
-    # Renamed in pandas.plotting.__init__
-    global _WARN
+def pandas_converters_deco(func):
+    """
+    Decorator applying pandas_converters.
+    """
 
-    if explicit:
-        _WARN = False
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with pandas_converters():
+            return func(*args, **kwargs)
 
+    return wrapper
+
+
+@contextlib.contextmanager
+def pandas_converters():
+    """
+    Context manager registering pandas' converters for a plot.
+
+    When
+    See Also
+    --------
+    pandas_converters_deco : Decorator that applies this.
+    """
+    value = get_option("plotting.matplotlib.register_converters")
+
+    if value:
+        # register for True or "auto"
+        register()
+    try:
+        yield
+    finally:
+        if value == "auto":
+            # only deregister for "auto"
+            deregister()
+
+
+def register():
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
@@ -84,24 +115,6 @@ def deregister():
         if type(formatter) not in {DatetimeConverter, PeriodConverter, TimeConverter}:
             # make it idempotent by excluding ours.
             units.registry[unit] = formatter
-
-
-def _check_implicitly_registered():
-    global _WARN
-
-    if _WARN:
-        msg = (
-            "Using an implicitly registered datetime converter for a "
-            "matplotlib plotting method. The converter was registered "
-            "by pandas on import. Future versions of pandas will require "
-            "you to explicitly register matplotlib converters.\n\n"
-            "To register the converters:\n\t"
-            ">>> from pandas.plotting import register_matplotlib_converters"
-            "\n\t"
-            ">>> register_matplotlib_converters()"
-        )
-        warnings.warn(msg, FutureWarning)
-        _WARN = False
 
 
 def _to_ordinalf(tm):
@@ -253,7 +266,6 @@ class DatetimeConverter(dates.DateConverter):
     @staticmethod
     def convert(values, unit, axis):
         # values might be a 1-d array, or a list-like of arrays.
-        _check_implicitly_registered()
         if is_nested_list_like(values):
             values = [DatetimeConverter._convert_1d(v, unit, axis) for v in values]
         else:
@@ -330,7 +342,6 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
 class PandasAutoDateLocator(dates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
         """Pick the best locator based on a distance."""
-        _check_implicitly_registered()
         delta = relativedelta(dmax, dmin)
 
         num_days = (delta.years * 12.0 + delta.months) * 31.0 + delta.days
@@ -372,7 +383,6 @@ class MilliSecondLocator(dates.DateLocator):
 
     def __call__(self):
         # if no data have been set, this will tank with a ValueError
-        _check_implicitly_registered()
         try:
             dmin, dmax = self.viewlim_to_dt()
         except ValueError:
@@ -990,7 +1000,6 @@ class TimeSeries_DateLocator(Locator):
     def __call__(self):
         "Return the locations of the ticks."
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
-        _check_implicitly_registered()
 
         vi = tuple(self.axis.get_view_interval())
         if vi != self.plot_obj.view_interval:
@@ -1075,7 +1084,6 @@ class TimeSeries_DateFormatter(Formatter):
         "Sets the locations of the ticks"
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
-        _check_implicitly_registered()
 
         self.locs = locs
 
@@ -1088,7 +1096,6 @@ class TimeSeries_DateFormatter(Formatter):
         self._set_default_format(vmin, vmax)
 
     def __call__(self, x, pos=0):
-        _check_implicitly_registered()
 
         if self.formatdict is None:
             return ""
@@ -1120,7 +1127,6 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         return s
 
     def __call__(self, x, pos=0):
-        _check_implicitly_registered()
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
         if n_decimals > 9:
