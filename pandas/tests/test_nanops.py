@@ -149,14 +149,13 @@ class TestnanopsDataFrame:
         targfunc,
         testarval,
         targarval,
-        targarnanval,
         check_dtype=True,
         empty_targfunc=None,
         **kwargs
     ):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
-                targartempval = targarval if skipna else targarnanval
+                targartempval = targarval if skipna else testarval
                 if skipna and empty_targfunc and isna(targartempval).all():
                     targ = empty_targfunc(targartempval, axis=axis, **kwargs)
                 else:
@@ -180,41 +179,30 @@ class TestnanopsDataFrame:
         # Recurse on lower-dimension
         testarval2 = np.take(testarval, 0, axis=-1)
         targarval2 = np.take(targarval, 0, axis=-1)
-        targarnanval2 = np.take(targarnanval, 0, axis=-1)
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval2,
             targarval2,
-            targarnanval2,
             check_dtype=check_dtype,
             empty_targfunc=empty_targfunc,
             **kwargs
         )
 
     def check_fun(
-        self,
-        testfunc,
-        targfunc,
-        testar,
-        targar=None,
-        targarnan=None,
-        empty_targfunc=None,
-        **kwargs
+        self, testfunc, targfunc, testar, targar=None, empty_targfunc=None, **kwargs
     ):
+
         if targar is None:
             targar = testar
-        if targarnan is None:
-            targarnan = testar
+
         testarval = getattr(self, testar)
         targarval = getattr(self, targar)
-        targarnanval = getattr(self, targarnan)
         self.check_fun_data(
             testfunc,
             targfunc,
             testarval,
             targarval,
-            targarnanval,
             empty_targfunc=empty_targfunc,
             **kwargs
         )
@@ -225,7 +213,6 @@ class TestnanopsDataFrame:
         targfunc,
         allow_complex=True,
         allow_all_nan=True,
-        allow_str=True,
         allow_date=True,
         allow_tdelta=True,
         allow_obj=True,
@@ -252,11 +239,6 @@ class TestnanopsDataFrame:
             if allow_all_nan:
                 self.check_fun(testfunc, targfunc, "arr_nan_nanj", **kwargs)
             objs += [self.arr_complex.astype("O")]
-
-        if allow_str:
-            self.check_fun(testfunc, targfunc, "arr_str", **kwargs)
-            self.check_fun(testfunc, targfunc, "arr_utf", **kwargs)
-            objs += [self.arr_str.astype("O"), self.arr_utf.astype("O")]
 
         if allow_date:
             targfunc(self.arr_date)
@@ -296,7 +278,6 @@ class TestnanopsDataFrame:
             nanops.nanany,
             np.any,
             allow_all_nan=False,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=False,
         )
@@ -306,7 +287,6 @@ class TestnanopsDataFrame:
             nanops.nanall,
             np.all,
             allow_all_nan=False,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=False,
         )
@@ -315,7 +295,6 @@ class TestnanopsDataFrame:
         self.check_funs(
             nanops.nansum,
             np.sum,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=True,
             check_dtype=False,
@@ -328,7 +307,6 @@ class TestnanopsDataFrame:
             np.mean,
             allow_complex=False,
             allow_obj=False,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=True,
         )
@@ -379,7 +357,6 @@ class TestnanopsDataFrame:
                 nanops.nanmedian,
                 np.median,
                 allow_complex=False,
-                allow_str=False,
                 allow_date=False,
                 allow_tdelta=True,
                 allow_obj="convert",
@@ -391,7 +368,6 @@ class TestnanopsDataFrame:
             nanops.nanvar,
             np.var,
             allow_complex=False,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=True,
             allow_obj="convert",
@@ -404,7 +380,6 @@ class TestnanopsDataFrame:
             nanops.nanstd,
             np.std,
             allow_complex=False,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=True,
             allow_obj="convert",
@@ -421,7 +396,6 @@ class TestnanopsDataFrame:
                 nanops.nansem,
                 sem,
                 allow_complex=False,
-                allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
                 allow_obj="convert",
@@ -440,13 +414,13 @@ class TestnanopsDataFrame:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.min)
-            self.check_funs(nanops.nanmin, func, allow_str=False, allow_obj=False)
+            self.check_funs(nanops.nanmin, func, allow_obj=False)
 
     def test_nanmax(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.max)
-            self.check_funs(nanops.nanmax, func, allow_str=False, allow_obj=False)
+            self.check_funs(nanops.nanmax, func, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -470,7 +444,6 @@ class TestnanopsDataFrame:
             self.check_funs(
                 nanops.nanargmax,
                 func,
-                allow_str=False,
                 allow_obj=False,
                 allow_date=True,
                 allow_tdelta=True,
@@ -480,7 +453,7 @@ class TestnanopsDataFrame:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmin)
-            self.check_funs(nanops.nanargmin, func, allow_str=False, allow_obj=False)
+            self.check_funs(nanops.nanargmin, func, allow_obj=False)
 
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):
@@ -504,7 +477,6 @@ class TestnanopsDataFrame:
                 nanops.nanskew,
                 func,
                 allow_complex=False,
-                allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
             )
@@ -520,7 +492,6 @@ class TestnanopsDataFrame:
                 nanops.nankurt,
                 func,
                 allow_complex=False,
-                allow_str=False,
                 allow_date=False,
                 allow_tdelta=False,
             )
@@ -529,7 +500,6 @@ class TestnanopsDataFrame:
         self.check_funs(
             nanops.nanprod,
             np.prod,
-            allow_str=False,
             allow_date=False,
             allow_tdelta=False,
             empty_targfunc=np.nanprod,
