@@ -54,14 +54,12 @@ class TestExpressions:
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
         for test_flex in [True, False]:
             for arith in operations:
-
-                operator_name = arith
-
+                # TODO: share with run_binary
                 if test_flex:
                     op = lambda x, y: getattr(x, arith)(y)
                     op.__name__ = arith
                 else:
-                    op = getattr(operator, operator_name)
+                    op = getattr(operator, arith)
                 expr.set_use_numexpr(False)
                 expected = op(df, other)
                 expr.set_use_numexpr(True)
@@ -87,13 +85,14 @@ class TestExpressions:
         for test_flex in [True, False]:
             for arith in operations:
                 if test_flex:
-                    op = lambda x, y: getattr(df, arith)(y)
+                    op = lambda x, y: getattr(x, arith)(y)
                     op.__name__ = arith
                 else:
                     op = getattr(operator, arith)
                 expr.set_use_numexpr(False)
                 expected = op(df, other)
                 expr.set_use_numexpr(True)
+
                 expr.get_test_result()
                 result = op(df, other)
                 used_numexpr = expr.get_test_result()
