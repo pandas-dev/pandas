@@ -116,6 +116,27 @@ class TestDataFrameApply:
         # Ensure that x.append hasn't been called
         assert x == []
 
+    @pytest.mark.parametrize("func", ["sum", "prod", "any", "all"])
+    def test_apply_funcs_over_empty(self, func):
+        # GH 28213
+        df = DataFrame(columns=["a", "b", "c"])
+
+        result = df.apply(getattr(np, func))
+        expected = getattr(df, func)()
+        assert_series_equal(result, expected)
+
+    def test_nunique_empty(self):
+        # GH 28213
+        df = DataFrame(columns=["a", "b", "c"])
+
+        result = df.nunique()
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
+
+        result = df.T.nunique()
+        expected = Series([], index=pd.Index([]))
+        assert_series_equal(result, expected)
+
     def test_apply_deprecate_reduce(self):
         empty_frame = DataFrame()
 
