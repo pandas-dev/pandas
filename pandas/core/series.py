@@ -56,7 +56,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -178,8 +178,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = generic.NDFrame._deprecations | frozenset(
-        ["asobject", "reshape", "get_value", "set_value", "valid", "tolist"]
+    _deprecations = (
+        generic.NDFrame._deprecations
+        | DirNamesMixin._deprecations
+        | frozenset(["asobject", "reshape", "get_value", "set_value", "valid"])
+        | frozenset(["ftype", "real", "imag", "tolist"])
     )
 
     # Override cache_readonly bc Series is mutable
