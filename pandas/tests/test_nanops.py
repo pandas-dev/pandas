@@ -271,9 +271,10 @@ class TestnanopsDataFrame:
         return func(value, **kwargs)
 
     @pytest.mark.parametrize(
-        "nan_op, np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
+        "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )
     def test_nan_funcs(self, nan_op, np_op):
+        # TODO: allow tdelta, doesn't break tests
         self.check_funs(
             nan_op, np_op, allow_all_nan=False, allow_date=False, allow_tdelta=False
         )
@@ -291,7 +292,7 @@ class TestnanopsDataFrame:
         self.check_funs(
             nanops.nanmean,
             np.mean,
-            allow_complex=False,
+            allow_complex=False,  # TODO: allow this, doesn't break test
             allow_obj=False,
             allow_date=False,
         )
