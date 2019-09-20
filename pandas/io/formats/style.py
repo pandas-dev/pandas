@@ -1357,7 +1357,6 @@ class Styler:
         **kwargs : optional
             A dictionary of keyword arguments passed into ``func``.
 
-
         Returns
         -------
         object :
