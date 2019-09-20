@@ -15,6 +15,9 @@ conda list
 #  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
+# free channel needed for older packages
+conda config --set restore_free_channel true
+
 echo
 echo "[create env]"
 time conda env create -q --file="${ENV_FILE}" || exit 1

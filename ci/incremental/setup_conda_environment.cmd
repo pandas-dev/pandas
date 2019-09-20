@@ -12,6 +12,8 @@ call deactivate
 conda list
 @rem Clean up any left-over from a previous build
 conda remove --all -q -y -n pandas-dev
+@rem free channel needed for older packages
+conda config --set restore_free_channel true
 @rem Scipy, CFFI, jinja2 and IPython are optional dependencies, but exercised in the test suite
 conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
 
