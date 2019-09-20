@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import isna
-from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
+from pandas.core.sparse.api import SparseArray, SparseDtype
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
@@ -220,36 +220,6 @@ class TestSparseArray:
 
         assert arr.dtype == dtype
         assert exp.dtype == dtype
-
-    @pytest.mark.parametrize("fill", [1, np.nan, 0])
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_sparse_series_round_trip(self, kind, fill):
-        # see gh-13999
-        arr = SparseArray([np.nan, 1, np.nan, 2, 3], kind=kind, fill_value=fill)
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-        arr = SparseArray(
-            [0, 0, 0, 1, 1, 2], dtype=np.int64, kind=kind, fill_value=fill
-        )
-        res = SparseArray(SparseSeries(arr), dtype=np.int64)
-        tm.assert_sp_array_equal(arr, res)
-
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-    @pytest.mark.parametrize("fill", [True, False, np.nan])
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_sparse_series_round_trip2(self, kind, fill):
-        # see gh-13999
-        arr = SparseArray(
-            [True, False, True, True], dtype=np.bool, kind=kind, fill_value=fill
-        )
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
 
     def test_get_item(self):
 
@@ -1142,7 +1112,6 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor:
     @pytest.mark.parametrize("attr", ["npoints", "density", "fill_value", "sp_values"])
     def test_get_attributes(self, attr):

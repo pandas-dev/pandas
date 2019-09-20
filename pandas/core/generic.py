@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    Any,
     Callable,
     Dict,
     FrozenSet,
@@ -60,7 +61,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer
+from pandas._typing import Dtype, FilePathOrBuffer, Scalar
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -165,7 +166,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)  # type: Set[str]
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
-        ["as_blocks", "blocks", "is_copy"]
+        ["as_blocks", "blocks", "is_copy", "ftypes", "ix"]
     )  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
@@ -2245,17 +2246,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(
         self,
-        path_or_buf=None,
-        orient=None,
-        date_format=None,
-        double_precision=10,
-        force_ascii=True,
-        date_unit="ms",
-        default_handler=None,
-        lines=False,
-        compression="infer",
-        index=True,
-    ):
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        orient: Optional[str] = None,
+        date_format: Optional[str] = None,
+        double_precision: int = 10,
+        force_ascii: bool_t = True,
+        date_unit: str = "ms",
+        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
+        lines: bool_t = False,
+        compression: Optional[str] = "infer",
+        index: bool_t = True,
+        indent: Optional[int] = None,
+    ) -> Optional[str]:
         """
         Convert the object to a JSON string.
 
@@ -2335,6 +2337,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
+        indent : integer, optional
+           Length of whitespace used to indent each record.
+
+           .. versionadded:: 1.0.0
+
         Returns
         -------
         None or str
@@ -2344,6 +2351,13 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         read_json
+
+        Notes
+        -----
+        The behavior of ``indent=0`` varies from the stdlib, which does not
+        indent the output but does insert newlines. Currently, ``indent=0``
+        and the default ``indent=None`` are equivalent in pandas, though this
+        may change in a future release.
 
         Examples
         --------
@@ -2395,6 +2409,10 @@ class NDFrame(PandasObject, SelectionMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
+
+        config.is_nonnegative_int(indent)
+        indent = indent or 0
+
         return json.to_json(
             path_or_buf=path_or_buf,
             obj=self,
@@ -2407,6 +2425,7 @@ class NDFrame(PandasObject, SelectionMixin):
             lines=lines,
             compression=compression,
             index=index,
+            indent=indent,
         )
 
     def to_hdf(self, path_or_buf, key, **kwargs):
@@ -2523,6 +2542,17 @@ class NDFrame(PandasObject, SelectionMixin):
         to_msgpack is deprecated and will be removed in a future version.
         It is recommended to use pyarrow for on-the-wire transmission of
         pandas objects.
+
+        Example pyarrow usage:
+
+        >>> import pandas as pd
+        >>> import pyarrow as pa
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+        >>> context = pa.default_serialization_context()
+        >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
+
+        For documentation on pyarrow, see `here
+        <https://arrow.apache.org/docs/python/index.html>`__.
 
         Parameters
         ----------
@@ -5573,9 +5603,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.23.0
 
-        This is useful for SparseDataFrame or for DataFrames containing
-        sparse arrays.
-
         Returns
         -------
         dtype : Series
@@ -5670,7 +5697,6 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.dtypes: Series with just dtype information.
-        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -5685,13 +5711,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1    float64:dense
         2    float64:dense
         3    float64:dense
-        dtype: object
-
-        >>> pd.SparseDataFrame(arr).ftypes  # doctest: +SKIP
-        0    float64:sparse
-        1    float64:sparse
-        2    float64:sparse
-        3    float64:sparse
         dtype: object
         """
         warnings.warn(

@@ -44,7 +44,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCSeries,
     ABCSparseArray,
-    ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -55,8 +54,8 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, SparseArray
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -177,8 +176,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = generic.NDFrame._deprecations | frozenset(
-        ["asobject", "reshape", "valid", "tolist"]
+    _deprecations = (
+        generic.NDFrame._deprecations
+        | DirNamesMixin._deprecations
+        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -246,7 +247,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif isinstance(data, np.ndarray):
                 pass
-            elif isinstance(data, (ABCSeries, ABCSparseSeries)):
+            elif isinstance(data, ABCSeries):
                 if name is None:
                     name = data.name
                 if index is None:
@@ -385,10 +386,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             FutureWarning,
             stacklevel=2,
         )
-        if isinstance(arr, ABCSparseArray):
-            from pandas.core.sparse.series import SparseSeries
-
-            cls = SparseSeries
         return cls(
             arr, index=index, name=name, dtype=dtype, copy=copy, fastpath=fastpath
         )
@@ -1771,38 +1768,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             df = self._constructor_expanddim({name: self})
 
         return df
-
-    def to_sparse(self, kind="block", fill_value=None):
-        """
-        Convert Series to SparseSeries.
-
-        .. deprecated:: 0.25.0
-
-        Parameters
-        ----------
-        kind : {'block', 'int'}, default 'block'
-        fill_value : float, defaults to NaN (missing)
-            Value to use for filling NaN values.
-
-        Returns
-        -------
-        SparseSeries
-            Sparse representation of the Series.
-        """
-
-        warnings.warn(
-            "Series.to_sparse is deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.sparse.series import SparseSeries
-
-        values = SparseArray(self, kind=kind, fill_value=fill_value)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="SparseSeries")
-            return SparseSeries(values, index=self.index, name=self.name).__finalize__(
-                self
-            )
 
     def _set_name(self, name, inplace=False):
         """
