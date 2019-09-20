@@ -1139,13 +1139,17 @@ class StataReader(StataParser, BaseIterator):
         # The first part of the header is common to 117 and 118.
         self.path_or_buf.read(27)  # stata_dta><header><release>
         self.format_version = int(self.path_or_buf.read(3))
-        if self.format_version not in [117, 118]:
+        if self.format_version not in [117, 118, 119]:
             raise ValueError(_version_error)
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
         self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
         self.path_or_buf.read(15)  # </byteorder><K>
-        self.nvar = struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
+        nvar_type = "H" if self.format_version <= 118 else "I"
+        nvar_size = 2 if self.format_version <= 118 else 4
+        self.nvar = struct.unpack(
+            self.byteorder + nvar_type, self.path_or_buf.read(nvar_size)
+        )[0]
         self.path_or_buf.read(7)  # </K><N>
 
         self.nobs = self._get_nobs()
@@ -1207,7 +1211,7 @@ class StataReader(StataParser, BaseIterator):
         self.path_or_buf.seek(self._seek_variable_labels)
         self._variable_labels = self._get_variable_labels()
 
-    # Get data type information, works for versions 117-118.
+    # Get data type information, works for versions 117-119.
     def _get_dtypes(self, seek_vartypes):
 
         self.path_or_buf.seek(seek_vartypes)
@@ -1241,14 +1245,14 @@ class StataReader(StataParser, BaseIterator):
     def _get_varlist(self):
         if self.format_version == 117:
             b = 33
-        elif self.format_version == 118:
+        elif self.format_version >= 118:
             b = 129
 
         return [self._decode(self.path_or_buf.read(b)) for i in range(self.nvar)]
 
     # Returns the format list
     def _get_fmtlist(self):
-        if self.format_version == 118:
+        if self.format_version >= 118:
             b = 57
         elif self.format_version > 113:
             b = 49
@@ -1270,7 +1274,7 @@ class StataReader(StataParser, BaseIterator):
         return [self._decode(self.path_or_buf.read(b)) for i in range(self.nvar)]
 
     def _get_variable_labels(self):
-        if self.format_version == 118:
+        if self.format_version >= 118:
             vlblist = [
                 self._decode(self.path_or_buf.read(321)) for i in range(self.nvar)
             ]
@@ -1285,13 +1289,13 @@ class StataReader(StataParser, BaseIterator):
         return vlblist
 
     def _get_nobs(self):
-        if self.format_version == 118:
+        if self.format_version >= 118:
             return struct.unpack(self.byteorder + "Q", self.path_or_buf.read(8))[0]
         else:
             return struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]
 
     def _get_data_label(self):
-        if self.format_version == 118:
+        if self.format_version >= 118:
             strlen = struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
             return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version == 117:
@@ -1303,7 +1307,7 @@ class StataReader(StataParser, BaseIterator):
             return self._decode(self.path_or_buf.read(32))
 
     def _get_time_stamp(self):
-        if self.format_version == 118:
+        if self.format_version >= 118:
             strlen = struct.unpack("b", self.path_or_buf.read(1))[0]
             return self.path_or_buf.read(strlen).decode("utf-8")
         elif self.format_version == 117:
@@ -1321,7 +1325,7 @@ class StataReader(StataParser, BaseIterator):
             # a work around that uses the previous label, 33 bytes for each
             # variable, 20 for the closing tag and 17 for the opening tag
             return self._seek_value_label_names + (33 * self.nvar) + 20 + 17
-        elif self.format_version == 118:
+        elif self.format_version >= 118:
             return struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 17
         else:
             raise ValueError()
@@ -1519,10 +1523,12 @@ the string values returned are correct."""
             else:
                 buf = self.path_or_buf.read(12)
                 # Only tested on little endian file on little endian machine.
+                v_size = 2 if self.format_version == 118 else 3
                 if self.byteorder == "<":
-                    buf = buf[0:2] + buf[4:10]
+                    buf = buf[0:v_size] + buf[4 : 12 - v_size]
                 else:
-                    buf = buf[0:2] + buf[6:]
+                    # This path may not be correct, impossible to test
+                    buf = buf[0:v_size] + buf[4 + v_size :]
                 v_o = struct.unpack("Q", buf)[0]
             typ = struct.unpack("B", self.path_or_buf.read(1))[0]
             length = struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]

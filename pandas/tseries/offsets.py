@@ -605,7 +605,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
         else:
             raise ApplyTypeError(
-                "Only know how to combine business day with " "datetime or timedelta."
+                "Only know how to combine business day with datetime or timedelta."
             )
 
     @apply_index_wraps
@@ -1544,6 +1544,13 @@ class Week(DateOffset):
     def apply(self, other):
         if self.weekday is None:
             return other + self.n * self._inc
+
+        if not isinstance(other, datetime):
+            raise TypeError(
+                "Cannot add {typ} to {cls}".format(
+                    typ=type(other).__name__, cls=type(self).__name__
+                )
+            )
 
         k = self.n
         otherDay = other.weekday()
