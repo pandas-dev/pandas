@@ -3,10 +3,39 @@
 What's new in 1.0.0 (??)
 ------------------------
 
-.. warning::
+New Deprecation Policy
+~~~~~~~~~~~~~~~~~~~~~~
 
-   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
+Starting with Pandas 1.0.0, pandas will adopt a version of `SemVer`_.
+
+Historically, pandas has used a "rolling" deprecation policy, with occasional
+outright breaking API changes. Where possible, we would deprecate the behavior
+we'd like to change, giving an option to adopt the new behavior (via a keyword
+or an alternative method), and issuing a warning for users of the old behavior.
+Sometimes, a deprecation was not possible, and we would make an outright API
+breaking change.
+
+We'll continue to *introduce* deprecations in major and minor releases (e.g.
+1.0.0, 1.1.0, ...). Those deprecations will be *enforced* in the next major
+release.
+
+Note that *behavior changes* and *API breaking changes* are not identical. API
+breaking changes will only be released in major versions. If we consider a
+behavior to be a bug, and fixing that bug induces a behavior change, we'll
+release that change in a minor release. This is a sometimes difficult judgment
+call that we'll do our best on.
+
+This doesn't mean that pandas' pace of development will slow down. In the `2019
+Pandas User Survey`_, about 95% of the respondents said they considered pandas
+"stable enough". This indicates there's an appetite for new features, even if it
+comes at the cost of break API. The difference is that now API breaking changes
+will be accompanied with a bump in the major version number (e.g. pandas 1.5.1
+-> 2.0.0).
+
+See :ref:`policies.version` for more.
+
+.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+.. _SemVer: https://semver.org
 
 .. warning::
 
