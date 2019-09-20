@@ -457,6 +457,16 @@ class TestFrameFlexArithmetic:
 
 
 class TestFrameArithmetic:
+    def test_td64_op_nat_casting(self):
+        # Make sure we don't accidentally treat timedelta64(NaT) as datetime64
+        #  when calling dispatch_to_series in DataFrame arithmetic
+        ser = pd.Series(["NaT", "NaT"], dtype="timedelta64[ns]")
+        df = pd.DataFrame([[1, 2], [3, 4]])
+
+        result = df * ser
+        expected = pd.DataFrame({0: ser, 1: ser})
+        tm.assert_frame_equal(result, expected)
+
     def test_df_add_2d_array_rowlike_broadcasts(self):
         # GH#23000
         arr = np.arange(6).reshape(3, 2)
