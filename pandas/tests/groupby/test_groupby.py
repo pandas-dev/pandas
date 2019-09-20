@@ -89,9 +89,12 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
+
+    # GH 28549
+    # "A" should not be in output anymore
     expected = Series(
-        [np.dtype("object")] * 2 + [np.dtype("float64")] * 2 + [np.dtype("int64")],
-        index=["A", "B", "C", "D", "value"],
+        [np.dtype("object")] + [np.dtype("float64")] * 2 + [np.dtype("int64")],
+        index=["B", "C", "D", "value"],
     )
     assert_series_equal(result, expected)
 
@@ -948,16 +951,25 @@ def test_mutate_groups():
     assert_series_equal(grpby_copy, grpby_no_copy)
 
 
-def test_no_mutate_but_looks_like():
+@pytest.mark.parametrize("as_index", [True, False])
+def test_no_mutate_but_looks_like(as_index):
 
     # GH 8467
     # first show's mutation indicator
     # second does not, but should yield the same results
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    assert_series_equal(result1, result2)
+    def run_test(df, as_index):
+        result1 = df.groupby("key", group_keys=True, as_index=as_index).apply(lambda x: x[:].key)
+        result2 = df.groupby("key", group_keys=True, as_index=as_index).apply(lambda x: x.key)
+        return result1, result2
+
+    if as_index:
+        with pytest.raises(AttributeError):
+            run_test(df, as_index)
+    else:
+        result1, result2 = run_test(df, as_index)
+        assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1080,7 +1092,8 @@ def test_consistency_name():
     assert_series_equal(result, expected)
 
 
-def test_groupby_name_propagation(df):
+@pytest.mark.parametrize("as_index", [True, False])
+def test_groupby_name_propagation(df, as_index):
     # GH 6124
     def summarize(df, name=None):
         return Series({"count": 1, "mean": 2, "omissions": 3}, name=name)
@@ -1091,12 +1104,14 @@ def test_groupby_name_propagation(df):
         # inconsistent.
         return Series({"count": 1, "mean": 2, "omissions": 3}, name=df.iloc[0]["A"])
 
-    metrics = df.groupby("A").apply(summarize)
+    metrics = df.groupby("A", as_index=as_index).apply(summarize)
     assert metrics.columns.name is None
-    metrics = df.groupby("A").apply(summarize, "metrics")
+    metrics = df.groupby("A", as_index=as_index).apply(summarize, "metrics")
     assert metrics.columns.name == "metrics"
-    metrics = df.groupby("A").apply(summarize_random_name)
-    assert metrics.columns.name is None
+
+    if not as_index:
+        metrics = df.groupby("A", as_index=as_index).apply(summarize_random_name)
+        assert metrics.columns.name is None
 
 
 def test_groupby_nonstring_columns():
@@ -1345,12 +1360,20 @@ def test_groupby_sort_multi():
     _check_groupby(df, result, ["a", "b"], "d")
 
 
-def test_dont_clobber_name_column():
+@pytest.mark.parametrize("as_index", [True, False])
+def test_dont_clobber_name_column(as_index):
     df = DataFrame(
         {"key": ["a", "a", "a", "b", "b", "b"], "name": ["foo", "bar", "baz"] * 2}
     )
 
-    result = df.groupby("key").apply(lambda x: x)
+    result = df.groupby("key", as_index=as_index).apply(lambda x: x)
+
+    # GH 28549
+    # test both True and False for as index to ensure
+    # proper reduction
+    if as_index:
+        df.pop("key")
+
     assert_frame_equal(result, df)
 
 
