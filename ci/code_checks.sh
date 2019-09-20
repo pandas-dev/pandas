@@ -190,9 +190,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # Check for blank lines after the class definition
     MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' doc/source/
+    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
