@@ -718,12 +718,16 @@ def _build_names_mapper(names, shared_col_row_names, suffix):
 
         # Adds a number if name is duplicated within columns/rows
         if num_duplicates > 0:
-            mapped_name = f"{mapped_name}_{num_duplicates}"
+            mapped_name = "{mapped_name}_{num_duplicates}".format(
+                mapped_name=mapped_name, num_duplicates=num_duplicates
+            )
             dup_names_count[name] -= 1
 
         # Add suffix name is shared between column and rows
         if name in shared_col_row_names:
-            mapped_name = f"{mapped_name}_{suffix}"
+            mapped_name = "{mapped_name}_{suffix}".format(
+                mapped_name=mapped_name, suffix=suffix
+            )
 
         names_mapper[mapped_name] = name
 
