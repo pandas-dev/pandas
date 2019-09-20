@@ -1566,7 +1566,7 @@ class Week(DateOffset):
         if self.weekday is None:
             # integer addition on PeriodIndex is deprecated,
             #  so we use _time_shift directly
-            asper = i.ravel().to_period("W").reshape(i.shape)  # TODO: Do ravel.reshape in apply_index_wraps?
+            asper = i.to_period("W")
             if not isinstance(asper._data, np.ndarray):
                 # unwrap PeriodIndex --> PeriodArray
                 asper = asper._data
