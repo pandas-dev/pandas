@@ -248,8 +248,18 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        with pytest.raises(TypeError, match="^Could not construct DatetimeTZDtype$"):
+        msg = "^Could not construct DatetimeTZDtype"
+        with pytest.raises(TypeError, match=msg):
+            # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
+
+        with pytest.raises(TypeError, match=msg):
+            # non-nano unit
+            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
+
+        with pytest.raises(TypeError, match=msg):
+            # dateutil str that returns None from gettz
+            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
