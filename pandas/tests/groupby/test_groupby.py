@@ -433,25 +433,15 @@ def test_frame_groupby_columns(tsframe):
         assert len(v.columns) == 2
 
 
-@pytest.mark.parametrize(
-    "func, args",
-    [
-        ("sum", []),
-        ("prod", []),
-        ("min", []),
-        ("max", []),
-        ("nth", [0]),
-        ("last", []),
-        ("first", []),
-    ],
-)
-def test_frame_groupby_avoids_mutate(func, args):
+def test_frame_groupby_avoids_mutate(reduction_func):
     # GH28523
+    func = reduction_func
     df = pd.DataFrame({"A": ["foo", "bar", "foo", "bar"], "B": [1, 2, 3, 4]})
     grouped = df.groupby("A")
 
     expected = grouped.apply(lambda x: x)
 
+    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
     fn = getattr(grouped, func)
     fn(*args)
 

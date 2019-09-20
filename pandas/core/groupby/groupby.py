@@ -606,56 +606,55 @@ b  2""",
             )
             raise AttributeError(msg)
 
-        self._set_group_selection()
+        with _group_selection_context(self):
+            # need to setup the selection
+            # as are not passed directly but in the grouper
+            f = getattr(self._selected_obj, name)
+            if not isinstance(f, types.MethodType):
+                return self.apply(lambda self: getattr(self, name))
 
-        # need to setup the selection
-        # as are not passed directly but in the grouper
-        f = getattr(self._selected_obj, name)
-        if not isinstance(f, types.MethodType):
-            return self.apply(lambda self: getattr(self, name))
+            f = getattr(type(self._selected_obj), name)
 
-        f = getattr(type(self._selected_obj), name)
+            def wrapper(*args, **kwargs):
+                # a little trickery for aggregation functions that need an axis
+                # argument
+                kwargs_with_axis = kwargs.copy()
+                if "axis" not in kwargs_with_axis or kwargs_with_axis["axis"] is None:
+                    kwargs_with_axis["axis"] = self.axis
 
-        def wrapper(*args, **kwargs):
-            # a little trickery for aggregation functions that need an axis
-            # argument
-            kwargs_with_axis = kwargs.copy()
-            if "axis" not in kwargs_with_axis or kwargs_with_axis["axis"] is None:
-                kwargs_with_axis["axis"] = self.axis
+                def curried_with_axis(x):
+                    return f(x, *args, **kwargs_with_axis)
 
-            def curried_with_axis(x):
-                return f(x, *args, **kwargs_with_axis)
+                def curried(x):
+                    return f(x, *args, **kwargs)
 
-            def curried(x):
-                return f(x, *args, **kwargs)
+                # preserve the name so we can detect it when calling plot methods,
+                # to avoid duplicates
+                curried.__name__ = curried_with_axis.__name__ = name
 
-            # preserve the name so we can detect it when calling plot methods,
-            # to avoid duplicates
-            curried.__name__ = curried_with_axis.__name__ = name
-
-            # special case otherwise extra plots are created when catching the
-            # exception below
-            if name in base.plotting_methods:
-                return self.apply(curried)
-
-            try:
-                return self.apply(curried_with_axis)
-            except Exception:
-                try:
+                # special case otherwise extra plots are created when catching the
+                # exception below
+                if name in base.plotting_methods:
                     return self.apply(curried)
-                except Exception:
 
-                    # related to : GH3688
-                    # try item-by-item
-                    # this can be called recursively, so need to raise
-                    # ValueError
-                    # if we don't have this method to indicated to aggregate to
-                    # mark this column as an error
+                try:
+                    return self.apply(curried_with_axis)
+                except Exception:
                     try:
-                        return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except AttributeError:
-                        # e.g. SparseArray has no flags attr
-                        raise ValueError
+                        return self.apply(curried)
+                    except Exception:
+
+                        # related to : GH3688
+                        # try item-by-item
+                        # this can be called recursively, so need to raise
+                        # ValueError
+                        # if we don't have this method to indicated to aggregate to
+                        # mark this column as an error
+                        try:
+                            return self._aggregate_item_by_item(name, *args, **kwargs)
+                        except AttributeError:
+                            # e.g. SparseArray has no flags attr
+                            raise ValueError
 
         return wrapper
 
