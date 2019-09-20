@@ -55,8 +55,7 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -525,9 +524,18 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                (x is None or is_nan(x)) and (y is None or is_nan(y))):
-            return False
+        try:
+            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+                return False
+        except TypeError as err:
+            # Avoid raising TypeError on tzawareness mismatch
+            # TODO: This try/except can be removed if/when Timestamp
+            #  comparisons are change dto match datetime, see GH#28507
+            if "tz-naive and tz-aware" in str(err):
+                return False
+            raise
+
     return True
 
 

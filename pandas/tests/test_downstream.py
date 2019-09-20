@@ -50,6 +50,7 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
+@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa

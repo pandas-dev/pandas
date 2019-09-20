@@ -15,3 +15,4 @@ repos:
     hooks:
     -   id: isort
         language: python_venv
+        exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$

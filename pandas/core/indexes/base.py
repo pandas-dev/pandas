@@ -205,7 +205,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist"])
+    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist", "dtype_str"])
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -452,7 +452,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         elif data is None or is_scalar(data):
-            cls._scalar_data_error(data)
+            raise cls._scalar_data_error(data)
         else:
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
@@ -4020,7 +4020,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _scalar_data_error(cls, data):
-        raise TypeError(
+        # We return the TypeError so that we can raise it from the constructor
+        #  in order to keep mypy happy
+        return TypeError(
             "{0}(...) must be called with a collection of some "
             "kind, {1} was passed".format(cls.__name__, repr(data))
         )
@@ -4048,7 +4050,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not isinstance(data, (np.ndarray, Index)):
             if data is None or is_scalar(data):
-                cls._scalar_data_error(data)
+                raise cls._scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
@@ -4322,12 +4324,9 @@ class Index(IndexOpsMixin, PandasObject):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
-        try:
-            return array_equivalent(
-                com.values_from_object(self), com.values_from_object(other)
-            )
-        except Exception:
-            return False
+        return array_equivalent(
+            com.values_from_object(self), com.values_from_object(other)
+        )
 
     def identical(self, other):
         """
@@ -4713,13 +4712,13 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
-        if is_categorical(target):
-            target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if self.is_all_dates:
+        if is_categorical(target):
+            tgt_values = np.asarray(target)
+        elif self.is_all_dates:
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
@@ -4731,7 +4730,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Guaranteed return of an indexer even when non-unique.
 
-        This dispatches to get_indexer or get_indexer_nonunique
+        This dispatches to get_indexer or get_indexer_non_unique
         as appropriate.
 
         Returns
