@@ -1125,36 +1125,3 @@ class TestCategoricalIndex(Base):
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
-
-    def test_dt_tz_localize(self, tz_aware_fixture):
-        # GH 27952
-        tz = tz_aware_fixture
-        datetimes = pd.Series(
-            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
-        )
-        categorical = datetimes.astype("category")
-        result = categorical.dt.tz_localize(tz)
-        expected = datetimes.dt.tz_localize(tz)
-        tm.assert_series_equal(result, expected)
-
-    def test_dt_tz_convert(self, tz_aware_fixture):
-        # GH 27952
-        tz = tz_aware_fixture
-        datetimes = pd.Series(
-            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
-        )
-        categorical = datetimes.astype("category")
-        result = categorical.dt.tz_convert(tz)
-        expected = datetimes.dt.tz_convert(tz)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("accessor", ["year", "month", "day"])
-    def test_dt_other_accessors(self, accessor):
-        # GH 27952
-        datetimes = pd.Series(
-            ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
-        )
-        categorical = datetimes.astype("category")
-        result = getattr(categorical.dt, accessor)
-        expected = getattr(datetimes.dt, accessor)
-        tm.assert_series_equal(result, expected)
