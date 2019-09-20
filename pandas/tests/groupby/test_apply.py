@@ -623,10 +623,13 @@ def test_groupby_apply_all_none():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("groups, vars_, index, expected_vars", [
-    ([1, 1, 1, 2], [0, 1, 2, 3], [[1, 1], [0, 2]], [0, 2]),
-    ([1, 2, 2, 2], [0, 1, 2, 3], [[2, 2], [1, 3]], [1, 3])
-])
+@pytest.mark.parametrize(
+    "groups, vars_, index, expected_vars",
+    [
+        ([1, 1, 1, 2], [0, 1, 2, 3], [[1, 1], [0, 2]], [0, 2]),
+        ([1, 2, 2, 2], [0, 1, 2, 3], [[2, 2], [1, 3]], [1, 3]),
+    ],
+)
 def test_groupby_apply_none_first(groups, vars_, index, expected_vars):
     # GH 12824. Tests if apply returns None first.
     test_df = DataFrame({"groups": groups, "vars": vars_})

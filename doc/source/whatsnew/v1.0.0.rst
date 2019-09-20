@@ -271,6 +271,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
+- Bug in :meth:`DataFrameGroupby.apply` causing grouped column to remain in ``DataFrame`` even when ``as_index=True`` was specified (:issue:`28549`)
 
 Reshaping
 ^^^^^^^^^

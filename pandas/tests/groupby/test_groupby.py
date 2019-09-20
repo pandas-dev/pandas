@@ -960,8 +960,12 @@ def test_no_mutate_but_looks_like(as_index):
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
     def run_test(df, as_index):
-        result1 = df.groupby("key", group_keys=True, as_index=as_index).apply(lambda x: x[:].key)
-        result2 = df.groupby("key", group_keys=True, as_index=as_index).apply(lambda x: x.key)
+        result1 = df.groupby("key", group_keys=True, as_index=as_index).apply(
+            lambda x: x[:].key
+        )
+        result2 = df.groupby("key", group_keys=True, as_index=as_index).apply(
+            lambda x: x.key
+        )
         return result1, result2
 
     if as_index:
