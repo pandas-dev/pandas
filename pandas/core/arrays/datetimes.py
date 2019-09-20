@@ -975,7 +975,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
-    @compat_2d
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise", errors=None):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
