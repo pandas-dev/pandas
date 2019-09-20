@@ -711,17 +711,17 @@ def _build_names_mapper(names, shared_col_row_names, suffix):
     names_mapper = {}
     unique_names = []
 
-    # We reserve the names so the number are in order of appearance
+    # We reverse the names so the number are in order of appearance
     for name in reversed(names):
         mapped_name = name
         num_duplicates = dup_names_count[name]
 
-        # Add a number if it is duplicated
+        # Adds a number if name is duplicated within columns/rows
         if num_duplicates > 0:
             mapped_name = f"{mapped_name}_{num_duplicates}"
             dup_names_count[name] -= 1
 
-        # Add suffix if it is shared between column and rows
+        # Add suffix name is shared between column and rows
         if name in shared_col_row_names:
             mapped_name = f"{mapped_name}_{suffix}"
 
