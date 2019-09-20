@@ -367,8 +367,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return lib.map_infer(values, self._box_func)
 
     def __iter__(self):
-        if self.ndim > 1:
-            return (self[i] for i in range(len(self)))
         return (self._box_func(v) for v in self.asi8)
 
     @property
