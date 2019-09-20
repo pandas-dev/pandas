@@ -205,7 +205,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist"])
+    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist", "dtype_str"])
 
     # To hand over control to subclasses
     _join_precedence = 1
