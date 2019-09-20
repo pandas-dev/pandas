@@ -100,7 +100,8 @@ Other
 ^^^^^
 
 - Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
--
+- Fix to ensure that tab-completion in an IPython console does not raise
+  warnings for deprecated attributes (:issue:`27900`).
 
 .. _whatsnew_0.252.contributors:
 
