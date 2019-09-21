@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
@@ -815,6 +817,16 @@ def test_ufunc_reduce_raises(values):
     a = integer_array(values)
     with pytest.raises(NotImplementedError):
         np.add.reduce(a)
+
+
+@td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+def test_arrow_array(data):
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    assert arr.equals(expected)
 
 
 # TODO(jreback) - these need testing / are broken
