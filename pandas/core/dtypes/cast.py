@@ -452,11 +452,14 @@ def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
             "fill_value must be a scalar, received " "{}".format(type(fill_value))
         )
 
-    # unify handling of scalar and array values to simplify actual
-    # promotion logic in _maybe_promote_with_array;
+    # shortcut: inserting into object does not cast (except for None -> np.nan)
     if is_object_dtype(dtype) and fill_value is not None:
-        # inserting into object does not cast (except for None -> np.nan)
         return np.dtype(object), fill_value
+
+    # unify handling of scalar and array values to simplify actual promotion
+    # logic in _maybe_promote_with_array; therefore, we pack fill_value into an
+    # array, use the array-promotion, and then handle the differences between
+    # the array/scalar case.
 
     # use Series to construct, since np.array cannot deal with pandas-internal
     # dtypes (e.g. DatetimeTZDtype); furthermore, we want to treat tuples as
@@ -464,8 +467,9 @@ def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
     fill_array = Series([fill_value], dtype=object)
     dtype, na_value = _maybe_promote_with_array(dtype, fill_array)
 
-    # _maybe_promote_with_array returns the na-marker for the new dtype;
-    # _maybe_promote_with_scalar always casts fill_value to the new dtype
+    # main difference between the array and scalar case:
+    # _maybe_promote_with_array returns the na-marker for the new dtype, but
+    # _maybe_promote_with_scalar always casts fill_value to the new dtype!
     if is_integer_dtype(dtype) and _is_iNaT(fill_value):
         # _maybe_promote_with_array considers iNaT a missing value, and since
         # int dtypes cannot hold missing values, that method returns None as
@@ -480,7 +484,7 @@ def _maybe_promote_with_scalar(dtype, fill_value=np.nan):
         # cast missing values (incl. iNaT) to correct missing value marker for
         # the updated dtype
         fill_value = na_value
-    # otherwise casts fill_value (= only entry of fill_array) to new dtype
+    # otherwise cast fill_value (= only entry of fill_array) to new dtype
     elif is_datetime_or_timedelta_dtype(dtype):
         # for datetime/timedelta, we need to return the underlying ints
         fill_value = fill_array.astype(dtype)[0].value
