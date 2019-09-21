@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -536,11 +536,13 @@ def _try_cast(
         if is_categorical_dtype(dtype):
             # We *do* allow casting to categorical, since we know
             # that Categorical is the only array type for 'category'.
+            dtype = cast(CategoricalDtype, dtype)
             subarr = dtype.construct_array_type()(
                 arr, dtype.categories, ordered=dtype._ordered
             )
         elif is_extension_array_dtype(dtype):
             # create an extension array from its dtype
+            dtype = cast(ExtensionDtype, dtype)
             array_type = dtype.construct_array_type()._from_sequence
             subarr = array_type(arr, dtype=dtype, copy=copy)
         elif dtype is not None and raise_cast_failure:
