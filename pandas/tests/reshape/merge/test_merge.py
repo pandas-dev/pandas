@@ -2155,7 +2155,8 @@ def test_merge_multiindex_columns():
     tm.assert_frame_equal(result, expected)
 
 
-def test_right_merge_preserves_row_order():
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_preserves_row_order(how):
     # GH 27453
     population = [
         ("Jenn", "Jamaica", 3),
@@ -2163,11 +2164,11 @@ def test_right_merge_preserves_row_order():
         ("Carl", "Canada", 30),
     ]
     columns = ["name", "country", "population"]
-    pop = DataFrame(population, columns=columns)
+    population_df = DataFrame(population, columns=columns)
 
     people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
     columns = ["name", "country"]
-    ppl = DataFrame(people, columns=columns)
+    people_df = DataFrame(people, columns=columns)
 
     expected_data = [
         ("Abe", "America", np.nan),
@@ -2177,33 +2178,10 @@ def test_right_merge_preserves_row_order():
     expected_cols = ["name", "country", "population"]
     expected = DataFrame(expected_data, columns=expected_cols)
 
-    result = pop.merge(ppl, on=("name", "country"), how="right")
+    if how == "right":
+        left_df, right_df = population_df, people_df
+    elif how == "left":
+        left_df, right_df = people_df, population_df
 
-    assert_frame_equal(expected, result)
-
-
-def test_left_merge_preserves_row_order():
-    # GH 27453
-    population = [
-        ("Jenn", "Jamaica", 3),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    columns = ["name", "country", "population"]
-    pop = DataFrame(population, columns=columns)
-
-    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
-    columns = ["name", "country"]
-    ppl = DataFrame(people, columns=columns)
-
-    expected_data = [
-        ("Abe", "America", np.nan),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    expected_cols = ["name", "country", "population"]
-    expected = DataFrame(expected_data, columns=expected_cols)
-
-    result = ppl.merge(pop, on=("name", "country"), how="left")
-
+    result = left_df.merge(right_df, on=("name", "country"), how=how)
     assert_frame_equal(expected, result)
