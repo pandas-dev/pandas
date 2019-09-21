@@ -23,6 +23,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -92,7 +93,7 @@ common_docstring = """
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
-        header : bool, optional
+        header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
             Whether to print index (row) labels.
@@ -532,9 +533,9 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        columns: Optional[List[str]] = None,
+        columns: Optional[Sequence[str]] = None,
         col_space: Optional[Union[str, int]] = None,
-        header: Union[bool, List[str]] = True,
+        header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: Optional[formatters_type] = None,
@@ -659,6 +660,13 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
+                # truncate formatter
+                if isinstance(self.formatters, (list, tuple)):
+                    truncate_fmt = self.formatters
+                    self.formatters = [
+                        *truncate_fmt[:col_num],
+                        *truncate_fmt[-col_num:],
+                    ]
             self.tr_col_num = col_num
         if truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None

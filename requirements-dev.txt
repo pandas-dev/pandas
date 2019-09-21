@@ -17,6 +17,10 @@ numpydoc>=0.9.0
 nbconvert>=5.4.1
 nbsphinx
 pandoc
+markdown
+feedparser
+pyyaml
+requests
 boto3
 botocore>=1.11
 hypothesis>=3.82

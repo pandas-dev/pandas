@@ -36,6 +36,12 @@ dependencies:
   - nbsphinx
   - pandoc
 
+  # web (jinja2 is also needed, but it's also an optional pandas dependency)
+  - markdown
+  - feedparser
+  - pyyaml
+  - requests
+
   # testing
   - boto3
   - botocore>=1.11

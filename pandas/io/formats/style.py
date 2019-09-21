@@ -654,7 +654,7 @@ class Styler:
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs : dict
+        **kwargs : dict
             pass along to ``func``
 
         Returns
@@ -706,7 +706,7 @@ class Styler:
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs : dict
+        **kwargs : dict
             pass along to ``func``
 
         Returns
@@ -741,7 +741,7 @@ class Styler:
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs : dict
+        **kwargs : dict
             pass along to ``cond``
 
         Returns
@@ -974,8 +974,10 @@ class Styler:
         ----------
         cmap : str or colormap
             matplotlib colormap
-        low, high : float
-            compress the range by these values.
+        low : float
+            compress the range by the low.
+        high : float
+            compress the range by the high.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1087,7 +1089,7 @@ class Styler:
         ----------
         subset : IndexSlice
             a valid slice for ``data`` to limit the style application to
-        kwargs : dict
+        **kwargs : dict
             property: value pairs to be set for each cell
 
         Returns
@@ -1360,8 +1362,10 @@ class Styler:
             Function to apply to the Styler.  Alternatively, a
             ``(callable, keyword)`` tuple where ``keyword`` is a string
             indicating the keyword of ``callable`` that expects the Styler.
-        *args, **kwargs :
+        *args : optional
             Arguments passed to `func`.
+        **kwargs : optional
+            A dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
