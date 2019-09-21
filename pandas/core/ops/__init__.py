@@ -493,8 +493,19 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
+        if right.dtype == "timedelta64[ns]":
+            # ensure we treat NaT values as the correct dtype
+            # Note: we do not do this unconditionally as it may be lossy or
+            #  expensive for EA dtypes.
+            right = np.asarray(right)
+
+            def column_op(a, b):
+                return {i: func(a.iloc[:, i], b[i]) for i in range(len(a.columns))}
+
+        else:
+
+            def column_op(a, b):
+                return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
