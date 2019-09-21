@@ -74,12 +74,9 @@ def _is_iNaT(x):
     Specifically, comparing a scalar timedelta against another scalar value may
     raise a spurious DeprecationWarning, see numpy/numpy#10095
     """
-    if not is_scalar(x):
+    if not is_integer(x):
         return False
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        result = x == iNaT
-    return result
+    return x == iNaT
 
 
 def maybe_convert_platform(values):

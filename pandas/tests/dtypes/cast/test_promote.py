@@ -162,9 +162,11 @@ def _check_promote(
 
     # for equal values, also check type (relevant e.g. for int vs float, resp.
     # for different datetimes and timedeltas)
-    match_value = result_fill_value == expected_fill_value and type(
-        result_fill_value
-    ) == type(expected_fill_value)
+    result_type = type(result_fill_value)
+    expected_type = type(expected_fill_value)
+    match_value = (
+        result_fill_value == expected_fill_value and result_type == expected_type
+    )
 
     # for missing values, None == None and iNaT == iNaT (which is checked
     # through match_value above), but np.nan != np.nan and pd.NaT != pd.NaT
