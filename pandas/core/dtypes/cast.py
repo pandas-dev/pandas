@@ -405,7 +405,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         pass
     elif is_datetime64tz_dtype(dtype):
         pass
-    elif issubclass(np.dtype(dtype).type, str):
+    elif issubclass(np.dtype(dtype).type, (bytes, str)):
         dtype = np.object_
 
     return dtype, fill_value
@@ -428,6 +428,7 @@ def _check_lossless_cast(value, dtype: np.dtype) -> bool:
     if casted == value:
         return True
     return False
+
 
 def infer_dtype_from(val, pandas_dtype=False):
     """
