@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, PandasExtensionDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 
@@ -95,6 +96,7 @@ def _safe_dtype_assert(left_dtype, right_dtype):
     """
     Compare two dtypes without raising TypeError.
     """
+    __tracebackhide__ = True
     if isinstance(right_dtype, PandasExtensionDtype):
         # switch order of equality check because numpy dtypes (e.g. if
         # left_dtype is np.object_) do not know some expected dtypes (e.g.
@@ -157,20 +159,17 @@ def _check_promote(
 
     _safe_dtype_assert(result_dtype, expected_dtype)
 
-    # for equal values, also check type (relevant e.g. for int vs float, resp.
-    # for different datetimes and timedeltas)
-    match_value = (
-        result_fill_value
-        == expected_fill_value
-        # disabled type check due to too many xfails; GH 23982/25425
-        # and type(result_fill_value) == type(expected_fill_value)
-    )
+    # GH#23982/25425 require the same type in addition to equality/NA-ness
+    res_type = type(result_fill_value)
+    ex_type = type(expected_fill_value)
+    assert res_type == ex_type
 
+    match_value = result_fill_value == expected_fill_value
+
+    # Note: type check above ensures that we have the _same_ NA value
     # for missing values, None == None and iNaT == iNaT (which is checked
     # through match_value above), but np.nan != np.nan and pd.NaT != pd.NaT
-    match_missing = (result_fill_value is np.nan and expected_fill_value is np.nan) or (
-        result_fill_value is NaT and expected_fill_value is NaT
-    )
+    match_missing = isna(result_fill_value) and isna(expected_fill_value)
 
     assert match_value or match_missing
 
