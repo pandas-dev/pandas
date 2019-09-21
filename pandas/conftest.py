@@ -23,68 +23,70 @@ hypothesis.settings.register_profile(
     # or `deadline=None` to entirely disable timeouts for that test.
     deadline=500,
     timeout=hypothesis.unlimited,
-    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,),
 )
 hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
-    parser.addoption("--skip-slow", action="store_true",
-                     help="skip slow tests")
-    parser.addoption("--skip-network", action="store_true",
-                     help="skip network tests")
-    parser.addoption("--skip-db", action="store_true",
-                     help="skip db tests")
-    parser.addoption("--run-high-memory", action="store_true",
-                     help="run high memory tests")
-    parser.addoption("--only-slow", action="store_true",
-                     help="run only slow tests")
-    parser.addoption("--strict-data-files", action="store_true",
-                     help="Fail if a test is skipped for missing data file.")
+    parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
+    parser.addoption("--skip-network", action="store_true", help="skip network tests")
+    parser.addoption("--skip-db", action="store_true", help="skip db tests")
+    parser.addoption(
+        "--run-high-memory", action="store_true", help="run high memory tests"
+    )
+    parser.addoption("--only-slow", action="store_true", help="run only slow tests")
+    parser.addoption(
+        "--strict-data-files",
+        action="store_true",
+        help="Fail if a test is skipped for missing data file.",
+    )
 
 
 def pytest_runtest_setup(item):
-    if 'slow' in item.keywords and item.config.getoption("--skip-slow"):
+    if "slow" in item.keywords and item.config.getoption("--skip-slow"):
         pytest.skip("skipping due to --skip-slow")
 
-    if 'slow' not in item.keywords and item.config.getoption("--only-slow"):
+    if "slow" not in item.keywords and item.config.getoption("--only-slow"):
         pytest.skip("skipping due to --only-slow")
 
-    if 'network' in item.keywords and item.config.getoption("--skip-network"):
+    if "network" in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
 
-    if 'db' in item.keywords and item.config.getoption("--skip-db"):
+    if "db" in item.keywords and item.config.getoption("--skip-db"):
         pytest.skip("skipping due to --skip-db")
 
-    if 'high_memory' in item.keywords and not item.config.getoption(
-            "--run-high-memory"):
-        pytest.skip(
-            "skipping high memory test since --run-high-memory was not set")
+    if "high_memory" in item.keywords and not item.config.getoption(
+        "--run-high-memory"
+    ):
+        pytest.skip("skipping high memory test since --run-high-memory was not set")
 
 
 # Configurations for all tests and all test modules
 
+
 @pytest.fixture(autouse=True)
 def configure_tests():
-    pd.set_option('chained_assignment', 'raise')
+    pd.set_option("chained_assignment", "raise")
 
 
 # For running doctests: make np and pd names available
 
+
 @pytest.fixture(autouse=True)
 def add_imports(doctest_namespace):
-    doctest_namespace['np'] = np
-    doctest_namespace['pd'] = pd
+    doctest_namespace["np"] = np
+    doctest_namespace["pd"] = pd
 
 
-@pytest.fixture(params=['bsr', 'coo', 'csc', 'csr', 'dia', 'dok', 'lil'])
+@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
 def spmatrix(request):
     from scipy import sparse
-    return getattr(sparse, request.param + '_matrix')
+
+    return getattr(sparse, request.param + "_matrix")
 
 
-@pytest.fixture(params=[0, 1, 'index', 'columns'],
-                ids=lambda x: "axis {!r}".format(x))
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: "axis {!r}".format(x))
 def axis(request):
     """
      Fixture for returning the axis numbers of a DataFrame.
@@ -95,7 +97,7 @@ def axis(request):
 axis_frame = axis
 
 
-@pytest.fixture(params=[0, 'index'], ids=lambda x: "axis {!r}".format(x))
+@pytest.fixture(params=[0, "index"], ids=lambda x: "axis {!r}".format(x))
 def axis_series(request):
     """
      Fixture for returning the axis numbers of a Series.
@@ -111,8 +113,9 @@ def ip():
     Will raise a skip if IPython is not installed.
     """
 
-    pytest.importorskip('IPython', minversion="6.0.0")
+    pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
+
     return InteractiveShell()
 
 
@@ -127,15 +130,24 @@ def observed(request):
     return request.param
 
 
-_all_arithmetic_operators = ['__add__', '__radd__',
-                             '__sub__', '__rsub__',
-                             '__mul__', '__rmul__',
-                             '__floordiv__', '__rfloordiv__',
-                             '__truediv__', '__rtruediv__',
-                             '__pow__', '__rpow__',
-                             '__mod__', '__rmod__']
+_all_arithmetic_operators = [
+    "__add__",
+    "__radd__",
+    "__sub__",
+    "__rsub__",
+    "__mul__",
+    "__rmul__",
+    "__floordiv__",
+    "__rfloordiv__",
+    "__truediv__",
+    "__rtruediv__",
+    "__pow__",
+    "__rpow__",
+    "__mod__",
+    "__rmod__",
+]
 if not PY3:
-    _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
+    _all_arithmetic_operators.extend(["__div__", "__rdiv__"])
 
 
 @pytest.fixture(params=_all_arithmetic_operators)
@@ -146,9 +158,18 @@ def all_arithmetic_operators(request):
     return request.param
 
 
-_all_numeric_reductions = ['sum', 'max', 'min',
-                           'mean', 'prod', 'std', 'var', 'median',
-                           'kurt', 'skew']
+_all_numeric_reductions = [
+    "sum",
+    "max",
+    "min",
+    "mean",
+    "prod",
+    "std",
+    "var",
+    "median",
+    "kurt",
+    "skew",
+]
 
 
 @pytest.fixture(params=_all_numeric_reductions)
@@ -159,7 +180,7 @@ def all_numeric_reductions(request):
     return request.param
 
 
-_all_boolean_reductions = ['all', 'any']
+_all_boolean_reductions = ["all", "any"]
 
 
 @pytest.fixture(params=_all_boolean_reductions)
@@ -197,13 +218,15 @@ def _get_cython_table_params(ndframe, func_names_and_expected):
     results = []
     for func_name, expected in func_names_and_expected:
         results.append((ndframe, func_name, expected))
-        results += [(ndframe, func, expected) for func, name in _cython_table
-                    if name == func_name]
+        results += [
+            (ndframe, func, expected)
+            for func, name in _cython_table
+            if name == func_name
+        ]
     return results
 
 
-@pytest.fixture(params=['__eq__', '__ne__', '__le__',
-                        '__lt__', '__ge__', '__gt__'])
+@pytest.fixture(params=["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"])
 def all_compare_operators(request):
     """
     Fixture for dunder names for common compare operations
@@ -218,8 +241,9 @@ def all_compare_operators(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(
+    params=[None, "gzip", "bz2", "zip", pytest.param("xz", marks=td.skip_if_no_lzma)]
+)
 def compression(request):
     """
     Fixture for trying common compression types in compression tests
@@ -227,8 +251,9 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=['gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(
+    params=["gzip", "bz2", "zip", pytest.param("xz", marks=td.skip_if_no_lzma)]
+)
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
@@ -245,15 +270,17 @@ def writable(request):
     return request.param
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def datetime_tz_utc():
     from datetime import timezone
+
     return timezone.utc
 
 
-utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
+utc_objs = ["utc", "dateutil/UTC", utc, tzutc()]
 if PY3:
     from datetime import timezone
+
     utc_objs.append(timezone.utc)
 
 
@@ -265,7 +292,7 @@ def utc_fixture(request):
     return request.param
 
 
-@pytest.fixture(params=['inner', 'outer', 'left', 'right'])
+@pytest.fixture(params=["inner", "outer", "left", "right"])
 def join_type(request):
     """
     Fixture for trying all types of join operations
@@ -296,7 +323,7 @@ def datapath(strict_data_files):
     ValueError
         If the path doesn't exist and the --strict-data-files option is set.
     """
-    BASE_PATH = os.path.join(os.path.dirname(__file__), 'tests')
+    BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
 
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
@@ -308,16 +335,17 @@ def datapath(strict_data_files):
                 msg = "Could not find {}."
                 pytest.skip(msg.format(path))
         return path
+
     return deco
 
 
 @pytest.fixture
 def iris(datapath):
     """The iris dataset as a DataFrame."""
-    return pd.read_csv(datapath('data', 'iris.csv'))
+    return pd.read_csv(datapath("data", "iris.csv"))
 
 
-@pytest.fixture(params=['nlargest', 'nsmallest'])
+@pytest.fixture(params=["nlargest", "nsmallest"])
 def nselect_method(request):
     """
     Fixture for trying all nselect methods
@@ -325,7 +353,7 @@ def nselect_method(request):
     return request.param
 
 
-@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+@pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
     Fixture for trying all interval closed parameters
@@ -333,7 +361,7 @@ def closed(request):
     return request.param
 
 
-@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+@pytest.fixture(params=["left", "right", "both", "neither"])
 def other_closed(request):
     """
     Secondary closed fixture to allow parametrizing over all pairs of closed
@@ -341,7 +369,7 @@ def other_closed(request):
     return request.param
 
 
-@pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN")])
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas
@@ -364,14 +392,32 @@ def unique_nulls_fixture(request):
 unique_nulls_fixture2 = unique_nulls_fixture
 
 
-TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
-             'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
-             FixedOffset(0), FixedOffset(-300)]
-TIMEZONE_IDS = ['None', 'UTC', 'US/Eastern', 'Asia/Tokyp',
-                'dateutil/US/Pacific', 'dateutil/Asia/Singapore',
-                'dateutil.tz.tzutz()', 'dateutil.tz.tzlocal()',
-                'pytz.FixedOffset(300)', 'pytz.FixedOffset(0)',
-                'pytz.FixedOffset(-300)']
+TIMEZONES = [
+    None,
+    "UTC",
+    "US/Eastern",
+    "Asia/Tokyo",
+    "dateutil/US/Pacific",
+    "dateutil/Asia/Singapore",
+    tzutc(),
+    tzlocal(),
+    FixedOffset(300),
+    FixedOffset(0),
+    FixedOffset(-300),
+]
+TIMEZONE_IDS = [
+    "None",
+    "UTC",
+    "US/Eastern",
+    "Asia/Tokyp",
+    "dateutil/US/Pacific",
+    "dateutil/Asia/Singapore",
+    "dateutil.tz.tzutz()",
+    "dateutil.tz.tzlocal()",
+    "pytz.FixedOffset(300)",
+    "pytz.FixedOffset(0)",
+    "pytz.FixedOffset(-300)",
+]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
@@ -409,19 +455,26 @@ ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
-STRING_DTYPES = [str, 'str', 'U']
+STRING_DTYPES = [str, "str", "U"]
 
-DATETIME64_DTYPES = ['datetime64[ns]', 'M8[ns]']
-TIMEDELTA64_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+DATETIME64_DTYPES = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES = [bool, 'bool']
-BYTES_DTYPES = [bytes, 'bytes']
-OBJECT_DTYPES = [object, 'object']
+BOOL_DTYPES = [bool, "bool"]
+BYTES_DTYPES = [bytes, "bytes"]
+OBJECT_DTYPES = [object, "object"]
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
-                    + DATETIME64_DTYPES + TIMEDELTA64_DTYPES + BOOL_DTYPES
-                    + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
+ALL_NUMPY_DTYPES = (
+    ALL_REAL_DTYPES
+    + COMPLEX_DTYPES
+    + STRING_DTYPES
+    + DATETIME64_DTYPES
+    + TIMEDELTA64_DTYPES
+    + BOOL_DTYPES
+    + OBJECT_DTYPES
+    + BYTES_DTYPES * PY3
+)  # bytes only for PY3
 
 
 @pytest.fixture(params=STRING_DTYPES)
@@ -611,30 +664,30 @@ def any_numpy_dtype(request):
 
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
-    ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
-    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
-    ('empty', [np.nan, np.nan, np.nan]),
-    ('empty', []),
-    ('mixed-integer', ['a', np.nan, 2]),
-    ('mixed', ['a', np.nan, 2.0]),
-    ('floating', [1.0, np.nan, 2.0]),
-    ('integer', [1, np.nan, 2]),
-    ('mixed-integer-float', [1, np.nan, 2.0]),
-    ('decimal', [Decimal(1), np.nan, Decimal(2)]),
-    ('boolean', [True, np.nan, False]),
-    ('datetime64', [np.datetime64('2013-01-01'), np.nan,
-                    np.datetime64('2018-01-01')]),
-    ('datetime', [pd.Timestamp('20130101'), np.nan, pd.Timestamp('20180101')]),
-    ('date', [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
+    ("string", ["a", np.nan, "c"]),
+    ("unicode" if not PY3 else "string", [u("a"), np.nan, u("c")]),
+    ("bytes" if PY3 else "string", [b"a", np.nan, b"c"]),
+    ("empty", [np.nan, np.nan, np.nan]),
+    ("empty", []),
+    ("mixed-integer", ["a", np.nan, 2]),
+    ("mixed", ["a", np.nan, 2.0]),
+    ("floating", [1.0, np.nan, 2.0]),
+    ("integer", [1, np.nan, 2]),
+    ("mixed-integer-float", [1, np.nan, 2.0]),
+    ("decimal", [Decimal(1), np.nan, Decimal(2)]),
+    ("boolean", [True, np.nan, False]),
+    ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
+    ("datetime", [pd.Timestamp("20130101"), np.nan, pd.Timestamp("20180101")]),
+    ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
     # The following two dtypes are commented out due to GH 23554
     # ('complex', [1 + 1j, np.nan, 2 + 2j]),
     # ('timedelta64', [np.timedelta64(1, 'D'),
     #                  np.nan, np.timedelta64(2, 'D')]),
-    ('timedelta', [timedelta(1), np.nan, timedelta(2)]),
-    ('time', [time(1), np.nan, time(2)]),
-    ('period', [pd.Period(2013), pd.NaT, pd.Period(2018)]),
-    ('interval', [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)])]
+    ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
+    ("time", [time(1), np.nan, time(2)]),
+    ("period", [pd.Period(2013), pd.NaT, pd.Period(2018)]),
+    ("interval", [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)]),
+]
 ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
 
@@ -687,13 +740,19 @@ def any_skipna_inferred_dtype(request):
     return inferred_dtype, values
 
 
-@pytest.fixture(params=[getattr(pd.offsets, o) for o in pd.offsets.__all__ if
-                        issubclass(getattr(pd.offsets, o), pd.offsets.Tick)])
+@pytest.fixture(
+    params=[
+        getattr(pd.offsets, o)
+        for o in pd.offsets.__all__
+        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick)
+    ]
+)
 def tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param
+
 
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis
@@ -701,28 +760,32 @@ def tick_classes(request):
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
-for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
+for name in "MonthBegin MonthEnd BMonthBegin BMonthEnd".split():
     cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(cls, st.builds(
-        cls,
-        n=st.integers(-99, 99),
-        normalize=st.booleans(),
-    ))
+    st.register_type_strategy(
+        cls, st.builds(cls, n=st.integers(-99, 99), normalize=st.booleans())
+    )
 
-for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
+for name in "YearBegin YearEnd BYearBegin BYearEnd".split():
     cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(cls, st.builds(
+    st.register_type_strategy(
         cls,
-        n=st.integers(-5, 5),
-        normalize=st.booleans(),
-        month=st.integers(min_value=1, max_value=12),
-    ))
+        st.builds(
+            cls,
+            n=st.integers(-5, 5),
+            normalize=st.booleans(),
+            month=st.integers(min_value=1, max_value=12),
+        ),
+    )
 
-for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
+for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(cls, st.builds(
+    st.register_type_strategy(
         cls,
-        n=st.integers(-24, 24),
-        normalize=st.booleans(),
-        startingMonth=st.integers(min_value=1, max_value=12)
-    ))
+        st.builds(
+            cls,
+            n=st.integers(-24, 24),
+            normalize=st.booleans(),
+            startingMonth=st.integers(min_value=1, max_value=12),
+        ),
+    )
