@@ -429,6 +429,7 @@ def _check_lossless_cast(value, dtype: np.dtype) -> bool:
         return True
     return False
 
+
 def infer_dtype_from(val, pandas_dtype=False):
     """
     interpret the dtype from a scalar or array. This is a convenience
