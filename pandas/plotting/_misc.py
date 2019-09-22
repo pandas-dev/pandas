@@ -1,22 +1,89 @@
-# being a bit too dynamic
-# pylint: disable=E1101
-from __future__ import division
+from contextlib import contextmanager
+import warnings
 
-import numpy as np
-
-from pandas.compat import lmap, lrange, range, zip
 from pandas.util._decorators import deprecate_kwarg
 
-from pandas.core.dtypes.missing import notna
-
-from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._style import _get_standard_colors
-from pandas.plotting._tools import _set_ticks_props, _subplots
+from pandas.plotting._core import _get_plot_backend
 
 
-def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', density_kwds=None,
-                   hist_kwds=None, range_padding=0.05, **kwds):
+def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
+    """
+    Helper function to convert DataFrame and Series to matplotlib.table
+
+    Parameters
+    ----------
+    ax : Matplotlib axes object
+    data : DataFrame or Series
+        data for table contents
+    kwargs : keywords, optional
+        keyword arguments which passed to matplotlib.table.table.
+        If `rowLabels` or `colLabels` is not specified, data index or column
+        name will be used.
+
+    Returns
+    -------
+    matplotlib table object
+    """
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.table(
+        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
+    )
+
+
+def register(explicit=True):
+    """
+    Register Pandas Formatters and Converters with matplotlib
+
+    This function modifies the global ``matplotlib.units.registry``
+    dictionary. Pandas adds custom converters for
+
+    * pd.Timestamp
+    * pd.Period
+    * np.datetime64
+    * datetime.datetime
+    * datetime.date
+    * datetime.time
+
+    See Also
+    --------
+    deregister_matplotlib_converters
+    """
+    plot_backend = _get_plot_backend("matplotlib")
+    plot_backend.register(explicit=explicit)
+
+
+def deregister():
+    """
+    Remove pandas' formatters and converters
+
+    Removes the custom converters added by :func:`register`. This
+    attempts to set the state of the registry back to the state before
+    pandas registered its own units. Converters for pandas' own types like
+    Timestamp and Period are removed completely. Converters for types
+    pandas overwrites, like ``datetime.datetime``, are restored to their
+    original value.
+
+    See Also
+    --------
+    register_matplotlib_converters
+    """
+    plot_backend = _get_plot_backend("matplotlib")
+    plot_backend.deregister()
+
+
+def scatter_matrix(
+    frame,
+    alpha=0.5,
+    figsize=None,
+    ax=None,
+    grid=False,
+    diagonal="hist",
+    marker=".",
+    density_kwds=None,
+    hist_kwds=None,
+    range_padding=0.05,
+    **kwds
+):
     """
     Draw a matrix of scatter plots.
 
@@ -47,100 +114,30 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
+    Returns
+    -------
+    numpy.ndarray
+        A matrix of scatter plots.
+
     Examples
     --------
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
-
-    df = frame._get_numeric_data()
-    n = df.columns.size
-    naxes = n * n
-    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax,
-                          squeeze=False)
-
-    # no gaps between subplots
-    fig.subplots_adjust(wspace=0, hspace=0)
-
-    mask = notna(df)
-
-    marker = _get_marker_compat(marker)
-
-    hist_kwds = hist_kwds or {}
-    density_kwds = density_kwds or {}
-
-    # GH 14855
-    kwds.setdefault('edgecolors', 'none')
-
-    boundaries_list = []
-    for a in df.columns:
-        values = df[a].values[mask[a].values]
-        rmin_, rmax_ = np.min(values), np.max(values)
-        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
-        boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
-
-    for i, a in zip(lrange(n), df.columns):
-        for j, b in zip(lrange(n), df.columns):
-            ax = axes[i, j]
-
-            if i == j:
-                values = df[a].values[mask[a].values]
-
-                # Deal with the diagonal by drawing a histogram there.
-                if diagonal == 'hist':
-                    ax.hist(values, **hist_kwds)
-
-                elif diagonal in ('kde', 'density'):
-                    from scipy.stats import gaussian_kde
-                    y = values
-                    gkde = gaussian_kde(y)
-                    ind = np.linspace(y.min(), y.max(), 1000)
-                    ax.plot(ind, gkde.evaluate(ind), **density_kwds)
-
-                ax.set_xlim(boundaries_list[i])
-
-            else:
-                common = (mask[a] & mask[b]).values
-
-                ax.scatter(df[b][common], df[a][common],
-                           marker=marker, alpha=alpha, **kwds)
-
-                ax.set_xlim(boundaries_list[j])
-                ax.set_ylim(boundaries_list[i])
-
-            ax.set_xlabel(b)
-            ax.set_ylabel(a)
-
-            if j != 0:
-                ax.yaxis.set_visible(False)
-            if i != n - 1:
-                ax.xaxis.set_visible(False)
-
-    if len(df.columns) > 1:
-        lim1 = boundaries_list[0]
-        locs = axes[0][1].yaxis.get_majorticklocs()
-        locs = locs[(lim1[0] <= locs) & (locs <= lim1[1])]
-        adj = (locs - lim1[0]) / (lim1[1] - lim1[0])
-
-        lim0 = axes[0][0].get_ylim()
-        adj = adj * (lim0[1] - lim0[0]) + lim0[0]
-        axes[0][0].yaxis.set_ticks(adj)
-
-        if np.all(locs == locs.astype(int)):
-            # if all ticks are int
-            locs = locs.astype(int)
-        axes[0][0].yaxis.set_ticklabels(locs)
-
-    _set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
-
-    return axes
-
-
-def _get_marker_compat(marker):
-    import matplotlib.lines as mlines
-    if marker not in mlines.lineMarkers:
-        return 'o'
-    return marker
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.scatter_matrix(
+        frame=frame,
+        alpha=alpha,
+        figsize=figsize,
+        ax=ax,
+        grid=grid,
+        diagonal=diagonal,
+        marker=marker,
+        density_kwds=density_kwds,
+        hist_kwds=hist_kwds,
+        range_padding=range_padding,
+        **kwds
+    )
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
@@ -178,7 +175,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes`
+    class:`matplotlib.axes.Axes`
 
     See Also
     --------
@@ -205,73 +202,21 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...     })
         >>> rad_viz = pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
-
-    def normalize(series):
-        a = min(series)
-        b = max(series)
-        return (series - a) / (b - a)
-
-    n = len(frame)
-    classes = frame[class_column].drop_duplicates()
-    class_col = frame[class_column]
-    df = frame.drop(class_column, axis=1).apply(normalize)
-
-    if ax is None:
-        ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
-
-    to_plot = {}
-    colors = _get_standard_colors(num_colors=len(classes), colormap=colormap,
-                                  color_type='random', color=color)
-
-    for kls in classes:
-        to_plot[kls] = [[], []]
-
-    m = len(frame.columns) - 1
-    s = np.array([(np.cos(t), np.sin(t))
-                  for t in [2.0 * np.pi * (i / float(m))
-                            for i in range(m)]])
-
-    for i in range(n):
-        row = df.iloc[i].values
-        row_ = np.repeat(np.expand_dims(row, axis=1), 2, axis=1)
-        y = (s * row_).sum(axis=0) / row.sum()
-        kls = class_col.iat[i]
-        to_plot[kls][0].append(y[0])
-        to_plot[kls][1].append(y[1])
-
-    for i, kls in enumerate(classes):
-        ax.scatter(to_plot[kls][0], to_plot[kls][1], color=colors[i],
-                   label=pprint_thing(kls), **kwds)
-    ax.legend()
-
-    ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
-
-    for xy, name in zip(s, df.columns):
-
-        ax.add_patch(patches.Circle(xy, radius=0.025, facecolor='gray'))
-
-        if xy[0] < 0.0 and xy[1] < 0.0:
-            ax.text(xy[0] - 0.025, xy[1] - 0.025, name,
-                    ha='right', va='top', size='small')
-        elif xy[0] < 0.0 and xy[1] >= 0.0:
-            ax.text(xy[0] - 0.025, xy[1] + 0.025, name,
-                    ha='right', va='bottom', size='small')
-        elif xy[0] >= 0.0 and xy[1] < 0.0:
-            ax.text(xy[0] + 0.025, xy[1] - 0.025, name,
-                    ha='left', va='top', size='small')
-        elif xy[0] >= 0.0 and xy[1] >= 0.0:
-            ax.text(xy[0] + 0.025, xy[1] + 0.025, name,
-                    ha='left', va='bottom', size='small')
-
-    ax.axis('equal')
-    return ax
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.radviz(
+        frame=frame,
+        class_column=class_column,
+        ax=ax,
+        color=color,
+        colormap=colormap,
+        **kwds
+    )
 
 
-@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
-def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
-                   colormap=None, **kwds):
+@deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
+def andrews_curves(
+    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwds
+):
     """
     Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
@@ -302,62 +247,18 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
     Returns
     -------
-    ax : Matplotlib axis object
-
+    class:`matplotlip.axis.Axes`
     """
-    from math import sqrt, pi
-    import matplotlib.pyplot as plt
-
-    def function(amplitudes):
-        def f(t):
-            x1 = amplitudes[0]
-            result = x1 / sqrt(2.0)
-
-            # Take the rest of the coefficients and resize them
-            # appropriately. Take a copy of amplitudes as otherwise numpy
-            # deletes the element from amplitudes itself.
-            coeffs = np.delete(np.copy(amplitudes), 0)
-            coeffs.resize(int((coeffs.size + 1) / 2), 2)
-
-            # Generate the harmonics and arguments for the sin and cos
-            # functions.
-            harmonics = np.arange(0, coeffs.shape[0]) + 1
-            trig_args = np.outer(harmonics, t)
-
-            result += np.sum(coeffs[:, 0, np.newaxis] * np.sin(trig_args) +
-                             coeffs[:, 1, np.newaxis] * np.cos(trig_args),
-                             axis=0)
-            return result
-        return f
-
-    n = len(frame)
-    class_col = frame[class_column]
-    classes = frame[class_column].drop_duplicates()
-    df = frame.drop(class_column, axis=1)
-    t = np.linspace(-pi, pi, samples)
-    used_legends = set()
-
-    color_values = _get_standard_colors(num_colors=len(classes),
-                                        colormap=colormap, color_type='random',
-                                        color=color)
-    colors = dict(zip(classes, color_values))
-    if ax is None:
-        ax = plt.gca(xlim=(-pi, pi))
-    for i in range(n):
-        row = df.iloc[i].values
-        f = function(row)
-        y = f(t)
-        kls = class_col.iat[i]
-        label = pprint_thing(kls)
-        if label not in used_legends:
-            used_legends.add(label)
-            ax.plot(t, y, color=colors[kls], label=label, **kwds)
-        else:
-            ax.plot(t, y, color=colors[kls], **kwds)
-
-    ax.legend(loc='upper right')
-    ax.grid()
-    return ax
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.andrews_curves(
+        frame=frame,
+        class_column=class_column,
+        ax=ax,
+        samples=samples,
+        color=color,
+        colormap=colormap,
+        **kwds
+    )
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
@@ -389,7 +290,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    matplotlib.figure.Figure
         Matplotlib figure.
 
     See Also
@@ -406,58 +307,30 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
             >>> s = pd.Series(np.random.uniform(size=100))
             >>> fig = pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
     """
-    import random
-    import matplotlib.pyplot as plt
-
-    # random.sample(ndarray, int) fails on python 3.3, sigh
-    data = list(series.values)
-    samplings = [random.sample(data, size) for _ in range(samples)]
-
-    means = np.array([np.mean(sampling) for sampling in samplings])
-    medians = np.array([np.median(sampling) for sampling in samplings])
-    midranges = np.array([(min(sampling) + max(sampling)) * 0.5
-                          for sampling in samplings])
-    if fig is None:
-        fig = plt.figure()
-    x = lrange(samples)
-    axes = []
-    ax1 = fig.add_subplot(2, 3, 1)
-    ax1.set_xlabel("Sample")
-    axes.append(ax1)
-    ax1.plot(x, means, **kwds)
-    ax2 = fig.add_subplot(2, 3, 2)
-    ax2.set_xlabel("Sample")
-    axes.append(ax2)
-    ax2.plot(x, medians, **kwds)
-    ax3 = fig.add_subplot(2, 3, 3)
-    ax3.set_xlabel("Sample")
-    axes.append(ax3)
-    ax3.plot(x, midranges, **kwds)
-    ax4 = fig.add_subplot(2, 3, 4)
-    ax4.set_xlabel("Mean")
-    axes.append(ax4)
-    ax4.hist(means, **kwds)
-    ax5 = fig.add_subplot(2, 3, 5)
-    ax5.set_xlabel("Median")
-    axes.append(ax5)
-    ax5.hist(medians, **kwds)
-    ax6 = fig.add_subplot(2, 3, 6)
-    ax6.set_xlabel("Midrange")
-    axes.append(ax6)
-    ax6.hist(midranges, **kwds)
-    for axis in axes:
-        plt.setp(axis.get_xticklabels(), fontsize=8)
-        plt.setp(axis.get_yticklabels(), fontsize=8)
-    return fig
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.bootstrap_plot(
+        series=series, fig=fig, size=size, samples=samples, **kwds
+    )
 
 
-@deprecate_kwarg(old_arg_name='colors', new_arg_name='color')
-@deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
-def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
-                         use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, axvlines_kwds=None, sort_labels=False,
-                         **kwds):
-    """Parallel coordinates plotting.
+@deprecate_kwarg(old_arg_name="colors", new_arg_name="color")
+@deprecate_kwarg(old_arg_name="data", new_arg_name="frame", stacklevel=3)
+def parallel_coordinates(
+    frame,
+    class_column,
+    cols=None,
+    ax=None,
+    color=None,
+    use_columns=False,
+    xticks=None,
+    colormap=None,
+    axvlines=True,
+    axvlines_kwds=None,
+    sort_labels=False,
+    **kwds
+):
+    """
+    Parallel coordinates plotting.
 
     Parameters
     ----------
@@ -490,7 +363,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Returns
     -------
-    ax: matplotlib axis object
+    class:`matplotlib.axis.Axes`
 
     Examples
     --------
@@ -502,73 +375,26 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
             color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
-    if axvlines_kwds is None:
-        axvlines_kwds = {'linewidth': 1, 'color': 'black'}
-    import matplotlib.pyplot as plt
-
-    n = len(frame)
-    classes = frame[class_column].drop_duplicates()
-    class_col = frame[class_column]
-
-    if cols is None:
-        df = frame.drop(class_column, axis=1)
-    else:
-        df = frame[cols]
-
-    used_legends = set()
-
-    ncols = len(df.columns)
-
-    # determine values to use for xticks
-    if use_columns is True:
-        if not np.all(np.isreal(list(df.columns))):
-            raise ValueError('Columns must be numeric to be used as xticks')
-        x = df.columns
-    elif xticks is not None:
-        if not np.all(np.isreal(xticks)):
-            raise ValueError('xticks specified must be numeric')
-        elif len(xticks) != ncols:
-            raise ValueError('Length of xticks must match number of columns')
-        x = xticks
-    else:
-        x = lrange(ncols)
-
-    if ax is None:
-        ax = plt.gca()
-
-    color_values = _get_standard_colors(num_colors=len(classes),
-                                        colormap=colormap, color_type='random',
-                                        color=color)
-
-    if sort_labels:
-        classes = sorted(classes)
-        color_values = sorted(color_values)
-    colors = dict(zip(classes, color_values))
-
-    for i in range(n):
-        y = df.iloc[i].values
-        kls = class_col.iat[i]
-        label = pprint_thing(kls)
-        if label not in used_legends:
-            used_legends.add(label)
-            ax.plot(x, y, color=colors[kls], label=label, **kwds)
-        else:
-            ax.plot(x, y, color=colors[kls], **kwds)
-
-    if axvlines:
-        for i in x:
-            ax.axvline(i, **axvlines_kwds)
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(df.columns)
-    ax.set_xlim(x[0], x[-1])
-    ax.legend(loc='upper right')
-    ax.grid()
-    return ax
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.parallel_coordinates(
+        frame=frame,
+        class_column=class_column,
+        cols=cols,
+        ax=ax,
+        color=color,
+        use_columns=use_columns,
+        xticks=xticks,
+        colormap=colormap,
+        axvlines=axvlines,
+        axvlines_kwds=axvlines_kwds,
+        sort_labels=sort_labels,
+        **kwds
+    )
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    """Lag plot for time series.
+    """
+    Lag plot for time series.
 
     Parameters
     ----------
@@ -579,63 +405,122 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
     Returns
     -------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
-    import matplotlib.pyplot as plt
-
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
-    kwds.setdefault('c', plt.rcParams['patch.facecolor'])
-
-    data = series.values
-    y1 = data[:-lag]
-    y2 = data[lag:]
-    if ax is None:
-        ax = plt.gca()
-    ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + {lag})".format(lag=lag))
-    ax.scatter(y1, y2, **kwds)
-    return ax
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
     """
     Autocorrelation plot for time series.
 
-    Parameters:
-    -----------
-    series: Time series
-    ax: Matplotlib axis object, optional
+    Parameters
+    ----------
+    series : Time series
+    ax : Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
-    Returns:
-    -----------
-    ax: Matplotlib axis object
+    Returns
+    -------
+    class:`matplotlib.axis.Axes`
     """
-    import matplotlib.pyplot as plt
-    n = len(series)
-    data = np.asarray(series)
-    if ax is None:
-        ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
-    mean = np.mean(data)
-    c0 = np.sum((data - mean) ** 2) / float(n)
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwds)
 
-    def r(h):
-        return ((data[:n - h] - mean) *
-                (data[h:] - mean)).sum() / float(n) / c0
-    x = np.arange(n) + 1
-    y = lmap(r, x)
-    z95 = 1.959963984540054
-    z99 = 2.5758293035489004
-    ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
-    ax.axhline(y=z95 / np.sqrt(n), color='grey')
-    ax.axhline(y=0.0, color='black')
-    ax.axhline(y=-z95 / np.sqrt(n), color='grey')
-    ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
-    ax.set_xlabel("Lag")
-    ax.set_ylabel("Autocorrelation")
-    ax.plot(x, y, **kwds)
-    if 'label' in kwds:
-        ax.legend()
-    ax.grid()
-    return ax
+
+def tsplot(series, plotf, ax=None, **kwargs):
+    """
+    Plots a Series on the given Matplotlib axes or the current axes
+
+    Parameters
+    ----------
+    axes : Axes
+    series : Series
+
+    Notes
+    _____
+    Supports same kwargs as Axes.plot
+
+
+    .. deprecated:: 0.23.0
+       Use Series.plot() instead
+    """
+    warnings.warn(
+        "'tsplot' is deprecated and will be removed in a "
+        "future version. Please use Series.plot() instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    plot_backend = _get_plot_backend("matplotlib")
+    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
+
+
+class _Options(dict):
+    """
+    Stores pandas plotting options.
+    Allows for parameter aliasing so you can just use parameter names that are
+    the same as the plot function parameters, but is stored in a canonical
+    format that makes it easy to breakdown into groups later
+    """
+
+    # alias so the names are same as plotting method parameter names
+    _ALIASES = {"x_compat": "xaxis.compat"}
+    _DEFAULT_KEYS = ["xaxis.compat"]
+
+    def __init__(self, deprecated=False):
+        self._deprecated = deprecated
+        # self['xaxis.compat'] = False
+        super().__setitem__("xaxis.compat", False)
+
+    def __getitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key not in self:
+            raise ValueError(
+                "{key} is not a valid pandas plotting option".format(key=key)
+            )
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        key = self._get_canonical_key(key)
+        return super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key in self._DEFAULT_KEYS:
+            raise ValueError("Cannot remove default parameter {key}".format(key=key))
+        return super().__delitem__(key)
+
+    def __contains__(self, key):
+        key = self._get_canonical_key(key)
+        return super().__contains__(key)
+
+    def reset(self):
+        """
+        Reset the option store to its initial state
+
+        Returns
+        -------
+        None
+        """
+        self.__init__()
+
+    def _get_canonical_key(self, key):
+        return self._ALIASES.get(key, key)
+
+    @contextmanager
+    def use(self, key, value):
+        """
+        Temporarily set a parameter value using the with statement.
+        Aliasing allowed.
+        """
+        old_value = self[key]
+        try:
+            self[key] = value
+            yield self
+        finally:
+            self[key] = old_value
+
+
+plot_params = _Options()

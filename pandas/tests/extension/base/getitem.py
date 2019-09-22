@@ -19,8 +19,7 @@ class BaseGetitemTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_iloc_frame(self, data):
-        df = pd.DataFrame({"A": data, 'B':
-                           np.arange(len(data), dtype='int64')})
+        df = pd.DataFrame({"A": data, "B": np.arange(len(data), dtype="int64")})
         expected = pd.DataFrame({"A": data[:4]})
 
         # slice -> frame
@@ -31,7 +30,7 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.iloc[[0, 1, 2, 3], [0]]
         self.assert_frame_equal(result, expected)
 
-        expected = pd.Series(data[:4], name='A')
+        expected = pd.Series(data[:4], name="A")
 
         # slice -> series
         result = df.iloc[:4, 0]
@@ -51,26 +50,40 @@ class BaseGetitemTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_loc_frame(self, data):
-        df = pd.DataFrame({"A": data,
-                           'B': np.arange(len(data), dtype='int64')})
+        df = pd.DataFrame({"A": data, "B": np.arange(len(data), dtype="int64")})
         expected = pd.DataFrame({"A": data[:4]})
 
         # slice -> frame
-        result = df.loc[:3, ['A']]
+        result = df.loc[:3, ["A"]]
         self.assert_frame_equal(result, expected)
 
         # sequence -> frame
-        result = df.loc[[0, 1, 2, 3], ['A']]
+        result = df.loc[[0, 1, 2, 3], ["A"]]
         self.assert_frame_equal(result, expected)
 
-        expected = pd.Series(data[:4], name='A')
+        expected = pd.Series(data[:4], name="A")
 
         # slice -> series
-        result = df.loc[:3, 'A']
+        result = df.loc[:3, "A"]
         self.assert_series_equal(result, expected)
 
         # sequence -> series
-        result = df.loc[:3, 'A']
+        result = df.loc[:3, "A"]
+        self.assert_series_equal(result, expected)
+
+    def test_loc_iloc_frame_single_dtype(self, data):
+        # GH#27110 bug in ExtensionBlock.iget caused df.iloc[n] to incorrectly
+        #  return a scalar
+        df = pd.DataFrame({"A": data})
+        expected = pd.Series([data[2]], index=["A"], name=2, dtype=data.dtype)
+
+        result = df.loc[2]
+        self.assert_series_equal(result, expected)
+
+        expected = pd.Series(
+            [data[-1]], index=["A"], name=len(data) - 1, dtype=data.dtype
+        )
+        result = df.iloc[-1]
         self.assert_series_equal(result, expected)
 
     def test_getitem_scalar(self, data):
@@ -132,14 +145,14 @@ class BaseGetitemTests(BaseExtensionTests):
         assert s.get(-1) is None
         assert s.get(s.index.max() + 1) is None
 
-        s = pd.Series(data[:6], index=list('abcdef'))
-        assert s.get('c') == s.iloc[2]
+        s = pd.Series(data[:6], index=list("abcdef"))
+        assert s.get("c") == s.iloc[2]
 
-        result = s.get(slice('b', 'd'))
+        result = s.get(slice("b", "d"))
         expected = s.iloc[[1, 2, 3]]
         self.assert_series_equal(result, expected)
 
-        result = s.get('Z')
+        result = s.get("Z")
         assert result is None
 
         assert s.get(4) == s.iloc[4]
@@ -202,7 +215,7 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
-    @pytest.mark.parametrize('allow_fill', [True, False])
+    @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
         with pytest.raises(IndexError):
@@ -213,7 +226,8 @@ class BaseGetitemTests(BaseExtensionTests):
         result = s.take([0, -1])
         expected = pd.Series(
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
-            index=[0, len(data) - 1])
+            index=[0, len(data) - 1],
+        )
         self.assert_series_equal(result, expected)
 
     def test_reindex(self, data, na_value):
@@ -225,15 +239,15 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = s.reindex([-1, 0, n])
         expected = pd.Series(
-            data._from_sequence([na_value, data[0], na_value],
-                                dtype=s.dtype),
-            index=[-1, 0, n])
+            data._from_sequence([na_value, data[0], na_value], dtype=s.dtype),
+            index=[-1, 0, n],
+        )
         self.assert_series_equal(result, expected)
 
         result = s.reindex([n, n + 1])
-        expected = pd.Series(data._from_sequence([na_value, na_value],
-                                                 dtype=s.dtype),
-                             index=[n, n + 1])
+        expected = pd.Series(
+            data._from_sequence([na_value, na_value], dtype=s.dtype), index=[n, n + 1]
+        )
         self.assert_series_equal(result, expected)
 
     def test_reindex_non_na_fill_value(self, data_missing):
@@ -246,3 +260,9 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = pd.Series(data_missing._from_sequence([na, valid, valid]))
 
         self.assert_series_equal(result, expected)
+
+    def test_loc_len1(self, data):
+        # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
+        df = pd.DataFrame({"A": data})
+        res = df.loc[[0], "A"]
+        assert res._data._block.ndim == 1

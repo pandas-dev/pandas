@@ -6,8 +6,7 @@ import pytest
 from pandas.io.msgpack import ExtType, OutOfData, Unpacker, packb
 
 
-class TestUnpack(object):
-
+class TestUnpack:
     def test_unpack_array_header_from_file(self):
         f = BytesIO(packb([1, 2, 3, 4]))
         unpacker = Unpacker(f)
@@ -21,8 +20,8 @@ class TestUnpack(object):
             unpacker.unpack()
 
     def test_unpacker_hook_refcnt(self):
-        if not hasattr(sys, 'getrefcount'):
-            pytest.skip('no sys.getrefcount()')
+        if not hasattr(sys, "getrefcount"):
+            pytest.skip("no sys.getrefcount()")
         result = []
 
         def hook(x):
@@ -47,10 +46,8 @@ class TestUnpack(object):
 
     def test_unpacker_ext_hook(self):
         class MyUnpacker(Unpacker):
-
             def __init__(self):
-                super(MyUnpacker, self).__init__(ext_hook=self._hook,
-                                                 encoding='utf-8')
+                super().__init__(ext_hook=self._hook, encoding="utf-8")
 
             def _hook(self, code, data):
                 if code == 1:
@@ -59,9 +56,9 @@ class TestUnpack(object):
                     return ExtType(code, data)
 
         unpacker = MyUnpacker()
-        unpacker.feed(packb({'a': 1}, encoding='utf-8'))
-        assert unpacker.unpack() == {'a': 1}
-        unpacker.feed(packb({'a': ExtType(1, b'123')}, encoding='utf-8'))
-        assert unpacker.unpack() == {'a': 123}
-        unpacker.feed(packb({'a': ExtType(2, b'321')}, encoding='utf-8'))
-        assert unpacker.unpack() == {'a': ExtType(2, b'321')}
+        unpacker.feed(packb({"a": 1}, encoding="utf-8"))
+        assert unpacker.unpack() == {"a": 1}
+        unpacker.feed(packb({"a": ExtType(1, b"123")}, encoding="utf-8"))
+        assert unpacker.unpack() == {"a": 123}
+        unpacker.feed(packb({"a": ExtType(2, b"321")}, encoding="utf-8"))
+        assert unpacker.unpack() == {"a": ExtType(2, b"321")}

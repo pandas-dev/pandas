@@ -1,5 +1,6 @@
-from datetime import date, time, timedelta
+from datetime import date, time, timedelta, timezone
 from decimal import Decimal
+import operator
 import os
 
 from dateutil.tz import tzlocal, tzutc
@@ -9,10 +10,12 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas.compat import PY3, u
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import DataFrame
+from pandas.core import ops
+import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
     "ci",
@@ -22,7 +25,6 @@ hypothesis.settings.register_profile(
     # if it really is slow add `@settings(deadline=...)` with a working value,
     # or `deadline=None` to entirely disable timeouts for that test.
     deadline=500,
-    timeout=hypothesis.unlimited,
     suppress_health_check=(hypothesis.HealthCheck.too_slow,),
 )
 hypothesis.settings.load_profile("ci")
@@ -121,12 +123,22 @@ def ip():
 
 @pytest.fixture(params=[True, False, None])
 def observed(request):
-    """ pass in the observed keyword to groupby for [True, False]
+    """
+    Pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
-    appear in the grouper [True]. [None] is supported for future compatiblity
+    appear in the grouper [True]. [None] is supported for future compatibility
     if we decide to change the default (and would need to warn if this
-    parameter is not passed)"""
+    parameter is not passed).
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False, None])
+def ordered_fixture(request):
+    """
+    Boolean 'ordered' parameter for Categorical.
+    """
     return request.param
 
 
@@ -146,14 +158,40 @@ _all_arithmetic_operators = [
     "__mod__",
     "__rmod__",
 ]
-if not PY3:
-    _all_arithmetic_operators.extend(["__div__", "__rdiv__"])
 
 
 @pytest.fixture(params=_all_arithmetic_operators)
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
+    ]
+)
+def all_arithmetic_functions(request):
+    """
+    Fixture for operator and roperator arithmetic functions.
+
+    Note: This includes divmod and rdivmod, whereas all_arithmetic_operators
+    does not.
     """
     return request.param
 
@@ -200,7 +238,8 @@ def cython_table_items(request):
 
 
 def _get_cython_table_params(ndframe, func_names_and_expected):
-    """combine frame, functions from SelectionMixin._cython_table
+    """
+    Combine frame, functions from SelectionMixin._cython_table
     keys and expected result.
 
     Parameters
@@ -208,7 +247,7 @@ def _get_cython_table_params(ndframe, func_names_and_expected):
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
         The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value
+        The second item is the expected return value.
 
     Returns
     -------
@@ -241,9 +280,20 @@ def all_compare_operators(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[None, "gzip", "bz2", "zip", pytest.param("xz", marks=td.skip_if_no_lzma)]
-)
+@pytest.fixture(params=["__le__", "__lt__", "__ge__", "__gt__"])
+def compare_operators_no_eq_ne(request):
+    """
+    Fixture for dunder names for compare operations except == and !=
+
+    * >=
+    * >
+    * <
+    * <=
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
 def compression(request):
     """
     Fixture for trying common compression types in compression tests
@@ -251,9 +301,7 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(
-    params=["gzip", "bz2", "zip", pytest.param("xz", marks=td.skip_if_no_lzma)]
-)
+@pytest.fixture(params=["gzip", "bz2", "zip", "xz"])
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
@@ -272,19 +320,10 @@ def writable(request):
 
 @pytest.fixture(scope="module")
 def datetime_tz_utc():
-    from datetime import timezone
-
     return timezone.utc
 
 
-utc_objs = ["utc", "dateutil/UTC", utc, tzutc()]
-if PY3:
-    from datetime import timezone
-
-    utc_objs.append(timezone.utc)
-
-
-@pytest.fixture(params=utc_objs)
+@pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects
@@ -307,7 +346,8 @@ def strict_data_files(pytestconfig):
 
 @pytest.fixture
 def datapath(strict_data_files):
-    """Get the path to a data file.
+    """
+    Get the path to a data file.
 
     Parameters
     ----------
@@ -341,7 +381,9 @@ def datapath(strict_data_files):
 
 @pytest.fixture
 def iris(datapath):
-    """The iris dataset as a DataFrame."""
+    """
+    The iris dataset as a DataFrame.
+    """
     return pd.read_csv(datapath("data", "iris.csv"))
 
 
@@ -404,20 +446,11 @@ TIMEZONES = [
     FixedOffset(300),
     FixedOffset(0),
     FixedOffset(-300),
+    timezone.utc,
+    timezone(timedelta(hours=1)),
+    timezone(timedelta(hours=-1), name="foo"),
 ]
-TIMEZONE_IDS = [
-    "None",
-    "UTC",
-    "US/Eastern",
-    "Asia/Tokyp",
-    "dateutil/US/Pacific",
-    "dateutil/Asia/Singapore",
-    "dateutil.tz.tzutz()",
-    "dateutil.tz.tzlocal()",
-    "pytz.FixedOffset(300)",
-    "pytz.FixedOffset(0)",
-    "pytz.FixedOffset(-300)",
-]
+TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
@@ -444,7 +477,7 @@ tz_aware_fixture2 = tz_aware_fixture
 
 # ----------------------------------------------------------------
 # Dtypes
-
+# ----------------------------------------------------------------
 
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -473,13 +506,14 @@ ALL_NUMPY_DTYPES = (
     + TIMEDELTA64_DTYPES
     + BOOL_DTYPES
     + OBJECT_DTYPES
-    + BYTES_DTYPES * PY3
-)  # bytes only for PY3
+    + BYTES_DTYPES
+)
 
 
 @pytest.fixture(params=STRING_DTYPES)
 def string_dtype(request):
-    """Parametrized fixture for string dtypes.
+    """
+    Parametrized fixture for string dtypes.
 
     * str
     * 'str'
@@ -490,7 +524,8 @@ def string_dtype(request):
 
 @pytest.fixture(params=BYTES_DTYPES)
 def bytes_dtype(request):
-    """Parametrized fixture for bytes dtypes.
+    """
+    Parametrized fixture for bytes dtypes.
 
     * bytes
     * 'bytes'
@@ -500,7 +535,8 @@ def bytes_dtype(request):
 
 @pytest.fixture(params=OBJECT_DTYPES)
 def object_dtype(request):
-    """Parametrized fixture for object dtypes.
+    """
+    Parametrized fixture for object dtypes.
 
     * object
     * 'object'
@@ -510,7 +546,8 @@ def object_dtype(request):
 
 @pytest.fixture(params=DATETIME64_DTYPES)
 def datetime64_dtype(request):
-    """Parametrized fixture for datetime/timedelta dtypes.
+    """
+    Parametrized fixture for datetime64 dtypes.
 
     * 'datetime64[ns]'
     * 'M8[ns]'
@@ -520,7 +557,8 @@ def datetime64_dtype(request):
 
 @pytest.fixture(params=TIMEDELTA64_DTYPES)
 def timedelta64_dtype(request):
-    """Parametrized fixture for datetime/timedelta dtypes.
+    """
+    Parametrized fixture for timedelta64 dtypes.
 
     * 'timedelta64[ns]'
     * 'm8[ns]'
@@ -665,8 +703,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
-    ("unicode" if not PY3 else "string", [u("a"), np.nan, u("c")]),
-    ("bytes" if PY3 else "string", [b"a", np.nan, b"c"]),
+    ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
     ("mixed-integer", ["a", np.nan, 2]),
@@ -698,9 +735,8 @@ def any_skipna_inferred_dtype(request):
 
     The covered (inferred) types are:
     * 'string'
-    * 'unicode' (if PY2)
     * 'empty'
-    * 'bytes' (if PY3)
+    * 'bytes'
     * 'mixed'
     * 'mixed-integer'
     * 'mixed-integer-float'
@@ -789,3 +825,32 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
             startingMonth=st.integers(min_value=1, max_value=12),
         ),
     )
+
+
+@pytest.fixture
+def float_frame():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D'].
+
+                       A         B         C         D
+    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
+    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
+    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
+    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
+    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
+    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
+    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
+    ...              ...       ...       ...       ...
+    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
+    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
+    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
+    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
+    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
+    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
+    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
+
+    [30 rows x 4 columns]
+    """
+    return DataFrame(tm.getSeriesData())

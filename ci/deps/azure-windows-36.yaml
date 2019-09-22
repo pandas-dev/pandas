@@ -1,29 +1,28 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - blosc
   - bottleneck
-  - boost-cpp<1.67
   - fastparquet>=0.2.1
-  - matplotlib
+  - matplotlib=3.0.2
   - numexpr
-  - numpy=1.14*
+  - numpy=1.15.*
   - openpyxl
-  - parquet-cpp
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - scipy
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
-  - cython>=0.28.2
-  - pytest
-  - pytest-xdist
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-mock
+  - pytest-azurepipelines
   - hypothesis>=3.58.0

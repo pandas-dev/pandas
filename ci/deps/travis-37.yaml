@@ -4,18 +4,21 @@ channels:
   - conda-forge
   - c3i_test
 dependencies:
-  - python=3.7
+  - python=3.7.*
   - botocore>=1.11
-  - cython>=0.28.2
+  - cython>=0.29.13
   - numpy
   - python-dateutil
   - nomkl
   - pyarrow
   - pytz
-  - pytest
-  - pytest-xdist
+  # universal
+  - pytest>=5.0.0
+  - pytest-xdist>=1.29.0
   - pytest-mock
   - hypothesis>=3.58.0
   - s3fs
+  - pip
+  - pyreadstat
   - pip:
     - moto

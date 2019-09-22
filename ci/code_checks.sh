@@ -16,9 +16,10 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
+#   $ ./ci/code_checks.sh typing	# run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" || "$1" == "typing" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -50,6 +51,13 @@ fi
 
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
+
+    echo "black --version"
+    black --version
+
+    MSG='Checking black formatting' ; echo $MSG
+	black . --check --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
 
@@ -110,13 +118,27 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
+    # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    invgrep -R --include="*.py*" -E "from collections.abc import " pandas
     # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for pytest warns' ; echo $MSG
     invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for pytest raises without context' ; echo $MSG
+    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for python2-style file encodings' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for python2-style super usage' ; echo $MSG
+    invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `np.testing` and `np.array_equal`
@@ -133,8 +155,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for old-style classes' ; echo $MSG
-    invgrep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+    MSG='Check for python2 new-style classes and for empty parentheses' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas asv_bench/benchmarks scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
@@ -154,15 +176,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # Check that we use pytest.raises only as a context manager
-    #
-    # For any flake8-compliant code, the only way this regex gets
-    # matched is if there is no "with" statement preceding "pytest.raises"
-    MSG='Check for pytest.raises as context manager (a line starting with `pytest.raises` is invalid, needs a `with` to precede it)' ; echo $MSG
-    MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
-    # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
-    # RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
     invgrep -R --include="*.rst" ".. code-block ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -175,9 +188,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
@@ -190,10 +203,14 @@ if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 import sys
 import pandas
 
-blacklist = {'bs4', 'gcsfs', 'html5lib', 'ipython', 'jinja2' 'hypothesis',
+blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'xlrd', 'xlsxwriter', 'xlwt'}
-mods = blacklist & set(m.split('.')[0] for m in sys.modules)
+             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
+
+# GH#28227 for some of these check for top-level modules, while others are
+#  more specific (e.g. urllib.request)
+import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
+mods = blacklist & import_mods
 if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
@@ -220,20 +237,29 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests datetimes.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/datetimes.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
+        pandas/core/reshape/melt.py \
         -k"-crosstab -pivot_table -cut"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests interval classes' ; echo $MSG
-    pytest --doctest-modules -v \
+    pytest -q --doctest-modules \
         pandas/core/indexes/interval.py \
         pandas/core/arrays/interval.py \
-        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -241,8 +267,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, PR10, EX04, RT04, RT05, SS05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR04,PR05,EX04,RT04,RT05,SS05,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -255,5 +281,17 @@ if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
+
+### TYPING ###
+if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
+
+    echo "mypy --version"
+    mypy --version
+
+    MSG='Performing static analysis using mypy' ; echo $MSG
+    mypy pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+fi
+
 
 exit $RET

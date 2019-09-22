@@ -4,14 +4,14 @@
 Expose public exceptions & warnings
 """
 
-from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
 
 
 class PerformanceWarning(Warning):
     """
-    Warning raised when there is a possible
-    performance impact.
+    Warning raised when there is a possible performance impact.
     """
+
 
 class UnsupportedFunctionCall(ValueError):
     """
@@ -19,6 +19,7 @@ class UnsupportedFunctionCall(ValueError):
     on a pandas object, but that function is not supported by
     the object e.g. ``np.cumsum(groupby_object)``.
     """
+
 
 class UnsortedIndexError(KeyError):
     """
@@ -31,9 +32,15 @@ class UnsortedIndexError(KeyError):
 
 class ParserError(ValueError):
     """
-    Exception that is raised by an error encountered in `pd.read_csv`.
+    Exception that is raised by an error encountered in parsing file contents.
 
-    e.g. HTML Parsing will raise this error.
+    This is a generic error raised for errors encountered when functions like
+    `read_csv` or `read_html` are parsing contents of a file.
+
+    See Also
+    --------
+    read_csv : Read CSV (comma-separated) file into a DataFrame.
+    read_html : Read HTML table into a DataFrame.
     """
 
 
@@ -131,7 +138,7 @@ class ParserWarning(Warning):
     Using a `sep` in `pd.read_csv` other than a single character:
 
     >>> import io
-    >>> csv = u'''a;b;c
+    >>> csv = '''a;b;c
     ...           1;1,8
     ...           1;2,1'''
     >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP
@@ -150,14 +157,6 @@ class MergeError(ValueError):
     """
 
 
-class NullFrequencyError(ValueError):
-    """
-    Error raised when a null `freq` attribute is used in an operation
-    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
-    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
-    """
-
-
 class AccessorRegistrationWarning(Warning):
     """Warning for attribute conflicts in accessor registration."""
 
@@ -167,19 +166,20 @@ class AbstractMethodError(NotImplementedError):
     while keeping compatibility with Python 2 and Python 3.
     """
 
-    def __init__(self, class_instance, methodtype='method'):
-        types = {'method', 'classmethod', 'staticmethod', 'property'}
+    def __init__(self, class_instance, methodtype="method"):
+        types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
-            msg = 'methodtype must be one of {}, got {} instead.'.format(
-                methodtype, types)
+            msg = "methodtype must be one of {}, got {} instead.".format(
+                methodtype, types
+            )
             raise ValueError(msg)
         self.methodtype = methodtype
         self.class_instance = class_instance
 
     def __str__(self):
-        if self.methodtype == 'classmethod':
+        if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:
             name = self.class_instance.__class__.__name__
         msg = "This {methodtype} must be defined in the concrete class {name}"
-        return (msg.format(methodtype=self.methodtype, name=name))
+        return msg.format(methodtype=self.methodtype, name=name)

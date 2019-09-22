@@ -31,7 +31,7 @@ New features
 
 .. _whatsnew_0181.enhancements.custombusinesshour:
 
-Custom Business Hour
+Custom business hour
 ^^^^^^^^^^^^^^^^^^^^
 
 The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
@@ -199,7 +199,7 @@ On other levels
 
 .. _whatsnew_0181.enhancements.assembling:
 
-Assembling Datetimes
+Assembling datetimes
 ^^^^^^^^^^^^^^^^^^^^
 
 ``pd.to_datetime()`` has gained the ability to assemble datetimes from a passed in ``DataFrame`` or a dict. (:issue:`8158`).
@@ -226,7 +226,7 @@ You can pass only the columns that you need to assemble.
 
 .. _whatsnew_0181.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_csv()`` now supports ``delim_whitespace=True`` for the Python engine (:issue:`12958`)
@@ -317,7 +317,7 @@ The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_
                       'B': [1, 2, 3]})
    df
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -333,7 +333,7 @@ Previous Behavior:
    1    2
    Name: B, dtype: int64
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -348,7 +348,7 @@ Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=
    df = pd.DataFrame(np.random.randn(100, 2), columns=['a', 'b'])
    df['c'] = np.random.randint(0, 4, 100)
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -370,7 +370,7 @@ Previous Behavior:
    2 -0.720589  0.887163
    3  0.859588 -0.636524
 
-New Behavior:
+New behavior:
 
 .. ipython:: python
 
@@ -393,7 +393,7 @@ used in the ``pandas`` implementation (:issue:`12644`, :issue:`12638`, :issue:`1
 
 An example of this signature augmentation is illustrated below:
 
-.. ipython:: python
+.. code-block:: python
 
    sp = pd.SparseDataFrame([1, 2, 3])
    sp
@@ -408,7 +408,7 @@ Previous behaviour:
 
 New behaviour:
 
-.. ipython:: python
+.. code-block:: python
 
    np.cumsum(sp, axis=0)
 
@@ -444,7 +444,7 @@ Previous behavior:
     2000-11-30  value    13
     dtype: int64
 
-New Behavior:
+New behavior:
 
 .. code-block:: ipython
 
@@ -578,7 +578,7 @@ Deprecations
 
 .. _whatsnew_0181.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved speed of SAS reader (:issue:`12656`, :issue:`12961`)
@@ -599,7 +599,7 @@ Performance Improvements
 
 .. _whatsnew_0181.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 - ``usecols`` parameter in ``pd.read_csv`` is now respected even when the lines of a CSV file are not even (:issue:`12203`)
 - Bug in ``groupby.transform(..)`` when ``axis=1`` is specified with a non-monotonic ordered index (:issue:`12713`)

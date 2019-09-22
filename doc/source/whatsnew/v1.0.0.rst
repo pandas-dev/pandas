@@ -1,0 +1,305 @@
+.. _whatsnew_1000:
+
+What's new in 1.0.0 (??)
+------------------------
+
+New Deprecation Policy
+~~~~~~~~~~~~~~~~~~~~~~
+
+Starting with Pandas 1.0.0, pandas will adopt a version of `SemVer`_.
+
+Historically, pandas has used a "rolling" deprecation policy, with occasional
+outright breaking API changes. Where possible, we would deprecate the behavior
+we'd like to change, giving an option to adopt the new behavior (via a keyword
+or an alternative method), and issuing a warning for users of the old behavior.
+Sometimes, a deprecation was not possible, and we would make an outright API
+breaking change.
+
+We'll continue to *introduce* deprecations in major and minor releases (e.g.
+1.0.0, 1.1.0, ...). Those deprecations will be *enforced* in the next major
+release.
+
+Note that *behavior changes* and *API breaking changes* are not identical. API
+breaking changes will only be released in major versions. If we consider a
+behavior to be a bug, and fixing that bug induces a behavior change, we'll
+release that change in a minor release. This is a sometimes difficult judgment
+call that we'll do our best on.
+
+This doesn't mean that pandas' pace of development will slow down. In the `2019
+Pandas User Survey`_, about 95% of the respondents said they considered pandas
+"stable enough". This indicates there's an appetite for new features, even if it
+comes at the cost of break API. The difference is that now API breaking changes
+will be accompanied with a bump in the major version number (e.g. pandas 1.5.1
+-> 2.0.0).
+
+See :ref:`policies.version` for more.
+
+.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+.. _SemVer: https://semver.org
+
+.. warning::
+
+   The minimum supported Python version will be bumped to 3.6 in a future release.
+
+{{ header }}
+
+These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+
+Enhancements
+~~~~~~~~~~~~
+
+- :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
+-
+
+.. _whatsnew_1000.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
+- :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
+- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
+  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
+  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
+  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+  (:issue:`28368`)
+- :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
+- :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
+
+Build Changes
+^^^^^^^^^^^^^
+
+Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
+
+.. _whatsnew_1000.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
+- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+   Out[2]:
+   IntervalArray([(0, 1], (2, 3]],
+                 closed='right',
+                 dtype='interval[int64]')
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+
+
+.. _whatsnew_1000.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
+- :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+-
+
+.. _whatsnew_1000.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_1000.prior_deprecations:
+
+
+Removed SparseSeries and SparseDataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
+We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
+See :ref:`sparse.migration` for help with migrating existing code.
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
+- Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
+- :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
+- :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
+- Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
+- Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
+-
+
+.. _whatsnew_1000.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
+- Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
+- Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
+- Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
+- Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
+- Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
+
+.. _whatsnew_1000.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
+
+Categorical
+^^^^^^^^^^^
+
+- Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
+- Bug in :meth:`Categorical.astype` where ``NaN`` values were handled incorrectly when casting to int (:issue:`28406`)
+-
+-
+
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :meth:`Series.__setitem__` incorrectly casting ``np.timedelta64("NaT")`` to ``np.datetime64("NaT")`` when inserting into a :class:`Series` with datetime64 dtype (:issue:`27311`)
+- Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
+- Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
+- Bug in :func:`to_datetime` where passing arrays of malformed ``str`` with errors="coerce" could incorrectly lead to raising ``ValueError`` (:issue:`28299`)
+- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
+- Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
+- Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
+- Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
+- Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
+- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+
+Numeric
+^^^^^^^
+- Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+- Bug in assignment using a reverse slicer (:issue:`26939`)
+- Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
+- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
+- Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
+- Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+- :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
+- Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
+- Improve infinity parsing. :meth:`read_csv` now interprets ``Infinity``, ``+Infinity``, ``-Infinity`` as floating point values (:issue:`10065`)
+- Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
+- Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
+- Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
+- Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
+
+Plotting
+^^^^^^^^
+
+- Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
+-
+- Bug in :meth:`DataFrame.plot` not able to plot when no rows (:issue:`27758`)
+- Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
+- Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
+- Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
+- Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
+- :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+- Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
+- Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
+- Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
+
+Reshaping
+^^^^^^^^^
+
+- Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
+- Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
+
+Sparse
+^^^^^^
+- Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+- Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
+-
+
+
+Other
+^^^^^
+- Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+- Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
+- :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+
+.. _whatsnew_1000.contributors:
+
+Contributors
+~~~~~~~~~~~~

@@ -76,7 +76,11 @@ def group_last_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val and val != {{nan_val}}:
+                if (
+                {{if not name.startswith("int")}}
+                val == val and
+                {{endif}}
+                val != {{nan_val}}):
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -133,7 +137,11 @@ def group_nth_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val and val != {{nan_val}}:
+                if (
+                {{if not name.startswith("int")}}
+                val == val and
+                {{endif}}
+                val != {{nan_val}}):
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -474,10 +482,28 @@ def group_min(groupby_t[:, :] out,
 def group_cummin(groupby_t[:, :] out,
                  groupby_t[:, :] values,
                  const int64_t[:] labels,
+                 int ngroups,
                  bint is_datetimelike):
+    """Cumulative minimum of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store cummin in.
+    values : array
+        Values to take cummin of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
@@ -485,7 +511,7 @@ def group_cummin(groupby_t[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.empty_like(values)
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
         accum[:] = _int64_max
     else:
@@ -522,10 +548,28 @@ def group_cummin(groupby_t[:, :] out,
 def group_cummax(groupby_t[:, :] out,
                  groupby_t[:, :] values,
                  const int64_t[:] labels,
+		 int ngroups,
                  bint is_datetimelike):
+    """Cumulative maximum of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store cummax in.
+    values : array
+        Values to take cummax of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
-    Only transforms on axis=0
-    """
+
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
@@ -533,7 +577,7 @@ def group_cummax(groupby_t[:, :] out,
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.empty_like(values)
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max
     else:

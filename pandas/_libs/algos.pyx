@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -50,7 +48,7 @@ cdef inline bint are_diff(object left, object right):
         return left != right
 
 
-class Infinity(object):
+class Infinity:
     """ provide a positive Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: False
@@ -62,7 +60,7 @@ class Infinity(object):
     __ge__ = lambda self, other: not missing.checknull(other)
 
 
-class NegInfinity(object):
+class NegInfinity:
     """ provide a negative Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
@@ -298,6 +296,7 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=2] ranked_mat
         ndarray[float64_t, ndim=1] maskedx
         ndarray[float64_t, ndim=1] maskedy
         ndarray[uint8_t, ndim=2] mask
@@ -309,10 +308,18 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
 
+    ranked_mat = np.empty((N, K), dtype=np.float64)
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
+
     for xi in range(K):
         for yi in range(xi + 1):
             nobs = 0
+            # Keep track of whether we need to recompute ranks
+            all_ranks = True
             for i in range(N):
+                all_ranks &= not (mask[i, xi] ^ mask[i, yi])
                 if mask[i, xi] and mask[i, yi]:
                     nobs += 1
 
@@ -322,13 +329,16 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                 maskedx = np.empty(nobs, dtype=np.float64)
                 maskedy = np.empty(nobs, dtype=np.float64)
                 j = 0
+
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        maskedx[j] = mat[i, xi]
-                        maskedy[j] = mat[i, yi]
+                        maskedx[j] = ranked_mat[i, xi]
+                        maskedy[j] = ranked_mat[i, yi]
                         j += 1
-                maskedx = rank_1d_float64(maskedx)
-                maskedy = rank_1d_float64(maskedy)
+
+                if not all_ranks:
+                    maskedx = rank_1d_float64(maskedx)
+                    maskedy = rank_1d_float64(maskedy)
 
                 mean = (nobs + 1) / 2.
 
@@ -674,31 +684,6 @@ def backfill_2d_inplace(algos_t[:, :] values,
             else:
                 fill_count = 0
                 val = values[j, i]
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap(algos_t[:] index, object func):
-    cdef:
-        Py_ssize_t length = index.shape[0]
-        Py_ssize_t i = 0
-        ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    from pandas._libs.lib import maybe_convert_objects
-
-    for i in range(length):
-        result[i] = func(index[i])
-
-    return maybe_convert_objects(result)
-
-
-arrmap_float64 = arrmap["float64_t"]
-arrmap_float32 = arrmap["float32_t"]
-arrmap_object = arrmap["object"]
-arrmap_int64 = arrmap["int64_t"]
-arrmap_int32 = arrmap["int32_t"]
-arrmap_uint64 = arrmap["uint64_t"]
-arrmap_bool = arrmap["uint8_t"]
 
 
 @cython.boundscheck(False)

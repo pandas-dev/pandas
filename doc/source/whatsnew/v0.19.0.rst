@@ -192,7 +192,7 @@ default of the index) in a DataFrame.
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
@@ -218,7 +218,7 @@ contained the values ``[0, 3]``.
 **New behavior**:
 
 .. ipython:: python
-   :okwarning:
+   :okexcept:
 
    pd.read_csv(StringIO(data), names=names)
 
@@ -264,7 +264,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
 .. _whatsnew_0190.enhancements.union_categoricals:
 
-Categorical Concatenation
+Categorical concatenation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
@@ -298,7 +298,7 @@ Categorical Concatenation
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
-Semi-Month Offsets
+Semi-month offsets
 ^^^^^^^^^^^^^^^^^^
 
 Pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonthBegin`` ('SMS').
@@ -596,7 +596,7 @@ Comparison operators
 
 Comparison operators raise ``ValueError`` when ``.index`` are different.
 
-**Previous Behavior** (``Series``):
+**Previous behavior** (``Series``):
 
 ``Series`` compared values ignoring the ``.index`` as long as both had the same length:
 
@@ -631,7 +631,7 @@ Comparison operators raise ``ValueError`` when ``.index`` are different.
 
       s1.eq(s2)
 
-**Current Behavior** (``DataFrame``, no change):
+**Current behavior** (``DataFrame``, no change):
 
 .. code-block:: ipython
 
@@ -675,7 +675,7 @@ Logical operators align both ``.index`` of left and right hand side.
 
       s1 & s2.reindex_like(s1)
 
-**Current Behavior** (``DataFrame``, no change):
+**Current behavior** (``DataFrame``, no change):
 
 .. ipython:: python
 
@@ -1235,7 +1235,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
    s.dtype
@@ -1244,7 +1244,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now support ``astype`` to convert internal ``dtype`` (:issue:`13900`)
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.SparseSeries([1., 0., 2., 0.], fill_value=0)
    s
@@ -1322,7 +1322,7 @@ operations on that platform.
 
 .. _whatsnew_0190.api.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - ``Timestamp.to_pydatetime`` will issue a ``UserWarning`` when ``warn=True``, and the instance has a non-zero number of nanoseconds, previously this would print a message to stdout (:issue:`14101`).
@@ -1404,7 +1404,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0190.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
@@ -1424,7 +1424,7 @@ Performance Improvements
 
 .. _whatsnew_0190.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 - Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)
@@ -1511,7 +1511,7 @@ Bug Fixes
 - Bug in ``Series`` comparison may output incorrect result if rhs contains ``NaT`` (:issue:`9005`)
 - Bug in ``Series`` and ``Index`` comparison may output incorrect result if it contains ``NaT`` with ``object`` dtype (:issue:`13592`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
-- Bug in ``Peirod`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
+- Bug in ``Period`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN and Inf from formatting (:issue:`11981`)
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
 - Clean some compile time warnings in datetime parsing (:issue:`13607`)
