@@ -60,6 +60,7 @@ from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 DIRECTIVES = ["versionadded", "versionchanged", "deprecated"]
 DIRECTIVE_PATTERN = re.compile(rf"^\s*\.\. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M)
+BULLET_LIST_PATTERN = re.compile(r"(?<=:)(\*|-|\+|•|‣|⁃)\s.*")
 ALLOWED_SECTIONS = [
     "Parameters",
     "Attributes",
@@ -497,23 +498,6 @@ class Docstring:
                 desc = desc[: desc.index(full_directive)]
         return desc
 
-    def parameter_desc_list(self, param):
-        """Return a parameter description as a list.
-
-        Each line of the parameter docstring is a string in the list.
-        """
-        # Get the parameter description as list and remove any empty lines
-        parsed_param = [p for p in self.doc["Parameters"] if p.name == param][0]
-        desc_list = [line for line in parsed_param.desc if line]
-        # Find and strip out any sphinx directives
-        directives_pattern = re.compile(rf"\.\. ({'|'.join(DIRECTIVES)})::")
-        for desc_item in desc_list:
-            if re.match(directives_pattern, desc_item):
-                # Only retain any description before the directive
-                desc_list = desc_list[: desc_list.index(desc_item)]
-                break
-        return desc_list
-
     def has_proper_punctuation(self, param):
         """Return True if a parameter description is terminated correctly.
 
@@ -523,14 +507,12 @@ class Docstring:
         if self.parameter_desc(param)[-1] == ".":
             return True
         else:
-            # Check the parameter description list in reverse, stop returning True
-            # if a line start with a bullet point or returning False if a line does not
-            # start with two whitespaces
-            for desc_line in reversed(self.parameter_desc_list(param)):
-                if re.match(r"^(\*|-|\+|•|‣|⁃)\s", desc_line):
-                    return True
-                elif not re.match(r"^\s\s", desc_line):
-                    return False
+            # Check if the parameter description ends with a bullet list
+            bullet_list_match = re.search(
+                BULLET_LIST_PATTERN, self.parameter_desc(param)
+            )
+            if bullet_list_match:
+                return bullet_list_match.endpos == len(self.parameter_desc(param))
             return False
 
     @property
