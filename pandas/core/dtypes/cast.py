@@ -413,7 +413,7 @@ def maybe_promote(dtype, fill_value=np.nan):
 
 def _check_lossless_cast(value, dtype: np.dtype) -> bool:
     """
-    Check if we can cast the given value to the given dtype _losslesly_.
+    Check if we can cast the given value to the given dtype _losslessly_.
 
     Parameters
     ----------
