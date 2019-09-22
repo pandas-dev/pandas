@@ -934,6 +934,7 @@ class SeriesGroupBy(GroupBy):
             columns = []
             for f in arg:
                 columns.append(com.get_callable_name(f) or f)
+
             arg = zip(columns, arg)
 
         results = OrderedDict()
