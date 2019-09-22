@@ -1404,7 +1404,7 @@ class PlotAccessor(PandasObject):
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
 
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
