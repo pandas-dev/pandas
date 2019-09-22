@@ -502,14 +502,11 @@ class Docstring:
 
         Each line of the parameter docstring is a string in the list.
         """
-        # The 'Parameters' value of NumpyDocString._parsed_data is a list of
-        # NamedTuples.
-        parsed_param = [
-            p for p in self.doc._parsed_data["Parameters"] if p.name == param
-        ][0]
+        # Get the parameter description as list and remove any empty lines
+        parsed_param = [p for p in self.doc["Parameters"] if p.name == param][0]
         desc_list = [line for line in parsed_param.desc if line]
         # Find and strip out any sphinx directives
-        directives_pattern = re.compile(".. ({})".format("|".join(DIRECTIVES)))
+        directives_pattern = re.compile(rf"\.\. ({'|'.join(DIRECTIVES)})::")
         for desc_item in desc_list:
             if re.match(directives_pattern, desc_item):
                 # Only retain any description before the directive
@@ -526,12 +523,13 @@ class Docstring:
         if self.parameter_desc(param)[-1] == ".":
             return True
         else:
-            # Return True if a parameter description ends
-            # with a bullet point
-            for desc_line in self.parameter_desc_list(param)[::-1]:
-                if desc_line[0] in ["*", "-", "+", "•", "‣", "⁃"]:
+            # Check the parameter description list in reverse, stop returning True
+            # if a line start with a bullet point or returning False if a line does not
+            # start with two whitespaces
+            for desc_line in reversed(self.parameter_desc_list(param)):
+                if re.match(r"^(\*|-|\+|•|‣|⁃)\s", desc_line):
                     return True
-                elif desc_line[0:2] != "  ":
+                elif not re.match(r"^\s\s", desc_line):
                     return False
             return False
 
