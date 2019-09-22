@@ -810,7 +810,7 @@ class PlotAccessor(PandasObject):
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -880,7 +880,7 @@ class PlotAccessor(PandasObject):
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -963,7 +963,7 @@ class PlotAccessor(PandasObject):
             Column to be used for categories.
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -1049,7 +1049,7 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
-        **kwds : optional
+        **kwargs : optional
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
 
@@ -1092,7 +1092,7 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -1148,7 +1148,7 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
-        **kwds : optional
+        **kwargs : optional
             Additional keyword arguments are documented in
             :meth:`pandas.%(this-datatype)s.plot`.
 
@@ -1322,7 +1322,7 @@ class PlotAccessor(PandasObject):
         y : int or label, optional
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -1476,7 +1476,7 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
