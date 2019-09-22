@@ -181,7 +181,7 @@ Datetimelike
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
-- Bug in :func:`pandas.core.groupby.generic._recast_datetimelike_result` integer indexes for columns referenced by name (:issue:`28247`)
+- Bug in :func:`pandas.core.groupby.generic._recast_datetimelike_result` causing ``KeyError`` in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` when a column index in the original DataFrame is datetime like(:issue:`28247`)
 -
 
 Timedelta
