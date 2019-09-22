@@ -387,6 +387,8 @@ def maybe_promote(dtype, fill_value=np.nan):
     """
     if is_scalar(fill_value) or isinstance(fill_value, tuple):
         return _maybe_promote_with_scalar(dtype, fill_value)
+    elif isinstance(fill_value, (np.ndarray, ABCSeries, ABCIndexClass)):
+        return _maybe_promote_with_array(dtype, fill_value)
     else:
         fill_type = type(fill_value).__name__
         raise ValueError(

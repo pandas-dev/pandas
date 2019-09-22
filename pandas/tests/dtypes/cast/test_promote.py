@@ -67,7 +67,10 @@ def any_numpy_dtype_reduced(request):
     return request.param
 
 
-@pytest.fixture(params=[(False, None)], ids=["False-None"])
+@pytest.fixture(
+    params=[(True, None), (True, object), (False, None)],
+    ids=["True-None", "True-object", "False-None"],
+)
 def box(request):
     """
     Parametrized fixture determining whether/how to transform fill_value.
@@ -473,7 +476,16 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
 
 
 # override parametrization of box to add special case for bytes
-@pytest.mark.parametrize("box", [(False, None)])  # fill_value passed on as scalar
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "bytes"),  # fill_value in array with generic bytes dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-bytes", "True-object", "False-None"],
+)
 def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
     fill_dtype = np.dtype(bytes_dtype)
@@ -535,7 +547,16 @@ def test_maybe_promote_datetime64_with_any(
 
 
 # override parametrization of box to add special case for dt_dtype
-@pytest.mark.parametrize("box", [(False, None)])  # fill_value passed on as scalar
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "dt_dtype"),  # fill_value in array with explicit datetime dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-dt_dtype", "True-object", "False-None"],
+)
 @pytest.mark.parametrize(
     "fill_value",
     [
@@ -745,7 +766,16 @@ def test_maybe_promote_timedelta64_with_any(
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
 # override parametrization of box to add special case for td_dtype
-@pytest.mark.parametrize("box", [(False, None)])  # fill_value passed on as scalar
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "td_dtype"),  # fill_value in array with explicit timedelta dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-td_dtype", "True-object", "False-None"],
+)
 def test_maybe_promote_any_with_timedelta64(
     any_numpy_dtype_reduced, timedelta64_dtype, fill_value, box
 ):
@@ -802,7 +832,17 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced, bo
 
 
 # override parametrization of box to add special case for str
-@pytest.mark.parametrize("box", [(False, None)])  # fill_value passed on as scalar
+@pytest.mark.parametrize(
+    "box",
+    [
+        # disabled due to too many xfails; see GH 23982 / 25425
+        (True, None),  # fill_value wrapped in array with default dtype
+        (True, "str"),  # fill_value wrapped in array with generic string-dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-None", "True-str", "True-object", "False-None"],
+)
 def test_maybe_promote_any_with_string(any_numpy_dtype_reduced, string_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
     fill_dtype = np.dtype(string_dtype)
@@ -882,7 +922,14 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype, bo
     "fill_value", [None, np.nan, NaT, iNaT], ids=["None", "np.nan", "pd.NaT", "iNaT"]
 )
 # override parametrization of box, because default dtype for na is always float
-@pytest.mark.parametrize("box", [(False, None)])  # fill_value passed on as scalar
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value passed on as scalar
+    ],
+    ids=["True-object", "False-None"],
+)
 def test_maybe_promote_any_numpy_dtype_with_na(
     any_numpy_dtype_reduced, fill_value, box
 ):
@@ -940,6 +987,40 @@ def test_maybe_promote_any_numpy_dtype_with_na(
         expected_dtype,
         exp_val_for_scalar,
         exp_val_for_array,
+    )
+
+
+@pytest.mark.parametrize("dim", [0, 2, 3])
+def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
+    dtype = np.dtype(any_numpy_dtype_reduced)
+
+    # create 0-dim array of given dtype; casts "1" to correct dtype
+    fill_array = np.array(1, dtype=dtype)
+
+    # expand to desired dimension:
+    for _ in range(dim):
+        fill_array = np.expand_dims(fill_array, 0)
+
+    # test against 1-dimensional case
+    expected_dtype, expected_missing_value = maybe_promote(
+        dtype, np.array([1], dtype=dtype)
+    )
+
+    result_dtype, result_missing_value = maybe_promote(dtype, fill_array)
+
+    assert result_dtype == expected_dtype
+    # None == None, iNaT == iNaT, but np.nan != np.nan
+    assert (result_missing_value == expected_missing_value) or (
+        result_missing_value is np.nan and expected_missing_value is np.nan
+    )
+
+    # same again for _maybe_promote_with_array (for coverage)
+    result_dtype, result_missing_value = _maybe_promote_with_array(dtype, fill_array)
+
+    assert result_dtype == expected_dtype
+    # None == None, iNaT == iNaT, but np.nan != np.nan
+    assert (result_missing_value == expected_missing_value) or (
+        result_missing_value is np.nan and expected_missing_value is np.nan
     )
 
 
