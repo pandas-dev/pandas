@@ -933,7 +933,7 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                columns.append(com.get_callable_name(f, incl_keywords=True) or f)
+                columns.append(com.get_callable_name(f) or f)
             arg = zip(columns, arg)
 
         results = OrderedDict()

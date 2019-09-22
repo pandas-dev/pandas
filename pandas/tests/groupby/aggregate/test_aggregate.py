@@ -459,7 +459,9 @@ class TestNamedAggregationDataFrame:
         )
         tm.assert_frame_equal(grouped, expected)
 
-        # Example in GH28426
+        # Example in GH28426, this output is wrong, because aggregate cannot
+        # mangle partial function on the same column and should be solved by
+        # GH28570
         quant50 = functools.partial(np.percentile, q=50)
         quant70 = functools.partial(np.percentile, q=70)
 
@@ -471,7 +473,7 @@ class TestNamedAggregationDataFrame:
             quantile_50=("col2", quant50), quantile_70=("col2", quant70)
         )
         expected = pd.DataFrame(
-            {"quantile_50": [1.5, 4.0], "quantile_70": [1.7, 4.4]},
+            {"quantile_50": [1.7, 4.4], "quantile_70": [1.7, 4.4]},
             index=pd.Index(["a", "b"], name="col1"),
         )
         tm.assert_frame_equal(grouped, expected)
