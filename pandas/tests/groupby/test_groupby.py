@@ -1948,3 +1948,14 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     result = getattr(grouped, op)()
     expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
     assert_frame_equal(result, expected)
+
+
+def test_get_group_default():
+    # Issue: 9299
+    data = DataFrame({"ind": [0, 0, 2, 2]})
+    gb = data.groupby("ind")
+
+    result = gb.get_group(1, default=gb.get_group(0))
+    expected = gb.get_group(0)
+
+    assert_frame_equal(result, expected)

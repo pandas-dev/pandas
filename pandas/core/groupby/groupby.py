@@ -659,7 +659,7 @@ b  2""",
 
         return wrapper
 
-    def get_group(self, name, obj=None):
+    def get_group(self, name, obj=None, default=None):
         """
         Construct DataFrame from group with provided name.
 
@@ -671,6 +671,9 @@ b  2""",
             the DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
             be used
+        default : object
+            the default object in case "the group requested" -> `name` is
+            not found.
 
         Returns
         -------
@@ -681,6 +684,8 @@ b  2""",
 
         inds = self._get_index(name)
         if not len(inds):
+            if default is not None:
+                return default
             raise KeyError(name)
 
         return obj.take(inds, axis=self.axis)
