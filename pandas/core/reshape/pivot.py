@@ -13,6 +13,7 @@ from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
+from pandas.core.algorithms import _value_counts_arraylike
 
 
 # Note: We need to make sure `frame` is imported before `pivot`, otherwise
@@ -693,35 +694,23 @@ def _get_names(arrs, names, prefix="row"):
     return names
 
 
-def _get_duplicate_count(names_list):
-    seen_names = set()
-    duplicate_names = {}
-    for name in names_list:
-        if name not in seen_names:
-            duplicate_names[name] = 0
-            seen_names.add(name)
-        else:
-            duplicate_names[name] += 1
-
-    return duplicate_names
-
-
 def _build_names_mapper(names, shared_col_row_names, suffix):
-    dup_names_count = _get_duplicate_count(names)
+    keys, counts = _value_counts_arraylike(names, dropna=False)
+    names_count = dict(zip(keys, counts))
+
     names_mapper = {}
     unique_names = []
-
-    # We reverse the names so the number are in order of appearance
+    # We reverse the names so the numbers are in the order given by the user
     for name in reversed(names):
         mapped_name = name
-        num_duplicates = dup_names_count[name]
+        name_count = names_count[name]
 
         # Adds a number if name is duplicated within columns/rows
-        if num_duplicates > 0:
-            mapped_name = "{mapped_name}_{num_duplicates}".format(
-                mapped_name=mapped_name, num_duplicates=num_duplicates
+        if name_count > 1:
+            mapped_name = "{mapped_name}_{name_count}".format(
+                mapped_name=mapped_name, name_count=name_count
             )
-            dup_names_count[name] -= 1
+            names_count[name] -= 1
 
         # Add suffix name is shared between column and rows
         if name in shared_col_row_names:
@@ -731,7 +720,7 @@ def _build_names_mapper(names, shared_col_row_names, suffix):
 
         names_mapper[mapped_name] = name
 
-        # Creates a list of names in the original order
+        # Creates a list of the new names in the original order
         unique_names.insert(0, mapped_name)
 
     return names_mapper, unique_names
