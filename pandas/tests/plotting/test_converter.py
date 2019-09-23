@@ -99,7 +99,6 @@ class TestRegistration:
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
-        # converter._WARN = True
         # Test without registering first, no warning
         with ctx:
             with tm.assert_produces_warning(None) as w:
@@ -108,7 +107,6 @@ class TestRegistration:
         assert len(w) == 0
 
         # Now test with registering
-        # converter._WARN = True
         register_matplotlib_converters()
         with ctx:
             with tm.assert_produces_warning(None) as w:

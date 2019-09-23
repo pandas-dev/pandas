@@ -30,7 +30,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register(explicit=True):
+def register():
     """
     Register Pandas Formatters and Converters with matplotlib
 
@@ -49,7 +49,7 @@ def register(explicit=True):
     deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
-    plot_backend.register(explicit=explicit)
+    plot_backend.register()
 
 
 def deregister():
