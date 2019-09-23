@@ -1025,9 +1025,9 @@ def str_extractall(arr, pat, flags=0):
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
 
     # workaround #27953
-    from pandas import StringDtype
-
-    if isinstance(arr.dtype, StringDtype):
+    # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
+    # when the list of values is empty.
+    if arr.dtype.name == "string":
         dtype = arr.dtype
     else:
         dtype = None
