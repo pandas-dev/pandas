@@ -229,7 +229,7 @@ class TestSeriesAnalytics:
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
-    def test_npdiff(self):
+    def test_np_diff(self):
         pytest.skip("skipping due to Series no longer being an ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
@@ -238,11 +238,7 @@ class TestSeriesAnalytics:
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def test_diff(self):
-        # Combined datetime diff, normal diff and boolean diff test
-        ts = tm.makeTimeSeries(name="ts")
-        ts.diff()
-
+    def test_int_diff(self):
         # int dtype
         a = 10000000000000000
         b = a + 1
@@ -250,6 +246,11 @@ class TestSeriesAnalytics:
 
         result = s.diff()
         assert result[1] == 1
+
+    def test_tz_diff(self):
+        # Combined datetime diff, normal diff and boolean diff test
+        ts = tm.makeTimeSeries(name="ts")
+        ts.diff()
 
         # neg n
         result = ts.diff(-1)
@@ -280,12 +281,17 @@ class TestSeriesAnalytics:
         expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "input,output,diff", [([False, True, True, False, False], [nan, True, False, True, False], 1)]
+    )
+    def test_bool_diff(self, input, output, diff):
         # boolean series (test for fixing #17294)
-        s = Series([False, True, True, False, False])
+        s = Series(input)
         result = s.diff()
-        expected = Series([nan, True, False, True, False])
+        expected = Series(output)
         assert_series_equal(result, expected)
 
+    def test_obj_diff(self):
         # object series
         s = Series([False, True, 5.0, nan, True, False])
         result = s.diff()
