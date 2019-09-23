@@ -508,11 +508,8 @@ class Docstring:
             return True
         else:
             # Check if the parameter description ends with a bullet list
-            bullet_list_match = re.search(
-                BULLET_LIST_PATTERN, self.parameter_desc(param)
-            )
-            if bullet_list_match:
-                return bullet_list_match.endpos == len(self.parameter_desc(param))
+            if re.search(BULLET_LIST_PATTERN, self.parameter_desc(param)):
+                return True
             return False
 
     @property
