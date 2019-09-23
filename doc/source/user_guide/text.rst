@@ -31,6 +31,10 @@ for many reasons:
 3. When reading code, the contents of an ``object`` dtype array is less clear
    than ``string``.
 
+Currently, the performance of ``object`` dtype arrays of strings and
+:class:`arrays.StringArray` are about the same. We expect future enhancements
+to significantly increase the performance and lower the memory overhead of
+:class:`arrays.StringArray`.
 
 .. warning::
 

@@ -1935,7 +1935,12 @@ nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.
 Text                :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
 =================== ========================= ================== ============================= =============================
 
-Pandas uses the ``object`` dtype for storing strings.
+Pandas has two ways to store strings.
+
+1. ``object`` dtype, which can hold any Python object, including strings.
+2. :class:`arrays.StringArray`, which is dedicated to strings.
+
+Generally, we recommend using :class:`arrays.StringArray`. See :ref:`text.types` fore more.
 
 Finally, arbitrary objects may be stored using the ``object`` dtype, but should
 be avoided to the extent possible (for performance and interoperability with
