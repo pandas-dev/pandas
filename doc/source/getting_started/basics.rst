@@ -1932,6 +1932,7 @@ period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
 nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+Text                :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
 =================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
