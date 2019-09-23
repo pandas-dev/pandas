@@ -96,25 +96,15 @@ class TestPandasContainer:
         result = read_json(df.to_json(orient=orient), orient=orient)
         expected = df.copy()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        assert_frame_equal(result, expected)
-
+        assert_json_roundtrip_equal(result, expected, orient)
+        
     @pytest.mark.parametrize("orient", ["split", "records", "values"])
     def test_frame_non_unique_index(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
         result = read_json(df.to_json(orient=orient), orient=orient)
         expected = df.copy()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("orient", ["index", "columns"])
     def test_frame_non_unique_index_raises(self, orient):
@@ -178,12 +168,7 @@ class TestPandasContainer:
             # TODO: debug why sort is required
             expected = expected.sort_index()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
@@ -252,12 +237,7 @@ class TestPandasContainer:
         elif orient == "records" and convert_axes:
             expected.columns = expected.columns.astype(np.int64)
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
@@ -283,12 +263,7 @@ class TestPandasContainer:
         if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
@@ -326,12 +301,7 @@ class TestPandasContainer:
 
             expected.index = idx
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
@@ -360,12 +330,7 @@ class TestPandasContainer:
         if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize(
         "data,msg,orient",
