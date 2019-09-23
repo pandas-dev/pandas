@@ -48,7 +48,8 @@ We'll now write and read the file using CSV and parquet.
 
 .. ipython:: python
 
-   %time ts2 = pd.read_csv("timeseries.csv", index_col="timestamp", parse_dates=["timestamp"])
+   col="timestamp"
+   %time pd.read_csv("timeseries.csv", index_col=col, parse_dates=[col])
 
 .. ipython:: python
 
@@ -89,7 +90,7 @@ Option 1 loads in all the data and then filters to what we need.
 .. ipython:: python
 
    columns = ['id_0', 'name_0', 'x_0', 'y_0']
-   
+
    %time _ = pd.read_parquet("timeseries_wide.parquet")[columns]
 
 Option 2 only loads the columns we request. This is faster and has a lower peak
@@ -148,7 +149,8 @@ using :func:`pandas.to_numeric`.
 
 .. ipython:: python
 
-   reduction = ts2.memory_usage(deep=True).sum() / ts.memory_usage(deep=True).sum()
+   reduction = (ts2.memory_usage(deep=True).sum() /
+                ts.memory_usage(deep=True).sum())
    print(f"{reduction:0.2f}")
 
 In all, we've reduced the in-memory footprint of this dataset to 1/5 of its
@@ -157,34 +159,78 @@ original size.
 See :ref:`categorical` for more on ``Categorical`` and :ref:`basics.dtypes`
 for an overview of all of pandas' dtypes.
 
+Use chunking
+------------
+
+Some workloads can be achieved with chunking: splitting a large problem like "convert this
+directory of CSVs to parquet" into a bunch of small problems ("convert this individual parquet
+file into a CSV. Now repeat that for each file in this directory."). As long as each chunk
+fits in memory, you can work with datasets that are much larger than memory.
+
+.. note::
+
+   Chunking works well when the operation you're performing requires zero or minimal
+   coordination between chunks. For more complicated workflows, you're better off
+   :ref:`using another library <scale.other_libraries>`.
+
+Let's make a larger dataset on disk (as parquet files) that's split into chunks,
+one per year.
+
+.. ipython:: python
+
+   import pathlib
+
+   N = 12
+   starts = [f'20{i:>02d}-01-01' for i in range(N)]
+   ends = [f'20{i:>02d}-12-13' for i in range(N)]
+
+   pathlib.Path("data/timeseries").mkdir(exist_ok=True)
+
+   for i, (start, end) in enumerate(zip(starts, ends)):
+       ts = make_timeseries(start=start, end=end, freq='1T', seed=i)
+       ts.to_parquet(f"data/timeseries/ts-{i}.parquet")
+
+   files = list(pathlib.Path("data/timeseries/").glob("ts*.parquet"))
+   files
+
+Now we'll implement an out-of-core ``value_counts``. The peak memory usage of this
+workflow is the single largest chunk, plus a small series storing the unique value
+counts up to this point.
+
+
+.. ipython:: python
+
+   %%time
+   counts = pd.Series(dtype=int)
+   for path in files:
+       # Only one dataframe is in memory at a time...
+       df = pd.read_parquet(path)
+       # ... plus a small Series `counts`, which is updated.
+       counts = counts.add(df['name'].value_counts(), fill_value=0)
+   counts.astype(int)
+
+Some readers, like :meth:`pandas.read_csv` offer parameters to control the
+``chunksize``. Manually chunking is an OK option for workflows that don't
+require too sophisticated of operations. Some operations, like ``groupby``, are
+much harder to do chunkwise. In these cases, you may be better switching to a
+different library that implements these out-of-core algorithms for you.
+
+.. _scale.other_libraries:
+
 Use Other libraries
 -------------------
 
 Pandas is just one library offering a DataFrame API. Because of its popularity,
 pandas' API has become something of a standard that other libraries implement.
+The pandas documentation maintains a list of libraries implemetning a DataFrame API
+in :ref:`our ecosystem page <ecosystem.out-of-core>`.
 
 For example, `Dask`_, a parallel computing library, has `dask.dataframe`_, a
 pandas-like API for working with larger than memory datasets in parallel. Dask
 can use multiple threads or processes on a single machine, or a cluster of
 machines to process data in parallel.
 
-Let's make a larger dataset on disk (as parquet files) that's split into chunks,
-one per year.
 
-.. ipython:: python
-             
-   import pathlib
-   
-   N = 12
-   starts = [f'20{i:>02d}-01-01' for i in range(N)]
-   ends = [f'20{i:>02d}-12-13' for i in range(N)]
-   
-   pathlib.Path("data/timeseries").mkdir(exist_ok=True)
-   
-   for i, (start, end) in enumerate(zip(starts, ends)):
-       ts = make_timeseries(start=start, end=end, freq='1T', seed=i)
-       ts.to_parquet(f"data/timeseries/ts-{i}.parquet")
-   
 We'll import ``dask.dataframe`` and notice that the API feels similar to pandas.
 We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in.
 
@@ -230,9 +276,9 @@ is a pandas Series with a certain dtype and a certain name. So the Dask version
 returns a Dask Series with the same dtype and the same name.
 
 To get the actual result you can call ``.compute()``.
-             
+
 .. ipython:: python
-             
+
    %time ddf['name'].value_counts().compute()
 
 At that point, you get back the same thing you'd get with pandas, in this case
@@ -252,7 +298,7 @@ processes on this single machine.
 .. ipython:: python
 
    from dask.distributed import Client, LocalCluster
-   
+
    cluster = LocalCluster()
    client = Client(cluster)
    client
@@ -307,39 +353,8 @@ datasets.
 
 You see more dask examples at https://examples.dask.org.
 
-Use chunking
-------------
-
-If using another library like Dask is not an option, you can achieve similar
-results with a bit of work.
-
-For example, we can recreate the out-of-core ``value_counts`` we did earlier
-with Dask. The peak memory usage of this will be the size of the single largest
-DataFrame.
-
 .. ipython:: python
-
-   files = list(pathlib.Path("data/timeseries/").glob("ts*.parquet"))
-   files
-
-.. ipython:: python
-
-   %%time
-   counts = pd.Series(dtype=int)
-   for path in files:
-       df = pd.read_parquet(path)
-       counts = counts.add(df['name'].value_counts(), fill_value=0)
-   counts.astype(int)
-
-This matches the counts we saw above with Dask.
-
-Some readers, like :meth:`pandas.read_csv` offer parameters to control the
-``chunksize``. Manually chunking is an OK option for workflows that don't
-require too sophisticated of operations. Some operations, like ``groupby``, are
-much harder to do chunkwise. In these cases, you may be better switching to a
-library like Dask, which implements these chunked algorithms for you.
-
-.. ipython:: python
+   :suppress:
 
    del client, cluster
 
