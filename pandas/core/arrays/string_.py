@@ -28,6 +28,14 @@ class StringDtype(ExtensionDtype):
 
     .. versionadded:: 1.0.0
 
+    .. warning::
+
+       StringDtype is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+       In particular, StringDtype.na_value may change to no longer be
+       ``numpy.nan``.
+
     Attributes
     ----------
     None
