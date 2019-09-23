@@ -134,6 +134,34 @@ def test_groupby_return_type():
     result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
+    # https://github.com/pandas-dev/pandas/issues/28330
+    # Test groupby operations on subclassed dataframes/series
+    class ChildSeries(Series):
+        pass
+
+    class ChildDataFrame(DataFrame):
+        @property
+        def _constructor(self):
+            return ChildDataFrame
+
+        _constructor_sliced = ChildSeries
+
+    ChildSeries._constructor_expanddim = ChildDataFrame
+
+    cdf = ChildDataFrame(
+        [
+            {"val1": 1, "val2": 20},
+            {"val1": 1, "val2": 19},
+            {"val1": 2, "val2": 27},
+            {"val1": 2, "val2": 12},
+        ]
+    )
+    result = cdf.groupby("val1").sum()
+    assert isinstance(result, ChildDataFrame)
+    assert isinstance(result, DataFrame)
+    assert isinstance(result["val2"], ChildSeries)
+    assert isinstance(result["val2"], Series)
+
 
 def test_inconsistent_return_type():
     # GH5592
