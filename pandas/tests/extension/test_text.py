@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.string_ import TextArray, TextDtype
+from pandas.core.arrays.text import TextArray, TextDtype
 from pandas.tests.extension import base
 
 

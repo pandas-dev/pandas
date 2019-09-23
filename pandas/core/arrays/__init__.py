@@ -10,5 +10,5 @@ from .interval import IntervalArray  # noqa: F401
 from .numpy_ import PandasArray, PandasDtype  # noqa: F401
 from .period import PeriodArray, period_array  # noqa: F401
 from .sparse import SparseArray  # noqa: F401
-from .string_ import TextArray  # noqa: F401
+from .text import TextArray  # noqa: F401
 from .timedeltas import TimedeltaArray  # noqa: F401

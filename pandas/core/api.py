@@ -23,7 +23,7 @@ from pandas.core.arrays.integer import (
     UInt32Dtype,
     UInt64Dtype,
 )
-from pandas.core.arrays.string_ import TextDtype
+from pandas.core.arrays.text import TextDtype
 from pandas.core.construction import array
 from pandas.core.groupby import Grouper, NamedAgg
 from pandas.core.index import (
