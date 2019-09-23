@@ -11,13 +11,12 @@ class TestTimedeltaArrayConstructor:
         # GH#25282
         arr = np.array([0, 1, 2, 3], dtype="m8[h]").astype("m8[ns]")
 
-        #with pytest.raises(ValueError, match="Only 1-dimensional"):
-        #    # 2-dim
-        #    TimedeltaArray(arr.reshape(2, 2))
+        # 2-dim allowed for ops compat
+        TimedeltaArray(arr.reshape(2, 2))
 
-        #with pytest.raises(ValueError, match="Only 1-dimensional"):
-        #    # 0-dim
-        #    TimedeltaArray(arr[[0]].squeeze())
+        with pytest.raises(ValueError, match="Only 1-dimensional"):
+            # 0-dim
+            TimedeltaArray(arr[[0]].squeeze())
 
     def test_freq_validation(self):
         # ensure that the public constructor cannot create an invalid instance

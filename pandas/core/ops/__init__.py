@@ -492,6 +492,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
                 # ndarray, DTA/TDA/PA
                 blk_vals = blk_vals.reshape(blk.shape)
                 blk_vals = blk_vals.T
+
             new_vals = array_op(blk_vals, right, func, str_rep, eval_kwargs)
 
             # Reshape for EA Block
