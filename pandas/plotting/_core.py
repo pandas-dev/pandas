@@ -1049,7 +1049,7 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
-        **kwargs : optional
+        **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
 
@@ -1148,7 +1148,7 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
-        **kwargs : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`pandas.%(this-datatype)s.plot`.
 
@@ -1250,7 +1250,7 @@ class PlotAccessor(PandasObject):
         stacked : bool, default True
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
-        **kwds : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
