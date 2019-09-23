@@ -4,12 +4,11 @@ main:
   ignore:
   - _templates/layout.html
   - config.yml
-  - blog.html  # blog will be added at a later stage
   - try.md  # the binder page will be added later
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.navbar_add_info
-  # - pandas_web.Preprocessors.blog_add_posts
+  - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
   markdown_extensions:
@@ -17,46 +16,48 @@ main:
   - tables
   - fenced_code
 static:
-  logo: # path to the logo when it's in the repo
+  logo: # /static/img/pandas.svg
   css:
   - /static/css/pandas.css
 navbar:
-  - name: "Install"
-    target: /install.html
+  - name: "About us"
+    target:
+    - name: "About pandas"
+      target: /about/about.html
+    - name: "Project roadmap"
+      target: /about/roadmap.html
+    - name: "Team"
+      target: /about/team.html
+    - name: "Sponsors"
+      target: /about/sponsors.html
+    - name: "Citing and logo"
+      target: /about/citing.html
+  - name: "Getting started"
+    target: /getting_started.html
   - name: "Documentation"
     target:
-    - name: "Getting started"
-      target: /docs/getting_started/index.html
     - name: "User guide"
       target: /docs/user_guide/index.html
     - name: "API reference"
       target: /docs/reference/index.html
-    - name: "Contributing to pandas"
-      target: /docs/development/index.html
     - name: "Release notes"
       target: /docs/whatsnew/index.html
+    - name: "Older versions"
+      target: https://pandas.pydata.org/pandas-docs/version/
   - name: "Community"
     target:
-    - name: "About pandas"
-      target: /community/about.html
-    - name: "Project roadmap"
-      target: /community/roadmap.html
-    - name: "Ecosystem"
-      target: /community/ecosystem.html
+    - name: "Blog"
+      target: /community/blog.html
     - name: "Ask a question (StackOverflow)"
       target: https://stackoverflow.com/questions/tagged/pandas
-    - name: "Discuss (mailing list)"
-      target: https://groups.google.com/forum/#!forum/pydata
-    - name: "Team"
-      target: /community/team.html
-    - name: "Code of Conduct"
+    - name: "Discuss"
+      target: https://pandas.discourse.group
+    - name: "Code of conduct"
       target: /community/coc.html
-    - name: "Citing pandas"
-      target: /community/citing.html
-  # - name: "Blog"
-  #  target: /blog.html
-  - name: "Donate"
-    target: /donate.html
+    - name: "Ecosystem"
+      target: /community/ecosystem.html
+  - name: "Contribute"
+    target: /contribute.html
 blog:
   num_posts: 8
   feed:
