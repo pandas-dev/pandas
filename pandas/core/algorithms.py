@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_sparse,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
@@ -743,7 +742,7 @@ def value_counts(
 
     else:
 
-        if is_extension_array_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -1623,7 +1622,7 @@ def take_nd(
     out : ndarray or None, default None
         Optional output array, must be appropriate type to hold input and
         fill_value together, if indexer has any -1 value entries; call
-        _maybe_promote to determine this type for any fill_value
+        maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
     mask_info : tuple of (ndarray, boolean)
@@ -1644,9 +1643,7 @@ def take_nd(
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
-    if is_sparse(arr):
-        arr = arr.to_dense()
-    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+    if isinstance(arr, (ABCIndexClass, ABCSeries)):
         arr = arr._values
 
     arr = np.asarray(arr)
