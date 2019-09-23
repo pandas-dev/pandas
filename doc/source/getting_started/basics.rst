@@ -1705,7 +1705,7 @@ built-in string methods. For example:
  .. ipython:: python
 
   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
-                dtype="string")
+                dtype="text")
   s.str.lower()
 
 Powerful pattern-matching methods are provided as well, but note that
@@ -1716,7 +1716,7 @@ always uses them).
 .. note::
 
    Prior to pandas 1.0, string methods were only available on ``object`` -dtype
-   ``Series``. Pandas 1.0 added the :class:`StringDtype` which is dedicated
+   ``Series``. Pandas 1.0 added the :class:`TextDtype` which is dedicated
    to strings. See :ref:`text.types` for more.
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
@@ -1932,15 +1932,15 @@ period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
 nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
-Text                :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
+Text                :class:`TextDtype`        :class:`str`       :class:`arrays.TextArray`     :ref:`text`
 =================== ========================= ================== ============================= =============================
 
 Pandas has two ways to store strings.
 
 1. ``object`` dtype, which can hold any Python object, including strings.
-2. :class:`arrays.StringArray`, which is dedicated to strings.
+2. :class:`arrays.TextArray`, which is dedicated to strings.
 
-Generally, we recommend using :class:`arrays.StringArray`. See :ref:`text.types` fore more.
+Generally, we recommend using :class:`arrays.TextArray`. See :ref:`text.types` fore more.
 
 Finally, arbitrary objects may be stored using the ``object`` dtype, but should
 be avoided to the extent possible (for performance and interoperability with

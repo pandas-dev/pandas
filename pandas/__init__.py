@@ -66,7 +66,7 @@ from pandas.core.api import (
     PeriodDtype,
     IntervalDtype,
     DatetimeTZDtype,
-    StringDtype,
+    TextDtype,
     # missing
     isna,
     isnull,

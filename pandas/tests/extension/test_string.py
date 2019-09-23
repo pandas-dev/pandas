@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.string_ import StringArray, StringDtype
+from pandas.core.arrays.string_ import TextArray, TextDtype
 from pandas.tests.extension import base
 
 
 @pytest.fixture
 def dtype():
-    return StringDtype()
+    return TextDtype()
 
 
 @pytest.fixture
@@ -19,23 +19,23 @@ def data():
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
 
-    return StringArray._from_sequence(strings)
+    return TextArray._from_sequence(strings)
 
 
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return StringArray._from_sequence([np.nan, "A"])
+    return TextArray._from_sequence([np.nan, "A"])
 
 
 @pytest.fixture
 def data_for_sorting():
-    return StringArray._from_sequence(["B", "C", "A"])
+    return TextArray._from_sequence(["B", "C", "A"])
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return StringArray._from_sequence(["B", np.nan, "A"])
+    return TextArray._from_sequence(["B", np.nan, "A"])
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def na_value():
 
 @pytest.fixture
 def data_for_grouping():
-    return StringArray._from_sequence(["B", "B", np.nan, np.nan, "A", "A", "B", "C"])
+    return TextArray._from_sequence(["B", "B", np.nan, np.nan, "A", "A", "B", "C"])
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -80,7 +80,7 @@ class TestNoReduce(base.BaseNoReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         if all_numeric_reductions == "sum":
-            pytest.skip("StringArray implements sum")
+            pytest.skip("TextArray implements sum")
         else:
             return super().test_reduce_series_numeric(
                 data, all_numeric_reductions, skipna
