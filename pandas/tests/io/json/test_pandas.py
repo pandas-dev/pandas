@@ -36,6 +36,12 @@ _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
 
 _mixed_frame = _frame.copy()
 
+def assert_json_roundtrip_equal(result, expected, orient):
+    if orient == "records" or orient == "values":
+        expected = expected.reset_index(drop=True)
+    if orient == "values":
+        expected.columns = range(len(expected.columns))
+    assert_frame_equal(result, expected)
 
 class TestPandasContainer:
     @pytest.fixture(scope="function", autouse=True)
