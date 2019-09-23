@@ -467,7 +467,7 @@ Text data
 ---------
 
 When working with text data, where each valid element is a string, we recommend using
-:class:`TextDtype` (with the alias ``"string"``).
+:class:`TextDtype` (with the alias ``"text"``).
 
 .. autosummary::
    :toctree: api/

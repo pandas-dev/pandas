@@ -52,8 +52,8 @@ Enhancements
 
 .. _whatsnew_1000.string:
 
-Dedicated string data type
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Dedicated text data type
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :class:`TextDtype`, an extension type dedicated to string data.
 Previously, strings were typically stored in object-dtype NumPy arrays.
@@ -62,11 +62,11 @@ Previously, strings were typically stored in object-dtype NumPy arrays.
 
    pd.Series(['abc', None, 'def'], dtype=pd.TextDtype())
 
-You can use the alias ``'string'`` as well.
+You can use the alias ``"text"`` as well.
 
 .. ipython:: python
 
-   s = pd.Series(['abc', None, 'def'], dtype="string")
+   s = pd.Series(['abc', None, 'def'], dtype="text")
    s
 
 The usual string accessor methods work. Where appropriate, the return type
