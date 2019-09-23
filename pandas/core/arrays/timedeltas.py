@@ -1018,8 +1018,8 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         )
 
     data = np.array(data, copy=copy)
-    #if data.ndim != 1:
-    #    raise ValueError("Only 1-dimensional input arrays are supported.")
+    if data.ndim not in [1, 2]:
+        raise ValueError("Only 1-dimensional input arrays are supported.")
 
     assert data.dtype == "m8[ns]", data
     return data, inferred_freq
