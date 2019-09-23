@@ -916,7 +916,7 @@ def str_extract(arr, pat, flags=0, expand=True):
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
         result, name = _str_extract_noexpand(arr._parent, pat, flags=flags)
-        return arr._wrap_result(result, name=name, expand=expand, returns_string=True)
+        return arr._wrap_result(result, name=name, expand=expand)
 
 
 def str_extractall(arr, pat, flags=0):
@@ -2052,6 +2052,15 @@ class StringMethods(NoNewAttributesMixin):
             return result
         assert result.ndim < 3
 
+        # We can be wrapping a string / object / categorical result, in which
+        # case we'll want to return the same dtype as the input.
+        # Or we can be wrapping a numeric output, in which case we don't want
+        # to return a StringArray.
+        if self._is_string and returns_string:
+            dtype = "string"
+        else:
+            dtype = None
+
         if expand is None:
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
@@ -2109,13 +2118,11 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index)
+                result = cons(result, columns=name, index=index, dtype=dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index)
-            if self._is_string and returns_string:
-                result = result.astype("string")
+                result = cons(result, name=name, index=index, dtype=dtype)
             return result
 
     def _get_series_list(self, others):
