@@ -76,7 +76,7 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestNoReduce(base.BaseNoReduceTests):
     pass
 
 

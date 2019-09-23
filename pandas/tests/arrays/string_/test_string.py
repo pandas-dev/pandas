@@ -128,3 +128,20 @@ def test_constructor_raises():
 
     with pytest.raises(ValueError, match="object-dtype ndarray"):
         pd.arrays.StringArray(np.array([]))
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reduce(skipna):
+    arr = pd.Series(["a", "b", "c"], dtype="string")
+    result = arr.sum(skipna=skipna)
+    assert result == "abc"
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reduce_missing(skipna):
+    arr = pd.Series([None, "a", None, "b", "c", None], dtype="string")
+    result = arr.sum(skipna=skipna)
+    if skipna:
+        assert result == "abc"
+    else:
+        assert pd.isna(result)
