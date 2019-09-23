@@ -489,26 +489,26 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
             # Reshape for EA Block
             blk_vals = blk.values
             if hasattr(blk_vals, "reshape"):
-                # DTA/TDA/PA
+                # ndarray, DTA/TDA/PA
                 blk_vals = blk_vals.reshape(blk.shape)
                 blk_vals = blk_vals.T
             new_vals = array_op(blk_vals, right, func, str_rep, eval_kwargs)
 
             # Reshape for EA Block
-            #new_vals = new_vals.reshape(blk.values.shape[::-1]).T
             if is_extension_array_dtype(new_vals.dtype):
                 from pandas.core.internals.blocks import make_block
+
                 if hasattr(new_vals, "reshape"):
-                    # DTA/TDA/PA
+                    # ndarray, DTA/TDA/PA
                     new_vals = new_vals.reshape(blk.shape[::-1])
-                    assert new_vals.shape[-1] == len(blk.mgr_locs), (new_vals.dtype, new_vals.shape, blk.mgr_locs)
+                    assert new_vals.shape[-1] == len(blk.mgr_locs)
                     for i in range(new_vals.shape[-1]):
                         nb = make_block(new_vals[..., i], placement=[blk.mgr_locs[i]])
                         new_blocks.append(nb)
                 else:
                     # Categorical, IntegerArray
                     assert len(blk.mgr_locs) == 1
-                    assert new_vals.shape == (blk.shape[-1],), (new_vals.shape, blk.shape)
+                    assert new_vals.shape == (blk.shape[-1],)
                     nb = make_block(new_vals, placement=blk.mgr_locs, ndim=2)
                     new_blocks.append(nb)
             elif blk.values.ndim == 1:
@@ -938,7 +938,7 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, op)
+            return self._combine_const(other, op, str_rep, eval_kwargs)
 
     f.__name__ = op_name
 

@@ -5290,9 +5290,11 @@ class DataFrame(NDFrame):
         new_data = ops.dispatch_to_series(left, right, func, axis="columns")
         return left._construct_result(right, new_data, func)
 
-    def _combine_const(self, other, func):
+    def _combine_const(self, other, func, str_rep=None, eval_kwargs=None):
         # scalar other or np.ndim(other) == 0
-        new_data = ops.dispatch_to_series(self, other, func)
+        new_data = ops.dispatch_to_series(
+            self, other, func, str_rep=str_rep, eval_kwargs=eval_kwargs
+        )
         return self._construct_result(other, new_data, func)
 
     def _construct_result(self, other, result, func):

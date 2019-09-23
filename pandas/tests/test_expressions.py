@@ -278,10 +278,10 @@ class TestExpressions:
         with pytest.raises(NotImplementedError, match=err_msg):
             f(False, df.a)
 
-        if True:#with pytest.raises(NotImplementedError, match=err_msg):
+        with pytest.raises(NotImplementedError, match=err_msg):
             f(False, df)
 
-        if True:#with pytest.raises(NotImplementedError, match=err_msg):
+        with pytest.raises(NotImplementedError, match=err_msg):
             f(df, True)
 
     @pytest.mark.parametrize(
@@ -322,12 +322,12 @@ class TestExpressions:
                 e = fe(False, df.a)
                 tm.assert_series_equal(r, e)
 
-            if True:#with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning(check_stacklevel=False):
                 r = f(False, df)
                 e = fe(False, df)
                 tm.assert_frame_equal(r, e)
 
-            if True:#with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning(check_stacklevel=False):
                 r = f(df, True)
                 e = fe(df, True)
                 tm.assert_frame_equal(r, e)
