@@ -29,7 +29,7 @@ for many reasons:
    There isn't a clear way to select *just* text while excluding non-text
    but still object-dtype columns.
 3. When reading code, the contents of an ``object`` dtype array is less clear
-   than ``string``.
+   than ``text``.
 
 Currently, the performance of ``object`` dtype arrays of strings and
 :class:`arrays.TextArray` are about the same. We expect future enhancements
@@ -63,7 +63,7 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s.astype("text")
 
 Everything that follows in the rest of this document applies equally to
-``string`` and ``object`` dtype.
+``text`` and ``object`` dtype.
 
 .. _text.string_methods:
 

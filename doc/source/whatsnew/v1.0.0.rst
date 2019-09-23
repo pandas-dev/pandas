@@ -75,7 +75,7 @@ of the Series or columns of a DataFrame will also have string dtype.
    s.str.upper()
    s.str.split('b', expand=True).dtypes
 
-We recommend explicitly using the ``string`` data type when working with strings.
+We recommend explicitly using the ``text`` data type when working with strings.
 See :ref:`text.types` for more.
 
 .. _whatsnew_1000.enhancements.other:

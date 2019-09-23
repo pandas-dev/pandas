@@ -1999,7 +1999,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # explicitly allow TextDtype
         if isinstance(values.dtype, TextDtype):
-            return "text"
+            return "string"
 
         try:
             inferred_dtype = lib.infer_dtype(values, skipna=True)
