@@ -14,7 +14,17 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, Union
+from typing import (
+    FrozenSet,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -786,10 +796,10 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def style(self) -> Styler:
+    def style(self) -> "Styler":
         """
         Property returning a Styler object containing methods for
-        building a styled HTML representation fo the DataFrame.
+        building a styled HTML representation of the DataFrame.
 
         See Also
         --------
@@ -850,7 +860,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self):
+    def items(self) -> Generator[Tuple[str, Dtype], None, None]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -862,7 +872,7 @@ class DataFrame(NDFrame):
     def iteritems(self):
         yield from self.items()
 
-    def iterrows(self):
+    def iterrows(self) -> Generator[Tuple[Index, Series], None, None]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -994,13 +1004,13 @@ class DataFrame(NDFrame):
         # fallback to regular tuples
         return zip(*arrays)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns length of info axis, but here we use the index.
         """
         return len(self.index)
 
-    def dot(self, other):
+    def dot(self, other: Union[Series, DataFrame]) -> Union[Series, DataFrame]:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1111,13 +1121,13 @@ class DataFrame(NDFrame):
         else:  # pragma: no cover
             raise TypeError("unsupported type: {oth}".format(oth=type(other)))
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Union[Series, DataFrame]) -> Union[Series, DataFrame]:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
         return self.dot(other)
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Union[Series, DataFrame]) -> Union[Series, DataFrame]:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
