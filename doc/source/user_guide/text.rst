@@ -187,7 +187,7 @@ i.e., from the end of the string to the beginning of the string:
 .. ipython:: python
 
    s3 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca',
-                  '', np.nan, 'CABA', 'dog', 'cat'],
+                   '', np.nan, 'CABA', 'dog', 'cat'],
                   dtype="string")
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
