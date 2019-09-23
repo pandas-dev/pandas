@@ -2091,7 +2091,6 @@ class FY5253(DateOffset):
 
         - "last" defines fiscal year end as the final **weekday** in the
         fiscal year end month.
-
     """
 
     _prefix = "RE"
@@ -2312,7 +2311,6 @@ class FY5253Quarter(DateOffset):
 
         - "last" defines fiscal year end as the final **weekday** in the
         fiscal year end month.
-
     """
 
     _prefix = "REQ"
