@@ -327,6 +327,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     and that the inheriting class has methods:
         _generate_range
     """
+
     @property
     def ndim(self):
         return self._data.ndim
@@ -336,7 +337,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self._data.shape
 
     def __len__(self):
-        return self.shape[0]
+        return len(self._data)
 
     @property
     def T(self):
@@ -420,9 +421,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def size(self) -> int:
         """The number of elements in this array."""
         return np.prod(self.shape)
-
-    def __len__(self):
-        return len(self._data)
 
     def __getitem__(self, key):
         """
