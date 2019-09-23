@@ -2080,6 +2080,7 @@ class FY5253(DateOffset):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday
+
     startingMonth : int {1, 2, ... 12}, default 1
         The month in which the fiscal year ends.
     variation : str, default "nearest"
@@ -2090,6 +2091,7 @@ class FY5253(DateOffset):
 
         - "last" defines fiscal year end as the final **weekday** in the
         fiscal year end month.
+
     """
 
     _prefix = "RE"
@@ -2297,6 +2299,7 @@ class FY5253Quarter(DateOffset):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday
+
     startingMonth : int {1, 2, ..., 12}, default 1
         The month in which fiscal years end.
     qtr_with_extra_week : int {1, 2, 3, 4}, default 1
@@ -2309,6 +2312,7 @@ class FY5253Quarter(DateOffset):
 
         - "last" defines fiscal year end as the final **weekday** in the
         fiscal year end month.
+
     """
 
     _prefix = "REQ"
