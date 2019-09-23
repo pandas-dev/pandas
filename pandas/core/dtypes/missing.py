@@ -446,8 +446,14 @@ def array_equivalent(left, right, strict_nan=False):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if np.any(left_value != right_value):
-                    return False
+                try:
+                    if np.any(left_value != right_value):
+                        return False
+                except TypeError as err:
+                    if "Cannot compare tz-naive" in str(err):
+                        # tzawareness compat failure, see GH#28507
+                        return False
+                    raise
         return True
 
     # NaNs can occur in float and complex arrays.
