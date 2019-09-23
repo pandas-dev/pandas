@@ -817,15 +817,16 @@ def _str_extract_frame(arr, pat, flags=0):
         result_index = arr.index
     except AttributeError:
         result_index = None
-    result = DataFrame(
+    if arr.dtype.name == "string":
+        dtype = "string"
+    else:
+        dtype = object
+    return DataFrame(
         [groups_or_na(val) for val in arr],
         columns=columns,
         index=result_index,
-        dtype=object,
+        dtype=dtype,
     )
-    if arr.dtype.name == "string":
-        result = result.astype("string")
-    return result
 
 
 def str_extract(arr, pat, flags=0, expand=True):

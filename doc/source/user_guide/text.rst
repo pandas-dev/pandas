@@ -25,7 +25,7 @@ for many reasons:
 
 1. You can accidentally store a *mixture* of strings and non-strings in an
    ``object`` dtype array. It's better to have a dedicated dtype.
-2. ``object`` dtype breaks dtype-specific operations like ``select_dtypes``.
+2. ``object`` dtype breaks dtype-specific operations like :meth:`DataFrame.select_dtypes`.
    There isn't a clear way to select *just* text while excluding non-text
    but still object-dtype columns.
 3. When reading code, the contents of an ``object`` dtype array is less clear
