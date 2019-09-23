@@ -235,10 +235,14 @@ To get the actual result you can call ``.compute()``.
              
    %time ddf['name'].value_counts().compute()
 
-At that point, the full task graph (reading in data, selecting the columns,
-doing the ``value_counts``) is executed *in parallel*. You get back the same
-thing you'd get back from pandas, in this case a concrete pandas Series with the
-count of each ``name``.
+At that point, you get back the same thing you'd get with pandas, in this case
+a concrete pandas Series with the count of each ``name``.
+
+Calling ``.compute`` causes the full task graph to be executed. This includes
+reading the data, selecting the columns, and doing the ``value_counts``. The
+execution is done *in parallel* where possible, and Dask tries to keep the
+overall memory footprint small. You can work with datasets that are much larger
+than memory, as long as each partition (a regular pandas DataFrame) fits in memory.
 
 By default, ``dask.dataframe`` operations use a threadpool to do operations in
 parallel. We can also connect to a cluster to distribute the work on many
