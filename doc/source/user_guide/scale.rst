@@ -48,7 +48,7 @@ We'll now write and read the file using CSV and parquet.
 
 .. ipython:: python
 
-   col="timestamp"
+   col = "timestamp"
    %time pd.read_csv("timeseries.csv", index_col=col, parse_dates=[col])
 
 .. ipython:: python
@@ -149,8 +149,8 @@ using :func:`pandas.to_numeric`.
 
 .. ipython:: python
 
-   reduction = (ts2.memory_usage(deep=True).sum() /
-                ts.memory_usage(deep=True).sum())
+   reduction = (ts2.memory_usage(deep=True).sum()
+                / ts.memory_usage(deep=True).sum())
    print(f"{reduction:0.2f}")
 
 In all, we've reduced the in-memory footprint of this dataset to 1/5 of its
