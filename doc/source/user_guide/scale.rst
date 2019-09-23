@@ -4,7 +4,7 @@
 Scaling to large datasets
 *************************
 
-Pandas provide data structures for in-memory analytics, which makes using pandas
+Pandas provides data structures for in-memory analytics, which makes using pandas
 to analyze larger than memory datasets somewhat tricky.
 
 This document provides a few recommendations for scaling your analysis to larger datasets.
@@ -30,7 +30,7 @@ Assuming you want or need the expressivity and power of pandas, let's carry on.
 Use more efficient file formats
 -------------------------------
 
-Depending on your workload, data loading may be a bottleneck. In these case you
+Depending on your workload, data loading may be a bottleneck. In these cases you
 might consider switching from a slow format like CSV to a faster format like
 Parquet. Loading from a file format like Parquet will also require less memory
 usage, letting you load larger datasets into pandas before running out of
@@ -66,7 +66,7 @@ compare the performance of reading those two formats.
 .. ipython:: python
 
    col = "timestamp"
-   %time pd.read_csv("timeseries.csv", index_col=col, parse_dates=[col])
+   %time _ = pd.read_csv("timeseries.csv", index_col=col, parse_dates=[col])
 
 .. ipython:: python
 
@@ -249,7 +249,7 @@ work for arbitrary-sized datasets.
        counts = counts.add(df['name'].value_counts(), fill_value=0)
    counts.astype(int)
 
-Some readers, like :meth:`pandas.read_csv` offer parameters to control the
+Some readers, like :meth:`pandas.read_csv`, offer parameters to control the
 ``chunksize`` when reading a single file.
 
 Manually chunking is an OK option for workflows that don't
