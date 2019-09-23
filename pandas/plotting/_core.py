@@ -28,7 +28,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    **kwds
+    **kwargs
 ):
     """
     Draw histogram of the input series using matplotlib.
@@ -56,7 +56,7 @@ def hist_series(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    `**kwds` : keywords
+    `**kwargs
         To be passed to the actual plotting function
 
     Returns
@@ -80,7 +80,7 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
-        **kwds
+        **kwargs
     )
 
 
@@ -99,7 +99,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    **kwds
+    **kwargs
 ):
     """
     Make a histogram of the DataFrame's.
@@ -151,7 +151,7 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    **kwds
+    **kwargs
         All other plotting keyword arguments to be passed to
         :meth:`matplotlib.pyplot.hist`.
 
@@ -194,7 +194,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
         bins=bins,
-        **kwds
+        **kwargs
     )
 
 
@@ -209,7 +209,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwargs
 ):
     """
     Make a box plot from DataFrame columns.
@@ -260,7 +260,7 @@ def boxplot(
 
           If ``return_type`` is `None`, a NumPy array
           of axes with the same shape as ``layout`` is returned.
-    **kwds
+    **kwargs
         All other plotting keyword arguments to be passed to
         :func:`matplotlib.pyplot.boxplot`.
 
@@ -385,7 +385,7 @@ def boxplot(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwargs
     )
 
 
@@ -401,7 +401,7 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwargs
 ):
     plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame(
@@ -415,7 +415,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwargs
     )
 
 
@@ -431,7 +431,7 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwargs
 ):
     """
     Make box plots from DataFrameGroupBy data.
@@ -459,7 +459,7 @@ def boxplot_frame_groupby(
         Whether y-axes will be shared among subplots
 
         .. versionadded:: 0.23.1
-    `**kwds` : Keyword Arguments
+    `**kwargs
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
 
@@ -495,7 +495,7 @@ def boxplot_frame_groupby(
         layout=layout,
         sharex=sharex,
         sharey=sharey,
-        **kwds
+        **kwargs
     )
 
 
@@ -586,7 +586,7 @@ class PlotAccessor(PandasObject):
         labels with "(right)" in the legend
     include_bool : bool, default is False
         If True, boolean values can be plotted.
-    `**kwds` : keywords
+    `**kwargs
         Options to pass to matplotlib plotting method.
 
     Returns
