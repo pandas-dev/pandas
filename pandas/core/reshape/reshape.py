@@ -57,7 +57,7 @@ class _Unstacker:
         float and missing values will be set to NaN.
     constructor : object
         Pandas ``DataFrame`` or subclass used to create unstacked
-        response.  If None, DataFrame or SparseDataFrame will be used.
+        response.  If None, DataFrame will be used.
 
     Examples
     --------
