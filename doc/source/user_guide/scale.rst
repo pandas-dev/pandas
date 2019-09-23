@@ -4,10 +4,10 @@
 Scaling to large datasets
 *************************
 
-Pandas provide data structures for in-memory analytics. This makes using pandas
+Pandas provide data structures for in-memory analytics, which makes using pandas
 to analyze larger than memory datasets somewhat tricky.
 
-This document provides a few recommendations for scaling to larger datasets.
+This document provides a few recommendations for scaling your analysis to larger datasets.
 It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis
 for datasets that fit in memory.
 
@@ -20,7 +20,11 @@ Assuming you want or need the expressivity and power of pandas, let's carry on.
 
    import pandas as pd
    import numpy as np
-   from pandas.util.testing import make_timeseries
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.util.testing import _make_timeseries
 
 
 Use more efficient file formats
@@ -33,18 +37,31 @@ usage, letting you load larger datasets into pandas before running out of
 memory.
 
 .. ipython:: python
+   :suppress:
 
    # Make a random in-memory dataset
-   ts = make_timeseries(freq="30S", seed=0)
-   ts
+   ts = _make_timeseries(freq="30S", seed=0)
+   ts.to_csv("timeseries.csv")
+   ts.to_parquet("timeseries.parquet")
 
+For example, suppose we have a dataset like the following::
 
-We'll now write and read the file using CSV and parquet.
+                          id      name         x         y
+   timestamp
+   2000-01-01 00:00:00  1029   Michael  0.278837  0.247932
+   2000-01-01 00:00:30  1010  Patricia  0.077144  0.490260
+   2000-01-01 00:01:00  1001    Victor  0.214525  0.258635
+   2000-01-01 00:01:30  1018     Alice -0.646866  0.822104
+   2000-01-01 00:02:00   991       Dan  0.902389  0.466665
+   ...                   ...       ...       ...       ...
+   2000-12-30 23:58:00   992     Sarah  0.721155  0.944118
+   2000-12-30 23:58:30  1007    Ursula  0.409277  0.133227
+   2000-12-30 23:59:00  1009    Hannah -0.452802  0.184318
+   2000-12-30 23:59:30   978     Kevin -0.904728 -0.179146
+   2000-12-31 00:00:00   973    Ingrid -0.370763 -0.794667
 
-
-.. ipython:: python
-
-   %time ts.to_csv("timeseries.csv")
+That dataset has been stored on disk as CSV and Parquet. We want to
+compare the performance of reading those two formats.
 
 .. ipython:: python
 
@@ -53,38 +70,45 @@ We'll now write and read the file using CSV and parquet.
 
 .. ipython:: python
 
-   %time ts.to_parquet("timeseries.parquet")
-
-.. ipython:: python
-
    %time _ = pd.read_parquet("timeseries.parquet")
 
-Notice that parquet gives much higher performance for reading and writing, both
+Notice that parquet gives higher performance for reading (and writing), both
 in terms of speed and lower peak memory usage. See :ref:`io` for more.
 
 Load less data
 --------------
 
-Suppose our raw dataset on disk has many columns, but we need just a subset
-for our analysis. To get those columns, we can either
-
-1. Load the entire dataset then select those columns.
-2. Just load the columns we need.
-
-Loading just the columns you need can be much faster and requires less memory.
-
 .. ipython:: python
+   :suppress:
 
    # make a similar dataset with many columns
    timeseries = [
-       make_timeseries(freq="1T", seed=i).rename(columns=lambda x: f"{x}_{i}")
+       _make_timeseries(freq="1T", seed=i).rename(columns=lambda x: f"{x}_{i}")
        for i in range(10)
    ]
    ts_wide = pd.concat(timeseries, axis=1)
-   ts_wide.head()
    ts_wide.to_parquet("timeseries_wide.parquet")
 
+Suppose our raw dataset on disk has many columns::
 
+                        id_0    name_0       x_0       y_0  id_1   name_1       x_1  ...  name_8       x_8       y_8  id_9   name_9       x_9       y_9
+   timestamp                                                                         ...
+   2000-01-01 00:00:00  1015   Michael -0.399453  0.095427   994    Frank -0.176842  ...     Dan -0.315310  0.713892  1025   Victor -0.135779  0.346801
+   2000-01-01 00:01:00   969  Patricia  0.650773 -0.874275  1003    Laura  0.459153  ...  Ursula  0.913244 -0.630308  1047    Wendy -0.886285  0.035852
+   2000-01-01 00:02:00  1016    Victor -0.721465 -0.584710  1046  Michael  0.524994  ...     Ray -0.656593  0.692568  1064   Yvonne  0.070426  0.432047
+   2000-01-01 00:03:00   939     Alice -0.746004 -0.908008   996   Ingrid -0.414523  ...   Jerry -0.958994  0.608210   978    Wendy  0.855949 -0.648988
+   2000-01-01 00:04:00  1017       Dan  0.919451 -0.803504  1048    Jerry -0.569235  ...   Frank -0.577022 -0.409088   994      Bob -0.270132  0.335176
+   ...                   ...       ...       ...       ...   ...      ...       ...  ...     ...       ...       ...   ...      ...       ...       ...
+   2000-12-30 23:56:00   999       Tim  0.162578  0.512817   973    Kevin -0.403352  ...     Tim -0.380415  0.008097  1041  Charlie  0.191477 -0.599519
+   2000-12-30 23:57:00   970     Laura -0.433586 -0.600289   958   Oliver -0.966577  ...   Zelda  0.971274  0.402032  1038   Ursula  0.574016 -0.930992
+   2000-12-30 23:58:00  1065     Edith  0.232211 -0.454540   971      Tim  0.158484  ...   Alice -0.222079 -0.919274  1022      Dan  0.031345 -0.657755
+   2000-12-30 23:59:00  1019    Ingrid  0.322208 -0.615974   981   Hannah  0.607517  ...   Sarah -0.424440 -0.117274   990   George -0.375530  0.563312
+   2000-12-31 00:00:00   937    Ursula -0.906523  0.943178  1018    Alice -0.564513  ...   Jerry  0.236837  0.807650   985   Oliver  0.777642  0.783392
+
+   [525601 rows x 40 columns]
+
+
+To load the columns we want, we have two options.
 Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
@@ -94,16 +118,15 @@ Option 1 loads in all the data and then filters to what we need.
    %time _ = pd.read_parquet("timeseries_wide.parquet")[columns]
 
 Option 2 only loads the columns we request. This is faster and has a lower peak
-memory usage, since the entire dataset isn't in memory at once.
+memory usage since the entire dataset isn't in memory at once.
 
 .. ipython:: python
 
    %time _ = pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
-
 With :func:`pandas.read_csv`, you can specify ``usecols`` to limit the columns
-read into memory.
-
+read into memory. Not all file formats that can be read by pandas provide an option
+to read a subset of columns.
 
 Use efficient datatypes
 -----------------------
@@ -173,10 +196,11 @@ fits in memory, you can work with datasets that are much larger than memory.
    coordination between chunks. For more complicated workflows, you're better off
    :ref:`using another library <scale.other_libraries>`.
 
-Let's make a larger dataset on disk (as parquet files) that's split into chunks,
-one per year.
+Suppose we have an even larger "logical dataset" on disk that's a directory of parquet
+files. Each file in the directory represents a different year of the entire dataset.
 
 .. ipython:: python
+   :suppress:
 
    import pathlib
 
@@ -187,20 +211,36 @@ one per year.
    pathlib.Path("data/timeseries").mkdir(exist_ok=True)
 
    for i, (start, end) in enumerate(zip(starts, ends)):
-       ts = make_timeseries(start=start, end=end, freq='1T', seed=i)
-       ts.to_parquet(f"data/timeseries/ts-{i}.parquet")
+       ts = _make_timeseries(start=start, end=end, freq='1T', seed=i)
+       ts.to_parquet(f"data/timeseries/ts-{i:0>2d}.parquet")
 
-   files = list(pathlib.Path("data/timeseries/").glob("ts*.parquet"))
-   files
+
+::
+
+   data
+   └── timeseries
+       ├── ts-00.parquet
+       ├── ts-01.parquet
+       ├── ts-02.parquet
+       ├── ts-03.parquet
+       ├── ts-04.parquet
+       ├── ts-05.parquet
+       ├── ts-06.parquet
+       ├── ts-07.parquet
+       ├── ts-08.parquet
+       ├── ts-09.parquet
+       ├── ts-10.parquet
+       └── ts-11.parquet
 
 Now we'll implement an out-of-core ``value_counts``. The peak memory usage of this
 workflow is the single largest chunk, plus a small series storing the unique value
-counts up to this point.
-
+counts up to this point. As long as each individual file fits in memory, this will
+work for arbitrary-sized datasets.
 
 .. ipython:: python
 
    %%time
+   files = list(pathlib.Path("data/timeseries/").glob("ts*.parquet"))
    counts = pd.Series(dtype=int)
    for path in files:
        # Only one dataframe is in memory at a time...
@@ -210,14 +250,16 @@ counts up to this point.
    counts.astype(int)
 
 Some readers, like :meth:`pandas.read_csv` offer parameters to control the
-``chunksize``. Manually chunking is an OK option for workflows that don't
+``chunksize`` when reading a single file.
+
+Manually chunking is an OK option for workflows that don't
 require too sophisticated of operations. Some operations, like ``groupby``, are
 much harder to do chunkwise. In these cases, you may be better switching to a
 different library that implements these out-of-core algorithms for you.
 
 .. _scale.other_libraries:
 
-Use Other libraries
+Use other libraries
 -------------------
 
 Pandas is just one library offering a DataFrame API. Because of its popularity,

@@ -1682,7 +1682,7 @@ _names = [
 ]
 
 
-def make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
+def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
     """
     Make a DataFrame with a DatetimeIndex
 
@@ -1703,7 +1703,7 @@ def make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
 
     Examples
     --------
-    >>> make_timeseries()
+    >>> _make_timeseries()
                   id    name         x         y
     timestamp
     2000-01-01   982   Frank  0.031261  0.986727
