@@ -22,7 +22,6 @@ toolz>=0.7.3
 fsspec>=0.5.1
 partd>=0.3.10
 cloudpickle>=0.2.1
-memory_profiler
 markdown
 feedparser
 pyyaml

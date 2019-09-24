@@ -40,7 +40,6 @@ dependencies:
   - fsspec>=0.5.1
   - partd>=0.3.10
   - cloudpickle>=0.2.1
-  - memory_profiler
 
   # web (jinja2 is also needed, but it's also an optional pandas dependency)
   - markdown

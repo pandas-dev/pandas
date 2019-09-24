@@ -22,7 +22,6 @@ Assuming you want or need the expressiveness and power of pandas, let's carry on
 
    import pandas as pd
    import numpy as np
-   %load_ext memory_profiler
 
 .. ipython:: python
    :suppress:
@@ -75,16 +74,16 @@ Option 1 loads in all the data and then filters to what we need.
 
    columns = ['id_0', 'name_0', 'x_0', 'y_0']
 
-   %memit pd.read_parquet("timeseries_wide.parquet")[columns]
+   pd.read_parquet("timeseries_wide.parquet")[columns]
 
 Option 2 only loads the columns we request.
 
 .. ipython:: python
 
-   %memit pd.read_parquet("timeseries_wide.parquet", columns=columns)
+   pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
-In particular, notice that the ``increment`` in memory reported by ``memory-profiler``
-is much smaller when ``columns`` is specified.
+If we were to measure the memory usage of the two calls, we'd see that specifying
+``columns`` uses about 1/10th the memory in this case.
 
 With :func:`pandas.read_csv`, you can specify ``usecols`` to limit the columns
 read into memory. Not all file formats that can be read by pandas provide an option
