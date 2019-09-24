@@ -234,7 +234,7 @@ class TextArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna)
 
-    # Overrride parent, because we have different return types.
+    # Overrride parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
         def method(self, other):
@@ -248,6 +248,14 @@ class TextArray(PandasArray):
             valid = ~mask
 
             if not lib.is_scalar(other):
+                if len(other) != len(self):
+                    # prevent improper broadcasting when other is 2D
+                    raise ValueError(
+                        "Lengths of operands do not match: {} != {}".format(
+                            len(self), len(other)
+                        )
+                    )
+
                 other = np.asarray(other)
                 other = other[valid]
 
@@ -256,13 +264,10 @@ class TextArray(PandasArray):
             result[valid] = op(self._ndarray[valid], other)
 
             if op.__name__ in {"add", "radd", "mul", "rmul"}:
-                new = TextArray
-            elif mask.any():
-                new = lambda x: np.asarray(x, dtype="object")
+                return TextArray(result)
             else:
-                new = lambda x: np.asarray(x, dtype="bool")
-
-            return new(result)
+                dtype = "object" if mask.any() else "bool"
+                return np.asarray(result, dtype=dtype)
 
         return compat.set_function_name(method, "__{}__".format(op.__name__), cls)
 

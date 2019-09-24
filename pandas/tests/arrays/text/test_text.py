@@ -68,6 +68,17 @@ def test_add():
     tm.assert_series_equal(result, expected)
 
 
+def test_add_2d():
+    a = pd.array(["a", "b", "c"], dtype="text")
+    b = np.array([["a", "b", "c"]], dtype=object)
+    with pytest.raises(ValueError, match="3 != 1"):
+        a + b
+
+    s = pd.Series(a)
+    with pytest.raises(ValueError, match="3 != 1"):
+        s + b
+
+
 def test_add_sequence():
     a = pd.array(["a", "b", None, None], dtype="text")
     other = ["x", None, "y", None]
