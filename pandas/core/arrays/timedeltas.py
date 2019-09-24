@@ -391,10 +391,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         axis=None,
         dtype=None,
         out=None,
-        keepdims=False,
+        keepdims: bool = False,
         initial=None,
-        skipna=True,
-        min_count=0,
+        skipna: bool = True,
+        min_count: int = 0,
     ):
         nv.validate_sum(
             (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
@@ -409,7 +409,15 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         )
         return Timedelta(result)
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def std(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
@@ -422,7 +430,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return Timedelta(result)
 
     def median(
-        self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self,
+        axis=None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_median(
             (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
