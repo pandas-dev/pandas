@@ -132,7 +132,7 @@ class TextArray(PandasArray):
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="text")
     <TextArray>
     ['This is', 'some text', nan, 'data.']
-    Length: 4, dtype: string
+    Length: 4, dtype: text
 
     Unlike ``object`` dtype arrays, ``TextArray`` doesn't allow non-string
     values.
@@ -140,7 +140,7 @@ class TextArray(PandasArray):
     >>> pd.array(['1', 1], dtype="text")
     Traceback (most recent call last):
     ...
-    ValueError: Must provide strings
+    ValueError: TextArray requires an object-dtype ndarray of strings.
     """
 
     # undo the PandasArray hack
