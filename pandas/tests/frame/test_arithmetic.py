@@ -663,3 +663,33 @@ class TestFrameArithmetic:
         result = getattr(df, op)(num)
         expected = pd.DataFrame([[getattr(n, op)(num) for n in data]], columns=ind)
         tm.assert_frame_equal(result, expected)
+
+
+def test_frame_with_zero_len_series_corner_cases():
+    # easy all-float case
+    df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "B"])
+    ser = pd.Series(dtype=np.float64)
+
+    result = df + ser
+    expected = pd.DataFrame(df.values * np.nan, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+    result = df == ser
+    expected = pd.DataFrame(False, index=df.index, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+    # non-float case should not raise on comparison
+    df2 = pd.DataFrame(df.values.view("M8[ns]"), columns=df.columns)
+    result = df2 == ser
+    expected = pd.DataFrame(False, index=df.index, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_zero_len_frame_with_series_corner_cases():
+
+    df = pd.DataFrame(columns=["A", "B"], dtype=np.float64)
+    ser = pd.Series([1, 2], index=["A", "B"])
+
+    result = df + ser
+    expected = df
+    tm.assert_frame_equal(result, expected)
