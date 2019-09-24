@@ -606,6 +606,9 @@ def _construct_result(left, result, index, name, dtype=None):
     """
     out = left._constructor(result, index=index, dtype=dtype)
     out = out.__finalize__(left)
+
+    # Set the result's name after __finalize__ is called because __finalize__
+    #  would set it back to self.name
     out.name = name
     return out
 
