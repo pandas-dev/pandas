@@ -758,7 +758,12 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas import DatetimeIndex
 
             tz = pandas_dtype(dtype).tz
-            return DatetimeIndex(np.asarray(self)).tz_localize("UTC").tz_convert(tz)
+            # error: "DatetimeIndex" has no attribute "tz_localize"
+            return (
+                DatetimeIndex(np.asarray(self))  # type: ignore
+                .tz_localize("UTC")
+                .tz_convert(tz)
+            )
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
@@ -1047,9 +1052,9 @@ class Index(IndexOpsMixin, PandasObject):
             # could have nans
             mask = isna(values)
             if mask.any():
-                result = np.array(result)
-                result[mask] = na_rep
-                result = result.tolist()
+                result_ = np.array(result)
+                result_[mask] = na_rep
+                result = result_.tolist()
 
         else:
             result = _trim_front(format_array(values, None, justify="left"))
@@ -5593,9 +5598,9 @@ def ensure_index(index_like, copy=False):
         # clean_index_list does the equivalent of copying
         # so only need to do this if not list instance
         if copy:
-            from copy import copy
+            from copy import copy as copy_
 
-            index_like = copy(index_like)
+            index_like = copy_(index_like)
 
     return Index(index_like)
 
