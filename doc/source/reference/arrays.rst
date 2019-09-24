@@ -466,8 +466,8 @@ and methods if the :class:`Series` contains sparse values. See
 Text data
 ---------
 
-When working with text data, where each valid element is a string, we recommend using
-:class:`TextDtype` (with the alias ``"text"``).
+When working with text data, where each valid element is a string or missing,
+we recommend using :class:`TextDtype` (with the alias ``"text"``).
 
 .. autosummary::
    :toctree: api/

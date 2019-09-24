@@ -157,8 +157,8 @@ class TextArray(PandasArray):
             raise ValueError("TextArray requires an object-dtype ndarray of strings.")
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "TextArray requires an object-dtype ndarray. Got "
-                "'{}' instead.".format(self._ndarray.dtype)
+                "TextArray requires a sequence of strings. Got "
+                "'{}' dtype instead.".format(self._ndarray.dtype)
             )
 
     @classmethod
@@ -193,7 +193,7 @@ class TextArray(PandasArray):
                 value = np.nan
             elif not (isinstance(value, str) or np.isnan(value)):
                 raise ValueError(
-                    "Cannot set value '{}' into a TextArray.".format(value)
+                    "Cannot set non-string value '{}' into a TextArray.".format(value)
                 )
         else:
             if not is_array_like(value):

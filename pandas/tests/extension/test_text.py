@@ -109,3 +109,11 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class TestPrinting(base.BasePrintingTests):
+    pass
+
+
+class TestGroupBy(base.BaseGroupbyTests):
+    pass

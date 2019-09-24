@@ -16,9 +16,9 @@ Text Data Types
 There are two main ways to store text data
 
 1. ``object`` -dtype NumPy array.
-2. As an :class:`arrays.TextArray` extension type.
+2. :class:`TextDtype` extension type.
 
-We recommend using :class:`arrays.TextArray` to store text data.
+We recommend using :class:`TextDtype` to store text data.
 
 Prior to pandas 1.0, ``object`` dtype was the only option. This was unfortunate
 for many reasons:
@@ -34,11 +34,12 @@ for many reasons:
 Currently, the performance of ``object`` dtype arrays of strings and
 :class:`arrays.TextArray` are about the same. We expect future enhancements
 to significantly increase the performance and lower the memory overhead of
-:class:`arrays.TextArray`.
+:class:`~arrays.TextArray`.
 
 .. warning::
 
-   TextArray is currently considered experimental.
+   ``TextArray`` is currently considered experimental. The implementation
+   and parts of the API may change without warning.
 
 For backwards-compatibility, ``object`` dtype remains the default type we
 infer a list of strings to
