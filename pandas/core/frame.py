@@ -312,7 +312,7 @@ class DataFrame(NDFrame):
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
-           Python 3.6 and later.
+           for Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
