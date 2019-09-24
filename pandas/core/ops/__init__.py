@@ -354,38 +354,6 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op):
-    """
-    Apply the function `op` to only non-null points in x and y.
-
-    Parameters
-    ----------
-    x : array-like
-    y : array-like
-    op : binary operation
-
-    Returns
-    -------
-    result : ndarray[bool]
-    """
-    xrav = x.ravel()
-    result = np.empty(x.size, dtype=bool)
-    if isinstance(y, (np.ndarray, ABCSeries)):
-        yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
-        result[mask] = op(np.array(list(xrav[mask])), np.array(list(yrav[mask])))
-    else:
-        mask = notna(xrav)
-        result[mask] = op(np.array(list(xrav[mask])), y)
-
-    if op == operator.ne:  # pragma: no cover
-        np.putmask(result, ~mask, True)
-    else:
-        np.putmask(result, ~mask, False)
-    result = result.reshape(x.shape)
-    return result
-
-
 # -----------------------------------------------------------------------------
 # Dispatch logic
 
@@ -904,14 +872,6 @@ def _flex_comp_method_FRAME(cls, op, special):
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    def na_op(x, y):
-        try:
-            with np.errstate(invalid="ignore"):
-                result = op(x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op)
-        return result
-
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
     )
@@ -925,16 +885,16 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            new_data = dispatch_to_series(self, other, na_op, str_rep)
-            return self._construct_result(other, new_data, na_op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
+            return self._construct_result(other, new_data, op)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
-                self, other, na_op, fill_value=None, axis=axis, level=level
+                self, other, op, fill_value=None, axis=axis, level=level
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, op)
 
     f.__name__ = op_name
 
