@@ -4861,8 +4861,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Number of items from axis to return. Cannot be used with `frac`.
             Default = 1 if `frac` = None.
         frac : float, optional
-            Fraction of axis items to return. Cannot be used with `n`. 
-            Be careful, with a small number of rows and a small fraction the result can be empty.
+            Fraction of axis items to return. Cannot be used with `n`.
+            Be careful, with a small number of rows and a small fraction the
+            result can be empty.
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
