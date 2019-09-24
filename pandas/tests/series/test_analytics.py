@@ -283,7 +283,7 @@ class TestSeriesAnalytics:
 
     @pytest.mark.parametrize(
         "input,output,diff",
-        [([False, True, True, False, False], [nan, True, False, True, False], 1)]
+        [([False, True, True, False, False], [nan, True, False, True, False], 1)],
     )
     def test_bool_diff(self, input, output, diff):
         # boolean series (test for fixing #17294)
