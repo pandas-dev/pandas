@@ -1,6 +1,7 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
+from typing import Union
 
 import numpy as np
 
@@ -959,7 +960,12 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             try:
 
                 values, tz = conversion.datetime_to_datetime64(v)
-                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+                # error: "DatetimeIndex" has no attribute "tz_localize"
+                return (
+                    DatetimeIndex(values)  # type: ignore
+                    .tz_localize("UTC")
+                    .tz_convert(tz=tz)
+                )
             except (ValueError, TypeError):
                 pass
 
@@ -1237,6 +1243,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
     np.ndarray / pandas type of length, filled with value
 
     """
+    subarr: Union["DatetimeIndex", "Categorical", np.ndarray]
     if is_datetime64tz_dtype(dtype):
         from pandas import DatetimeIndex
 
