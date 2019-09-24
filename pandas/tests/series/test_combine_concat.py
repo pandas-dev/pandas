@@ -54,6 +54,17 @@ class TestSeriesCombine:
         with pytest.raises(ValueError, match=msg):
             pd.concat([s1, s2], verify_integrity=True)
 
+    def test_append_tuples(self):
+        # GH 28410
+        s = pd.Series([1, 2, 3])
+        list_input = [s, s]
+        tuple_input = (s, s)
+
+        expected = s.append(list_input)
+        result = s.append(tuple_input)
+
+        tm.assert_series_equal(expected, result)
+
     def test_combine_scalar(self):
         # GH 21248
         # Note - combine() with another Series is tested elsewhere because
@@ -218,8 +229,6 @@ class TestSeriesCombine:
         exp = pd.Series(exp_vals, name="ser1")
         assert_series_equal(exp, result)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_concat_empty_series_dtypes(self):
 
         # booleans
@@ -276,7 +285,10 @@ class TestSeriesCombine:
         # sparse
         # TODO: move?
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="float64").to_sparse()]
+            [
+                Series(dtype="float64").astype("Sparse"),
+                Series(dtype="float64").astype("Sparse"),
+            ]
         )
         assert result.dtype == "Sparse[float64]"
 
@@ -285,10 +297,10 @@ class TestSeriesCombine:
             assert result.ftype == "float64:sparse"
 
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="float64")]
+            [Series(dtype="float64").astype("Sparse"), Series(dtype="float64")]
         )
         # TODO: release-note: concat sparse dtype
-        expected = pd.core.sparse.api.SparseDtype(np.float64)
+        expected = pd.SparseDtype(np.float64)
         assert result.dtype == expected
 
         # GH 26705 - Assert .ftype is deprecated
@@ -296,10 +308,10 @@ class TestSeriesCombine:
             assert result.ftype == "float64:sparse"
 
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="object")]
+            [Series(dtype="float64").astype("Sparse"), Series(dtype="object")]
         )
         # TODO: release-note: concat sparse dtype
-        expected = pd.core.sparse.api.SparseDtype("object")
+        expected = pd.SparseDtype("object")
         assert result.dtype == expected
 
         # GH 26705 - Assert .ftype is deprecated

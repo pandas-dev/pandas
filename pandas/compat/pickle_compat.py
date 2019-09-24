@@ -5,8 +5,13 @@ Support pre-0.12 series pickle compatibility.
 import copy
 import pickle as pkl
 import sys
+from typing import TYPE_CHECKING
+import warnings
 
 from pandas import Index
+
+if TYPE_CHECKING:
+    from pandas import Series, DataFrame
 
 
 def load_reduce(self):
@@ -52,6 +57,41 @@ def load_reduce(self):
             print(sys.exc_info())
             print(func, args)
         raise
+
+
+_sparse_msg = """\
+
+Loading a saved '{cls}' as a {new} with sparse values.
+'{cls}' is now removed. You should re-save this dataset in its new format.
+"""
+
+
+class _LoadSparseSeries:
+    # To load a SparseSeries as a Series[Sparse]
+    def __new__(cls) -> "Series":
+        from pandas import Series
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseSeries", new="Series"),
+            FutureWarning,
+            stacklevel=6,
+        )
+
+        return Series()
+
+
+class _LoadSparseFrame:
+    # To load a SparseDataFrame as a DataFrame[Sparse]
+    def __new__(cls) -> "DataFrame":
+        from pandas import DataFrame
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
+            FutureWarning,
+            stacklevel=6,
+        )
+
+        return DataFrame()
 
 
 # If classes are moved, provide compat here.
@@ -101,12 +141,12 @@ _class_locations_map = {
         "SparseArray",
     ),
     ("pandas.sparse.series", "SparseSeries"): (
-        "pandas.core.sparse.series",
-        "SparseSeries",
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
     ),
     ("pandas.sparse.frame", "SparseDataFrame"): (
         "pandas.core.sparse.frame",
-        "SparseDataFrame",
+        "_LoadSparseFrame",
     ),
     ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
     ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
@@ -138,6 +178,14 @@ _class_locations_map = {
     ("pandas.indexes.numeric", "Float64Index"): (
         "pandas.core.indexes.numeric",
         "Float64Index",
+    ),
+    ("pandas.core.sparse.series", "SparseSeries"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
+    ),
+    ("pandas.core.sparse.frame", "SparseDataFrame"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseFrame",
     ),
 }
 

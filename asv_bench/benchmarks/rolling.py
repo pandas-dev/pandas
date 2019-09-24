@@ -21,6 +21,28 @@ class Methods:
     def time_rolling(self, constructor, window, dtype, method):
         getattr(self.roll, method)()
 
+    def peakmem_rolling(self, constructor, window, dtype, method):
+        getattr(self.roll, method)()
+
+
+class Apply:
+    params = (
+        ["DataFrame", "Series"],
+        [10, 1000],
+        ["int", "float"],
+        [sum, np.sum, lambda x: np.sum(x) + 5],
+        [True, False],
+    )
+    param_names = ["contructor", "window", "dtype", "function", "raw"]
+
+    def setup(self, constructor, window, dtype, function, raw):
+        N = 10 ** 5
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
+
+    def time_rolling(self, constructor, window, dtype, function, raw):
+        self.roll.apply(function, raw=raw)
+
 
 class ExpandingMethods:
 
