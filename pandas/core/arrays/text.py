@@ -154,7 +154,9 @@ class TextArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("TextArray requires an object-dtype ndarray of strings.")
+            raise ValueError(
+                "TextArray requires a sequence of strings or missing values."
+            )
         if self._ndarray.dtype != "object":
             raise ValueError(
                 "TextArray requires a sequence of strings. Got "

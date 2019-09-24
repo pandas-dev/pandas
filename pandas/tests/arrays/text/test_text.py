@@ -123,10 +123,10 @@ def test_add_frame():
 
 
 def test_constructor_raises():
-    with pytest.raises(ValueError, match="object-dtype ndarray"):
+    with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.TextArray(np.array(["a", "b"], dtype="S1"))
 
-    with pytest.raises(ValueError, match="object-dtype ndarray"):
+    with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.TextArray(np.array([]))
 
 
