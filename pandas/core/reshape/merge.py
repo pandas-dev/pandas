@@ -1706,8 +1706,7 @@ class _AsOfMerge(_OrderedMerge):
             left_values = left_values.view("i8")
             right_values = right_values.view("i8")
             if tolerance is not None:
-                if not isinstance(self.tolerance, Timedelta):
-                    tolerance = Timedelta(tolerance)
+                tolerance = Timedelta(tolerance)
                 tolerance = tolerance.value
 
         # a "by" parameter requires special handling
