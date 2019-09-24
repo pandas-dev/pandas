@@ -890,7 +890,8 @@ def is_dtype_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype) -> bool:
-    """Check whether the provided array or dtype is of an integer dtype.
+    """
+    Check whether the provided array or dtype is of an integer dtype.
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.

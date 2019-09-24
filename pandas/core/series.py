@@ -1131,7 +1131,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, tuple):
             try:
                 return self._get_values_tuple(key)
-            except Exception:
+            except ValueError:
+                # if we don't have a MultiIndex, we may still be able to handle
+                #  a 1-tuple.  see test_1tuple_without_multiindex
                 if len(key) == 1:
                     key = key[0]
                     if isinstance(key, slice):
@@ -1186,7 +1188,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._constructor(
                 self._data.get_slice(indexer), fastpath=True
             ).__finalize__(self)
-        except Exception:
+        except ValueError:
+            # mpl compat if we look up e.g. ser[:, np.newaxis];
+            #  see tests.series.timeseries.test_mpl_compat_hack
             return self._values[indexer]
 
     def _get_value(self, label, takeable: bool = False):
