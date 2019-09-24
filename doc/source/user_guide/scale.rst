@@ -100,7 +100,7 @@ in memory.
 
 .. ipython:: python
 
-   ts = dd.read_parquet("timeseries.parquet")
+   ts = pd.read_parquet("timeseries.parquet")
    ts
 
 Now, let's inspect the data types and memory usage to see where we should focus our
