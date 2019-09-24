@@ -242,7 +242,12 @@ class TestFrameFlexComparisons:
         df = pd.DataFrame({"a": arr})
         df2 = pd.DataFrame({"a": arr2})
 
-        msg = "'>' not supported between instances of '.*' and 'complex'"
+        msg = "|".join(
+            [
+                "'>' not supported between instances of '.*' and 'complex'",
+                r"unorderable types: .*complex\(\)",  # PY35
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             # inequalities are not well-defined for complex numbers
             df.gt(df2)
