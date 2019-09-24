@@ -9,7 +9,6 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-import traceback
 from typing import Union, cast
 import warnings
 import zipfile

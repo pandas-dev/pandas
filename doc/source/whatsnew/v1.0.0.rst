@@ -3,10 +3,39 @@
 What's new in 1.0.0 (??)
 ------------------------
 
-.. warning::
+New Deprecation Policy
+~~~~~~~~~~~~~~~~~~~~~~
 
-   Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
+Starting with Pandas 1.0.0, pandas will adopt a version of `SemVer`_.
+
+Historically, pandas has used a "rolling" deprecation policy, with occasional
+outright breaking API changes. Where possible, we would deprecate the behavior
+we'd like to change, giving an option to adopt the new behavior (via a keyword
+or an alternative method), and issuing a warning for users of the old behavior.
+Sometimes, a deprecation was not possible, and we would make an outright API
+breaking change.
+
+We'll continue to *introduce* deprecations in major and minor releases (e.g.
+1.0.0, 1.1.0, ...). Those deprecations will be *enforced* in the next major
+release.
+
+Note that *behavior changes* and *API breaking changes* are not identical. API
+breaking changes will only be released in major versions. If we consider a
+behavior to be a bug, and fixing that bug induces a behavior change, we'll
+release that change in a minor release. This is a sometimes difficult judgment
+call that we'll do our best on.
+
+This doesn't mean that pandas' pace of development will slow down. In the `2019
+Pandas User Survey`_, about 95% of the respondents said they considered pandas
+"stable enough". This indicates there's an appetite for new features, even if it
+comes at the cost of break API. The difference is that now API breaking changes
+will be accompanied with a bump in the major version number (e.g. pandas 1.5.1
+-> 2.0.0).
+
+See :ref:`policies.version` for more.
+
+.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+.. _SemVer: https://semver.org
 
 .. warning::
 
@@ -37,7 +66,7 @@ Other enhancements
   pandas (so it will become an integer or float dtype depending on the presence of missing data).
   (:issue:`28368`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
-
+- :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -109,6 +138,8 @@ Removal of prior version deprecations/changes
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
+- Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
+-
 
 .. _whatsnew_1000.performance:
 
@@ -120,6 +151,7 @@ Performance improvements
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
 - Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
+- Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 
 .. _whatsnew_1000.bug_fixes:
 
@@ -147,8 +179,9 @@ Datetimelike
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
+- Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
+- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 -
-
 
 Timedelta
 ^^^^^^^^^
@@ -218,6 +251,7 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
+- Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
 
 Plotting
 ^^^^^^^^
@@ -228,6 +262,8 @@ Plotting
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
+- Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
+- Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 
 Groupby/resample/rolling
@@ -241,8 +277,8 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
+- Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
--
 
 Sparse
 ^^^^^^
