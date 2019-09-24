@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import Set
+from typing import TYPE_CHECKING, Set
 import warnings
 
 import numpy as np
@@ -73,7 +73,13 @@ def _make_wrapped_arith_op(opname):
     return method
 
 
-class DatetimeIndexOpsMixin(ExtensionOpsMixin):
+if TYPE_CHECKING:
+    _Base = Index
+else:
+    _Base = object
+
+
+class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
@@ -214,7 +220,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
-        @staticmethod
+        # https://github.com/python/mypy/issues/1006
+        # error: 'staticmethod' used with a non-method
+        @staticmethod  # type: ignore
         def wrapper(left, right):
             if isinstance(
                 left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)
