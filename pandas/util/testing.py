@@ -2290,12 +2290,7 @@ def network(
                     "Skipping test due to known errno"
                     " and error {error}".format(error=e)
                 )
-
-            try:
-                e_str = traceback.format_exc()
-            except Exception:
-                e_str = str(e)
-
+            e_str = traceback.format_exc()
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
