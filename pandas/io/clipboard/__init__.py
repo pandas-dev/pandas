@@ -21,13 +21,9 @@ On Linux, install xclip or xsel via package manager. For example, in Debian:
     sudo apt-get install xclip
     sudo apt-get install xsel
 
-Otherwise on Linux, you will need the gtk or PyQt5/PyQt4 modules installed.
+Otherwise on Linux, you will need the PyQt5 modules installed.
 
-gtk and PyQt4 modules are not available for Python 3,
-and this module does not work with PyGObject yet.
-
-Note: There seems to be a way to get gtk on Python 3, according to:
-    https://askubuntu.com/questions/697397/python3-is-not-supporting-gtk-module
+This module does not work with PyGObject yet.
 
 Cygwin is currently not supported.
 
@@ -136,28 +132,6 @@ def init_osx_pyobjc_clipboard():
         return content
 
     return copy_osx_pyobjc, paste_osx_pyobjc
-
-
-def init_gtk_clipboard():
-    global gtk
-    import gtk
-
-    def copy_gtk(text):
-        global cb
-        text = _stringifyText(text)  # Converts non-str values to str.
-        cb = gtk.Clipboard()
-        cb.set_text(text)
-        cb.store()
-
-    def paste_gtk():
-        clipboardContents = gtk.Clipboard().wait_for_text()
-        # for python 2, returns None if the clipboard is blank.
-        if clipboardContents is None:
-            return ""
-        else:
-            return clipboardContents
-
-    return copy_gtk, paste_gtk
 
 
 def init_qt_clipboard():
@@ -529,7 +503,7 @@ def determine_clipboard():
     accordingly.
     """
 
-    global Foundation, AppKit, gtk, qtpy, PyQt4, PyQt5
+    global Foundation, AppKit, qtpy, PyQt4, PyQt5
 
     # Setup for the CYGWIN platform:
     if (
@@ -566,13 +540,6 @@ def determine_clipboard():
 
     # Setup for the LINUX platform:
     if HAS_DISPLAY:
-        try:
-            import gtk  # check if gtk is installed
-        except ImportError:
-            pass  # We want to fail fast for all non-ImportError exceptions.
-        else:
-            return init_gtk_clipboard()
-
         if _executable_exists("xsel"):
             return init_xsel_clipboard()
         if _executable_exists("xclip"):
@@ -611,7 +578,6 @@ def set_clipboard(clipboard):
     implement the copy/paste feature. The clipboard parameter must be one of:
         - pbcopy
         - pbobjc (default on Mac OS X)
-        - gtk
         - qt
         - xclip
         - xsel
@@ -624,7 +590,6 @@ def set_clipboard(clipboard):
     clipboard_types = {
         "pbcopy": init_osx_pbcopy_clipboard,
         "pyobjc": init_osx_pyobjc_clipboard,
-        "gtk": init_gtk_clipboard,
         "qt": init_qt_clipboard,  # TODO - split this into 'qtpy', 'pyqt4', and 'pyqt5'
         "xclip": init_xclip_clipboard,
         "xsel": init_xsel_clipboard,
