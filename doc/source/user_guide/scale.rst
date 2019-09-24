@@ -5,7 +5,9 @@ Scaling to large datasets
 *************************
 
 Pandas provides data structures for in-memory analytics, which makes using pandas
-to analyze larger than memory datasets somewhat tricky.
+to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets
+that are a sizable fraction of memory become unwieldy, as some pandas operations need
+to make intermediate copies.
 
 This document provides a few recommendations for scaling your analysis to larger datasets.
 It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis
@@ -14,66 +16,24 @@ for datasets that fit in memory.
 But first, it's worth considering *not using pandas*. Pandas isn't the right
 tool for all situations. If you're working with very large datasets and a tool
 like PostgreSQL fits your needs, then you should probably be using that.
-Assuming you want or need the expressivity and power of pandas, let's carry on.
+Assuming you want or need the expressiveness and power of pandas, let's carry on.
 
 .. ipython:: python
 
    import pandas as pd
    import numpy as np
+   %load_ext memory_profiler
 
 .. ipython:: python
    :suppress:
 
    from pandas.util.testing import _make_timeseries
 
-
-Use more efficient file formats
--------------------------------
-
-Depending on your workload, data loading may be a bottleneck. In these cases you
-might consider switching from a slow format like CSV to a faster format like
-Parquet. Loading from a file format like Parquet will also require less memory
-usage, letting you load larger datasets into pandas before running out of
-memory.
-
-.. ipython:: python
-   :suppress:
-
    # Make a random in-memory dataset
    ts = _make_timeseries(freq="30S", seed=0)
    ts.to_csv("timeseries.csv")
    ts.to_parquet("timeseries.parquet")
 
-For example, suppose we have a dataset like the following::
-
-                          id      name         x         y
-   timestamp
-   2000-01-01 00:00:00  1029   Michael  0.278837  0.247932
-   2000-01-01 00:00:30  1010  Patricia  0.077144  0.490260
-   2000-01-01 00:01:00  1001    Victor  0.214525  0.258635
-   2000-01-01 00:01:30  1018     Alice -0.646866  0.822104
-   2000-01-01 00:02:00   991       Dan  0.902389  0.466665
-   ...                   ...       ...       ...       ...
-   2000-12-30 23:58:00   992     Sarah  0.721155  0.944118
-   2000-12-30 23:58:30  1007    Ursula  0.409277  0.133227
-   2000-12-30 23:59:00  1009    Hannah -0.452802  0.184318
-   2000-12-30 23:59:30   978     Kevin -0.904728 -0.179146
-   2000-12-31 00:00:00   973    Ingrid -0.370763 -0.794667
-
-That dataset has been stored on disk as CSV and Parquet. We want to
-compare the performance of reading those two formats.
-
-.. ipython:: python
-
-   col = "timestamp"
-   %time _ = pd.read_csv("timeseries.csv", index_col=col, parse_dates=[col])
-
-.. ipython:: python
-
-   %time _ = pd.read_parquet("timeseries.parquet")
-
-Notice that parquet gives higher performance for reading (and writing), both
-in terms of speed and lower peak memory usage. See :ref:`io` for more.
 
 Load less data
 --------------
@@ -115,14 +75,16 @@ Option 1 loads in all the data and then filters to what we need.
 
    columns = ['id_0', 'name_0', 'x_0', 'y_0']
 
-   %time _ = pd.read_parquet("timeseries_wide.parquet")[columns]
+   %memit pd.read_parquet("timeseries_wide.parquet")[columns]
 
-Option 2 only loads the columns we request. This is faster and has a lower peak
-memory usage since the entire dataset isn't in memory at once.
+Option 2 only loads the columns we request.
 
 .. ipython:: python
 
-   %time _ = pd.read_parquet("timeseries_wide.parquet", columns=columns)
+   %memit pd.read_parquet("timeseries_wide.parquet", columns=columns)
+
+In particular, notice that the ``increment`` in memory reported by ``memory-profiler``
+is much smaller when ``columns`` is specified.
 
 With :func:`pandas.read_csv`, you can specify ``usecols`` to limit the columns
 read into memory. Not all file formats that can be read by pandas provide an option
@@ -135,6 +97,14 @@ The default pandas data types are not the most memory efficient. This is
 especially true for high-cardinality text data (columns with relatively few
 unique values). By using more efficient data types you can store larger datasets
 in memory.
+
+.. ipython:: python
+
+   ts = dd.read_parquet("timeseries.parquet")
+   ts
+
+Now, let's inspect the data types and memory usage to see where we should focus our
+attention.
 
 .. ipython:: python
 
@@ -186,8 +156,8 @@ Use chunking
 ------------
 
 Some workloads can be achieved with chunking: splitting a large problem like "convert this
-directory of CSVs to parquet" into a bunch of small problems ("convert this individual parquet
-file into a CSV. Now repeat that for each file in this directory."). As long as each chunk
+directory of CSVs to parquet" into a bunch of small problems ("convert this individual CSV
+file into a Parquet file. Now repeat that for each file in this directory."). As long as each chunk
 fits in memory, you can work with datasets that are much larger than memory.
 
 .. note::
@@ -240,7 +210,7 @@ work for arbitrary-sized datasets.
 .. ipython:: python
 
    %%time
-   files = list(pathlib.Path("data/timeseries/").glob("ts*.parquet"))
+   files = pathlib.Path("data/timeseries/").glob("ts*.parquet")
    counts = pd.Series(dtype=int)
    for path in files:
        # Only one dataframe is in memory at a time...
@@ -264,7 +234,7 @@ Use other libraries
 
 Pandas is just one library offering a DataFrame API. Because of its popularity,
 pandas' API has become something of a standard that other libraries implement.
-The pandas documentation maintains a list of libraries implemetning a DataFrame API
+The pandas documentation maintains a list of libraries implementing a DataFrame API
 in :ref:`our ecosystem page <ecosystem.out-of-core>`.
 
 For example, `Dask`_, a parallel computing library, has `dask.dataframe`_, a
@@ -337,13 +307,14 @@ parallel. We can also connect to a cluster to distribute the work on many
 machines. In this case we'll connect to a local "cluster" made up of several
 processes on this single machine.
 
-.. ipython:: python
+.. code-block:: python
 
-   from dask.distributed import Client, LocalCluster
+   >>> from dask.distributed import Client, LocalCluster
 
-   cluster = LocalCluster()
-   client = Client(cluster)
-   client
+   >>> cluster = LocalCluster()
+   >>> client = Client(cluster)
+   >>> client
+   <Client: 'tcp://127.0.0.1:53349' processes=4 threads=8, memory=17.18 GB>
 
 Once this ``client`` is created, all of Dask's computation will take place on
 the cluster (which is just processes in this case).
@@ -363,6 +334,10 @@ known automatically. In this case, since we created the parquet files manually,
 we need to supply the divisions manually.
 
 .. ipython:: python
+
+   N = 12
+   starts = [f'20{i:>02d}-01-01' for i in range(N)]
+   ends = [f'20{i:>02d}-12-13' for i in range(N)]
 
    divisions = tuple(pd.to_datetime(starts)) + (pd.Timestamp(ends[-1]),)
    ddf.divisions = divisions
@@ -394,11 +369,6 @@ machine. Dask can be `deployed on a cluster
 datasets.
 
 You see more dask examples at https://examples.dask.org.
-
-.. ipython:: python
-   :suppress:
-
-   del client, cluster
 
 .. _Dask: https://dask.org
 .. _dask.dataframe: https://docs.dask.org/en/latest/dataframe.html
