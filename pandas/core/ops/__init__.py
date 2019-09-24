@@ -892,7 +892,8 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, op)
+            new_data = dispatch_to_series(self, other, op)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -926,7 +927,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
             new_data = dispatch_to_series(self, other, na_op, str_rep)
-            return self._construct_result(other, new_data, na_op)
+            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -934,7 +935,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            return self._combine_const(other, na_op)
+            new_data = dispatch_to_series(self, other, na_op)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -957,7 +959,7 @@ def _comp_method_FRAME(cls, func, special):
                     "Can only compare identically-labeled DataFrame objects"
                 )
             new_data = dispatch_to_series(self, other, func, str_rep)
-            return self._construct_result(other, new_data, func)
+            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -967,8 +969,8 @@ def _comp_method_FRAME(cls, func, special):
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func)
-            return res
+            new_data = dispatch_to_series(self, other, func)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
