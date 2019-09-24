@@ -222,7 +222,7 @@ bar2,12,13,14,15
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
             (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
             (pd.read_msgpack, "os", ("io", "msgpack", "data", "frame.mp")),
-            (pd.read_pickle, "os", ("io", "data", "categorical_0_14_1.pickle")),
+            (pd.read_pickle, "os", ("io", "data", "categorical.0.25.0.pickle")),
         ],
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
