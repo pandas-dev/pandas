@@ -56,7 +56,7 @@ def hist_series(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    `**kwargs
+    **kwargs
         To be passed to the actual plotting function
 
     Returns
@@ -459,7 +459,7 @@ def boxplot_frame_groupby(
         Whether y-axes will be shared among subplots
 
         .. versionadded:: 0.23.1
-    `**kwargs
+    **kwargs
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
 
@@ -586,7 +586,7 @@ class PlotAccessor(PandasObject):
         labels with "(right)" in the legend
     include_bool : bool, default is False
         If True, boolean values can be plotted.
-    `**kwargs
+    **kwargs
         Options to pass to matplotlib plotting method.
 
     Returns
