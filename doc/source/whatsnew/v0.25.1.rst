@@ -99,7 +99,6 @@ Reshaping
 - Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
 - :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
 - Bug in :meth:`DataFrame.join` raising with readonly arrays (:issue:`27943`)
-- Bug :meth:`merge_asof` could not use datetime.timedelta for `tolerance` kwarg (:issue:`28098`)
 
 Sparse
 ^^^^^^
