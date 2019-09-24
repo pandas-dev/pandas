@@ -77,14 +77,7 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestNoReduce(base.BaseNoReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        if all_numeric_reductions == "sum":
-            pytest.skip("TextArray implements sum")
-        else:
-            return super().test_reduce_series_numeric(
-                data, all_numeric_reductions, skipna
-            )
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):

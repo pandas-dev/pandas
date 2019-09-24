@@ -218,16 +218,7 @@ class TextArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        if name == "sum":
-            vals = self._ndarray
-            missing = self.isna()
-            if skipna:
-                vals = vals[~missing]
-            elif missing.any():
-                return np.nan
-            return vals.sum()
-
-        raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
+        raise TypeError("Cannot perform reduction '{}' with text dtype".format(name))
 
     def value_counts(self, dropna=False):
         from pandas import value_counts

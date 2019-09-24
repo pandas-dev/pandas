@@ -142,6 +142,7 @@ def test_constructor_raises():
 
 
 @pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.xfail(reason="Not implemented TextArray.sum")
 def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="text")
     result = arr.sum(skipna=skipna)
@@ -149,6 +150,7 @@ def test_reduce(skipna):
 
 
 @pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.xfail(reason="Not implemented TextArray.sum")
 def test_reduce_missing(skipna):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype="text")
     result = arr.sum(skipna=skipna)
