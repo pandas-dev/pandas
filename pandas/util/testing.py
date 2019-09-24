@@ -9,7 +9,6 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-import traceback
 from typing import Union, cast
 import warnings
 import zipfile
@@ -2294,10 +2293,7 @@ def network(
                     " and error {error}".format(error=e)
                 )
 
-            try:
-                e_str = traceback.format_exc(e)
-            except Exception:
-                e_str = str(e)
+            e_str = str(e)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
