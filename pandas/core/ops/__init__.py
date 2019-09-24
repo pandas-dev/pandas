@@ -660,14 +660,6 @@ def _comp_method_SERIES(cls, op, special):
 
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if isinstance(other, (np.ndarray, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -680,13 +672,7 @@ def _comp_method_SERIES(cls, op, special):
 
         res_values = comparison_op(lvalues, rvalues, op)
 
-        result = self._constructor(res_values, index=self.index)
-        result = finalizer(result)
-
-        # Set the result's name after finalizer is called because finalizer
-        #  would set it back to self.name
-        result.name = res_name
-        return result
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -703,14 +689,6 @@ def _bool_method_SERIES(cls, op, special):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if not isinstance(other, (ABCSeries, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -719,8 +697,7 @@ def _bool_method_SERIES(cls, op, special):
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = logical_op(lvalues, rvalues, op)
-        result = self._constructor(res_values, index=self.index, name=res_name)
-        return finalizer(result)
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
