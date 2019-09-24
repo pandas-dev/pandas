@@ -435,7 +435,7 @@ static void *PyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     return NULL;
 }
 
-static void *PyStringToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                             size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
@@ -1869,7 +1869,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyBytes_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyStringToUTF8;
+        pc->PyTypeToJSON = PyBytesToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyUnicode_Check(obj)) {
@@ -2373,10 +2373,16 @@ char *Object_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 }
 
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
-    static char *kwlist[] = {
-        "obj",    "ensure_ascii", "double_precision", "encode_html_chars",
-        "orient", "date_unit",    "iso_dates",        "default_handler",
-        NULL};
+    static char *kwlist[] = {"obj",
+                             "ensure_ascii",
+                             "double_precision",
+                             "encode_html_chars",
+                             "orient",
+                             "date_unit",
+                             "iso_dates",
+                             "default_handler",
+                             "indent",
+                             NULL};
 
     char buffer[65536];
     char *ret;
@@ -2389,6 +2395,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     char *sdateFormat = NULL;
     PyObject *oisoDates = 0;
     PyObject *odefHandler = 0;
+    int indent = 0;
 
     PyObjectEncoder pyEncoder = {{
         Object_beginTypeContext,
@@ -2410,6 +2417,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         idoublePrecision,
         1, // forceAscii
         0, // encodeHTMLChars
+        0, // indent
     }};
     JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 
@@ -2434,10 +2442,10 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     PRINTMARK();
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOO", kwlist, &oinput,
-                                     &oensureAscii, &idoublePrecision,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist,
+                                     &oinput, &oensureAscii, &idoublePrecision,
                                      &oencodeHTMLChars, &sOrient, &sdateFormat,
-                                     &oisoDates, &odefHandler)) {
+                                     &oisoDates, &odefHandler, &indent)) {
         return NULL;
     }
 
@@ -2502,6 +2510,8 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         }
         pyEncoder.defaultHandler = odefHandler;
     }
+
+    encoder->indent = indent;
 
     pyEncoder.originalOutputFormat = pyEncoder.outputFormat;
     PRINTMARK();

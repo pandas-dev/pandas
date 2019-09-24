@@ -163,7 +163,7 @@ determines how many rows are shown in the truncated repr.
 .. ipython:: python
 
    pd.set_option('max_rows', 8)
-   pd.set_option('max_rows', 4)
+   pd.set_option('min_rows', 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
@@ -353,7 +353,7 @@ display.max_colwidth                    50           The maximum width in charac
                                                      a column in the repr of a pandas
                                                      data structure. When the column overflows,
                                                      a "..." placeholder is embedded in
-                                                     the output.
+                                                     the output. 'None' value means unlimited.
 display.max_info_columns                100          max_info_columns is used in DataFrame.info
                                                      method to decide if per column information
                                                      will be printed.
