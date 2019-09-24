@@ -37,7 +37,6 @@ from pandas import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal, set_timezone
 
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.pytables import (
     ClosedFileError,
     HDFStore,
@@ -3415,14 +3414,9 @@ class TestHDFStore(Base):
             expected = df[df.x == "none"]
             assert_frame_equal(result, expected)
 
-            try:
-                result = store.select("df", "x!=none")
-                expected = df[df.x != "none"]
-                assert_frame_equal(result, expected)
-            except Exception as detail:
-                pprint_thing("[{0}]".format(detail))
-                pprint_thing(store)
-                pprint_thing(expected)
+            result = store.select("df", "x!=none")
+            expected = df[df.x != "none"]
+            assert_frame_equal(result, expected)
 
             df2 = df.copy()
             df2.loc[df2.x == "", "x"] = np.nan
