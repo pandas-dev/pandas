@@ -290,6 +290,8 @@ Categorical
 - Changed the error message in :meth:`Categorical.remove_categories` to always show the invalid removals as a set (:issue:`28669`)
 - Using date accessors on a categorical dtyped series of datetimes was not returning a Series (or DataFrame) of the
   same type as if one used the .str. / .dt. on a Series of that type, e.g. when accessing :meth:`Series.dt.tz_localize` on a
+- Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning an object of the
+  same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue: `27952`)
 -
 
