@@ -1064,7 +1064,6 @@ class TextFileReader(BaseIterator):
             )
 
             if result.get(arg, depr_default) != depr_default:
-                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + "\n\n"
             else:
                 result[arg] = parser_default
@@ -1393,6 +1392,10 @@ class ParserBase:
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
+            if any(i < 0 for i in self.header):
+                raise ValueError(
+                    "cannot specify multi-index header with negative integers"
+                )
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when specifying a multi-index header"
@@ -1418,6 +1421,13 @@ class ParserBase:
         # GH 16338
         elif self.header is not None and not is_integer(self.header):
             raise ValueError("header must be integer or list of integers")
+
+        # GH 27779
+        elif self.header is not None and self.header < 0:
+            raise ValueError(
+                "Passing negative integer to header is invalid. "
+                "For no header, use header=None instead"
+            )
 
         self._name_processed = False
 
@@ -1772,14 +1782,17 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_num_bool:
+        if try_num_bool and is_object_dtype(values.dtype):
+            # exclude e.g DatetimeIndex here
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isna(result).sum()
-            except Exception:
+            except (ValueError, TypeError):
+                # e.g. encountering datetime string gets ValueError
+                #  TypeError can be raised in floatify
                 result = values
-                if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values, False)
+            else:
+                na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:

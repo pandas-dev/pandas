@@ -16,11 +16,11 @@ import argparse
 import os
 import re
 import sys
+
 import yaml
 
-
 EXCLUDE = {"python=3"}
-RENAME = {"pytables": "tables"}
+RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
 
 
 def conda_package_to_pip(package):

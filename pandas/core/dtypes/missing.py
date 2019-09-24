@@ -133,6 +133,8 @@ def _isna_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(
         obj,
         (
@@ -171,6 +173,8 @@ def _isna_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
@@ -441,8 +445,14 @@ def array_equivalent(left, right, strict_nan=False):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if left_value != right_value:
-                    return False
+                try:
+                    if np.any(left_value != right_value):
+                        return False
+                except TypeError as err:
+                    if "Cannot compare tz-naive" in str(err):
+                        # tzawareness compat failure, see GH#28507
+                        return False
+                    raise
         return True
 
     # NaNs can occur in float and complex arrays.

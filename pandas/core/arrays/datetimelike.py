@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -161,8 +160,8 @@ class DatelikeOps:
 
         Returns
         -------
-        Index
-            Index of formatted strings.
+        ndarray
+            NumPy ndarray of formatted strings.
 
         See Also
         --------
@@ -180,9 +179,7 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        from pandas import Index
-
-        return Index(self._format_native_types(date_format=date_format))
+        return self._format_native_types(date_format=date_format).astype(object)
 
 
 class TimelikeOps:
@@ -546,18 +543,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return np.asarray(self, dtype=dtype)
 
     def view(self, dtype=None):
-        """
-        New view on this array with the same data.
-
-        Parameters
-        ----------
-        dtype : numpy dtype, optional
-
-        Returns
-        -------
-        ndarray
-            With the specified `dtype`.
-        """
+        if dtype is None or dtype is self.dtype:
+            return type(self)(self._data, dtype=self.dtype)
         return self._data.view(dtype=dtype)
 
     # ------------------------------------------------------------------
@@ -1018,9 +1005,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
-            from pandas import TimedeltaIndex
+            from pandas.core.arrays import TimedeltaArray
 
-            other = TimedeltaIndex(other)
+            other = TimedeltaArray._from_sequence(other)
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -1242,29 +1229,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.add)
-        elif is_float_dtype(other):
-            # Explicitly catch invalid dtypes
-            raise TypeError(
-                "cannot add {dtype}-dtype to {cls}".format(
-                    dtype=other.dtype, cls=type(self).__name__
-                )
-            )
-        elif is_period_dtype(other):
-            # if self is a TimedeltaArray and other is a PeriodArray with
-            #  a timedelta-like (i.e. Tick) freq, this operation is valid.
-            #  Defer to the PeriodArray implementation.
-            # In remaining cases, this will end up raising TypeError.
-            return NotImplemented
-        elif is_extension_array_dtype(other):
-            # Categorical op will raise; defer explicitly
-            return NotImplemented
-        else:  # pragma: no cover
+        else:
+            # Includes Categorical, other ExtensionArrays
+            # For PeriodDtype, if self is a TimedeltaArray and other is a
+            #  PeriodArray with  a timedelta-like (i.e. Tick) freq, this
+            #  operation is valid.  Defer to the PeriodArray implementation.
+            #  In remaining cases, this will end up raising TypeError.
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
             from pandas.core.arrays import TimedeltaArray
 
-            # TODO: infer freq?
             return TimedeltaArray(result)
         return result
 
@@ -1314,34 +1289,18 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.sub)
-        elif isinstance(other, ABCIndexClass):
-            raise TypeError(
-                "cannot subtract {cls} and {typ}".format(
-                    cls=type(self).__name__, typ=type(other).__name__
-                )
-            )
-        elif is_float_dtype(other):
-            # Explicitly catch invalid dtypes
-            raise TypeError(
-                "cannot subtract {dtype}-dtype from {cls}".format(
-                    dtype=other.dtype, cls=type(self).__name__
-                )
-            )
-        elif is_extension_array_dtype(other):
-            # Categorical op will raise; defer explicitly
-            return NotImplemented
-        else:  # pragma: no cover
+        else:
+            # Includes ExtensionArrays, float_dtype
             return NotImplemented
 
         if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
             from pandas.core.arrays import TimedeltaArray
 
-            # TODO: infer freq?
             return TimedeltaArray(result)
         return result
 
     def __rsub__(self, other):
-        if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self):
+        if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self.dtype):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
             if not isinstance(other, DatetimeLikeArrayMixin):
@@ -1351,9 +1310,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 other = DatetimeArray(other)
             return other - self
         elif (
-            is_datetime64_any_dtype(self)
+            is_datetime64_any_dtype(self.dtype)
             and hasattr(other, "dtype")
-            and not is_datetime64_any_dtype(other)
+            and not is_datetime64_any_dtype(other.dtype)
         ):
             # GH#19959 datetime - datetime is well-defined as timedelta,
             # but any other type - datetime is not well-defined.
@@ -1362,13 +1321,21 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                     cls=type(self).__name__, typ=type(other).__name__
                 )
             )
-        elif is_period_dtype(self) and is_timedelta64_dtype(other):
+        elif is_period_dtype(self.dtype) and is_timedelta64_dtype(other):
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(
                 "cannot subtract {cls} from {dtype}".format(
                     cls=type(self).__name__, dtype=other.dtype
                 )
             )
+        elif is_timedelta64_dtype(self.dtype):
+            if lib.is_integer(other) or is_integer_dtype(other):
+                # need to subtract before negating, since that flips freq
+                # -self flips self.freq, messing up results
+                return -(self - other)
+
+            return (-self) + other
+
         return -(self - other)
 
     # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115

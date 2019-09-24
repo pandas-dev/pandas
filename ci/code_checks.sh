@@ -188,9 +188,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
@@ -203,10 +203,14 @@ if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 import sys
 import pandas
 
-blacklist = {'bs4', 'gcsfs', 'html5lib', 'ipython', 'jinja2' 'hypothesis',
+blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'xlrd', 'xlsxwriter', 'xlwt'}
-mods = blacklist & set(m.split('.')[0] for m in sys.modules)
+             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
+
+# GH#28227 for some of these check for top-level modules, while others are
+#  more specific (e.g. urllib.request)
+import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
+mods = blacklist & import_mods
 if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
@@ -263,8 +267,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

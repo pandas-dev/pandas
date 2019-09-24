@@ -21,8 +21,6 @@ def mix(request):
     return request.param
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
 class TestSparseArrayArithmetics:
 
     _base = np.array
@@ -391,53 +389,28 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, b, values, rvalues)
 
 
-class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
-
-    _base = pd.Series
-    _klass = pd.SparseSeries
-
-    def _assert(self, a, b):
-        tm.assert_series_equal(a, b)
-
-    def test_alignment(self, mix, all_arithmetic_functions):
-        op = all_arithmetic_functions
-
-        da = pd.Series(np.arange(4))
-        db = pd.Series(np.arange(4), index=[1, 2, 3, 4])
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=0)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=0
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[1, 2, 3, 4], dtype=np.int64, fill_value=np.nan
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        da = pd.Series(np.arange(4))
-        db = pd.Series(np.arange(4), index=[10, 11, 12, 13])
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=0)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=0
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-        sa = pd.SparseSeries(np.arange(4), dtype=np.int64, fill_value=np.nan)
-        sb = pd.SparseSeries(
-            np.arange(4), index=[10, 11, 12, 13], dtype=np.int64, fill_value=np.nan
-        )
-        self._check_numeric_ops(sa, sb, da, db, mix, op)
-
-
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
 def test_with_list(op):
     arr = pd.SparseArray([0, 1], fill_value=0)
     result = op(arr, [0, 1])
     expected = op(arr, pd.SparseArray([0, 1]))
+    tm.assert_sp_array_equal(result, expected)
+
+
+def test_with_dataframe():
+    # GH#27910
+    arr = pd.SparseArray([0, 1], fill_value=0)
+    df = pd.DataFrame([[1, 2], [3, 4]])
+    result = arr.__add__(df)
+    assert result is NotImplemented
+
+
+def test_with_zerodim_ndarray():
+    # GH#27910
+    arr = pd.SparseArray([0, 1], fill_value=0)
+
+    result = arr * np.array(2)
+    expected = arr * 2
     tm.assert_sp_array_equal(result, expected)
 
 

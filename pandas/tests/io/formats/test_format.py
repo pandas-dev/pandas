@@ -471,28 +471,35 @@ class TestDataFrameFormatting:
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(df)
+        assert ".." not in df._repr_html_()
 
         df = pd.DataFrame({"a": range(61)})
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(df)
+        assert ".." in df._repr_html_()
 
         with option_context("display.max_rows", 10, "display.min_rows", 4):
             # truncated after first two rows
             assert ".." in repr(df)
             assert "2  " not in repr(df)
+            assert "..." in df._repr_html_()
+            assert "<td>2</td>" not in df._repr_html_()
 
         with option_context("display.max_rows", 12, "display.min_rows", None):
             # when set to None, follow value of max_rows
             assert "5    5" in repr(df)
+            assert "<td>5</td>" in df._repr_html_()
 
         with option_context("display.max_rows", 10, "display.min_rows", 12):
             # when set value higher as max_rows, use the minimum
             assert "5    5" not in repr(df)
+            assert "<td>5</td>" not in df._repr_html_()
 
         with option_context("display.max_rows", None, "display.min_rows", 12):
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
+            assert ".." not in df._repr_html_()
 
     def test_str_max_colwidth(self):
         # GH 7856
@@ -519,6 +526,45 @@ class TestDataFrameFormatting:
                 "0  foo  bar  uncomfortably lo...  1\n"
                 "1  foo  bar                stuff  1"
             )
+
+    def test_to_string_truncate(self):
+        # GH 9784 - dont truncate when calling DataFrame.to_string
+        df = pd.DataFrame(
+            [
+                {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "let's make this a very VERY long line that is longer "
+                    "than the default 50 character limit",
+                    "d": 1,
+                },
+                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
+            ]
+        )
+        df.set_index(["a", "b", "c"])
+        assert df.to_string() == (
+            "     a    b                                         "
+            "                                                c  d\n"
+            "0  foo  bar  let's make this a very VERY long line t"
+            "hat is longer than the default 50 character limit  1\n"
+            "1  foo  bar                                         "
+            "                                            stuff  1"
+        )
+        with option_context("max_colwidth", 20):
+            # the display option has no effect on the to_string method
+            assert df.to_string() == (
+                "     a    b                                         "
+                "                                                c  d\n"
+                "0  foo  bar  let's make this a very VERY long line t"
+                "hat is longer than the default 50 character limit  1\n"
+                "1  foo  bar                                         "
+                "                                            stuff  1"
+            )
+        assert df.to_string(max_colwidth=20) == (
+            "     a    b                    c  d\n"
+            "0  foo  bar  let's make this ...  1\n"
+            "1  foo  bar                stuff  1"
+        )
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()

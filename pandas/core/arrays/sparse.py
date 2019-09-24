@@ -39,10 +39,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCIndexClass,
     ABCSeries,
     ABCSparseArray,
-    ABCSparseSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
@@ -244,10 +244,10 @@ class SparseDtype(ExtensionDtype):
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
-                result = SparseDtype(sub_type)
-            except Exception:
+            except ValueError:
                 raise TypeError(msg)
             else:
+                result = SparseDtype(sub_type)
                 msg = (
                     "Could not construct SparseDtype from '{}'.\n\nIt "
                     "looks like the fill_value in the string is not "
@@ -606,7 +606,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
 
-        if isinstance(data, (type(self), ABCSparseSeries)):
+        if isinstance(data, type(self)):
             # disable normal inference on dtype, sparse_index, & fill_value
             if sparse_index is None:
                 sparse_index = data.sp_index
@@ -839,7 +839,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
@@ -854,7 +854,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         mask = notna(sp_vals)
         return sp_vals[mask]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.sp_index.length
 
     @property
@@ -868,7 +868,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.fill_value == fill_value
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
@@ -886,7 +886,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return r
 
     @property
-    def npoints(self):
+    def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
 
@@ -1693,6 +1693,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
+            elif is_scalar(sp_values):
+                # e.g. reductions
+                return sp_values
 
             return self._simple_new(
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
@@ -1732,12 +1735,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
-        def sparse_arithmetic_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+        def sparse_arithmetic_method(self, other):
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to dispatch to us.
                 return NotImplemented
+
+            other = lib.item_from_zerodim(other)
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
@@ -1781,11 +1786,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        def cmp_method(self, other):
-            op_name = op.__name__
+        op_name = op.__name__
+        if op_name in {"and_", "or_"}:
+            op_name = op_name[:-1]
 
-            if op_name in {"and_", "or_"}:
-                op_name = op_name[:-1]
+        def cmp_method(self, other):
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
@@ -1963,7 +1968,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     @classmethod
     def from_coo(cls, A, dense_index=False):
         """
-        Create a SparseSeries from a scipy.sparse.coo_matrix.
+        Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
         Parameters
         ----------
@@ -1976,7 +1981,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         Returns
         -------
-        s : SparseSeries
+        s : Series
+            A Series with sparse values.
 
         Examples
         --------
@@ -1990,7 +1996,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         matrix([[ 0.,  0.,  1.,  2.],
                 [ 3.,  0.,  0.,  0.],
                 [ 0.,  0.,  0.,  0.]])
-        >>> ss = pd.SparseSeries.from_coo(A)
+        >>> ss = pd.Series.sparse.from_coo(A)
         >>> ss
         0  2    1
            3    2
@@ -2003,14 +2009,14 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index, sparse_series=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
 
         return result
 
     def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
         """
-        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
+        Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
         Use row_levels and column_levels to determine the row and column
         coordinates respectively. row_levels and column_levels are the names
@@ -2040,10 +2046,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
                                                 (2, 1, 'b', 0),
                                                 (2, 1, 'b', 1)],
                                                 names=['A', 'B', 'C', 'D'])
-        >>> ss = s.to_sparse()
-        >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                         column_levels=['C', 'D'],
-                                         sort_labels=True)
+        >>> ss = s.astype("Sparse")
+        >>> A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
+        ...                                     column_levels=['C', 'D'],
+        ...                                     sort_labels=True)
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
                 with 3 stored elements in COOrdinate format>

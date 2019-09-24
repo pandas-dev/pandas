@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
@@ -367,6 +367,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._coerce_to_ndarray()
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        return pa.array(self._data, mask=self._mask, type=type)
+
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -592,24 +600,28 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        op_name = op.__name__
+
         def cmp_method(self, other):
 
-            op_name = op.__name__
-            mask = None
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
+
+            other = lib.item_from_zerodim(other)
+            mask = None
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
             elif is_list_like(other):
                 other = np.asarray(other)
-                if other.ndim > 0 and len(self) != len(other):
+                if other.ndim > 1:
+                    raise NotImplementedError(
+                        "can only perform ops with 1-d structures"
+                    )
+                if len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
-
-            other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -683,31 +695,31 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+        op_name = op.__name__
+
         def integer_arithmetic_method(self, other):
 
-            op_name = op.__name__
-            mask = None
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
-            if getattr(other, "ndim", 0) > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
+            other = lib.item_from_zerodim(other)
+            mask = None
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
-            elif getattr(other, "ndim", None) == 0:
-                other = other.item()
-
             elif is_list_like(other):
                 other = np.asarray(other)
-                if not other.ndim:
-                    other = other.item()
-                elif other.ndim == 1:
-                    if not (is_float_dtype(other) or is_integer_dtype(other)):
-                        raise TypeError("can only perform ops with numeric values")
+                if other.ndim > 1:
+                    raise NotImplementedError(
+                        "can only perform ops with 1-d structures"
+                    )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
+                if not (is_float_dtype(other) or is_integer_dtype(other)):
+                    raise TypeError("can only perform ops with numeric values")
+
             else:
                 if not (is_float(other) or is_integer(other)):
                     raise TypeError("can only perform ops with numeric values")

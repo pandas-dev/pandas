@@ -37,7 +37,7 @@ class HTMLFormatter(TableFormatter):
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        classes: Optional[Union[str, List, Tuple]] = None,
+        classes: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
         border: Optional[int] = None,
     ) -> None:
         self.fmt = formatter
@@ -46,11 +46,11 @@ class HTMLFormatter(TableFormatter):
         self.frame = self.fmt.frame
         self.columns = self.fmt.tr_frame.columns
         self.elements = []  # type: List[str]
-        self.bold_rows = self.fmt.kwds.get("bold_rows", False)
-        self.escape = self.fmt.kwds.get("escape", True)
+        self.bold_rows = self.fmt.bold_rows
+        self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
         if border is None:
-            border = get_option("display.html.border")
+            border = cast(int, get_option("display.html.border"))
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
@@ -377,7 +377,7 @@ class HTMLFormatter(TableFormatter):
         self.write("</thead>", indent)
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", None):
             fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
         return fmt_values
 

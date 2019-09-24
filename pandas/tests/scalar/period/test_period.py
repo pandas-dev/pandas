@@ -1298,23 +1298,13 @@ class TestArithmetic:
                 timedelta(365),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         for freq in ["M", "2M", "3M"]:
             p = Period("NaT", freq=freq)
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1324,12 +1314,7 @@ class TestArithmetic:
                 timedelta(365),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
@@ -1343,12 +1328,7 @@ class TestArithmetic:
                 timedelta(hours=48),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1358,12 +1338,7 @@ class TestArithmetic:
                 timedelta(hours=23),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         for freq in ["H", "2H", "3H"]:
             p = Period("NaT", freq=freq)
@@ -1376,9 +1351,7 @@ class TestArithmetic:
                 timedelta(days=4, minutes=180),
             ]:
                 assert p + o is NaT
-
-                if not isinstance(o, np.timedelta64):
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1388,12 +1361,7 @@ class TestArithmetic:
                 timedelta(hours=23, minutes=30),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1581,7 +1549,11 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    PY35, reason="Parsing as Period('0007-01-01', 'D') for reasons unknown", strict=True
+    # xpassing on MacPython with strict=False
+    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
+    PY35,
+    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
+    strict=False,
 )
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")

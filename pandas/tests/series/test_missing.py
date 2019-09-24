@@ -6,7 +6,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslib import iNaT
-from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -578,6 +577,28 @@ class TestSeriesMissingData:
         exp = Series(Categorical(expected_output, categories=["a", "b"]))
         tm.assert_series_equal(s.fillna(fill_value), exp)
 
+    @pytest.mark.parametrize(
+        "fill_value, expected_output",
+        [
+            (Series(["a", "b", "c", "d", "e"]), ["a", "b", "b", "d", "e"]),
+            (Series(["b", "d", "a", "d", "a"]), ["a", "d", "b", "d", "a"]),
+            (
+                Series(
+                    Categorical(
+                        ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
+                    )
+                ),
+                ["a", "d", "b", "d", "a"],
+            ),
+        ],
+    )
+    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):
+        # GH 26215
+        data = ["a", np.nan, "b", np.nan, np.nan]
+        s = Series(Categorical(data, categories=["a", "b", "c", "d", "e"]))
+        exp = Series(Categorical(expected_output, categories=["a", "b", "c", "d", "e"]))
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
     def test_fillna_categorical_raise(self):
         data = ["a", np.nan, "b", np.nan, np.nan]
         s = Series(Categorical(data, categories=["a", "b"]))
@@ -970,65 +991,6 @@ class TestSeriesMissingData:
         expected[:3] = np.nan
         assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_sparse_series_fillna_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-
-        ss = s[:2].reindex(index).to_sparse()
-        # TODO: what is this test doing? why are result an expected
-        # the same call to fillna?
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            # TODO: release-note fillna performance warning
-            result = ss.fillna(method="pad", limit=5)
-            expected = ss.fillna(method="pad", limit=5)
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        ss = s[-2:].reindex(index).to_sparse()
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            result = ss.fillna(method="backfill", limit=5)
-            expected = ss.fillna(method="backfill")
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_sparse_series_pad_backfill_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-        s = s.to_sparse()
-
-        result = s[:2].reindex(index, method="pad", limit=5)
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            expected = s[:2].reindex(index).fillna(method="pad")
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        result = s[-2:].reindex(index, method="backfill", limit=5)
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            expected = s[-2:].reindex(index).fillna(method="backfill")
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
