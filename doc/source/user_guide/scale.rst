@@ -22,6 +22,7 @@ Assuming you want or need the expressiveness and power of pandas, let's carry on
 
    import pandas as pd
    import numpy as np
+   # noqa: F821
    %load_ext memory_profiler
 
 .. ipython:: python
