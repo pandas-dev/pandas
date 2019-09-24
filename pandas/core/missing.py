@@ -1,6 +1,8 @@
 """
 Routines for filling missing data.
 """
+from typing import Set
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -219,24 +221,24 @@ def interpolate_1d(
 
     # set preserve_nans based on direction using _interp_limit
     if limit_direction == "forward":
-        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+        preserve_nans_ = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
-        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+        preserve_nans_ = end_nans | set(_interp_limit(invalid, 0, limit))
     else:
         # both directions... just use _interp_limit
-        preserve_nans = set(_interp_limit(invalid, limit, limit))
+        preserve_nans_ = set(_interp_limit(invalid, limit, limit))
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284
     if limit_area == "inside":
         # preserve NaNs on the outside
-        preserve_nans |= start_nans | end_nans
+        preserve_nans_ |= start_nans | end_nans
     elif limit_area == "outside":
         # preserve NaNs on the inside
-        preserve_nans |= mid_nans
+        preserve_nans_ |= mid_nans
 
     # sort preserve_nans and covert to list
-    preserve_nans = sorted(preserve_nans)
+    preserve_nans = sorted(preserve_nans_)
 
     xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
@@ -612,8 +614,8 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     # 1. operate on the reversed array
     # 2. subtract the returned indices from N - 1
     N = len(invalid)
-    f_idx = set()
-    b_idx = set()
+    f_idx: Set = set()
+    b_idx: Set = set()
 
     def inner(invalid, limit):
         limit = min(limit, N)
@@ -637,8 +639,8 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             # just use forwards
             return f_idx
         else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
+            b_idx_ = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx_))
             if fw_limit == 0:
                 return b_idx
 
