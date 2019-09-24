@@ -28,7 +28,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
