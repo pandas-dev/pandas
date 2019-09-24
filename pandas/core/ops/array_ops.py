@@ -380,6 +380,8 @@ def logical_op(
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
+        # https://github.com/python/mypy/issues/5128
+        # error: Cannot call function of unknown type
         res_values = filler(res_values)  # type: ignore
 
     return res_values
