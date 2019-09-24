@@ -176,7 +176,6 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-    from pandas import Index
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
@@ -184,7 +183,7 @@ def _reconstruct_data(values, dtype, original):
         values = values.astype(dtype)
 
         # we only support object dtypes bool Index
-        if isinstance(original, Index):
+        if isinstance(original, ABCIndexClass):
             values = values.astype(object)
     elif dtype is not None:
         values = values.astype(dtype)
@@ -833,7 +832,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna=True):
+def mode(values, dropna: bool = True):
     """
     Returns the mode(s) of an array.
 
@@ -1888,7 +1887,7 @@ _diff_special = {
 }
 
 
-def diff(arr, n, axis=0):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1904,7 +1903,6 @@ def diff(arr, n, axis=0):
     Returns
     -------
     shifted
-
     """
 
     n = int(n)
