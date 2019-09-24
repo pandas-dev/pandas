@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, no_type_check
+from typing import TYPE_CHECKING, Dict, no_type_check
 import warnings
 
 import numpy as np
@@ -410,7 +410,8 @@ class Resampler(_GroupBy):
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
             if isinstance(obj.index, PeriodIndex):
-                result.index = obj.index.asfreq(self.freq)
+                # error: "PeriodIndex" has no attribute "asfreq"
+                result.index = obj.index.asfreq(self.freq)  # type: ignore
             else:
                 result.index = obj.index._shallow_copy(freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -978,7 +979,13 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
     return r
 
 
-class _GroupByMixin(GroupByMixin):
+if TYPE_CHECKING:
+    _Base = Resampler
+else:
+    _Base = object
+
+
+class _GroupByMixin(GroupByMixin, _Base):
     """
     Provide the groupby facilities.
     """
@@ -1572,7 +1579,8 @@ class TimeGrouper(Grouper):
                 "an instance of %r" % type(ax).__name__
             )
 
-        memb = ax.asfreq(self.freq, how=self.convention)
+        # error: "PeriodIndex" has no attribute "asfreq"
+        memb = ax.asfreq(self.freq, how=self.convention)  # type: ignore
 
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
@@ -1810,7 +1818,8 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
             how = "E"
 
         new_obj = obj.copy()
-        new_obj.index = obj.index.asfreq(freq, how=how)
+        # error: "PeriodIndex" has no attribute "asfreq"
+        new_obj.index = obj.index.asfreq(freq, how=how)  # type: ignore
 
     elif len(obj.index) == 0:
         new_obj = obj.copy()
