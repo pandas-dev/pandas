@@ -7479,7 +7479,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
-        *args, **kwargs
+        *args : iterable, optional
+            Positional argument have no effect but might be accepted
+            for compatibility with numpy.
+        **kwargs : mapping, optional
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 
