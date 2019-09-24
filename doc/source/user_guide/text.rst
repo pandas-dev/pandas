@@ -470,7 +470,7 @@ Named groups like
 
    pd.Series(['a1', 'b2', 'c3'],
              dtype="text").str.extract(r'(?P<letter>[ab])(?P<digit>\d)',
-                                         expand=False)
+                                       expand=False)
 
 and optional groups like
 

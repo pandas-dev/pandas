@@ -24,7 +24,7 @@ Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.array
 Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
-Text                :class:`TextDtype`      :class:`str`       :ref:`api.arrays.string`
+Text                :class:`TextDtype`        :class:`str`       :ref:`api.arrays.string`
 =================== ========================= ================== =============================
 
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
