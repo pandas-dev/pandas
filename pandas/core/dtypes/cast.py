@@ -796,7 +796,7 @@ def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
                 new_values = lib.maybe_convert_numeric(
                     values, set(), coerce_numeric=True
                 )
-            except Exception:
+            except (ValueError, TypeError):
                 pass
             else:
                 # if we are all nans then leave me alone
@@ -875,7 +875,7 @@ def soft_convert_objects(
     if numeric and is_object_dtype(values.dtype):
         try:
             converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
-        except Exception:
+        except (ValueError, TypeError):
             pass
         else:
             # If all NaNs, then do not-alter
@@ -953,9 +953,10 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype, xref GH19671
+            from pandas._libs.tslibs import conversion
+            from pandas import DatetimeIndex
+
             try:
-                from pandas._libs.tslibs import conversion
-                from pandas import DatetimeIndex
 
                 values, tz = conversion.datetime_to_datetime64(v)
                 return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
@@ -1310,9 +1311,8 @@ def construct_1d_ndarray_preserving_na(values, dtype=None, copy=False):
     >>> np.array([1.0, 2.0, None], dtype='str')
     array(['1.0', '2.0', 'None'], dtype='<U4')
 
-    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype='str')
-
-
+    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype=np.dtype('str'))
+    array(['1.0', '2.0', None], dtype=object)
     """
     subarr = np.array(values, dtype=dtype, copy=copy)
 

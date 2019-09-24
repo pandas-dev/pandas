@@ -9,14 +9,11 @@ from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    ensure_object,
-    is_bool_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -27,31 +24,28 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndexClass,
     ABCSeries,
-    ABCSparseSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
 from pandas.core.ops.array_ops import (
-    comp_method_OBJECT_ARRAY,
+    arithmetic_op,
+    comparison_op,
     define_na_arithmetic_op,
-    na_arithmetic_op,
+    logical_op,
 )
+from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
     _make_flex_doc,
     _op_descriptions,
 )
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.methods import (  # noqa:F401
     add_flex_arithmetic_methods,
     add_special_arithmetic_methods,
@@ -499,8 +493,19 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
+        if right.dtype == "timedelta64[ns]":
+            # ensure we treat NaT values as the correct dtype
+            # Note: we do not do this unconditionally as it may be lossy or
+            #  expensive for EA dtypes.
+            right = np.asarray(right)
+
+            def column_op(a, b):
+                return {i: func(a.iloc[:, i], b[i]) for i in range(len(a.columns))}
+
+        else:
+
+            def column_op(a, b):
+                return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
@@ -513,12 +518,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
+    return new_data
 
 
 def dispatch_to_extension_op(
@@ -638,30 +638,8 @@ def _arith_method_SERIES(cls, op, special):
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
-        keep_null_freq = isinstance(
-            right,
-            (
-                ABCDatetimeIndex,
-                ABCDatetimeArray,
-                ABCTimedeltaIndex,
-                ABCTimedeltaArray,
-                Timestamp,
-            ),
-        )
-
         lvalues = extract_array(left, extract_numpy=True)
-        rvalues = extract_array(right, extract_numpy=True)
-
-        rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
-
-        if should_extension_dispatch(left, rvalues) or isinstance(
-            rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
-        ):
-            result = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
-
-        else:
-            with np.errstate(all="ignore"):
-                result = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
+        result = arithmetic_op(lvalues, right, op, str_rep, eval_kwargs)
 
         # We do not pass dtype to ensure that the Series constructor
         #  does inference in the case where `result` has object-dtype.
@@ -697,46 +675,10 @@ def _comp_method_SERIES(cls, op, special):
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, list):
-            # TODO: same for tuples?
-            other = np.asarray(other)
-
-        if isinstance(other, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
-            # TODO: make this treatment consistent across ops and classes.
-            #  We are not catching all listlikes here (e.g. frozenset, tuple)
-            #  The ambiguous case is object-dtype.  See GH#27803
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        if should_extension_dispatch(lvalues, rvalues):
-            res_values = dispatch_to_extension_op(op, lvalues, rvalues)
-
-        elif is_scalar(rvalues) and isna(rvalues):
-            # numpy does not like comparisons vs None
-            if op is operator.ne:
-                res_values = np.ones(len(lvalues), dtype=bool)
-            else:
-                res_values = np.zeros(len(lvalues), dtype=bool)
-
-        elif is_object_dtype(lvalues.dtype):
-            res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
-
-        else:
-            op_name = "__{op}__".format(op=op.__name__)
-            method = getattr(lvalues, op_name)
-            with np.errstate(all="ignore"):
-                res_values = method(rvalues)
-
-            if res_values is NotImplemented:
-                res_values = invalid_comparison(lvalues, rvalues, op)
-            if is_scalar(res_values):
-                raise TypeError(
-                    "Could not compare {typ} type with Series".format(typ=type(rvalues))
-                )
+        res_values = comparison_op(lvalues, rvalues, op)
 
         result = self._constructor(res_values, index=self.index)
         result = finalizer(result)
@@ -757,58 +699,7 @@ def _bool_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    def na_op(x, y):
-        try:
-            result = op(x, y)
-        except TypeError:
-            assert not isinstance(y, (list, ABCSeries, ABCIndexClass))
-            if isinstance(y, np.ndarray):
-                # bool-bool dtype operations should be OK, should not get here
-                assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
-                x = ensure_object(x)
-                y = ensure_object(y)
-                result = libops.vec_binop(x, y, op)
-            else:
-                # let null fall thru
-                assert lib.is_scalar(y)
-                if not isna(y):
-                    y = bool(y)
-                try:
-                    result = libops.scalar_binop(x, y, op)
-                except (
-                    TypeError,
-                    ValueError,
-                    AttributeError,
-                    OverflowError,
-                    NotImplementedError,
-                ):
-                    raise TypeError(
-                        "cannot compare a dtyped [{dtype}] array "
-                        "with a scalar of type [{typ}]".format(
-                            dtype=x.dtype, typ=type(y).__name__
-                        )
-                    )
-
-        return result
-
-    fill_int = lambda x: x
-
-    def fill_bool(x, left=None):
-        # if `left` is specifically not-boolean, we do not cast to bool
-        if x.dtype.kind in ["c", "f", "O"]:
-            # dtypes that can hold NA
-            mask = isna(x)
-            if mask.any():
-                x = x.astype(object)
-                x[mask] = False
-
-        if left is None or is_bool_dtype(left.dtype):
-            x = x.astype(bool)
-        return x
-
     def wrapper(self, other):
-        is_self_int_dtype = is_integer_dtype(self.dtype)
-
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
@@ -824,33 +715,10 @@ def _bool_method_SERIES(cls, op, special):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
-        other = lib.item_from_zerodim(other)
-        if is_list_like(other) and not hasattr(other, "dtype"):
-            # e.g. list, tuple
-            other = construct_1d_object_array_from_listlike(other)
-
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        if should_extension_dispatch(self, rvalues):
-            res_values = dispatch_to_extension_op(op, lvalues, rvalues)
-
-        else:
-            if isinstance(rvalues, (ABCSeries, ABCIndexClass, np.ndarray)):
-                is_other_int_dtype = is_integer_dtype(rvalues.dtype)
-                rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
-
-            else:
-                # i.e. scalar
-                is_other_int_dtype = lib.is_integer(rvalues)
-
-            # For int vs int `^`, `|`, `&` are bitwise operators and return
-            #   integer dtypes.  Otherwise these are boolean ops
-            filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-
-            res_values = na_op(lvalues, rvalues)
-            res_values = filler(res_values)
-
+        res_values = logical_op(lvalues, rvalues, op)
         result = self._constructor(res_values, index=self.index, name=res_name)
         return finalizer(result)
 
@@ -1024,7 +892,8 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, op)
+            new_data = dispatch_to_series(self, other, op)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -1057,7 +926,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            return dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1065,7 +935,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            return self._combine_const(other, na_op)
+            new_data = dispatch_to_series(self, other, na_op)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -1087,7 +958,8 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            return dispatch_to_series(self, other, func, str_rep)
+            new_data = dispatch_to_series(self, other, func, str_rep)
+            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
@@ -1097,8 +969,8 @@ def _comp_method_FRAME(cls, func, special):
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func)
-            return res
+            new_data = dispatch_to_series(self, other, func)
+            return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -1107,78 +979,6 @@ def _comp_method_FRAME(cls, func, special):
 
 # -----------------------------------------------------------------------------
 # Sparse
-
-
-def _cast_sparse_series_op(left, right, opname):
-    """
-    For SparseSeries operation, coerce to float64 if the result is expected
-    to have NaN or inf values
-
-    Parameters
-    ----------
-    left : SparseArray
-    right : SparseArray
-    opname : str
-
-    Returns
-    -------
-    left : SparseArray
-    right : SparseArray
-    """
-    from pandas.core.sparse.api import SparseDtype
-
-    opname = opname.strip("_")
-
-    # TODO: This should be moved to the array?
-    if is_integer_dtype(left) and is_integer_dtype(right):
-        # series coerces to float64 if result should have NaN/inf
-        if opname in ("floordiv", "mod") and (right.to_dense() == 0).any():
-            left = left.astype(SparseDtype(np.float64, left.fill_value))
-            right = right.astype(SparseDtype(np.float64, right.fill_value))
-        elif opname in ("rfloordiv", "rmod") and (left.to_dense() == 0).any():
-            left = left.astype(SparseDtype(np.float64, left.fill_value))
-            right = right.astype(SparseDtype(np.float64, right.fill_value))
-
-    return left, right
-
-
-def _arith_method_SPARSE_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    op_name = _get_op_name(op, special)
-
-    def wrapper(self, other):
-        if isinstance(other, ABCDataFrame):
-            return NotImplemented
-        elif isinstance(other, ABCSeries):
-            if not isinstance(other, ABCSparseSeries):
-                other = other.to_sparse(fill_value=self.fill_value)
-            return _sparse_series_op(self, other, op, op_name)
-        elif is_scalar(other):
-            with np.errstate(all="ignore"):
-                new_values = op(self.values, other)
-            return self._constructor(new_values, index=self.index, name=self.name)
-        else:  # pragma: no cover
-            raise TypeError(
-                "operation with {other} not supported".format(other=type(other))
-            )
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def _sparse_series_op(left, right, op, name):
-    left, right = left.align(right, join="outer", copy=False)
-    new_index = left.index
-    new_name = get_op_result_name(left, right)
-
-    from pandas.core.arrays.sparse import _sparse_array_op
-
-    lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
-    result = _sparse_array_op(lvalues, rvalues, op, name)
-    return left._constructor(result, index=new_index, name=new_name)
 
 
 def maybe_dispatch_ufunc_to_dunder_op(
