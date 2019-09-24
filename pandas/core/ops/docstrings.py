@@ -347,7 +347,7 @@ _op_descriptions = {
         "op": "==",
         "desc": "Equal to",
         "reverse": None,
-        "series_examples": _eq_example_SERIES
+        "series_examples": _eq_example_SERIES,
     },
     "ne": {
         "op": "!=",
