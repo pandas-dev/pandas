@@ -398,6 +398,7 @@ Plotting
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
+- Allow users to pass new backend options directly in :meth:`.plot` calls (:issue:`28619`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
