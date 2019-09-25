@@ -1933,13 +1933,15 @@ def diff(arr, n: int, axis: int = 0):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
-        res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
-        res_indexer = tuple(res_indexer)
+        # To keep mypy happy, _res_indexer is a list while res_indexer is
+        #  a tuple, ditto for lag_indexer.
+        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
+        res_indexer = tuple(_res_indexer)
 
-        lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
-        lag_indexer = tuple(lag_indexer)
+        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
+        lag_indexer = tuple(_lag_indexer)
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers

@@ -129,7 +129,10 @@ def hash_pandas_object(
                 for _ in [None]
             )
             num_items += 1
-            hashes = itertools.chain(hashes, index_hash_generator)
+
+            # keep `hashes` specifically a generator to keep mypy happy
+            _hashes = itertools.chain(hashes, index_hash_generator)
+            hashes = (x for x in _hashes)
         h = _combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
