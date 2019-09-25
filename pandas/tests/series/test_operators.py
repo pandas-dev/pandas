@@ -273,27 +273,54 @@ class TestSeriesLogicalOps:
         result = op(ser, idx2)
         assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op, index_op",
-        [
-            (ops.rand_, Index.intersection),
-            (ops.ror_, Index.union),
-            (ops.rxor, Index.symmetric_difference),
-        ],
-    )
-    def test_reversed_logical_ops_with_index(self, op, index_op):
+    def test_reversed_xor_with_index_returns_index(self):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
-        expected = index_op(idx1, ser)
-        result = op(ser, idx1)
+        expected = Index.symmetric_difference(idx1, ser)
+        result = idx1 ^ ser
         assert_index_equal(result, expected)
 
-        expected = index_op(idx2, ser)
-        result = op(ser, idx2)
+        expected = Index.symmetric_difference(idx2, ser)
+        result = idx2 ^ ser
         assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            pytest.param(
+                ops.rand_,
+                marks=pytest.mark.xfail(
+                    reason="GH#22092 Index __and__ returns Index intersection",
+                    raises=AssertionError,  
+                    strict=True,    
+                ),  
+            ),
+            pytest.param(   
+                ops.ror_,   
+                marks=pytest.mark.xfail(    
+                    reason="GH#22092 Index __or__ returns Index union",
+                    raises=AssertionError,   
+                    strict=True,    
+                ),  
+            ),
+        ],
+    )
+    def test_reversed_logical_op_with_index_returns_series(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = pd.Series(op(idx1.values, ser.values))
+        result = op(ser, idx1)
+        assert_series_equal(result, expected)
+
+        expected = pd.Series(op(idx2.values, ser.values))
+        result = op(ser, idx2)
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "op, expected",

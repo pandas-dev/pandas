@@ -2492,7 +2492,7 @@ class Index(IndexOpsMixin, PandasObject):
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
                 indexer = self.get_indexer(other)
-                indexer, = (indexer == -1).nonzero()
+                indexer = (indexer == -1).nonzero()[0]
             else:
                 indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 

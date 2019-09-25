@@ -600,24 +600,24 @@ class TestCategoricalIndex(Base):
 
     def test_reindex_duplicate_source(self):
         # See GH23963
-        c = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
+        cat = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
         with pytest.raises(ValueError, match="duplicate axis"):
-            c._can_reindex(["a", "c"])
+            cat._can_reindex(["a", "c"])
 
         with pytest.raises(ValueError, match="duplicate axis"):
-            c._can_reindex(
+            cat._can_reindex(
                 CategoricalIndex(["a", "c"], categories=["a", "b", "c", "d"])
             )
 
     def test_reindex_duplicate_target(self):
         # See GH25459
-        c = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
-        res, indexer = c.reindex(["a", "c", "c"])
+        cat = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
+        res, indexer = cat.reindex(["a", "c", "c"])
         exp = Index(["a", "c", "c"], dtype="object")
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 2, 2], dtype=np.intp))
 
-        res, indexer = c.reindex(
+        res, indexer = cat.reindex(
             CategoricalIndex(["a", "c", "c"], categories=["a", "b", "c", "d"])
         )
         exp = CategoricalIndex(["a", "c", "c"], categories=["a", "b", "c", "d"])
