@@ -12,7 +12,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, isna, to_datetime, compat
 from pandas._typing import Scalar
 from pandas.core.reshape.concat import concat
 
@@ -1117,6 +1117,9 @@ class FrameParser(Parser):
                 dtype=None,
                 orient="index",
             )
+            if compat.PY35:
+                self.obj.sort_index(axis="columns", inplace=True)
+                self.obj.sort_index(axis="index", inplace=True)
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
