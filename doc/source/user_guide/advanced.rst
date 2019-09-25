@@ -796,17 +796,15 @@ values **not** in the categories, similarly to how you can reindex **any** panda
    Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
-   .. code-block:: ipython
+   .. ipython:: python
 
-    In [9]: df3 = pd.DataFrame({'A': np.arange(6), 'B': pd.Series(list('aabbca')).astype('category')})
+      df3 = pd.DataFrame({'A': np.arange(6), 'B': pd.Series(list('aabbca')).astype('category')})
+      df3 = df3.set_index('B')
+      df3.index
+   
+   .. ipython:: python
 
-    In [11]: df3 = df3.set_index('B')
-
-    In [11]: df3.index
-    Out[11]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['a', 'b', 'c'], ordered=False, name='B', dtype='category')
-
-    In [12]: pd.concat([df2, df3])
-    TypeError: categories must match existing categories when appending
+      pd.concat([df2, df3])
 
 .. _indexing.rangeindex:
 
