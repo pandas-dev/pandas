@@ -1112,14 +1112,10 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = (
-                DataFrame.from_dict(
-                    loads(json, precise_float=self.precise_float),
-                    dtype=None,
-                    orient="index",
-                )
-                .sort_index(axis="columns")
-                .sort_index(axis="index")
+            self.obj = DataFrame.from_dict(
+                loads(json, precise_float=self.precise_float),
+                dtype=None,
+                orient="index",
             )
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
