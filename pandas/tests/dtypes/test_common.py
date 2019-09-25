@@ -12,6 +12,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 from pandas.conftest import (
@@ -738,3 +739,11 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
     with pytest.raises(TypeError, match="cannot astype"):
         astype_nansafe(arr, dtype=to_type)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+def test_astype_object_preserves_datetime_na(from_type):
+    arr = np.array([from_type("NaT")])
+    result = astype_nansafe(arr, dtype="object")
+
+    assert isna(result)[0]
