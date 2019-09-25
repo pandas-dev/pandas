@@ -88,3 +88,5 @@ dependencies:
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss
+  - pip:
+    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
