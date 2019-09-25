@@ -798,10 +798,11 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
    .. ipython:: python
 
-      df3 = pd.DataFrame({'A': np.arange(6), 'B': pd.Series(list('aabbca')).astype('category')})
+      df3 = pd.DataFrame({'A': np.arange(6),
+                          'B': pd.Series(list('aabbca')).astype('category')})
       df3 = df3.set_index('B')
       df3.index
-   
+
    .. ipython:: python
 
       pd.concat([df2, df3])
