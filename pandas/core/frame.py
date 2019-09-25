@@ -312,7 +312,7 @@ class DataFrame(NDFrame):
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order
-           Python 3.6 and later.
+           for Python 3.6 and later.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -5269,7 +5269,7 @@ class DataFrame(NDFrame):
             with np.errstate(all="ignore"):
                 res_values = _arith_op(this.values, other.values)
             new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
-        return this._construct_result(other, new_data, _arith_op)
+        return this._construct_result(new_data)
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
@@ -5282,44 +5282,31 @@ class DataFrame(NDFrame):
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
                 new_data = func(left.values.T, right.values).T
-        return left._construct_result(other, new_data, func)
+        return left._construct_result(new_data)
 
     def _combine_match_columns(self, other: Series, func, level=None):
         left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
         # at this point we have `left.columns.equals(right.index)`
         new_data = ops.dispatch_to_series(left, right, func, axis="columns")
-        return left._construct_result(right, new_data, func)
+        return left._construct_result(new_data)
 
-    def _combine_const(self, other, func):
-        # scalar other or np.ndim(other) == 0
-        new_data = ops.dispatch_to_series(self, other, func)
-        return self._construct_result(other, new_data, func)
-
-    def _construct_result(self, other, result, func):
+    def _construct_result(self, result) -> "DataFrame":
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
         Parameters
         ----------
-        other : object
         result : DataFrame
-        func : binary operator
 
         Returns
         -------
         DataFrame
-
-        Notes
-        -----
-        `func` is included for compat with SparseDataFrame signature, is not
-        needed here.
         """
         out = self._constructor(result, index=self.index, copy=False)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
         return out
-        # TODO: finalize?  we do for SparseDataFrame
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
