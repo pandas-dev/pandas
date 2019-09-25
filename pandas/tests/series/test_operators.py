@@ -294,17 +294,17 @@ class TestSeriesLogicalOps:
                 ops.rand_,
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __and__ returns Index intersection",
-                    raises=AssertionError,  
-                    strict=True,    
-                ),  
+                    raises=AssertionError,
+                    strict=True,
+                ),
             ),
-            pytest.param(   
-                ops.ror_,   
-                marks=pytest.mark.xfail(    
+            pytest.param(
+                ops.ror_,
+                marks=pytest.mark.xfail(
                     reason="GH#22092 Index __or__ returns Index union",
-                    raises=AssertionError,   
-                    strict=True,    
-                ),  
+                    raises=AssertionError,
+                    strict=True,
+                ),
             ),
         ],
     )
