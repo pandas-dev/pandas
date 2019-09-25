@@ -1266,7 +1266,14 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
+        try:
+            labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
+        except ValueError:
+            # If applying rep to recons_labels go fail, use ids which has no
+            # consecutive duplicates instead.
+            _ids_idx = np.ones(len(ids), dtype=bool)
+            _ids_idx[1:] = ids[1:] != ids[:-1]
+            labels = list(map(rep, [ids[_ids_idx]])) + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 
