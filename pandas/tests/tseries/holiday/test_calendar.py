@@ -10,8 +10,8 @@ from pandas.tseries.holiday import (
     Holiday,
     Timestamp,
     USFederalHolidayCalendar,
-    USThanksgivingDay,
     USLaborDay,
+    USThanksgivingDay,
     get_calendar,
 )
 
