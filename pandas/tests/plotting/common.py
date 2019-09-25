@@ -544,12 +544,7 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
             try:
                 kwargs["ax"] = fig.add_subplot(212)
                 ret = f(**kwargs)
-            except (ValueError, AttributeError):
-                # e.g.
-                # AttributeError in test_bootstrap_plot
-                #  "'Line2D' object has no property 'ax'"
-                # ValueError in test_errorbar_plot
-                #  "lengths of the data (12) and the error 0 do not match"
+            except Exception:
                 pass
             else:
                 assert_is_valid_plot_return_object(ret)
