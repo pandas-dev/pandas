@@ -598,17 +598,6 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-    def test_reindex_duplicate_source(self):
-        # See GH23963
-        cat = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
-        with pytest.raises(ValueError, match="duplicate axis"):
-            cat._can_reindex(["a", "c"])
-
-        with pytest.raises(ValueError, match="duplicate axis"):
-            cat._can_reindex(
-                CategoricalIndex(["a", "c"], categories=["a", "b", "c", "d"])
-            )
-
     def test_reindex_duplicate_target(self):
         # See GH25459
         cat = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
