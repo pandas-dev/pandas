@@ -1553,9 +1553,12 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             assert ax.freq == freq
 
         ax = fig.add_subplot(212)
-        kwargs["ax"] = ax
-        ret = f(*args, **kwargs)
-        assert ret is not None  # TODO: do something more intelligent
+        try:
+            kwargs["ax"] = ax
+            ret = f(*args, **kwargs)
+            assert ret is not None  # do something more intelligent
+        except Exception:
+            pass
 
         with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
