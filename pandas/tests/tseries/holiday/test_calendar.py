@@ -91,12 +91,10 @@ def test_calendar_2031():
     # Next working day after August 30 ought to be Tuesday, September 2.
 
     class testCalendar(AbstractHolidayCalendar):
-        rules = [
-            USLaborDay,
-        ]
+        rules = [USLaborDay]
 
     cal = testCalendar()
     workDay = offsets.CustomBusinessDay(calendar=cal)
-    Sat_before_Labor_Day_2031 = to_datetime('2031-08-30')
+    Sat_before_Labor_Day_2031 = to_datetime("2031-08-30")
     next_working_day = Sat_before_Labor_Day_2031 + 0 * workDay
-    assert next_working_day == to_datetime('2031-09-02')
+    assert next_working_day == to_datetime("2031-09-02")
