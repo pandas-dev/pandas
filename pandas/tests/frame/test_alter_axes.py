@@ -667,10 +667,10 @@ class TestDataFrameAlterAxes:
         # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={"foo": "bar", "bar": "foo"})
-        tm.assert_index_equal(renamed.index, Index(["foo", "bar"]))
+        tm.assert_index_equal(renamed.index, Index(["bar", "foo"]))
 
         renamed = df.rename(index=str.upper)
-        tm.assert_index_equal(renamed.index, Index(["BAR", "FOO"]))
+        tm.assert_index_equal(renamed.index, Index(["FOO", "BAR"]))
 
         # have to pass something
         with pytest.raises(TypeError, match="must pass an index to rename"):

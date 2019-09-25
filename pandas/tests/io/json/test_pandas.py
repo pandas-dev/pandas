@@ -168,7 +168,7 @@ class TestPandasContainer:
 
         expected = self.frame.copy()
 
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and (PY35 and (orient == "index" or orient == "columns")):
             # TODO: debug why sort is required
             expected = expected.sort_index()
 
@@ -188,7 +188,7 @@ class TestPandasContainer:
             data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
         expected = self.intframe.copy()
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and (PY35 and (orient == "index" or orient == "columns")):
             expected = expected.sort_index()
 
         if orient == "records" or orient == "values":
@@ -228,7 +228,7 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and (PY35 and (orient == "index" or orient == "columns")):
             expected = expected.sort_index()
 
         if not dtype:
