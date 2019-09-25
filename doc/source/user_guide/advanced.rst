@@ -786,6 +786,10 @@ values **not** in the categories, similarly to how you can reindex **any** panda
    df3 = pd.DataFrame({'A': np.arange(3),
                        'B': pd.Series(list('abc')).astype('category')})
    df3 = df3.set_index('B')
+   df3
+
+.. ipython:: python
+
    df3.reindex(['a', 'e'])
    df3.reindex(['a', 'e']).index
    df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
@@ -798,14 +802,22 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
    .. ipython:: python
 
-      df3 = pd.DataFrame({'A': np.arange(6),
-                          'B': pd.Series(list('aabbca')).astype('category')})
-      df3 = df3.set_index('B')
-      df3.index
+      df4 = pd.DataFrame({'A': np.arange(2),
+                          'B': list('ba')})
+      df4['B'] = df4['B'].astype(CategoricalDtype(list('ab')))
+      df4 = df4.set_index('B')
+      df4.index
 
-   .. ipython:: python
+      df5 = pd.DataFrame({'A': np.arange(2),
+                          'B': list('bc')})
+      df5['B'] = df5['B'].astype(CategoricalDtype(list('bc')))
+      df5 = df5.set_index('B')
+      df5.index
 
-      pd.concat([df2, df3])
+   .. code-block:: ipython
+
+      In [1]: pd.concat([df4, df5])
+      TypeError: categories must match existing categories when appending
 
 .. _indexing.rangeindex:
 
