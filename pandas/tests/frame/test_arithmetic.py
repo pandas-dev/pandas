@@ -666,6 +666,7 @@ class TestFrameArithmetic:
 
 
 def test_frame_with_zero_len_series_corner_cases():
+    # GH#28600
     # easy all-float case
     df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "B"])
     ser = pd.Series(dtype=np.float64)
@@ -686,7 +687,7 @@ def test_frame_with_zero_len_series_corner_cases():
 
 
 def test_zero_len_frame_with_series_corner_cases():
-
+    # GH#28600
     df = pd.DataFrame(columns=["A", "B"], dtype=np.float64)
     ser = pd.Series([1, 2], index=["A", "B"])
 

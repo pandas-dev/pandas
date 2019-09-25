@@ -785,9 +785,9 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             return self._combine_match_index(other, func, level=level)
         else:
             return self._combine_match_columns(other, func, level=level)
-    else:
-        # default axis is columns
-        return self._combine_match_columns(other, func, level=level)
+
+    # default axis is columns
+    return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
