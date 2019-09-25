@@ -12,6 +12,7 @@ Getting started
 .. toctree::
     :maxdepth: 2
 
+    install
     overview
     10min
     basics
