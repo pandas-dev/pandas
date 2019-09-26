@@ -5,33 +5,18 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Any, Callable, Tuple, Union
+from typing import Tuple
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
-from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_object_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndexClass,
-    ABCSeries,
-)
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike
-from pandas.core.construction import array, extract_array
+from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
     comparison_op,
@@ -39,6 +24,8 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
+from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
+from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -354,105 +341,8 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op):
-    """
-    Apply the function `op` to only non-null points in x and y.
-
-    Parameters
-    ----------
-    x : array-like
-    y : array-like
-    op : binary operation
-
-    Returns
-    -------
-    result : ndarray[bool]
-    """
-    xrav = x.ravel()
-    result = np.empty(x.size, dtype=bool)
-    if isinstance(y, (np.ndarray, ABCSeries)):
-        yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
-        result[mask] = op(np.array(list(xrav[mask])), np.array(list(yrav[mask])))
-    else:
-        mask = notna(xrav)
-        result[mask] = op(np.array(list(xrav[mask])), y)
-
-    if op == operator.ne:  # pragma: no cover
-        np.putmask(result, ~mask, True)
-    else:
-        np.putmask(result, ~mask, False)
-    result = result.reshape(x.shape)
-    return result
-
-
 # -----------------------------------------------------------------------------
 # Dispatch logic
-
-
-def should_extension_dispatch(left: ABCSeries, right: Any) -> bool:
-    """
-    Identify cases where Series operation should use dispatch_to_extension_op.
-
-    Parameters
-    ----------
-    left : Series
-    right : object
-
-    Returns
-    -------
-    bool
-    """
-    if (
-        is_extension_array_dtype(left.dtype)
-        or is_datetime64_dtype(left.dtype)
-        or is_timedelta64_dtype(left.dtype)
-    ):
-        return True
-
-    if not is_scalar(right) and is_extension_array_dtype(right):
-        # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-        return True
-
-    return False
-
-
-def should_series_dispatch(left, right, op):
-    """
-    Identify cases where a DataFrame operation should dispatch to its
-    Series counterpart.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : DataFrame
-    op : binary operator
-
-    Returns
-    -------
-    override : bool
-    """
-    if left._is_mixed_type or right._is_mixed_type:
-        return True
-
-    if not len(left.columns) or not len(right.columns):
-        # ensure obj.dtypes[0] exists for each obj
-        return False
-
-    ldtype = left.dtypes.iloc[0]
-    rdtype = right.dtypes.iloc[0]
-
-    if (is_timedelta64_dtype(ldtype) and is_integer_dtype(rdtype)) or (
-        is_timedelta64_dtype(rdtype) and is_integer_dtype(ldtype)
-    ):
-        # numpy integer dtypes as timedelta64 dtypes in this scenario
-        return True
-
-    if is_datetime64_dtype(ldtype) and is_object_dtype(rdtype):
-        # in particular case where right is an array of DateOffsets
-        return True
-
-    return False
 
 
 def dispatch_to_series(left, right, func, str_rep=None, axis=None):
@@ -521,58 +411,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     return new_data
 
 
-def dispatch_to_extension_op(
-    op,
-    left: Union[ABCExtensionArray, np.ndarray],
-    right: Any,
-    keep_null_freq: bool = False,
-):
-    """
-    Assume that left or right is a Series backed by an ExtensionArray,
-    apply the operator defined by op.
-
-    Parameters
-    ----------
-    op : binary operator
-    left : ExtensionArray or np.ndarray
-    right : object
-    keep_null_freq : bool, default False
-        Whether to re-raise a NullFrequencyError unchanged, as opposed to
-        catching and raising TypeError.
-
-    Returns
-    -------
-    ExtensionArray or np.ndarray
-        2-tuple of these if op is divmod or rdivmod
-    """
-    # NB: left and right should already be unboxed, so neither should be
-    #  a Series or Index.
-
-    if left.dtype.kind in "mM" and isinstance(left, np.ndarray):
-        # We need to cast datetime64 and timedelta64 ndarrays to
-        #  DatetimeArray/TimedeltaArray.  But we avoid wrapping others in
-        #  PandasArray as that behaves poorly with e.g. IntegerArray.
-        left = array(left)
-
-    # The op calls will raise TypeError if the op is not defined
-    # on the ExtensionArray
-
-    try:
-        res_values = op(left, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        if keep_null_freq:
-            # TODO: remove keep_null_freq after Timestamp+int deprecation
-            #  GH#22535 is enforced
-            raise
-        raise TypeError(
-            "incompatible type for a datetime/timedelta "
-            "operation [{name}]".format(name=op.__name__)
-        )
-    return res_values
-
-
 # -----------------------------------------------------------------------------
 # Series
 
@@ -606,6 +444,9 @@ def _construct_result(left, result, index, name, dtype=None):
     """
     out = left._constructor(result, index=index, dtype=dtype)
     out = out.__finalize__(left)
+
+    # Set the result's name after __finalize__ is called because __finalize__
+    #  would set it back to self.name
     out.name = name
     return out
 
@@ -660,14 +501,6 @@ def _comp_method_SERIES(cls, op, special):
 
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if isinstance(other, (np.ndarray, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -680,13 +513,7 @@ def _comp_method_SERIES(cls, op, special):
 
         res_values = comparison_op(lvalues, rvalues, op)
 
-        result = self._constructor(res_values, index=self.index)
-        result = finalizer(result)
-
-        # Set the result's name after finalizer is called because finalizer
-        #  would set it back to self.name
-        result.name = res_name
-        return result
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -703,14 +530,6 @@ def _bool_method_SERIES(cls, op, special):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if not isinstance(other, (ABCSeries, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -719,8 +538,7 @@ def _bool_method_SERIES(cls, op, special):
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = logical_op(lvalues, rvalues, op)
-        result = self._constructor(res_values, index=self.index, name=res_name)
-        return finalizer(result)
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -785,18 +603,9 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             return self._combine_match_index(other, func, level=level)
         else:
             return self._combine_match_columns(other, func, level=level)
-    else:
-        if not len(other):
-            return self * np.nan
 
-        if not len(self):
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(
-                data=self._series, index=self.index, columns=self.columns
-            )
-
-        # default axis is columns
-        return self._combine_match_columns(other, func, level=level)
+    # default axis is columns
+    return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -905,14 +714,6 @@ def _flex_comp_method_FRAME(cls, op, special):
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    def na_op(x, y):
-        try:
-            with np.errstate(invalid="ignore"):
-                result = op(x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op)
-        return result
-
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
     )
@@ -926,16 +727,16 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
-                self, other, na_op, fill_value=None, axis=axis, level=level
+                self, other, op, fill_value=None, axis=axis, level=level
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, na_op)
+            new_data = dispatch_to_series(self, other, op)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -975,92 +776,3 @@ def _comp_method_FRAME(cls, func, special):
     f.__name__ = op_name
 
     return f
-
-
-# -----------------------------------------------------------------------------
-# Sparse
-
-
-def maybe_dispatch_ufunc_to_dunder_op(
-    self: ArrayLike, ufunc: Callable, method: str, *inputs: ArrayLike, **kwargs: Any
-):
-    """
-    Dispatch a ufunc to the equivalent dunder method.
-
-    Parameters
-    ----------
-    self : ArrayLike
-        The array whose dunder method we dispatch to
-    ufunc : Callable
-        A NumPy ufunc
-    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
-    inputs : ArrayLike
-        The input arrays.
-    kwargs : Any
-        The additional keyword arguments, e.g. ``out``.
-
-    Returns
-    -------
-    result : Any
-        The result of applying the ufunc
-    """
-    # special has the ufuncs we dispatch to the dunder op on
-    special = {
-        "add",
-        "sub",
-        "mul",
-        "pow",
-        "mod",
-        "floordiv",
-        "truediv",
-        "divmod",
-        "eq",
-        "ne",
-        "lt",
-        "gt",
-        "le",
-        "ge",
-        "remainder",
-        "matmul",
-    }
-    aliases = {
-        "subtract": "sub",
-        "multiply": "mul",
-        "floor_divide": "floordiv",
-        "true_divide": "truediv",
-        "power": "pow",
-        "remainder": "mod",
-        "divide": "div",
-        "equal": "eq",
-        "not_equal": "ne",
-        "less": "lt",
-        "less_equal": "le",
-        "greater": "gt",
-        "greater_equal": "ge",
-    }
-
-    # For op(., Array) -> Array.__r{op}__
-    flipped = {
-        "lt": "__gt__",
-        "le": "__ge__",
-        "gt": "__lt__",
-        "ge": "__le__",
-        "eq": "__eq__",
-        "ne": "__ne__",
-    }
-
-    op_name = ufunc.__name__
-    op_name = aliases.get(op_name, op_name)
-
-    def not_implemented(*args, **kwargs):
-        return NotImplemented
-
-    if method == "__call__" and op_name in special and kwargs.get("out") is None:
-        if isinstance(inputs[0], type(self)):
-            name = "__{}__".format(op_name)
-            return getattr(self, name, not_implemented)(inputs[1])
-        else:
-            name = flipped.get(op_name, "__r{}__".format(op_name))
-            return getattr(self, name, not_implemented)(inputs[0])
-    else:
-        return NotImplemented
