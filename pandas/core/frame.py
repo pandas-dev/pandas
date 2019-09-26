@@ -5271,24 +5271,22 @@ class DataFrame(NDFrame):
             new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
         return this._construct_result(new_data)
 
-    def _combine_match_index(self, other, func, level=None):
-        left, right = self.align(other, join="outer", axis=0, level=level, copy=False)
-        # at this point we have `left.index.equals(right.index)`
+    def _combine_match_index(self, other, func):
+        # at this point we have `self.index.equals(other.index)`
 
-        if left._is_mixed_type or right._is_mixed_type:
+        if self._is_mixed_type or other._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
-            new_data = ops.dispatch_to_series(left, right, func)
+            new_data = ops.dispatch_to_series(self, other, func)
         else:
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
-                new_data = func(left.values.T, right.values).T
-        return left._construct_result(new_data)
+                new_data = func(self.values.T, other.values).T
+        return self._construct_result(new_data)
 
-    def _combine_match_columns(self, other: Series, func, level=None):
-        left, right = self.align(other, join="outer", axis=1, level=level, copy=False)
-        # at this point we have `left.columns.equals(right.index)`
-        new_data = ops.dispatch_to_series(left, right, func, axis="columns")
-        return left._construct_result(new_data)
+    def _combine_match_columns(self, other: Series, func):
+        # at this point we have `self.columns.equals(other.index)`
+        new_data = ops.dispatch_to_series(self, other, func, axis="columns")
+        return self._construct_result(new_data)
 
     def _construct_result(self, result) -> "DataFrame":
         """

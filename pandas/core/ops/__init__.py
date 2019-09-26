@@ -727,15 +727,16 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             "fill_value {fill} not supported.".format(fill=fill_value)
         )
 
-    if axis is not None:
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            return self._combine_match_index(other, func, level=level)
-        else:
-            return self._combine_match_columns(other, func, level=level)
+    if axis is None:
+        # default axis is columns
+        axis = 1
 
-    # default axis is columns
-    return self._combine_match_columns(other, func, level=level)
+    axis = self._get_axis_number(axis)
+    left, right = self.align(other, join="outer", axis=axis, level=level, copy=False)
+    if axis == 0:
+        return left._combine_match_index(right, func)
+    else:
+        return left._combine_match_columns(right, func)
 
 
 def _align_method_FRAME(left, right, axis):
