@@ -753,18 +753,9 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             return self._combine_match_index(other, func, level=level)
         else:
             return self._combine_match_columns(other, func, level=level)
-    else:
-        if not len(other):
-            return self * np.nan
 
-        if not len(self):
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(
-                data=self._series, index=self.index, columns=self.columns
-            )
-
-        # default axis is columns
-        return self._combine_match_columns(other, func, level=level)
+    # default axis is columns
+    return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
