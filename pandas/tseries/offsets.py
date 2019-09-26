@@ -2087,10 +2087,8 @@ class FY5253(DateOffset):
     variation : str, default "nearest"
         Method of employing 4-4-5 calendar. There are two options:
 
-        - "nearest" defines fiscal year end a **weekday** which falls
-        closest to last day of month in fiscal year.
-
-        - "last" defines fiscal year end as final **weekday** in fiscal year end month.
+        - "nearest" means year end is **weekday** closest to last day of month in year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
     """
 
     _prefix = "RE"
@@ -2308,10 +2306,9 @@ class FY5253Quarter(DateOffset):
     variation : str, default "nearest"
         Method of employing 4-4-5 calendar. There are two options:
 
-        - "nearest" defines fiscal year end as **weekday** which falls closest
-        to last day of month in fiscal year.
-
-        - "last" defines fiscal year end as final **weekday** in fiscal year end month.
+        - "nearest" means year end is **weekday** closest to last day of month in fiscal
+        year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
     """
 
     _prefix = "REQ"
