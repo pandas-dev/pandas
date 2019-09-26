@@ -1598,22 +1598,22 @@ def bdate_range(
 
     Parameters
     ----------
-    start : string or datetime-like, default None
+    start : str or datetime-like, default None
         Left bound for generating dates.
-    end : string or datetime-like, default None
+    end : str or datetime-like, default None
         Right bound for generating dates.
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate.
-    freq : string or DateOffset, default 'B' (business daily)
+    freq : str or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'.
-    tz : string or None
+    tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : string, default None
+    name : str, default None
         Name of the resulting DatetimeIndex.
-    weekmask : string or None, default None
+    weekmask : str or None, default None
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
         only used when custom frequency strings are passed.  The default
         value None is equivalent to 'Mon Tue Wed Thu Fri'.
@@ -1627,7 +1627,7 @@ def bdate_range(
 
         .. versionadded:: 0.21.0
 
-    closed : string, default None
+    closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
     **kwargs
