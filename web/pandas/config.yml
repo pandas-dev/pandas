@@ -23,7 +23,7 @@ navbar:
   - name: "About us"
     target:
     - name: "About pandas"
-      target: /about/about.html
+      target: /about/index.html
     - name: "Project roadmap"
       target: /about/roadmap.html
     - name: "Team"

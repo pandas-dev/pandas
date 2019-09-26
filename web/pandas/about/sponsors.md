@@ -11,7 +11,15 @@ health and sustainability of the project. Visit numfocus.org for more informatio
 Donations to _pandas_ are managed by NumFOCUS. For donors in the United States, your gift is tax-deductible
 to the extent provided by law. As with any donation, you should consult with your tax adviser about your particular tax situation.
 
+## Tidelift
+
+_pandas_ is part of the [Tidelift subscription](https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme).
+You can support pandas by becoming a Tidelift subscriber.
+
 ## Institutional partners
+
+Institutional Partners are companies and universities that support the project by employing contributors.
+Current Institutional Partners include:
 
 <ul>
     {% for company in partners.active if company.employs %}
