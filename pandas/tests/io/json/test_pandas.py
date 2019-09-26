@@ -36,6 +36,7 @@ _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
 
 _mixed_frame = _frame.copy()
 
+
 def assert_json_roundtrip_equal(result, expected, orient):
     if orient == "records" or orient == "values":
         expected = expected.reset_index(drop=True)
@@ -97,7 +98,7 @@ class TestPandasContainer:
         expected = df.copy()
 
         assert_json_roundtrip_equal(result, expected, orient)
-        
+
     @pytest.mark.parametrize("orient", ["split", "records", "values"])
     def test_frame_non_unique_index(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
