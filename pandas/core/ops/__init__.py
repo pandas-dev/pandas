@@ -566,28 +566,28 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
-def _construct_result(left, result, index, name, dtype=None):
+def _construct_result(left, result, index, name):
     """
     If the raw op result has a non-None name (e.g. it is an Index object) and
     the name argument is None, then passing name to the constructor will
     not be enough; we still need to override the name attribute.
     """
-    out = left._constructor(result, index=index, dtype=dtype)
+    if isinstance(result, tuple):
+        # produced by divmod or rdivmod
+        return (
+            _construct_result(left, result[0], index=index, name=name),
+            _construct_result(left, result[1], index=index, name=name),
+        )
+
+    # We do not pass dtype to ensure that the Series constructor
+    #  does inference in the case where `result` has object-dtype.
+    out = left._constructor(result, index=index)
     out = out.__finalize__(left)
 
     # Set the result's name after __finalize__ is called because __finalize__
     #  would set it back to self.name
     out.name = name
     return out
-
-
-def _construct_divmod_result(left, result, index, name, dtype=None):
-    """divmod returns a tuple of like indexed series instead of a single series.
-    """
-    return (
-        _construct_result(left, result[0], index=index, name=name, dtype=dtype),
-        _construct_result(left, result[1], index=index, name=name, dtype=dtype),
-    )
 
 
 def _arith_method_SERIES(cls, op, special):
@@ -598,9 +598,6 @@ def _arith_method_SERIES(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
-    construct_result = (
-        _construct_divmod_result if op in [divmod, rdivmod] else _construct_result
-    )
 
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
@@ -612,9 +609,7 @@ def _arith_method_SERIES(cls, op, special):
         lvalues = extract_array(left, extract_numpy=True)
         result = arithmetic_op(lvalues, right, op, str_rep, eval_kwargs)
 
-        # We do not pass dtype to ensure that the Series constructor
-        #  does inference in the case where `result` has object-dtype.
-        return construct_result(left, result, index=left.index, name=res_name)
+        return _construct_result(left, result, index=left.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -683,6 +678,7 @@ def _flex_method_SERIES(cls, op, special):
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)
+
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple)):
@@ -694,7 +690,7 @@ def _flex_method_SERIES(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._constructor(op(self, other), self.index).__finalize__(self)
+            return op(self, other)
 
     flex_wrapper.__name__ = name
     return flex_wrapper
