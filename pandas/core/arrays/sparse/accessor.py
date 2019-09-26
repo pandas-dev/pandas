@@ -8,7 +8,8 @@ from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.accessor import PandasDelegate, delegate_names
 
-from .sparse import SparseArray, SparseDtype
+from .array import SparseArray
+from .dtype import SparseDtype
 
 
 class BaseAccessor:

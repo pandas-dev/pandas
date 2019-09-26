@@ -170,7 +170,7 @@ class SparseDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        from .sparse import SparseArray
+        from .array import SparseArray
 
         return SparseArray
 
