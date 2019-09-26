@@ -1909,6 +1909,7 @@ class TestIndex(Base):
         assert not getattr(index, attr)
 
     def test_set_value_deprecated(self):
+        # GH 28621
         idx = self.create_index()
         arr = np.array([1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
