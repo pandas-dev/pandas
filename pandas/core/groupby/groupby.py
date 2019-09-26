@@ -1032,7 +1032,7 @@ class GroupBy(_GroupBy):
         Most users should ignore this
     exclusions : array-like, optional
         List of columns to exclude
-    name : string
+    name : str
         Most users should ignore this
 
     Returns
