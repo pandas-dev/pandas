@@ -106,7 +106,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Optional datetime-like data to construct index with
     copy  : bool
         Make a copy of input ndarray
-    freq : string or pandas offset object, optional
+    freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation
@@ -129,7 +129,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         .. deprecated:: 0.24.0
 
-    closed : string or None, default None
+    closed : str or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
@@ -1371,8 +1371,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
             "%I%M%S%p").
-        include_start : boolean, default True
-        include_end : boolean, default True
+        include_start : bool, default True
+        include_end : bool, default True
 
         Returns
         -------
