@@ -37,10 +37,10 @@ If you want to support pandas development, you can find information in the [dona
     <div>
     <b>Diversity and Inclusion</b>
     <p>
-     Pandas expressly welcomes and encourages anyone who faces under-representation, systemic bias, or discrimination 
+     Pandas expressly welcomes and encourages anyone who faces under-representation,systemic bias or discrimination 
      in the technology industry to contribute.
      We are concerned by divesity and if you identify as any of the groups mentioned above
-     dont hesitate to make your contribution ,if you need help please get in touch.
+     dont hesitate to make your contribution,if you need help please get in touch.
     </p>
     </div>
 </div>
