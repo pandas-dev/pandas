@@ -1253,7 +1253,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1276,7 +1276,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1311,7 +1311,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1623,7 +1623,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -1649,7 +1649,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -2313,7 +2313,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        periods : integer, default 1
+        periods : int, default 1
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
