@@ -2006,7 +2006,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Block locations: array([0], dtype=int32)
         Block lengths: array([3], dtype=int32)
         """
-        from pandas.core.arrays.scipy_sparse import _coo_to_sparse_series
+        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
         result = _coo_to_sparse_series(A, dense_index=dense_index)
@@ -2062,7 +2062,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         >>> columns
         [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
         """
-        from pandas.core.arrays.scipy_sparse import _sparse_series_to_coo
+        from pandas.core.arrays.sparse.scipy_sparse import _sparse_series_to_coo
 
         A, rows, columns = _sparse_series_to_coo(
             self._parent, row_levels, column_levels, sort_labels=sort_labels
