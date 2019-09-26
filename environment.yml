@@ -35,6 +35,7 @@ dependencies:
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
+  # Dask and its dependencies
   - dask-core
   - toolz>=0.7.3
   - fsspec>=0.5.1
