@@ -904,7 +904,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : string, optional
+        name : str, optional
         deep : boolean, default False
         dtype : numpy dtype or pandas type
 
@@ -1172,7 +1172,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         index : Index, optional
             index of resulting Series. If None, defaults to original index
-        name : string, optional
+        name : str, optional
             name of resulting Series. If None, defaults to name of original
             index
 
@@ -4924,7 +4924,7 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end
         step : int, default None
-        kind : string, default None
+        kind : str, default None
 
         Returns
         -------
