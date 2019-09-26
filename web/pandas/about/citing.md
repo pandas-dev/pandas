@@ -1,6 +1,6 @@
-# Citing pandas
+# Citing and logo
 
-## Citing
+## Citing pandas
 
 If you use _pandas_ for a scientific publication, we would appreciate citations to one of the following papers:
 

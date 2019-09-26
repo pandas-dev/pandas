@@ -1,4 +1,4 @@
-# Pandas ecosystem
+# Ecosystem
 
 Increasingly, packages are being built on top of pandas to address
 specific needs in data preparation, analysis and visualization. This is
