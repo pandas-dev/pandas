@@ -34,16 +34,18 @@ If you want to support pandas development, you can find information in the [dona
             {% endfor %}
         </div>
     {% endfor %}
-    <div>
-    <b>Diversity and Inclusion</b>
-    <p>
-     Pandas expressly welcomes and encourages anyone who faces under-representation,systemic bias or discrimination 
-     in the technology industry to contribute.
-     We are concerned by divesity and if you identify as any of the groups mentioned above
-     dont hesitate to make your contribution,if you need help please get in touch.
-    </p>
-    </div>
+    
+    
 </div>
+   **Diversity and Inclusion**
+    
+    > _pandas_ expressly welcomes and encourages anyone who faces under-representation,systemic bias or discrimination 
+    > in the technology industry to contribute.
+    > We are concerned by diversity and if you identify as any of the groups mentioned above
+    > do not hesitate to make your contribution,if you need help please get in touch with us on [Divesity](diversity@pandas.io) . 
+    > We do not tolerate any form of discrimination,please revist our [CODE OF CONDUCT](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) .
+    
+    
 
 ## BDFL
 
