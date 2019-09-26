@@ -5281,12 +5281,7 @@ class DataFrame(NDFrame):
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
                 new_data = func(self.values.T, other.values).T
-        return self._construct_result(new_data)
-
-    def _combine_match_columns(self, other: Series, func):
-        # at this point we have `self.columns.equals(other.index)`
-        new_data = ops.dispatch_to_series(self, other, func, axis="columns")
-        return self._construct_result(new_data)
+        return new_data
 
     def _construct_result(self, result) -> "DataFrame":
         """
