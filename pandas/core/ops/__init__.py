@@ -28,7 +28,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
 from pandas._typing import ArrayLike
 from pandas.core.construction import array, extract_array
@@ -354,38 +354,6 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op):
-    """
-    Apply the function `op` to only non-null points in x and y.
-
-    Parameters
-    ----------
-    x : array-like
-    y : array-like
-    op : binary operation
-
-    Returns
-    -------
-    result : ndarray[bool]
-    """
-    xrav = x.ravel()
-    result = np.empty(x.size, dtype=bool)
-    if isinstance(y, (np.ndarray, ABCSeries)):
-        yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
-        result[mask] = op(np.array(list(xrav[mask])), np.array(list(yrav[mask])))
-    else:
-        mask = notna(xrav)
-        result[mask] = op(np.array(list(xrav[mask])), y)
-
-    if op == operator.ne:  # pragma: no cover
-        np.putmask(result, ~mask, True)
-    else:
-        np.putmask(result, ~mask, False)
-    result = result.reshape(x.shape)
-    return result
-
-
 # -----------------------------------------------------------------------------
 # Dispatch logic
 
@@ -606,6 +574,9 @@ def _construct_result(left, result, index, name, dtype=None):
     """
     out = left._constructor(result, index=index, dtype=dtype)
     out = out.__finalize__(left)
+
+    # Set the result's name after __finalize__ is called because __finalize__
+    #  would set it back to self.name
     out.name = name
     return out
 
@@ -660,14 +631,6 @@ def _comp_method_SERIES(cls, op, special):
 
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if isinstance(other, (np.ndarray, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -680,13 +643,7 @@ def _comp_method_SERIES(cls, op, special):
 
         res_values = comparison_op(lvalues, rvalues, op)
 
-        result = self._constructor(res_values, index=self.index)
-        result = finalizer(result)
-
-        # Set the result's name after finalizer is called because finalizer
-        #  would set it back to self.name
-        result.name = res_name
-        return result
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -703,14 +660,6 @@ def _bool_method_SERIES(cls, op, special):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
 
-        # TODO: shouldn't we be applying finalize whenever
-        #  not isinstance(other, ABCSeries)?
-        finalizer = (
-            lambda x: x.__finalize__(self)
-            if not isinstance(other, (ABCSeries, ABCIndexClass))
-            else x
-        )
-
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -719,8 +668,7 @@ def _bool_method_SERIES(cls, op, special):
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = logical_op(lvalues, rvalues, op)
-        result = self._constructor(res_values, index=self.index, name=res_name)
-        return finalizer(result)
+        return _construct_result(self, res_values, index=self.index, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -785,18 +733,9 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             return self._combine_match_index(other, func, level=level)
         else:
             return self._combine_match_columns(other, func, level=level)
-    else:
-        if not len(other):
-            return self * np.nan
 
-        if not len(self):
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(
-                data=self._series, index=self.index, columns=self.columns
-            )
-
-        # default axis is columns
-        return self._combine_match_columns(other, func, level=level)
+    # default axis is columns
+    return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -905,14 +844,6 @@ def _flex_comp_method_FRAME(cls, op, special):
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    def na_op(x, y):
-        try:
-            with np.errstate(invalid="ignore"):
-                result = op(x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op)
-        return result
-
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
     )
@@ -926,16 +857,16 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            new_data = dispatch_to_series(self, other, na_op, str_rep)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(
-                self, other, na_op, fill_value=None, axis=axis, level=level
+                self, other, op, fill_value=None, axis=axis, level=level
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, na_op)
+            new_data = dispatch_to_series(self, other, op)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
