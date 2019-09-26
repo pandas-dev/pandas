@@ -322,7 +322,7 @@ class DataFrame(NDFrame):
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
-    copy : boolean, default False
+    copy : bool, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     See Also
@@ -1553,7 +1553,7 @@ class DataFrame(NDFrame):
             columns. Otherwise this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
             columns)
-        coerce_float : boolean, default False
+        coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
         nrows : int, default None
@@ -4775,7 +4775,7 @@ class DataFrame(NDFrame):
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to drop duplicates in place or to return a copy
 
         Returns
@@ -5850,14 +5850,14 @@ class DataFrame(NDFrame):
             is function or list of functions
         fill_value : scalar, default None
             Value to replace missing values with
-        margins : boolean, default False
+        margins : bool, default False
             Add all row / columns (e.g. for subtotal / grand totals)
-        dropna : boolean, default True
+        dropna : bool, default True
             Do not include columns whose entries are all NaN
         margins_name : string, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
-        observed : boolean, default False
+        observed : bool, default False
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
@@ -6894,11 +6894,11 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame or Series/dict-like object, or list of these
             The data to append.
-        ignore_index : boolean, default False
+        ignore_index : bool, default False
             If True, do not use the index labels.
-        verify_integrity : boolean, default False
+        verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
-        sort : boolean, default None
+        sort : bool, default None
             Sort columns if the columns of `self` and `other` are not aligned.
             The default sorting is deprecated and will change to not-sorting
             in a future version of pandas. Explicitly pass ``sort=True`` to
@@ -7940,7 +7940,7 @@ class DataFrame(NDFrame):
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : boolean, default True
+        skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
@@ -7977,7 +7977,7 @@ class DataFrame(NDFrame):
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : boolean, default True
+        skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
