@@ -241,7 +241,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
--
+- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 -
 
 Conversion
@@ -321,6 +321,7 @@ Reshaping
 
 - Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
+- Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
 
 Sparse
 ^^^^^^
