@@ -256,6 +256,7 @@ Out:
 3     True
 4     True
 dtype: bool
+
 s1 = pd.Series([1, 2])
 s2 = pd.Series([1, 2, 3, 1, 7, 2])
 s1.ne(s2)
@@ -267,6 +268,7 @@ Out:
 4     True
 5     True
 dtype: bool
+
 s1 = pd.Series([1, 2])
 s2 = pd.Series([1, 2, 3, 1, 9, 9, 9])
 s1.ne(s2, fill_value=9)
@@ -341,10 +343,10 @@ _op_descriptions = {
     # Comparison Operators
     "eq": {"op": "==", "desc": "Equal to", "reverse": None, "series_examples": None},
     "ne": {
-    "op": "!=",
-    "desc": "Not equal to",
-    "reverse": "eq",
-    "series_examples": _ne_example_SERIES,
+        "op": "!=",
+        "desc": "Not equal to",
+        "reverse": "eq",
+        "series_examples": _ne_example_SERIES,
     },
     "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
     "le": {
