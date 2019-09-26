@@ -20,8 +20,6 @@ import jinja2
 from numpydoc.docscrape import NumpyDocString
 from sphinx.ext.autosummary import _import_by_name
 
-import pandas_sphinx_theme  # noqa
-
 logger = logging.getLogger(__name__)
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
