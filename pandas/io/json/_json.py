@@ -1118,8 +1118,7 @@ class FrameParser(Parser):
                 orient="index",
             )
             if compat.PY35:
-                self.obj.sort_index(axis="columns", inplace=True)
-                self.obj.sort_index(axis="index", inplace=True)
+                self.obj = self.obj.sort_index(axis="columns").sort_index(axis="index")
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:

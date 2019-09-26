@@ -170,9 +170,8 @@ def _union_indexes(indexes, sort=True):
         result = indexes[0]
         if isinstance(result, list):
             if sort:
-                result = Index(sorted(result))
-            else:
-                result = Index(result)
+                result = sorted(result)
+            result = Index(result)
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
