@@ -536,18 +536,14 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
             plt.clf()
 
-            ax = kwargs.get("ax", fig.add_subplot(211))  # noqa
+            kwargs.get("ax", fig.add_subplot(211))
             ret = f(**kwargs)
 
             assert_is_valid_plot_return_object(ret)
 
-            try:
-                kwargs["ax"] = fig.add_subplot(212)
-                ret = f(**kwargs)
-            except Exception:
-                pass
-            else:
-                assert_is_valid_plot_return_object(ret)
+            kwargs["ax"] = fig.add_subplot(212)
+            ret = f(**kwargs)
+            assert_is_valid_plot_return_object(ret)
 
             with ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
