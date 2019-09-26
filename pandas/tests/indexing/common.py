@@ -213,15 +213,13 @@ class Base:
             try:
                 rs = getattr(obj, method1).__getitem__(_axify(obj, k1, a))
 
-                with catch_warnings(record=True):
-                    filterwarnings("ignore", "\\n.ix", FutureWarning)
-                    try:
-                        xp = self.get_result(obj, method2, k2, a)
-                    except (KeyError, IndexError):
-                        # TODO: why is this allowed?
-                        result = "no comp"
-                        _print(result)
-                        return
+                try:
+                    xp = self.get_result(obj, method2, k2, a)
+                except (KeyError, IndexError):
+                    # TODO: why is this allowed?
+                    result = "no comp"
+                    _print(result)
+                    return
 
                 detail = None
 
