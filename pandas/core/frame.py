@@ -1542,7 +1542,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         data : ndarray (structured dtype), list of tuples, dict, or DataFrame
-        index : string, list of fields, array-like
+        index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
         exclude : sequence, default None
@@ -3461,7 +3461,7 @@ class DataFrame(NDFrame):
         ----------
         loc : int
             Insertion index. Must verify 0 <= loc <= len(columns)
-        column : string, number, or hashable object
+        column : str, number, or hashable object
             label of the inserted column
         value : int, Series, or array-like
         allow_duplicates : bool, optional
@@ -5197,7 +5197,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
@@ -5723,12 +5723,12 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------%s
-        index : string or object, optional
+        index : str or object, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-        columns : string or object
+        columns : str or object
             Column to use to make new frame's columns.
-        values : string, object or a list of the previous, optional
+        values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
@@ -6231,7 +6231,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default -1 (last level)
+        level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
         fill_value : replace NaN with this value if the unstack produces
             missing values
@@ -6305,7 +6305,7 @@ class DataFrame(NDFrame):
         ``frame.columns.name`` or 'variable'.
     value_name : scalar, default 'value'
         Name to use for the 'value' column.
-    col_level : int or string, optional
+    col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
 
     Returns
