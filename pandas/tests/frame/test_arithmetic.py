@@ -235,21 +235,46 @@ class TestFrameFlexComparisons:
         rs = df.le(df)
         assert not rs.loc[0, 0]
 
+    def test_bool_flex_frame_complex_dtype(self):
         # complex
         arr = np.array([np.nan, 1, 6, np.nan])
         arr2 = np.array([2j, np.nan, 7, None])
         df = pd.DataFrame({"a": arr})
         df2 = pd.DataFrame({"a": arr2})
-        rs = df.gt(df2)
-        assert not rs.values.any()
+
+        msg = "|".join(
+            [
+                "'>' not supported between instances of '.*' and 'complex'",
+                r"unorderable types: .*complex\(\)",  # PY35
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            # inequalities are not well-defined for complex numbers
+            df.gt(df2)
+        with pytest.raises(TypeError, match=msg):
+            # regression test that we get the same behavior for Series
+            df["a"].gt(df2["a"])
+        with pytest.raises(TypeError, match=msg):
+            # Check that we match numpy behavior here
+            df.values > df2.values
+
         rs = df.ne(df2)
         assert rs.values.all()
 
         arr3 = np.array([2j, np.nan, None])
         df3 = pd.DataFrame({"a": arr3})
-        rs = df3.gt(2j)
-        assert not rs.values.any()
 
+        with pytest.raises(TypeError, match=msg):
+            # inequalities are not well-defined for complex numbers
+            df3.gt(2j)
+        with pytest.raises(TypeError, match=msg):
+            # regression test that we get the same behavior for Series
+            df3["a"].gt(2j)
+        with pytest.raises(TypeError, match=msg):
+            # Check that we match numpy behavior here
+            df3.values > 2j
+
+    def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
         df1 = pd.DataFrame({"col": ["foo", np.nan, "bar"]})
         df2 = pd.DataFrame({"col": ["foo", datetime.now(), "bar"]})
