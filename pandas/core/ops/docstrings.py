@@ -346,7 +346,7 @@ _op_descriptions = {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": "eq",
-        "series_examples": _ne_example_SERIES,
+        "series_examples": _ne_example_SERIES
     },
     "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
     "le": {
