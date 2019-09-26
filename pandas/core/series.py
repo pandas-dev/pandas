@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -176,8 +176,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = generic.NDFrame._deprecations | frozenset(
-        ["asobject", "reshape", "valid", "tolist"]
+    _deprecations = (
+        generic.NDFrame._deprecations
+        | DirNamesMixin._deprecations
+        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -1129,7 +1131,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, tuple):
             try:
                 return self._get_values_tuple(key)
-            except Exception:
+            except ValueError:
+                # if we don't have a MultiIndex, we may still be able to handle
+                #  a 1-tuple.  see test_1tuple_without_multiindex
                 if len(key) == 1:
                     key = key[0]
                     if isinstance(key, slice):
@@ -1184,7 +1188,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._constructor(
                 self._data.get_slice(indexer), fastpath=True
             ).__finalize__(self)
-        except Exception:
+        except ValueError:
+            # mpl compat if we look up e.g. ser[:, np.newaxis];
+            #  see tests.series.timeseries.test_mpl_compat_hack
             return self._values[indexer]
 
     def _get_value(self, label, takeable: bool = False):

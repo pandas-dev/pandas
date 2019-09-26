@@ -871,6 +871,13 @@ class TestSeriesPlots(TestPlotBase):
         exp = ["P{i:02d}".format(i=i) for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
 
+    def test_xtick_barPlot(self):
+        # GH28172
+        s = pd.Series(range(10), index=["P{i:02d}".format(i=i) for i in range(10)])
+        ax = s.plot.bar(xticks=range(0, 11, 2))
+        exp = np.array(list(range(0, 11, 2)))
+        tm.assert_numpy_array_equal(exp, ax.get_xticks())
+
     def test_custom_business_day_freq(self):
         # GH7222
         from pandas.tseries.offsets import CustomBusinessDay
