@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -13,7 +13,12 @@ from pandas._libs import Timedelta, Timestamp, lib
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCExtensionArray,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
