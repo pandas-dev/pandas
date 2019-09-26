@@ -66,7 +66,8 @@ class ToJSON(BaseIO):
     fname = "__test__.json"
     params = [
         ["split", "columns", "index", "values", "records"],
-        ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+        ["df", "df_date_idx", "df_td", "df_td_int_ts", "df_int_floats",
+         "df_int_float_str"],
     ]
     param_names = ["orient", "frame"]
 
@@ -81,6 +82,13 @@ class ToJSON(BaseIO):
         strings = tm.makeStringIndex(N)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
+        self.df_td = DataFrame(
+            {
+                "td_1": timedeltas,
+                "td_2": timedeltas
+            },
+            index=index,
+        )
         self.df_td_int_ts = DataFrame(
             {
                 "td_1": timedeltas,
@@ -117,6 +125,10 @@ class ToJSON(BaseIO):
 
     def time_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
+
+    def time_to_json_iso(self, orient, frame):
+        getattr(self, frame).to_json(self.fname, orient=orient,
+                                     date_format="iso")
 
     def peakmem_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)

@@ -63,8 +63,9 @@ I/O
 
 - Fix regression in notebook display where <th> tags not used for :attr:`DataFrame.index` (:issue:`28204`).
 - Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
+- Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` where :class:`Timedelta` was not correctly formatted when `date_format="iso"` (:issue:`28256`).
 -
--
+
 
 Plotting
 ^^^^^^^^

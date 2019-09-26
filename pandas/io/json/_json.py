@@ -10,7 +10,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import ensure_str, is_period_dtype
+from pandas.core.dtypes.common import ensure_str, is_period_dtype, is_timedelta64_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas._typing import Scalar
@@ -171,6 +171,34 @@ class Writer:
 class SeriesWriter(Writer):
     _default_orient = "index"
 
+    def __init__(
+        self,
+        obj,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        indent: int = 0,
+    ):
+        super().__init__(
+            obj,
+            orient,
+            date_format,
+            double_precision,
+            ensure_ascii,
+            date_unit,
+            index,
+            default_handler=default_handler,
+            indent=indent,
+        )
+
+        if is_timedelta64_dtype(obj.dtype) and self.date_format == "iso":
+            obj = obj.copy()
+            self.obj = obj.apply(lambda x: x.isoformat())
+
     def _format_axes(self):
         if not self.obj.index.is_unique and self.orient == "index":
             raise ValueError(
@@ -205,6 +233,37 @@ class SeriesWriter(Writer):
 
 class FrameWriter(Writer):
     _default_orient = "columns"
+
+    def __init__(
+        self,
+        obj,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        indent: int = 0,
+    ):
+        super().__init__(
+            obj,
+            orient,
+            date_format,
+            double_precision,
+            ensure_ascii,
+            date_unit,
+            index,
+            default_handler=default_handler,
+            indent=indent,
+        )
+
+        obj = obj.copy()
+        timedeltas = obj.select_dtypes(include=["timedelta"]).columns
+
+        if len(timedeltas) and self.date_format == "iso":
+            obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
+            self.obj = obj
 
     def _format_axes(self):
         """

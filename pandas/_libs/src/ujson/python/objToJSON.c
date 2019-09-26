@@ -1917,47 +1917,54 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = enc->datetimeIso ? JT_UTF8 : JT_LONG;
         return;
     } else if (PyDelta_Check(obj)) {
-        if (PyObject_HasAttrString(obj, "value")) {
+        if (enc->datetimeIso) {
             PRINTMARK();
-            value = get_long_attr(obj, "value");
+            pc->PyTypeToJSON = PyTimeToJSON;
+            tc->type = JT_UTF8;
+
         } else {
+            if (PyObject_HasAttrString(obj, "value")) {
+                PRINTMARK();
+                value = get_long_attr(obj, "value");
+            } else {
+                PRINTMARK();
+                value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
+            }
+
+            base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+            switch (base) {
+            case NPY_FR_ns:
+                break;
+            case NPY_FR_us:
+                value /= 1000LL;
+                break;
+            case NPY_FR_ms:
+                value /= 1000000LL;
+                break;
+            case NPY_FR_s:
+                value /= 1000000000LL;
+                break;
+            }
+
+            exc = PyErr_Occurred();
+
+            if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+                PRINTMARK();
+                goto INVALID;
+            }
+
+            if (value == get_nat()) {
+                PRINTMARK();
+                tc->type = JT_NULL;
+                return;
+            }
+
+            GET_TC(tc)->longValue = value;
+
             PRINTMARK();
-            value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
+            pc->PyTypeToJSON = PyLongToINT64;
+            tc->type = JT_LONG;
         }
-
-        base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        switch (base) {
-        case NPY_FR_ns:
-            break;
-        case NPY_FR_us:
-            value /= 1000LL;
-            break;
-        case NPY_FR_ms:
-            value /= 1000000LL;
-            break;
-        case NPY_FR_s:
-            value /= 1000000000LL;
-            break;
-        }
-
-        exc = PyErr_Occurred();
-
-        if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
-            PRINTMARK();
-            goto INVALID;
-        }
-
-        if (value == get_nat()) {
-            PRINTMARK();
-            tc->type = JT_NULL;
-            return;
-        }
-
-        GET_TC(tc)->longValue = value;
-
-        PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
-        tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
