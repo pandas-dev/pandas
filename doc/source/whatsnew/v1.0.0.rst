@@ -96,9 +96,10 @@ Deprecations
 Removed SparseSeries and SparseDataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
-We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
-See :ref:`sparse.migration` for help with migrating existing code.
+``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
+have been removed (:issue:`28425`). We recommend using a ``Series`` or
+``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
+with migrating existing code.
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
