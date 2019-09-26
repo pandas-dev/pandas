@@ -2081,17 +2081,15 @@ class FY5253(DateOffset):
         - 5 is Saturday
         - 6 is Sunday
 
+    startingMonth : int {1, 2, ... 12}, default 1
+        The month in which the fiscal year ends.
+
     variation : str, default "nearest"
         Method of employing 4-4-5 calendar. There are two options:
 
-        - "nearest" defines fiscal year end as the **weekday** which falls
-        closest to the last day of the fiscal year end month.
+        - "nearest" defines fiscal year end a **weekday** which falls closest to last day of month in fiscal year.
 
-        - "last" defines fiscal year end as the final **weekday** in the
-        fiscal year end month.
-
-    startingMonth : int {1, 2, ... 12}, default 1
-        The month in which the fiscal year ends.
+        - "last" defines fiscal year end as the final **weekday** in the fiscal year end month.
     """
 
     _prefix = "RE"
@@ -2302,17 +2300,16 @@ class FY5253Quarter(DateOffset):
 
     startingMonth : int {1, 2, ..., 12}, default 1
         The month in which fiscal years end.
-    variation : str, default "nearest"
-        Method of employing 4-4-5 calendar. There are two options:
-
-        - "nearest" defines fiscal year end as the **weekday** which falls
-        closest to the last day of the fiscal year end month.
-
-        - "last" defines fiscal year end as the final **weekday** in the
-        fiscal year end month.
 
     qtr_with_extra_week : int {1, 2, 3, 4}, default 1
         The quarter number that has the leap or 14 week when needed.
+
+    variation : str, default "nearest"
+        Method of employing 4-4-5 calendar. There are two options:
+
+        - "nearest" defines fiscal year end as **weekday** which falls closest to last day of month in fiscal year.
+
+        - "last" defines fiscal year end as the final **weekday** in the fiscal year end month.
     """
 
     _prefix = "REQ"
