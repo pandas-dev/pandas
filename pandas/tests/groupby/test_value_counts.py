@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, date_range, Grouper
+from pandas import DataFrame, Grouper, MultiIndex, Series, date_range
 from pandas.util import testing as tm
 
 
