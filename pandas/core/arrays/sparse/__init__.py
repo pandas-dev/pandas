@@ -1,11 +1,4 @@
 # flake8: noqa: F401
 
-from .sparse import (
-    BlockIndex,
-    IntIndex,
-    SparseAccessor,
-    SparseArray,
-    SparseDtype,
-    SparseFrameAccessor,
-    _make_index,
-)
+from .accessor import SparseAccessor, SparseFrameAccessor
+from .sparse import BlockIndex, IntIndex, SparseArray, SparseDtype, _make_index
