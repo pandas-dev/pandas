@@ -1435,7 +1435,7 @@ def date_range(
         Left bound for generating dates.
     end : str or datetime-like, optional
         Right bound for generating dates.
-    periods : integer, optional
+    periods : int, optional
         Number of periods to generate.
     freq : str or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
