@@ -1,6 +1,6 @@
 # Contribute to pandas
 
-_pandas_ is and always will be **free**. To make de development sustainable, we need _pandas_ users, corporate
+_pandas_ is and always will be **free**. To make the development sustainable, we need _pandas_ users, corporate
 or individual, to support the development by providing their time and money.
 
 You can find more information about current developers in the [team page](about/team.html),
