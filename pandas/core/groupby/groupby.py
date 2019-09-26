@@ -2099,13 +2099,13 @@ class GroupBy(_GroupBy):
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        ascending : boolean, default True
+        ascending : bool, default True
             False for ranks by high (1) to low (N)
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
-        pct : boolean, default False
+        pct : bool, default False
             Compute percentage rank of data within each group
         axis : int, default 0
             The axis of the object over which to compute the rank.
