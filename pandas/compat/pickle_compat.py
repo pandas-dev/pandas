@@ -4,7 +4,6 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-import sys
 from typing import TYPE_CHECKING
 import warnings
 
@@ -25,14 +24,14 @@ def load_reduce(self):
     try:
         stack[-1] = func(*args)
         return
-    except Exception as e:
+    except TypeError as err:
 
         # If we have a deprecated function,
         # try to replace and try again.
 
         msg = "_reconstruct: First argument must be a sub-type of ndarray"
 
-        if msg in str(e):
+        if msg in str(err):
             try:
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
@@ -40,23 +39,7 @@ def load_reduce(self):
             except TypeError:
                 pass
 
-        # try to re-encode the arguments
-        if getattr(self, "encoding", None) is not None:
-            args = tuple(
-                arg.encode(self.encoding) if isinstance(arg, str) else arg
-                for arg in args
-            )
-            try:
-                stack[-1] = func(*args)
-                return
-            except TypeError:
-                pass
-
-        # unknown exception, re-raise
-        if getattr(self, "is_verbose", None):
-            print(sys.exc_info())
-            print(func, args)
-        raise
+        raise err
 
 
 _sparse_msg = """\

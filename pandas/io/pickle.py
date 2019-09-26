@@ -146,18 +146,17 @@ def read_pickle(path, compression="infer"):
 
     # 1) try standard libary Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
-    # 3) try pickle_compat with latin1 encoding
 
     try:
         with warnings.catch_warnings(record=True):
             # We want to silence any warnings about, e.g. moved modules.
             warnings.simplefilter("ignore", Warning)
             return pickle.load(f)
-    except Exception:
-        try:
-            return pc.load(f, encoding=None)
-        except Exception:
-            return pc.load(f, encoding="latin1")
+    except (ModuleNotFoundError, AttributeError):
+        # e.g.
+        #  "No module named 'pandas.core.sparse.series'"
+        #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+        return pc.load(f, encoding=None)
     finally:
         f.close()
         for _f in fh:
