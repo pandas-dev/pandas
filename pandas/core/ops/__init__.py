@@ -566,11 +566,26 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
-def _construct_result(left, result, index, name):
+def _construct_result(
+    left: ABCSeries,
+    result: Union[np.ndarray, ABCExtensionArray],
+    index: ABCIndexClass,
+    name,
+):
     """
-    If the raw op result has a non-None name (e.g. it is an Index object) and
-    the name argument is None, then passing name to the constructor will
-    not be enough; we still need to override the name attribute.
+    Construct an appropriately-labelled Series from the result of an op.
+
+    Parameters
+    ----------
+    left : Series
+    result : ndarray or ExtensionArray
+    index : Index
+    name : object
+
+    Returns
+    -------
+    Series
+        In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
     """
     if isinstance(result, tuple):
         # produced by divmod or rdivmod
