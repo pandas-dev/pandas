@@ -223,10 +223,12 @@ class FrameApply:
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-
         try:
             result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except Exception:
+        except ValueError as err:
+            if "Function does not reduce" not in str(err):
+                # catch only ValueError raised intentionally in libreduction
+                raise
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -273,24 +275,38 @@ class FrameApply:
         if (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_type).any()
+            # Disallow complex_internals since libreduction shortcut
+            #  cannot handle MultiIndex
+            and not self.agg_axis._has_complex_internals
         ):
-
-            # Create a dummy Series from an empty array
-            from pandas import Series
 
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
             empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
+
+            # Preserve subclass for e.g. test_subclassed_apply
+            dummy = self.obj._constructor_sliced(
+                empty_arr, index=index, dtype=values.dtype
+            )
 
             try:
                 result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-                return self.obj._constructor_sliced(result, index=labels)
-            except Exception:
+            except ValueError as err:
+                if "Function does not reduce" not in str(err):
+                    # catch only ValueError raised intentionally in libreduction
+                    raise
+            except TypeError:
+                # e.g. test_apply_ignore_failures we just ignore
+                if not self.ignore_failures:
+                    raise
+            except ZeroDivisionError:
+                # reached via numexpr; fall back to python implementation
                 pass
+            else:
+                return self.obj._constructor_sliced(result, index=labels)
 
         # compute the result using the series generator
         self.apply_series_generator()
