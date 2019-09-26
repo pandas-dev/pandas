@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import datetime, timedelta
 import inspect
 
@@ -662,7 +663,7 @@ class TestDataFrameAlterAxes:
         )
 
         # index
-        data = {"A": {"foo": 0, "bar": 1}}
+        data = {"A": OrderedDict({"foo": 0, "bar": 1})}
 
         # gets sorted alphabetical
         df = DataFrame(data)

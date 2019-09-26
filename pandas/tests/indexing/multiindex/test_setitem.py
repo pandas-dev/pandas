@@ -146,8 +146,8 @@ class TestMultiIndexSetItem:
             {
                 "price": {
                     ("DE", "Coal", "Stock"): 2,
-                    ("DE", "Gas", "Stock"): 4,
                     ("DE", "Elec", "Demand"): 1,
+                    ("DE", "Gas", "Stock"): 4,
                     ("FR", "Gas", "Stock"): 5,
                     ("FR", "Solar", "SupIm"): 0,
                     ("FR", "Wind", "SupIm"): 0,
@@ -159,7 +159,7 @@ class TestMultiIndexSetItem:
         )
 
         expected = df_orig.copy()
-        expected.iloc[[0, 1, 3]] *= 2
+        expected.iloc[[0, 2, 3]] *= 2
 
         idx = pd.IndexSlice
         df = df_orig.copy()
