@@ -741,7 +741,10 @@ class MPLPlot:
         has_color = "color" in kwds or self.colormap is not None
         nocolor_style = style is None or re.match("[a-z]+", style) is None
         if (has_color or self.subplots) and nocolor_style:
-            kwds["color"] = colors[col_num % len(colors)]
+            if isinstance(colors, dict):
+                kwds["color"] = colors[label]
+            else:
+                kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
@@ -1354,12 +1357,13 @@ class BarPlot(MPLPlot):
 
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
-
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
+            elif isinstance(colors, dict):
+                kwds["color"] = colors[label]
             else:
                 kwds["color"] = colors[i % ncolors]
 
