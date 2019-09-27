@@ -2588,8 +2588,9 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             indexer = Index(rvals).get_indexer(lvals)
             indexer = indexer.take((indexer != -1).nonzero()[0])
-        except Exception:
-            # duplicates
+        except (InvalidIndexError, IncompatibleFrequency):
+            # InvalidIndexError raised by get_indexer if non-unique
+            # IncompatibleFrequency raised by PeriodIndex.get_indexer
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
