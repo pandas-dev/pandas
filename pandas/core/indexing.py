@@ -1763,12 +1763,7 @@ class _LocIndexer(_LocationIndexer):
                         isinstance(component, str)
                         and labels.levels[i]._supports_partial_string_indexing
                     ):
-                        new_key.append(
-                            # https://github.com/python/mypy/issues/2410
-                            # # No overload variant of "slice" matches argument types
-                            # "str", "str", "None"
-                            slice(component, component, None)  # type: ignore
-                        )
+                        new_key.append(slice(component, component, None))
                     else:
                         new_key.append(component)
                 key = tuple(new_key)
