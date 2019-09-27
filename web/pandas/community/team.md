@@ -34,37 +34,22 @@ If you want to support pandas development, you can find information in the [dona
             {% endfor %}
         </div>
     {% endfor %}
-    
-    
 </div>
-   **Diversity and Inclusion**
+**Diversity and Inclusion **
     
     > _pandas_ expressly welcomes and encourages anyone who faces under-representation,systemic bias or discrimination 
     > in the technology industry to contribute.
-    > We are concerned by diversity and if you identify as any of the groups mentioned above
-    > do not hesitate to make your contribution,if you need help please get in touch with us on [Divesity](diversity@pandas.io) . 
-    > We do not tolerate any form of discrimination,please revist our [CODE OF CONDUCT](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) .
-    
-    
+    > We have identified the visible diversity gap and obstacles in the open source community and we are strongly against it.
+    > If you identify as any of the groups mentioned above do not hesitate to make your contribution,
+    > if you see a violation of our [code of conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) on this issue,
+    > please report it to the [pandas team](pandas-coc@googlegroups.com).
 
-## BDFL
-
-Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
 ## Governance
 
+Wes McKinney is the Benevolent Dictator for Life (BDFL).
+
 The project governance is available in the [project governance documents](https://github.com/pandas-dev/pandas-governance).
-
-## NumFOCUS
-
-![](https://numfocus.org/wp-content/uploads/2018/01/optNumFocus_LRG.png)
-
-_pandas_ is a Sponsored Project of [NumFOCUS](https://numfocus.org/), a 501(c)(3) nonprofit charity in the United States.
-NumFOCUS provides _pandas_ with fiscal, legal, and administrative support to help ensure the
-health and sustainability of the project. Visit numfocus.org for more information.
-
-Donations to _pandas_ are managed by NumFOCUS. For donors in the United States, your gift is tax-deductible
-to the extent provided by law. As with any donation, you should consult with your tax adviser about your particular tax situation.
 
 ## Code of conduct committee
 
@@ -82,31 +67,10 @@ to the extent provided by law. As with any donation, you should consult with you
     {% endfor %}
 </ul>
 
-## Institutional partners
-
-<ul>
-    {% for company in partners.active if company.employs %}
-        <li><a href="{{ company.url }}">{{ company.name }}</a> ({{ company.employs }})</li>
-    {% endfor %}
-</ul>
-
-In-kind sponsors
-
-- [Indeed](https://opensource.indeedeng.io/): Logo and website design
-- Can we find a donor for the hosting (website, benchmarks,...?)
-
 ## Emeritus maintainers
 
 <ul>
     {% for person in maintainers.emeritus %}
         <li>{{ person }}</li>
-    {% endfor %}
-</ul>
-
-## Past institutional partners
-
-<ul>
-    {% for company in partners.past %}
-        <li><a href="{{ company.url }}">{{ company.name }}</a></li>
     {% endfor %}
 </ul>
