@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import Dict, FrozenSet, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -849,7 +849,7 @@ b  2""",
         )
 
     def _cython_transform(self, how, numeric_only=True, **kwargs):
-        output = collections.OrderedDict()
+        output: Dict = collections.OrderedDict()
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -2259,7 +2259,7 @@ class GroupBy(_GroupBy):
                 )
 
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()
+        output: Dict = collections.OrderedDict()
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
@@ -2502,7 +2502,8 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj, by, **kwds):
+def groupby(obj: Union[Series, DataFrame], by, **kwds) -> GroupBy:
+    klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
