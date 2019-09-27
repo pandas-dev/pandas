@@ -186,7 +186,7 @@ def _grouped_plot(
         warnings.warn(
             "figsize='default' is deprecated. Specify figure " "size by tuple instead",
             FutureWarning,
-            stacklevel=5,
+            stacklevel=6,
         )
         figsize = None
 

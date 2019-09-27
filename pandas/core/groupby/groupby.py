@@ -611,8 +611,9 @@ b  2""",
         # need to setup the selection
         # as are not passed directly but in the grouper
         f = getattr(self._selected_obj, name)
+
         if not isinstance(f, types.MethodType):
-            return self.apply(lambda self: getattr(self, name))
+            return self.apply(lambda x: getattr(x, name))
 
         f = getattr(type(self._selected_obj), name)
 

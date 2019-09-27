@@ -30,7 +30,8 @@ pytest.importorskip("matplotlib.pyplot")
 
 def test_initial_warning():
     code = (
-        "import pandas as pd; import matplotlib.pyplot as plt; "
+        "import pandas as pd; import pandas.plotting; "
+        "import matplotlib.pyplot as plt; "
         "s = pd.Series(1, pd.date_range('2000', periods=12)); "
         "fig, ax = plt.subplots(); "
         "ax.plot(s.index, s.values)"
@@ -47,6 +48,7 @@ def test_registry_mpl_resets():
         "import matplotlib.dates as mdates; "
         "n_conv = len(units.registry); "
         "import pandas as pd; "
+        "import pandas.plotting; "
         "pd.plotting.register_matplotlib_converters(); "
         "pd.plotting.deregister_matplotlib_converters(); "
         "assert len(units.registry) == n_conv"

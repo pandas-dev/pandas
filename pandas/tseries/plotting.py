@@ -1,3 +1,2 @@
-# flake8: noqa
-
+__all__ = ["tsplot"]
 from pandas.plotting._matplotlib.timeseries import tsplot

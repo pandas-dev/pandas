@@ -108,7 +108,6 @@ from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -8362,10 +8361,24 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
-    hist = pandas.plotting.hist_frame
-    boxplot = pandas.plotting.boxplot_frame
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
+
+    @property
+    def plot(self):
+        # property instead of CachedAccessor to allow for lazy matplotlib import
+        from pandas.plotting._core import PlotAccessor
+
+        return PlotAccessor(self)
+
+    def hist(self, *args, **kwargs):
+        from pandas.plotting._core import hist_frame
+
+        return hist_frame(self, *args, **kwargs)
+
+    def boxplot(self, *args, **kwargs):
+        from pandas.plotting._core import boxplot_frame
+
+        return boxplot_frame(self, *args, **kwargs)
 
 
 DataFrame._setup_axes(

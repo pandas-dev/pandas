@@ -59,8 +59,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 
-from pandas.plotting import boxplot_frame_groupby
-
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
@@ -1691,7 +1689,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results.index = ibase.default_index(len(results))
         return results
 
-    boxplot = boxplot_frame_groupby
+    def boxplot(self, *args, **kwargs):
+        # wrap to allow for lazy import of matplotlib
+        from pandas.plotting import boxplot_frame_groupby
+
+        return boxplot_frame_groupby(self, *args, **kwargs)
 
 
 def _is_multi_agg_with_relabel(**kwargs):

@@ -79,7 +79,6 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-import pandas.plotting
 
 __all__ = ["Series"]
 
@@ -4758,12 +4757,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     str = CachedAccessor("str", StringMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    hist = pandas.plotting.hist_series
+
+    @property
+    def plot(self):
+        # property instead of CachedAccessor to allow for lazy matplotlib import
+        from pandas.plotting._core import PlotAccessor
+
+        return PlotAccessor(self)
+
+    def hist(self, *args, **kwargs):
+        # pass-through to allow for lazy matplotlib import
+        from pandas.plotting._core import hist_series
+
+        return hist_series(self, *args, **kwargs)
 
 
 Series._setup_axes(
