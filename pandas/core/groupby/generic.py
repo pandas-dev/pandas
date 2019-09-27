@@ -84,14 +84,13 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     property
     """
 
-    @property
     def prop(self):
         return self._make_wrapper(name)
 
     parent_method = getattr(klass, name)
     prop.__doc__ = parent_method.__doc__ or ""
-    prop.fget.__name__ = name
-    return prop
+    prop.__name__ = name
+    return property(prop)
 
 
 def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
