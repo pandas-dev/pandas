@@ -36,6 +36,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.construction import extract_array
 from pandas.core.ops import missing
+from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.roperator import rpow
 
@@ -189,11 +190,7 @@ def arithmetic_op(
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
-    from pandas.core.ops import (
-        maybe_upcast_for_op,
-        should_extension_dispatch,
-        dispatch_to_extension_op,
-    )
+    from pandas.core.ops import maybe_upcast_for_op
 
     keep_null_freq = isinstance(
         right,
@@ -246,7 +243,6 @@ def comparison_op(
     -------
     ndarrray or ExtensionArray
     """
-    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
@@ -346,7 +342,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     fill_int = lambda x: x
 

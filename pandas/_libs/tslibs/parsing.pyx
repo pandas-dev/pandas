@@ -309,9 +309,9 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
                                       ignoretz=False, tzinfos=None)
-    except Exception as e:
+    except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
-        raise DateParseError(e)
+        raise DateParseError(err)
     if parsed is None:
         raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso

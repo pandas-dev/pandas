@@ -2388,16 +2388,16 @@ class StataWriter(StataParser):
             self._write_map()
         except Exception as exc:
             self._close()
-            try:
-                if self._own_file:
+            if self._own_file:
+                try:
                     os.unlink(self._fname)
-            except Exception:
-                warnings.warn(
-                    "This save was not successful but {0} could not "
-                    "be deleted.  This file is not "
-                    "valid.".format(self._fname),
-                    ResourceWarning,
-                )
+                except OSError:
+                    warnings.warn(
+                        "This save was not successful but {0} could not "
+                        "be deleted.  This file is not "
+                        "valid.".format(self._fname),
+                        ResourceWarning,
+                    )
             raise exc
         else:
             self._close()
