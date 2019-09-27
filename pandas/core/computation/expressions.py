@@ -6,6 +6,7 @@ Offer fast expression evaluation through numexpr
 
 """
 
+from typing import Callable, List, Set
 import warnings
 
 import numpy as np
@@ -22,10 +23,10 @@ if _NUMEXPR_INSTALLED:
     import numexpr as ne
 
 _TEST_MODE = None
-_TEST_RESULT = None
+_TEST_RESULT: List[bool]
 _USE_NUMEXPR = _NUMEXPR_INSTALLED
-_evaluate = None
-_where = None
+_evaluate: Callable
+_where: Callable
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
@@ -78,7 +79,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
             # check for dtype compatibility
-            dtypes = set()
+            dtypes: Set[str] = set()
             for o in [a, b]:
                 # Series implements dtypes, check for dimension count as well
                 if hasattr(o, "dtypes") and o.ndim > 1:
@@ -240,7 +241,7 @@ def where(cond, a, b, use_numexpr=True):
     return _where_standard(cond, a, b)
 
 
-def set_test_mode(v=True):
+def set_test_mode(v: bool = True) -> None:
     """
     Keeps track of whether numexpr was used.  Stores an additional ``True``
     for every successful use of evaluate with numexpr since the last
