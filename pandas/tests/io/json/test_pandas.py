@@ -44,7 +44,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
         expected.columns = range(len(expected.columns))
     assert_frame_equal(result, expected)
 
-
 class TestPandasContainer:
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
@@ -184,11 +183,6 @@ class TestPandasContainer:
         if not numpy and (orient == "index" or (PY35 and orient == "columns")):
             expected = expected.sort_index()
 
-        if orient == "records" or orient == "values":
-            expected = expected.reset_index(drop=True)
-        if orient == "values":
-            expected.columns = range(len(expected.columns))
-
         if (
             numpy
             and (is_platform_32bit() or is_platform_windows())
@@ -198,7 +192,7 @@ class TestPandasContainer:
             # TODO: see what is causing roundtrip dtype loss
             expected = expected.astype(np.int32)
 
-        tm.assert_frame_equal(result, expected)
+        assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
