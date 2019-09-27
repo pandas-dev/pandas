@@ -44,6 +44,7 @@ def assert_json_roundtrip_equal(result, expected, orient):
         expected.columns = range(len(expected.columns))
     assert_frame_equal(result, expected)
 
+
 class TestPandasContainer:
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
