@@ -7562,7 +7562,8 @@ class DataFrame(NDFrame):
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
+            row-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
