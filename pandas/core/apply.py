@@ -342,7 +342,7 @@ class FrameApply:
         results = self.results
 
         # see if we can infer the results
-        if len(results) > 0 and is_sequence(results[0]):
+        if len(results) > 0 and 0 in results and is_sequence(results[0]):
 
             return self.wrap_results_for_axis()
 
