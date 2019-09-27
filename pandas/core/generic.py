@@ -5772,7 +5772,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise", **kwargs):
+    def astype(self, dtype, copy=True, errors="raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5794,8 +5794,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
-
-        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
@@ -5882,7 +5880,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors, **kwargs)
+                return self.astype(new_type, copy, errors)
 
             for col_name in dtype.keys():
                 if col_name not in self:
@@ -5894,9 +5892,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
-                        col.astype(
-                            dtype=dtype[col_name], copy=copy, errors=errors, **kwargs
-                        )
+                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
                     )
                 else:
                     results.append(results.append(col.copy() if copy else col))
@@ -5911,9 +5907,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(
-                dtype=dtype, copy=copy, errors=errors, **kwargs
-            )
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat

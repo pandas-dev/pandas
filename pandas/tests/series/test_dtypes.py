@@ -228,11 +228,10 @@ class TestSeriesDtypes:
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
-    def test_astype_categories_deprecation_raises(self):
-
-        # deprecated 17636
+    def test_astype_categories_raises(self):
+        # deprecated 17636, removed in GH-27141
         s = Series(["a", "b", "a"])
-        with pytest.raises(ValueError, match="Got an unexpected"):
+        with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
 
     @pytest.mark.parametrize(
