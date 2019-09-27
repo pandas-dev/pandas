@@ -2306,8 +2306,7 @@ class FY5253Quarter(DateOffset):
     variation : str, default "nearest"
         Method of employing 4-4-5 calendar. There are two options:
 
-        - "nearest" means year end is **weekday** closest to last day of month in fiscal
-        year.
+        - "nearest" means year end is **weekday** closest to last day of month in year.
         - "last" means year end is final **weekday** of the final month in fiscal year.
     """
 
