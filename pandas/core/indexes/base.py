@@ -904,8 +904,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : string, optional
-        deep : boolean, default False
+        name : str, optional
+        deep : bool, default False
         dtype : numpy dtype or pandas type
 
         Returns
@@ -1172,7 +1172,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         index : Index, optional
             index of resulting Series. If None, defaults to original index
-        name : string, optional
+        name : str, optional
             name of resulting Series. If None, defaults to name of original
             index
 
@@ -1198,7 +1198,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Set the index of the returned DataFrame as the original Index.
 
         name : object, default None
@@ -1401,7 +1401,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         name : label or list of labels
             Name(s) to set.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
 
@@ -1494,7 +1494,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        ascending : boolean, default True
+        ascending : bool, default True
             False to sort in descending order
 
         level, sort_remaining are compat parameters
@@ -3416,8 +3416,8 @@ class Index(IndexOpsMixin, PandasObject):
         other : Index
         how : {'left', 'right', 'inner', 'outer'}
         level : int or level name, default None
-        return_indexers : boolean, default False
-        sort : boolean, default False
+        return_indexers : bool, default False
+        sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword)
 
@@ -3943,7 +3943,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        cond : boolean array-like with the same length as self
+        cond : bool array-like with the same length as self
         other : scalar, or array-like
 
         Returns
@@ -4925,7 +4925,7 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end
         step : int, default None
-        kind : string, default None
+        kind : str, default None
 
         Returns
         -------
