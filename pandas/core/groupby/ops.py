@@ -7,6 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
+from typing import Any, Dict, List, Type, Union
 
 import numpy as np
 
@@ -285,8 +286,8 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
+            to_groupby_ = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = Index(to_groupby_)
             return self.axis.groupby(to_groupby)
 
     @cache_readonly
@@ -436,8 +437,10 @@ class BaseGrouper:
             f = ftype.get("f")
             if f is not None:
 
+                # https://github.com/python/mypy/issues/2608
+                # error: "None" not callable
                 def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)
+                    return f(afunc, *args, **kwargs)  # type: ignore
 
                 # need to curry our sub-function
                 func = wrapper
@@ -782,7 +785,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def indices(self):
-        indices = collections.defaultdict(list)
+        indices: Dict[Any, List] = collections.defaultdict(list)
 
         i = 0
         for label, bin in zip(self.binlabels, self.bins):
@@ -929,7 +932,8 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data, *args, **kwargs):
+def get_splitter(data: Union[Series, DataFrame], *args, **kwargs) -> DataSplitter:
+    klass: Type[DataSplitter]
     if isinstance(data, Series):
         klass = SeriesSplitter
     elif isinstance(data, DataFrame):
