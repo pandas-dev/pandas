@@ -374,7 +374,12 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
 
     right = lib.item_from_zerodim(right)
 
-    if lib.is_scalar(right) or np.ndim(right) == 0:
+    if np.ndim(right) == 0 or (isinstance(right, ABCSeries) and axis != "columns"):
+
+        if isinstance(right, ABCSeries) and isinstance(right._values, np.ndarray):
+            # KLUDGE; need to be careful not to extract DTA/TDA
+            # Need to do this to get broadcasting rightt
+            right = right._values.reshape(-1, 1)
 
         new_blocks = []
         mgr = left._data
@@ -419,9 +424,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
         bm = type(mgr)(new_blocks, mgr.axes)
         return type(left)(bm)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
-
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
@@ -446,12 +448,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
 
             def column_op(a, b):
                 return {i: func(a.iloc[:, i], b.iloc[i]) for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCSeries):
-        assert right.index.equals(left.index)  # Handle other cases later
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
 
     else:
         # Remaining cases have less-obvious dispatch rules

@@ -270,6 +270,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        if data.ndim != 1:
+            freq_infer = False  # TODO: could put this in inferred_freq?
 
         result = cls._simple_new(data, freq=freq)
 

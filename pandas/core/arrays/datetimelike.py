@@ -1032,6 +1032,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
             other = TimedeltaArray._from_sequence(other)
 
+        if self.ndim == 2 and other.ndim == 1:
+            # we already know the lengths match
+            od = other._data[:, None]
+            other = type(other)(od)
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(
