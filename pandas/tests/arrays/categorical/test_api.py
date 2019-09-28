@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -340,8 +342,12 @@ class TestCategoricalAPI:
         assert res is None
 
         # removal is not in categories
-        with pytest.raises(ValueError):
+        msg = re.escape("removals must all be in old categories: ['c']")
+        with pytest.raises(ValueError, match=msg):
             cat.remove_categories(["c"])
+
+        with pytest.raises(ValueError, match=msg):
+            cat.remove_categories(["c", np.nan])
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])

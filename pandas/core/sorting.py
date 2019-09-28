@@ -235,7 +235,9 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
     return indexer_from_factorized(labels, shape)
 
 
-def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
+def nargsort(
+    items, kind: str = "quicksort", ascending: bool = True, na_position: str = "last"
+) -> np.ndarray:
     """
     This is intended to be a drop-in replacement for np.argsort which
     handles NaNs. It adds ascending and na_position parameters.

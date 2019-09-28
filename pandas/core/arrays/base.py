@@ -428,7 +428,9 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(
+        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+    ) -> np.ndarray:
         """
         Return the indices that would sort this array.
 
@@ -444,7 +446,7 @@ class ExtensionArray:
 
         Returns
         -------
-        index_array : ndarray
+        ndarray
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 

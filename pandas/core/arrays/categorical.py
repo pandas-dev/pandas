@@ -3,7 +3,7 @@
 import operator
 from shutil import get_terminal_size
 import textwrap
-from typing import Type, Union, cast
+from typing import Optional, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -368,6 +368,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
+                sanitize_dtype: Optional[str]
                 if len(values) == 0:
                     sanitize_dtype = "object"
                 else:
@@ -670,6 +671,7 @@ class Categorical(ExtensionArray, PandasObject):
         dtype = CategoricalDtype._from_values_or_dtype(
             categories=categories, ordered=ordered, dtype=dtype
         )
+        msg: Optional[str]
         if dtype.categories is None:
             msg = (
                 "The categories must be provided in 'categories' or "
@@ -1115,7 +1117,7 @@ class Categorical(ExtensionArray, PandasObject):
             removals = [removals]
 
         removal_set = set(list(removals))
-        not_included = removal_set - set(self.dtype.categories)
+        not_included = list(removal_set - set(self.dtype.categories))
         new_categories = [c for c in self.dtype.categories if c not in removal_set]
 
         # GH 10156
@@ -1561,7 +1563,9 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(
+        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+    ) -> np.ndarray:
         """
         Return the indices that would sort the Categorical.
 
@@ -1612,7 +1616,14 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.argsort()
         array([2, 0, 1])
         """
-        return super().argsort(ascending=ascending, kind=kind, *args, **kwargs)
+        # https://github.com/python/mypy/issues/2582
+        # error: "argsort" of "ExtensionArray" gets multiple values for keyword
+        #  argument "ascending"  [misc]
+        # error: "argsort" of "ExtensionArray" gets multiple values for keyword
+        #  argument "kind"  [misc]
+        return super().argsort(  # type: ignore[misc]
+            ascending=ascending, kind=kind, *args, **kwargs
+        )
 
     def sort_values(self, inplace=False, ascending=True, na_position="last"):
         """
@@ -2193,8 +2204,8 @@ class Categorical(ExtensionArray, PandasObject):
             self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()
-        result = (r[start:end] for start, end in zip(counts, counts[1:]))
-        result = dict(zip(categories, result))
+        result_ = (r[start:end] for start, end in zip(counts, counts[1:]))
+        result = dict(zip(categories, result_))
         return result
 
     # reduction ops #
