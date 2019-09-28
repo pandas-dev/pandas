@@ -349,6 +349,7 @@ def fill_binop(left, right, fill_value):
 # -----------------------------------------------------------------------------
 # Dispatch logic
 
+
 def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
@@ -751,7 +752,9 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            new_data = dispatch_to_series(self, other, op, str_rep=str_rep, eval_kwargs=eval_kwargs)
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, eval_kwargs=eval_kwargs
+            )
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -777,7 +780,9 @@ def _flex_comp_method_FRAME(cls, op, special):
             # Another DataFrame
             if not self._indexed_same(other):
                 self, other = self.align(other, "outer", level=level, copy=False)
-            new_data = dispatch_to_series(self, other, op, str_rep=str_rep, eval_kwargs={})
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, eval_kwargs={}
+            )
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
@@ -809,7 +814,9 @@ def _comp_method_FRAME(cls, func, special):
                 raise ValueError(
                     "Can only compare identically-labeled DataFrame objects"
                 )
-            new_data = dispatch_to_series(self, other, func, str_rep=str_rep, eval_kwargs={})
+            new_data = dispatch_to_series(
+                self, other, func, str_rep=str_rep, eval_kwargs={}
+            )
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
