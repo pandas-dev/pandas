@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Callable, Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -1474,7 +1474,9 @@ _take_2d_multi_dict = {
 }
 
 
-def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
+def _get_take_nd_function(
+    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+) -> Callable:
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -1499,13 +1501,13 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             func = _convert_wrapper(func, out_dtype)
             return func
 
-    def func(arr, indexer, out, fill_value=np.nan):
+    def f(arr, indexer, out, fill_value=np.nan):
         indexer = ensure_int64(indexer)
         _take_nd_object(
             arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
         )
 
-    return func
+    return f
 
 
 def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
@@ -1691,9 +1693,9 @@ def take_nd(
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     if out is None:
-        out_shape = list(arr.shape)
-        out_shape[axis] = len(indexer)
-        out_shape = tuple(out_shape)
+        out_shape_ = list(arr.shape)
+        out_shape_[axis] = len(indexer)
+        out_shape = tuple(out_shape_)
         if arr.flags.f_contiguous and axis == arr.ndim - 1:
             # minor tweak that can make an order-of-magnitude difference
             # for dataframes initialized directly from 2-d ndarrays
@@ -1935,13 +1937,13 @@ def diff(arr, n, axis=0):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
-        res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
-        res_indexer = tuple(res_indexer)
+        res_indexer_ = [slice(None)] * arr.ndim
+        res_indexer_[axis] = slice(n, None) if n >= 0 else slice(None, n)
+        res_indexer = tuple(res_indexer_)
 
-        lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
-        lag_indexer = tuple(lag_indexer)
+        lag_indexer_ = [slice(None)] * arr.ndim
+        lag_indexer_[axis] = slice(None, -n) if n > 0 else slice(-n, None)
+        lag_indexer = tuple(lag_indexer_)
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers
