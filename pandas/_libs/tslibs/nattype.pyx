@@ -545,7 +545,7 @@ class NaTType(_NaT):
         """)
     round = _make_nat_func('round',  # noqa:E128
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
