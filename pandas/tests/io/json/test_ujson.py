@@ -780,8 +780,10 @@ class TestNumpyJSONTests:
         tm.assert_almost_equal(arr, arr_out)
 
     def test_0d_array(self):
-        with pytest.raises(TypeError):
+        msg = "array(1) (0d array) is not JSON serializable at the moment"
+        with pytest.raises(TypeError) as excinfo:
             ujson.encode(np.array(1))
+        assert str(excinfo.value) == msg
 
     @pytest.mark.parametrize(
         "bad_input,exc_type,kwargs",

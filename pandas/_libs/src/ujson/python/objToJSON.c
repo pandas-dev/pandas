@@ -1986,11 +1986,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
-        tmpObj = PyObject_Repr(obj);
         PyErr_Format(PyExc_TypeError,
-                     "%s (0d array) is not JSON serializable at the moment",
-                     PyBytes_AS_STRING(tmpObj));
-        Py_DECREF(tmpObj);
+                     "%R (0d array) is not JSON serializable at the moment",
+                     obj);
         goto INVALID;
     }
 
