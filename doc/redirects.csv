@@ -1577,3 +1577,6 @@ generated/pandas.unique,../reference/api/pandas.unique
 generated/pandas.util.hash_array,../reference/api/pandas.util.hash_array
 generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_pandas_object
 generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
+
+# Cached searches
+reference/api/pandas.DataFrame.from_csv,pandas.read_csv
