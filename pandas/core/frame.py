@@ -3461,7 +3461,7 @@ class DataFrame(NDFrame):
         ----------
         loc : int
             Insertion index. Must verify 0 <= loc <= len(columns)
-        column : string, number, or hashable object
+        column : str, number, or hashable object
             Label of the inserted column.
         value : int, Series, or array-like
         allow_duplicates : bool, optional
