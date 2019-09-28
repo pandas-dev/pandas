@@ -1593,10 +1593,7 @@ class SQLiteDatabase(PandasSQL):
         else:
             cur = self.con.cursor()
         try:
-            if kwargs:
-                cur.execute(*args, **kwargs)
-            else:
-                cur.execute(*args)
+            cur.execute(*args, **kwargs)
             return cur
         except Exception as exc:
             try:
