@@ -1,7 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
-from typing import Optional, TypeVar, Union
+from typing import List, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -325,7 +325,9 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            arg = arg.tz_convert(None).tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]"
+            #  has no attribute "tz_convert"  [union-attr]
+            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore[union-attr]
         return arg
 
     elif is_datetime64_ns_dtype(arg):
@@ -1038,7 +1040,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)
 
-        times = []
+        times: List[Optional[time]] = []
         if format is not None:
             for element in arg:
                 try:
