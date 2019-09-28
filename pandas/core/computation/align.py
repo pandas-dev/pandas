@@ -2,6 +2,7 @@
 """
 
 from functools import partial, wraps
+from typing import Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -14,22 +15,27 @@ import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 
 
-def _align_core_single_unary_op(term):
+def _align_core_single_unary_op(
+    term
+) -> Tuple[Union[partial, Type[pd.core.generic.NDFrame]], Optional[Dict[str, int]]]:
+
+    typ: Union[partial, Type[pd.core.generic.NDFrame]]
+    axes: Optional[Dict] = None
+
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
         typ = type(term.value)
-    ret = (typ,)
+        if hasattr(term.value, "axes"):
+            axes = _zip_axes_from_type(typ, term.value.axes)
 
-    if not hasattr(term.value, "axes"):
-        ret += (None,)
-    else:
-        ret += (_zip_axes_from_type(typ, term.value.axes),)
-    return ret
+    return typ, axes
 
 
-def _zip_axes_from_type(typ, new_axes):
-    axes = {ax_name: new_axes[ax_ind] for ax_ind, ax_name in typ._AXIS_NAMES.items()}
+def _zip_axes_from_type(
+    typ: Type[pd.core.generic.NDFrame], new_axes: Sequence[int]
+) -> Dict[str, int]:
+    axes = {name: new_axes[i] for i, name in typ._AXIS_NAMES.items()}
     return axes
 
 
