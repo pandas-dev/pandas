@@ -2798,9 +2798,9 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         excel : bool, default True
             Produce output in a csv format for easy pasting into excel.
+
             - True, use the provided separator for csv pasting.
-            - False, write a string representation of the object to the
-              clipboard.
+            - False, write a string representation of the object to the clipboard.
 
         sep : str, default ``'\t'``
             Field delimiter.

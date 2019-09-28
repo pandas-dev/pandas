@@ -4808,10 +4808,9 @@ class DataFrame(NDFrame):
             default use all of the columns
         keep : {'first', 'last', False}, default 'first'
             Determines which duplicates (if any) to mark.
-            - ``first`` : Mark duplicates as ``True`` except for the
-              first occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the
-              last occurrence.
+
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
             - False : Mark all duplicates as ``True``.
 
         Returns
@@ -6235,7 +6234,7 @@ class DataFrame(NDFrame):
         ----------
         level : int, string, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
-        fill_value : sint, string or dict
+        fill_value : int, string or dict
             Replace NaN with this value if the unstack produces missing values
 
         Returns
