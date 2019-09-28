@@ -107,7 +107,7 @@ def show_versions(as_json=False):
         except ImportError:
             # https://github.com/python/mypy/issues/1153
             # error: Name 'json' already defined (by an import)
-            import simplejson as json  # type: ignore
+            import simplejson as json  # type: ignore[no-redef]
 
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 

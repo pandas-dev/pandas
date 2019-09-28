@@ -162,7 +162,7 @@ class CSSResolver:
 
         try:
             # error: Item "None" of "Optional[Match[Any]]" has no attribute "groups"
-            val, unit = re.match(  # type: ignore
+            val, unit = re.match(  # type: ignore[union-attr]
                 r"^(\S*?)([a-zA-Z%!].*)", in_val
             ).groups()
         except AttributeError:

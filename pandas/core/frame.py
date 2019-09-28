@@ -3430,10 +3430,15 @@ class DataFrame(NDFrame):
         def extract_unique_dtypes_from_dtypes_set(
             dtypes_set: FrozenSet[Dtype], unique_dtypes: np.ndarray
         ) -> List[Dtype]:
+            # error: Argument 1 to "tuple" has incompatible type
+            #  "FrozenSet[Union[str, Any, ExtensionDtype]]";
+            #  expected "Iterable[Union[type, Tuple[Any, ...]]]"
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+                if issubclass(
+                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                )
             ]
             return extracted_dtypes
 

@@ -992,7 +992,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
-    @property  # type: ignore
+    @property  # type: ignore[misc]
     @Appender(
         _interval_shared_docs["is_non_overlapping_monotonic"] % _shared_docs_kwargs
     )

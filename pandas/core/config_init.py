@@ -308,7 +308,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:

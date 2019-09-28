@@ -328,8 +328,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self):
         return self._dtype
 
-    # read-only property overwriting read/write
-    @property  # type: ignore
+    # error: Read-only property cannot override read-write property  [misc]
+    @property  # type: ignore[misc]
     def freq(self):
         """
         Return the frequency object for this PeriodArray.

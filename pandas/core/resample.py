@@ -411,7 +411,7 @@ class Resampler(_GroupBy):
             obj = self.obj
             if isinstance(obj.index, PeriodIndex):
                 # error: "PeriodIndex" has no attribute "asfreq"
-                result.index = obj.index.asfreq(self.freq)  # type: ignore
+                result.index = obj.index.asfreq(self.freq)  # type: ignore[attr-defined]
             else:
                 result.index = obj.index._shallow_copy(freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -1580,7 +1580,7 @@ class TimeGrouper(Grouper):
             )
 
         # error: "PeriodIndex" has no attribute "asfreq"
-        memb = ax.asfreq(self.freq, how=self.convention)  # type: ignore
+        memb = ax.asfreq(self.freq, how=self.convention)  # type: ignore[attr-defined]
 
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
@@ -1819,7 +1819,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj = obj.copy()
         # error: "PeriodIndex" has no attribute "asfreq"
-        new_obj.index = obj.index.asfreq(freq, how=how)  # type: ignore
+        new_obj.index = obj.index.asfreq(freq, how=how)  # type: ignore[attr-defined]
 
     elif len(obj.index) == 0:
         new_obj = obj.copy()

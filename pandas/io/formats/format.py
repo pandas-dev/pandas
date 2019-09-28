@@ -1281,7 +1281,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 # "EngFormatter"
                 # error: "None" not callable
                 return (
-                    float_format(value=v) if notna(v) else self.na_rep  # type: ignore
+                    float_format(value=v)  # type: ignore[operator, call-arg, misc]
+                    if notna(v)
+                    else self.na_rep
                 )
 
         else:
@@ -1725,9 +1727,9 @@ def _make_fixed_width(
 
     def just(x):
         if conf_max is not None:
-            # error: Item "None" of "Optional[TextAdjustment]" has no attribute "len"
             # https://github.com/python/mypy/issues/2608
-            if (conf_max > 3) & (adj.len(x) > max_len):  # type: ignore
+            # error: Item "None" of "Optional[TextAdjustment]" has no attribute "len"
+            if (conf_max > 3) & (adj.len(x) > max_len):  # type: ignore[union-attr]
                 x = x[: max_len - 3] + "..."
         return x
 

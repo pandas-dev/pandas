@@ -1344,7 +1344,9 @@ class Styler:
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # https://github.com/python/mypy/issues/2477
-        class MyStyler(cls):  # type: ignore
+        # error: Variable "cls" is not valid as a type  [valid-type]
+        # error: Invalid base class "cls"
+        class MyStyler(cls):  # type: ignore[valid-type, misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 

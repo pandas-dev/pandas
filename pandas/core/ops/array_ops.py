@@ -377,6 +377,6 @@ def logical_op(
         res_values = na_logical_op(lvalues, rvalues, op)
         # https://github.com/python/mypy/issues/5128
         # error: Cannot call function of unknown type
-        res_values = filler(res_values)  # type: ignore
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values

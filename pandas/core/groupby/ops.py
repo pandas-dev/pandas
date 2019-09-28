@@ -440,7 +440,7 @@ class BaseGrouper:
                 # https://github.com/python/mypy/issues/2608
                 # error: "None" not callable
                 def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)  # type: ignore
+                    return f(afunc, *args, **kwargs)  # type: ignore[misc]
 
                 # need to curry our sub-function
                 func = wrapper

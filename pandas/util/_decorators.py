@@ -249,7 +249,7 @@ def rewrite_axis_style_signature(
         sig = inspect.Signature(params)
 
         # https://github.com/python/typing/issues/598
-        func.__signature__ = sig  # type: ignore
+        func.__signature__ = sig  # type: ignore[attr-defined]
         return cast(_F, wrapper)
 
     return decorate

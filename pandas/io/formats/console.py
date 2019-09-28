@@ -66,7 +66,7 @@ def in_interactive_session():
 
     try:
         # error: Name '__IPYTHON__' is not defined
-        return __IPYTHON__ or check_main()  # type: ignore # noqa
+        return __IPYTHON__ or check_main()  # type: ignore[name-defined] # noqa
     except NameError:
         return check_main()
 
@@ -77,7 +77,7 @@ def in_ipython_frontend():
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore # noqa
+        ip = get_ipython()  # type: ignore[name-defined] # noqa
         return "zmq" in str(type(ip)).lower()
     except NameError:
         pass

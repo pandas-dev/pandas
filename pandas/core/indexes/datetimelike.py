@@ -90,15 +90,21 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
     inferred_freq = cache_readonly(
-        DatetimeLikeArrayMixin.inferred_freq.fget  # type: ignore
+        DatetimeLikeArrayMixin.inferred_freq.fget  # type: ignore[attr-defined]
     )
-    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)  # type: ignore
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
+    _isnan = cache_readonly(
+        DatetimeLikeArrayMixin._isnan.fget  # type: ignore[attr-defined]
+    )
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    )
     _hasnans = hasnans  # for index / array -agnostic code
     _resolution = cache_readonly(
-        DatetimeLikeArrayMixin._resolution.fget  # type: ignore
+        DatetimeLikeArrayMixin._resolution.fget  # type: ignore[attr-defined]
     )
-    resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
+    resolution = cache_readonly(
+        DatetimeLikeArrayMixin.resolution.fget  # type: ignore[attr-defined]
+    )
 
     _maybe_mask_results = ea_passthrough(DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
@@ -165,7 +171,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
-    @property  # type: ignore # https://github.com/python/mypy/issues/1362
+    # https://github.com/python/mypy/issues/1362
+    # error: Decorated property not supported  [misc]
+    @property  # type: ignore[misc]
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
         return self._data.asi8
@@ -226,7 +234,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
 
         # https://github.com/python/mypy/issues/1006
         # error: 'staticmethod' used with a non-method
-        @staticmethod  # type: ignore
+        @staticmethod  # type: ignore[misc]
         def wrapper(left, right):
             if isinstance(
                 left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)

@@ -455,7 +455,7 @@ class _Window(PandasObject, SelectionMixin):
                 def calc(x):
                     # https://github.com/python/mypy/issues/2608
                     # error: "str" not callable
-                    return func(  # type: ignore
+                    return func(  # type: ignore[operator]
                         np.concatenate((x, additional_nans)),
                         window,
                         min_periods=self.min_periods,
@@ -467,7 +467,7 @@ class _Window(PandasObject, SelectionMixin):
                 def calc(x):
                     # https://github.com/python/mypy/issues/2608
                     # error: "str" not callable
-                    return func(  # type: ignore
+                    return func(  # type: ignore[operator]
                         x, window, min_periods=self.min_periods, closed=self.closed
                     )
 

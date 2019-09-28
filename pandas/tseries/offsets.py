@@ -248,9 +248,9 @@ class DateOffset(BaseOffset):
     Timestamp('2017-03-01 09:10:11')
     """
 
-    # error: "Callable[[_BaseOffset], Tuple[Any, ...]]" has no attribute "fget"
     # https://github.com/python/mypy/issues/6185
-    _params = cache_readonly(BaseOffset._params.fget)  # type: ignore
+    # error: "Callable[[_BaseOffset], Tuple[Any, ...]]" has no attribute "fget"
+    _params = cache_readonly(BaseOffset._params.fget)  # type: ignore[attr-defined]
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))

@@ -1172,9 +1172,15 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _timezone = cache_readonly(DatetimeArray._timezone.fget)  # type: ignore
-    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
-    _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
+    _timezone = cache_readonly(
+        DatetimeArray._timezone.fget  # type: ignore[attr-defined]
+    )
+    is_normalized = cache_readonly(
+        DatetimeArray.is_normalized.fget  # type: ignore[attr-defined]
+    )
+    _resolution = cache_readonly(
+        DatetimeArray._resolution.fget  # type: ignore[attr-defined]
+    )
 
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
