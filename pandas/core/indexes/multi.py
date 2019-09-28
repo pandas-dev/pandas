@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
+from typing import Dict, List, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -484,7 +485,7 @@ class MultiIndex(Index):
             if names is None:
                 msg = "Cannot infer number of levels from empty list"
                 raise TypeError(msg)
-            arrays = [[]] * len(names)
+            arrays: List[List] = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
@@ -692,6 +693,7 @@ class MultiIndex(Index):
         if validate and level is not None and len(levels) != len(level):
             raise ValueError("Length of levels must match length of level.")
 
+        new_levels: Sequence
         if level is None:
             new_levels = FrozenList(
                 ensure_index(lev, copy=copy)._shallow_copy() for lev in levels
@@ -811,6 +813,7 @@ class MultiIndex(Index):
         if validate and level is not None and len(codes) != len(level):
             raise ValueError("Length of codes must match length of levels.")
 
+        new_codes: Sequence
         if level is None:
             new_codes = FrozenList(
                 _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
@@ -1977,7 +1980,7 @@ class MultiIndex(Index):
         )
         return ibase._new_Index, (self.__class__, d), None
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Union[Dict, Tuple]) -> None:
         """Necessary for making this object picklable"""
 
         if isinstance(state, dict):
@@ -1990,6 +1993,8 @@ class MultiIndex(Index):
 
             nd_state, own_state = state
             levels, codes, sortorder, names = own_state
+
+        assert levels is not None
 
         self._set_levels([Index(x) for x in levels], validate=False)
         self._set_codes(codes)
@@ -3251,7 +3256,7 @@ class MultiIndex(Index):
 
         self_tuples = self._ndarray_values
         other_tuples = other._ndarray_values
-        uniq_tuples = set(self_tuples) & set(other_tuples)
+        uniq_tuples = list(set(self_tuples) & set(other_tuples))
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
