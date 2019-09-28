@@ -1581,4 +1581,4 @@ generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_panda
 generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
 
 # Cached searches
-reference/api/pandas.DataFrame.from_csv.html,../reference/api/pandas.read_csv
+reference/api/pandas.DataFrame.from_csv,pandas.read_csv
