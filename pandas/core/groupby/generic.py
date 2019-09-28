@@ -708,7 +708,7 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> df = pd.self.obj._constructor({'A' : ['foo', 'bar', 'foo', 'bar',
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
         ...                           'foo', 'bar'],
         ...                    'B' : [1, 2, 3, 4, 5, 6],
         ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
