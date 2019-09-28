@@ -1,7 +1,7 @@
 """Sparse Dtype"""
 
 import re
-from typing import Any
+from typing import Any, Tuple, Union
 
 import numpy as np
 
@@ -223,7 +223,7 @@ class SparseDtype(ExtensionDtype):
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype):
+    def _parse_subtype(dtype) -> Tuple[str, Union[str, bool]]:
         """
         Parse a string to get the subtype
 
@@ -246,7 +246,7 @@ class SparseDtype(ExtensionDtype):
         """
         xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(?P<fill_value>.*?)?\]$")
         m = xpr.match(dtype)
-        has_fill_value = False
+        has_fill_value: Union[str, bool] = False
         if m:
             subtype = m.groupdict()["subtype"]
             has_fill_value = m.groupdict()["fill_value"] or has_fill_value
