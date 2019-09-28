@@ -7,7 +7,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Type
+from typing import Callable, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -302,7 +302,7 @@ def _node_not_implemented(node_name, cls):
     return f
 
 
-def disallow(nodes):
+def disallow(nodes: Set) -> Callable:
     """Decorator to disallow certain nodes from parsing. Raises a
     NotImplementedError instead.
 
@@ -311,7 +311,9 @@ def disallow(nodes):
     disallowed : callable
     """
 
-    def disallowed(cls):
+    _T = TypeVar("_T", bound="BaseExprVisitor")
+
+    def disallowed(cls: Type[_T]) -> Type[_T]:
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node, cls)
@@ -416,6 +418,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.In: ast.In,
         ast.NotIn: ast.NotIn,
     }
+
+    unsupported_nodes: Tuple[str, ...]
 
     def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
@@ -712,7 +716,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     "arguments".format(name=res.name)
                 )
 
-            return res(*new_args, **kwargs)
+            return res(*new_args)
 
         else:
 
