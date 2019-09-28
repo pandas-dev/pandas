@@ -910,7 +910,7 @@ default 'raise'
 
         Returns
         -------
-        Timestamp with fields replaced.
+        Timestamp with fields replaced
         """
 
         cdef:
