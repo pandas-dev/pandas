@@ -17,6 +17,7 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 from pandas._libs.lib import maybe_convert_objects, values_from_object
+from pandas.api.types import is_scalar
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -544,7 +545,10 @@ def apply_frame_axis0(object frame, object f, object names,
                 # `piece` might not have an index, could be e.g. an int
                 pass
 
-            results.append(copy(piece))
+            if is_scalar(piece):
+                results.append(piece)
+            else:
+                results.append(copy(piece))
 
             # If the data was modified inplace we need to
             # take the slow path to not risk segfaults
