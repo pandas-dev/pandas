@@ -1,3 +1,5 @@
+# mypy: ignore_errors
+
 """
 This module implements clipboard handling on Windows using ctypes.
 """
