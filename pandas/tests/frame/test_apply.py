@@ -1359,8 +1359,9 @@ class TestDataFrameAggregate:
         assert index.freq == original.freq
 
     def test_func_returns_object(self):
-        df = pd.DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+        # GH 28652
+        df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
         result = df.groupby("a").apply(lambda g: g.index)
 
-        assert result[1] == pd.Int64Index([1])
-        assert result[2] == pd.Int64Index([2])
+        tm.assert_index_equal(result[1], pd.Int64Index([1]))
+        tm.assert_index_equal(result[2], pd.Int64Index([2]))
