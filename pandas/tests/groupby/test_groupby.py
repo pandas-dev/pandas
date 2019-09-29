@@ -136,8 +136,19 @@ def test_groupby_return_type():
 
     # https://github.com/pandas-dev/pandas/issues/28330
     # Test groupby operations on subclassed dataframes/series
+    class ChildSeries(Series):
+        pass
 
-    cdf = tm.SubclassedDataFrame(
+    class ChildDataFrame(DataFrame):
+        @property
+        def _constructor(self):
+            return ChildDataFrame
+
+        _constructor_sliced = ChildSeries
+
+    ChildSeries._constructor_expanddim = ChildDataFrame
+
+    cdf = ChildDataFrame(
         [
             {"val1": 1, "val2": 20},
             {"val1": 1, "val2": 19},
@@ -146,9 +157,9 @@ def test_groupby_return_type():
         ]
     )
     result = cdf.groupby("val1").sum()
-    assert isinstance(result, tm.SubclassedDataFrame)
+    assert isinstance(result, ChildDataFrame)
     assert isinstance(result, DataFrame)
-    assert isinstance(result["val2"], tm.SubclassedSeries)
+    assert isinstance(result["val2"], ChildSeries)
     assert isinstance(result["val2"], Series)
 
 
@@ -1899,3 +1910,69 @@ def test_groupby_axis_1(group_name):
     results = df.groupby(group_name, axis=1).sum()
     expected = df.T.groupby(group_name).sum().T
     assert_frame_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (
+            "shift",
+            {
+                "time": [
+                    None,
+                    None,
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    None,
+                    None,
+                ]
+            },
+        ),
+        (
+            "bfill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+        (
+            "ffill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+    ],
+)
+def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
+    # GH19995, GH27992: Check that timezone does not drop in shift, bfill, and ffill
+    tz = tz_naive_fixture
+    data = {
+        "id": ["A", "B", "A", "B", "A", "B"],
+        "time": [
+            Timestamp("2019-01-01 12:00:00"),
+            Timestamp("2019-01-01 12:30:00"),
+            None,
+            None,
+            Timestamp("2019-01-01 14:00:00"),
+            Timestamp("2019-01-01 14:30:00"),
+        ],
+    }
+    df = DataFrame(data).assign(time=lambda x: x.time.dt.tz_localize(tz))
+
+    grouped = df.groupby("id")
+    result = getattr(grouped, op)()
+    expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
+    assert_frame_equal(result, expected)
