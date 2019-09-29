@@ -5,7 +5,7 @@ channels:
 dependencies:
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.28.2
+  - cython>=0.29.13
   - dask
   - fastparquet>=0.2.1
   - gcsfs
@@ -29,7 +29,7 @@ dependencies:
   - python-snappy
   - python=3.6.*
   - pytz
-  - s3fs
+  - s3fs<0.3
   - scikit-learn
   - scipy
   - sqlalchemy
@@ -39,8 +39,8 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
-  - pytest-xdist
+  - pytest>=5.0.1
+  - pytest-xdist>=1.29.0
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0

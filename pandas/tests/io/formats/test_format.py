@@ -7,6 +7,7 @@ from io import StringIO
 import itertools
 from operator import methodcaller
 import os
+from pathlib import Path
 import re
 from shutil import get_terminal_size
 import sys
@@ -17,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import PY36, is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -40,6 +41,54 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
+
+
+@pytest.fixture(params=["string", "pathlike", "buffer"])
+def filepath_or_buffer_id(request):
+    """
+    A fixture yielding test ids for filepath_or_buffer testing.
+    """
+    return request.param
+
+
+@pytest.fixture
+def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
+    """
+    A fixture yeilding a string representing a filepath, a path-like object
+    and a StringIO buffer. Also checks that buffer is not closed.
+    """
+    if filepath_or_buffer_id == "buffer":
+        buf = StringIO()
+        yield buf
+        assert not buf.closed
+    else:
+        if PY36:
+            assert isinstance(tmp_path, Path)
+        else:
+            assert hasattr(tmp_path, "__fspath__")
+        if filepath_or_buffer_id == "pathlike":
+            yield tmp_path / "foo"
+        else:
+            yield str(tmp_path / "foo")
+
+
+@pytest.fixture
+def assert_filepath_or_buffer_equals(filepath_or_buffer, filepath_or_buffer_id):
+    """
+    Assertion helper for checking filepath_or_buffer.
+    """
+
+    def _assert_filepath_or_buffer_equals(expected):
+        if filepath_or_buffer_id == "string":
+            with open(filepath_or_buffer) as f:
+                result = f.read()
+        elif filepath_or_buffer_id == "pathlike":
+            result = filepath_or_buffer.read_text()
+        elif filepath_or_buffer_id == "buffer":
+            result = filepath_or_buffer.getvalue()
+        assert result == expected
+
+    return _assert_filepath_or_buffer_equals
 
 
 def curpath():
@@ -422,28 +471,35 @@ class TestDataFrameFormatting:
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(df)
+        assert ".." not in df._repr_html_()
 
         df = pd.DataFrame({"a": range(61)})
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(df)
+        assert ".." in df._repr_html_()
 
         with option_context("display.max_rows", 10, "display.min_rows", 4):
             # truncated after first two rows
             assert ".." in repr(df)
             assert "2  " not in repr(df)
+            assert "..." in df._repr_html_()
+            assert "<td>2</td>" not in df._repr_html_()
 
         with option_context("display.max_rows", 12, "display.min_rows", None):
             # when set to None, follow value of max_rows
             assert "5    5" in repr(df)
+            assert "<td>5</td>" in df._repr_html_()
 
         with option_context("display.max_rows", 10, "display.min_rows", 12):
             # when set value higher as max_rows, use the minimum
             assert "5    5" not in repr(df)
+            assert "<td>5</td>" not in df._repr_html_()
 
         with option_context("display.max_rows", None, "display.min_rows", 12):
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
+            assert ".." not in df._repr_html_()
 
     def test_str_max_colwidth(self):
         # GH 7856
@@ -470,6 +526,45 @@ class TestDataFrameFormatting:
                 "0  foo  bar  uncomfortably lo...  1\n"
                 "1  foo  bar                stuff  1"
             )
+
+    def test_to_string_truncate(self):
+        # GH 9784 - dont truncate when calling DataFrame.to_string
+        df = pd.DataFrame(
+            [
+                {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "let's make this a very VERY long line that is longer "
+                    "than the default 50 character limit",
+                    "d": 1,
+                },
+                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
+            ]
+        )
+        df.set_index(["a", "b", "c"])
+        assert df.to_string() == (
+            "     a    b                                         "
+            "                                                c  d\n"
+            "0  foo  bar  let's make this a very VERY long line t"
+            "hat is longer than the default 50 character limit  1\n"
+            "1  foo  bar                                         "
+            "                                            stuff  1"
+        )
+        with option_context("max_colwidth", 20):
+            # the display option has no effect on the to_string method
+            assert df.to_string() == (
+                "     a    b                                         "
+                "                                                c  d\n"
+                "0  foo  bar  let's make this a very VERY long line t"
+                "hat is longer than the default 50 character limit  1\n"
+                "1  foo  bar                                         "
+                "                                            stuff  1"
+            )
+        assert df.to_string(max_colwidth=20) == (
+            "     a    b                    c  d\n"
+            "0  foo  bar  let's make this ...  1\n"
+            "1  foo  bar                stuff  1"
+        )
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
@@ -3142,3 +3237,21 @@ def test_repr_html_ipython_config(ip):
     )
     result = ip.run_cell(code)
     assert not result.error_in_exec
+
+
+@pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+def test_filepath_or_buffer_arg(
+    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals
+):
+    df = float_frame
+    expected = getattr(df, method)()
+
+    getattr(df, method)(buf=filepath_or_buffer)
+    assert_filepath_or_buffer_equals(expected)
+
+
+@pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
+    msg = "buf is not a file name and it has no write method"
+    with pytest.raises(TypeError, match=msg):
+        getattr(float_frame, method)(buf=object())

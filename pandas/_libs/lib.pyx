@@ -9,9 +9,12 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
-                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
-                      PyUnicode_Join, PyList_New)
+from cpython.list cimport PyList_New
+from cpython.object cimport (PyObject_Str, PyObject_RichCompareBool, Py_EQ,
+                             Py_SIZE)
+from cpython.ref cimport Py_INCREF
+from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
+from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -52,8 +55,7 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -235,7 +237,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
     if sort is None:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             # TODO: RuntimeWarning?
             pass
 
@@ -264,7 +266,7 @@ def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -304,7 +306,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -522,9 +524,18 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                (x is None or is_nan(x)) and (y is None or is_nan(y))):
-            return False
+        try:
+            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+                return False
+        except TypeError as err:
+            # Avoid raising TypeError on tzawareness mismatch
+            # TODO: This try/except can be removed if/when Timestamp
+            #  comparisons are change dto match datetime, see GH#28507
+            if "tz-naive and tz-aware" in str(err):
+                return False
+            raise
+
     return True
 
 
@@ -925,6 +936,7 @@ _TYPE_MAP = {
     'M': 'datetime64',
     'timedelta64[ns]': 'timedelta64',
     'm': 'timedelta64',
+    'interval': 'interval',
 }
 
 # types only exist on certain platform
@@ -1265,7 +1277,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_integer_array(values):
             return 'integer'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
         return 'mixed-integer'
 
     elif PyDateTime_Check(val):
@@ -1290,7 +1305,10 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_float_array(values):
             return 'floating'
         elif is_integer_float_array(values):
-            return 'mixed-integer-float'
+            if is_integer_na_array(values):
+                return 'integer-na'
+            else:
+                return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values, skipna=skipna):
@@ -1403,7 +1421,7 @@ def infer_datetimelike_array(arr: object) -> object:
         try:
             array_to_datetime(objs, errors='raise')
             return 'datetime'
-        except:
+        except (ValueError, TypeError):
             pass
 
         # we are *not* going to infer from strings
@@ -1523,6 +1541,19 @@ cpdef bint is_integer_array(ndarray values):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
                                                       values.dtype)
+    return validator.validate(values)
+
+
+cdef class IntegerNaValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (util.is_integer_object(value)
+                or (util.is_nan(value) and util.is_float_object(value)))
+
+
+cdef bint is_integer_na_array(ndarray values):
+    cdef:
+        IntegerNaValidator validator = IntegerNaValidator(len(values),
+                                                          values.dtype)
     return validator.validate(values)
 
 

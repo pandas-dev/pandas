@@ -3,6 +3,7 @@ SQL-style merge routines
 """
 
 import copy
+import datetime
 from functools import partial
 import string
 import warnings
@@ -22,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetimelike,
     is_dtype_equal,
@@ -179,7 +179,7 @@ def merge_ordered(
     """
     Perform merge with optional filling/interpolation designed for ordered
     data like time series data. Optionally perform group-wise merge (see
-    examples)
+    examples).
 
     Parameters
     ----------
@@ -1620,7 +1620,7 @@ class _AsOfMerge(_OrderedMerge):
                     )
                 raise MergeError(msg)
 
-        # validate tolerance; must be a Timedelta if we have a DTI
+        # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
 
             if self.left_index:
@@ -1635,8 +1635,8 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
-                if not isinstance(self.tolerance, Timedelta):
+            if is_datetimelike(lt):
+                if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
                     raise MergeError("tolerance must be positive")
@@ -1706,6 +1706,7 @@ class _AsOfMerge(_OrderedMerge):
             left_values = left_values.view("i8")
             right_values = right_values.view("i8")
             if tolerance is not None:
+                tolerance = Timedelta(tolerance)
                 tolerance = tolerance.value
 
         # a "by" parameter requires special handling
@@ -1958,7 +1959,7 @@ def _should_fill(lname, rname):
 
 
 def _any(x):
-    return x is not None and com._any_not_none(*x)
+    return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):

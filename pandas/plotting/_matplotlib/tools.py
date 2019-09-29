@@ -281,17 +281,15 @@ def _remove_labels_from_axis(axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
-    try:
-        # set_visible will not be effective if
-        # minor axis has NullLocator and NullFormattor (default)
-        if isinstance(axis.get_minor_locator(), ticker.NullLocator):
-            axis.set_minor_locator(ticker.AutoLocator())
-        if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
-            axis.set_minor_formatter(ticker.FormatStrFormatter(""))
-        for t in axis.get_minorticklabels():
-            t.set_visible(False)
-    except Exception:  # pragma no cover
-        raise
+    # set_visible will not be effective if
+    # minor axis has NullLocator and NullFormattor (default)
+    if isinstance(axis.get_minor_locator(), ticker.NullLocator):
+        axis.set_minor_locator(ticker.AutoLocator())
+    if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
+        axis.set_minor_formatter(ticker.FormatStrFormatter(""))
+    for t in axis.get_minorticklabels():
+        t.set_visible(False)
+
     axis.get_label().set_visible(False)
 
 
@@ -343,6 +341,21 @@ def _flatten(axes):
     return np.array(axes)
 
 
+def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
+    import matplotlib.pyplot as plt
+
+    for ax in _flatten(axes):
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
+    return axes
+
+
 def _get_all_lines(ax):
     lines = ax.get_lines()
 
@@ -362,18 +375,3 @@ def _get_xlim(lines):
         left = min(np.nanmin(x), left)
         right = max(np.nanmax(x), right)
     return left, right
-
-
-def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
-    import matplotlib.pyplot as plt
-
-    for ax in _flatten(axes):
-        if xlabelsize is not None:
-            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-        if xrot is not None:
-            plt.setp(ax.get_xticklabels(), rotation=xrot)
-        if ylabelsize is not None:
-            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-        if yrot is not None:
-            plt.setp(ax.get_yticklabels(), rotation=yrot)
-    return axes

@@ -1,4 +1,4 @@
-from cpython cimport (
+from cpython.object cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
@@ -92,6 +92,9 @@ cdef class _NaT(datetime):
     #    int64_t value
     #    object freq
 
+    # higher than np.ndarray and np.matrix
+    __array_priority__ = 100
+
     def __hash__(_NaT self):
         # py3k needs this defined here
         return hash(self.value)
@@ -103,58 +106,108 @@ cdef class _NaT(datetime):
         if ndim == -1:
             return _nat_scalar_rules[op]
 
-        if ndim == 0:
+        elif util.is_array(other):
+            result = np.empty(other.shape, dtype=np.bool_)
+            result.fill(_nat_scalar_rules[op])
+            return result
+
+        elif ndim == 0:
             if is_datetime64_object(other):
                 return _nat_scalar_rules[op]
             else:
                 raise TypeError('Cannot compare type %r with type %r' %
                                 (type(self).__name__, type(other).__name__))
+
         # Note: instead of passing "other, self, _reverse_ops[op]", we observe
         # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
         # rendering it unnecessary.
         return PyObject_RichCompare(other, self, op)
 
     def __add__(self, other):
+        if self is not c_NaT:
+            # cython __radd__ semantics
+            self, other = other, self
+
         if PyDateTime_Check(other):
             return c_NaT
-
+        elif PyDelta_Check(other):
+            return c_NaT
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
+            return c_NaT
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
             return c_NaT
-        elif getattr(other, '_typ', None) in ['dateoffset', 'series',
-                                              'period', 'datetimeindex',
-                                              'timedeltaindex']:
-            # Duplicate logic in _Timestamp.__add__ to avoid needing
-            # to subclass; allows us to @final(_Timestamp.__add__)
-            return NotImplemented
-        return c_NaT
+
+        elif is_integer_object(other) or util.is_period_object(other):
+            # For Period compat
+            # TODO: the integer behavior is deprecated, remove it
+            return c_NaT
+
+        elif util.is_array(other):
+            if other.dtype.kind in 'mM':
+                # If we are adding to datetime64, we treat NaT as timedelta
+                #  Either way, result dtype is datetime64
+                result = np.empty(other.shape, dtype="datetime64[ns]")
+                result.fill("NaT")
+                return result
+            raise TypeError("Cannot add NaT to ndarray with dtype {dtype}"
+                            .format(dtype=other.dtype))
+
+        return NotImplemented
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
+        cdef:
+            bint is_rsub = False
+
+        if self is not c_NaT:
+            # cython __rsub__ semantics
+            self, other = other, self
+            is_rsub = True
+
         if PyDateTime_Check(other):
-            return NaT
+            return c_NaT
         elif PyDelta_Check(other):
-            return NaT
-
-        elif getattr(other, '_typ', None) == 'datetimeindex':
-            # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-            return -other.__sub__(self)
-
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
-            # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-            return (-other).__add__(self)
-
+            return c_NaT
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
+            return c_NaT
         elif hasattr(other, 'delta'):
             # offsets.Tick, offsets.Week
-            neg_other = -other
-            return self + neg_other
+            return c_NaT
 
-        elif getattr(other, '_typ', None) in ['period', 'series',
-                                              'periodindex', 'dateoffset']:
-            return NotImplemented
+        elif is_integer_object(other) or util.is_period_object(other):
+            # For Period compat
+            # TODO: the integer behavior is deprecated, remove it
+            return c_NaT
 
-        return NaT
+        elif util.is_array(other):
+            if other.dtype.kind == 'm':
+                if not is_rsub:
+                    # NaT - timedelta64 we treat NaT as datetime64, so result
+                    #  is datetime64
+                    result = np.empty(other.shape, dtype="datetime64[ns]")
+                    result.fill("NaT")
+                    return result
+
+                # timedelta64 - NaT we have to treat NaT as timedelta64
+                #  for this to be meaningful, and the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+
+            elif other.dtype.kind == 'M':
+                # We treat NaT as a datetime, so regardless of whether this is
+                #  NaT - other or other - NaT, the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+
+            raise TypeError(
+                "Cannot subtract NaT from ndarray with dtype {dtype}"
+                .format(dtype=other.dtype))
+
+        return NotImplemented
 
     def __pos__(self):
         return NaT
@@ -498,7 +551,7 @@ class NaTType(_NaT):
         """)
     round = _make_nat_func('round',  # noqa:E128
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
@@ -536,7 +589,7 @@ default 'raise'
         """)
     floor = _make_nat_func('floor',  # noqa:E128
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -570,7 +623,7 @@ default 'raise'
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -682,7 +735,7 @@ default 'raise'
         """)
     replace = _make_nat_func('replace',  # noqa:E128
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

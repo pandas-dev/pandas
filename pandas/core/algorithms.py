@@ -28,20 +28,17 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
     is_datetimelike,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_sparse,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
@@ -183,8 +180,6 @@ def _reconstruct_data(values, dtype, original):
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
-    elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
-        values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype)
 
@@ -747,7 +742,7 @@ def value_counts(
 
     else:
 
-        if is_extension_array_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -1627,7 +1622,7 @@ def take_nd(
     out : ndarray or None, default None
         Optional output array, must be appropriate type to hold input and
         fill_value together, if indexer has any -1 value entries; call
-        _maybe_promote to determine this type for any fill_value
+        maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
     mask_info : tuple of (ndarray, boolean)
@@ -1645,19 +1640,11 @@ def take_nd(
         May be the same type as the input, or cast to an ndarray.
     """
 
-    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
-    # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetime64tz_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_interval_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
-    if is_sparse(arr):
-        arr = arr.to_dense()
-    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
-        arr = arr.values
+    if isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr._values
 
     arr = np.asarray(arr)
 

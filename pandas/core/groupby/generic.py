@@ -21,7 +21,11 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_convert_objects, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_convert_objects,
+    maybe_downcast_numeric,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -54,7 +58,6 @@ from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -180,10 +183,8 @@ class NDFrameGroupBy(GroupBy):
                     continue
             finally:
                 if result is not no_result:
-                    dtype = block.values.dtype
-
                     # see if we can cast the block back to the original dtype
-                    result = block._try_coerce_and_cast_result(result, dtype=dtype)
+                    result = maybe_downcast_numeric(result, block.dtype)
                     newb = block.make_block(result)
 
             new_items.append(locs)
@@ -240,33 +241,30 @@ class NDFrameGroupBy(GroupBy):
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
+            elif args or kwargs:
+                result = self._aggregate_generic(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
                 try:
-                    assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
-
+                except Exception:
+                    result = self._aggregate_generic(func)
+                else:
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
                     )
-
-                    if isinstance(self.obj, SparseDataFrame):
-                        # Backwards compat for groupby.agg() with sparse
-                        # values. concat no longer converts DataFrame[Sparse]
-                        # to SparseDataFrame, so we do it here.
-                        result = SparseDataFrame(result._data)
-                except Exception:
-                    result = self._aggregate_generic(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
         if relabeling:
-            result = result[order]
+
+            # used reordered index of columns
+            result = result.iloc[:, order]
             result.columns = columns
 
         return result._convert(datetime=True)
@@ -309,17 +307,21 @@ class NDFrameGroupBy(GroupBy):
         cannot_agg = []
         errors = None
         for item in obj:
-            try:
-                data = obj[item]
-                colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
+            data = obj[item]
+            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
+            try:
                 cast = self._transform_should_cast(func)
 
                 result[item] = colg.aggregate(func, *args, **kwargs)
                 if cast:
                     result[item] = self._try_cast(result[item], data)
 
-            except ValueError:
+            except ValueError as err:
+                if "Must produce aggregated value" in str(err):
+                    # raised in _aggregate_named, handle at higher level
+                    #  see test_apply_with_mutated_index
+                    raise
                 cannot_agg.append(item)
                 continue
             except TypeError as e:
@@ -344,7 +346,7 @@ class NDFrameGroupBy(GroupBy):
             output_keys = sorted(output)
             try:
                 output_keys.sort()
-            except Exception:  # pragma: no cover
+            except TypeError:
                 pass
 
             if isinstance(labels, MultiIndex):
@@ -361,7 +363,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(com._not_none(*values))
+                return next(com.not_none(*values))
             except StopIteration:
                 return None
 
@@ -644,20 +646,21 @@ class NDFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
-
-            # verify fast path does not change columns (and names), otherwise
-            # its results cannot be joined with those of the slow path
-            if res_fast.columns != group.columns:
-                return path, res
-            # verify numerical equality with the slow path
-            if res.shape == res_fast.shape:
-                res_r = res.values.ravel()
-                res_fast_r = res_fast.values.ravel()
-                mask = notna(res_r)
-                if (res_r[mask] == res_fast_r[mask]).all():
-                    path = fast_path
         except Exception:
-            pass
+            # Hard to know ex-ante what exceptions `fast_path` might raise
+            return path, res
+
+        # verify fast path does not change columns (and names), otherwise
+        # its results cannot be joined with those of the slow path
+        if not isinstance(res_fast, DataFrame):
+            return path, res
+
+        if not res_fast.columns.equals(group.columns):
+            return path, res
+
+        if res_fast.equals(res):
+            path = fast_path
+
         return path, res
 
     def _transform_item_by_item(self, obj, wrapper):
@@ -671,7 +674,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:  # pragma: no cover
+        if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
@@ -680,7 +683,7 @@ class NDFrameGroupBy(GroupBy):
 
         return DataFrame(output, index=obj.index, columns=columns)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a DataFrame excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -831,45 +834,45 @@ class SeriesGroupBy(GroupBy):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func_or_funcs=None, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         _level = kwargs.pop("_level", None)
 
-        relabeling = func_or_funcs is None
+        relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func_or_funcs' or named aggregation **kwargs."
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
             if not PY36:
                 # sort for 3.5 and earlier
                 columns = list(sorted(columns))
 
-            func_or_funcs = [kwargs[col] for col in columns]
+            func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
 
-        if isinstance(func_or_funcs, str):
-            return getattr(self, func_or_funcs)(*args, **kwargs)
+        if isinstance(func, str):
+            return getattr(self, func)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, abc.Iterable):
+        if isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
-            func_or_funcs = _maybe_mangle_lambdas(func_or_funcs)
-            ret = self._aggregate_multiple_funcs(func_or_funcs, (_level or 0) + 1)
+            func = _maybe_mangle_lambdas(func)
+            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._get_cython_func(func_or_funcs)
+            cyfunc = self._get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(func_or_funcs, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
 
             try:
-                return self._python_agg_general(func_or_funcs, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
             except Exception:
-                result = self._aggregate_named(func_or_funcs, *args, **kwargs)
+                result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
             ret = Series(result, index=index)
@@ -1003,7 +1006,7 @@ class SeriesGroupBy(GroupBy):
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise Exception("Must produce aggregated value")
+                raise ValueError("Must produce aggregated value")
             result[name] = self._try_cast(output, group)
 
         return result
@@ -1140,6 +1143,10 @@ class SeriesGroupBy(GroupBy):
         ids, _, _ = self.grouper.group_info
 
         val = self.obj._internal_get_values()
+
+        # GH 27951
+        # temporary fix while we wait for NumPy bug 12629 to be fixed
+        val[isna(val)] = np.datetime64("NaT")
 
         try:
             sorter = np.lexsort((val, ids))
@@ -1462,8 +1469,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg=None, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
+    def aggregate(self, func=None, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
@@ -1729,8 +1736,8 @@ def _normalize_keyword_aggregation(kwargs):
         The transformed kwargs.
     columns : List[str]
         The user-provided keys.
-    order : List[Tuple[str, str]]
-        Pairs of the input and output column names.
+    col_idx_order : List[int]
+        List of columns indices.
 
     Examples
     --------
@@ -1757,7 +1764,39 @@ def _normalize_keyword_aggregation(kwargs):
         else:
             aggspec[column] = [aggfunc]
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
-    return aggspec, columns, order
+
+    # uniquify aggfunc name if duplicated in order list
+    uniquified_order = _make_unique(order)
+
+    # GH 25719, due to aggspec will change the order of assigned columns in aggregation
+    # uniquified_aggspec will store uniquified order list and will compare it with order
+    # based on index
+    aggspec_order = [
+        (column, com.get_callable_name(aggfunc) or aggfunc)
+        for column, aggfuncs in aggspec.items()
+        for aggfunc in aggfuncs
+    ]
+    uniquified_aggspec = _make_unique(aggspec_order)
+
+    # get the new indice of columns by comparison
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    return aggspec, columns, col_idx_order
+
+
+def _make_unique(seq):
+    """Uniquify aggfunc name of the pairs in the order list
+
+    Examples:
+    --------
+    >>> _make_unique([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
+    [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
+    """
+    return [
+        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
+        if seq.count(pair) > 1
+        else pair
+        for i, pair in enumerate(seq)
+    ]
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__

@@ -57,7 +57,7 @@ class _Unstacker:
         float and missing values will be set to NaN.
     constructor : object
         Pandas ``DataFrame`` or subclass used to create unstacked
-        response.  If None, DataFrame or SparseDataFrame will be used.
+        response.  If None, DataFrame will be used.
 
     Examples
     --------
@@ -725,8 +725,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = list(this.index.names)
         new_codes = [lab.repeat(levsize) for lab in this.index.codes]
     else:
-        new_levels = [this.index]
-        new_codes = [np.arange(N).repeat(levsize)]
+        old_codes, old_levels = _factorize_from_iterable(this.index)
+        new_levels = [old_levels]
+        new_codes = [old_codes.repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
     new_levels.append(level_vals)

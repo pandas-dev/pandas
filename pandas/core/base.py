@@ -46,32 +46,7 @@ _indexops_doc_kwargs = dict(
 )
 
 
-class StringMixin:
-    """
-    Implements string methods so long as object defines a `__str__` method.
-    """
-
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
-
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-        """
-        raise AbstractMethodError(self)
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        return str(self)
-
-
 class PandasObject(DirNamesMixin):
-
     """baseclass for various pandas objects"""
 
     @property
@@ -687,8 +662,9 @@ class IndexOpsMixin:
 
     T = property(
         transpose,
-        doc="""\nReturn the transpose, which is by
-                                definition self.\n""",
+        doc="""
+        Return the transpose, which is by definition self.
+        """,
     )
 
     @property
@@ -1313,17 +1289,17 @@ class IndexOpsMixin:
 
         Parameters
         ----------
-        normalize : boolean, default False
+        normalize : bool, default False
             If True then the object returned will contain the relative
             frequencies of the unique values.
-        sort : boolean, default True
+        sort : bool, default True
             Sort by frequencies.
-        ascending : boolean, default False
+        ascending : bool, default False
             Sort in ascending order.
-        bins : integer, optional
+        bins : int, optional
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with numeric data.
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
@@ -1485,7 +1461,7 @@ class IndexOpsMixin:
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of the values
+        Memory usage of the values.
 
         Parameters
         ----------
@@ -1520,7 +1496,7 @@ class IndexOpsMixin:
         size_hint="",
         sort=textwrap.dedent(
             """\
-            sort : boolean, default False
+            sort : bool, default False
                 Sort `uniques` and shuffle `labels` to maintain the
                 relationship.
             """

@@ -204,8 +204,7 @@ class DateOffset(BaseOffset):
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
-    **kwds
-        Temporal parameter that add to or replace the offset value.
+    **kwds : Temporal parameter that add to or replace the offset value.
 
         Parameters that **add** to the offset (like Timedelta):
 
@@ -233,16 +232,19 @@ class DateOffset(BaseOffset):
 
     See Also
     --------
-    dateutil.relativedelta.relativedelta
+    dateutil.relativedelta.relativedelta : The relativedelta type is designed
+        to be applied to an existing datetime an can replace specific components of
+        that datetime, or represents an interval of time.
 
     Examples
     --------
+    >>> from pandas.tseries.offsets import DateOffset
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
     >>> ts + DateOffset(months=3)
     Timestamp('2017-04-01 09:10:11')
 
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
-    >>> ts + DateOffset(month=3)
+    >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
 
@@ -603,7 +605,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
         else:
             raise ApplyTypeError(
-                "Only know how to combine business day with " "datetime or timedelta."
+                "Only know how to combine business day with datetime or timedelta."
             )
 
     @apply_index_wraps
@@ -1542,6 +1544,13 @@ class Week(DateOffset):
     def apply(self, other):
         if self.weekday is None:
             return other + self.n * self._inc
+
+        if not isinstance(other, datetime):
+            raise TypeError(
+                "Cannot add {typ} to {cls}".format(
+                    typ=type(other).__name__, cls=type(self).__name__
+                )
+            )
 
         k = self.n
         otherDay = other.weekday()

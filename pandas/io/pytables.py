@@ -40,8 +40,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
-    SparseDataFrame,
-    SparseSeries,
     TimedeltaIndex,
     concat,
     isna,
@@ -173,12 +171,7 @@ use the format='fixed(f)|table(t)' keyword instead
 """
 
 # map object types
-_TYPE_MAP = {
-    Series: "series",
-    SparseSeries: "sparse_series",
-    DataFrame: "frame",
-    SparseDataFrame: "sparse_frame",
-}
+_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -186,9 +179,7 @@ _STORER_MAP = {
     "DataFrame": "LegacyFrameFixed",
     "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
-    "sparse_series": "SparseSeriesFixed",
     "frame": "FrameFixed",
-    "sparse_frame": "SparseFrameFixed",
 }
 
 # table class map
@@ -366,7 +357,7 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
         path_or_buf = _stringify_path(path_or_buf)
         if not isinstance(path_or_buf, str):
             raise NotImplementedError(
-                "Support for generic buffers has not " "been implemented."
+                "Support for generic buffers has not been implemented."
             )
         try:
             exists = os.path.exists(path_or_buf)
@@ -429,10 +420,10 @@ def _is_metadata_of(group, parent_group):
 
 
 class HDFStore:
-
     """
-    Dict-like IO interface for storing pandas objects in PyTables
-    either Fixed or Table format.
+    Dict-like IO interface for storing pandas objects in PyTables.
+
+    Either Fixed or Table format.
 
     Parameters
     ----------
@@ -564,13 +555,12 @@ class HDFStore:
 
     def keys(self):
         """
-        Return a (potentially unordered) list of the keys corresponding to the
-        objects stored in the HDFStore. These are ABSOLUTE path-names (e.g.
-        have the leading '/'
+        Return a list of keys corresponding to objects stored in HDFStore.
 
         Returns
         -------
         list
+            List of ABSOLUTE path-names (e.g. have the leading '/').
         """
         return [n._v_pathname for n in self.groups()]
 
@@ -703,7 +693,7 @@ class HDFStore:
 
     def get(self, key):
         """
-        Retrieve pandas object stored in file
+        Retrieve pandas object stored in file.
 
         Parameters
         ----------
@@ -711,7 +701,8 @@ class HDFStore:
 
         Returns
         -------
-        obj : same type as object stored in file
+        object
+            Same type as object stored in file.
         """
         group = self.get_node(key)
         if group is None:
@@ -731,25 +722,31 @@ class HDFStore:
         **kwargs
     ):
         """
-        Retrieve pandas object stored in file, optionally based on where
-        criteria
+        Retrieve pandas object stored in file, optionally based on where criteria.
 
         Parameters
         ----------
         key : object
-        where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
-        columns : a list of columns that if not None, will limit the return
-            columns
-        iterator : boolean, return an iterator, default False
-        chunksize : nrows to include in iteration, return an iterator
-        auto_close : boolean, should automatically close the store when
-            finished, default is False
+                Object being retrieved from file.
+        where : list, default None
+                List of Term (or convertible) objects, optional.
+        start : int, default None
+                Row number to start selection.
+        stop : int, default None
+                Row number to stop selection.
+        columns : list, default None
+                A list of columns that if not None, will limit the return columns.
+        iterator : bool, default False
+                Returns an iterator.
+        chunksize : int, default None
+                Number or rows to include in iteration, return an iterator.
+        auto_close : bool, default False
+            Should automatically close the store when finished.
 
         Returns
         -------
-        The selected object
+        object
+            Retrieved object from file.
         """
         group = self.get_node(key)
         if group is None:
@@ -929,28 +926,30 @@ class HDFStore:
 
     def put(self, key, value, format=None, append=False, **kwargs):
         """
-        Store object in HDFStore
+        Store object in HDFStore.
 
         Parameters
         ----------
-        key      : object
-        value    : {Series, DataFrame}
-        format   : 'fixed(f)|table(t)', default is 'fixed'
+        key : object
+        value : {Series, DataFrame}
+        format : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable
+                       Fast writing/reading. Not-appendable, nor searchable.
             table(t) : Table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
-                       / selecting subsets of the data
-        append   : boolean, default False
+                       / selecting subsets of the data.
+        append   : bool, default False
             This will force Table format, append the input data to the
             existing.
-        data_columns : list of columns to create as data columns, or True to
+        data_columns : list, default None
+            List of columns to create as data columns, or True to
             use all columns. See `here
             <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        encoding : default None, provide an encoding for strings
-        dropna   : boolean, default False, do not write an ALL nan row to
-            the store settable by the option 'io.hdf.dropna_table'
+        encoding : str, default None
+            Provide an encoding for strings.
+        dropna   : bool, default False, do not write an ALL nan row to
+            The store settable by the option 'io.hdf.dropna_table'.
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -998,7 +997,7 @@ class HDFStore:
                 return None
 
         # remove the node
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -1047,7 +1046,7 @@ class HDFStore:
         """
         if columns is not None:
             raise TypeError(
-                "columns is not a supported keyword in append, " "try data_columns"
+                "columns is not a supported keyword in append, try data_columns"
             )
 
         if dropna is None:
@@ -1165,12 +1164,15 @@ class HDFStore:
         s.create_index(**kwargs)
 
     def groups(self):
-        """return a list of all the top-level nodes (that are not themselves a
-        pandas storage object)
+        """
+        Return a list of all the top-level nodes.
+
+        Each node returned is not a pandas storage object.
 
         Returns
         -------
         list
+            List of objects.
         """
         _tables()
         self._check_if_open()
@@ -1188,10 +1190,12 @@ class HDFStore:
         ]
 
     def walk(self, where="/"):
-        """ Walk the pytables group hierarchy for pandas objects
+        """
+        Walk the pytables group hierarchy for pandas objects.
 
         This generator will yield the group path, subgroups and pandas object
         names for each group.
+
         Any non-pandas PyTables objects that are not a group will be ignored.
 
         The `where` group itself is listed first (preorder), then each of its
@@ -1202,18 +1206,17 @@ class HDFStore:
 
         Parameters
         ----------
-        where : str, optional
+        where : str, default "/"
             Group where to start walking.
-            If not supplied, the root group is used.
 
         Yields
         ------
         path : str
-            Full path to a group (without trailing '/')
-        groups : list of str
-            names of the groups contained in `path`
-        leaves : list of str
-            names of the pandas objects contained in `path`
+            Full path to a group (without trailing '/').
+        groups : list
+            Names (strings) of the groups contained in `path`.
+        leaves : list
+            Names (strings) of the pandas objects contained in `path`.
         """
         _tables()
         self._check_if_open()
@@ -1533,7 +1536,6 @@ class HDFStore:
 
 
 class TableIterator:
-
     """ define the iteration interface on a table
 
         Parameters
@@ -1641,7 +1643,6 @@ class TableIterator:
 
 
 class IndexCol:
-
     """ an index column description class
 
         Parameters
@@ -1781,7 +1782,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:  # noqa: E722
+        except Exception:
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -1955,7 +1956,6 @@ class IndexCol:
 
 
 class GenericIndexCol(IndexCol):
-
     """ an index which is not represented in the data of the table """
 
     @property
@@ -1993,7 +1993,6 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-
     """ a data holding column, by definition this is not indexable
 
         Parameters
@@ -2161,7 +2160,7 @@ class DataCol(IndexCol):
             # which is an error
 
             raise TypeError(
-                "too many timezones in this block, create separate " "data columns"
+                "too many timezones in this block, create separate data columns"
             )
         elif inferred_type == "unicode":
             raise TypeError("[unicode] is not implemented as a table column")
@@ -2338,9 +2337,7 @@ class DataCol(IndexCol):
         if append:
             existing_fields = getattr(self.attrs, self.kind_attr, None)
             if existing_fields is not None and existing_fields != list(self.values):
-                raise ValueError(
-                    "appended items do not match existing items" " in table!"
-                )
+                raise ValueError("appended items do not match existing items in table!")
 
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if existing_dtype is not None and existing_dtype != self.dtype:
@@ -2445,7 +2442,6 @@ class DataCol(IndexCol):
 
 
 class DataIndexableCol(DataCol):
-
     """ represent a data column that can be indexed """
 
     is_data_indexable = True
@@ -2468,7 +2464,6 @@ class DataIndexableCol(DataCol):
 
 
 class GenericDataIndexableCol(DataIndexableCol):
-
     """ represent a generic pytables data column """
 
     def get_attr(self):
@@ -2476,7 +2471,6 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-
     """ represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
@@ -2636,7 +2630,7 @@ class Fixed:
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if com._all_none(where, start, stop):
+        if com.all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -2644,7 +2638,6 @@ class Fixed:
 
 
 class GenericFixed(Fixed):
-
     """ a generified fixed version """
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
@@ -2834,7 +2827,7 @@ class GenericFixed(Fixed):
             # write the level
             if is_extension_type(lev):
                 raise NotImplementedError(
-                    "Saving a MultiIndex with an " "extension dtype is not supported."
+                    "Saving a MultiIndex with an extension dtype is not supported."
                 )
             level_key = "{key}_level{idx}".format(key=key, idx=i)
             conv_level = _convert_index(
@@ -2900,7 +2893,12 @@ class GenericFixed(Fixed):
             kwargs["freq"] = node._v_attrs["freq"]
 
         if "tz" in node._v_attrs:
-            kwargs["tz"] = node._v_attrs["tz"]
+            if isinstance(node._v_attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = node._v_attrs["tz"]
 
         if kind in ("date", "datetime"):
             index = factory(
@@ -3071,83 +3069,6 @@ class SeriesFixed(GenericFixed):
         self.attrs.name = obj.name
 
 
-class SparseFixed(GenericFixed):
-    def validate_read(self, kwargs):
-        """
-        we don't support start, stop kwds in Sparse
-        """
-        kwargs = super().validate_read(kwargs)
-        if "start" in kwargs or "stop" in kwargs:
-            raise NotImplementedError(
-                "start and/or stop are not supported " "in fixed Sparse reading"
-            )
-        return kwargs
-
-
-class SparseSeriesFixed(SparseFixed):
-    pandas_kind = "sparse_series"
-    attributes = ["name", "fill_value", "kind"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index("index")
-        sp_values = self.read_array("sp_values")
-        sp_index = self.read_index("sp_index")
-        return SparseSeries(
-            sp_values,
-            index=index,
-            sparse_index=sp_index,
-            kind=self.kind or "block",
-            fill_value=self.fill_value,
-            name=self.name,
-        )
-
-    def write(self, obj, **kwargs):
-        super().write(obj, **kwargs)
-        self.write_index("index", obj.index)
-        self.write_index("sp_index", obj.sp_index)
-        self.write_array("sp_values", obj.sp_values)
-        self.attrs.name = obj.name
-        self.attrs.fill_value = obj.fill_value
-        self.attrs.kind = obj.kind
-
-
-class SparseFrameFixed(SparseFixed):
-    pandas_kind = "sparse_frame"
-    attributes = ["default_kind", "default_fill_value"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        columns = self.read_index("columns")
-        sdict = {}
-        for c in columns:
-            key = "sparse_series_{columns}".format(columns=c)
-            s = SparseSeriesFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[c] = s.read()
-        return SparseDataFrame(
-            sdict,
-            columns=columns,
-            default_kind=self.default_kind,
-            default_fill_value=self.default_fill_value,
-        )
-
-    def write(self, obj, **kwargs):
-        """ write it as a collection of individual sparse series """
-        super().write(obj, **kwargs)
-        for name, ss in obj.items():
-            key = "sparse_series_{name}".format(name=name)
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseSeriesFixed(self.parent, node)
-            s.write(ss)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index("columns", obj.columns)
-
-
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
     is_shape_reversed = False
@@ -3204,7 +3125,9 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(
                 "block{idx}_values".format(idx=i), start=_start, stop=_stop
             )
-            blk = make_block(values, placement=items.get_indexer(blk_items))
+            blk = make_block(
+                values, placement=items.get_indexer(blk_items), ndim=len(axes)
+            )
             blocks.append(blk)
 
         return self.obj_type(BlockManager(blocks, axes))
@@ -3239,7 +3162,6 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-
     """ represent a table:
           facilitate read/write of various types of tables
 
@@ -3376,7 +3298,7 @@ class Table(Fixed):
             return obj.reset_index(), levels
         except ValueError:
             raise ValueError(
-                "duplicate names/columns in the multi-index when " "storing as a table"
+                "duplicate names/columns in the multi-index when storing as a table"
             )
 
     @property
@@ -4081,7 +4003,7 @@ class Table(Fixed):
             return False
 
         if where is not None:
-            raise TypeError("read_column does not currently accept a where " "clause")
+            raise TypeError("read_column does not currently accept a where clause")
 
         # find the axes
         for a in self.axes:
@@ -4114,7 +4036,6 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-
     """ a write-once read-many table: this format DOES NOT ALLOW appending to a
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
@@ -4136,7 +4057,6 @@ class WORMTable(Table):
 
 
 class LegacyTable(Table):
-
     """ an appendable table: allow append/query/delete operations to a
           (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
@@ -4464,7 +4384,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)))
+            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
             mgr = BlockManager([block], [cols_, index_])
             frames.append(DataFrame(mgr))
 
@@ -4590,7 +4510,6 @@ class GenericTable(AppendableFrameTable):
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
-
     """ a frame with a multi-index """
 
     table_type = "appendable_multiframe"
@@ -4949,7 +4868,6 @@ def _need_convert(kind):
 
 
 class Selection:
-
     """
     Carries out a selection operation on a tables.Table object.
 
@@ -4990,7 +4908,7 @@ class Selection:
                             self.stop is not None and (where >= self.stop).any()
                         ):
                             raise ValueError(
-                                "where must have index locations >= start and " "< stop"
+                                "where must have index locations >= start and < stop"
                             )
                         self.coordinates = where
 

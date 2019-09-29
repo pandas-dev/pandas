@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as reduction
+import pandas._libs.reduction as libreduction
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -206,14 +207,17 @@ class BaseGrouper:
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
 
-            except reduction.InvalidApply:
+            except libreduction.InvalidApply:
                 # Cannot fast apply on MultiIndex (_has_complex_internals).
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 pass
-            except Exception:
-                # raise this error to the caller
-                pass
+            except TypeError as err:
+                if "Cannot convert" in str(err):
+                    # via apply_frame_axis0 if we pass a non-ndarray
+                    pass
+                else:
+                    raise
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
@@ -451,6 +455,7 @@ class BaseGrouper:
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
+        orig_values = values
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
@@ -461,9 +466,7 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError(
-                "{} are not support in cython ops".format(values.dtype)
-            )
+            raise NotImplementedError("{} dtype not supported".format(values.dtype))
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
@@ -475,23 +478,11 @@ class BaseGrouper:
                     "timedelta64 type does not support {} operations".format(how)
                 )
 
-        arity = self._cython_arity.get(how, 1)
-
-        vdim = values.ndim
-        swapped = False
-        if vdim == 1:
-            values = values[:, None]
-            out_shape = (self.ngroups, arity)
-        else:
-            if axis > 0:
-                swapped = True
-                assert axis == 1, axis
-                values = values.T
-            if arity > 1:
-                raise NotImplementedError(
-                    "arity of more than 1 is not supported for the 'how' argument"
-                )
-            out_shape = (self.ngroups,) + values.shape[1:]
+        if is_datetime64tz_dtype(values.dtype):
+            # Cast to naive; we'll cast back at the end of the function
+            # TODO: possible need to reshape?  kludge can be avoided when
+            #  2D EA is allowed.
+            values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
         is_numeric = is_numeric_dtype(values.dtype)
@@ -512,6 +503,24 @@ class BaseGrouper:
             values = ensure_float64(values)
         else:
             values = values.astype(object)
+
+        arity = self._cython_arity.get(how, 1)
+
+        vdim = values.ndim
+        swapped = False
+        if vdim == 1:
+            values = values[:, None]
+            out_shape = (self.ngroups, arity)
+        else:
+            if axis > 0:
+                swapped = True
+                assert axis == 1, axis
+                values = values.T
+            if arity > 1:
+                raise NotImplementedError(
+                    "arity of more than 1 is not supported for the 'how' argument"
+                )
+            out_shape = (self.ngroups,) + values.shape[1:]
 
         try:
             func = self._get_cython_function(kind, how, values, is_numeric)
@@ -581,6 +590,11 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
+        if is_datetime64tz_dtype(orig_values.dtype):
+            result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
+        elif is_datetimelike and kind == "aggregate":
+            result = result.astype(orig_values.dtype)
+
         return result, names
 
     def aggregate(self, values, how, axis=0, min_count=-1):
@@ -602,14 +616,9 @@ class BaseGrouper:
         is_datetimelike,
         min_count=-1,
     ):
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                chunk = chunk.squeeze()
-                agg_func(result[:, :, i], counts, chunk, comp_ids, min_count)
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
@@ -627,20 +636,9 @@ class BaseGrouper:
     ):
 
         comp_ids, _, ngroups = self.group_info
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                transform_func(
-                    result[:, :, i],
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
-                    **kwargs
-                )
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
@@ -665,7 +663,7 @@ class BaseGrouper:
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
-        grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
+        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
         result, counts = grouper.get_result()
         return result, counts
 
@@ -693,7 +691,6 @@ class BaseGrouper:
 
 
 class BinGrouper(BaseGrouper):
-
     """
     This is an internal Grouper class
 
@@ -839,7 +836,7 @@ class BinGrouper(BaseGrouper):
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
-        grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
 
@@ -906,7 +903,7 @@ class DataSplitter:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
-        return sdata.iloc[slice_obj]
+        raise AbstractMethodError(self)
 
     def apply(self, f):
         raise AbstractMethodError(self)
@@ -920,20 +917,16 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
-        try:
-            starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        except Exception:
-            # fails when all -1
-            return [], True
+        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         sdata = self._get_sorted_data()
-        return reduction.apply_frame_axis0(sdata, f, names, starts, ends)
+        return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)
 
 
 def get_splitter(data, *args, **kwargs):
