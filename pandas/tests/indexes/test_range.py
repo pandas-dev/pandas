@@ -1038,7 +1038,7 @@ class TestRangeIndex(Numeric):
 
         assert "_engine" in idx._cache
 
-    def test_limit(self):
+    def test_reindex_limit(self):
         # GH 28631
         data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]
         exp_data = [
@@ -1054,8 +1054,10 @@ class TestRangeIndex(Numeric):
         expected = pd.DataFrame(exp_data)
         tm.assert_frame_equal(result, expected)
 
-        idx = pd.Index(range(4))
-        target = pd.Index([0, 1, 2, 3, 4, 5])
-        arr = idx.get_indexer(target, method="pad", limit=1)
-        expected_arr = np.array([0, 1, 2, 3, 3, -1])
-        assert (arr == expected_arr).all()
+    def test_get_indexer_limit(self):
+        # GH 28631
+        idx = Index(range(4))
+        target = Index([0, 1, 2, 3, 4, 5])
+        result = idx.get_indexer(target, method="pad", limit=1)
+        expected = np.array([0, 1, 2, 3, 3, -1])
+        assert (result == expected).all()
