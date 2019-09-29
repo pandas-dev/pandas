@@ -136,19 +136,8 @@ def test_groupby_return_type():
 
     # https://github.com/pandas-dev/pandas/issues/28330
     # Test groupby operations on subclassed dataframes/series
-    class ChildSeries(Series):
-        pass
 
-    class ChildDataFrame(DataFrame):
-        @property
-        def _constructor(self):
-            return ChildDataFrame
-
-        _constructor_sliced = ChildSeries
-
-    ChildSeries._constructor_expanddim = ChildDataFrame
-
-    cdf = ChildDataFrame(
+    cdf = tm.SubclassedDataFrame(
         [
             {"val1": 1, "val2": 20},
             {"val1": 1, "val2": 19},
@@ -157,9 +146,9 @@ def test_groupby_return_type():
         ]
     )
     result = cdf.groupby("val1").sum()
-    assert isinstance(result, ChildDataFrame)
+    assert isinstance(result, tm.SubclassedDataFrame)
     assert isinstance(result, DataFrame)
-    assert isinstance(result["val2"], ChildSeries)
+    assert isinstance(result["val2"], tm.SubclassedSeries)
     assert isinstance(result["val2"], Series)
 
 
