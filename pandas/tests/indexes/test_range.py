@@ -1058,4 +1058,4 @@ class TestRangeIndex(Numeric):
         target = pd.Index([0, 1, 2, 3, 4, 5])
         arr = idx.get_indexer(target, method="pad", limit=1)
         expected_arr = np.array([0, 1, 2, 3, 3, -1])
-        tm.assert_numpy_array_equal(arr, expected_arr)
+        assert (arr == expected_arr).all()
