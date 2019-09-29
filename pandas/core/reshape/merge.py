@@ -6,6 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
+from typing import Any, List, Tuple, cast
 import warnings
 
 import numpy as np
@@ -919,7 +920,7 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        join_names = []
+        join_names: List = []
         right_drop = []
         left_drop = []
 
@@ -1755,9 +1756,10 @@ def _get_multiindex_indexer(join_keys, index, sort):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rcodes, lcodes, shape = map(list, zip(*map(fkeys, index.levels, join_keys)))
+    rcodes_, lcodes, shape_ = map(list, zip(*map(fkeys, index.levels, join_keys)))
+    shape = cast(List[int], shape_)
     if sort:
-        rcodes = list(map(np.take, rcodes, index.codes))
+        rcodes = list(map(np.take, rcodes_, index.codes))
     else:
         i8copy = lambda a: a.astype("i8", subok=False, copy=True)
         rcodes = list(map(i8copy, index.codes))
@@ -1835,7 +1837,7 @@ _join_functions = {
 }
 
 
-def _factorize_keys(lk, rk, sort=True):
+def _factorize_keys(lk, rk, sort: bool = True) -> Tuple[Any, Any, int]:
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = getattr(lk, "_values", lk)._data
