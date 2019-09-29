@@ -1362,6 +1362,9 @@ class TestDataFrameAggregate:
         # GH 28652
         df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
         result = df.groupby("a").apply(lambda g: g.index)
+        expected = Series(
+            [pd.Int64Index([1]), pd.Int64Index([2])],
+            index=pd.Int64Index([1, 2], name="a"),
+        )
 
-        tm.assert_index_equal(result[1], pd.Int64Index([1]))
-        tm.assert_index_equal(result[2], pd.Int64Index([2]))
+        tm.assert_series_equal(result, expected)
