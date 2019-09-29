@@ -80,6 +80,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.shift`, :meth:`pandas.core.groupby.GroupBy.bfill` and :meth:`pandas.core.groupby.GroupBy.ffill` where timezone information would be dropped (:issue:`19995`, :issue:`27992`)
 -
 -
+-
 
 Reshaping
 ^^^^^^^^^
