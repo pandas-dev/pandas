@@ -1118,7 +1118,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # GH 10156
         if any(isna(removals)):
-            not_included = [x for x in not_included if notna(x)]
+            not_included = {x for x in not_included if notna(x)}
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
