@@ -446,7 +446,7 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
+            Frequency string indicating the rounding resolution.
         ambiguous : {'raise', 'NaT', bool}, default 'raise'
             The behavior is as follows:
 
@@ -458,8 +458,8 @@ class Timestamp(_Timestamp):
             .. versionadded:: 0.24.0.
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
-            A nonexistent time does not exist in a particular timezone where
-            clocks moved forward due to DST.
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
 
             * 'shift_forward' will shift the nonexistent time forward to the
               closest existing time.
@@ -478,7 +478,7 @@ timedelta}, default 'raise'
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -491,7 +491,7 @@ timedelta}, default 'raise'
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
+            Frequency string indicating the flooring resolution.
         ambiguous : {'raise', 'NaT', bool}, default 'raise'
             The behavior is as follows:
 
@@ -503,8 +503,8 @@ timedelta}, default 'raise'
             .. versionadded:: 0.24.0.
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
-            A nonexistent time does not exist in a particular timezone where
-            clocks moved forward due to DST.
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
 
             * 'shift_forward' will shift the nonexistent time forward to the
               closest existing time.
@@ -542,8 +542,8 @@ timedelta}, default 'raise'
             .. versionadded:: 0.24.0.
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
-            A nonexistent time does not exist in a particular timezone where
-            clocks moved forward due to DST.
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
 
             * 'shift_forward' will shift the nonexistent time forward to the
               closest existing time.
@@ -812,7 +812,6 @@ default 'raise'
               nonexistent times.
 
             .. versionadded:: 0.24.0.
-
         errors : 'raise', 'coerce', default None
             Determine how errors should be handled.
 
