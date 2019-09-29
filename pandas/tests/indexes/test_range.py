@@ -1037,3 +1037,25 @@ class TestRangeIndex(Numeric):
             assert idx.get_loc("a") == -1
 
         assert "_engine" in idx._cache
+
+    def test_limit(self):
+        # GH 28631
+        data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]
+        exp_data = [
+            ["A", "A", "A"],
+            ["B", "B", "B"],
+            ["C", "C", "C"],
+            ["D", "D", "D"],
+            ["D", "D", "D"],
+            [np.nan, np.nan, np.nan],
+        ]
+        df = pd.DataFrame(data)
+        result = df.reindex([0, 1, 2, 3, 4, 5], method="ffill", limit=1)
+        expected = pd.DataFrame(exp_data)
+        tm.assert_frame_equal(result, expected)
+
+        idx = pd.Index(range(4))
+        target = pd.Index([0, 1, 2, 3, 4, 5])
+        arr = idx.get_indexer(target, method="pad", limit=1)
+        expected_arr = np.array([0, 1, 2, 3, 3, -1])
+        tm.assert_numpy_array_equal(arr, expected_arr)
