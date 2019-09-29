@@ -10,8 +10,19 @@ import copy
 import functools
 from functools import partial
 from textwrap import dedent
-import typing
-from typing import Any, Callable, FrozenSet, Iterator, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterator,
+    List,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -67,7 +78,7 @@ AggScalar = Union[str, Callable[..., Any]]
 # TODO: validate types on ScalarResult and move to _typing
 # Blocked from using by https://github.com/python/mypy/issues/1484
 # See note at _mangle_lambda_list
-ScalarResult = typing.TypeVar("ScalarResult")
+ScalarResult = TypeVar("ScalarResult")
 
 
 def whitelist_method_generator(
@@ -278,7 +289,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result: Dict = OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -303,7 +314,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = OrderedDict()
+        result: Dict = OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -922,7 +933,7 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results = OrderedDict()
+        results: Dict = OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -1000,7 +1011,7 @@ class SeriesGroupBy(GroupBy):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = OrderedDict()
+        result: Dict = OrderedDict()
 
         for name, group in self:
             group.name = name
@@ -1080,7 +1091,7 @@ class SeriesGroupBy(GroupBy):
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func: Callable, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -1115,8 +1126,8 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notna(x, *args, **kwargs):
-            b = wrapper(x, *args, **kwargs)
+        def true_and_notna(x):
+            b = wrapper(x)
             return b and notna(b)
 
         try:
@@ -1719,7 +1730,9 @@ def _is_multi_agg_with_relabel(**kwargs):
     return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and kwargs
 
 
-def _normalize_keyword_aggregation(kwargs):
+def _normalize_keyword_aggregation(
+    kwargs: Dict
+) -> Tuple[Dict[str, List], List[str], List[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
 
@@ -1754,7 +1767,7 @@ def _normalize_keyword_aggregation(kwargs):
     # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
     # May be hitting https://github.com/python/mypy/issues/5958
     # saying it doesn't have an attribute __name__
-    aggspec = OrderedDict()
+    aggspec: Dict[str, List[Callable]] = OrderedDict()
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
@@ -1884,7 +1897,10 @@ def _maybe_mangle_lambdas(agg_spec: Any) -> Any:
     return mangled_aggspec
 
 
-def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
+_T = TypeVar("_T", bound=DataFrame)
+
+
+def _recast_datetimelike_result(result: _T) -> _T:
     """
     If we have date/time like in the original, then coerce dates
     as we are stacking can easily have object dtypes here.
