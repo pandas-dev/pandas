@@ -3355,7 +3355,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def take(self, indices, axis=0, is_copy=True, **kwargs):
+    # def take(self, indices, axis=0, is_copy=True, **kwargs):
+  
+    def take(self, indices, axis=0, is_copy=None, **kwargs):
         """
         Return the elements in the given *positional* indices along an axis.
 
@@ -3372,6 +3374,8 @@ class NDFrame(PandasObject, SelectionMixin):
             selecting rows, ``1`` means that we are selecting columns.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+
+            .. deprecated:: 0.25.2
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -3430,6 +3434,14 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
+        is_copy = True
+
         nv.validate_take(tuple(), kwargs)
 
         self._consolidate_inplace()
@@ -5014,7 +5026,7 @@ class NDFrame(PandasObject, SelectionMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis, is_copy=False)
+        return self.take(locs, axis=axis)
 
     _shared_docs[
         "pipe"
@@ -7255,7 +7267,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs, is_copy=False)
+        data = self.take(locs)
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
