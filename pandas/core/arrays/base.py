@@ -36,7 +36,7 @@ class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
 
-    pandas will recognize instances of this class as proper arrays
+    pandas will recognize instances of this claspandas.api.extensions.ExtensionArray.views as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
@@ -474,7 +474,7 @@ class ExtensionArray:
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use NEXT valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -485,7 +485,8 @@ class ExtensionArray:
 
         Returns
         -------
-        filled : ExtensionArray with NA/NaN filled
+        ExtensionArray
+            with NA/NaN filled
         """
         value, method = validate_fillna_kwargs(value, method)
 
