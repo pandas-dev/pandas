@@ -2066,7 +2066,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         fname : str
-            string file path
+            String file path.
         """
         from pandas.io.feather_format import to_feather
 
@@ -4772,6 +4772,7 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         keep : {'first', 'last', False}, default 'first'
+            Determines which duplicates (if any) to keep.
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
@@ -4806,10 +4807,10 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the
-              first occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the
-              last occurrence.
+            Determines which duplicates (if any) to mark.
+
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
             - False : Mark all duplicates as ``True``.
 
         Returns
@@ -6233,8 +6234,8 @@ class DataFrame(NDFrame):
         ----------
         level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
-        fill_value : replace NaN with this value if the unstack produces
-            missing values
+        fill_value : int, string or dict
+            Replace NaN with this value if the unstack produces missing values
 
         Returns
         -------
@@ -6665,6 +6666,8 @@ class DataFrame(NDFrame):
                by result_type='broadcast'.
 
         raw : bool, default False
+            Determines if row or column is passed as a Series or ndarry object:
+
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray objects
@@ -7357,6 +7360,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
@@ -7556,10 +7561,13 @@ class DataFrame(NDFrame):
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
+            row-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
@@ -7939,8 +7947,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : bool, default True
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
@@ -7976,8 +7984,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : bool, default True
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
