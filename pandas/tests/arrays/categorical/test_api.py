@@ -334,11 +334,6 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
 
-        # remove null
-        res = cat.remove_categories("")
-        tm.assert_categorical_equal((cat, old))
-        tm.assert_categorical_equal((res, old))
-
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
         tm.assert_categorical_equal(cat, new)
