@@ -36,6 +36,7 @@ If you want to support pandas development, you can find information in the [dona
     {% endfor %}
 </div>
 
+
 ## Diversity and Inclusion
     
 > _pandas_ expressly welcomes and encourages anyone who faces under-representation,discrimination in the technology industry 
@@ -45,11 +46,9 @@ If you want to support pandas development, you can find information in the [dona
 > if you see a violation of our [code of conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) 
 > on this issue,please report it to the [pandas team](pandas-coc@googlegroups.com).
 
-
 ## Governance
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
-
 The project governance is available in the [project governance documents](https://github.com/pandas-dev/pandas-governance).
 
 ## Code of conduct committee
