@@ -2255,7 +2255,11 @@ class DataFrame(NDFrame):
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
-            buf=buf, classes=classes, notebook=notebook, border=border, encoding=encoding
+            buf=buf,
+            classes=classes,
+            notebook=notebook,
+            border=border,
+            encoding=encoding
         )
 
     # ----------------------------------------------------------------------
