@@ -351,7 +351,7 @@ class TestCategoricalAPI:
 
         res = cat.remove_categories("a")
         tm.assert_categorical_equal((cat1, old1))
-        tm.assert_categorical_equal((res1, new1))
+        tm.assert_categorical_equal((res, new1))
         assert res is None
 
         # removal is not in categories
