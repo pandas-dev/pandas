@@ -508,6 +508,8 @@ class PlotAccessor(PandasObject):
         Allows plotting of one column versus another. Only used if data is a
         DataFrame.
     kind : str
+        The kind of plot to produce:
+
         - 'line' : line plot (default)
         - 'bar' : vertical bar plot
         - 'barh' : horizontal bar plot
@@ -531,7 +533,7 @@ class PlotAccessor(PandasObject):
     legend : False/True/'reverse'
         Place legend on axis subplots
     style : list or dict
-        matplotlib line style per column
+        The matplotlib line style per column
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis
         .. versionchanged:: 0.25.0
