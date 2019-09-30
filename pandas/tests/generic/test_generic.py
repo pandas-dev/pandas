@@ -589,7 +589,7 @@ class Generic:
 class TestNDFrame:
     # tests that don't fit elsewhere
 
-    def test_sample(sel):
+    def test_sample(self):
         # Fixes issue: 2419
         # additional specific object based tests
 
@@ -799,6 +799,11 @@ class TestNDFrame:
             msg = "the 'mode' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
+
+    def test_take_deprecated_kwarg_is_copy(self):
+        df = DataFrame([1, 2])
+        with tm.assert_produces_warning(FutureWarning):
+            df.take([0, 1], is_copy=True)
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
