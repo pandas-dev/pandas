@@ -301,6 +301,7 @@ Other
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+- :meth:`Series.pct_change` will can handle the anchored freq such as `1M`, `1W`, `BM`. (:issue:`28664`)
 
 .. _whatsnew_1000.contributors:
 
