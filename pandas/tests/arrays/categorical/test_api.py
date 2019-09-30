@@ -340,7 +340,7 @@ class TestCategoricalAPI:
 
         # remove duplicates
         cat1 = Categorical(["a", "b", "c", "a"], ordered=True)
-        old1 = cat.copy()
+        old1 = cat1.copy()
         c = ["b", "c"]
         new1 = Categorical([np.nan, "b", "c", np.nan], categories=c, ordered=True)
 
