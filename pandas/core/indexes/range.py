@@ -386,8 +386,9 @@ class RangeIndex(Int64Index):
         if self.step > 0:
             start, stop, step = self.start, self.stop, self.step
         else:
-            # Work on reversed range for simplicity:
-            start, stop, step = (self.stop - self.step, self.start + 1, -self.step)
+            # GH 28678: work on reversed range for simplicity
+            reverse = self._range[::-1]
+            start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
         if not (is_integer_dtype(target_array) and target_array.ndim == 1):
