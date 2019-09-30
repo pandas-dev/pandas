@@ -417,9 +417,7 @@ class TestTimeSeries(TestData):
 
         rs = self.ts.pct_change(freq="1W")
         filled = self.ts.fillna(method="pad")
-        assert_series_equal(
-            rs, self.ts.asfreq("1W")
-        )
+        assert_series_equal(rs, self.ts.asfreq("1W"))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
