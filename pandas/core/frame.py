@@ -2259,7 +2259,7 @@ class DataFrame(NDFrame):
             classes=classes,
             notebook=notebook,
             border=border,
-            encoding=encoding
+            encoding=encoding,
         )
 
     # ----------------------------------------------------------------------

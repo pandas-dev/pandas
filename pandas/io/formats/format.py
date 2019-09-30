@@ -952,8 +952,9 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(buf=buf,
-                                                                      encoding=encoding)
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
