@@ -486,7 +486,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-            with NA/NaN filled
+            With NA/NaN filled.
         """
         value, method = validate_fillna_kwargs(value, method)
 
