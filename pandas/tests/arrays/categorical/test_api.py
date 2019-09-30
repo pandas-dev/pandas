@@ -344,7 +344,7 @@ class TestCategoricalAPI:
         c = ["b", "c"]
         new1 = Categorical([np.nan, "b", "c", np.nan], categories=c, ordered=True)
 
-        res = cat.remove_categories("a")
+        res = cat1.remove_categories("a")
         tm.assert_categorical_equal(cat1, old1)
         tm.assert_categorical_equal(res, new1)
         assert res is None
