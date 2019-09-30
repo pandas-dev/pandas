@@ -339,14 +339,12 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, new)
 
         # remove duplicates
-        cat1 = Categorical(["a", "b", "c", "a"], ordered=True)
-        old1 = cat.copy()
         c = ["b", "c"]
         new1 = Categorical([np.nan, "b", "c", np.nan], categories=c, ordered=True)
 
         res = cat.remove_categories("a")
-        tm.assert_categorical_equal((cat1, old1))
-        tm.assert_categorical_equal((res, new1))
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new1)
         assert res is None
 
         # removal is not in categories
