@@ -219,7 +219,9 @@ class TestDataFrameReprInfoEtc(TestData):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-        a    2 non-null int64
+         #.  Column    Non-Null Count & Dtype
+        ---  ------    ----------------------
+         0   a         2 non-null int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(
@@ -228,6 +230,26 @@ class TestDataFrameReprInfoEtc(TestData):
         )
 
         assert result == expected
+
+    def test_info_without_null_counts(self):
+        df = pd.DataFrame({'a': [1, 2]})
+        buf = StringIO()
+        df.info(buf=buf, null_counts=False)
+        buf.seek(0)
+        lines = buf.readlines()
+        result = ''.join(lines[:-1])
+        expected = textwrap.dedent('''\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+         #.  Column    Dtype
+        ---  ------    -----
+         0   a         int64
+        dtypes: int64(1)
+        ''')
+        assert result == expected
+
+
 
     def test_info_wide(self):
         from pandas import set_option, reset_option
@@ -263,8 +285,8 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert "a    1 non-null int64\n" == lines[3]
-        assert "a    1 non-null float64\n" == lines[4]
+        assert ' 0   a         1 non-null int64\n' == lines[5]
+        assert ' 1   a         1 non-null float64\n' == lines[6]
 
     def test_info_shows_column_dtypes(self):
         dtypes = [
@@ -285,12 +307,12 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
         res = buf.getvalue()
         for i, dtype in enumerate(dtypes):
-            name = "{i:d}    {n:d} non-null {dtype}".format(i=i, n=n, dtype=dtype)
+            name = '%s         %d non-null %s' % (i, n, dtype)
             assert name in res
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(5, None), (5, False), (10, True)]:
+        for len_, verbose in [(5, None), (5, False), (12, True)]:
             # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context("max_info_columns", 4):
                 buf = StringIO()
@@ -298,7 +320,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, verbose in [(10, None), (5, False), (10, True)]:
+        for len_, verbose in [(10, None), (5, False), (12, True)]:
 
             # max_cols no exceeded
             with option_context("max_info_columns", 5):
@@ -307,7 +329,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, max_cols in [(10, 5), (5, 4)]:
+        for len_, max_cols in [(12, 5), (5, 4)]:
             # setting truncates
             with option_context("max_info_columns", 4):
                 buf = StringIO()

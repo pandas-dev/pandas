@@ -294,6 +294,34 @@ ExtensionArray
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 -
 
+Output Formatting Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :func:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({
+            'int_col': [1, 2, 3, 4, 5],
+            'text_col': ['alpha', 'beta', 'gamma', 'delta', 'epsilon'],
+            'float_col': [0.0, 0.25, 0.5, 0.75, 1.0]})
+    df.info()
+
+Previous Behavior:
+
+.. code-block:: python
+
+    In [1]: df.info()
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 5 entries, 0 to 4
+    Data columns (total 3 columns):
+    int_col      5 non-null int64
+    text_col     5 non-null object
+    float_col    5 non-null float64
+    dtypes: float64(1), int64(1), object(1)
+    memory usage: 200.0+ bytes
+
+
 
 Other
 ^^^^^

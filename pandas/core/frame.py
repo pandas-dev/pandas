@@ -2332,9 +2332,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Data columns (total 3 columns):
-        int_col      5 non-null int64
-        text_col     5 non-null object
-        float_col    5 non-null float64
+         #.  Column       Non-Null Count & Dtype
+        ---  ------       ----------------------
+         0   int_col      5 non-null int64
+         1   text_col     5 non-null object
+         2   float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
         memory usage: 248.0+ bytes
 
@@ -2373,9 +2375,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #.  Column      Non-Null Count & Dtype
+        ---  ------      ----------------------
+         0   column_1    1000000 non-null object
+         1   column_2    1000000 non-null object
+         2   column_3    1000000 non-null object
         dtypes: object(3)
         memory usage: 22.9+ MB
 
@@ -2383,9 +2387,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #.  Column      Non-Null Count & Dtype
+        ---  ------      ----------------------
+         0   column_1    1000000 non-null object
+         1   column_2    1000000 non-null object
+         2   column_3    1000000 non-null object
         dtypes: object(3)
         memory usage: 188.8 MB
         """
@@ -2404,48 +2410,61 @@ class DataFrame(NDFrame):
             return
 
         cols = self.columns
+        cols_count = len(cols)
 
         # hack
         if max_cols is None:
-            max_cols = get_option("display.max_info_columns", len(self.columns) + 1)
+            max_cols = get_option('display.max_info_columns', cols_count + 1)
 
         max_rows = get_option("display.max_info_rows", len(self) + 1)
 
         if null_counts is None:
-            show_counts = (len(self.columns) <= max_cols) and (len(self) < max_rows)
+            show_counts = (cols_count <= max_cols) and (len(self) < max_rows)
         else:
             show_counts = null_counts
-        exceeds_info_cols = len(self.columns) > max_cols
+        exceeds_info_cols = cols_count > max_cols
 
         def _verbose_repr():
-            lines.append("Data columns (total %d columns):" % len(self.columns))
-            space = max(len(pprint_thing(k)) for k in self.columns) + 4
+            lines.append('Data columns (total '
+                         '{count} columns):'.format(count=cols_count))
+            space = max(len(pprint_thing(k)) for k in cols)
+            len_column = len(pprint_thing('Column'))
+            space = max(space, len_column) + 4
+            space_num = len(pprint_thing(cols_count))
+            len_id = len(pprint_thing(' #.'))
+            space_num = max(space_num, len_id) + 2
             counts = None
 
-            tmpl = "{count}{dtype}"
+            header = _put_str(' #.', space_num) + _put_str('Column', space)
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError(
-                        "Columns must equal counts "
-                        "({cols:d} != {counts:d})".format(
-                            cols=len(cols), counts=len(counts)
-                        )
-                    )
-                tmpl = "{count} non-null {dtype}"
+                        '({cols_count} != {count})'.format(
+                            cols_count=cols_count, count=len(counts)))
+                col_header = 'Non-Null Count & Dtype'
+                tmpl = '{count} non-null {dtype}'
+            else:
+                col_header = 'Dtype'
+                tmpl = '{count}{dtype}'
+            header += col_header
 
+            lines.append(header)
+            lines.append(_put_str('-' * len_id, space_num) +
+                         _put_str('-' * len_column, space) +
+                         '-' * len(pprint_thing(col_header)))
             dtypes = self.dtypes
-            for i, col in enumerate(self.columns):
+            for i, col in enumerate(cols):
                 dtype = dtypes.iloc[i]
                 col = pprint_thing(col)
 
+                line_no = _put_str(' {num}'.format(num=i), space_num)
                 count = ""
                 if show_counts:
                     count = counts.iloc[i]
 
-                lines.append(
-                    _put_str(col, space) + tmpl.format(count=count, dtype=dtype)
-                )
+                lines.append(line_no + _put_str(col, space) +
+                             tmpl.format(count=count, dtype=dtype))
 
         def _non_verbose_repr():
             lines.append(self.columns._summary(name="Columns"))
