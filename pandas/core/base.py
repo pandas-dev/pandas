@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -36,6 +36,9 @@ from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series  # noqa: F401
 
 _shared_docs = dict()  # type: Dict[str, str]
 _indexops_doc_kwargs = dict(
@@ -302,13 +305,15 @@ class SelectionMixin:
             "'{cls}' object".format(arg=arg, cls=type(self).__name__)
         )
 
-    def _aggregate(self, arg, *args, **kwargs):
+    def _aggregate(
+        self, arg: Union[str, Dict], *args, **kwargs
+    ) -> Tuple[Optional[Union[Dict, "Series", "DataFrame"]], Optional[bool]]:
         """
         provide an implementation for the aggregators
 
         Parameters
         ----------
-        arg : string, dict, function
+        arg : str, dict, function
         *args : args to pass on to the function
         **kwargs : kwargs to pass on to the function
 
@@ -359,7 +364,7 @@ class SelectionMixin:
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = OrderedDict()
+                new_arg: Dict[Any, Union[Tuple, List, Dict]] = OrderedDict()
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -423,19 +428,19 @@ class SelectionMixin:
                 colg = self._gotitem(self._selection, ndim=2, subset=obj)
                 return colg.aggregate(how, _level=None)
 
-            def _agg(arg, func):
+            def _agg(arg: Dict, func: Callable) -> Dict:
                 """
                 run the aggregations over the arg with func
                 return an OrderedDict
                 """
-                result = OrderedDict()
+                result: Dict = OrderedDict()
                 for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(arg.keys())
-            result = OrderedDict()
+            result: Any = OrderedDict()
 
             # nested renamer
             if is_nested_renamer:
@@ -526,7 +531,7 @@ class SelectionMixin:
                 return result, True
 
             # fall thru
-            from pandas import DataFrame, Series
+            from pandas import DataFrame, Series  # noqa: F811
 
             try:
                 result = DataFrame(result)
@@ -605,7 +610,7 @@ class SelectionMixin:
             # e.g. a list of scalars
 
             from pandas.core.dtypes.cast import is_nested_object
-            from pandas import Series
+            from pandas import Series  # noqa: F811
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
@@ -1234,7 +1239,7 @@ class IndexOpsMixin:
                 # convert to an Series for efficiency.
                 # we specify the keys here to handle the
                 # possibility that they are tuples
-                from pandas import Series
+                from pandas import Series  # noqa: F811
 
                 mapper = Series(mapper)
 
