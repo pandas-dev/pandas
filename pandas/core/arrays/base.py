@@ -870,11 +870,12 @@ class ExtensionArray:
         Parameters
         ----------
         dtype : str, np.dtype, or ExtensionDtype, optional
-            Default None
+            Default None.
 
         Returns
         -------
         ExtensionArray
+            The array calling .view.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
