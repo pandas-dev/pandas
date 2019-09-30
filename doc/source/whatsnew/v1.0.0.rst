@@ -445,6 +445,8 @@ Other
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
+- Bug in :meth:`Series.sort_values` when ``ascending`` is set to ``False`` and
+  ``kind`` is set to ``mergesort`` (:issue:`28697`)
 
 
 .. _whatsnew_1000.contributors:

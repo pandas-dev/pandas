@@ -75,6 +75,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.sorting import nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -3077,26 +3078,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "sort in-place you must create a copy"
             )
 
-        def _try_kind_sort(arr):
-            # easier to ask forgiveness than permission
-            try:
-                # if kind==mergesort, it can fail for object dtype
-                return arr.argsort(kind=kind)
-            except TypeError:
-                # stable sort not available for object dtype
-                # uses the argsort default quicksort
-                return arr.argsort(kind="quicksort")
-
-        arr = self._values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
-
-        bad = isna(arr)
-
-        good = ~bad
-        idx = ibase.default_index(len(self))
-
-        argsorted = _try_kind_sort(arr[good])
-
         if is_list_like(ascending):
             if len(ascending) != 1:
                 raise ValueError(
@@ -3108,21 +3089,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not is_bool(ascending):
             raise ValueError("ascending must be boolean")
 
-        if not ascending:
-            argsorted = argsorted[::-1]
+        arr = self._values
+        indexer = nargsort(arr, kind=kind, ascending=ascending, na_position=na_position)
 
-        if na_position == "last":
-            n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
-        elif na_position == "first":
-            n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
-        else:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
-
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+        result = self._constructor(arr[indexer], index=self.index[indexer])
 
         if inplace:
             self._update_inplace(result)

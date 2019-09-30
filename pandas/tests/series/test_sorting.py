@@ -86,6 +86,17 @@ class TestSeriesSorting:
         with pytest.raises(ValueError, match=msg):
             s.sort_values(inplace=True)
 
+    def test_sort_values_mergesort(self):
+        ser = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
+        expected = Series([1, 1, 2, 3], ["first", "second", "b", "c"])
+        result = ser.sort_values(kind="mergesort")
+        tm.assert_series_equal(expected, result)
+
+        # ascending=False is not just a reverse of ascending=True
+        expected = Series([3, 2, 1, 1], ["c", "b", "first", "second"])
+        result = ser.sort_values(ascending=False, kind="mergesort")
+        tm.assert_series_equal(expected, result)
+
     def test_sort_index(self, datetime_series):
         rindex = list(datetime_series.index)
         random.shuffle(rindex)
