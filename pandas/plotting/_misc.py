@@ -213,8 +213,8 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 @deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
 def andrews_curves(
-    frame, class_column, ax=None, samples=200, color=None, colormap=None,
-        **kwargs):
+    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
+):
     """
     Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
