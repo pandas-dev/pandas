@@ -346,7 +346,8 @@ class TestCategoricalAPI:
         # remove duplicates
         cat1 = Categorical(["a", "b", "c", "a"], ordered=True)
         old1 = cat.copy()
-        new1 = Categorical([np.nan, "b", "c", np.nan], categories=["a", "b"], ordered=True)
+        c = ["b", "c"]
+        new1 = Categorical([np.nan, "b", "c", np.nan], categories=c, ordered=True)
 
         res = cat.remove_categories("a")
         tm.assert_categorical_equal((cat1, old1))
