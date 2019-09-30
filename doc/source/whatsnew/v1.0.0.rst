@@ -50,7 +50,7 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_1000.string:
+.. _whatsnew_100.text:
 
 Dedicated text data type
 ^^^^^^^^^^^^^^^^^^^^^^^^
