@@ -1056,8 +1056,8 @@ class TestRangeIndex(Numeric):
 
     def test_get_indexer_limit(self):
         # GH 28631
-        idx = Index(range(4))
-        target = Index([0, 1, 2, 3, 4, 5])
+        idx = RangeIndex(0, 4)
+        target = RangeIndex(0, 6)
         result = idx.get_indexer(target, method="pad", limit=1)
         expected = np.array([0, 1, 2, 3, 3, -1])
-        assert (result == expected).all()
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
