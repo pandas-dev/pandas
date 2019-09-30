@@ -48,17 +48,17 @@ class Grouper:
 
     Parameters
     ----------
-    key : string, defaults to None
+    key : str, defaults to None
         groupby key, which selects the grouping column of the target
     level : name/number, defaults to None
         the level for the target index
-    freq : string / frequency object, defaults to None
+    freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
-    sort : boolean, default to False
+    sort : bool, default to False
         whether to sort the resulting labels
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -69,7 +69,7 @@ class Grouper:
         If grouper is PeriodIndex and `freq` parameter is passed.
     base : int, default 0
         Only when `freq` parameter is passed.
-    loffset : string, DateOffset, timedelta object
+    loffset : str, DateOffset, timedelta object
         Only when `freq` parameter is passed.
 
     Returns
@@ -217,7 +217,6 @@ class Grouper:
 
 
 class Grouping:
-
     """
     Holds the grouping information for a single key
 
@@ -584,18 +583,22 @@ def _get_grouper(
     # if the actual grouper should be obj[key]
     def is_in_axis(key):
         if not _is_label_like(key):
+            items = obj._data.items
             try:
-                obj._data.items.get_loc(key)
-            except Exception:
+                items.get_loc(key)
+            except (KeyError, TypeError):
+                # TypeError shows up here if we pass e.g. Int64Index
                 return False
 
         return True
 
     # if the grouper is obj[name]
     def is_in_obj(gpr):
+        if not hasattr(gpr, "name"):
+            return False
         try:
-            return id(gpr) == id(obj[gpr.name])
-        except Exception:
+            return gpr is obj[gpr.name]
+        except (KeyError, IndexError):
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):

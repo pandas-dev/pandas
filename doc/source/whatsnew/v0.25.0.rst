@@ -828,7 +828,7 @@ If installed, we now require:
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
-For `optional libraries <https://dev.pandas.io/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
@@ -902,8 +902,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 **Previous way**
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
    df.dtypes

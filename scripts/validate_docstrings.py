@@ -13,20 +13,20 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-import os
-import sys
-import json
-import re
-import glob
-import functools
-import collections
 import argparse
-import pydoc
-import inspect
-import importlib
-import doctest
-import tempfile
 import ast
+import collections
+import doctest
+import functools
+import glob
+import importlib
+import inspect
+import json
+import os
+import pydoc
+import re
+import sys
+import tempfile
 import textwrap
 
 import flake8.main.application
@@ -41,20 +41,20 @@ except ImportError:
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ["MPLBACKEND"] = "Template"
-import matplotlib
+import matplotlib  # noqa: E402 isort:skip
 
 matplotlib.rc("figure", max_open_warning=10000)
 
-import numpy
+import numpy  # noqa: E402 isort:skip
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas
+import pandas  # noqa: E402 isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.docscrape import NumpyDocString
-from pandas.io.formats.printing import pprint_thing
+from numpydoc.docscrape import NumpyDocString  # noqa: E402 isort:skip
+from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]

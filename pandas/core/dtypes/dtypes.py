@@ -23,7 +23,7 @@ str_type = str
 ordered_sentinel = object()  # type: object
 
 
-def register_extension_dtype(cls: Type[ExtensionDtype],) -> Type[ExtensionDtype]:
+def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -685,7 +685,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
             raise pytz.UnknownTimeZoneError(tz)
-        elif tz is None:
+        if tz is None:
             raise TypeError("A 'tz' is required.")
 
         self._unit = unit
@@ -737,14 +737,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         if isinstance(string, str):
             msg = "Could not construct DatetimeTZDtype from '{}'"
-            try:
-                match = cls._match.match(string)
-                if match:
-                    d = match.groupdict()
+            match = cls._match.match(string)
+            if match:
+                d = match.groupdict()
+                try:
                     return cls(unit=d["unit"], tz=d["tz"])
-            except Exception:
-                # TODO(py3): Change this pass to `raise TypeError(msg) from e`
-                pass
+                except (KeyError, TypeError, ValueError) as err:
+                    # KeyError if maybe_get_tz tries and fails to get a
+                    #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                    # TypeError if we pass a nonsense tz;
+                    # ValueError if we pass a unit other than "ns"
+                    raise TypeError(msg.format(string)) from err
             raise TypeError(msg.format(string))
 
         raise TypeError("Could not construct DatetimeTZDtype")

@@ -30,7 +30,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -248,8 +248,18 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        with pytest.raises(TypeError, match="^Could not construct DatetimeTZDtype$"):
+        msg = "^Could not construct DatetimeTZDtype"
+        with pytest.raises(TypeError, match=msg):
+            # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
+
+        with pytest.raises(TypeError, match=msg):
+            # non-nano unit
+            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
+
+        with pytest.raises(TypeError, match=msg):
+            # dateutil str that returns None from gettz
+            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
@@ -960,9 +970,8 @@ def test_is_bool_dtype(dtype, expected):
     assert result is expected
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    result = is_bool_dtype(pd.Series(pd.SparseArray([True, False])))
     assert result is True
 
 

@@ -653,7 +653,8 @@ b  2""",
                     # mark this column as an error
                     try:
                         return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except (AttributeError):
+                    except AttributeError:
+                        # e.g. SparseArray has no flags attr
                         raise ValueError
 
         return wrapper
@@ -726,8 +727,7 @@ b  2""",
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f)
-            except Exception:
-
+            except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
                 # operation, by excluding the grouping column
@@ -1011,7 +1011,6 @@ b  2""",
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data.
 
@@ -1033,7 +1032,7 @@ class GroupBy(_GroupBy):
         Most users should ignore this
     exclusions : array-like, optional
         List of columns to exclude
-    name : string
+    name : str
         Most users should ignore this
 
     Returns
@@ -1254,7 +1253,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1277,7 +1276,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1312,7 +1311,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1624,7 +1623,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -1650,7 +1649,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -2100,13 +2099,13 @@ class GroupBy(_GroupBy):
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        ascending : boolean, default True
+        ascending : bool, default True
             False for ranks by high (1) to low (N)
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
-        pct : boolean, default False
+        pct : bool, default False
             Compute percentage rank of data within each group
         axis : int, default 0
             The axis of the object over which to compute the rank.
@@ -2264,26 +2263,28 @@ class GroupBy(_GroupBy):
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
+            values = obj._data._values
+
             if aggregate:
                 result_sz = ngroups
             else:
-                result_sz = len(obj.values)
+                result_sz = len(values)
 
             if not cython_dtype:
-                cython_dtype = obj.values.dtype
+                cython_dtype = values.dtype
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
             inferences = None
 
             if needs_values:
-                vals = obj.values
+                vals = values
                 if pre_processing:
                     vals, inferences = pre_processing(vals)
                 func = partial(func, vals)
 
             if needs_mask:
-                mask = isna(obj.values).view(np.uint8)
+                mask = isna(values).view(np.uint8)
                 func = partial(func, mask)
 
             if needs_ngroups:
@@ -2292,7 +2293,7 @@ class GroupBy(_GroupBy):
             func(**kwargs)  # Call func to modify indexer values in place
 
             if result_is_index:
-                result = algorithms.take_nd(obj.values, result)
+                result = algorithms.take_nd(values, result)
 
             if post_processing:
                 result = post_processing(result, inferences)
@@ -2312,7 +2313,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        periods : integer, default 1
+        periods : int, default 1
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
