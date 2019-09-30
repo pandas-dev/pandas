@@ -2212,8 +2212,8 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-        encoding : str
-            Default is utf-8.
+        encoding : str, default "utf-8"
+            Set character encoding
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
