@@ -101,7 +101,7 @@ Backwards incompatible API changes
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
-- Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:``).
+- Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
   Now, pandas custom formatters will only be applied to plots created by pandas, through :meth:`~DataFrame.plot`.
   Previously, pandas' formatters would be applied to all plots created *after* a :meth:`~DataFrame.plot`.
 
