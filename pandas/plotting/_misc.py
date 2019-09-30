@@ -102,10 +102,10 @@ def scatter_matrix(
         Histogram plot in the diagonal.
     marker : str, optional
         Matplotlib marker type, default '.'.
-    hist_kwds : keywords
-        Keyword arguments to be passed to hist function.
     density_kwds : keywords
         Keyword arguments to be passed to kernel density estimate plot.
+    hist_kwds : keywords
+        Keyword arguments to be passed to hist function.
     range_padding : float, default 0.05
         Relative extension of axis range in x and y with respect to
         (x_max - x_min) or (y_max - y_min).
