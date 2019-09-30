@@ -383,7 +383,6 @@ class RangeIndex(Int64Index):
         if not (
             method is None
             and tolerance is None
-            and limit is None
             and is_list_like(target)
         ):
             return super().get_indexer(
