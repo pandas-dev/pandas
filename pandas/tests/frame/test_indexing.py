@@ -2228,9 +2228,9 @@ class TestDataFrameIndexing(TestData):
             ["D", "D", "D"],
             [np.nan, np.nan, np.nan],
         ]
-        df = pd.DataFrame(data)
+        df = DataFrame(data)
         result = df.reindex([0, 1, 2, 3, 4, 5], method="ffill", limit=1)
-        expected = pd.DataFrame(exp_data)
+        expected = DataFrame(exp_data)
         tm.assert_frame_equal(result, expected)
 
     def test_set_dataframe_column_ns_dtype(self):
