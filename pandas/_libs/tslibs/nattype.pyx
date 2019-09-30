@@ -551,7 +551,7 @@ class NaTType(_NaT):
         """)
     round = _make_nat_func('round',  # noqa:E128
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
@@ -589,7 +589,7 @@ default 'raise'
         """)
     floor = _make_nat_func('floor',  # noqa:E128
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -623,7 +623,7 @@ default 'raise'
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -735,7 +735,7 @@ default 'raise'
         """)
     replace = _make_nat_func('replace',  # noqa:E128
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

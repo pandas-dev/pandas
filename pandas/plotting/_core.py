@@ -22,7 +22,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    **kwds
+    **kwargs
 ):
     """
     Draw histogram of the input series using matplotlib.
@@ -50,7 +50,7 @@ def hist_series(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    `**kwds` : keywords
+    **kwargs
         To be passed to the actual plotting function
 
     Returns
@@ -74,7 +74,7 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
-        **kwds
+        **kwargs
     )
 
 
@@ -93,7 +93,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    **kwds
+    **kwargs
 ):
     """
     Make a histogram of the DataFrame's.
@@ -145,7 +145,7 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    **kwds
+    **kwargs
         All other plotting keyword arguments to be passed to
         :meth:`matplotlib.pyplot.hist`.
 
@@ -188,7 +188,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
         bins=bins,
-        **kwds
+        **kwargs
     )
 
 
@@ -203,7 +203,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwargs
 ):
     """
     Make a box plot from DataFrame columns.
@@ -254,7 +254,7 @@ def boxplot(
 
           If ``return_type`` is `None`, a NumPy array
           of axes with the same shape as ``layout`` is returned.
-    **kwds
+    **kwargs
         All other plotting keyword arguments to be passed to
         :func:`matplotlib.pyplot.boxplot`.
 
@@ -379,7 +379,7 @@ def boxplot(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwargs
     )
 
 
@@ -395,7 +395,7 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwargs
 ):
     plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame(
@@ -409,7 +409,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwargs
     )
 
 
@@ -425,7 +425,7 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwargs
 ):
     """
     Make box plots from DataFrameGroupBy data.
@@ -453,7 +453,7 @@ def boxplot_frame_groupby(
         Whether y-axes will be shared among subplots
 
         .. versionadded:: 0.23.1
-    `**kwds` : Keyword Arguments
+    **kwargs
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
 
@@ -489,7 +489,7 @@ def boxplot_frame_groupby(
         layout=layout,
         sharex=sharex,
         sharey=sharey,
-        **kwds
+        **kwargs
     )
 
 
@@ -580,7 +580,7 @@ class PlotAccessor(PandasObject):
         labels with "(right)" in the legend
     include_bool : bool, default is False
         If True, boolean values can be plotted.
-    `**kwds` : keywords
+    **kwargs
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -804,7 +804,7 @@ class PlotAccessor(PandasObject):
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -874,7 +874,7 @@ class PlotAccessor(PandasObject):
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -957,7 +957,7 @@ class PlotAccessor(PandasObject):
             Column to be used for categories.
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -1043,7 +1043,7 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
-        **kwds : optional
+        **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
 
@@ -1086,7 +1086,7 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -1142,7 +1142,7 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
-        **kwds : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`pandas.%(this-datatype)s.plot`.
 
@@ -1244,7 +1244,7 @@ class PlotAccessor(PandasObject):
         stacked : bool, default True
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
-        **kwds : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -1316,7 +1316,7 @@ class PlotAccessor(PandasObject):
         y : int or label, optional
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -1398,7 +1398,7 @@ class PlotAccessor(PandasObject):
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
 
-        **kwds
+        **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
@@ -1470,7 +1470,7 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
-        **kwds
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 

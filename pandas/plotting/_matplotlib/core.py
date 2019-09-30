@@ -1430,8 +1430,13 @@ class BarPlot(MPLPlot):
 
     def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
-        ax.set_xticks(self.tick_pos)
-        ax.set_xticklabels(ticklabels)
+
+        if self.xticks is not None:
+            ax.set_xticks(np.array(self.xticks))
+        else:
+            ax.set_xticks(self.tick_pos)
+            ax.set_xticklabels(ticklabels)
+
         if name is not None and self.use_index:
             ax.set_xlabel(name)
 
