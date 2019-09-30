@@ -35,14 +35,15 @@ If you want to support pandas development, you can find information in the [dona
         </div>
     {% endfor %}
 </div>
-**Diversity and Inclusion **
+
+## Diversity and Inclusion
     
-    > _pandas_ expressly welcomes and encourages anyone who faces under-representation,systemic bias or discrimination 
-    > in the technology industry to contribute.
-    > We have identified the visible diversity gap and obstacles in the open source community and we are strongly against it.
-    > If you identify as any of the groups mentioned above do not hesitate to make your contribution,
-    > if you see a violation of our [code of conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) on this issue,
-    > please report it to the [pandas team](pandas-coc@googlegroups.com).
+> _pandas_ expressly welcomes and encourages anyone who faces under-representation,discrimination in the technology industry 
+> or anyone willing to increase the diversity of our team,we encourage you to contribute.
+> We have identified the visible diversity gap and obstacles in the open source community and we are strongly against it.
+> If you identify as any of the groups mentioned above do not hesitate to make your contribution,
+> if you see a violation of our [code of conduct](https://github.com/pandas-dev/pandas/blob/master/.github/CODE_OF_CONDUCT.md) 
+> on this issue,please report it to the [pandas team](pandas-coc@googlegroups.com).
 
 
 ## Governance
