@@ -2180,6 +2180,7 @@ class DataFrame(NDFrame):
         header=True,
         index=True,
         na_rep="NaN",
+        encoding="utf-8",
         formatters=None,
         float_format=None,
         sparsify=None,
@@ -2211,6 +2212,8 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
+        encoding : str
+            Default is utf-8.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2252,7 +2255,7 @@ class DataFrame(NDFrame):
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
-            buf=buf, classes=classes, notebook=notebook, border=border
+            buf=buf, classes=classes, notebook=notebook, border=border, encoding=encoding
         )
 
     # ----------------------------------------------------------------------
