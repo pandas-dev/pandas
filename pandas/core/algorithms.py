@@ -176,7 +176,6 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-    from pandas import Index
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
@@ -184,7 +183,7 @@ def _reconstruct_data(values, dtype, original):
         values = values.astype(dtype)
 
         # we only support object dtypes bool Index
-        if isinstance(original, Index):
+        if isinstance(original, ABCIndexClass):
             values = values.astype(object)
     elif dtype is not None:
         values = values.astype(dtype)
@@ -833,7 +832,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna=True):
+def mode(values, dropna: bool = True):
     """
     Returns the mode(s) of an array.
 
@@ -1888,7 +1887,7 @@ _diff_special = {
 }
 
 
-def diff(arr, n, axis=0):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1904,7 +1903,6 @@ def diff(arr, n, axis=0):
     Returns
     -------
     shifted
-
     """
 
     n = int(n)
@@ -1935,13 +1933,15 @@ def diff(arr, n, axis=0):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
-        res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
-        res_indexer = tuple(res_indexer)
+        # To keep mypy happy, _res_indexer is a list while res_indexer is
+        #  a tuple, ditto for lag_indexer.
+        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
+        res_indexer = tuple(_res_indexer)
 
-        lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
-        lag_indexer = tuple(lag_indexer)
+        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
+        lag_indexer = tuple(_lag_indexer)
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers
