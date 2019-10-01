@@ -162,17 +162,15 @@ def _maybe_remove(store, key):
 
 
 @pytest.mark.single
-class TestHDFStore():
+class TestHDFStore:
     def test_format_kwarg_in_constructor(self, setup_path):
         # GH 13291
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(ValueError):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
-        path = create_tempfile(setup_path
-                               )
+        path = create_tempfile(setup_path)
         try:
             with HDFStore(path) as tbl:
                 raise ValueError("blah")
@@ -192,8 +190,7 @@ class TestHDFStore():
             safe_remove(path)
 
     def test_conv_read_write(self, setup_path):
-        path = create_tempfile(setup_path
-                               )
+        path = create_tempfile(setup_path)
         try:
 
             def roundtrip(key, obj, **kwargs):
@@ -225,8 +222,7 @@ class TestHDFStore():
             {"a": tm.rands_array(100, size=10)}, index=tm.rands_array(100, size=10)
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df, data_columns=["a"])
 
             result = store.select("df")
@@ -236,8 +232,7 @@ class TestHDFStore():
 
         # GH4584
         # API issue when to_hdf doesn't accept append AND format args
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path, "df", append=True, format="table")
@@ -249,8 +244,7 @@ class TestHDFStore():
             df.iloc[10:].to_hdf(path, "df", append=True, format="table")
             assert_frame_equal(read_hdf(path, "df"), df)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path, "df", append=True)
@@ -262,8 +256,7 @@ class TestHDFStore():
             df.iloc[10:].to_hdf(path, "df", append=True)
             assert_frame_equal(read_hdf(path, "df"), df)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path, "df", append=False, format="fixed")
@@ -278,8 +271,7 @@ class TestHDFStore():
             df.to_hdf(path, "df")
             assert_frame_equal(read_hdf(path, "df"), df)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             path = store._path
             df = tm.makeDataFrame()
@@ -306,8 +298,7 @@ class TestHDFStore():
             store.append("df", df.iloc[10:], append=True, format=None)
             assert_frame_equal(store.select("df"), df)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             # Invalid.
             df = tm.makeDataFrame()
 
@@ -331,8 +322,7 @@ class TestHDFStore():
     def test_api_default_format(self, setup_path):
 
         # default_format option
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = tm.makeDataFrame()
 
             pd.set_option("io.hdf.default_format", "fixed")
@@ -352,8 +342,7 @@ class TestHDFStore():
 
             pd.set_option("io.hdf.default_format", None)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
 
@@ -376,8 +365,7 @@ class TestHDFStore():
 
     def test_keys(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeSeries()
             store["b"] = tm.makeStringSeries()
             store["c"] = tm.makeDataFrame()
@@ -392,8 +380,7 @@ class TestHDFStore():
         # GH 20523
         # Puts a softlink into HDF file and rereads
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(dict(A=range(5), B=range(5)))
             store.put("df", df)
@@ -407,15 +394,13 @@ class TestHDFStore():
 
     def test_iter_empty(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # GH 12221
             assert list(store) == []
 
     def test_repr(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             repr(store)
             store.info()
             store["a"] = tm.makeTimeSeries()
@@ -449,8 +434,7 @@ class TestHDFStore():
             store.info()
 
         # storers
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = tm.makeDataFrame()
             store.append("df", df)
@@ -462,8 +446,7 @@ class TestHDFStore():
     @ignore_natural_naming_warning
     def test_contains(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeSeries()
             store["b"] = tm.makeDataFrame()
             store["foo/bar"] = tm.makeDataFrame()
@@ -482,8 +465,7 @@ class TestHDFStore():
 
     def test_versioning(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeSeries()
             store["b"] = tm.makeDataFrame()
             df = tm.makeTimeDataFrame()
@@ -510,8 +492,7 @@ class TestHDFStore():
 
         def check(mode):
 
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
 
                 # constructor
                 if mode in ["r", "r+"]:
@@ -523,8 +504,7 @@ class TestHDFStore():
                     assert store._handle.mode == mode
                     store.close()
 
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
 
                 # context
                 if mode in ["r", "r+"]:
@@ -535,8 +515,7 @@ class TestHDFStore():
                     with HDFStore(path, mode=mode) as store:
                         assert store._handle.mode == mode
 
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
 
                 # conv write
                 if mode in ["r", "r+"]:
@@ -557,8 +536,7 @@ class TestHDFStore():
         def check_default_mode():
 
             # read_hdf uses default mode
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
                 df.to_hdf(path, "df", mode="w")
                 result = read_hdf(path, "df")
                 assert_frame_equal(result, df)
@@ -571,8 +549,7 @@ class TestHDFStore():
 
     def test_reopen_handle(self, setup_path):
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             store = HDFStore(path, mode="a")
             store["a"] = tm.makeTimeSeries()
@@ -620,8 +597,7 @@ class TestHDFStore():
 
     def test_open_args(self, setup_path):
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
 
@@ -642,16 +618,14 @@ class TestHDFStore():
 
     def test_flush(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeSeries()
             store.flush()
             store.flush(fsync=True)
 
     def test_get(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeSeries()
             left = store.get("a")
             right = store["a"]
@@ -726,8 +700,7 @@ class TestHDFStore():
 
     def test_getattr(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             s = tm.makeTimeSeries()
             store["a"] = s
@@ -754,8 +727,7 @@ class TestHDFStore():
 
     def test_put(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             ts = tm.makeTimeSeries()
             df = tm.makeTimeDataFrame()
@@ -786,8 +758,7 @@ class TestHDFStore():
 
     def test_put_string_index(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             index = Index(
                 ["I am a very long string index: {i}".format(i=i) for i in range(20)]
@@ -816,8 +787,7 @@ class TestHDFStore():
 
     def test_put_compression(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = tm.makeTimeDataFrame()
 
             store.put("c", df, format="table", complib="zlib")
@@ -831,8 +801,7 @@ class TestHDFStore():
     def test_put_compression_blosc(self, setup_path):
         df = tm.makeTimeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # can't compress if format='fixed'
             with pytest.raises(ValueError):
@@ -847,8 +816,7 @@ class TestHDFStore():
 
         # Set complevel and check if complib is automatically set to
         # default value
-        with ensure_clean_path(setup_path
-                               ) as tmpfile:
+        with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df", complevel=9)
             result = pd.read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
@@ -859,8 +827,7 @@ class TestHDFStore():
                     assert node.filters.complib == "zlib"
 
         # Set complib and check to see if compression is disabled
-        with ensure_clean_path(setup_path
-                               ) as tmpfile:
+        with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df", complib="zlib")
             result = pd.read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
@@ -871,8 +838,7 @@ class TestHDFStore():
                     assert node.filters.complib is None
 
         # Check if not setting complib or complevel results in no compression
-        with ensure_clean_path(setup_path
-                               ) as tmpfile:
+        with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df")
             result = pd.read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
@@ -883,8 +849,7 @@ class TestHDFStore():
                     assert node.filters.complib is None
 
         # Check if file-defaults can be overridden on a per table basis
-        with ensure_clean_path(setup_path
-                               ) as tmpfile:
+        with ensure_clean_path(setup_path) as tmpfile:
             store = pd.HDFStore(tmpfile)
             store.append("dfc", df, complevel=9, complib="blosc")
             store.append("df", df)
@@ -915,8 +880,7 @@ class TestHDFStore():
         all_tests = [(lib, lvl) for lib in all_complibs for lvl in all_levels]
 
         for (lib, lvl) in all_tests:
-            with ensure_clean_path(setup_path
-                                   ) as tmpfile:
+            with ensure_clean_path(setup_path) as tmpfile:
                 gname = "foo"
 
                 # Write and read file to see if data is consistent
@@ -957,8 +921,7 @@ class TestHDFStore():
         df.loc[3:6, ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             _maybe_remove(store, "df")
 
             # PerformanceWarning
@@ -974,8 +937,7 @@ class TestHDFStore():
     )
     def test_append(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # this is allowed by almost always don't want to do it
             # tables.NaturalNameWarning):
@@ -1043,8 +1005,7 @@ class TestHDFStore():
 
     def test_append_series(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # basic
             ss = tm.makeStringSeries()
@@ -1092,8 +1053,7 @@ class TestHDFStore():
         # GH5386
         # test storing various index types
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             def check(format, index):
                 df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
@@ -1128,8 +1088,7 @@ class TestHDFStore():
     )
     def test_encoding(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = DataFrame(dict(A="foo", B="bar"), index=range(5))
             df.loc[2, "A"] = np.nan
             df.loc[3, "B"] = np.nan
@@ -1164,8 +1123,7 @@ class TestHDFStore():
         val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
         ser = pd.Series(val, dtype=dtype)
 
-        with ensure_clean_path(setup_path
-                               ) as store:
+        with ensure_clean_path(setup_path) as store:
             ser.to_hdf(store, key, format="table", encoding=enc, nan_rep=nan_rep)
             retr = read_hdf(store, key)
 
@@ -1184,8 +1142,7 @@ class TestHDFStore():
 
     def test_append_some_nans(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = DataFrame(
                 {
                     "A": Series(np.random.randn(20)).astype("int32"),
@@ -1231,8 +1188,7 @@ class TestHDFStore():
 
     def test_append_all_nans(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(
                 {"A1": np.random.randn(20), "A2": np.random.randn(20)},
@@ -1320,16 +1276,14 @@ class TestHDFStore():
             {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
         )
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df_with_missing.to_hdf(path, "df_with_missing", format="table")
             reloaded = read_hdf(path, "df_with_missing")
             tm.assert_frame_equal(df_with_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
@@ -1342,8 +1296,7 @@ class TestHDFStore():
 
     def test_append_frame_column_oriented(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # column oriented
             df = tm.makeTimeDataFrame()
@@ -1368,8 +1321,7 @@ class TestHDFStore():
     def test_append_with_different_block_ordering(self, setup_path):
 
         # GH 4096; using same frames, but different block orderings
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             for i in range(10):
 
@@ -1392,8 +1344,7 @@ class TestHDFStore():
 
         # test a different ordering but with more fields (like invalid
         # combinate)
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")
             df["int64"] = Series([1] * len(df), dtype="int64")
@@ -1412,8 +1363,7 @@ class TestHDFStore():
 
     def test_append_with_strings(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             with catch_warnings(record=True):
 
                 def check_col(key, name, size):
@@ -1487,8 +1437,7 @@ class TestHDFStore():
                 result = store.select("df")
                 tm.assert_frame_equal(result, df)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             def check_col(key, name, size):
                 assert getattr(
@@ -1530,8 +1479,7 @@ class TestHDFStore():
 
     def test_append_with_empty_string(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # with all empty strings (GH 12242)
             df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
@@ -1541,8 +1489,7 @@ class TestHDFStore():
 
     def test_to_hdf_with_min_itemsize(self, setup_path):
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             # min_itemsize in index with to_hdf (GH 10381)
             df = tm.makeMixedDataFrame().set_index("C")
@@ -1566,8 +1513,7 @@ class TestHDFStore():
 
         data = ["\ud800foo"]
         ser = pd.Series(data, index=pd.Index(data))
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
 
@@ -1576,8 +1522,7 @@ class TestHDFStore():
 
     def test_append_with_data_columns(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = tm.makeTimeDataFrame()
             df.iloc[0, df.columns.get_loc("B")] = 1.0
             _maybe_remove(store, "df")
@@ -1618,8 +1563,7 @@ class TestHDFStore():
                     == size
                 )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             _maybe_remove(store, "df")
             store.append(
                 "df", df_new, data_columns=["string"], min_itemsize={"string": 30}
@@ -1634,8 +1578,7 @@ class TestHDFStore():
             )
             check_col("df", "string", 30)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df_new["string2"] = "foobarbah"
             df_new["string_block1"] = "foobarbah1"
             df_new["string_block2"] = "foobarbah2"
@@ -1650,8 +1593,7 @@ class TestHDFStore():
             check_col("df", "string2", 40)
             check_col("df", "values_block_1", 50)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # multiple data columns
             df_new = df.copy()
             df_new.iloc[0, df_new.columns.get_loc("A")] = 1.0
@@ -1684,8 +1626,7 @@ class TestHDFStore():
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
             tm.assert_frame_equal(result, expected, check_index_type=False)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # doc example
             df_dc = df.copy()
             df_dc["string"] = "foo"
@@ -1709,8 +1650,7 @@ class TestHDFStore():
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
             tm.assert_frame_equal(result, expected, check_index_type=False)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # doc example part 2
             np.random.seed(1234)
             index = date_range("1/1/2000", periods=8)
@@ -1736,8 +1676,7 @@ class TestHDFStore():
 
     def test_create_table_index(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             with catch_warnings(record=True):
 
@@ -1775,8 +1714,7 @@ class TestHDFStore():
         )
         df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("mi", df)
             result = store.select("mi")
             tm.assert_frame_equal(result, df)
@@ -1804,8 +1742,7 @@ class TestHDFStore():
         if isinstance(expected.index, RangeIndex):
             expected.index = Int64Index(expected.index)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             store.put("df", df)
             tm.assert_frame_equal(
@@ -1823,8 +1760,7 @@ class TestHDFStore():
                 store.put("df3", df, format="table", data_columns=True)
 
         # appending multi-column on existing table (see GH 6167)
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df2", df)
             store.append("df2", df)
 
@@ -1838,8 +1774,7 @@ class TestHDFStore():
         if isinstance(expected.index, RangeIndex):
             expected.index = Int64Index(expected.index)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             store.put("df1", df, format="table")
             tm.assert_frame_equal(
@@ -1850,8 +1785,7 @@ class TestHDFStore():
 
         # validate multi-index names
         # GH 5527
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             def make_index(names=None):
                 return MultiIndex.from_tuples(
@@ -1931,8 +1865,7 @@ class TestHDFStore():
         # With a DataFrame
         df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table")
             expected = df[["A"]]
 
@@ -1942,8 +1875,7 @@ class TestHDFStore():
 
         # With a Series
         s = Series(np.random.randn(10), index=index, name="A")
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("s", s, format="table")
             tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
 
@@ -1954,8 +1886,7 @@ class TestHDFStore():
         )
         df = pd.DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df, data_columns=True)
 
             actual = store.select("df", where="id == 1")
@@ -1966,8 +1897,7 @@ class TestHDFStore():
 
         df = tm.makeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df)
             with pytest.raises(TypeError):
                 store.select("df", columns=["A"])
@@ -1977,8 +1907,7 @@ class TestHDFStore():
     @xfail_non_writeable
     def test_append_misc(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = tm.makeDataFrame()
             store.append("df", df, chunksize=1)
             result = store.select("df")
@@ -1991,8 +1920,7 @@ class TestHDFStore():
         # more chunksize in append tests
         def check(obj, comparator):
             for c in [10, 200, 1000]:
-                with ensure_clean_store(setup_path
-                        , mode="w") as store:
+                with ensure_clean_store(setup_path, mode="w") as store:
                     store.append("obj", obj, chunksize=c)
                     result = store.select("obj")
                     comparator(result, obj)
@@ -2007,8 +1935,7 @@ class TestHDFStore():
         check(df, tm.assert_frame_equal)
 
         # empty frame, GH4273
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # 0 len
             df_empty = DataFrame(columns=list("ABC"))
@@ -2030,8 +1957,7 @@ class TestHDFStore():
 
     def test_append_raise(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # test append with invalid input to get good error messages
 
@@ -2078,16 +2004,14 @@ class TestHDFStore():
         df1 = DataFrame({"a": [1, 2, 3]})
         df2 = DataFrame({"a": [4, 5, 6]}, index=date_range("1/1/2000", periods=3))
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("frame", df1, format="table")
             with pytest.raises(TypeError):
                 store.put("frame", df2, format="table", append=True)
 
     def test_table_values_dtypes_roundtrip(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
             store.append("df_f8", df1)
             assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
@@ -2159,15 +2083,13 @@ class TestHDFStore():
         df.loc[3:6, ["obj1"]] = np.nan
         df = df._consolidate()._convert(datetime=True)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df1_mixed", df)
             tm.assert_frame_equal(store.select("df1_mixed"), df)
 
     def test_unimplemented_dtypes_table_columns(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             dtypes = [("date", datetime.date(2001, 1, 2))]
 
@@ -2185,8 +2107,7 @@ class TestHDFStore():
         df["datetime1"] = datetime.date(2001, 1, 2)
         df = df._consolidate()._convert(datetime=True)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # this fails because we have a date in the object block......
             with pytest.raises(TypeError):
                 store.append("df_unimplemented", df)
@@ -2217,8 +2138,7 @@ class TestHDFStore():
 
         s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             store.put("fixed", s)
             result = store.select("fixed")
@@ -2233,8 +2153,7 @@ class TestHDFStore():
         time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
         df = pd.DataFrame(data=[0], index=[time])
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("frame", df, format="fixed")
             recons = store["frame"]
             tm.assert_frame_equal(recons, df)
@@ -2256,8 +2175,7 @@ class TestHDFStore():
         df["C"] = df["A"] - df["B"]
         df.loc[3:5, "C"] = np.nan
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # table
             _maybe_remove(store, "df")
@@ -2292,8 +2210,7 @@ class TestHDFStore():
 
     def test_remove(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             ts = tm.makeTimeSeries()
             df = tm.makeDataFrame()
@@ -2333,8 +2250,7 @@ class TestHDFStore():
 
     def test_invalid_terms(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             with catch_warnings(record=True):
 
@@ -2356,8 +2272,7 @@ class TestHDFStore():
                     store.select("df", "index>")
 
         # from the docs
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             dfq = DataFrame(
                 np.random.randn(10, 4),
                 columns=list("ABCD"),
@@ -2372,8 +2287,7 @@ class TestHDFStore():
             read_hdf(path, "dfq", where="A>0 or C>0")
 
         # catch the invalid reference
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             dfq = DataFrame(
                 np.random.randn(10, 4),
                 columns=list("ABCD"),
@@ -2386,8 +2300,7 @@ class TestHDFStore():
 
     def test_same_name_scoping(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             import pandas as pd
 
@@ -2423,7 +2336,9 @@ class TestHDFStore():
         self._check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
-        self._check_roundtrip(ts3, tm.assert_series_equal, path=setup_path, check_index_type=False)
+        self._check_roundtrip(
+            ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
+        )
 
     def test_float_index(self, setup_path):
 
@@ -2521,14 +2436,19 @@ class TestHDFStore():
         df.values[0, 0] = np.nan
         df.values[5, 3] = np.nan
 
-        self._check_roundtrip_table(df, tm.assert_frame_equal, path=setup_path, compression=compression)
-        self._check_roundtrip(df, tm.assert_frame_equal, path=setup_path, compression=compression)
+        self._check_roundtrip_table(
+            df, tm.assert_frame_equal, path=setup_path, compression=compression
+        )
+        self._check_roundtrip(
+            df, tm.assert_frame_equal, path=setup_path, compression=compression
+        )
 
         tdf = tm.makeTimeDataFrame()
-        self._check_roundtrip(tdf, tm.assert_frame_equal, path=setup_path, compression=compression)
+        self._check_roundtrip(
+            tdf, tm.assert_frame_equal, path=setup_path, compression=compression
+        )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # not consolidated
             df["foo"] = np.random.randn(len(df))
             store["df"] = df
@@ -2580,8 +2500,7 @@ class TestHDFStore():
         self._check_roundtrip(frame["A"], tm.assert_series_equal, path=setup_path)
 
         # check that the names are stored
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["frame"] = frame
             recons = store["frame"]
             tm.assert_frame_equal(recons, frame)
@@ -2590,8 +2509,7 @@ class TestHDFStore():
         df = tm.makeDataFrame()
         df.index.name = "foo"
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["frame"] = df
             recons = store["frame"]
             tm.assert_frame_equal(recons, df)
@@ -2603,8 +2521,7 @@ class TestHDFStore():
         df.index = df.index.tz_localize("UTC")
         df.index.name = "foo"
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("frame", df, format="table")
             recons = store["frame"]
             tm.assert_frame_equal(recons, df)
@@ -2623,8 +2540,7 @@ class TestHDFStore():
         df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
         # This used to fail, returning numpy strings instead of python strings.
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format=table_format)
             df2 = read_hdf(path, "df")
 
@@ -2637,8 +2553,7 @@ class TestHDFStore():
         df = tm.makeDataFrame()
         series = df["A"]
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["series"] = series
             recons = store["series"]
             tm.assert_series_equal(recons, series)
@@ -2664,8 +2579,7 @@ class TestHDFStore():
         self._check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
         self._check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["obj"] = df1
             tm.assert_frame_equal(store["obj"], df1)
             store["obj"] = df2
@@ -2673,13 +2587,22 @@ class TestHDFStore():
 
         # check that can store Series of all of these types
         self._check_roundtrip(
-            df1["obj1"], tm.assert_series_equal, path=setup_path, compression=compression
+            df1["obj1"],
+            tm.assert_series_equal,
+            path=setup_path,
+            compression=compression,
         )
         self._check_roundtrip(
-            df1["bool1"], tm.assert_series_equal, path=setup_path, compression=compression
+            df1["bool1"],
+            tm.assert_series_equal,
+            path=setup_path,
+            compression=compression,
         )
         self._check_roundtrip(
-            df1["int1"], tm.assert_series_equal, path=setup_path, compression=compression
+            df1["int1"],
+            tm.assert_series_equal,
+            path=setup_path,
+            compression=compression,
         )
 
     @pytest.mark.filterwarnings(
@@ -2691,8 +2614,7 @@ class TestHDFStore():
         df = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
         df.index = date_range("20130101 9:30", periods=10, freq="T")
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df)
 
             result = store.select("df")
@@ -2719,8 +2641,7 @@ class TestHDFStore():
         )
         df.index = date_range("20130101 9:30", periods=10, freq="T")
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df)
 
             result = store.select("df")
@@ -2740,8 +2661,7 @@ class TestHDFStore():
             assert_frame_equal(result, expected, by_blocks=True)
 
         # duplicates on both index and columns
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df)
             store.append("df", df)
 
@@ -2752,8 +2672,7 @@ class TestHDFStore():
 
     def test_overwrite_node(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store["a"] = tm.makeTimeDataFrame()
             ts = tm.makeTimeSeries()
             store["a"] = ts
@@ -2762,8 +2681,7 @@ class TestHDFStore():
 
     def test_select(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             with catch_warnings(record=True):
 
@@ -2803,8 +2721,7 @@ class TestHDFStore():
 
     def test_select_dtypes(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             # with a Timestamp data column (GH #2637)
             df = DataFrame(
                 dict(ts=bdate_range("2012-01-01", periods=300), A=np.random.randn(300))
@@ -2860,8 +2777,7 @@ class TestHDFStore():
             expected = df.reindex(index=list(df.index)[0:10], columns=["A"])
             tm.assert_frame_equal(expected, result)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # floats w/o NaN
             df = DataFrame(dict(cols=range(11), values=range(11)), dtype="float64")
@@ -2900,8 +2816,7 @@ class TestHDFStore():
 
         # test selection with comparison against numpy scalar
         # GH 11283
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             df = tm.makeDataFrame()
 
             expected = df[df["A"] > 0]
@@ -2913,8 +2828,7 @@ class TestHDFStore():
 
     def test_select_with_many_inputs(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(
                 dict(
@@ -2968,8 +2882,7 @@ class TestHDFStore():
     def test_select_iterator(self, setup_path):
 
         # single table
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = tm.makeTimeDataFrame(500)
             _maybe_remove(store, "df")
@@ -2990,8 +2903,7 @@ class TestHDFStore():
             result = concat(results)
             tm.assert_frame_equal(result, expected)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path, "df_non_table")
@@ -3002,8 +2914,7 @@ class TestHDFStore():
             with pytest.raises(TypeError):
                 read_hdf(path, "df_non_table", iterator=True)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path, "df", format="table")
@@ -3017,8 +2928,7 @@ class TestHDFStore():
 
         # multiple
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df1 = tm.makeTimeDataFrame(500)
             store.append("df1", df1, data_columns=True)
@@ -3046,8 +2956,7 @@ class TestHDFStore():
         chunksize = 1e4
 
         # no iterator
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             expected = tm.makeTimeDataFrame(100064, "S")
             _maybe_remove(store, "df")
@@ -3081,8 +2990,7 @@ class TestHDFStore():
             tm.assert_frame_equal(expected, result)
 
         # with iterator, full range
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             expected = tm.makeTimeDataFrame(100064, "S")
             _maybe_remove(store, "df")
@@ -3123,8 +3031,7 @@ class TestHDFStore():
         chunksize = 1e4
 
         # with iterator, non complete range
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             expected = tm.makeTimeDataFrame(100064, "S")
             _maybe_remove(store, "df")
@@ -3159,8 +3066,7 @@ class TestHDFStore():
             tm.assert_frame_equal(rexpected, result)
 
         # with iterator, empty where
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             expected = tm.makeTimeDataFrame(100064, "S")
             _maybe_remove(store, "df")
@@ -3181,8 +3087,7 @@ class TestHDFStore():
         chunksize = int(1e4)
 
         # with iterator, range limited to the first chunk
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             expected = tm.makeTimeDataFrame(100000, "S")
             _maybe_remove(store, "df")
@@ -3246,8 +3151,7 @@ class TestHDFStore():
             dict(A=Series(range(3), index=date_range("2000-1-1", periods=3, freq="H")))
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             _maybe_remove(store, "data")
             store.put("data", df, format="table")
 
@@ -3301,8 +3205,7 @@ class TestHDFStore():
         "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
     )
     def test_retain_index_attributes2(self, setup_path):
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             with catch_warnings(record=True):
 
@@ -3343,8 +3246,7 @@ class TestHDFStore():
 
         df = tm.makeTimeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("frame", df, format="table")
             date = df.index[len(df) // 2]
 
@@ -3380,8 +3282,7 @@ class TestHDFStore():
         df["string"] = "foo"
         df.loc[df.index[0:4], "string"] = "bar"
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table", data_columns=["string"])
 
             # empty
@@ -3496,8 +3397,7 @@ class TestHDFStore():
 
         df = tm.makeTimeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table")
 
             # not implemented
@@ -3510,8 +3410,7 @@ class TestHDFStore():
 
     def test_string_select(self, setup_path):
         # GH 2973
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = tm.makeTimeDataFrame()
 
@@ -3555,8 +3454,7 @@ class TestHDFStore():
 
         df = tm.makeTimeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             _maybe_remove(store, "df")
 
             # GH 17912
@@ -3628,8 +3526,7 @@ class TestHDFStore():
     def test_coordinates(self, setup_path):
         df = tm.makeTimeDataFrame()
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             _maybe_remove(store, "df")
             store.append("df", df)
@@ -3674,8 +3571,7 @@ class TestHDFStore():
             tm.assert_frame_equal(result, expected)
 
         # pass array/mask as the coordinates
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(
                 np.random.randn(1000, 2), index=date_range("20000101", periods=1000)
@@ -3737,8 +3633,7 @@ class TestHDFStore():
         df2["foo"] = "bar"
         df = concat([df1, df2], axis=1)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # exceptions
             with pytest.raises(ValueError):
@@ -3768,8 +3663,7 @@ class TestHDFStore():
         df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
         df = concat([df1, df2], axis=1)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # dropna=True should guarantee rows are synchronized
             store.append_to_multiple(
@@ -3789,8 +3683,7 @@ class TestHDFStore():
         df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
         df = concat([df1, df2], axis=1)
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # dropna=False shouldn't synchronize row indexes
             store.append_to_multiple(
@@ -3808,8 +3701,7 @@ class TestHDFStore():
         df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
         df2["foo"] = "bar"
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # no tables stored
             with pytest.raises(Exception):
@@ -3879,8 +3771,7 @@ class TestHDFStore():
     )
     def test_nan_selection_bug_4858(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(dict(cols=range(6), values=range(6)), dtype="float64")
             df["cols"] = (df["cols"] + 10).apply(str)
@@ -3898,8 +3789,7 @@ class TestHDFStore():
 
     def test_start_stop_table(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # table
             df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
@@ -3918,8 +3808,7 @@ class TestHDFStore():
     def test_start_stop_multiple(self, setup_path):
 
         # GH 16209
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
 
@@ -3934,8 +3823,7 @@ class TestHDFStore():
 
     def test_start_stop_fixed(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # fixed, GH 8287
             df = DataFrame(
@@ -3979,8 +3867,7 @@ class TestHDFStore():
         df.index = ["{c:3d}".format(c=c) for c in df.index]
         df.columns = ["{c:3d}".format(c=c) for c in df.columns]
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("frame", df, format="table")
 
             crit = "columns=df.columns[:75]"
@@ -4010,8 +3897,7 @@ class TestHDFStore():
             }
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("test_dataset", df)
 
             result = store.select("test_dataset", start=start, stop=stop)
@@ -4058,19 +3944,19 @@ class TestHDFStore():
         if compression:
             options["complib"] = _default_compressor
 
-        with ensure_clean_store(path
-                , "w", **options) as store:
+        with ensure_clean_store(path, "w", **options) as store:
             store["obj"] = obj
             retrieved = store["obj"]
             comparator(retrieved, obj, **kwargs)
 
-    def _check_double_roundtrip(self, obj, comparator, path, compression=False, **kwargs):
+    def _check_double_roundtrip(
+        self, obj, comparator, path, compression=False, **kwargs
+    ):
         options = {}
         if compression:
             options["complib"] = compression or _default_compressor
 
-        with ensure_clean_store(path
-                , "w", **options) as store:
+        with ensure_clean_store(path, "w", **options) as store:
             store["obj"] = obj
             retrieved = store["obj"]
             comparator(retrieved, obj, **kwargs)
@@ -4083,8 +3969,7 @@ class TestHDFStore():
         if compression:
             options["complib"] = _default_compressor
 
-        with ensure_clean_store(path
-                , "w", **options) as store:
+        with ensure_clean_store(path, "w", **options) as store:
             store.put("obj", obj, format="table")
             retrieved = store["obj"]
 
@@ -4093,8 +3978,7 @@ class TestHDFStore():
     def test_multiple_open_close(self, setup_path):
         # gh-4409: open & close multiple times
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path, "df", mode="w", format="table")
@@ -4108,8 +3992,7 @@ class TestHDFStore():
             assert "CLOSED" in store.info()
             assert not store.is_open
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             if pytables._table_file_open_policy_is_strict:
 
@@ -4171,8 +4054,7 @@ class TestHDFStore():
                 assert not store2.is_open
 
         # ops on a closed store
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path, "df", mode="w", format="table")
@@ -4309,8 +4191,7 @@ class TestHDFStore():
             df = tm.makeDataFrame()
 
             try:
-                path = create_tempfile(setup_path
-                                       )
+                path = create_tempfile(setup_path)
                 st = HDFStore(path)
                 st.append("df", df, data_columns=["A"])
                 st.close()
@@ -4321,8 +4202,7 @@ class TestHDFStore():
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             dt = datetime.datetime(2012, 1, 2, 3, 4, 5, 123456)
             series = Series([0], [dt])
             store["a"] = series
@@ -4330,8 +4210,7 @@ class TestHDFStore():
 
     def test_tseries_indices_series(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             idx = tm.makeDateIndex(10)
             ser = Series(np.random.randn(len(idx)), idx)
             store["a"] = ser
@@ -4352,8 +4231,7 @@ class TestHDFStore():
 
     def test_tseries_indices_frame(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             idx = tm.makeDateIndex(10)
             df = DataFrame(np.random.randn(len(idx), 3), index=idx)
             store["a"] = df
@@ -4386,15 +4264,13 @@ class TestHDFStore():
         # GH 11234
         char = "\u0394"
         df = pd.DataFrame({"A": [char]})
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table", encoding="utf-8")
             result = store.get("df")
             tm.assert_frame_equal(result, df)
 
         df = pd.DataFrame({"A": ["a", char], "B": ["b", "b"]})
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table", encoding="utf-8")
             result = store.get("df")
             tm.assert_frame_equal(result, df)
@@ -4424,8 +4300,7 @@ class TestHDFStore():
         df4 = DataFrame({("1", 2): np.random.randn(10)})
         df5 = DataFrame({("1", 2, object): np.random.randn(10)})
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             name = "df_{}".format(tm.rands(10))
             store.append(name, df)
 
@@ -4441,16 +4316,14 @@ class TestHDFStore():
             }
         )
         expected = df[df.a == "test & test"]
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
             result = store.select("test", 'a = "test & test"')
         tm.assert_frame_equal(expected, result)
 
     def test_categorical(self, setup_path):
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             # Basic
             _maybe_remove(store, "s")
@@ -4582,8 +4455,7 @@ class TestHDFStore():
 
         # We are expecting an empty DataFrame matching types of df
         expected = df.iloc[[], :]
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df", where="obsids=B")
             tm.assert_frame_equal(result, expected)
@@ -4594,8 +4466,7 @@ class TestHDFStore():
 
         # We are expecting an empty DataFrame matching types of df
         expected = df.iloc[[], :]
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df", where="obsids=B")
             tm.assert_frame_equal(result, expected)
@@ -4616,8 +4487,7 @@ class TestHDFStore():
         df["b"] = df.b.astype("category")
         df["d"] = df.b.astype("category")
         expected = df
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df")
             tm.assert_frame_equal(result, expected)
@@ -4625,8 +4495,7 @@ class TestHDFStore():
     def test_duplicate_column_name(self, setup_path):
         df = DataFrame(columns=["a", "a"], data=[[0, 0]])
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(ValueError):
                 df.to_hdf(path, "df", format="fixed")
 
@@ -4641,8 +4510,7 @@ class TestHDFStore():
         # GH 9330
         df = DataFrame({"B": [1, 2], "A": ["x", "y"]})
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table")
             other = read_hdf(path, "df")
             tm.assert_frame_equal(df, other)
@@ -4656,8 +4524,7 @@ class TestHDFStore():
         df = DataFrame(np.random.normal(size=(10, 5)))
         df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             store["df"] = df
             assert_frame_equal(store["df"], df)
@@ -4672,8 +4539,7 @@ class TestHDFStore():
         df = df.set_index(keys="E", append=True)
 
         data_columns = df.index.names + df.columns.tolist()
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(
                 path,
                 "df",
@@ -4708,8 +4574,7 @@ class TestHDFStore():
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
                 with catch_warnings(record=True):
                     msg = "cannot have non-object label DataIndexableCol"
                     with pytest.raises(ValueError, match=msg):
@@ -4717,8 +4582,7 @@ class TestHDFStore():
 
         for index in types_should_run:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
-            with ensure_clean_path(setup_path
-                                   ) as path:
+            with ensure_clean_path(setup_path) as path:
                 with catch_warnings(record=True):
                     df.to_hdf(path, "df", format="table", data_columns=True)
                     result = pd.read_hdf(
@@ -4733,8 +4597,7 @@ class TestHDFStore():
         df.index.name = "letters"
         df = df.set_index(keys="E", append=True)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="w")
             direct = read_hdf(path, "df")
             store = HDFStore(path, mode="r")
@@ -4748,8 +4611,7 @@ class TestHDFStore():
         df.index.name = "letters"
         df = df.set_index(keys="E", append=True)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="w", format="t")
             direct = read_hdf(path, "df")
             iterator = read_hdf(path, "df", iterator=True)
@@ -4761,8 +4623,7 @@ class TestHDFStore():
     def test_read_hdf_errors(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(IOError):
                 read_hdf(path, "key")
 
@@ -4779,8 +4640,7 @@ class TestHDFStore():
 
     def test_invalid_complib(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(ValueError):
                 df.to_hdf(path, "df", complib="foolib")
 
@@ -4791,8 +4651,7 @@ class TestHDFStore():
 
         # Categorical dtype not supported for "fixed" format. So no need
         # to test with that dtype in the dataframe here.
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="a")
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
@@ -4805,8 +4664,7 @@ class TestHDFStore():
         # GH13231
         df = DataFrame({"i": range(5), "c": Series(list("abacd"), dtype="category")})
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="a", format="table")
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
@@ -4816,8 +4674,7 @@ class TestHDFStore():
                 read_hdf(path)
 
     def test_read_nokey_empty(self, setup_path):
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             store = HDFStore(path)
             store.close()
 
@@ -4833,8 +4690,7 @@ class TestHDFStore():
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )
-        with ensure_clean_path(setup_path
-                               ) as filename:
+        with ensure_clean_path(setup_path) as filename:
             path_obj = Path(filename)
 
             expected.to_hdf(path_obj, "df", mode="a")
@@ -4851,8 +4707,7 @@ class TestHDFStore():
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )
-        with ensure_clean_path(setup_path
-                               ) as filename:
+        with ensure_clean_path(setup_path) as filename:
             path_obj = LocalPath(filename)
 
             expected.to_hdf(path_obj, "df", mode="a")
@@ -4864,8 +4719,7 @@ class TestHDFStore():
         # GH 14241
         df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
             cutoff = 1000000000.0006
@@ -4894,8 +4748,7 @@ class TestHDFStore():
             columns=["date", "real_date", "float", "int"],
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
             ts = pd.Timestamp("2014-01-01")  # noqa
@@ -4937,8 +4790,7 @@ class TestHDFStore():
         # Tests that reading a Series saved to an HDF file
         # still works if a mode='r' argument is supplied
         series = tm.makeFloatSeries()
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             series.to_hdf(path, key="data", format=format)
             result = pd.read_hdf(path, key="data", mode="r")
         tm.assert_series_equal(result, series)
@@ -5000,13 +4852,12 @@ class TestHDFStore():
         # GH 7775
         mi = MultiIndex.from_arrays([idx, idx])
         df = pd.DataFrame(0, index=mi, columns=["a"])
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
 
 
-class TestHDFComplexValues():
+class TestHDFComplexValues:
     # GH10447
 
     def test_complex_fixed(self, setup_path):
@@ -5016,8 +4867,7 @@ class TestHDFComplexValues():
             columns=list("ABCDE"),
         )
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5027,8 +4877,7 @@ class TestHDFComplexValues():
             index=list("abcd"),
             columns=list("ABCDE"),
         )
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5040,8 +4889,7 @@ class TestHDFComplexValues():
             columns=list("ABCDE"),
         )
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5052,8 +4900,7 @@ class TestHDFComplexValues():
             columns=list("ABCDE"),
         )
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table", mode="w")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5076,8 +4923,7 @@ class TestHDFComplexValues():
             },
             index=list("abcd"),
         )
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5100,14 +4946,12 @@ class TestHDFComplexValues():
             index=list("abcd"),
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df, data_columns=["A", "B"])
             result = store.select("df", where="A>2")
             assert_frame_equal(df.loc[df.A > 2], result)
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", format="table")
             reread = read_hdf(path, "df")
             assert_frame_equal(df, reread)
@@ -5121,8 +4965,7 @@ class TestHDFComplexValues():
             objs = [s, df]
             comps = [tm.assert_series_equal, tm.assert_frame_equal]
             for obj, comp in zip(objs, comps):
-                with ensure_clean_path(setup_path
-                                       ) as path:
+                with ensure_clean_path(setup_path) as path:
                     obj.to_hdf(path, "obj", format="fixed")
                     reread = read_hdf(path, "obj")
                     comp(obj, reread)
@@ -5137,8 +4980,7 @@ class TestHDFComplexValues():
             objs = [df]
             comps = [tm.assert_frame_equal]
             for obj, comp in zip(objs, comps):
-                with ensure_clean_path(setup_path
-                                       ) as path:
+                with ensure_clean_path(setup_path) as path:
                     obj.to_hdf(path, "obj", format="table")
                     reread = read_hdf(path, "obj")
                     comp(obj, reread)
@@ -5151,8 +4993,7 @@ class TestHDFComplexValues():
             {"A": [1, 2, 3, 4], "B": ["a", "b", "c", "d"], "C": complex128},
             index=list("abcd"),
         )
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             with pytest.raises(TypeError):
                 store.append("df", df, data_columns=["C"])
 
@@ -5160,13 +5001,11 @@ class TestHDFComplexValues():
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list("abcd"))
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pytest.raises(TypeError):
                 s.to_hdf(path, "obj", format="t")
 
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             s.to_hdf(path, "obj", format="t", index=False)
             reread = read_hdf(path, "obj")
             tm.assert_series_equal(s, reread)
@@ -5176,8 +5015,7 @@ class TestHDFComplexValues():
             {"a": np.random.randn(100).astype(np.complex128), "b": np.random.randn(100)}
         )
 
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             store.append("df", df, data_columns=["b"])
             store.append("df", df)
             result = store.select("df")
@@ -5185,7 +5023,7 @@ class TestHDFComplexValues():
 
 
 # @pytest.mark.usefixtures("setup_path")
-class TestTimezones():
+class TestTimezones:
     def _compare_with_tz(self, a, b):
         tm.assert_frame_equal(a, b)
 
@@ -5478,8 +5316,7 @@ class TestTimezones():
             assert_frame_equal(result, df)
 
         # with tz setting
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
 
             with set_timezone("EST5EDT"):
                 today = datetime.date(2013, 9, 10)
@@ -5509,8 +5346,7 @@ class TestTimezones():
 
     def test_dst_transitions(self, setup_path):
         # make sure we are not failing on transitions
-        with ensure_clean_store(setup_path
-                                ) as store:
+        with ensure_clean_store(setup_path) as store:
             times = pd.date_range(
                 "2013-10-26 23:00",
                 "2013-10-27 01:00",
@@ -5534,8 +5370,7 @@ class TestTimezones():
         expected = pd.DataFrame({"MYCOL": 0}, index=mi)
 
         key = "mykey"
-        with ensure_clean_path(setup_path
-                               ) as path:
+        with ensure_clean_path(setup_path) as path:
             with pd.HDFStore(path) as store:
                 store.append(key, expected, format="table", append=True)
             result = pd.read_hdf(path, key, where="DATE > 20151130")
