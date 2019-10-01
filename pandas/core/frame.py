@@ -7369,6 +7369,7 @@ class DataFrame(NDFrame):
                 and returning a float. Note that the returned matrix from corr
                 will have 1 along the diagonals and will be symmetric
                 regardless of the callable's behavior.
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
