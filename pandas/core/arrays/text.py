@@ -22,18 +22,18 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
-class TextDtype(ExtensionDtype):
+class StringDtype(ExtensionDtype):
     """
-    Extension dtype for text data.
+    Extension dtype for string data.
 
     .. versionadded:: 1.0.0
 
     .. warning::
 
-       TextDtype is considered experimental. The implementation and
+       StringDtype is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, TextDtype.na_value may change to no longer be
+       In particular, StringDtype.na_value may change to no longer be
        ``numpy.nan``.
 
     Attributes
@@ -46,14 +46,14 @@ class TextDtype(ExtensionDtype):
 
     Examples
     --------
-    >>> pd.TextDtype()
-    TextDtype
+    >>> pd.StringDtype()
+    StringDtype
     """
 
     @property
     def na_value(self) -> "Scalar":
         """
-        TextDtype uses :attr:`numpy.nan` as the missing NA value.
+        StringDtype uses :attr:`numpy.nan` as the missing NA value.
 
         .. warning::
 
@@ -68,33 +68,33 @@ class TextDtype(ExtensionDtype):
     @property
     def name(self) -> str:
         """
-        The alias for TextDtype is ``'text'``.
+        The alias for StringDtype is ``'string'``.
         """
-        return "text"
+        return "string"
 
     @classmethod
     def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "text":
+        if string == "string":
             return cls()
         return super().construct_from_string(string)
 
     @classmethod
-    def construct_array_type(cls) -> "Type[TextArray]":
-        return TextArray
+    def construct_array_type(cls) -> "Type[StringArray]":
+        return StringArray
 
     def __repr__(self) -> str:
-        return "TextDtype"
+        return "StringDtype"
 
 
-class TextArray(PandasArray):
+class StringArray(PandasArray):
     """
-    Extension array for text data.
+    Extension array for string data.
 
     .. versionadded:: 1.0.0
 
     .. warning::
 
-       TextArray is considered experimental. The implementation and
+       StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
        In particular, the NA value used may change to no longer be
@@ -125,22 +125,22 @@ class TextArray(PandasArray):
     --------
     Series.str
         The string methods are available on Series backed by
-        a TextArray.
+        a StringArray.
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="text")
-    <TextArray>
+    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
+    <StringArray>
     ['This is', 'some text', nan, 'data.']
-    Length: 4, dtype: text
+    Length: 4, dtype: string
 
-    Unlike ``object`` dtype arrays, ``TextArray`` doesn't allow non-string
+    Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
     values.
 
-    >>> pd.array(['1', 1], dtype="text")
+    >>> pd.array(['1', 1], dtype="string")
     Traceback (most recent call last):
     ...
-    ValueError: TextArray requires an object-dtype ndarray of strings.
+    ValueError: StringArray requires an object-dtype ndarray of strings.
     """
 
     # undo the PandasArray hack
@@ -148,25 +148,25 @@ class TextArray(PandasArray):
 
     def __init__(self, values, copy=False):
         super().__init__(values, copy=copy)
-        self._dtype = TextDtype()
+        self._dtype = StringDtype()
         self._validate()
 
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError(
-                "TextArray requires a sequence of strings or missing values."
+                "StringArray requires a sequence of strings or missing values."
             )
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "TextArray requires a sequence of strings. Got "
+                "StringArray requires a sequence of strings. Got "
                 "'{}' dtype instead.".format(self._ndarray.dtype)
             )
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
-            assert dtype == "text"
+            assert dtype == "string"
         result = super()._from_sequence(scalars, dtype=object, copy=copy)
         # convert None to np.nan
         # TODO: it would be nice to do this in _validate / lib.is_string_array
@@ -195,7 +195,7 @@ class TextArray(PandasArray):
                 value = np.nan
             elif not (isinstance(value, str) or np.isnan(value)):
                 raise ValueError(
-                    "Cannot set non-string value '{}' into a TextArray.".format(value)
+                    "Cannot set non-string value '{}' into a StringArray.".format(value)
                 )
         else:
             if not is_array_like(value):
@@ -211,14 +211,14 @@ class TextArray(PandasArray):
 
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, TextDtype):
+        if isinstance(dtype, StringDtype):
             if copy:
                 return self.copy()
             return self
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        raise TypeError("Cannot perform reduction '{}' with text dtype".format(name))
+        raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
@@ -255,7 +255,7 @@ class TextArray(PandasArray):
             result[valid] = op(self._ndarray[valid], other)
 
             if op.__name__ in {"add", "radd", "mul", "rmul"}:
-                return TextArray(result)
+                return StringArray(result)
             else:
                 dtype = "object" if mask.any() else "bool"
                 return np.asarray(result, dtype=dtype)
@@ -273,5 +273,5 @@ class TextArray(PandasArray):
     _create_comparison_method = _create_arithmetic_method
 
 
-TextArray._add_arithmetic_ops()
-TextArray._add_comparison_ops()
+StringArray._add_arithmetic_ops()
+StringArray._add_comparison_ops()

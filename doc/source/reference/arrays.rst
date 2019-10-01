@@ -24,7 +24,7 @@ Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.array
 Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
-Text                :class:`TextDtype`        :class:`str`       :ref:`api.arrays.string`
+Strings             :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
 =================== ========================= ================== =============================
 
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
@@ -467,21 +467,21 @@ Text data
 ---------
 
 When working with text data, where each valid element is a string or missing,
-we recommend using :class:`TextDtype` (with the alias ``"text"``).
+we recommend using :class:`StringDtype` (with the alias ``"string"``).
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   arrays.TextArray
+   arrays.StringArray
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   TextDtype
+   StringDtype
 
-The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.TextArray`.
+The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.StringArray`.
 See :ref:`api.series.str` for more.
 
 

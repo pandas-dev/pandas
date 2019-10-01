@@ -16,9 +16,9 @@ Text Data Types
 There are two main ways to store text data
 
 1. ``object`` -dtype NumPy array.
-2. :class:`TextDtype` extension type.
+2. :class:`StringDtype` extension type.
 
-We recommend using :class:`TextDtype` to store text data.
+We recommend using :class:`StringDtype` to store text data.
 
 Prior to pandas 1.0, ``object`` dtype was the only option. This was unfortunate
 for many reasons:
@@ -32,13 +32,13 @@ for many reasons:
    than ``text``.
 
 Currently, the performance of ``object`` dtype arrays of strings and
-:class:`arrays.TextArray` are about the same. We expect future enhancements
+:class:`arrays.StringArray` are about the same. We expect future enhancements
 to significantly increase the performance and lower the memory overhead of
-:class:`~arrays.TextArray`.
+:class:`~arrays.StringArray`.
 
 .. warning::
 
-   ``TextArray`` is currently considered experimental. The implementation
+   ``StringArray`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
 For backwards-compatibility, ``object`` dtype remains the default type we
@@ -53,7 +53,7 @@ To explicitly request ``text`` dtype, specify the ``dtype``
 .. ipython:: python
 
    pd.Series(['a', 'b', 'c'], dtype="text")
-   pd.Series(['a', 'b', 'c'], dtype=pd.TextDtype())
+   pd.Series(['a', 'b', 'c'], dtype=pd.StringDtype())
 
 Or ``astype`` after the ``Series`` or ``DataFrame`` is created
 
@@ -170,8 +170,8 @@ It is easy to expand this to return a DataFrame using ``expand``.
 
    s2.str.split('_', expand=True)
 
-When original ``Series`` has :class:`TextDtype`, the output columns will all
-be :class:`TextDtype` as well.
+When original ``Series`` has :class:`StringDtype`, the output columns will all
+be :class:`StringDtype` as well.
 
 It is also possible to limit the number of splits:
 

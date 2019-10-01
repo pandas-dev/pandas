@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.text import TextArray, TextDtype
+from pandas.core.arrays.text import StringArray, StringDtype
 from pandas.tests.extension import base
 
 
 @pytest.fixture
 def dtype():
-    return TextDtype()
+    return StringDtype()
 
 
 @pytest.fixture
@@ -19,23 +19,23 @@ def data():
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
 
-    return TextArray._from_sequence(strings)
+    return StringArray._from_sequence(strings)
 
 
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return TextArray._from_sequence([np.nan, "A"])
+    return StringArray._from_sequence([np.nan, "A"])
 
 
 @pytest.fixture
 def data_for_sorting():
-    return TextArray._from_sequence(["B", "C", "A"])
+    return StringArray._from_sequence(["B", "C", "A"])
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return TextArray._from_sequence(["B", np.nan, "A"])
+    return StringArray._from_sequence(["B", np.nan, "A"])
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def na_value():
 
 @pytest.fixture
 def data_for_grouping():
-    return TextArray._from_sequence(["B", "B", np.nan, np.nan, "A", "A", "B", "C"])
+    return StringArray._from_sequence(["B", "B", np.nan, np.nan, "A", "A", "B", "C"])
 
 
 class TestDtype(base.BaseDtypeTests):

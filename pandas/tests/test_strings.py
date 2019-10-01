@@ -141,7 +141,6 @@ def any_string_method(request):
 # subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
-    ("text", ["a", np.nan, "c"]),
     ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
@@ -157,7 +156,6 @@ def any_allowed_skipna_inferred_dtype(request):
 
     The covered (inferred) types are:
     * 'string'
-    * 'text'
     * 'empty'
     * 'bytes'
     * 'mixed'
@@ -223,7 +221,6 @@ class TestStringMethods:
 
         types_passing_constructor = [
             "string",
-            "text",
             "unicode",
             "empty",
             "bytes",
@@ -286,7 +283,7 @@ class TestStringMethods:
         mixed_allowed = method_name not in ["cat"]
 
         allowed_types = (
-            ["string", "unicode", "empty", "text"]
+            ["string", "unicode", "empty"]
             + ["bytes"] * bytes_allowed
             + ["mixed", "mixed-integer"] * mixed_allowed
         )
@@ -3279,7 +3276,7 @@ class TestStringMethods:
 def test_string_array(any_string_method):
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
-    b = Series(data, dtype="text")
+    b = Series(data, dtype="string")
     method_name, args, kwargs = any_string_method
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
@@ -3289,10 +3286,10 @@ def test_string_array(any_string_method):
         if expected.dtype == "object" and lib.is_string_array(
             expected.values, skipna=True
         ):
-            assert result.dtype == "text"
+            assert result.dtype == "string"
             result = result.astype(object)
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
-        assert all(result[columns].dtypes == "text")
+        assert all(result[columns].dtypes == "string")
         result[columns] = result[columns].astype(object)
     tm.assert_equal(result, expected)

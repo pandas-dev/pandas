@@ -817,8 +817,8 @@ def _str_extract_frame(arr, pat, flags=0):
         result_index = arr.index
     except AttributeError:
         result_index = None
-    if arr.dtype.name == "text":
-        dtype = "text"
+    if arr.dtype.name == "string":
+        dtype = "string"
     else:
         dtype = object
     return DataFrame(
@@ -1027,7 +1027,7 @@ def str_extractall(arr, pat, flags=0):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
-    if arr.dtype.name == "text":
+    if arr.dtype.name == "string":
         dtype = arr.dtype
     else:
         dtype = None
@@ -1953,7 +1953,7 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
-        self._is_string = data.dtype.name == "text"
+        self._is_string = data.dtype.name == "string"
 
         # .values.categories works for both Series/Index
         self._parent = data.values.categories if self._is_categorical else data
@@ -1984,7 +1984,7 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
-        from pandas import TextDtype
+        from pandas import StringDtype
 
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
@@ -1997,8 +1997,8 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # explicitly allow TextDtype
-        if isinstance(values.dtype, TextDtype):
+        # explicitly allow StringDtype
+        if isinstance(values.dtype, StringDtype):
             return "string"
 
         try:
@@ -2055,9 +2055,9 @@ class StringMethods(NoNewAttributesMixin):
         # We can be wrapping a string / object / categorical result, in which
         # case we'll want to return the same dtype as the input.
         # Or we can be wrapping a numeric output, in which case we don't want
-        # to return a TextArray.
+        # to return a StringArray.
         if self._is_string and returns_string:
-            dtype = "text"
+            dtype = "string"
         else:
             dtype = None
 

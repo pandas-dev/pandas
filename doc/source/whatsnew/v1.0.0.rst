@@ -50,39 +50,39 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_100.text:
+.. _whatsnew_100.string:
 
 Dedicated text data type
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added :class:`TextDtype`, an extension type dedicated to string data.
+We've added :class:`StringDtype`, an extension type dedicated to string data.
 Previously, strings were typically stored in object-dtype NumPy arrays.
 
 .. warning::
 
-   ``TextDtype`` and is currently considered experimental. The implementation
+   ``StringDtype`` and is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
 The text extension type solves several issues with object-dtype NumPy arrays:
 
 1. You can accidentally store a *mixture* of strings and non-strings in an
-   ``object`` dtype array. A ``TextArray`` can only store strings.
+   ``object`` dtype array. A ``StringArray`` can only store strings.
 2. ``object`` dtype breaks dtype-specific operations like :meth:`DataFrame.select_dtypes`.
    There isn't a clear way to select *just* text while excluding non-text,
    but still object-dtype columns.
 3. When reading code, the contents of an ``object`` dtype array is less clear
-   than ``text``.
+   than ``string``.
 
 
 .. ipython:: python
 
-   pd.Series(['abc', None, 'def'], dtype=pd.TextDtype())
+   pd.Series(['abc', None, 'def'], dtype=pd.StringDtype())
 
-You can use the alias ``"text"`` as well.
+You can use the alias ``"string"`` as well.
 
 .. ipython:: python
 
-   s = pd.Series(['abc', None, 'def'], dtype="text")
+   s = pd.Series(['abc', None, 'def'], dtype="string")
    s
 
 The usual string accessor methods work. Where appropriate, the return type
@@ -91,7 +91,7 @@ of the Series or columns of a DataFrame will also have string dtype.
    s.str.upper()
    s.str.split('b', expand=True).dtypes
 
-We recommend explicitly using the ``text`` data type when working with strings.
+We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
 .. _whatsnew_1000.enhancements.other:
