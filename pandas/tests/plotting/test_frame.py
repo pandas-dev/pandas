@@ -1148,14 +1148,18 @@ class TestDataFramePlots(TestPlotBase):
         for df in [df1, df2]:
             ax = df.plot.bar()
             ticks = ax.xaxis.get_ticklocs()
-            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4, 5]))
+            tm.assert_numpy_array_equal(
+                ticks, np.array([0, 1, 2, 3, 4, 5], dtype=np.float)
+            )
             assert ax.get_xlim() == (-0.5, 5.5)
             # check left-edge of bars
             assert ax.patches[0].get_x() == -0.25
             assert ax.patches[-1].get_x() == 5.15
 
             ax = df.plot.bar(stacked=True)
-            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4, 5]))
+            tm.assert_numpy_array_equal(
+                ticks, np.array([0, 1, 2, 3, 4, 5], dtype=np.float)
+            )
             assert ax.get_xlim() == (-0.5, 5.5)
             assert ax.patches[0].get_x() == -0.25
             assert ax.patches[-1].get_x() == 4.75

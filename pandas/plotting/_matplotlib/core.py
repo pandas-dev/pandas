@@ -1383,11 +1383,11 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
 
-            if self.orientation == 'vertical':
+            if self.orientation == "vertical":
                 ax.xaxis.update_units(self.ax_index)
                 self.tick_pos = ax.convert_xunits(self.ax_index)
                 self.ax_pos = self.tick_pos - self.tickoffset
-            elif self.orientation == 'horizontal':
+            elif self.orientation == "horizontal":
                 ax.yaxis.update_units(self.ax_index)
                 self.tick_pos = ax.convert_yunits(self.ax_index)
                 self.ax_pos = self.tick_pos - self.tickoffset
