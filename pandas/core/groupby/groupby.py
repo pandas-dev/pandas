@@ -212,9 +212,9 @@ func : callable or tuple of (callable, string)
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
-       positional arguments passed into `func`.
+       Positional arguments passed into `func`.
 kwargs : dict, optional
-         a dictionary of keyword arguments passed into `func`.
+         A dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
@@ -1252,7 +1252,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom
 
         Returns
         -------
@@ -1275,7 +1275,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom
 
         Returns
         -------
@@ -1310,7 +1310,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom
 
         Returns
         -------
@@ -1622,7 +1622,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill
 
         Returns
         -------
@@ -1648,7 +1648,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill
 
         Returns
         -------
@@ -1680,9 +1680,9 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         n : int or list of ints
-            a single nth value for the row or a list of nth values
+            A single nth value for the row or a list of nth values
         dropna : None or str, optional
-            apply the specified dropna operation before counting which row is
+            Apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
 
         Returns
@@ -2312,7 +2312,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         periods : int, default 1
-            number of periods to shift
+            Number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
         fill_value : optional
