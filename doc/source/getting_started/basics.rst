@@ -1705,7 +1705,7 @@ built-in string methods. For example:
  .. ipython:: python
 
   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
-                dtype="text")
+                dtype="string")
   s.str.lower()
 
 Powerful pattern-matching methods are provided as well, but note that
