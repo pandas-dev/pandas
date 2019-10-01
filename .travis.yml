@@ -30,27 +30,12 @@ matrix:
       - python: 3.5
 
     include:
-    - dist: trusty
+    - dist: bionic
+      # 18.04
+      python: 3.8-dev
       env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network)"
+        - JOB="3.8-dev" PATTERN="(not slow and not network)"
 
-    - dist: trusty
-      env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8"
-
-    - dist: trusty
-      env:
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
-
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
-
-    allow_failures:
-      - dist: trusty
-        env:
-          - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow"
 
 before_install:
   - echo "before_install"
@@ -74,7 +59,11 @@ before_install:
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
-  - ci/setup_env.sh
+  - git clone https://github.com/numpy/numpy
+  - pip install python-dateutil pytz cython
+  - cd numpy
+  - python setup.py build_ext --inplace
+  - python setup.py install
   - ci/submit_cython_cache.sh
   - echo "install done"
 
