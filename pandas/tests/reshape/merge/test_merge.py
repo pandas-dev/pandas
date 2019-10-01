@@ -2094,3 +2094,32 @@ def test_merge_equal_cat_dtypes2():
 
     # Categorical is unordered, so don't check ordering.
     tm.assert_frame_equal(result, expected, check_categorical=False)
+
+def test_merge_multiindex_columns():
+    # Issue #28518
+    # Verify that merging two dataframes give the expected labels
+    # The original cause of this issue come from a bug lexsort_depth and is tested in
+    # test_lexsort_depth
+    
+    index_tuples=[]
+    letters = ["a", "b", "c", "d"]
+    numbers = ["1", "2", "3"]
+
+    for l in letters:
+        for n in numbers:
+            index_tuples.append([l, n])
+
+    index = pd.MultiIndex.from_tuples(index_tuples, names=["outer", "inner"])
+
+    frame_x = pd.DataFrame(columns = index)
+    frame_x["id"]=""
+
+    frame_y = pd.DataFrame(columns = index)
+    frame_y["id"]=""
+
+    l_suf = '_x'
+    r_suf = '_y'
+    expected_labels = sum(([l + l_suf, l + r_suf] for l in letters), [])
+    merged_frame = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf))).columns
+    for label in expected_labels:
+        assert label in merged_frame
