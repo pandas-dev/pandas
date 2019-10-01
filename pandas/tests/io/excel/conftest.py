@@ -7,6 +7,9 @@ from pandas.io.parsers import read_csv
 
 @pytest.fixture
 def frame(float_frame):
+    """
+    Returns the first ten items in Fixture "float_frame"
+    """
     return float_frame[:10]
 
 
