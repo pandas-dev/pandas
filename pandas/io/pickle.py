@@ -147,7 +147,7 @@ def read_pickle(path, compression="infer"):
     # 1) try standard libary Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
 
-    excs_to_catch = (AttributeError, ImportError)
+    excs_to_catch = (TypeError, AttributeError, ImportError)
     if PY36:
         excs_to_catch += (ModuleNotFoundError,)
 
@@ -160,6 +160,8 @@ def read_pickle(path, compression="infer"):
         # e.g.
         #  "No module named 'pandas.core.sparse.series'"
         #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+        #  TypeError: _reconstruct: First argument must be a sub-type of ndarray
+        #    --> appears specific to pytables in 0.8.0 whatsnew, see GH#28645
         return pc.load(f, encoding=None)
     finally:
         f.close()
