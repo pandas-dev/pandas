@@ -664,11 +664,11 @@ b  2""",
         Parameters
         ----------
         name : object
-            the name of the group to get as a DataFrame
+            the name of the group to get as a DataFrame.
         obj : DataFrame, default None
             the DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
-            be used
+            be used.
 
         Returns
         -------
@@ -1114,7 +1114,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
