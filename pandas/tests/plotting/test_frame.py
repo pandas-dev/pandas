@@ -3472,7 +3472,7 @@ class TestDataFramePlots(TestPlotBase):
         # Bar plot with numeric index have tick location values equal to index
         # values
         # GH: 11465
-        index = np.arange(10, 20)
+        index = np.arange(10, 20, dtype=np.int64)
         df = pd.DataFrame(np.random.rand(10), index=np.arange(10, 20))
         ax = df.plot.bar()
         ticklocs = ax.xaxis.get_ticklocs()
