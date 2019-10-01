@@ -664,9 +664,9 @@ b  2""",
         Parameters
         ----------
         name : object
-            the name of the group to get as a DataFrame.
+            The name of the group to get as a DataFrame.
         obj : DataFrame, default None
-            the DataFrame to take the DataFrame out of.  If
+            The DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
             be used.
 
