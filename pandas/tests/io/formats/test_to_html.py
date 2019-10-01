@@ -1,10 +1,11 @@
+import codecs
 from datetime import datetime
 from io import StringIO
 import re
 
 import numpy as np
 import pytest
-import codecs
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
