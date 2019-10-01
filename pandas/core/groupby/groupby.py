@@ -1131,7 +1131,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
@@ -1252,7 +1252,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            Degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1275,7 +1275,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            Degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1310,7 +1310,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            Degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1622,7 +1622,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            Limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1648,7 +1648,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            Limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1680,10 +1680,10 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         n : int or list of ints
-            A single nth value for the row or a list of nth values
+            A single nth value for the row or a list of nth values.
         dropna : None or str, optional
             Apply the specified dropna operation before counting which row is
-            the nth row. Needs to be None, 'any' or 'all'
+            the nth row. Needs to be None, 'any' or 'all'.
 
         Returns
         -------
@@ -2098,13 +2098,13 @@ class GroupBy(_GroupBy):
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
         ascending : bool, default True
-            False for ranks by high (1) to low (N)
+            False for ranks by high (1) to low (N).
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
         pct : bool, default False
-            Compute percentage rank of data within each group
+            Compute percentage rank of data within each group.
         axis : int, default 0
             The axis of the object over which to compute the rank.
 
@@ -2312,7 +2312,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         periods : int, default 1
-            Number of periods to shift
+            Number of periods to shift.
         freq : frequency string
         axis : axis to shift, default 0
         fill_value : optional
