@@ -709,7 +709,7 @@ class NDFrameGroupBy(GroupBy):
         f : function
             Function to apply to each subframe. Should return True or False.
         dropna : Drop groups that do not pass the filter. True by default;
-            if False, groups that evaluate False are filled with NaNs.
+            If False, groups that evaluate False are filled with NaNs.
 
         Returns
         -------
