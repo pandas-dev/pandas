@@ -49,6 +49,7 @@ Interval
 Indexing
 ^^^^^^^^
 
+- Fix regression in :meth:`DataFrame.reindex` not following ``limit`` argument (:issue:`28631`).
 - Bug in ``RangeIndex.get_indexer`` for decreasing :class:`RangeIndex` where target values may be improperly identified as missing/present (:issue:`28678`)
 -
 -
