@@ -580,7 +580,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0
+            .. versionadded:: 0.24.0.
 
         Returns
         -------
@@ -621,7 +621,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0
+            .. versionadded:: 0.24.0.
 
         Raises
         ------
@@ -658,7 +658,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0
+            .. versionadded:: 0.24.0.
 
         Raises
         ------
