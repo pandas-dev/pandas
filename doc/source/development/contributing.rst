@@ -930,8 +930,12 @@ The ``pandas.util.testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
 equivalent. The easiest way to verify that your code is correct is to
 explicitly construct the result you expect, then compare the actual result to
-the expected correct result::
+the expected correct result
 
+While writting the test cases for any issue mentioned in the issue tracker, mention
+issue number as a comment in the code::
+
+    #Issue number ##NUMBER:
     def test_pivot(self):
         data = {
             'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
