@@ -536,7 +536,7 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
             plt.clf()
 
-            ax = kwargs.get("ax", fig.add_subplot(211))  # noqa
+            kwargs.get("ax", fig.add_subplot(211))
             ret = f(**kwargs)
 
             assert_is_valid_plot_return_object(ret)
