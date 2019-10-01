@@ -125,9 +125,10 @@ Deprecations
 Removed SparseSeries and SparseDataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
-We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
-See :ref:`sparse.migration` for help with migrating existing code.
+``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
+have been removed (:issue:`28425`). We recommend using a ``Series`` or
+``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
+with migrating existing code.
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -199,7 +200,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
--
+- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 -
 
 Conversion
