@@ -204,8 +204,7 @@ class DateOffset(BaseOffset):
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
-    **kwds
-        Temporal parameter that add to or replace the offset value.
+    **kwds : Temporal parameter that add to or replace the offset value.
 
         Parameters that **add** to the offset (like Timedelta):
 
@@ -1006,12 +1005,12 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     ----------
     n : int, default 1
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
+        Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``
     holidays : list
         List/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``.
+        passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     offset : timedelta, default timedelta(0)
     """
@@ -1520,7 +1519,7 @@ class Week(DateOffset):
     Parameters
     ----------
     weekday : int, default None
-        Always generate specific day of week. 0 for Monday.
+        Always generate specific day of week. 0 for Monday
     """
 
     _adjust_dst = True
@@ -2086,9 +2085,7 @@ class FY5253(DateOffset):
         The month in which the fiscal year ends.
 
     variation : str, default "nearest"
-        Method of employing 4-4-5 calendar.
-
-        There are two options:
+        Method of employing 4-4-5 calendar. There are two options:
 
         - "nearest" means year end is **weekday** closest to last day of month in year.
         - "last" means year end is final **weekday** of the final month in fiscal year.
@@ -2307,9 +2304,7 @@ class FY5253Quarter(DateOffset):
         The quarter number that has the leap or 14 week when needed.
 
     variation : str, default "nearest"
-        Method of employing 4-4-5 calendar.
-
-        There are two options:
+        Method of employing 4-4-5 calendar. There are two options:
 
         - "nearest" means year end is **weekday** closest to last day of month in year.
         - "last" means year end is final **weekday** of the final month in fiscal year.
