@@ -3534,8 +3534,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
+        i : int, str 
+            Level of first index to be swapped. Can pass level name as string.
+        j : int, str 
+            Level of second index to be swapped. Can pass level name as string.
         copy : bool, default True
             Whether to copy underlying data.
 
@@ -4089,14 +4091,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-        copy : bool, default True
-            Whether to copy underlying data.
-        inplace : bool, default False
-            Whether to return a new Series. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
+
+        **kwargs
+            Additional keyword arguments passed to the function. Only the
+            "inplace" keyword is used.
+
 
         Returns
         -------
@@ -4166,9 +4165,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index, columns : None
+        index : None 
             Redundant for application on Series, but index can be used instead
             of labels.
+
+            .. versionadded:: 0.21.0
+        columns : None
+            Redundant for application on Series.
 
             .. versionadded:: 0.21.0
         level : int or level name, optional
