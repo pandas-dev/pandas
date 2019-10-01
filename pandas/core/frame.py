@@ -322,7 +322,7 @@ class DataFrame(NDFrame):
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
-    copy : boolean, default False
+    copy : bool, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     See Also
@@ -1542,7 +1542,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         data : ndarray (structured dtype), list of tuples, dict, or DataFrame
-        index : string, list of fields, array-like
+        index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
         exclude : sequence, default None
@@ -1553,7 +1553,7 @@ class DataFrame(NDFrame):
             columns. Otherwise this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
             columns)
-        coerce_float : boolean, default False
+        coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
         nrows : int, default None
@@ -2066,7 +2066,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         fname : str
-            string file path
+            String file path.
         """
         from pandas.io.feather_format import to_feather
 
@@ -3461,7 +3461,7 @@ class DataFrame(NDFrame):
         ----------
         loc : int
             Insertion index. Must verify 0 <= loc <= len(columns)
-        column : string, number, or hashable object
+        column : str, number, or hashable object
             label of the inserted column
         value : int, Series, or array-like
         allow_duplicates : bool, optional
@@ -4772,10 +4772,11 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         keep : {'first', 'last', False}, default 'first'
+            Determines which duplicates (if any) to keep.
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to drop duplicates in place or to return a copy
 
         Returns
@@ -4806,10 +4807,10 @@ class DataFrame(NDFrame):
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the
-              first occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the
-              last occurrence.
+            Determines which duplicates (if any) to mark.
+
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
             - False : Mark all duplicates as ``True``.
 
         Returns
@@ -5197,7 +5198,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
@@ -5723,12 +5724,12 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------%s
-        index : string or object, optional
+        index : str or object, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-        columns : string or object
+        columns : str or object
             Column to use to make new frame's columns.
-        values : string, object or a list of the previous, optional
+        values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
@@ -5850,14 +5851,14 @@ class DataFrame(NDFrame):
             is function or list of functions
         fill_value : scalar, default None
             Value to replace missing values with
-        margins : boolean, default False
+        margins : bool, default False
             Add all row / columns (e.g. for subtotal / grand totals)
-        dropna : boolean, default True
+        dropna : bool, default True
             Do not include columns whose entries are all NaN
-        margins_name : string, default 'All'
+        margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
-        observed : boolean, default False
+        observed : bool, default False
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
@@ -6231,10 +6232,10 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default -1 (last level)
+        level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
-        fill_value : replace NaN with this value if the unstack produces
-            missing values
+        fill_value : int, string or dict
+            Replace NaN with this value if the unstack produces missing values
 
         Returns
         -------
@@ -6305,7 +6306,7 @@ class DataFrame(NDFrame):
         ``frame.columns.name`` or 'variable'.
     value_name : scalar, default 'value'
         Name to use for the 'value' column.
-    col_level : int or string, optional
+    col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
 
     Returns
@@ -6665,6 +6666,8 @@ class DataFrame(NDFrame):
                by result_type='broadcast'.
 
         raw : bool, default False
+            Determines if row or column is passed as a Series or ndarry object:
+
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray objects
@@ -6894,11 +6897,11 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame or Series/dict-like object, or list of these
             The data to append.
-        ignore_index : boolean, default False
+        ignore_index : bool, default False
             If True, do not use the index labels.
-        verify_integrity : boolean, default False
+        verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
-        sort : boolean, default None
+        sort : bool, default None
             Sort columns if the columns of `self` and `other` are not aligned.
             The default sorting is deprecated and will change to not-sorting
             in a future version of pandas. Explicitly pass ``sort=True`` to
@@ -7357,6 +7360,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
@@ -7556,10 +7561,13 @@ class DataFrame(NDFrame):
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
+            row-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
@@ -7939,8 +7947,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : boolean, default True
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
@@ -7976,8 +7984,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        skipna : boolean, default True
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
