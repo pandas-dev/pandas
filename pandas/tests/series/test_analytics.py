@@ -20,6 +20,7 @@ from pandas import (
 from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -228,7 +229,7 @@ class TestSeriesAnalytics:
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
-    def test_npdiff(self):
+    def test_np_diff(self):
         pytest.skip("skipping due to Series no longer being an ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
@@ -236,6 +237,67 @@ class TestSeriesAnalytics:
 
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+
+    def test_int_diff(self):
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        result = s.diff()
+        assert result[1] == 1
+
+    def test_tz_diff(self):
+        # Combined datetime diff, normal diff and boolean diff test
+        ts = tm.makeTimeSeries(name="ts")
+        ts.diff()
+
+        # neg n
+        result = ts.diff(-1)
+        expected = ts - ts.shift(-1)
+        assert_series_equal(result, expected)
+
+        # 0
+        result = ts.diff(0)
+        expected = ts - ts
+        assert_series_equal(result, expected)
+
+        # datetime diff (GH3100)
+        s = Series(date_range("20130102", periods=5))
+        result = s.diff()
+        expected = s - s.shift(1)
+        assert_series_equal(result, expected)
+
+        # timedelta diff
+        result = result - result.shift(1)  # previous result
+        expected = expected.diff()  # previously expected
+        assert_series_equal(result, expected)
+
+        # with tz
+        s = Series(
+            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
+        )
+        result = s.diff()
+        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input,output,diff",
+        [([False, True, True, False, False], [nan, True, False, True, False], 1)],
+    )
+    def test_bool_diff(self, input, output, diff):
+        # boolean series (test for fixing #17294)
+        s = Series(input)
+        result = s.diff()
+        expected = Series(output)
+        assert_series_equal(result, expected)
+
+    def test_obj_diff(self):
+        # object series
+        s = Series([False, True, 5.0, nan, True, False])
+        result = s.diff()
+        expected = s - s.shift(1)
+        assert_series_equal(result, expected)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
