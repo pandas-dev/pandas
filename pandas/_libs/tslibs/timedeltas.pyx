@@ -1222,7 +1222,7 @@ class Timedelta(_Timedelta):
         'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
         'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
-        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
+        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}.
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, hours, weeks}.
@@ -1323,7 +1323,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
+        freq : str
+            Frequency string indicating the rounding resolution.
 
         Returns
         -------
@@ -1341,7 +1342,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
+        freq : str
+            Frequency string indicating the flooring resolution.
         """
         return self._round(freq, np.floor)
 
@@ -1351,7 +1353,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
+        freq : str
+            Frequency string indicating the ceiling resolution.
         """
         return self._round(freq, np.ceil)
 
