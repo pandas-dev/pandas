@@ -162,7 +162,11 @@ def read_pickle(path, compression="infer"):
         #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
         #  TypeError: _reconstruct: First argument must be a sub-type of ndarray
         #    --> appears specific to pytables in 0.8.0 whatsnew, see GH#28645
-        return pc.load(f, encoding=None)
+        try:
+            return pc.load(f, encoding=None)
+        except UnicodeDecodeError:
+            # specific to 0.8.0 whatsnew, see GH#28645
+            return pc.load(f, encoding="latin1")
     finally:
         f.close()
         for _f in fh:
