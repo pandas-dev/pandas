@@ -58,7 +58,7 @@ before_install:
 
 install:
   - echo "install start"
-  - apt-get install build-essential
+  - sudo apt-get install build-essential
   - ci/prep_cython_cache.sh
   - git clone https://github.com/numpy/numpy
   - pip install --no-deps -U pip wheel setuptools
