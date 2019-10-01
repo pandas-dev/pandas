@@ -339,7 +339,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
-            fill_value = iNaT
+            fill_value = fill_value.dtype.type("NaT", "ns")
         else:
 
             # we need to change to object type as our
@@ -351,14 +351,20 @@ def maybe_promote(dtype, fill_value=np.nan):
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
         try:
-            fill_value = tslibs.Timestamp(fill_value).value
+            fill_value = tslibs.Timestamp(fill_value).to_datetime64()
         except (TypeError, ValueError):
             dtype = np.dtype(np.object_)
     elif issubclass(dtype.type, np.timedelta64):
         try:
-            fill_value = tslibs.Timedelta(fill_value).value
+            fv = tslibs.Timedelta(fill_value)
         except ValueError:
             dtype = np.dtype(np.object_)
+        else:
+            if fv is NaT:
+                # NaT has no `to_timedelta64` method
+                fill_value = np.timedelta64("NaT", "ns")
+            else:
+                fill_value = fv.to_timedelta64()
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
             fill_value = NaT
@@ -399,7 +405,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.float64
             fill_value = np.nan
         elif is_datetime_or_timedelta_dtype(dtype):
-            fill_value = iNaT
+            fill_value = dtype.type("NaT", "ns")
         else:
             dtype = np.object_
             fill_value = np.nan
