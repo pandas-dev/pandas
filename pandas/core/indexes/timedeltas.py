@@ -711,12 +711,12 @@ def _is_convertible_to_index(other):
 
 
 def timedelta_range(
-    start: Optional[str],
-    end: Optional[str],
-    periods: Optional[int],
-    freq: Optional[str],
-    name: Optional[str],
-    closed: Optional[str],
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    periods: Optional[int] = None,
+    freq: Optional[str] = None,
+    name: Optional[str] = None,
+    closed: Optional[str] = None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
