@@ -72,7 +72,7 @@ class TestSeriesArithmetic:
 
         result = a + "!"
         expected = Series(["hello!", "world!"])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 # ------------------------------------------------------------------
