@@ -949,6 +949,11 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+.. note::
+
+   Add the GitHub Issue Number as a Comment to the New Tests.
+
+
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
