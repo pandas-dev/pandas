@@ -661,8 +661,9 @@ def test_apply_with_mixed_types():
 
 def test_apply_datetime_issue():
     # GH-28247
-    # groupby-apply throws an error if one of the columns in the DataFrame is a datetime object
-    #   and the column labels are different from standard int values in range(len(num_columns))
+    # groupby-apply throws an error if one of the columns in the DataFrame
+    #   is a datetime object and the column labels are different from
+    #   standard int values in range(len(num_columns))
 
     df = pd.DataFrame({"a": ["foo"], "b": [datetime.today()]})
     result = df.groupby("a").apply(lambda x: pd.Series(["spam"], index=[42]))
