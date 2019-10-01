@@ -66,6 +66,14 @@ class TestSeriesArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 
+    def test_string_addition(self):
+        # GH28658
+        a = Series(["hello", "world"])
+
+        result = a + "!"
+        expected = Series(["hello!", "world!"])
+        assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Comparisons
