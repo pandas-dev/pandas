@@ -66,12 +66,19 @@ class TestSeriesArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 
-    def test_string_addition(self):
+    @pytest.mark.parametrize(
+        "target_add,input_value,expected_value",
+        [
+            ("!", ["hello", "world"], ["hello!", "world!"]),
+            ("m", ["hello", "world"], ["hellom", "worldm"]),
+        ],
+    )
+    def test_string_addition(self, to_add, input_array, expected_array):
         # GH28658
-        a = Series(["hello", "world"])
+        a = Series(input_value)
 
-        result = a + "!"
-        expected = Series(["hello!", "world!"])
+        result = a + target_add
+        expected = Series(expected_value)
         tm.assert_series_equal(result, expected)
 
 
