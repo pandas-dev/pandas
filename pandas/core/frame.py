@@ -535,6 +535,13 @@ class DataFrame(NDFrame):
         -------
         bool
 
+        See Also
+        --------
+        Index._is_homogeneous_type : Whether the object has a single
+            dtype.
+        MultiIndex._is_homogeneous_type : Whether all the levels of a
+            MultiIndex have the same dtype.
+
         Examples
         --------
         >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
