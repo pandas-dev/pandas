@@ -3440,6 +3440,40 @@ class TestDataFramePlots(TestPlotBase):
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize("method", ["bar", "barh"])
+    def test_bar_ticklabel_consistence(self, method):
+        # Draw two consecutiv bar plot with consistent ticklabels
+        # GH: 26186
+        def get_main_axis(ax):
+            if method == "barh":
+                return ax.yaxis
+            elif method == "bar":
+                return ax.xaxis
+
+        data = {"A": 0, "B": 3, "C": -4}
+        df = pd.DataFrame.from_dict(data, orient="index", columns=["Value"])
+        ax = getattr(df.plot, method)()
+        ax.get_figure().canvas.draw()
+        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
+        label_positions_1 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
+        df = df.sort_values("Value") * -2
+        ax = getattr(df.plot, method)(ax=ax, color="red")
+        ax.get_figure().canvas.draw()
+        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
+        label_positions_2 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
+        assert label_positions_1 == label_positions_2
+
+    def test_bar_numeric(self):
+        # Bar plot with numeric index have tick location values equal to index
+        # values
+        # GH: 11465
+        index = np.arange(10, 20)
+        df = pd.DataFrame(np.random.rand(10), index=np.arange(10, 20))
+        ax = df.plot.bar()
+        ticklocs = ax.xaxis.get_ticklocs()
+        tm.assert_numpy_array_equal(ticklocs, index)
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib as mpl
