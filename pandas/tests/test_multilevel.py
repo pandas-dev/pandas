@@ -2063,44 +2063,43 @@ class TestSorted(Base):
         levels = [[0, 1], [0, 1, 2]]
 
         # Correct sortorder
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
-            sortorder=2,
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
         )
 
         with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
-            index = MultiIndex(
-                levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
                 sortorder=2,
             )
 
         with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
-            index = MultiIndex(
-                levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
                 sortorder=1,
-            ) 
+            )
 
     def test_lexsort_depth(self):
-        # Test that lexsort_depth return the  correct sortorder when it was given to the MultiIndex const.
+        # Test that lexsort_depth return the  correct sortorder
+        # when it was given to the MultiIndex const.
         # Issue #28518
 
         levels = [[0, 1], [0, 1, 2]]
 
         index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
-            sortorder=2,
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
         )
         assert index.lexsort_depth == 2
 
         index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
-            sortorder=1,
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=1
         )
         assert index.lexsort_depth == 1
 
         index = MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
-            sortorder=0,
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
         )
         assert index.lexsort_depth == 0
 

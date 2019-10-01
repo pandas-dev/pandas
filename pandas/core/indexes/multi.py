@@ -365,6 +365,15 @@ class MultiIndex(Index):
                     "Level values must be unique: {values} on "
                     "level {level}".format(values=[value for value in level], level=i)
                 )
+        if self.sortorder is not None:
+            if int(self.sortorder) > self._lexsort_depth():
+                raise ValueError(
+                    "Value for sortorder must be inferior or equal "
+                    "to actual lexsort_depth: "
+                    "sortorder {sortorder} with lexsort_depth {lexsort_depth}".format(
+                        sortorder=self.sortorder, lexsort_depth=self._lexsort_depth()
+                    )
+                )
 
         codes = [
             self._validate_codes(level, code) for level, code in zip(levels, codes)
@@ -1783,16 +1792,15 @@ class MultiIndex(Index):
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
-            if self.sortorder == 0:
-                return self.nlevels
-            else:
-                return 0
+            return int(self.sortorder)
 
+        return self._lexsort_depth()
+
+    def _lexsort_depth(self):
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
                 return k
-
         return 0
 
     def _sort_levels_monotonic(self):
