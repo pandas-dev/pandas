@@ -1357,14 +1357,3 @@ class TestDataFrameAggregate:
         df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq
-
-    def test_func_returns_object(self):
-        # GH 28652
-        df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
-        result = df.groupby("a").apply(lambda g: g.index)
-        expected = Series(
-            [pd.Int64Index([1]), pd.Int64Index([2])],
-            index=pd.Int64Index([1, 2], name="a"),
-        )
-
-        tm.assert_series_equal(result, expected)
