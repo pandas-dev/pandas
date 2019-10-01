@@ -447,7 +447,7 @@ class Timestamp(_Timestamp):
         ----------
         freq : str
             Frequency string indicating the rounding resolution.
-        ambiguous : {'raise', 'NaT', bool}, default 'raise'
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
             * bool contains flags to determine if time is dst or not (note
@@ -455,7 +455,7 @@ class Timestamp(_Timestamp):
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -470,7 +470,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -492,7 +492,7 @@ timedelta}, default 'raise'
         ----------
         freq : str
             Frequency string indicating the flooring resolution.
-        ambiguous : {'raise', 'NaT', bool}, default 'raise'
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
             * bool contains flags to determine if time is dst or not (note
@@ -500,7 +500,7 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -515,7 +515,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -531,7 +531,7 @@ timedelta}, default 'raise'
         ----------
         freq : str
             Frequency string indicating the ceiling resolution.
-        ambiguous : {'raise', 'NaT', bool}, default 'raise'
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
             * bool contains flags to determine if time is dst or not (note
@@ -539,7 +539,7 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -554,7 +554,7 @@ timedelta}, default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -811,7 +811,7 @@ default 'raise'
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0.
+            .. versionadded:: 0.24.0
         errors : 'raise', 'coerce', default None
             Determine how errors should be handled.
 
@@ -823,7 +823,7 @@ default 'raise'
             * 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-            .. deprecated:: 0.24.0.
+            .. deprecated:: 0.24.0
 
         Returns
         -------
