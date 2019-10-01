@@ -4410,9 +4410,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        left : scalar
+        left : scalar or list-like
             Left boundary.
-        right : scalar
+        right : scalar or list-like
             Right boundary.
         inclusive : bool, default True
             Include boundaries.
