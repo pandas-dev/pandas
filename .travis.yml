@@ -58,12 +58,15 @@ before_install:
 
 install:
   - echo "install start"
+  - apt-get install build-essential
   - ci/prep_cython_cache.sh
   - git clone https://github.com/numpy/numpy
+  - pip install --no-deps -U pip wheel setuptools
   - pip install python-dateutil pytz cython
   - cd numpy
   - python setup.py build_ext --inplace
   - python setup.py install
+  - cd ..
   - ci/submit_cython_cache.sh
   - echo "install done"
 
