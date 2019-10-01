@@ -111,6 +111,13 @@ Other API changes
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
+.. _whatsnew_1000.api.documentation:
+
+Documentation Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Added new section on :ref:`scale` (:issue:`28315`).
+
 .. _whatsnew_1000.deprecations:
 
 Deprecations
