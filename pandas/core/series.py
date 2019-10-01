@@ -4154,9 +4154,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index, columns : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
+        index : single label or list-like
+            Redundant for application on Series, but 'index' can be used instead
+            of 'labels'.
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
+            No change is made to the Series; use 'index' or 'labels' instead.
 
             .. versionadded:: 0.21.0
         level : int or level name, optional
