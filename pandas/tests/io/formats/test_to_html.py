@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 import pytest
-
+import codecs
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
@@ -97,6 +97,14 @@ def test_to_html_unicode(df, expected, datapath):
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
+
+
+def test_to_html_encoding():
+    df = DataFrame({"A": ["a", "b"]})
+    with tm.ensure_clean("test.csv") as path:
+        df.to_html(path, encoding="gbk")
+        with codecs.open(path, "r", encoding="gbk") as f:
+            assert df.to_html() == f.read()
 
 
 def test_to_html_decimal(datapath):
