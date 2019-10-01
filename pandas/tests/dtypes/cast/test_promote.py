@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, PandasExtensionDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
@@ -92,20 +92,6 @@ def box(request):
     return request.param
 
 
-def _safe_dtype_assert(left_dtype, right_dtype):
-    """
-    Compare two dtypes without raising TypeError.
-    """
-    __tracebackhide__ = True
-    if isinstance(right_dtype, PandasExtensionDtype):
-        # switch order of equality check because numpy dtypes (e.g. if
-        # left_dtype is np.object_) do not know some expected dtypes (e.g.
-        # DatetimeTZDtype) and would raise a TypeError in their __eq__-method.
-        assert right_dtype == left_dtype
-    else:
-        assert left_dtype == right_dtype
-
-
 def _check_promote(
     dtype,
     fill_value,
@@ -157,8 +143,11 @@ def _check_promote(
         result_dtype, result_fill_value = maybe_promote(dtype, fill_value)
         expected_fill_value = exp_val_for_scalar
 
-    _safe_dtype_assert(result_dtype, expected_dtype)
+    assert result_dtype == expected_dtype
+    _assert_match(result_fill_value, expected_fill_value)
 
+
+def _assert_match(result_fill_value, expected_fill_value):
     # GH#23982/25425 require the same type in addition to equality/NA-ness
     res_type = type(result_fill_value)
     ex_type = type(expected_fill_value)
@@ -369,8 +358,8 @@ def test_maybe_promote_any_with_datetime64(
     if is_datetime64_dtype(dtype):
         expected_dtype = dtype
         # for datetime dtypes, scalar values get cast to pd.Timestamp.value
-        exp_val_for_scalar = pd.Timestamp(fill_value).value
-        exp_val_for_array = iNaT
+        exp_val_for_scalar = pd.Timestamp(fill_value).to_datetime64()
+        exp_val_for_array = np.datetime64("NaT", "ns")
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
@@ -454,9 +443,7 @@ def test_maybe_promote_datetimetz_with_datetimetz(
     )
 
 
-@pytest.mark.parametrize(
-    "fill_value", [None, np.nan, NaT, iNaT], ids=["None", "np.nan", "pd.NaT", "iNaT"]
-)
+@pytest.mark.parametrize("fill_value", [None, np.nan, NaT, iNaT])
 # override parametrization due to to many xfails; see GH 23982 / 25425
 @pytest.mark.parametrize("box", [(False, None)])
 def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value, box):
@@ -572,8 +559,8 @@ def test_maybe_promote_any_with_timedelta64(
     if is_timedelta64_dtype(dtype):
         expected_dtype = dtype
         # for timedelta dtypes, scalar values get cast to pd.Timedelta.value
-        exp_val_for_scalar = pd.Timedelta(fill_value).value
-        exp_val_for_array = iNaT
+        exp_val_for_scalar = pd.Timedelta(fill_value).to_timedelta64()
+        exp_val_for_array = np.timedelta64("NaT", "ns")
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
@@ -714,9 +701,7 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype, bo
     )
 
 
-@pytest.mark.parametrize(
-    "fill_value", [None, np.nan, NaT, iNaT], ids=["None", "np.nan", "pd.NaT", "iNaT"]
-)
+@pytest.mark.parametrize("fill_value", [None, np.nan, NaT, iNaT])
 # override parametrization due to to many xfails; see GH 23982 / 25425
 @pytest.mark.parametrize("box", [(False, None)])
 def test_maybe_promote_any_numpy_dtype_with_na(
@@ -764,7 +749,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     elif is_datetime_or_timedelta_dtype(dtype):
         # datetime / timedelta cast all missing values to iNaT
         expected_dtype = dtype
-        exp_val_for_scalar = iNaT
+        exp_val_for_scalar = dtype.type("NaT", "ns")
     elif fill_value is NaT:
         # NaT upcasts everything that's not datetime/timedelta to object
         expected_dtype = np.dtype(object)
@@ -783,7 +768,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
         # integers cannot hold NaNs; maybe_promote_with_array returns None
         exp_val_for_array = None
     elif is_datetime_or_timedelta_dtype(expected_dtype):
-        exp_val_for_array = iNaT
+        exp_val_for_array = expected_dtype.type("NaT", "ns")
     else:  # expected_dtype = float / complex / object
         exp_val_for_array = np.nan
 
@@ -817,7 +802,4 @@ def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
     result_dtype, result_missing_value = maybe_promote(dtype, fill_array)
 
     assert result_dtype == expected_dtype
-    # None == None, iNaT == iNaT, but np.nan != np.nan
-    assert (result_missing_value == expected_missing_value) or (
-        result_missing_value is np.nan and expected_missing_value is np.nan
-    )
+    _assert_match(result_missing_value, expected_missing_value)
