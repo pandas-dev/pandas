@@ -2082,7 +2082,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis : int, default 0
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
-        *args, **kwargs
+        *args 
+            Additional arguments have no effect but might be accepted 
+            for compatability with NumPy
+        **kwargs 
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
@@ -2152,7 +2155,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis : int, default 0
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
-        *args, **kwargs
+        *args
+            Additional arguments have no effect but might be accepted
+            for compatibility with NumPy.
+        **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
