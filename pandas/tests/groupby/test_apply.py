@@ -669,3 +669,19 @@ def test_apply_datetime_issue():
         ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
     )
     tm.assert_frame_equal(result, expected)
+
+    df = pd.DataFrame({"a": ["foo"], "b": [datetime.today().date()]})
+    result = df.groupby("a").apply(lambda x: pd.Series(["spam"], index=[42]))
+
+    expected = pd.DataFrame(
+        ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    df = pd.DataFrame({"a": ["foo"], "b": [datetime.today().time()]})
+    result = df.groupby("a").apply(lambda x: pd.Series(["spam"], index=[42]))
+
+    expected = pd.DataFrame(
+        ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
+    )
+    tm.assert_frame_equal(result, expected)
