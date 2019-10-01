@@ -125,6 +125,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of exec' ; echo $MSG
+    invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for pytest warns' ; echo $MSG
     invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -184,7 +188,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
