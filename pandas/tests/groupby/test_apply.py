@@ -657,3 +657,14 @@ def test_apply_with_mixed_types():
 
     result = g.apply(lambda x: x / x.sum())
     tm.assert_frame_equal(result, expected)
+
+
+def test_func_returns_object(self):
+    # GH 28652
+    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    result = df.groupby("a").apply(lambda g: g.index)
+    expected = Series(
+        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+    )
+
+    tm.assert_series_equal(result, expected)
