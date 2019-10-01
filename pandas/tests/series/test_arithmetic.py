@@ -73,7 +73,7 @@ class TestSeriesArithmetic:
             ("m", ["hello", "world"], ["hellom", "worldm"]),
         ],
     )
-    def test_string_addition(self, to_add, input_value, expected_value):
+    def test_string_addition(self, target_add, input_value, expected_value):
         # GH28658
         a = Series(input_value)
 
