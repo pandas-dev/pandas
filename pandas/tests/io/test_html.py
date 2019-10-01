@@ -132,6 +132,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.xfail
     @network
     def test_spam_url(self):
         url = (
