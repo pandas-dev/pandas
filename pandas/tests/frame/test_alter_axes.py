@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime, timedelta
 import inspect
 
@@ -663,15 +662,15 @@ class TestDataFrameAlterAxes:
         )
 
         # index
-        data = {"A": OrderedDict({"foo": 0, "bar": 1})}
+        data = {"A": {"foo": 0, "bar": 1}}
 
         # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={"foo": "bar", "bar": "foo"})
-        tm.assert_index_equal(renamed.index, Index(["bar", "foo"]))
+        tm.assert_index_equal(renamed.index, Index(["foo", "bar"]))
 
         renamed = df.rename(index=str.upper)
-        tm.assert_index_equal(renamed.index, Index(["FOO", "BAR"]))
+        tm.assert_index_equal(renamed.index, Index(["BAR", "FOO"]))
 
         # have to pass something
         with pytest.raises(TypeError, match="must pass an index to rename"):

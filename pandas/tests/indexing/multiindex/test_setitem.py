@@ -146,8 +146,8 @@ class TestMultiIndexSetItem:
             {
                 "price": {
                     ("DE", "Coal", "Stock"): 2,
-                    ("DE", "Elec", "Demand"): 1,
                     ("DE", "Gas", "Stock"): 4,
+                    ("DE", "Elec", "Demand"): 1,
                     ("FR", "Gas", "Stock"): 5,
                     ("FR", "Solar", "SupIm"): 0,
                     ("FR", "Wind", "SupIm"): 0,
