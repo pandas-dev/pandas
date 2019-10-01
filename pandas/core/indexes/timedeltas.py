@@ -2,6 +2,8 @@
 from datetime import datetime
 import warnings
 
+from typing import Optional
+
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, index as libindex, join as libjoin, lib
@@ -709,8 +711,13 @@ def _is_convertible_to_index(other):
 
 
 def timedelta_range(
-    start=None, end=None, periods=None, freq=None, name=None, closed=None
-):
+    start: Optional[str],
+    end: Optional[str],
+    periods: Optional[int],
+    freq: Optional[str],
+    name: Optional[str],
+    closed: Optional[str],
+) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
     frequency.
