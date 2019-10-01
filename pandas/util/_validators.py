@@ -396,7 +396,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     ------
     ValueError if percentiles are not in given interval([0, 1]).
     """
-    msg = "percentiles should all be in the interval [0, 1]. " "Try {0} instead."
+    msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
     q_arr = np.asarray(q)
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
