@@ -111,6 +111,13 @@ Other API changes
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
+.. _whatsnew_1000.api.documentation:
+
+Documentation Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Added new section on :ref:`scale` (:issue:`28315`).
+
 .. _whatsnew_1000.deprecations:
 
 Deprecations
@@ -125,9 +132,10 @@ Deprecations
 Removed SparseSeries and SparseDataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
-We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
-See :ref:`sparse.migration` for help with migrating existing code.
+``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
+have been removed (:issue:`28425`). We recommend using a ``Series`` or
+``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
+with migrating existing code.
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,7 +188,8 @@ Datetimelike
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
-
+- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -198,7 +207,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
--
+- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 -
 
 Conversion
@@ -262,6 +271,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
+- Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 
 Groupby/resample/rolling
@@ -277,6 +287,7 @@ Reshaping
 
 - Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
+- Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
 
 Sparse
 ^^^^^^

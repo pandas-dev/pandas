@@ -562,8 +562,6 @@ class _GroupBy(PandasObject, SelectionMixin):
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
-        if hasattr(self.obj, attr):
-            return self._make_wrapper(attr)
 
         raise AttributeError(
             "%r object has no attribute %r" % (type(self).__name__, attr)
@@ -1032,7 +1030,7 @@ class GroupBy(_GroupBy):
         Most users should ignore this
     exclusions : array-like, optional
         List of columns to exclude
-    name : string
+    name : str
         Most users should ignore this
 
     Returns
@@ -1253,7 +1251,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1276,7 +1274,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1311,7 +1309,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
@@ -1623,7 +1621,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -1649,7 +1647,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -2099,13 +2097,13 @@ class GroupBy(_GroupBy):
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        ascending : boolean, default True
+        ascending : bool, default True
             False for ranks by high (1) to low (N)
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
-        pct : boolean, default False
+        pct : bool, default False
             Compute percentage rank of data within each group
         axis : int, default 0
             The axis of the object over which to compute the rank.
@@ -2313,7 +2311,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        periods : integer, default 1
+        periods : int, default 1
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0

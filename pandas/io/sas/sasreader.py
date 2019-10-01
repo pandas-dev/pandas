@@ -29,12 +29,12 @@ def read_sas(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    format : string {'xport', 'sas7bdat'} or None
+    format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None
         Identifier of column that should be used as index of the DataFrame.
-    encoding : string, default is None
+    encoding : str, default is None
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.

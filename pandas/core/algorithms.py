@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_sparse,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
@@ -177,7 +176,6 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-    from pandas import Index
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
@@ -185,7 +183,7 @@ def _reconstruct_data(values, dtype, original):
         values = values.astype(dtype)
 
         # we only support object dtypes bool Index
-        if isinstance(original, Index):
+        if isinstance(original, ABCIndexClass):
             values = values.astype(object)
     elif dtype is not None:
         values = values.astype(dtype)
@@ -743,7 +741,7 @@ def value_counts(
 
     else:
 
-        if is_extension_array_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -834,7 +832,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna=True):
+def mode(values, dropna: bool = True):
     """
     Returns the mode(s) of an array.
 
@@ -1623,7 +1621,7 @@ def take_nd(
     out : ndarray or None, default None
         Optional output array, must be appropriate type to hold input and
         fill_value together, if indexer has any -1 value entries; call
-        _maybe_promote to determine this type for any fill_value
+        maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
     mask_info : tuple of (ndarray, boolean)
@@ -1644,9 +1642,7 @@ def take_nd(
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
-    if is_sparse(arr):
-        arr = arr.to_dense()
-    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+    if isinstance(arr, (ABCIndexClass, ABCSeries)):
         arr = arr._values
 
     arr = np.asarray(arr)
@@ -1891,7 +1887,7 @@ _diff_special = {
 }
 
 
-def diff(arr, n, axis=0):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1907,7 +1903,6 @@ def diff(arr, n, axis=0):
     Returns
     -------
     shifted
-
     """
 
     n = int(n)
@@ -1938,13 +1933,15 @@ def diff(arr, n, axis=0):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
-        res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
-        res_indexer = tuple(res_indexer)
+        # To keep mypy happy, _res_indexer is a list while res_indexer is
+        #  a tuple, ditto for lag_indexer.
+        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
+        res_indexer = tuple(_res_indexer)
 
-        lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
-        lag_indexer = tuple(lag_indexer)
+        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
+        lag_indexer = tuple(_lag_indexer)
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers
