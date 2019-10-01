@@ -380,7 +380,7 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs["get_indexer"])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
+        if com._any_not_none(method, tolerance, limit) or not is_list_like(target):
             return super().get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
