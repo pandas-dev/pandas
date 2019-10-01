@@ -283,10 +283,6 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced, box):
         pytest.xfail("falsely upcasts to object")
     if boxed and dtype not in (str, object) and box_dtype is None:
         pytest.xfail("falsely upcasts to object")
-    if not boxed and dtype.kind == "M":
-        pytest.xfail("raises error")
-    if not boxed and dtype.kind == "m":
-        pytest.xfail("raises error")
 
     # filling anything but bool with bool casts to object
     expected_dtype = np.dtype(object) if dtype != bool else dtype
@@ -359,8 +355,6 @@ def test_maybe_promote_any_with_datetime64(
             or (box_dtype is None and is_datetime64_dtype(type(fill_value)))
         ):
             pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
-        if not boxed and is_timedelta64_dtype(dtype):
-            pytest.xfail("raises error")
 
     # special case for box_dtype
     box_dtype = np.dtype(datetime64_dtype) if box_dtype == "dt_dtype" else box_dtype
@@ -503,9 +497,7 @@ def test_maybe_promote_any_numpy_dtype_with_datetimetz(
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if dtype.kind == "m" and not boxed:
-        pytest.xfail("raises error")
-    elif dtype.kind == "M" and not boxed:
+    if dtype.kind == "M" and not boxed:
         pytest.xfail("Comes back as M8 instead of object")
 
     fill_value = pd.Series([fill_value], dtype=fill_dtype)[0]
@@ -562,8 +554,6 @@ def test_maybe_promote_any_with_timedelta64(
     else:
         if boxed and box_dtype is None and is_timedelta64_dtype(type(fill_value)):
             pytest.xfail("does not upcast correctly")
-        if not boxed and is_datetime64_dtype(dtype):
-            pytest.xfail("raises error")
 
     # special case for box_dtype
     box_dtype = np.dtype(timedelta64_dtype) if box_dtype == "td_dtype" else box_dtype
@@ -635,9 +625,6 @@ def test_maybe_promote_any_with_string(any_numpy_dtype_reduced, string_dtype, bo
     fill_dtype = np.dtype(string_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if is_datetime_or_timedelta_dtype(dtype) and box_dtype != object:
-        pytest.xfail("does not upcast or raises")
-
     # create array of given dtype
     fill_value = "abc"
 
@@ -690,9 +677,6 @@ def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype_reduced, bo
 def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
-
-    if not boxed and is_datetime_or_timedelta_dtype(dtype):
-        pytest.xfail("raises error")
 
     # create array of object dtype from a scalar value (i.e. passing
     # dtypes.common.is_scalar), which can however not be cast to int/float etc.

@@ -350,9 +350,15 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
-        fill_value = tslibs.Timestamp(fill_value).value
+        try:
+            fill_value = tslibs.Timestamp(fill_value).value
+        except (TypeError, ValueError):
+            dtype = np.dtype(np.object_)
     elif issubclass(dtype.type, np.timedelta64):
-        fill_value = tslibs.Timedelta(fill_value).value
+        try:
+            fill_value = tslibs.Timedelta(fill_value).value
+        except ValueError:
+            dtype = np.dtype(np.object_)
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
             fill_value = NaT
