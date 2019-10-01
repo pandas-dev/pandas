@@ -416,6 +416,14 @@ class TestRangeIndex(Numeric):
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
+    def test_get_indexer_limit(self):
+        # GH 28631
+        idx = RangeIndex(4)
+        target = RangeIndex(6)
+        result = idx.get_indexer(target, method="pad", limit=1)
+        expected = np.array([0, 1, 2, 3, 3, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_join_outer(self):
         # join with Int64Index
         other = Int64Index(np.arange(25, 14, -1))

@@ -49,7 +49,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Fix regression in :meth:`DataFrame.reindex` not following ``limit`` argument (:issue:`28631`).
 -
 -
 
