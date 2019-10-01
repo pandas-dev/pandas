@@ -422,11 +422,37 @@ class TestTimeSeries(TestData):
         expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
         assert_series_equal(chg, expected)
 
-    def test_pct_change_anchored_freq(self):
-        s = pd.Series([1, 2, 3, 4, 5] * 3, pd.date_range("2019-09", periods=15))
-
-        result = s.pct_change(freq="1W")
-        expected = s.asfreq("1W").pct_change()
+    @pytest.mark.parametrize(
+        "offset_1, n, offset_2",
+        product(
+            ["D", "W", "M"],
+            ["1", "7"],
+            [
+                "B",
+                "C",
+                "W",
+                "M",
+                "SM",
+                "BM",
+                "CBM",
+                "MS",
+                "SMS",
+                "BMS",
+                "CBMS",
+                "Q",
+                "BQ",
+                "BA",
+                "A",
+                "AS",
+            ],
+        ),
+    )
+    def test_pct_change_anchored_freq(self, offset_1, n, offset_2):
+        s = Series(
+            range(1, 16), date_range("2019-09", periods=15, freq="15" + offset_1)
+        )
+        result = s.pct_change(freq=n + offset_2)
+        expected = s.asfreq(n + offset_2).pct_change()
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
