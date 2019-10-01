@@ -415,16 +415,19 @@ class TestTimeSeries(TestData):
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
-        rs = self.ts.pct_change(freq="1W")
-        filled = self.ts.fillna(method="pad")
-        assert_series_equal(rs, self.ts.asfreq("1W"))
-
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
 
         chg = s.pct_change()
         expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
         assert_series_equal(chg, expected)
+
+    def test_pct_change_anchored_freq(self):
+        s = pd.Series([1, 2, 3, 4, 5] * 3, pd.date_range("2019-09", periods=15))
+
+        result = s.pct_change(freq="1W")
+        expected = s.asfreq("1W").pct_change()
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "freq, periods, fill_method, limit",
