@@ -332,18 +332,17 @@ def test_maybe_promote_any_with_datetime64(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if is_datetime64_dtype(dtype):
-        if boxed and (
-            box_dtype == object
-            or (box_dtype is None and not is_datetime64_dtype(type(fill_value)))
-        ):
-            pytest.xfail("falsely upcasts to object")
-    else:
-        if boxed and (
-            box_dtype == "dt_dtype"
-            or (box_dtype is None and is_datetime64_dtype(type(fill_value)))
-        ):
-            pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
+    if boxed:
+        if is_datetime64_dtype(dtype):
+            if box_dtype == object:
+                pytest.xfail("falsely upcasts to object")
+            elif box_dtype is None and not is_datetime64_dtype(type(fill_value)):
+                pytest.xfail("falsely upcasts to object")
+        else:
+            if box_dtype == "dt_dtype":
+                pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
+            elif box_dtype is None and is_datetime64_dtype(type(fill_value)):
+                pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
 
     # special case for box_dtype
     box_dtype = np.dtype(datetime64_dtype) if box_dtype == "dt_dtype" else box_dtype

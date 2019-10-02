@@ -352,6 +352,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             # We treat string-like dtypes as object, and _always_ fill
             #  with np.nan
             fill_value = np.nan
+            dtype = np.dtype(np.object_)
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
@@ -423,8 +424,6 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     # in case we have a string that looked like a number
     if is_extension_array_dtype(dtype):
-        pass
-    elif is_datetime64tz_dtype(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, (bytes, str)):
         dtype = np.object_
