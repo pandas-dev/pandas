@@ -943,6 +943,8 @@ class DataFrameFormatter(TableFormatter):
         classes : str or list-like
             classes to include in the `class` attribute of the opening
             ``<table>`` tag, in addition to the default "dataframe".
+        encoding : str, optional, default "utf-8"
+            Set character encoding.
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
         border : int

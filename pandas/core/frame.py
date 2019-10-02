@@ -2180,7 +2180,7 @@ class DataFrame(NDFrame):
         header=True,
         index=True,
         na_rep="NaN",
-        encoding="utf-8",
+        encoding=None,
         formatters=None,
         float_format=None,
         sparsify=None,
