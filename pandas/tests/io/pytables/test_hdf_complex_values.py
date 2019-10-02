@@ -2,7 +2,6 @@ from warnings import catch_warnings
 
 import numpy as np
 import pytest
-from distutils.version import LooseVersion
 
 import pandas as pd
 from pandas import (
