@@ -717,17 +717,17 @@ def timedelta_range(
 
     Parameters
     ----------
-    start : string or timedelta-like, default None
+    start : str or timedelta-like, default None
         Left bound for generating timedeltas
-    end : string or timedelta-like, default None
+    end : str or timedelta-like, default None
         Right bound for generating timedeltas
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D'
+    freq : str or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'
-    name : string, default None
+    name : str, default None
         Name of the resulting TimedeltaIndex
-    closed : string, default None
+    closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
