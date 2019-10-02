@@ -39,8 +39,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
     safe_close,
     safe_remove,
-    tables,
-    xfail_non_writeable,
 )
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -55,6 +53,26 @@ from pandas.io.pytables import (
 
 from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+
+
+# TODO:
+# remove when gh-24839 is fixed; this affects numpy 1.16
+# and pytables 3.4.4
+tables = pytest.importorskip("tables")
+# set these parameters so we don't have file sharing
+tables.parameters.MAX_NUMEXPR_THREADS = 1
+tables.parameters.MAX_BLOSC_THREADS = 1
+tables.parameters.MAX_THREADS = 1
+
+
+xfail_non_writeable = pytest.mark.xfail(
+    LooseVersion(np.__version__) >= LooseVersion("1.16")
+    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
+    reason=(
+        "gh-25511, gh-24839. pytables needs a "
+        "release beyong 3.4.4 to support numpy 1.16x"
+    ),
+)
 
 
 _default_compressor = "blosc"
