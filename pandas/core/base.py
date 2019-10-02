@@ -678,8 +678,10 @@ class IndexOpsMixin:
 
         See Also
         --------
-        DataFrame._is_homogeneous_type
-        MultiIndex._is_homogeneous_type
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
+        MultiIndex._is_homogeneous_type : Whether all the levels of a
+            MultiIndex have the same dtype.
         """
         return True
 
