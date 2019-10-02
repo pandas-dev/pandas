@@ -665,8 +665,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Index._is_homogeneous_type
-        DataFrame._is_homogeneous_type
+        Index._is_homogeneous_type : Whether the object has a single
+            dtype.
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
 
         Examples
         --------
