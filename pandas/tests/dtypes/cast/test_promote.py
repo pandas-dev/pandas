@@ -678,24 +678,16 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if (
-        dtype == bytes
-        and not boxed
-        and fill_value is not None
-        and fill_value is not NaT
-    ):
-        pytest.xfail("does not upcast to object")
-    elif dtype == "uint64" and not boxed and fill_value == iNaT:
-        pytest.xfail("does not upcast correctly")
-    # below: opinionated that iNaT should be interpreted as missing value
-    elif (
-        not boxed
-        and (is_float_dtype(dtype) or is_complex_dtype(dtype))
-        and fill_value == iNaT
-    ):
-        pytest.xfail("does not cast to missing value marker correctly")
-    elif (is_string_dtype(dtype) or dtype == bool) and not boxed and fill_value == iNaT:
-        pytest.xfail("does not cast to missing value marker correctly")
+    if not boxed:
+        if dtype == bytes and fill_value is not None and fill_value is not NaT:
+            pytest.xfail("does not upcast to object")
+        elif dtype == "uint64" and fill_value == iNaT:
+            pytest.xfail("does not upcast correctly")
+        # below: opinionated that iNaT should be interpreted as missing value
+        elif (is_float_dtype(dtype) or is_complex_dtype(dtype)) and fill_value == iNaT:
+            pytest.xfail("does not cast to missing value marker correctly")
+        elif (is_string_dtype(dtype) or dtype == bool) and fill_value == iNaT:
+            pytest.xfail("does not cast to missing value marker correctly")
 
     if is_integer_dtype(dtype) and dtype == "uint64" and fill_value == iNaT:
         # uint64 + negative int casts to object; iNaT is considered as missing
