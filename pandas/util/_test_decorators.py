@@ -26,7 +26,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from distutils.version import LooseVersion
 import locale
 from typing import Callable, Optional
-
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
@@ -76,11 +76,10 @@ def safe_import(mod_name, min_version=None):
 # TODO:
 # remove when gh-24839 is fixed; this affects numpy 1.16
 # and pytables 3.4.4
-mod = safe_import("numpy")
-custom_mod = safe_import("tables")
+tables = safe_import("tables")
 xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(mod.__version__) >= LooseVersion("1.16")
-    and LooseVersion(custom_mod.__version__) < LooseVersion("3.5.1"),
+    LooseVersion(np.__version__) >= LooseVersion("1.16")
+    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
     reason=(
         "gh-25511, gh-24839. pytables needs a "
         "release beyong 3.4.4 to support numpy 1.16x"
