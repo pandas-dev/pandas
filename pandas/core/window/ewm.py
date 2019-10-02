@@ -353,7 +353,6 @@ class EWM(_Rolling):
         """
         Exponential weighted sample correlation.
 
-
         Parameters
         ----------
         other : Series, DataFrame, or ndarray, optional
@@ -366,7 +365,7 @@ class EWM(_Rolling):
             output will be a MultiIndex DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
-        **kwargs
+        **kwargs : dict of {str : Any}
            Keyword arguments to be passed into func.
         """
 

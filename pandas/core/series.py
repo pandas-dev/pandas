@@ -4093,7 +4093,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Additional keyword arguments passed to the function. Only the
             "inplace" keyword is used.
 
-
         Returns
         -------
         Series

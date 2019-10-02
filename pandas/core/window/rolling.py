@@ -1021,9 +1021,9 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
-    args
+    args : tuple of Any
         Arguments and keyword arguments to be passed into func.
-    kwargs
+    kwargs : dict of {str : any}
         Arguments and keyword arguments to be passed into func.
 
     Returns
