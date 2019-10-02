@@ -436,16 +436,20 @@ class Docstring:
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = inspect.getfullargspec(self.obj)
+            sig = inspect.signature(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
             return tuple()
-        params = sig.args
-        if sig.varargs:
-            params.append("*" + sig.varargs)
-        if sig.varkw:
-            params.append("**" + sig.varkw)
+        params = list()
+        for parameter, data in sig.parameters.items():
+            if data.kind == inspect.Parameter.VAR_POSITIONAL:
+                params.append("*" + parameter)
+            elif data.kind == inspect.Parameter.VAR_KEYWORD:
+                params.append("**" + parameter)
+            else:
+                params.append(parameter)
+
         params = tuple(params)
         if params and params[0] in ("self", "cls"):
             return params[1:]
