@@ -13,22 +13,9 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 from pandas.io.pytables import read_hdf
-from pandas.tests.io.pytables.common import (ensure_clean_path,
+from pandas.tests.io.pytables.common import (xfail_non_writeable,
+                                             ensure_clean_path,
                                              ensure_clean_store)
-
-tables = pytest.importorskip("tables")
-
-# TODO:
-# remove when gh-24839 is fixed; this affects numpy 1.16
-# and pytables 3.4.4
-xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyong 3.4.4 to support numpy 1.16x"
-    ),
-)
 
 
 class TestHDFComplexValues:

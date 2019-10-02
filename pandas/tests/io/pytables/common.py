@@ -1,8 +1,30 @@
 from contextlib import contextmanager
 import os
+import pytest
+import numpy as np
+from distutils.version import LooseVersion
 import tempfile
 
 from pandas.io.pytables import HDFStore
+
+
+# TODO:
+# remove when gh-24839 is fixed; this affects numpy 1.16
+# and pytables 3.4.4
+tables = pytest.importorskip("tables")
+xfail_non_writeable = pytest.mark.xfail(
+    LooseVersion(np.__version__) >= LooseVersion("1.16")
+    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
+    reason=(
+        "gh-25511, gh-24839. pytables needs a "
+        "release beyong 3.4.4 to support numpy 1.16x"
+    ),
+)
+
+# set these parameters so we don't have file sharing
+tables.parameters.MAX_NUMEXPR_THREADS = 1
+tables.parameters.MAX_BLOSC_THREADS = 1
+tables.parameters.MAX_THREADS = 1
 
 
 def safe_remove(path):
@@ -26,6 +48,7 @@ def create_tempfile(path):
     return os.path.join(tempfile.gettempdir(), path)
 
 
+# contextmanager to ensure the file cleanup
 @contextmanager
 def ensure_clean_store(path, mode="a", complevel=None, complib=None, fletcher32=False):
 
