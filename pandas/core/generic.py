@@ -10413,7 +10413,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
-        if freq and to_offset(freq).isAnchored():
+        if freq:
             return data.asfreq(freq).pct_change(
                 periods=periods, fill_method=fill_method, limit=limit, **kwargs
             )
