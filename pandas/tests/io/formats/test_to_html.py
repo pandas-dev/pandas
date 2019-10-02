@@ -1,4 +1,3 @@
-import codecs
 from datetime import datetime
 from io import StringIO
 import re
@@ -101,10 +100,11 @@ def test_to_html_unicode(df, expected, datapath):
 
 
 def test_to_html_encoding():
+    # GH 28663
     df = DataFrame({"A": ["a", "b"]})
     with tm.ensure_clean("test.csv") as path:
         df.to_html(path, encoding="gbk")
-        with codecs.open(path, "r", encoding="gbk") as f:
+        with open(path, "r", encoding="gbk") as f:
             assert df.to_html() == f.read()
 
 
