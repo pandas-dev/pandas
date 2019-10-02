@@ -7,13 +7,13 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, set_timezone
 from pandas.tests.io.pytables.common import (
+    _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
-    _maybe_remove,
 )
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, set_timezone
 
 
 class TestTimezones:

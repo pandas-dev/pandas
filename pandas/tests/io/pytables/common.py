@@ -1,12 +1,12 @@
 from contextlib import contextmanager
-import os
-import pytest
-import numpy as np
 from distutils.version import LooseVersion
+import os
 import tempfile
 
-from pandas.io.pytables import HDFStore
+import numpy as np
+import pytest
 
+from pandas.io.pytables import HDFStore
 
 # TODO:
 # remove when gh-24839 is fixed; this affects numpy 1.16

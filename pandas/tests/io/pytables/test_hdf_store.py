@@ -32,6 +32,16 @@ from pandas import (
     isna,
     timedelta_range,
 )
+from pandas.tests.io.pytables.common import (
+    _maybe_remove,
+    create_tempfile,
+    ensure_clean_path,
+    ensure_clean_store,
+    safe_close,
+    safe_remove,
+    tables,
+    xfail_non_writeable,
+)
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -41,16 +51,6 @@ from pandas.io.pytables import (
     PossibleDataLossError,
     Term,
     read_hdf,
-)
-from pandas.tests.io.pytables.common import (
-    xfail_non_writeable,
-    tables,
-    ensure_clean_path,
-    ensure_clean_store,
-    create_tempfile,
-    safe_close,
-    safe_remove,
-    _maybe_remove,
 )
 
 from pandas.io import pytables as pytables  # noqa: E402 isort:skip
