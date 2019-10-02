@@ -19,8 +19,6 @@ from pandas.tests.io.pytables.common import (ensure_clean_path,
                                              ensure_clean_store,
                                              _maybe_remove)
 
-tables = pytest.importorskip("tables")
-
 
 class TestTimezones:
     def _compare_with_tz(self, a, b):
