@@ -1221,7 +1221,7 @@ class TestExcelWriterEngineTests:
             pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
-    def test_ExcelWriter_dispatch(self, klass, ext, path):
+    def test_ExcelWriter_dispatch(self, klass, ext):
         with ensure_clean(ext) as path:
             writer = ExcelWriter(path)
             if ext == ".xlsx" and td.safe_import("xlsxwriter"):
