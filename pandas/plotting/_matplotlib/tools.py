@@ -12,14 +12,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
-    try:
-        for label in ax.get_xticklabels():
-            label.set_ha("right")
-            label.set_rotation(rot)
-        fig = ax.get_figure()
-        fig.subplots_adjust(bottom=0.2)
-    except Exception:  # pragma: no cover
-        pass
+    for label in ax.get_xticklabels():
+        label.set_ha("right")
+        label.set_rotation(rot)
+    fig = ax.get_figure()
+    fig.subplots_adjust(bottom=0.2)
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
