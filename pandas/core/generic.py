@@ -10414,6 +10414,7 @@ class NDFrame(PandasObject, SelectionMixin):
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
+        rs = rs.loc[~rs.index.duplicated()]
         rs = rs.reindex_like(data)
         if freq is None:
             mask = isna(com.values_from_object(data))

@@ -415,43 +415,30 @@ class TestTimeSeries(TestData):
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
+    @pytest.mark.parametrize("n_1", ["1", "15"])
+    @pytest.mark.parametrize("offset_1", ["D", "BM"])
+    @pytest.mark.parametrize("n_2", ["1", "3"])
+    @pytest.mark.parametrize("offset_2", ["D", "BM"])
+    def test_pct_change_with_duplicate_axis(self, n_1, offset_1, n_2, offset_2):
+        # GH 28664
+
+        freq_1 = n_1 + offset_1
+        freq_2 = n_2 + offset_2
+
+        s = Series([1, 2, 3, 4, 5] * 3, date_range("2019-09", periods=15, freq=freq_1))
+
+        result = s.pct_change(freq=freq_2)
+        expected = s / s.shift(freq=freq_2) - 1
+        expected = expected[expected.index.isin(s.index) & ~expected.index.duplicated()]
+
+        assert_series_equal(result, expected)
+
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
 
         chg = s.pct_change()
         expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
         assert_series_equal(chg, expected)
-
-    @pytest.mark.parametrize("offset_1", ["D", "W", "M"])
-    @pytest.mark.parametrize(
-        "offset_2",
-        [
-            "B",
-            "C",
-            "W",
-            "M",
-            "SM",
-            "BM",
-            "CBM",
-            "MS",
-            "SMS",
-            "BMS",
-            "CBMS",
-            "Q",
-            "BQ",
-            "BA",
-            "A",
-            "AS",
-        ],
-    )
-    def test_pct_change_anchored_freq(self, offset_1, offset_2):
-        # GH 28664
-        s = Series(
-            range(1, 16), date_range("2019-09", periods=15, freq="15" + offset_1)
-        )
-        result = s.pct_change(freq="1" + offset_2)
-        expected = s.asfreq("1" + offset_2).pct_change()
-        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "freq, periods, fill_method, limit",
