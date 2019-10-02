@@ -207,6 +207,13 @@ class TestCasting(base.BaseCastingTests):
         with pytest.raises((ValueError, TypeError), match=msg):
             s.astype(int)
 
+    def test_cast_category_to_interval(self):
+        # GH 28668
+        expected = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
+        result = expected.astype("category").astype("interval")
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):

@@ -57,7 +57,7 @@ from pandas.core.algorithms import (
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
@@ -523,6 +523,8 @@ class Categorical(ExtensionArray, PandasObject):
         if is_integer_dtype(dtype) and self.isna().any():
             msg = "Cannot convert float NaN to integer"
             raise ValueError(msg)
+        if is_extension_array_dtype(dtype):
+            return array(self, dtype=dtype, copy=copy)
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
