@@ -642,16 +642,16 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``
+            column labels when ``axis=None``.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
         **kwargs : dict
-            pass along to ``func``
+            Pass along to ``func``.
 
         Returns
         -------
@@ -698,12 +698,12 @@ class Styler:
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar
+            ``func`` should take a scalar and return a scalar.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
         **kwargs : dict
-            pass along to ``func``
+            Pass along to ``func``.
 
         Returns
         -------
@@ -729,16 +729,16 @@ class Styler:
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean
+            ``cond`` should take a scalar and return a boolean.
         value : str
-            applied when ``cond`` returns true
+            Applied when ``cond`` returns true.
         other : str
-            applied when ``cond`` returns false
+            Applied when ``cond`` returns false.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
         **kwargs : dict
-            pass along to ``cond``
+            Pass along to ``cond``.
 
         Returns
         -------
@@ -819,7 +819,7 @@ class Styler:
         Parameters
         ----------
         styles : list
-            list of style functions
+            List of style functions.
 
         Returns
         -------
@@ -969,19 +969,19 @@ class Styler:
         Parameters
         ----------
         cmap : str or colormap
-            matplotlib colormap
+            Matplotlib colormap.
         low : float
-            compress the range by the low.
+            Compress the range by the low.
         high : float
-            compress the range by the high.
+            Compress the range by the high.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
-            luminance threshold for determining text color. Facilitates text
+            Luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
             0 = all text is dark colored, 1 = all text is light colored.
 
@@ -1084,9 +1084,9 @@ class Styler:
         Parameters
         ----------
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            A valid slice for ``data`` to limit the style application to.
         **kwargs : dict
-            property: value pairs to be set for each cell
+            A dictionary of property, value pairs to be set for each cell.
 
         Returns
         -------
@@ -1180,7 +1180,7 @@ class Styler:
         subset : IndexSlice, optional
             A valid slice for `data` to limit the style application to.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         color : str or 2-tuple/list
@@ -1256,10 +1256,10 @@ class Styler:
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
 
@@ -1276,10 +1276,10 @@ class Styler:
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
 
@@ -1328,9 +1328,9 @@ class Styler:
         Parameters
         ----------
         searchpath : str or list
-            Path or paths of directories containing the templates
+            Path or paths of directories containing the templates.
         name : str
-            Name of your custom template to use for rendering
+            Name of your custom template to use for rendering.
 
         Returns
         -------
