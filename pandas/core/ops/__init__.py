@@ -384,7 +384,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
             return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via left._combine_match_columns,
+        # We only get here if called via _combine_frame_series,
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
@@ -613,15 +613,18 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
             "fill_value {fill} not supported.".format(fill=fill_value)
         )
 
-    if axis is not None:
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            return self._combine_match_index(other, func, level=level)
-        else:
-            return self._combine_match_columns(other, func, level=level)
+    if axis is None:
+        # default axis is columns
+        axis = 1
 
-    # default axis is columns
-    return self._combine_match_columns(other, func, level=level)
+    axis = self._get_axis_number(axis)
+    left, right = self.align(other, join="outer", axis=axis, level=level, copy=False)
+    if axis == 0:
+        new_data = left._combine_match_index(right, func)
+    else:
+        new_data = dispatch_to_series(left, right, func, axis="columns")
+
+    return left._construct_result(new_data)
 
 
 def _align_method_FRAME(left, right, axis):
