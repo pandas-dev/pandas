@@ -60,6 +60,7 @@ def engine(request):
     return request.param
 
 
+@pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)")
 @td.skip_if_no("xlrd")
 def test_default_engine(datapath, monkeypatch):
     monkeypatch.chdir(datapath("io", "data"))
