@@ -1198,9 +1198,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_raise_when_saving_timezones(
-        self, dtype, tz_aware_fixture, path
-    ):
+    def test_raise_when_saving_timezones(self, dtype, tz_aware_fixture, path):
         # GH 27008, GH 7056
         tz = tz_aware_fixture
         data = pd.Timestamp("2019", tz=tz)
