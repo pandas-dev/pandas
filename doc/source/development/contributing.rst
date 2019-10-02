@@ -950,11 +950,11 @@ the expected correct result::
         assert_frame_equal(pivoted, expected)
 
 .. note::
- 
+
    Add the GitHub issue number as a comment to the new tests.
-   For Example - For a test solving issue number 20172, write  
-     | # GH 20172 
+   For Example - For a test solving issue number 20172, write
      | def test_apply_categorical_with_nan_values(self, series):
+     |       # GH 20172
      |       s = pd.Series(series, dtype="category")
      |       ...
 
