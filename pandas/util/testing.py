@@ -585,7 +585,7 @@ def assert_index_equal(
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool / str {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1089,7 +1089,7 @@ def assert_series_equal(
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool / str {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
     check_series_type : bool, default True
@@ -1251,10 +1251,10 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool / str {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : bool / str {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
