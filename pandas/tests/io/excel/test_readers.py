@@ -60,15 +60,12 @@ def engine(request):
     return request.param
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(engine=None)])
-def test_default_engine(datapath, monkeypatch, kwargs):
-    """
-    A test for default ExcelFile engine value (which is None)
-    """
+@td.skip_if_no("xlrd")
+def test_default_engine(datapath, monkeypatch):
     monkeypatch.chdir(datapath("io", "data"))
     expected = "xlrd"
 
-    result = pd.ExcelFile("blank.xls", **kwargs)
+    result = pd.ExcelFile("blank.xls")
     assert result.engine == expected
 
 
