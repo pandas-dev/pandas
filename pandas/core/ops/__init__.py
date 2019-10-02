@@ -673,6 +673,7 @@ def _arith_method_FRAME(cls, op, special):
     default_axis = _get_frame_op_default_axis(op_name)
 
     na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
+    is_logical = str_rep in ["&", "|", "^"]
 
     if op_name in _op_descriptions:
         # i.e. include "add" but not "__add__"
@@ -688,11 +689,13 @@ def _arith_method_FRAME(cls, op, special):
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             pass_op = op if should_series_dispatch(self, other, op) else na_op
+            pass_op = pass_op if not is_logical else op
             return self._combine_frame(other, pass_op, fill_value, level)
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
             pass_op = op if axis in [0, "columns", None] else na_op
+            pass_op = pass_op if not is_logical else op
             return _combine_series_frame(
                 self, other, pass_op, fill_value=fill_value, axis=axis, level=level
             )
