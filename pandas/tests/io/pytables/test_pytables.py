@@ -51,19 +51,6 @@ from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 tables = pytest.importorskip("tables")
 
 
-@pytest.fixture
-def setup_path():
-    """Fixture for setup path"""
-    return "tmp.__{}__.h5".format(tm.rands(10))
-
-
-@pytest.fixture(scope="class", autouse=True)
-def setup_mode():
-    tm.reset_testing_mode()
-    yield
-    tm.set_testing_mode()
-
-
 # TODO:
 # remove when gh-24839 is fixed; this affects numpy 1.16
 # and pytables 3.4.4
