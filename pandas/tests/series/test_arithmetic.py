@@ -74,7 +74,7 @@ class TestSeriesArithmetic:
         ],
     )
     def test_string_addition(self, target_add, input_value, expected_value):
-        # GH28658
+        # GH28658 - ensure adding 'm' does not raise an error
         a = Series(input_value)
 
         result = a + target_add
