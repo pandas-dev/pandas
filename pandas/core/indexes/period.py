@@ -89,7 +89,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
-    freq : string or period object, optional
+    freq : str or period object, optional
         One of pandas period strings or corresponding objects
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
