@@ -15,7 +15,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     ax : Matplotlib axes object
     data : DataFrame or Series
         data for table contents
-    kwargs : keywords, optional
+    **kwargs : keywords, optional
         keyword arguments which passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
         name will be used.
@@ -111,7 +111,7 @@ def scatter_matrix(
         relative extension of axis range in x and y
         with respect to (x_max - x_min) or (y_max - y_min),
         default 0.05
-    kwds : other plotting keyword arguments
+    **kwds : other plotting keyword arguments
         To be passed to scatter function
 
     Returns
@@ -170,7 +170,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     colormap : str or :class:`matplotlib.colors.Colormap`, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
-    kwds : optional
+    **kwds : optional
         Options to pass to matplotlib scatter plotting method.
 
     Returns
@@ -242,7 +242,7 @@ def andrews_curves(
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    kwds : keywords
+    **kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
@@ -285,7 +285,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    **kwds :
+    **kwds
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -358,7 +358,7 @@ def parallel_coordinates(
 
         .. versionadded:: 0.20.0
 
-    kwds : keywords
+    **kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
@@ -401,7 +401,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     series : Time series
     lag : lag of the scatter plot, default 1
     ax : Matplotlib axis object, optional
-    kwds : Matplotlib scatter method keyword arguments, optional
+    **kwds : Matplotlib scatter method keyword arguments, optional
 
     Returns
     -------
@@ -419,7 +419,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
     ----------
     series : Time series
     ax : Matplotlib axis object, optional
-    kwds : keywords
+    **kwds : keywords
         Options to pass to matplotlib plotting method
 
     Returns
