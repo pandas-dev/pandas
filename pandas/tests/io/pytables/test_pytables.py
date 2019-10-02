@@ -1300,7 +1300,7 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, 'r')
+            store = pd.HDFStore(path, "r")
 
             with pytest.raises(KeyError, match="'No object named k2 in the file'"):
                 pd.read_hdf(store, "k2")
