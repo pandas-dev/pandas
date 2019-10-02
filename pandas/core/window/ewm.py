@@ -369,7 +369,7 @@ class EWM(_Rolling):
         **kwargs
            Keyword arguments to be passed into func.
         """
-        
+
         if other is None:
             other = self._selected_obj
             # only default unset
