@@ -1,5 +1,5 @@
 import re
-from typing import Optional  # noqa
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -418,7 +418,7 @@ class MPLPlot:
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
-            is_empty = numeric_data.empty
+            is_empty = numeric_data.columns.empty
         except AttributeError:
             is_empty = not len(numeric_data)
 
@@ -1435,8 +1435,13 @@ class BarPlot(MPLPlot):
 
     def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
-        ax.set_xticks(self.tick_pos)
-        ax.set_xticklabels(ticklabels)
+
+        if self.xticks is not None:
+            ax.set_xticks(np.array(self.xticks))
+        else:
+            ax.set_xticks(self.tick_pos)
+            ax.set_xticklabels(ticklabels)
+
         if name is not None and self.use_index:
             ax.set_xlabel(name)
 

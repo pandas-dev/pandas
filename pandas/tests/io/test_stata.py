@@ -101,6 +101,8 @@ class TestStata:
         self.dta24_111 = os.path.join(self.dirpath, "stata7_111.dta")
         self.dta25_118 = os.path.join(self.dirpath, "stata16_118.dta")
 
+        self.dta26_119 = os.path.join(self.dirpath, "stata1_119.dta.gz")
+
         self.stata_dates = os.path.join(self.dirpath, "stata13_dates.dta")
 
     def read_dta(self, file):
@@ -1780,3 +1782,14 @@ the string values returned are correct."""
 
         expected = pd.DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
         tm.assert_frame_equal(encoded, expected)
+
+    @pytest.mark.slow
+    def test_stata_119(self):
+        # Gzipped since contains 32,999 variables and uncompressed is 20MiB
+        with gzip.open(self.dta26_119, "rb") as gz:
+            df = read_stata(gz)
+        assert df.shape == (1, 32999)
+        assert df.iloc[0, 6] == "A" * 3000
+        assert df.iloc[0, 7] == 3.14
+        assert df.iloc[0, -1] == 1
+        assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))

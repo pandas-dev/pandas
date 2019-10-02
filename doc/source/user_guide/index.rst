@@ -38,6 +38,7 @@ Further information on any specific method can be obtained in the
     style
     options
     enhancingperf
+    scale
     sparse
     gotchas
     cookbook

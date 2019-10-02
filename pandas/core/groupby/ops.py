@@ -212,9 +212,12 @@ class BaseGrouper:
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 pass
-            except TypeError:
-                # occurs if we have any EAs
-                pass
+            except TypeError as err:
+                if "Cannot convert" in str(err):
+                    # via apply_frame_axis0 if we pass a non-ndarray
+                    pass
+                else:
+                    raise
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
@@ -463,9 +466,7 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError(
-                "{} are not support in cython ops".format(values.dtype)
-            )
+            raise NotImplementedError("{} dtype not supported".format(values.dtype))
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
@@ -615,14 +616,9 @@ class BaseGrouper:
         is_datetimelike,
         min_count=-1,
     ):
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                chunk = chunk.squeeze()
-                agg_func(result[:, :, i], counts, chunk, comp_ids, min_count)
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
@@ -640,20 +636,9 @@ class BaseGrouper:
     ):
 
         comp_ids, _, ngroups = self.group_info
-        if values.ndim > 3:
+        if values.ndim > 2:
             # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-
-                transform_func(
-                    result[:, :, i],
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
-                    **kwargs
-                )
+            raise NotImplementedError("number of dimensions is currently limited to 2")
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
@@ -932,11 +917,7 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def fast_apply(self, f, names):
         # must return keys::list, values::list, mutated::bool
-        try:
-            starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        except Exception:
-            # fails when all -1
-            return [], True
+        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)

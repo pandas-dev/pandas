@@ -50,6 +50,7 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
+@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
@@ -145,6 +146,7 @@ def test_geopandas_coordinate_indexer():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module("pyarrow")  # noqa

@@ -11,6 +11,7 @@ from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
+from urllib.error import URLError
 
 import numpy as np
 import pytest
@@ -21,7 +22,6 @@ from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas.util.testing as tm
 
-from pandas.io.common import URLError
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
 
@@ -2167,7 +2167,7 @@ def test_suppress_error_output(all_parsers, capsys):
     compat.is_platform_windows() and not compat.PY36,
     reason="On Python < 3.6 won't pass on Windows",
 )
-@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv"])
+@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv", "中文文件名.csv"])
 def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.
     parser = all_parsers
