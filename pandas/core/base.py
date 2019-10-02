@@ -1515,6 +1515,12 @@ class IndexOpsMixin:
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
+        .. note::
+
+            The %(klass)s *must* be monotonically sorted, otherwise
+            wrong locations will likely be returned. Pandas does *not*
+            check this for you.
+
         Parameters
         ----------
         value : array_like
@@ -1540,6 +1546,7 @@ class IndexOpsMixin:
 
         See Also
         --------
+        sort_values
         numpy.searchsorted
 
         Notes
@@ -1578,6 +1585,13 @@ class IndexOpsMixin:
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])
+
+        If the values are not monotonically sorted, wrong locations
+        may be returned:
+
+        >>> x = pd.Series([2, 1, 3])
+        >>> x.searchsorted(1)
+        0  # wrong result, correct would be 1
         """
 
     @Substitution(klass="Index")
