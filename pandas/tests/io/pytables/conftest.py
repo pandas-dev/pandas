@@ -9,7 +9,7 @@ def setup_path():
     return "tmp.__{}__.h5".format(tm.rands(10))
 
 
-@pytest.fixture(scope="class", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def setup_mode():
     """ Reset testing mode fixture"""
     tm.reset_testing_mode()
