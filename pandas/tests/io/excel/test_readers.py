@@ -50,13 +50,6 @@ def ignore_xlrd_time_clock_warning():
                 pytest.mark.filterwarnings("ignore:.*html argument"),
             ],
         ),
-        pytest.param(
-            None,
-            marks=[
-                td.skip_if_no("xlrd"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
         pytest.param("odf", marks=td.skip_if_no("odf")),
     ]
 )
@@ -65,6 +58,24 @@ def engine(request):
     A fixture for Excel reader engines.
     """
     return request.param
+
+
+@pytest.mark.parametrize("kwargs", [dict(), dict(engine=None)])
+def test_default_engine(datapath, monkeypatch, kwargs):
+    """
+    A test for default ExcelFile engine value (which is None) and a bad engine value
+    """
+    monkeypatch.chdir(datapath("io", "data"))
+    expected = "xlrd"
+
+    result = pd.ExcelFile("blank.xls", **kwargs)
+    assert result.engine == expected
+
+
+def test_bad_engine_raises():
+    bad_engine = "foo"
+    with pytest.raises(ValueError, match="Unknown engine: foo"):
+        pd.read_excel("", engine=bad_engine)
 
 
 class TestReaders:
@@ -492,10 +503,6 @@ class TestReaders:
             actual = pd.read_excel(f, "Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    def test_bad_engine_raises(self, read_ext):
-        bad_engine = "foo"
-        with pytest.raises(ValueError, match="Unknown engine: foo"):
-            pd.read_excel("", engine=bad_engine)
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
