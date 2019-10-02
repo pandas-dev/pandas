@@ -577,7 +577,7 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    arg : int, float, str, datetime, list, tuple, 1-d array, Series
            or DataFrame/dict-like
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
@@ -585,13 +585,13 @@ def to_datetime(
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaT
         - If 'ignore', then invalid parsing will return the input
-    dayfirst : boolean, default False
+    dayfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as
         2012-11-10.
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug, based on dateutil behavior).
-    yearfirst : boolean, default False
+    yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
 
         - If True parses dates with the year first, eg 10/11/12 is parsed as
@@ -604,10 +604,10 @@ def to_datetime(
 
         .. versionadded:: 0.16.1
 
-    utc : boolean, default None
+    utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
-    box : boolean, default True
+    box : bool, default True
 
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
@@ -617,22 +617,22 @@ def to_datetime(
             instead to get an ndarray of values or numpy.datetime64,
             respectively.
 
-    format : string, default None
+    format : str, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
         See strftime documentation for more information on choices:
         https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
-    exact : boolean, True by default
+    exact : bool, True by default
 
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : string, default 'ns'
+    unit : str, default 'ns'
         unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
         Example, with unit='ms' and origin='unix' (the default), this
         would calculate the number of milliseconds to the unix epoch start.
-    infer_datetime_format : boolean, default False
+    infer_datetime_format : bool, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
@@ -649,7 +649,7 @@ def to_datetime(
           origin.
 
         .. versionadded:: 0.20.0
-    cache : boolean, default True
+    cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.

@@ -47,7 +47,6 @@ _indexops_doc_kwargs = dict(
 
 
 class PandasObject(DirNamesMixin):
-
     """baseclass for various pandas objects"""
 
     @property
@@ -679,8 +678,10 @@ class IndexOpsMixin:
 
         See Also
         --------
-        DataFrame._is_homogeneous_type
-        MultiIndex._is_homogeneous_type
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
+        MultiIndex._is_homogeneous_type : Whether all the levels of a
+            MultiIndex have the same dtype.
         """
         return True
 
@@ -1290,17 +1291,17 @@ class IndexOpsMixin:
 
         Parameters
         ----------
-        normalize : boolean, default False
+        normalize : bool, default False
             If True then the object returned will contain the relative
             frequencies of the unique values.
-        sort : boolean, default True
+        sort : bool, default True
             Sort by frequencies.
-        ascending : boolean, default False
+        ascending : bool, default False
             Sort in ascending order.
-        bins : integer, optional
+        bins : int, optional
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with numeric data.
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
@@ -1462,7 +1463,7 @@ class IndexOpsMixin:
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of the values
+        Memory usage of the values.
 
         Parameters
         ----------
@@ -1497,7 +1498,7 @@ class IndexOpsMixin:
         size_hint="",
         sort=textwrap.dedent(
             """\
-            sort : boolean, default False
+            sort : bool, default False
                 Sort `uniques` and shuffle `labels` to maintain the
                 relationship.
             """
@@ -1515,6 +1516,12 @@ class IndexOpsMixin:
         Find the indices into a sorted %(klass)s `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
+
+        .. note::
+
+            The %(klass)s *must* be monotonically sorted, otherwise
+            wrong locations will likely be returned. Pandas does *not*
+            check this for you.
 
         Parameters
         ----------
@@ -1541,6 +1548,7 @@ class IndexOpsMixin:
 
         See Also
         --------
+        sort_values
         numpy.searchsorted
 
         Notes
@@ -1579,6 +1587,13 @@ class IndexOpsMixin:
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])
+
+        If the values are not monotonically sorted, wrong locations
+        may be returned:
+
+        >>> x = pd.Series([2, 1, 3])
+        >>> x.searchsorted(1)
+        0  # wrong result, correct would be 1
         """
 
     @Substitution(klass="Index")

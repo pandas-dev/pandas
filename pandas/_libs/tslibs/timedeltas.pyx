@@ -4,7 +4,7 @@ import warnings
 
 import cython
 
-from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
+from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
@@ -228,8 +228,13 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i])
-    except:
+            if values[i] is NaT:
+                # we allow this check in the fast-path because NaT is a C-object
+                #  so this is an inexpensive check
+                iresult[i] = NPY_NAT
+            else:
+                result[i] = parse_timedelta_string(values[i])
+    except (TypeError, ValueError):
         unit = parse_timedelta_unit(unit)
         for i in range(n):
             try:
@@ -309,7 +314,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cdef inline parse_timedelta_string(object ts):
+cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -1150,7 +1155,7 @@ cdef class _Timedelta(timedelta):
         """
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
         .. versionadded:: 0.20.0
 
@@ -1314,7 +1319,7 @@ class Timedelta(_Timedelta):
 
     def round(self, freq):
         """
-        Round the Timedelta to the specified resolution
+        Round the Timedelta to the specified resolution.
 
         Parameters
         ----------
@@ -1332,7 +1337,7 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
@@ -1342,7 +1347,7 @@ class Timedelta(_Timedelta):
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------

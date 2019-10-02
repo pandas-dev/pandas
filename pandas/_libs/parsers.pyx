@@ -17,12 +17,11 @@ from libc.string cimport strncpy, strlen, strcasecmp
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString,
-                      PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch,
-                      PyUnicode_Decode)
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
 
 
 cdef extern from "Python.h":
@@ -567,10 +566,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
@@ -1693,6 +1690,10 @@ cdef:
     char* cposinf = b'+inf'
     char* cneginf = b'-inf'
 
+    char* cinfty = b'Infinity'
+    char* cposinfty = b'+Infinity'
+    char* cneginfty = b'-Infinity'
+
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
@@ -1772,9 +1773,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif strcasecmp(word, cneginf) == 0:
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1793,9 +1797,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0 or
+                        strcasecmp(word, cinfty) == 0 or
+                        strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1

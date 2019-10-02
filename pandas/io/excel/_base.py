@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from urllib.request import urlopen
 
 from pandas._config import config
 
@@ -21,6 +20,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
+    urlopen,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -112,7 +112,7 @@ dtype : Type name or dict of column -> type, default None
 
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd.
+    Acceptable values are None, "xlrd", "openpyxl" or "odf".
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -532,15 +532,15 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : string
+    path : str
         Path to xls or xlsx file.
-    engine : string (optional)
+    engine : str (optional)
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
-    date_format : string, default None
+    date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
-    datetime_format : string, default None
+    datetime_format : str, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
@@ -658,11 +658,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ----------
         cells : generator
             cell of formatted data to save to Excel sheet
-        sheet_name : string, default None
+        sheet_name : str, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow : upper left cell row to dump data frame
         startcol : upper left cell column to dump data frame
-        freeze_panes: integer tuple of length 2
+        freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
         pass
@@ -782,12 +782,13 @@ class ExcelFile:
 
     Parameters
     ----------
-    io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file.
-    engine : string, default None
+    io : str, path object (pathlib.Path or py._path.local.LocalPath),
+        a file-like object, xlrd workbook or openpypl workbook.
+        If a string or path object, expected to be a path to xls, xlsx or odf file.
+    engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or ``xlrd``.
+        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -837,10 +838,10 @@ class ExcelFile:
         **kwds
     ):
         """
-        Parse specified sheet(s) into a DataFrame
+        Parse specified sheet(s) into a DataFrame.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters
+        docstring for more info on accepted parameters.
 
         Returns
         -------

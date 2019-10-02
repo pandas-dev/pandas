@@ -1,4 +1,4 @@
-from cpython cimport (
+from cpython.object cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
@@ -150,6 +150,8 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
+            raise TypeError("Cannot add NaT to ndarray with dtype {dtype}"
+                            .format(dtype=other.dtype))
 
         return NotImplemented
 
@@ -200,6 +202,10 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
+
+            raise TypeError(
+                "Cannot subtract NaT from ndarray with dtype {dtype}"
+                .format(dtype=other.dtype))
 
         return NotImplemented
 
@@ -545,7 +551,7 @@ class NaTType(_NaT):
         """)
     round = _make_nat_func('round',  # noqa:E128
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
@@ -583,7 +589,7 @@ default 'raise'
         """)
     floor = _make_nat_func('floor',  # noqa:E128
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -617,7 +623,7 @@ default 'raise'
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -729,7 +735,7 @@ default 'raise'
         """)
     replace = _make_nat_func('replace',  # noqa:E128
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

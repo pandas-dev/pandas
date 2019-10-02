@@ -1,4 +1,5 @@
 import builtins
+import datetime as dt
 from io import StringIO
 from itertools import product
 from string import ascii_lowercase
@@ -9,7 +10,16 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td, testing as tm
 
@@ -1015,6 +1025,42 @@ def test_nunique_with_timegrouper():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "key, data, dropna, expected",
+    [
+        (
+            ["x", "x", "x"],
+            [Timestamp("2019-01-01"), NaT, Timestamp("2019-01-01")],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "y", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "x", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+    ],
+)
+def test_nunique_with_NaT(key, data, dropna, expected):
+    # GH 27951
+    df = pd.DataFrame({"key": key, "data": data})
+    result = df.groupby(["key"])["data"].nunique(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
 def test_nunique_preserves_column_level_names():
     # GH 23222
     test = pd.DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
@@ -1253,6 +1299,24 @@ def test_quantile_array():
     result = df.groupby([0, 0, 1, 1]).quantile([0.25, 0.75])
     expected = pd.DataFrame(
         {"A": [0.25, 0.75, 2.25, 2.75], "B": [4.25, 4.75, 6.25, 6.75]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_array2():
+    # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
+    df = pd.DataFrame(
+        np.random.RandomState(0).randint(0, 5, size=(10, 3)), columns=list("ABC")
+    )
+    result = df.groupby("A").quantile([0.3, 0.7])
+    expected = pd.DataFrame(
+        {
+            "B": [0.9, 2.1, 2.2, 3.4, 1.6, 2.4, 2.3, 2.7, 0.0, 0.0],
+            "C": [1.2, 2.8, 1.8, 3.0, 0.0, 0.0, 1.9, 3.1, 3.0, 3.0],
+        },
+        index=pd.MultiIndex.from_product(
+            [[0, 1, 2, 3, 4], [0.3, 0.7]], names=["A", None]
+        ),
     )
     tm.assert_frame_equal(result, expected)
 

@@ -471,7 +471,7 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def dtype(self) -> CategoricalDtype:
         """
-        The :class:`~pandas.api.types.CategoricalDtype` for this instance
+        The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
 
@@ -520,6 +520,9 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
+        if is_integer_dtype(dtype) and self.isna().any():
+            msg = "Cannot convert float NaN to integer"
+            raise ValueError(msg)
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
@@ -1350,24 +1353,7 @@ class Categorical(ExtensionArray, PandasObject):
         if not isinstance(state, dict):
             raise Exception("invalid pickle state")
 
-        # Provide compatibility with pre-0.15.0 Categoricals.
-        if "_categories" not in state and "_levels" in state:
-            state["_categories"] = self.dtype.validate_categories(state.pop("_levels"))
-        if "_codes" not in state and "labels" in state:
-            state["_codes"] = coerce_indexer_dtype(
-                state.pop("labels"), state["_categories"]
-            )
-
-        # 0.16.0 ordered change
-        if "_ordered" not in state:
-
-            # >=15.0 < 0.16.0
-            if "ordered" in state:
-                state["_ordered"] = state.pop("ordered")
-            else:
-                state["_ordered"] = False
-
-        # 0.21.0 CategoricalDtype change
+        # compat with pre 0.21.0 CategoricalDtype change
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
 
@@ -1413,13 +1399,6 @@ class Categorical(ExtensionArray, PandasObject):
     @Substitution(klass="Categorical")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if not self.ordered:
-            raise ValueError(
-                "Categorical not ordered\nyou can use "
-                ".as_ordered() to change the Categorical to an "
-                "ordered one"
-            )
-
         from pandas.core.series import Series
 
         codes = _get_codes_for_values(Series(value).values, self.categories)

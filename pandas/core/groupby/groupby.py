@@ -212,9 +212,9 @@ func : callable or tuple of (callable, string)
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
-       positional arguments passed into `func`.
+       Positional arguments passed into `func`.
 kwargs : dict, optional
-         a dictionary of keyword arguments passed into `func`.
+         A dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
@@ -562,8 +562,6 @@ class _GroupBy(PandasObject, SelectionMixin):
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
-        if hasattr(self.obj, attr):
-            return self._make_wrapper(attr)
 
         raise AttributeError(
             "%r object has no attribute %r" % (type(self).__name__, attr)
@@ -653,7 +651,8 @@ b  2""",
                     # mark this column as an error
                     try:
                         return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except (AttributeError):
+                    except AttributeError:
+                        # e.g. SparseArray has no flags attr
                         raise ValueError
 
         return wrapper
@@ -665,11 +664,11 @@ b  2""",
         Parameters
         ----------
         name : object
-            the name of the group to get as a DataFrame
+            The name of the group to get as a DataFrame.
         obj : DataFrame, default None
-            the DataFrame to take the DataFrame out of.  If
+            The DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
-            be used
+            be used.
 
         Returns
         -------
@@ -726,8 +725,7 @@ b  2""",
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f)
-            except Exception:
-
+            except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
                 # operation, by excluding the grouping column
@@ -1011,7 +1009,6 @@ b  2""",
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data.
 
@@ -1033,7 +1030,7 @@ class GroupBy(_GroupBy):
         Most users should ignore this
     exclusions : array-like, optional
         List of columns to exclude
-    name : string
+    name : str
         Most users should ignore this
 
     Returns
@@ -1117,7 +1114,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
@@ -1134,7 +1131,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
@@ -1254,8 +1251,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
-            degrees of freedom
+        ddof : int, default 1
+            Degrees of freedom.
 
         Returns
         -------
@@ -1277,8 +1274,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
-            degrees of freedom
+        ddof : int, default 1
+            Degrees of freedom.
 
         Returns
         -------
@@ -1312,8 +1309,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
-            degrees of freedom
+        ddof : int, default 1
+            Degrees of freedom.
 
         Returns
         -------
@@ -1624,8 +1621,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
-            limit of how many values to fill
+        limit : int, optional
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1650,8 +1647,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
-            limit of how many values to fill
+        limit : int, optional
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1683,10 +1680,10 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         n : int or list of ints
-            a single nth value for the row or a list of nth values
+            A single nth value for the row or a list of nth values.
         dropna : None or str, optional
-            apply the specified dropna operation before counting which row is
-            the nth row. Needs to be None, 'any' or 'all'
+            Apply the specified dropna operation before counting which row is
+            the nth row. Needs to be None, 'any' or 'all'.
 
         Returns
         -------
@@ -1947,8 +1944,8 @@ class GroupBy(_GroupBy):
             arrays = []
 
             for i in range(self.ngroups):
-                arr = arr + i
-                arrays.append(arr)
+                arr2 = arr + i
+                arrays.append(arr2)
 
             indices = np.concatenate(arrays)
             assert len(indices) == len(result)
@@ -2100,14 +2097,14 @@ class GroupBy(_GroupBy):
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        ascending : boolean, default True
-            False for ranks by high (1) to low (N)
+        ascending : bool, default True
+            False for ranks by high (1) to low (N).
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
-        pct : boolean, default False
-            Compute percentage rank of data within each group
+        pct : bool, default False
+            Compute percentage rank of data within each group.
         axis : int, default 0
             The axis of the object over which to compute the rank.
 
@@ -2264,26 +2261,28 @@ class GroupBy(_GroupBy):
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
+            values = obj._data._values
+
             if aggregate:
                 result_sz = ngroups
             else:
-                result_sz = len(obj.values)
+                result_sz = len(values)
 
             if not cython_dtype:
-                cython_dtype = obj.values.dtype
+                cython_dtype = values.dtype
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
             inferences = None
 
             if needs_values:
-                vals = obj.values
+                vals = values
                 if pre_processing:
                     vals, inferences = pre_processing(vals)
                 func = partial(func, vals)
 
             if needs_mask:
-                mask = isna(obj.values).view(np.uint8)
+                mask = isna(values).view(np.uint8)
                 func = partial(func, mask)
 
             if needs_ngroups:
@@ -2292,7 +2291,7 @@ class GroupBy(_GroupBy):
             func(**kwargs)  # Call func to modify indexer values in place
 
             if result_is_index:
-                result = algorithms.take_nd(obj.values, result)
+                result = algorithms.take_nd(values, result)
 
             if post_processing:
                 result = post_processing(result, inferences)
@@ -2312,8 +2311,8 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        periods : integer, default 1
-            number of periods to shift
+        periods : int, default 1
+            Number of periods to shift.
         freq : frequency string
         axis : axis to shift, default 0
         fill_value : optional

@@ -235,6 +235,23 @@ def test_to_html_truncate(datapath):
     assert result == expected
 
 
+def test_to_html_truncate_formatter(datapath):
+    # issue-25955
+    data = [
+        {"A": 1, "B": 2, "C": 3, "D": 4},
+        {"A": 5, "B": 6, "C": 7, "D": 8},
+        {"A": 9, "B": 10, "C": 11, "D": 12},
+        {"A": 13, "B": 14, "C": 15, "D": 16},
+    ]
+
+    df = DataFrame(data)
+    fmt = lambda x: str(x) + "_mod"
+    formatters = [fmt, fmt, None, None]
+    result = df.to_html(formatters=formatters, max_cols=3)
+    expected = expected_html(datapath, "truncate_formatter")
+    assert result == expected
+
+
 @pytest.mark.parametrize(
     "sparsify,expected",
     [(True, "truncate_multi_index"), (False, "truncate_multi_index_sparse_off")],
@@ -713,3 +730,42 @@ def test_to_html_with_col_space_units(unit):
     for h in hdrs:
         expected = '<th style="min-width: {unit};">'.format(unit=unit)
         assert expected in h
+
+
+def test_html_repr_min_rows_default(datapath):
+    # gh-27991
+
+    # default setting no truncation even if above min_rows
+    df = pd.DataFrame({"a": range(20)})
+    result = df._repr_html_()
+    expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
+    assert result == expected
+
+    # default of max_rows 60 triggers truncation if above
+    df = pd.DataFrame({"a": range(61)})
+    result = df._repr_html_()
+    expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "max_rows,min_rows,expected",
+    [
+        # truncated after first two rows
+        (10, 4, "html_repr_max_rows_10_min_rows_4"),
+        # when set to None, follow value of max_rows
+        (12, None, "html_repr_max_rows_12_min_rows_None"),
+        # when set value higher as max_rows, use the minimum
+        (10, 12, "html_repr_max_rows_10_min_rows_12"),
+        # max_rows of None -> never truncate
+        (None, 12, "html_repr_max_rows_None_min_rows_12"),
+    ],
+)
+def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
+    # gh-27991
+
+    df = pd.DataFrame({"a": range(61)})
+    expected = expected_html(datapath, expected)
+    with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
+        result = df._repr_html_()
+    assert result == expected
