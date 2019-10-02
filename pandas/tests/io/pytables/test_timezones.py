@@ -161,9 +161,7 @@ def test_append_with_timezones_pytz(setup_path):
         assert_frame_equal(result, df)
 
         # select with tz aware
-        _compare_with_tz(
-            store.select("df_tz", where="A>=df.A[3]"), df[df.A >= df.A[3]]
-        )
+        _compare_with_tz(store.select("df_tz", where="A>=df.A[3]"), df[df.A >= df.A[3]])
 
         _maybe_remove(store, "df_tz")
         # ensure we include dates in DST and STD time here.

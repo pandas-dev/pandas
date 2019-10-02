@@ -34,6 +34,7 @@ xfail_non_writeable = pytest.mark.xfail(
 
 # GH10447
 
+
 def test_complex_fixed(setup_path):
     df = DataFrame(
         np.random.rand(4, 5).astype(np.complex64),
@@ -55,6 +56,7 @@ def test_complex_fixed(setup_path):
         df.to_hdf(path, "df")
         reread = read_hdf(path, "df")
         assert_frame_equal(df, reread)
+
 
 def test_complex_table(setup_path):
     df = DataFrame(
@@ -79,6 +81,7 @@ def test_complex_table(setup_path):
         reread = read_hdf(path, "df")
         assert_frame_equal(df, reread)
 
+
 @xfail_non_writeable
 def test_complex_mixed_fixed(setup_path):
     complex64 = np.array(
@@ -101,6 +104,7 @@ def test_complex_mixed_fixed(setup_path):
         df.to_hdf(path, "df")
         reread = read_hdf(path, "df")
         assert_frame_equal(df, reread)
+
 
 def test_complex_mixed_table(setup_path):
     complex64 = np.array(
@@ -130,6 +134,7 @@ def test_complex_mixed_table(setup_path):
         reread = read_hdf(path, "df")
         assert_frame_equal(df, reread)
 
+
 def test_complex_across_dimensions_fixed(setup_path):
     with catch_warnings(record=True):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
@@ -143,6 +148,7 @@ def test_complex_across_dimensions_fixed(setup_path):
                 obj.to_hdf(path, "obj", format="fixed")
                 reread = read_hdf(path, "obj")
                 comp(obj, reread)
+
 
 def test_complex_across_dimensions(setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
@@ -159,6 +165,7 @@ def test_complex_across_dimensions(setup_path):
                 reread = read_hdf(path, "obj")
                 comp(obj, reread)
 
+
 def test_complex_indexing_error(setup_path):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
@@ -170,6 +177,7 @@ def test_complex_indexing_error(setup_path):
     with ensure_clean_store(setup_path) as store:
         with pytest.raises(TypeError):
             store.append("df", df, data_columns=["C"])
+
 
 def test_complex_series_error(setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
@@ -183,6 +191,7 @@ def test_complex_series_error(setup_path):
         s.to_hdf(path, "obj", format="t", index=False)
         reread = read_hdf(path, "obj")
         tm.assert_series_equal(s, reread)
+
 
 def test_complex_append(setup_path):
     df = DataFrame(
