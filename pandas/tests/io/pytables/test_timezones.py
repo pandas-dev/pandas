@@ -15,6 +15,12 @@ from pandas.tests.io.pytables.common import (
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, set_timezone
 
+tables = pytest.importorskip("tables")
+# set these parameters so we don't have file sharing
+tables.parameters.MAX_NUMEXPR_THREADS = 1
+tables.parameters.MAX_BLOSC_THREADS = 1
+tables.parameters.MAX_THREADS = 1
+
 
 class TestTimezones:
     def _compare_with_tz(self, a, b):
