@@ -247,6 +247,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
+- Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default)
 -
 -
 
@@ -288,6 +289,7 @@ Reshaping
 - Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
 - Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
+- Bug in :func:`merge`, did not append suffixes correctly with MultiIndex (:issue:`28518`)
 
 Sparse
 ^^^^^^
