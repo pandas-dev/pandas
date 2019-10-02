@@ -524,15 +524,15 @@ def test_maybe_promote_any_with_timedelta64(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if is_timedelta64_dtype(dtype):
-        if boxed and (
-            box_dtype == object
-            or (box_dtype is None and not is_timedelta64_dtype(type(fill_value)))
-        ):
-            pytest.xfail("falsely upcasts to object")
-    else:
-        if boxed and box_dtype is None and is_timedelta64_dtype(type(fill_value)):
-            pytest.xfail("does not upcast correctly")
+    if boxed:
+        if is_timedelta64_dtype(dtype):
+            if box_dtype == object:
+                pytest.xfail("falsely upcasts to object")
+            elif box_dtype is None and not is_timedelta64_dtype(type(fill_value)):
+                pytest.xfail("falsely upcasts to object")
+        else:
+            if box_dtype is None and is_timedelta64_dtype(type(fill_value)):
+                pytest.xfail("does not upcast correctly")
 
     # special case for box_dtype
     box_dtype = np.dtype(timedelta64_dtype) if box_dtype == "td_dtype" else box_dtype
