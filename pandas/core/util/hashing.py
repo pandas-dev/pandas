@@ -338,7 +338,7 @@ def _hash_scalar(val, encoding="utf8", hash_key=None):
             val = tslibs.Timestamp(val)
         val = val.tz_convert(None)
 
-    dtype, val = infer_dtype_from_scalar(val)boo
+    dtype, val = infer_dtype_from_scalar(val)
     vals = np.array([val], dtype=dtype)
 
     return hash_array(vals, hash_key=hash_key, encoding=encoding, categorize=False)
