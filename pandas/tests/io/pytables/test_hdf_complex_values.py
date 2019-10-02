@@ -4,17 +4,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame, Series
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 from pandas.io.pytables import read_hdf
-from pandas.tests.io.pytables.common import (xfail_non_writeable,
-                                             ensure_clean_path,
-                                             ensure_clean_store)
+from pandas.tests.io.pytables.common import (
+    xfail_non_writeable,
+    ensure_clean_path,
+    ensure_clean_store,
+)
 
 
 class TestHDFComplexValues:

@@ -42,14 +42,16 @@ from pandas.io.pytables import (
     Term,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (xfail_non_writeable,
-                                             tables,
-                                             ensure_clean_path,
-                                             ensure_clean_store,
-                                             create_tempfile,
-                                             safe_close,
-                                             safe_remove,
-                                             _maybe_remove)
+from pandas.tests.io.pytables.common import (
+    xfail_non_writeable,
+    tables,
+    ensure_clean_path,
+    ensure_clean_store,
+    create_tempfile,
+    safe_close,
+    safe_remove,
+    _maybe_remove,
+)
 
 from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
@@ -59,6 +61,7 @@ _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
+
 
 @pytest.mark.single
 class TestHDFStore:
@@ -4754,5 +4757,3 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
-
-
