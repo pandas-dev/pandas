@@ -36,7 +36,7 @@ class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
 
-    pandas will recognize instances of this claspandas.api.extensions.ExtensionArray.views as proper arrays
+    pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
@@ -876,7 +876,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-            The array calling .view.
+            A view of the :class:`ExtensionArray` calling :meth:`view`.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
