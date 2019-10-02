@@ -63,7 +63,7 @@ def engine(request):
 @pytest.mark.parametrize("kwargs", [dict(), dict(engine=None)])
 def test_default_engine(datapath, monkeypatch, kwargs):
     """
-    A test for default ExcelFile engine value (which is None) and a bad engine value
+    A test for default ExcelFile engine value (which is None)
     """
     monkeypatch.chdir(datapath("io", "data"))
     expected = "xlrd"
@@ -502,7 +502,6 @@ class TestReaders:
         with open(pth, "rb") as f:
             actual = pd.read_excel(f, "Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
-
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
