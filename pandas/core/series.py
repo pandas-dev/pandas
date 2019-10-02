@@ -2082,10 +2082,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis : int, default 0
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
-        *args 
-            Additional arguments have no effect but might be accepted 
+        *args
+            Additional arguments have no effect but might be accepted
             for compatability with NumPy
-        **kwargs 
+        **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
@@ -3534,9 +3534,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        i : int, str 
+        i : int, str
             Level of first index to be swapped. Can pass level name as string.
-        j : int, str 
+        j : int, str
             Level of second index to be swapped. Can pass level name as string.
         copy : bool, default True
             Whether to copy underlying data.
@@ -4165,7 +4165,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index : None 
+        index : None
             Redundant for application on Series, but index can be used instead
             of labels.
 

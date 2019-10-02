@@ -353,7 +353,7 @@ class EWM(_Rolling):
         """
         Exponential weighted sample correlation.
 
-        
+
         Parameters
         ----------
         other : Series, DataFrame, or ndarray, optional
