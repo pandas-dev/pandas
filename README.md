@@ -176,7 +176,7 @@ To install pandas from source you need Cython in addition to the normal
 dependencies above. Cython can be installed from pypi:
 
 ```sh
-pip install cython
+pip install Cython
 ```
 
 In the `pandas` directory (same one where you found this file after
