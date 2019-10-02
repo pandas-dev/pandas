@@ -62,11 +62,11 @@ def hash_pandas_object(
 
     Parameters
     ----------
-    index : boolean, default True
+    index : bool, default True
         include the index in the hash (if Series/DataFrame)
-    encoding : string, default 'utf8'
-        encoding for data & key when strings
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+        encoding for data & key when str
+    hash_key : str key to encode, default to _default_hash_key
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
@@ -143,8 +143,8 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     Parameters
     ----------
     vals : MultiIndex, list-of-tuples, or single tuple
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+    hash_key : str key to encode, default to _default_hash_key
 
     Returns
     -------
@@ -186,8 +186,8 @@ def hash_tuple(val, encoding="utf8", hash_key=None):
     Parameters
     ----------
     val : single tuple
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+    hash_key : str key to encode, default to _default_hash_key
 
     Returns
     -------
@@ -209,8 +209,8 @@ def _hash_categorical(c, encoding, hash_key):
     Parameters
     ----------
     c : Categorical
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+    hash_key : str key to encode, default to _default_hash_key
 
     Returns
     -------
@@ -246,9 +246,9 @@ def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     Parameters
     ----------
     vals : ndarray, Categorical
-    encoding : string, default 'utf8'
-        encoding for data & key when strings
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+        encoding for data & key when str
+    hash_key : str key to encode, default to _default_hash_key
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
@@ -338,7 +338,7 @@ def _hash_scalar(val, encoding="utf8", hash_key=None):
             val = tslibs.Timestamp(val)
         val = val.tz_convert(None)
 
-    dtype, val = infer_dtype_from_scalar(val)
+    dtype, val = infer_dtype_from_scalar(val)boo
     vals = np.array([val], dtype=dtype)
 
     return hash_array(vals, hash_key=hash_key, encoding=encoding, categorize=False)
