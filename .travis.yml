@@ -69,7 +69,8 @@ install:
   - cd ..
   - rm -rf numpy
   - python setup.py build_ext -inplace
-  - python setup.py install
+  - python -m pip install --no-build-isolation -e .
+  #- python setup.py install
   - python -c "import sys; print(sys.version_info)"
   - python -c "import pandas as pd"
   #- ci/setup_env.sh
