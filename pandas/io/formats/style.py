@@ -1086,7 +1086,7 @@ class Styler:
         subset : IndexSlice
             A valid slice for ``data`` to limit the style application to.
         **kwargs : dict
-            property: value pairs to be set for each cell.
+            A dictionary of property, value pairs to be set for each cell.
 
         Returns
         -------
