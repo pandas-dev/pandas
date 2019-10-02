@@ -4,6 +4,8 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas.util._test_decorators import xfail_non_writeable
+
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
@@ -12,24 +14,11 @@ from pandas.util.testing import assert_frame_equal
 
 from pandas.io.pytables import read_hdf
 
-# TODO:
-# remove when gh-24839 is fixed; this affects numpy 1.16
-# and pytables 3.4.4
 tables = pytest.importorskip("tables")
 # set these parameters so we don't have file sharing
 tables.parameters.MAX_NUMEXPR_THREADS = 1
 tables.parameters.MAX_BLOSC_THREADS = 1
 tables.parameters.MAX_THREADS = 1
-
-
-xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyong 3.4.4 to support numpy 1.16x"
-    ),
-)
 
 
 # GH10447
