@@ -366,7 +366,7 @@ class MultiIndex(Index):
                     "level {level}".format(values=[value for value in level], level=i)
                 )
         if self.sortorder is not None:
-            if int(self.sortorder) > self._lexsort_depth():
+            if self.sortorder > self._lexsort_depth():
                 raise ValueError(
                     "Value for sortorder must be inferior or equal "
                     "to actual lexsort_depth: "
@@ -1792,7 +1792,7 @@ class MultiIndex(Index):
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
-            return int(self.sortorder)
+            return self.sortorder
 
         return self._lexsort_depth()
 
