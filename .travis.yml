@@ -62,26 +62,26 @@ install:
   - ci/prep_cython_cache.sh
   - git clone https://github.com/numpy/numpy
   - pip install --no-deps -U pip wheel setuptools
-  - pip install python-dateutil pytz cython
+  - pip install python-dateutil pytz cython pytest pytest-xdist hypothesis
   - cd numpy
   - python setup.py build_ext --inplace
   - python setup.py install
   - cd ..
-  - ci/setup_env.sh
+  #- ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
 
-before_script:
-  # display server (for clipboard functionality) needs to be started here,
-  # does not work if done in install:setup_env.sh (GH-26103)
-  - export DISPLAY=":99.0"
-  - echo "sh -e /etc/init.d/xvfb start"
-  - sh -e /etc/init.d/xvfb start
-  - sleep 3
+#before_script:
+#  # display server (for clipboard functionality) needs to be started here,
+#  # does not work if done in install:setup_env.sh (GH-26103)
+#  - export DISPLAY=":99.0"
+#  - echo "sh -e /etc/init.d/xvfb start"
+#  - sh -e /etc/init.d/xvfb start
+#  - sleep 3
 
 script:
   - echo "script start"
-  - source activate pandas-dev
+  #- source activate pandas-dev
   - ci/run_tests.sh
 
 after_script:
