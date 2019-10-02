@@ -659,7 +659,7 @@ def test_apply_with_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-def test_func_returns_object(self):
+def test_func_returns_object():
     # GH 28652
     df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
