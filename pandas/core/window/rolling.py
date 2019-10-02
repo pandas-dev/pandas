@@ -495,7 +495,10 @@ class _Window(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    *args, **kwargs
+    *args
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed value.
+    **kwargs
         For compatibility with other %(name)s methods. Has no effect
         on the computed value.
 
@@ -1018,7 +1021,9 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
-    *args, **kwargs
+    args
+        Arguments and keyword arguments to be passed into func.
+    kwargs
         Arguments and keyword arguments to be passed into func.
 
     Returns
@@ -1084,7 +1089,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    *args, **kwargs
+    *args
+        Arguments and keyword arguments to be passed into func.
+    **kwargs
         Arguments and keyword arguments to be passed into func.
     """
     )
@@ -1190,7 +1197,9 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args, **kwargs
+    *args
+        For NumPy compatibility. No additional arguments are used.
+    **kwargs
         For NumPy compatibility. No additional arguments are used.
 
     Returns
@@ -1265,7 +1274,9 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args, **kwargs
+    *args
+        For NumPy compatibility. No additional arguments are used.
+    **kwargs
         For NumPy compatibility. No additional arguments are used.
 
     Returns
@@ -1392,7 +1403,7 @@ class _Rolling_and_Expanding(_Rolling):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-    **kwargs:
+    **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
 
