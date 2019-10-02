@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - c3i_test
 dependencies:
-  - python=3.8.*
+  #- python=3.8.*
   - botocore>=1.11
   - cython>=0.29.13
   - python-dateutil
