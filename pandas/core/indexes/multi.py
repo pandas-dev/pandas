@@ -1796,7 +1796,7 @@ class MultiIndex(Index):
 
         return self._lexsort_depth()
 
-    def _lexsort_depth(self):
+    def _lexsort_depth(self) -> int:
         """
         Compute and return the lexsort_depth, the number of levels of the
         MultiIndex that are sorted lexically
