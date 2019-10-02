@@ -2076,12 +2076,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args
             Additional arguments have no effect but might be accepted
             for compatability with NumPy
@@ -2149,12 +2149,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args
             Additional arguments have no effect but might be accepted
             for compatibility with NumPy.
