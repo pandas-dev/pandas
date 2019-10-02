@@ -1155,7 +1155,7 @@ cdef class _Timedelta(timedelta):
         """
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
         .. versionadded:: 0.20.0
 
@@ -1319,7 +1319,7 @@ class Timedelta(_Timedelta):
 
     def round(self, freq):
         """
-        Round the Timedelta to the specified resolution
+        Round the Timedelta to the specified resolution.
 
         Parameters
         ----------
@@ -1337,7 +1337,7 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
@@ -1347,7 +1347,7 @@ class Timedelta(_Timedelta):
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------

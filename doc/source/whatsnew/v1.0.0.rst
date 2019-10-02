@@ -111,6 +111,13 @@ Other API changes
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 -
 
+.. _whatsnew_1000.api.documentation:
+
+Documentation Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Added new section on :ref:`scale` (:issue:`28315`).
+
 .. _whatsnew_1000.deprecations:
 
 Deprecations
@@ -125,9 +132,10 @@ Deprecations
 Removed SparseSeries and SparseDataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``SparseSeries`` and ``SparseDataFrame`` have been removed (:issue:`28425`).
-We recommend using a ``Series`` or ``DataFrame`` with sparse values instead.
-See :ref:`sparse.migration` for help with migrating existing code.
+``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
+have been removed (:issue:`28425`). We recommend using a ``Series`` or
+``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
+with migrating existing code.
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -165,7 +173,7 @@ Categorical
 
 - Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
 - Bug in :meth:`Categorical.astype` where ``NaN`` values were handled incorrectly when casting to int (:issue:`28406`)
--
+- :meth:`Categorical.searchsorted` and :meth:`CategoricalIndex.searchsorted` now work on unordered categoricals also (:issue:`21667`)
 -
 
 
@@ -199,7 +207,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
--
+- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 -
 
 Conversion
@@ -279,6 +287,7 @@ Reshaping
 
 - Bug in :meth:`DataFrame.apply` that caused incorrect output with empty :class:`DataFrame` (:issue:`28202`, :issue:`21959`)
 - Bug in :meth:`DataFrame.stack` not handling non-unique indexes correctly when creating MultiIndex (:issue: `28301`)
+- Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
 
 Sparse
 ^^^^^^
@@ -298,6 +307,7 @@ Other
 - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
 - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
+- Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 
 .. _whatsnew_1000.contributors:
