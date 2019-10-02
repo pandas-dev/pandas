@@ -68,6 +68,7 @@ install:
   - python setup.py install
   - cd ..
   - python setup.py build_ext -inplace
+  - python setup.py install
   #- ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
