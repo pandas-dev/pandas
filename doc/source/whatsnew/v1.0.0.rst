@@ -209,7 +209,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 - :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class`Series` behavior by filling NA values (:issue:`28741`)
-
+-
 
 Conversion
 ^^^^^^^^^^
