@@ -1399,13 +1399,6 @@ class Categorical(ExtensionArray, PandasObject):
     @Substitution(klass="Categorical")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if not self.ordered:
-            raise ValueError(
-                "Categorical not ordered\nyou can use "
-                ".as_ordered() to change the Categorical to an "
-                "ordered one"
-            )
-
         from pandas.core.series import Series
 
         codes = _get_codes_for_values(Series(value).values, self.categories)
