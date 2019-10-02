@@ -82,6 +82,7 @@ class Styler:
     --------
     DataFrame.style : Return a Styler object containing methods for building
         a styled HTML representation for the DataFrame.
+
     Notes
     -----
     Most styling will be done by passing style functions into
