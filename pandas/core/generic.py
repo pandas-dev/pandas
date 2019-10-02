@@ -10413,10 +10413,6 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
-        if freq:
-            return data.asfreq(freq).pct_change(
-                periods=periods, fill_method=fill_method, limit=limit, **kwargs
-            )
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
         rs = rs.reindex_like(data)
         if freq is None:
