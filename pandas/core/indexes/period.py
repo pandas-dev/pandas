@@ -1001,18 +1001,18 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
 
     Parameters
     ----------
-    start : string or period-like, default None
+    start : str or period-like, default None
         Left bound for generating periods
-    end : string or period-like, default None
+    end : str or period-like, default None
         Right bound for generating periods
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
-    freq : string or DateOffset, optional
+    freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
 
-    name : string, default None
+    name : str, default None
         Name of the resulting PeriodIndex
 
     Returns
