@@ -26,6 +26,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from distutils.version import LooseVersion
 import locale
 from typing import Callable, Optional
+
 import numpy as np
 import pytest
 
