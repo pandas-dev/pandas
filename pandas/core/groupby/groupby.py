@@ -618,34 +618,30 @@ b  2""",
         def wrapper(*args, **kwargs):
             # a little trickery for aggregation functions that need an axis
             # argument
-            kwargs_with_axis = kwargs.copy()
-            if "axis" not in kwargs_with_axis or kwargs_with_axis["axis"] is None:
-                kwargs_with_axis["axis"] = self.axis
-
-            def curried_with_axis(x):
-                return f(x, *args, **kwargs_with_axis)
+            kwargs2 = kwargs.copy()
 
             def curried(x):
-                return f(x, *args, **kwargs)
+                return f(x, *args, **kwargs2)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
-            curried.__name__ = curried_with_axis.__name__ = name
+            curried.__name__ = name
 
             # special case otherwise extra plots are created when catching the
             # exception below
             if name in base.plotting_methods:
                 return self.apply(curried)
 
+            import inspect
+            sig = inspect.signature(f)
+            if "axis" in sig.parameters:
+                if kwargs.get("axis", None) is None:
+                    kwargs2["axis"] = self.axis
+
             try:
-                return self.apply(curried_with_axis)
+                return self.apply(curried)
             except TypeError as err:
-                if "got an unexpected keyword argument 'axis'" in str(err):
-                    # We need to use the `curried` instead of `curried_with_axis`
-                    # Any exception other than needing to use `curried`
-                    #  rather than `curried_with_axis` gets re-raised.
-                    return self.apply(curried)
-                elif re.search(
+                if re.search(
                     "reduction operation '.*' not allowed for this dtype", str(err)
                 ):
                     # We don't have a cython implementation
@@ -661,11 +657,13 @@ b  2""",
                         return self._aggregate_item_by_item(name, *args, **kwargs)
                     except AttributeError:
                         # e.g. SparseArray has no flags attr
-                        # FIXME: 'SeriesGroupBy' object has no attribute '_aggregate_item_by_item'
-                        #  occurs in idxmax() case in tests.groupby.test_function.test_non_cython_api
+                        # FIXME: 'SeriesGroupBy' no attribute '_aggregate_item_by_item'
+                        #  occurs in idxmax() case
+                        #  in tests.groupby.test_function.test_non_cython_api
                         raise ValueError
                 raise
 
+        wrapper.__name__ = name
         return wrapper
 
     def get_group(self, name, obj=None):
