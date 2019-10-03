@@ -641,27 +641,27 @@ b  2""",
             try:
                 return self.apply(curried)
             except TypeError as err:
-                if re.search(
+                if not re.search(
                     "reduction operation '.*' not allowed for this dtype", str(err)
                 ):
                     # We don't have a cython implementation
                     # TODO: is the above comment accurate?
+                    raise
 
-                    # related to : GH3688
-                    # try item-by-item
-                    # this can be called recursively, so need to raise
-                    # ValueError
-                    # if we don't have this method to indicated to aggregate to
-                    # mark this column as an error
-                    try:
-                        return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except AttributeError:
-                        # e.g. SparseArray has no flags attr
-                        # FIXME: 'SeriesGroupBy' no attribute '_aggregate_item_by_item'
-                        #  occurs in idxmax() case
-                        #  in tests.groupby.test_function.test_non_cython_api
-                        raise ValueError
-                raise
+            # related to : GH3688
+            # try item-by-item
+            # this can be called recursively, so need to raise
+            # ValueError
+            # if we don't have this method to indicated to aggregate to
+            # mark this column as an error
+            try:
+                return self._aggregate_item_by_item(name, *args, **kwargs)
+            except AttributeError:
+                # e.g. SparseArray has no flags attr
+                # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
+                #  occurs in idxmax() case
+                #  in tests.groupby.test_function.test_non_cython_api
+                raise ValueError
 
         wrapper.__name__ = name
         return wrapper
