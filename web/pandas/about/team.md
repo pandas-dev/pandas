@@ -40,9 +40,11 @@ If you want to support pandas development, you can find information in the [dona
 
 > _pandas_ expressly welcomes and encourages contributions from anyone who faces under-representation, discrimination in the technology industry
 > or anyone willing to increase the diversity of our team.
-> We have identified the visible diversity gap and obstacles in the open source community and we are proactive in increasing the diversity of our team.
+> We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
+> the diversity of our team.
 > We have a [code of conduct]({base_url}/community/coc.html) to ensure a friendly and welcoming environment.
-> Please send an email to [mailto:pandas-code-of-conduct-committee](pandas-coc@googlegroups.com), if you don't feel this way.
+> Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
+> better job at achieving this goal.
 
 ## Governance
 
