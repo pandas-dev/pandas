@@ -588,7 +588,7 @@ timedelta}, default 'raise'
 
         Raises
         ------
-        ValueError if the freq cannot be converted.
+        ValueError if the freq cannot be converted
         """)
     floor = _make_nat_func('floor',  # noqa:E128
         """

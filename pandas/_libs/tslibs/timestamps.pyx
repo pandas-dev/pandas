@@ -478,7 +478,7 @@ timedelta}, default 'raise'
 
         Raises
         ------
-        ValueError if the freq cannot be converted.
+        ValueError if the freq cannot be converted
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
