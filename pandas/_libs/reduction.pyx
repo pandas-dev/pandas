@@ -15,7 +15,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects, values_from_object
+from pandas._libs.lib import maybe_convert_objects
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -23,7 +23,7 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
-        raise ValueError('function does not reduce')
+        raise ValueError('Function does not reduce')
 
     return np.empty(size, dtype='O')
 
@@ -103,7 +103,7 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            bint has_labels
+            bint has_labels, has_ndarray_labels
             object res, name, labels, index
             object cached_typ=None
 
@@ -113,14 +113,18 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
+        has_ndarray_labels = util.is_array(labels)
         has_index = self.index is not None
         incr = self.increment
 
         try:
             for i in range(self.nresults):
 
-                if has_labels:
+                if has_ndarray_labels:
                     name = util.get_value_at(labels, i)
+                elif has_labels:
+                    # labels is an ExtensionArray
+                    name = labels[i]
                 else:
                     name = None
 
@@ -362,7 +366,8 @@ cdef class SeriesGrouper:
 
     def get_result(self):
         cdef:
-            ndarray arr, result
+            # Define result to avoid UnboundLocalError
+            ndarray arr, result = None
             ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res
@@ -427,6 +432,9 @@ cdef class SeriesGrouper:
             # so we don't free the wrong memory
             islider.reset()
             vslider.reset()
+
+        if result is None:
+            raise ValueError("No result.")
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
@@ -639,11 +647,11 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
     """
 
     if labels is not None:
-        if labels._has_complex_internals:
-            raise Exception('Cannot use shortcut')
+        # Caller is responsible for ensuring we don't have MultiIndex
+        assert not labels._has_complex_internals
 
-        # pass as an ndarray
-        labels = values_from_object(labels)
+        # pass as an ndarray/ExtensionArray
+        labels = labels._values
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()
