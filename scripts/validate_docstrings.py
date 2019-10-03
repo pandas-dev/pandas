@@ -426,7 +426,7 @@ class Docstring:
                                 "**kwargs, *args", "**kwds, *args"}
         docs = collections.OrderedDict()
         for name, type_, desc in self.doc["Parameters"]:
-            info = (type_, desc)
+            info = (type_, "".join(desc))
             if name in var_arg_combinations:
                 args = name.split(", ")
                 docs[args[0]] = info
