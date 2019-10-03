@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-import re
+
 import numpy as np
 import pytest
 
@@ -94,25 +94,24 @@ class TestSeriesLogicalOps:
     def test_logical_operators_int_dtype_with_float(self):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
-        msg = r"cannot compare a dtyped \[int64\] array with a scalar of type \[float\]"
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             s_0123 & np.NaN
-        msg = r"cannot compare a dtyped \[int64\] array with a scalar of type \[bool\]"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             s_0123 & 3.14
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'float'"):
+        with pytest.raises(TypeError):
             s_0123 & [0.1, 4, 3.14, 2]
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'float'"):
+        with pytest.raises(TypeError):
             s_0123 & np.array([0.1, 4, 3.14, 2])
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'float'"):
+        with pytest.raises(TypeError):
             s_0123 & Series([0.1, 4, -3.14, 2])
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
-        msg = r"cannot compare a dtyped \[int8\] array with a scalar of type \[bool\]"
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             s_1111 & "a"
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+        with pytest.raises(TypeError):
             s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
@@ -229,8 +228,8 @@ class TestSeriesLogicalOps:
 
     def test_scalar_na_logical_ops_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-        msg = r"cannot compare a dtyped \[int64\] array with a scalar of type \[bool\]"
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             s & datetime(2005, 1, 1)
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
@@ -248,13 +247,11 @@ class TestSeriesLogicalOps:
 
         # this is an alignment issue; these are equivalent
         # https://github.com/pandas-dev/pandas/issues/5284
-        msg = (
-            r"cannot compare a dtyped \[float64\] array with a scalar of type \[float\]"
-        )
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             d.__and__(s, axis="columns")
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             s & d
 
         # this is wrong as its not a boolean result
