@@ -73,6 +73,7 @@ install:
   #- python setup.py install
   - python -c "import sys; print(sys.version_info)"
   - python -c "import pandas as pd"
+  - python -c "import hypothesis"
   #- ci/setup_env.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
@@ -88,7 +89,8 @@ install:
 script:
   - echo "script start"
   #- source activate pandas-dev
-  - ci/run_tests.sh
+  #- ci/run_tests.sh
+  - pytest pandas/tests --skip-slow
 
 after_script:
   - echo "after_script start"
