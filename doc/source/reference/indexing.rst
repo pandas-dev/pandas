@@ -166,7 +166,6 @@ Selecting
    Index.get_slice_bound
    Index.get_value
    Index.get_values
-   Index.set_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs

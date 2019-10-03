@@ -1908,15 +1908,20 @@ class TestIndex(Base):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
 
-    def test_get_set_value(self):
+    def test_set_value_deprecated(self):
+        # GH 28621
+        idx = self.create_index()
+        arr = np.array([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            idx.set_value(arr, idx[1], 80)
+        assert arr[1] == 80
+
+    def test_get_value(self):
         # TODO: Remove function? GH 19728
         values = np.random.randn(100)
         date = self.dateIndex[67]
 
         assert_almost_equal(self.dateIndex.get_value(values, date), values[67])
-
-        self.dateIndex.set_value(values, date, 10)
-        assert values[67] == 10
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
