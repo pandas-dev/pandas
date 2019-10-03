@@ -2611,7 +2611,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         *args, **kwargs
-            Additional arguments and keywords have no effect but might be 
+            Additional arguments and keywords have no effect but might be
             accepted for compatibility with numpy.
 
         Returns

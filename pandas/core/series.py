@@ -2155,7 +2155,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
-        
+
         Returns
         -------
         Index
