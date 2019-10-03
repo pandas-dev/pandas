@@ -175,9 +175,6 @@ def test_maybe_promote_int_with_float(any_int_dtype, float_dtype, box):
     fill_dtype = np.dtype(float_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if float_dtype == "float32" and not boxed:
-        pytest.xfail("falsely upcasts to float64")
-
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
