@@ -363,9 +363,45 @@ def test_maybe_promote_any_with_bytes():
     pass
 
 
-def test_maybe_promote_datetime64_with_any():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+def test_maybe_promote_datetime64_with_any(
+    datetime64_dtype, any_numpy_dtype_reduced, box
+):
+    dtype = np.dtype(datetime64_dtype)
+    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if is_datetime64_dtype(fill_dtype):
+        if box_dtype == object:
+            pytest.xfail("falsely upcasts to object")
+    else:
+        if boxed and box_dtype is None:
+            pytest.xfail("does not upcast to object")
+        if not boxed:
+            pytest.xfail("does not upcast to object or raises")
+
+    # create array of given dtype; casts "1" to correct dtype
+    fill_value = np.array([1], dtype=fill_dtype)[0]
+
+    # filling datetime with anything but datetime casts to object
+    if is_datetime64_dtype(fill_dtype):
+        expected_dtype = dtype
+        # for datetime dtypes, scalar values get cast to to_datetime64
+        exp_val_for_scalar = pd.Timestamp(fill_value).to_datetime64()
+        exp_val_for_array = np.datetime64("NaT", "ns")
+    else:
+        expected_dtype = np.dtype(object)
+        exp_val_for_scalar = fill_value
+        exp_val_for_array = np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 # override parametrization of box to add special case for dt_dtype
