@@ -657,3 +657,22 @@ def test_apply_with_mixed_types():
 
     result = g.apply(lambda x: x / x.sum())
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "group_column_dtlike",
+    [datetime.today(), datetime.today().date(), datetime.today().time()],
+)
+def test_apply_datetime_issue(group_column_dtlike):
+    # GH-28247
+    # groupby-apply throws an error if one of the columns in the DataFrame
+    #   is a datetime object and the column labels are different from
+    #   standard int values in range(len(num_columns))
+
+    df = pd.DataFrame({"a": ["foo"], "b": [group_column_dtlike]})
+    result = df.groupby("a").apply(lambda x: pd.Series(["spam"], index=[42]))
+
+    expected = pd.DataFrame(
+        ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
+    )
+    tm.assert_frame_equal(result, expected)
