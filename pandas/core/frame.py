@@ -2610,12 +2610,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        *args
-            Additional arguments have no effect but might be accepted for
-            compatibility with numpy.
-        **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be 
+            accepted for compatibility with numpy.
 
         Returns
         -------
@@ -3237,7 +3234,7 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-        **kwargs : dict
+        **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
             :meth:`~pandas.DataFrame.query`.
@@ -5205,9 +5202,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        i : int, str (can be mixed)
+        i : int or str
             Level of first index to be swapped. Can pass level name as string.
-        j : int, str (can be mixed)
+        j : int or str
             Level of second index to be swapped. Can pass level name as string.
 
         Returns

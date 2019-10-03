@@ -17,10 +17,8 @@ _bias_template = """
         ----------
         bias : bool, default False
             Use a standard estimation bias correction.
-        *args
-            Arguments to be passed into func.
-        **kwargs
-            Keyword arguments to be passed into func.
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
 """
 
 
@@ -365,10 +363,9 @@ class EWM(_Rolling):
             output will be a MultiIndex DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
-        **kwargs : dict of {str : Any}
+        **kwargs
            Keyword arguments to be passed into func.
         """
-
         if other is None:
             other = self._selected_obj
             # only default unset

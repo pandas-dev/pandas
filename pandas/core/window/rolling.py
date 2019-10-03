@@ -495,10 +495,7 @@ class _Window(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    *args
-        For compatibility with other %(name)s methods. Has no effect
-        on the computed value.
-    **kwargs
+    *args, **kwargs
         For compatibility with other %(name)s methods. Has no effect
         on the computed value.
 
@@ -1021,9 +1018,7 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
-    args : tuple of Any
-        Arguments and keyword arguments to be passed into func.
-    kwargs : dict of {str : any}
+    *args, **kwargs
         Arguments and keyword arguments to be passed into func.
 
     Returns
@@ -1089,9 +1084,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    *args
-        Arguments and keyword arguments to be passed into func.
-    **kwargs
+    *args, **kwargs
         Arguments and keyword arguments to be passed into func.
     """
     )
@@ -1197,9 +1190,7 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args
-        For NumPy compatibility. No additional arguments are used.
-    **kwargs
+    *args, **kwargs
         For NumPy compatibility. No additional arguments are used.
 
     Returns
@@ -1274,9 +1265,7 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args
-        For NumPy compatibility. No additional arguments are used.
-    **kwargs
+    *args, **kwargs
         For NumPy compatibility. No additional arguments are used.
 
     Returns

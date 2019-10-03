@@ -2082,12 +2082,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
-        *args
-            Additional arguments have no effect but might be accepted
-            for compatability with NumPy
-        **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatability with NumPy.
 
         Returns
         -------
@@ -2155,13 +2152,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
-        *args
-            Additional arguments have no effect but might be accepted
-            for compatibility with NumPy.
-        **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
-
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+        
         Returns
         -------
         Index
