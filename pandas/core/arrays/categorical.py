@@ -524,7 +524,7 @@ class Categorical(ExtensionArray, PandasObject):
             msg = "Cannot convert float NaN to integer"
             raise ValueError(msg)
         if is_extension_array_dtype(dtype):
-            return array(self, dtype=dtype, copy=copy)
+            return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
