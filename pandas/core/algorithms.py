@@ -246,7 +246,6 @@ def _get_hashtable_algo(values):
 
 
 def _get_data_algo(values, func_map):
-
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
@@ -297,7 +296,6 @@ def match(to_match, values, na_sentinel=-1):
     result = table.lookup(to_match)
 
     if na_sentinel != -1:
-
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
@@ -1163,7 +1161,6 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-
             reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
             slc = np.s_[::-1] if reverse_it else np.s_[:]
