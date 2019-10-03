@@ -633,6 +633,7 @@ b  2""",
                 return self.apply(curried)
 
             import inspect
+
             sig = inspect.signature(f)
             if "axis" in sig.parameters:
                 if kwargs.get("axis", None) is None:
