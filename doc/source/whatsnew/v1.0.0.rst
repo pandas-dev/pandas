@@ -123,7 +123,9 @@ Documentation Improvements
 Deprecations
 ~~~~~~~~~~~~
 
--
+- ``Index.set_value`` has been deprecated. For a given index ``idx``, array ``arr``,
+  value in ``idx`` of ``idx_val`` and a new value of ``val``, ``idx.set_value(arr, idx_val, val)``
+  is equivalent to ``arr[idx.get_loc(idx_val)] = val``, which should be used instead (:issue:`28621`).
 -
 
 .. _whatsnew_1000.prior_deprecations:
@@ -189,7 +191,7 @@ Datetimelike
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
--
+- Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
 
 Timedelta
 ^^^^^^^^^
