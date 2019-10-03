@@ -89,8 +89,8 @@ install:
 script:
   - echo "script start"
   #- source activate pandas-dev
-  #- ci/run_tests.sh
-  - pytest pandas/tests --skip-slow
+  - ci/run_tests.sh
+  #- pytest pandas/tests --skip-slow
 
 after_script:
   - echo "after_script start"
