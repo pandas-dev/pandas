@@ -251,8 +251,6 @@ class TestRoundTrip:
         pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
     ],
 )
-
-# @pytest.mark.usefixtures("set_engine")
 class TestExcelWriter:
     # Base class for test cases to run with different Excel writers.
     @pytest.fixture(autouse=True)
