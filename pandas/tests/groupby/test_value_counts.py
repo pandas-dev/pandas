@@ -81,9 +81,9 @@ def test_series_groupby_value_counts(
     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
-@pytest.mark.parametrize(
-    "freq, size, frac", product(["1D", "2D", "1W", "1Y"], [100, 1000], [0.1, 0.5, 1])
-)
+@pytest.mark.parametrize("freq", ["1D", "2D", "1W", "1Y"])
+@pytest.mark.parametrize("size", [100, 1000])
+@pytest.mark.parametrize("frac", [0.1, 0.5, 1])
 def test_series_groupby_value_counts_with_grouper(freq, size, frac):
     np.random.seed(42)
 
