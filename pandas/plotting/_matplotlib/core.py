@@ -1355,7 +1355,11 @@ class BarPlot(MPLPlot):
                 self.tickoffset = self.bar_width * pos
                 self.lim_offset = 0
 
-        self.ax_index = self.data.index
+        if isinstance(self.data.index, ABCMultiIndex):
+            # No real handling for MultiIndex yet
+            self.ax_index = np.arange(len(data))
+        else:
+            self.ax_index = self.data.index
 
     def _args_adjust(self):
         if is_list_like(self.bottom):
@@ -1384,6 +1388,8 @@ class BarPlot(MPLPlot):
             ax = self._get_ax(i)
 
             if self.orientation == "vertical":
+                # import pdb
+                # pdb.set_trace()
                 ax.xaxis.update_units(self.ax_index)
                 self.tick_pos = ax.convert_xunits(self.ax_index)
                 self.ax_pos = self.tick_pos - self.tickoffset
