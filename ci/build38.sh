@@ -1,13 +1,9 @@
 #!/bin/bash -e
 # Special build for python3.8 until numpy puts its own wheels up
 
-echo "python3.8 install start"
-
 sudo apt-get install build-essential
 pip install --no-deps -U pip wheel setuptools
 pip install python-dateutil pytz cython pytest pytest-xdist hypothesis
-
-ci/prep_cython_cache.sh
 
 git clone https://github.com/numpy/numpy
 cd numpy
@@ -25,6 +21,3 @@ python -c "import hypothesis"
 
 # TODO: Is there anything else in setup_env that we really want to do?
 # ci/setup_env.sh
-
-ci/submit_cython_cache.sh
-echo "python3.8 install done"
