@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, UDFException
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -1155,7 +1155,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # to an ndarray.
                     try:
                         res = self._from_sequence(arr)
-                    except Exception:
+                    except UDFException:
                         res = np.asarray(arr)
                 else:
                     res = np.asarray(arr)

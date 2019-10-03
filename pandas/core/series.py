@@ -15,6 +15,7 @@ from pandas._config import get_option
 from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
+from pandas.errors import UDFException
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2837,7 +2838,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # if the type is compatible with the calling EA.
             try:
                 new_values = self._values._from_sequence(new_values)
-            except Exception:
+            except UDFException:
                 # https://github.com/pandas-dev/pandas/issues/22850
                 # pandas has no control over what 3rd-party ExtensionArrays
                 # do in _values_from_sequence. We still want ops to work

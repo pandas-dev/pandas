@@ -10,6 +10,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, hashtable as htable, lib
 from pandas.compat.numpy import function as nv
+from pandas.errors import UDFException
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -2613,7 +2614,7 @@ def _get_codes_for_values(values, categories):
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
         try:
             values = categories.dtype.construct_array_type()._from_sequence(values)
-        except Exception:
+        except UDFException:
             # but that may fail for any reason, so fall back to object
             values = ensure_object(values)
             categories = ensure_object(categories)

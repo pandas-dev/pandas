@@ -17,6 +17,10 @@ cnp.import_array()
 cimport pandas._libs.util as util
 from pandas._libs.lib import maybe_convert_objects
 
+# Alias for Exception to use specifically when catching exceptions raised
+#  by user-defined functions, since we cannot be any more specific for those
+UDFException = Exception
+
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
 
@@ -170,9 +174,9 @@ cdef class Reducer:
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
-        except Exception, e:
-            if hasattr(e, 'args'):
-                e.args = e.args + (i,)
+        except Exception as err:
+            if hasattr(err, 'args'):
+                err.args = err.args + (i,)
             raise
         finally:
             # so we don't free the wrong memory
@@ -536,7 +540,7 @@ def apply_frame_axis0(object frame, object f, object names,
 
             try:
                 piece = f(chunk)
-            except Exception:
+            except UDFException:
                 # We can't be more specific without knowing something about `f`
                 raise InvalidApply('Let this error raise above us')
 

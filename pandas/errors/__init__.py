@@ -4,6 +4,7 @@
 Expose public exceptions & warnings
 """
 
+from pandas._libs.reduction import UDFException
 from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
 
 

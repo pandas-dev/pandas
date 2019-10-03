@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import reduction as libreduction
+from pandas.errors import UDFException
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -206,7 +207,7 @@ class FrameApply:
         if not should_reduce:
             try:
                 r = self.f(Series([]))
-            except Exception:
+            except UDFException:
                 pass
             else:
                 should_reduce = not isinstance(r, Series)
@@ -326,7 +327,7 @@ class FrameApply:
             for i, v in enumerate(series_gen):
                 try:
                     results[i] = self.f(v)
-                except Exception:
+                except UDFException:
                     pass
                 else:
                     keys.append(v.name)
@@ -341,13 +342,15 @@ class FrameApply:
                 for i, v in enumerate(series_gen):
                     results[i] = self.f(v)
                     keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
+            except UDFException as err:
+                if hasattr(err, "args"):
 
                     # make sure i is defined
                     if i is not None:
                         k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
+                        err.args = err.args + (
+                            "occurred at index %s" % pprint_thing(k),
+                        )
                 raise
 
         self.results = results
