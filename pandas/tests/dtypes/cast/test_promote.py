@@ -7,7 +7,7 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, iNaT
+from pandas._libs.tslibs import NaT
 from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
-    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -432,7 +431,7 @@ def test_maybe_promote_datetimetz_with_datetimetz(
     )
 
 
-@pytest.mark.parametrize("fill_value", [None, np.nan, NaT, iNaT])
+@pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
 # override parametrization due to to many xfails; see GH 23982 / 25425
 @pytest.mark.parametrize("box", [(False, None)])
 def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value, box):
@@ -440,14 +439,7 @@ def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value, box):
     dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    # takes the opinion that DatetimeTZ should have single na-marker
-    # using iNaT would lead to errors elsewhere -> NaT
-    if not boxed and fill_value == iNaT:
-        # TODO: are we sure iNaT _should_ be cast to NaT?
-        pytest.xfail("wrong missing value marker")
-
     expected_dtype = dtype
-    # DatetimeTZDtype does not use iNaT as missing value marker
     exp_val_for_scalar = NaT
     exp_val_for_array = NaT
 
@@ -678,25 +670,17 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if is_integer_dtype(dtype) and dtype == "uint64" and fill_value == iNaT:
-        # uint64 + negative int casts to object; iNaT is considered as missing
-        expected_dtype = np.dtype(object)
-        exp_val_for_scalar = np.nan
-    elif is_integer_dtype(dtype) and fill_value == iNaT:
-        # other integer + iNaT casts to int64
-        expected_dtype = np.int64
-        exp_val_for_scalar = iNaT
-    elif is_integer_dtype(dtype) and fill_value is not NaT:
+    if is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan
-    elif is_object_dtype(dtype) and (fill_value == iNaT or fill_value is NaT):
+    elif is_object_dtype(dtype) and fill_value is NaT:
         # inserting into object does not cast the value
         # but *does* cast None to np.nan
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
     elif is_datetime_or_timedelta_dtype(dtype):
-        # datetime / timedelta cast all missing values to iNaT
+        # datetime / timedelta cast all missing values to dtyped NaT
         expected_dtype = dtype
         exp_val_for_scalar = dtype.type("NaT", "ns")
     elif fill_value is NaT:
