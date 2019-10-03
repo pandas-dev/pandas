@@ -79,29 +79,29 @@ before_install:
 
 
 install:
-  if: env(JOB) = "3.8-dev"
-    - ci/build38.sh
-  if: env(JOB) != "3.8-dev"
-    - echo "install start"
-    - ci/prep_cython_cache.sh
-    - ci/setup_env.sh
-    - ci/submit_cython_cache.sh
-    - echo "install done"
+  - echo "install start"
+  - ci/prep_cython_cache.sh
+  - ci/build38.sh
+    if: env(JOB) = "3.8-dev"
+  - ci/setup_env.sh
+    if: env(JOB) != "3.8-dev"
+  - ci/submit_cython_cache.sh
+  - echo "install done"
 
 
 before_script:
   # display server (for clipboard functionality) needs to be started here,
   # does not work if done in install:setup_env.sh (GH-26103)
-  if: env(JOB) != "3.8-dev"
-    - export DISPLAY=":99.0"
-    - echo "sh -e /etc/init.d/xvfb start"
-    - sh -e /etc/init.d/xvfb start
-    - sleep 3
+  - if: env(JOB) != "3.8-dev"
+  - export DISPLAY=":99.0"
+  - echo "sh -e /etc/init.d/xvfb start"
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
 
 script:
   - echo "script start"
-  if: env(JOB) != "3.8-dev"
-    - source activate pandas-dev
+  - source activate pandas-dev
+    if: env(JOB) != "3.8-dev"
   - ci/run_tests.sh
 
 after_script:
