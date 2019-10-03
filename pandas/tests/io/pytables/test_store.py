@@ -2254,7 +2254,7 @@ class TestHDFStore:
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_tuple_index(self, setup_path):
 
         # GH #492
@@ -2267,7 +2267,7 @@ class TestHDFStore:
             simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self, setup_path):
 
@@ -2331,7 +2331,7 @@ class TestHDFStore:
         except OverflowError:
             pytest.skip("known failer on some windows platforms")
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -2365,7 +2365,7 @@ class TestHDFStore:
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_empty_series_frame(self, setup_path):
         s0 = Series()
         s1 = Series(name="myseries")
@@ -2379,7 +2379,7 @@ class TestHDFStore:
         self._check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
         self._check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "dtype", [np.int64, np.float64, np.object, "m8[ns]", "M8[ns]"]
     )
@@ -2465,7 +2465,7 @@ class TestHDFStore:
             recons = store["series"]
             tm.assert_series_equal(recons, series)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -4023,7 +4023,7 @@ class TestHDFStore:
             d1 = store["detector"]
             assert isinstance(d1, DataFrame)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_legacy_table_fixed_format_read_py2(self, datapath, setup_path):
         # GH 24510
         # legacy table with fixed format written in Python 2
@@ -4182,7 +4182,7 @@ class TestHDFStore:
             result = store.get("df")
             tm.assert_frame_equal(result, df)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_store_datetime_mixed(self, setup_path):
 
         df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
