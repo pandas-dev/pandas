@@ -32,7 +32,7 @@ def path(ext):
         yield file_path
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def set_engine(engine, ext):
     """Fixture to set engine for use in each test case.
 
