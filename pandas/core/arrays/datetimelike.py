@@ -670,7 +670,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaT values.
 
         Returns
