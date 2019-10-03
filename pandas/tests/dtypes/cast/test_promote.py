@@ -431,13 +431,18 @@ def test_maybe_promote_any_with_datetime64(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if boxed and box_dtype is None:
-        if is_datetime64_dtype(dtype):
-            if not is_datetime64_dtype(type(fill_value)):
-                pytest.xfail("falsely upcasts to object")
-        else:
-            if is_datetime64_dtype(type(fill_value)):
-                pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
+    if is_datetime64_dtype(dtype):
+        if boxed and (
+            box_dtype == object
+            or (box_dtype is None and not is_datetime64_dtype(type(fill_value)))
+        ):
+            pytest.xfail("falsely upcasts to object")
+    else:
+        if boxed and (
+            box_dtype == "dt_dtype"
+            or (box_dtype is None and is_datetime64_dtype(type(fill_value)))
+        ):
+            pytest.xfail("mix of lack of upcasting, resp. wrong missing value")
 
     # special case for box_dtype
     box_dtype = np.dtype(datetime64_dtype) if box_dtype == "dt_dtype" else box_dtype
@@ -659,15 +664,15 @@ def test_maybe_promote_any_with_timedelta64(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if boxed:
-        if is_timedelta64_dtype(dtype):
-            if box_dtype == object:
-                pytest.xfail("falsely upcasts to object")
-            elif box_dtype is None and not is_timedelta64_dtype(type(fill_value)):
-                pytest.xfail("falsely upcasts to object")
-        else:
-            if box_dtype is None and is_timedelta64_dtype(type(fill_value)):
-                pytest.xfail("does not upcast correctly")
+    if is_timedelta64_dtype(dtype):
+        if boxed and (
+            box_dtype == object
+            or (box_dtype is None and not is_timedelta64_dtype(type(fill_value)))
+        ):
+            pytest.xfail("falsely upcasts to object")
+    else:
+        if boxed and box_dtype is None and is_timedelta64_dtype(type(fill_value)):
+            pytest.xfail("does not upcast correctly")
 
     # special case for box_dtype
     box_dtype = np.dtype(timedelta64_dtype) if box_dtype == "td_dtype" else box_dtype
@@ -813,16 +818,24 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if not boxed:
-        if dtype == bytes and fill_value is not None and fill_value is not NaT:
-            pytest.xfail("does not upcast to object")
-        elif dtype == "uint64" and fill_value == iNaT:
-            pytest.xfail("does not upcast correctly")
-        # below: opinionated that iNaT should be interpreted as missing value
-        elif (is_float_dtype(dtype) or is_complex_dtype(dtype)) and fill_value == iNaT:
-            pytest.xfail("does not cast to missing value marker correctly")
-        elif (is_string_dtype(dtype) or dtype == bool) and fill_value == iNaT:
-            pytest.xfail("does not cast to missing value marker correctly")
+    if (
+        dtype == bytes
+        and not boxed
+        and fill_value is not None
+        and fill_value is not NaT
+    ):
+        pytest.xfail("does not upcast to object")
+    elif dtype == "uint64" and not boxed and fill_value == iNaT:
+        pytest.xfail("does not upcast correctly")
+    # below: opinionated that iNaT should be interpreted as missing value
+    elif (
+        not boxed
+        and (is_float_dtype(dtype) or is_complex_dtype(dtype))
+        and fill_value == iNaT
+    ):
+        pytest.xfail("does not cast to missing value marker correctly")
+    elif (is_string_dtype(dtype) or dtype == bool) and not boxed and fill_value == iNaT:
+        pytest.xfail("does not cast to missing value marker correctly")
 
     if is_integer_dtype(dtype) and dtype == "uint64" and fill_value == iNaT:
         # uint64 + negative int casts to object; iNaT is considered as missing
