@@ -441,7 +441,7 @@ class Timestamp(_Timestamp):
 
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
@@ -483,7 +483,7 @@ default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -519,7 +519,7 @@ default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -556,7 +556,7 @@ default 'raise'
     @property
     def tz(self):
         """
-        Alias for tzinfo
+        Alias for tzinfo.
         """
         return self.tzinfo
 
@@ -754,7 +754,7 @@ default 'raise'
     def resolution(self):
         """
         Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state
+        times that can be represented by Timestamp object_state.
         """
         # GH#21336, GH#21365
         return Timedelta(nanoseconds=1)
@@ -893,7 +893,7 @@ default 'raise'
                 hour=None, minute=None, second=None, microsecond=None,
                 nanosecond=None, tzinfo=object, fold=0):
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
