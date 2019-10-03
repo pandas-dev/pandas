@@ -247,7 +247,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
-- Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default)
+- Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
 -
 -
 
