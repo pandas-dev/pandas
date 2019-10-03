@@ -3,7 +3,7 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.util._test_decorators import xfail_non_writeable
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -70,7 +70,7 @@ def test_complex_table(setup_path):
         assert_frame_equal(df, reread)
 
 
-@xfail_non_writeable
+@td.xfail_non_writeable
 def test_complex_mixed_fixed(setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64

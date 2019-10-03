@@ -11,7 +11,6 @@ import pytest
 
 from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
-from pandas.util._test_decorators import xfail_non_writeable
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -812,7 +811,7 @@ class TestHDFStore:
         df = DataFrame(np.random.randn(50, 100))
         self._check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_put_mixed_type(self, setup_path):
         df = tm.makeTimeDataFrame()
         df["obj1"] = "foo"
@@ -1415,7 +1414,7 @@ class TestHDFStore:
             )
 
     @pytest.mark.parametrize(
-        "format", [pytest.param("fixed", marks=xfail_non_writeable), "table"]
+        "format", [pytest.param("fixed", marks=td.xfail_non_writeable), "table"]
     )
     def test_to_hdf_errors(self, format, setup_path):
 
@@ -1812,7 +1811,7 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.select("df", where=[("columns=A")])
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     def test_append_misc(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
@@ -2020,7 +2019,7 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.append("df_unimplemented", df)
 
-    @xfail_non_writeable
+    @td.xfail_non_writeable
     @pytest.mark.skipif(
         LooseVersion(np.__version__) == LooseVersion("1.15.0"),
         reason=(

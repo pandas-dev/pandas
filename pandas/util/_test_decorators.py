@@ -79,7 +79,8 @@ def safe_import(mod_name, min_version=None):
 # and pytables 3.4.4
 tables = safe_import("tables")
 xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(np.__version__) >= LooseVersion("1.16")
+    tables
+    and LooseVersion(np.__version__) >= LooseVersion("1.16")
     and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
     reason=(
         "gh-25511, gh-24839. pytables needs a "

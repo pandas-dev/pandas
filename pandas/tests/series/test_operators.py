@@ -248,7 +248,9 @@ class TestSeriesLogicalOps:
 
         # this is an alignment issue; these are equivalent
         # https://github.com/pandas-dev/pandas/issues/5284
-        msg = r"cannot compare a dtyped \[float64\] array with a scalar of type \[float\]"
+        msg = (
+            r"cannot compare a dtyped \[float64\] array with a scalar of type \[float\]"
+        )
         with pytest.raises(TypeError, match=msg):
             d.__and__(s, axis="columns")
 
