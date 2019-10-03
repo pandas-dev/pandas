@@ -65,8 +65,9 @@ def hash_pandas_object(
     index : bool, default True
         include the index in the hash (if Series/DataFrame)
     encoding : str, default 'utf8'
-        encoding for data & key when str
-    hash_key : str key to encode, default to _default_hash_key
+        encoding for data & key when strings
+    hash_key : str, default '_default_hash_key'
+        hash_key for string key to encode
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
@@ -144,7 +145,7 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     ----------
     vals : MultiIndex, list-of-tuples, or single tuple
     encoding : str, default 'utf8'
-    hash_key : str key to encode, default to _default_hash_key
+    hash_key : str, default '_default_hash_key'
 
     Returns
     -------
@@ -187,7 +188,7 @@ def hash_tuple(val, encoding="utf8", hash_key=None):
     ----------
     val : single tuple
     encoding : str, default 'utf8'
-    hash_key : str key to encode, default to _default_hash_key
+    hash_key : str, default '_default_hash_key'
 
     Returns
     -------
@@ -210,7 +211,7 @@ def _hash_categorical(c, encoding, hash_key):
     ----------
     c : Categorical
     encoding : str, default 'utf8'
-    hash_key : str key to encode, default to _default_hash_key
+    hash_key : str, default '_default_hash_key'
 
     Returns
     -------
@@ -247,8 +248,9 @@ def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     ----------
     vals : ndarray, Categorical
     encoding : str, default 'utf8'
-        encoding for data & key when str
-    hash_key : str key to encode, default to _default_hash_key
+        encoding for data & key when strings
+    hash_key : str, default '_default_hash_key'
+        hash_key for string key to encode
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
