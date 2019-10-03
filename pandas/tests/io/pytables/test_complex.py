@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
