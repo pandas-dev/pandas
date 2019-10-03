@@ -1913,7 +1913,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
     result = result.copy()
 
     obj_cols = [
-        idx for idx in range(len(result.columns)) if is_object_dtype(result.dtypes[idx])
+        idx
+        for idx in range(len(result.columns))
+        if is_object_dtype(result.dtypes.iloc[idx])
     ]
 
     # See GH#26285
