@@ -11,6 +11,7 @@ import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
+import re
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
 
@@ -638,10 +639,17 @@ b  2""",
 
             try:
                 return self.apply(curried_with_axis)
-            except Exception:
-                try:
+            except TypeError as err:
+                if "got an unexpected keyword argument 'axis'" in str(err):
+                    # We need to use the `curried` instead of `curried_with_axis`
+                    # Any exception other than needing to use `curried`
+                    #  rather than `curried_with_axis` gets re-raised.
                     return self.apply(curried)
-                except Exception:
+                elif re.search(
+                    "reduction operation '.*' not allowed for this dtype", str(err)
+                ):
+                    # We don't have a cython implementation
+                    # TODO: is the above comment accurate?
 
                     # related to : GH3688
                     # try item-by-item
@@ -653,7 +661,10 @@ b  2""",
                         return self._aggregate_item_by_item(name, *args, **kwargs)
                     except AttributeError:
                         # e.g. SparseArray has no flags attr
+                        # FIXME: 'SeriesGroupBy' object has no attribute '_aggregate_item_by_item'
+                        #  occurs in idxmax() case in tests.groupby.test_function.test_non_cython_api
                         raise ValueError
+                raise
 
         return wrapper
 
