@@ -38,7 +38,7 @@ If you want to support pandas development, you can find information in the [dona
 
 ## Diversity and Inclusion
 
-> _pandas_ expressly welcomes and encourages contributions anyone who faces under-representation, discrimination in the technology industry
+> _pandas_ expressly welcomes and encourages contributions from anyone who faces under-representation, discrimination in the technology industry
 > or anyone willing to increase the diversity of our team.
 > We have identified the visible diversity gap and obstacles in the open source community and we are proactive in increasing the diversity of our team.
 > We have a [code of conduct]({base_url}/community/coc.html) to ensure a friendly and welcoming environment.
