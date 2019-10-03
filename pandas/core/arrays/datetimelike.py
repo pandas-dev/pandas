@@ -439,7 +439,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
-            return self._box_func(val)
+            if lib.is_scalar(val):
+                return self._box_func(val)
+            else:
+                return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -469,6 +472,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # even though it only has 1 dim by definition
             if is_period:
                 return self._simple_new(result, dtype=self.dtype, freq=freq)
+            return self._simple_new(result, dtype=self.dtype)
             return result
 
         return self._simple_new(result, dtype=self.dtype, freq=freq)
@@ -1175,8 +1179,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             PerformanceWarning,
         )
 
+        if self.ndim == 2:
+            result = self.ravel()._addsub_offset_array(other.ravel(), op)
+            return result.reshape(self.shape)  # FIXME: case with order mismatch
+
         # For EA self.astype('O') returns a numpy array, not an Index
-        left = lib.values_from_object(self.astype("O"))
+        #left = lib.values_from_object(self.astype("O"))  # TODO: get rid of values_from_object
+        left = self.astype("O")
+        assert left.shape == other.shape
 
         res_values = op(left, np.array(other))
         kwargs = {}
@@ -1249,7 +1259,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             result = self._add_delta(other)
         elif is_offsetlike(other):
             # Array/Index of DateOffset objects
-            result = self._addsub_offset_array(other, operator.add)
+            result = self._addsub_offset_array(other, operator.add)  # FIXME: just do this for object-dtype
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
@@ -1257,6 +1267,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.add)
+        elif is_object_dtype(other):
+            result = self._addsub_offset_array(other, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1306,7 +1318,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             result = self._add_delta(-other)
         elif is_offsetlike(other):
             # Array/Index of DateOffset objects
-            result = self._addsub_offset_array(other, operator.sub)
+            result = self._addsub_offset_array(other, operator.sub)  # TODO: just do this for arbitrary object-dtype
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
@@ -1317,6 +1329,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             if not is_period_dtype(self):
                 maybe_integer_op_deprecated(self)
             result = self._addsub_int_array(other, operator.sub)
+        elif is_object_dtype(other):
+            result = self._addsub_offset_array(other, operator.sub)  # TODO: just do this for arbitrary object-dtype
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented

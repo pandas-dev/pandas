@@ -395,7 +395,7 @@ class TestDataFrameOperators:
         added = float_frame + mixed_int_frame
         _check_mixed_float(added, dtype="float64")
 
-    def test_combineSeries(
+    def test_combine_series(
         self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
     ):
 
@@ -419,7 +419,7 @@ class TestDataFrameOperators:
 
         # no upcast needed
         added = mixed_float_frame + series
-        _check_mixed_float(added)
+        _check_mixed_float(added, dtype="float64")
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
@@ -427,6 +427,7 @@ class TestDataFrameOperators:
         added = mixed_float_frame + series.astype("float16")
         _check_mixed_float(added, dtype=dict(C=None))
 
+        # FIXME: don't leave commented-out
         # these raise with numexpr.....as we are adding an int64 to an
         # uint64....weird vs int
 

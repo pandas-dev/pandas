@@ -374,12 +374,20 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
 
     right = lib.item_from_zerodim(right)
 
-    if np.ndim(right) == 0 or (isinstance(right, ABCSeries) and axis != "columns"):
+    is_ser = isinstance(right, ABCSeries)
+    is_col = is_ser and axis != "columns"
+    is_row = is_ser and axis == "columns"
 
-        if isinstance(right, ABCSeries) and isinstance(right._values, np.ndarray):
+    if np.ndim(right) == 0 or is_col or is_row:
+
+        if is_col and isinstance(right._values, np.ndarray):
             # KLUDGE; need to be careful not to extract DTA/TDA
             # Need to do this to get broadcasting rightt
             right = right._values.reshape(-1, 1)
+        #elif is_row and isinstance(right._values, np.ndarray):
+        #    right = right._values.reshape(1, -1)
+        #elif is_row and right.dtype.kind == "m":
+        #    right = np.asarray(right)
 
         new_blocks = []
         mgr = left._data
@@ -391,7 +399,25 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
                 blk_vals = blk_vals.reshape(blk.shape)
                 blk_vals = blk_vals.T
 
-            new_vals = array_op(blk_vals, right, func, str_rep, eval_kwargs)
+            if is_row:
+                rv = right._values[blk.mgr_locs]
+                if hasattr(rv, "reshape"):
+                    rv = rv.reshape(1, -1)
+                #else:
+                #    if blk_vals.ndim == 2 and blk_vals.shape[0] == 1:
+                #        # e,g, rv is a Categorical
+                #        blk_vals = blk_vals[0]
+                if isinstance(rv, np.ndarray):
+                    # Without this we run into shape mismatch in masked_arith_op
+                    rv = np.broadcast_to(rv, blk_vals.shape)
+                two_v_1 = blk_vals.ndim == 2 and np.ndim(rv) == 1
+                if two_v_1 and blk_vals.shape[0] == 1:
+                    blk_vals = blk_vals[0]
+                new_vals = array_op(blk_vals, rv, func, str_rep, eval_kwargs)
+                if two_v_1:
+                    new_vals = new_vals[None, :]
+            else:
+                new_vals = array_op(blk_vals, right, func, str_rep, eval_kwargs)
 
             # Reshape for EA Block
             if is_extension_array_dtype(new_vals.dtype):
@@ -431,6 +457,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None, eval_kwargs=N
             return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries) and axis == "columns":
+        assert False
         # We only get here if called via left._combine_match_columns,
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)

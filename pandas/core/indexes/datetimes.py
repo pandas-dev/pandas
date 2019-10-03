@@ -1213,7 +1213,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         elif result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
-            assert isinstance(result, np.ndarray), result
+            #assert isinstance(result, np.ndarray), result
+            result = result._data
             return result
         return type(self)(result, name=self.name)
 

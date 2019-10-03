@@ -1434,7 +1434,9 @@ class TestDatetime64DateOffsetArithmetic:
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and tz is not None:
+            warn = None
         with tm.assert_produces_warning(warn, clear=[pd.core.arrays.datetimelike]):
             res = dtarr + other
         expected = DatetimeIndex(

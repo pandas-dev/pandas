@@ -542,19 +542,37 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # e.g. list, tuple
             other = np.array(other)
 
+        if self.ndim == 2 and other.ndim == 1 and len(other) == len(self):
+            other = other[:, None]
+
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             # Note: we do not do type inference on the result, so either
             #  an object array or numeric-dtyped (if numpy does inference)
             #  will be returned.  GH#23829
             result = [self[n] / other[n] for n in range(len(self))]
-            result = np.array(result)
+            if all(isinstance(x, TimedeltaArray) for x in result):
+                if len(result) == 1:
+                    result = result[0].reshape(1, -1)
+                    return result
+            if any(isinstance(x, TimedeltaArray) for x in result):
+                raise NotImplementedError(result)
+
+            result = np.asarray(result)
+            if result.size and (isinstance(result.flat[0], Timedelta) or result.flat[0] is NaT):
+                # try to do inference, since we are no longer calling the
+                #  Series constructor to do it for us.  Only do it if we
+                #  know we aren't incorrectly casting numerics.
+                try:
+                    result = type(self)._from_sequence(result.ravel()).reshape(result.shape)
+                except (ValueError, TypeError):
+                    pass
             return result
 
         else:

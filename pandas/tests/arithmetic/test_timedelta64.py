@@ -7,6 +7,7 @@ import pytest
 
 from pandas.errors import NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning
 
+from pandas.core.arrays import TimedeltaArray
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1303,7 +1304,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
@@ -1327,9 +1328,9 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        # The DataFrame operation is transposed and so operates as separate
+        # The DataFrame operation is transposed and so operates as separate  # no longer accurate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
@@ -1365,7 +1366,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
@@ -1382,9 +1383,9 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        # The DataFrame operation is transposed and so operates as separate
+        # The DataFrame operation is transposed and so operates as separate  # FIXME: no longer accurate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning#None if box_with_array is pd.DataFrame else PerformanceWarning
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
@@ -1999,6 +2000,11 @@ class TestTimedeltaArraylikeMulDivOps:
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = tm.box_expected(expected, xbox)
+            if isinstance(expected, np.ndarray):
+                # FIXME: kludge
+                expected = TimedeltaArray._from_sequence(expected.ravel()).reshape(expected.shape)
+            #assert not isinstance(expected, np.ndarray)
+            #assert not isinstance(result, np.ndarray)
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):

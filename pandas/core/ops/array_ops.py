@@ -291,6 +291,9 @@ def comparison_op(
 
 
 def na_logical_op(x, y, op):
+    if isinstance(y, np.ndarray) and y.size == 1:
+        # In case we are broadcasting...
+        y = y.ravel()[0]
     try:
         result = op(x, y)
     except TypeError:
@@ -299,7 +302,7 @@ def na_logical_op(x, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x, y, op)
+            result = libops.vec_binop(x.ravel(), y.ravel(), op).reshape(x.shape)  # FIXME: what if x and y have different order?
         else:
             # let null fall thru
             assert lib.is_scalar(y)

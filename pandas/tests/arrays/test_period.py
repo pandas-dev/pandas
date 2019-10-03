@@ -136,7 +136,9 @@ def test_astype_copies():
     result = arr.astype(np.int64, copy=False)
     # Add the `.base`, since we now use `.asi8` which returns a view.
     # We could maybe override it in PeriodArray to return ._data directly.
-    assert result.base is arr._data
+    assert result.base is not None
+    assert arr._data.base is not None
+    assert result.base is arr._data.base
 
     result = arr.astype(np.int64, copy=True)
     assert result is not arr._data

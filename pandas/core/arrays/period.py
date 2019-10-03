@@ -46,6 +46,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.core.ops import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -70,7 +71,7 @@ def _period_array_cmp(cls, op):
     nat_result = opname == "__ne__"
 
     def wrapper(self, other):
-        op = getattr(self.asi8, opname)
+        ordinal_op = getattr(self.asi8, opname)
 
         other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -82,23 +83,42 @@ def _period_array_cmp(cls, op):
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            result = op(other.asi8)
+            result = ordinal_op(other.asi8)
 
             mask = self._isnan | other._isnan
             if mask.any():
                 result[mask] = nat_result
 
             return result
+        elif is_list_like(other):
+            try:
+                new_other = cls._from_sequence(other)
+            except TypeError:
+                result = np.empty(self.shape, dtype=bool)
+                result.fill(nat_result)
+            else:
+                return op(self, new_other)
         elif other is NaT:
-            result = np.empty(len(self.asi8), dtype=bool)
+            result = np.empty(self.shape, dtype=bool)
             result.fill(nat_result)
         else:
-            other = Period(other, freq=self.freq)
-            result = op(other.ordinal)
+            try:
+                other = Period(other, freq=self.freq)
+            except IncompatibleFrequency:
+                raise
+            except (ValueError, TypeError):
+                # TODO: use invalid_comparison
+                if op.__name__ in ["eq", "ne"]:
+                    result = np.empty(self.shape, dtype=bool)
+                    result.fill(nat_result)
+                else:
+                    raise TypeError
+            else:
+                result = ordinal_op(other.ordinal)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -248,8 +268,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if copy:
             periods = periods.copy()
 
-        freq = freq or libperiod.extract_freq(periods)
-        ordinals = libperiod.extract_ordinals(periods, freq)
+        freq = freq or libperiod.extract_freq(periods.ravel())
+        ordinals = libperiod.extract_ordinals(periods.ravel(), freq).reshape(periods.shape)
         return cls(ordinals, freq=freq)
 
     @classmethod
