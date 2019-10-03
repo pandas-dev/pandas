@@ -422,7 +422,8 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        var_arg_combinations = {"*args, **kwargs", "*args, **kwds", "**kwargs, *args", "**kwds, *args"}
+        var_arg_combinations = {"*args, **kwargs", "*args, **kwds",
+                                "**kwargs, *args", "**kwds, *args"}
         docs = collections.OrderedDict()
         for name, type_, desc in self.doc["Parameters"]:
             info = (type_, desc)
