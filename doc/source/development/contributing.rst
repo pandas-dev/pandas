@@ -952,7 +952,7 @@ the expected correct result::
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+*pandas* existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
