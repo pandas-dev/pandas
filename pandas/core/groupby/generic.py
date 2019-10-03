@@ -1260,14 +1260,12 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        try:
+        if isinstance(self.grouper, BinGrouper) and (
+            len(self.grouper.binlabels) != len(self.grouper.indices)
+        ):
+            labels = list(map(rep, [np.unique(ids)])) + [llab(lab, inc)]
+        else:
             labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
-        except ValueError:
-            # If applying rep to recons_labels go fail and that's because empty periods,
-            is_len_different = len(self.grouper.binlabels) != len(self.grouper.indices)
-            if isinstance(self.grouper, BinGrouper) and is_len_different:
-                # then use unidue ids instead of self.grouper.recons_labels
-                labels = list(map(rep, [np.unique(ids)])) + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 
