@@ -507,86 +507,76 @@ class PlotAccessor(PandasObject):
     Parameters
     ----------
     data : Series or DataFrame
-        The object for which the method is called
+        The object for which the method is called.
     x : label or position, default None
         Only used if data is a DataFrame.
     y : label, position or list of label, positions, default None
         Allows plotting of one column versus another. Only used if data is a
         DataFrame.
-    kind : str
-        The kind of plot to produce:
-
-        - 'line' : line plot (default)
-        - 'bar' : vertical bar plot
-        - 'barh' : horizontal bar plot
-        - 'hist' : histogram
-        - 'box' : boxplot
-        - 'kde' : Kernel Density Estimation plot
-        - 'density' : same as 'kde'
-        - 'area' : area plot
-        - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot
+    kind : {'line', 'bar', 'barh', 'hist', 'box', 'kde', 'density', 'area', \
+'pie','scatter','hexbin'}, default 'line'
+        The kind of plot to produce.
     figsize : a tuple (width, height) in inches
     use_index : bool, default True
-        Use index as ticks for x axis
+        Use index as ticks for x axis.
     title : str or list
         Title to use for the plot. If a string is passed, print the string
         at the top of the figure. If a list is passed and `subplots` is
         True, print each item in the list above the corresponding subplot.
     grid : bool, default None (matlab style default)
-        Axis grid lines
-    legend : False/True/'reverse'
-        Place legend on axis subplots
+        Axis grid lines.
+    legend : bool or 'reverse'
+        Place legend on axis subplots.
     style : list or dict
-        The matplotlib line style per column
+        The matplotlib line style per column.
     logx : bool or 'sym', default False
-        Use log scaling or symlog scaling on x axis
+        Use log scaling or symlog scaling on x axis.
+
         .. versionchanged:: 0.25.0
 
-    logy : bool or 'sym' default False
-        Use log scaling or symlog scaling on y axis
+    logy : bool or 'sym', default False
+        Use log scaling or symlog scaling on y axis.
+
         .. versionchanged:: 0.25.0
 
     loglog : bool or 'sym', default False
-        Use log scaling or symlog scaling on both x and y axes
+        Use log scaling or symlog scaling on both x and y axes.
+
         .. versionchanged:: 0.25.0
 
     xticks : sequence
         Values to use for the xticks.
     yticks : sequence
         Values to use for the yticks.
-    xlim : 2-tuple/list
-    ylim : 2-tuple/list
-    rot : int, default None
+    xlim : tuple of (int, int) or list of int
+    ylim : tuple of (int, int) or list of int
+    rot : int, optional
         Rotation for ticks (xticks for vertical, yticks for horizontal
-        plots)
-    fontsize : int, default None
+        plots).
+    fontsize : int, optional
         Font size for xticks and yticks.
-    colormap : str or matplotlib colormap object, default None
+    colormap : str or matplotlib colormap object, optional
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
-        plots)
-    position : float
+        plots).
+    position : float, default 0.5, meaning center
         Specify relative alignments for bar plot layout.
-        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
-        (center)
+        From 0 (left/bottom-end) to 1 (right/top-end).
     table : bool, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data
         will be transposed to meet matplotlib's default layout.
-        If a Series or DataFrame is passed, use passed data to draw a
-        table.
-    yerr : DataFrame, Series, array-like, dict and str
+        If a Series or DataFrame is passed, use passed data to draw a table.
+    yerr : DataFrame, Series, array-like, dict or str
         See :ref:`Plotting with Error Bars <visualization.errorbars>` for
         detail.
-    xerr : DataFrame, Series, array-like, dict and str
+    xerr : DataFrame, Series, array-like, dict or str
         Equivalent to yerr.
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
-        labels with "(right)" in the legend
-    include_bool : bool, default is False
+        labels with "(right)" in the legend.
+    include_bool : bool, default False
         If True, boolean values can be plotted.
     **kwargs
         Options to pass to matplotlib plotting method.
