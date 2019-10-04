@@ -56,7 +56,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
@@ -146,93 +145,6 @@ class NDFrameGroupBy(GroupBy):
             if val in self.exclusions:
                 continue
             yield val, slicer(val)
-
-    def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
-        new_items, new_blocks = self._cython_agg_blocks(
-            how, alt=alt, numeric_only=numeric_only, min_count=min_count
-        )
-        return self._wrap_agged_blocks(new_items, new_blocks)
-
-    _block_agg_axis = 0
-
-    def _cython_agg_blocks(self, how, alt=None, numeric_only=True, min_count=-1):
-        # TODO: the actual managing of mgr_locs is a PITA
-        # here, it should happen via BlockManager.combine
-
-        data, agg_axis = self._get_data_to_aggregate()
-
-        if numeric_only:
-            data = data.get_numeric_data(copy=False)
-
-        new_blocks = []
-        new_items = []
-        deleted_items = []
-        no_result = object()
-        for block in data.blocks:
-            # Avoid inheriting result from earlier in the loop
-            result = no_result
-            locs = block.mgr_locs.as_array
-            try:
-                result, _ = self.grouper.aggregate(
-                    block.values, how, axis=agg_axis, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-
-                if alt is None:
-                    # we cannot perform the operation
-                    # in an alternate way, exclude the block
-                    deleted_items.append(locs)
-                    continue
-
-                # call our grouper again with only this block
-                obj = self.obj[data.items[locs]]
-                s = groupby(obj, self.grouper)
-                try:
-                    result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                except TypeError:
-                    # we may have an exception in trying to aggregate
-                    # continue and exclude the block
-                    deleted_items.append(locs)
-                    continue
-            finally:
-                if result is not no_result:
-                    # see if we can cast the block back to the original dtype
-                    result = maybe_downcast_numeric(result, block.dtype)
-                    newb = block.make_block(result)
-
-            new_items.append(locs)
-            new_blocks.append(newb)
-
-        if len(new_blocks) == 0:
-            raise DataError("No numeric types to aggregate")
-
-        # reset the locs in the blocks to correspond to our
-        # current ordering
-        indexer = np.concatenate(new_items)
-        new_items = data.items.take(np.sort(indexer))
-
-        if len(deleted_items):
-
-            # we need to adjust the indexer to account for the
-            # items we have removed
-            # really should be done in internals :<
-
-            deleted = np.concatenate(deleted_items)
-            ai = np.arange(len(data))
-            mask = np.zeros(len(data))
-            mask[deleted] = 1
-            indexer = (ai - mask.cumsum())[indexer]
-
-        offset = 0
-        for b in new_blocks:
-            loc = len(b.mgr_locs)
-            b.mgr_locs = indexer[offset : (offset + loc)]
-            offset += loc
-
-        return new_items, new_blocks
 
     def aggregate(self, func, *args, **kwargs):
         _level = kwargs.pop("_level", None)
@@ -1385,7 +1297,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
-    _block_agg_axis = 1
 
     _agg_see_also_doc = dedent(
         """
@@ -1571,24 +1482,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def _wrap_transformed_output(self, output, names=None):
         return DataFrame(output, index=self.obj.index)
 
-    def _wrap_agged_blocks(self, items, blocks):
-        if not self.as_index:
-            index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, [items, index])
-            result = DataFrame(mgr)
-
-            self._insert_inaxis_grouper_inplace(result)
-            result = result._consolidate()
-        else:
-            index = self.grouper.result_index
-            mgr = BlockManager(blocks, [items, index])
-            result = DataFrame(mgr)
-
-        if self.axis == 1:
-            result = result.T
-
-        return self._reindex_output(result)._convert(datetime=True)
-
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
             yield colname, SeriesGroupBy(
@@ -1616,20 +1509,23 @@ class DataFrameGroupBy(NDFrameGroupBy):
         DataFrame
             Count of values within each group.
         """
-        data, _ = self._get_data_to_aggregate()
-        ids, _, ngroups = self.grouper.group_info
-        mask = ids != -1
+        obj = self._selected_obj
 
-        val = (
-            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
-            for blk in data.blocks
-        )
-        loc = (blk.mgr_locs for blk in data.blocks)
+        def groupby_series(obj, col=None):
+            return SeriesGroupBy(obj, selection=col, grouper=self.grouper).count()
 
-        counter = partial(lib.count_level_2d, labels=ids, max_bin=ngroups, axis=1)
-        blk = map(make_block, map(counter, val), loc)
+        if isinstance(obj, Series):
+            results = groupby_series(obj)
+        else:
+            from pandas.core.reshape.concat import concat
 
-        return self._wrap_agged_blocks(data.items, list(blk))
+            results = [groupby_series(obj[col], col) for col in obj.columns]
+            results = concat(results, axis=1)
+            results.columns.names = obj.columns.names
+
+        if not self.as_index:
+            results.index = ibase.default_index(len(results))
+        return results
 
     def nunique(self, dropna=True):
         """
