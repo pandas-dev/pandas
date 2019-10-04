@@ -40,6 +40,7 @@ by defining the staticmethods ``assert_frame_equal`` and
 ``assert_series_equal`` on your base test class.
 
 """
+# from .accumulate import BaseNoAccumulateTests, BaseNumericAccumulateTests
 from .casting import BaseCastingTests  # noqa
 from .constructors import BaseConstructorsTests  # noqa
 from .dtype import BaseDtypeTests  # noqa

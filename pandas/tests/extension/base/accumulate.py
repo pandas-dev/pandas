@@ -31,14 +31,6 @@ class BaseNoAccumulateTests(BaseAccumulateTests):
         with pytest.raises(TypeError):
             getattr(s, op_name)(skipna=skipna)
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_boolean(self, data, all_boolean_accumulations, skipna):
-        op_name = all_boolean_accumulations
-        s = pd.Series(data)
-
-        with pytest.raises(TypeError):
-            getattr(s, op_name)(skipna=skipna)
-
 
 class BaseNumericAccumulateTests(BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
@@ -50,11 +42,3 @@ class BaseNumericAccumulateTests(BaseAccumulateTests):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             self.check_accumulate(s, op_name, skipna)
-
-
-class BaseBooleanAccumulateTests(BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_boolean_accumulations, skipna):
-        op_name = all_boolean_accumulations
-        s = pd.Series(data)
-        self.check_accumulate(s, op_name, skipna)

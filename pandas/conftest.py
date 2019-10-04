@@ -229,6 +229,17 @@ def all_boolean_reductions(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric reduction names
+    """
+    return request.param
+
+
 _cython_table = pd.core.base.SelectionMixin._cython_table.items()
 
 
