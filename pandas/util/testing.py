@@ -294,7 +294,7 @@ def assert_almost_equal(
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default 'equiv'
+    check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -585,7 +585,7 @@ def assert_index_equal(
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -860,7 +860,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1089,7 +1089,7 @@ def assert_series_equal(
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
     check_series_type : bool, default True
@@ -1251,10 +1251,10 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : bool or {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
