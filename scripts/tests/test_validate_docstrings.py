@@ -22,8 +22,8 @@ class Decorators:
             Wrapper function.
 
             This docstring should be hidden, and not used during validation.
-            Using the @wraps decorator should allow validation to get the 
-            signature of the wrapped function when comparing against the 
+            Using the @wraps decorator should allow validation to get the
+            signature of the wrapped function when comparing against the
             docstring.
             """
             return func(*args, **kwargs)
