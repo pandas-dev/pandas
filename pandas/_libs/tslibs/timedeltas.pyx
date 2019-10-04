@@ -1220,14 +1220,14 @@ class Timedelta(_Timedelta):
 
         Possible values:
 
-            * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
-            * 'days' or 'day'
-            * 'hours', 'hour', 'hr', or 'h'
-            * 'minutes', 'minute', 'min', or 'm'
-            * 'seconds', 'second', or 'sec'
-            * 'milliseconds', 'millisecond', 'millis', or 'milli'
-            * 'microseconds', 'microsecond', 'micros', or 'micro'
-            * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
+        * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
+        * 'days' or 'day'
+        * 'hours', 'hour', 'hr', or 'h'
+        * 'minutes', 'minute', 'min', or 'm'
+        * 'seconds', 'second', or 'sec'
+        * 'milliseconds', 'millisecond', 'millis', or 'milli'
+        * 'microseconds', 'microsecond', 'micros', or 'micro'
+        * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
