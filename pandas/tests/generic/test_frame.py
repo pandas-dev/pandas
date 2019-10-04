@@ -4,6 +4,7 @@ from operator import methodcaller
 
 import numpy as np
 import pytest
+from datetime import datetime
 
 import pandas.util._test_decorators as td
 
@@ -287,3 +288,32 @@ class TestDataFrame(Generic):
         empty_frame_copy = deepcopy(empty_frame)
 
         self._compare(empty_frame_copy, empty_frame)
+
+    def test_datetimeField_after_setitem(self):
+        # This test covers the unexpected behaviour of datetimeField when using
+        # setitem on another column as reported in issue #6942
+
+        start = pd.to_datetime("20140401")
+
+        df = pd.DataFrame(
+            index=pd.date_range(start, periods=1), columns=["timenow", "Live"]
+        )
+
+        df.at[start, "timenow"] = datetime.today()  # initial time.
+        time1 = df.at[start, "timenow"]
+
+        df.at[
+            start, "timenow"
+        ] = datetime.today()  # modified time before 'Live' column is set.
+        time2 = df.at[start, "timenow"]
+
+        df.Live = True  # setting the 'Live' column to True.
+
+        df.at[
+            start, "timenow"
+        ] = datetime.today()  # modified time after 'Live' column is set.
+        time3 = df.at[start, "timenow"]
+
+        assert not time1 == time2
+        assert not time2 == time3
+        assert not time3 == time1
