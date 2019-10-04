@@ -1,3 +1,4 @@
+from functools import wraps
 import io
 import random
 import string
@@ -10,6 +11,39 @@ import validate_docstrings
 import pandas as pd
 
 validate_one = validate_docstrings.validate_one
+
+
+class Decorators:
+    @staticmethod
+    def good_decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper function.
+
+            This docstring should be hidden, and not used during validation.
+            Using the @wraps decorator should allow validation to get the 
+            signature of the wrapped function when comparing against the 
+            docstring.
+            """
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
+    def missing_wraps(func):
+        def wrapper(*args):
+            """
+            Wrapper function.
+
+            The signature of this wrapper should override the underlying
+            function. So, we should see errors regarding the parameters,
+            like expecting documentation for *args and **kwargs and missing
+            documentation for the underlying signature.
+            """
+            return func(*args)
+
+        return wrapper
 
 
 class GoodDocStrings:
@@ -40,6 +74,21 @@ class GoodDocStrings:
         pass
 
     def sample(self):
+        """
+        Generate and return a random number.
+
+        The value is sampled from a continuous uniform distribution between
+        0 and 1.
+
+        Returns
+        -------
+        float
+            Random number generated.
+        """
+        return random.random()
+
+    @Decorators.good_decorator
+    def decorated_sample(self):
         """
         Generate and return a random number.
 
@@ -634,6 +683,19 @@ class BadParameters:
         """
         pass
 
+    @Decorators.missing_wraps
+    def bad_decorator(self, kind: bool):
+        """
+        The decorator is missing the @wraps, and overrides the signature
+        of this method.
+
+        Parameters
+        ----------
+        kind : bool
+            Foo bar baz
+        """
+        pass
+
 
 class BadReturns:
     def return_not_documented(self):
@@ -828,6 +890,7 @@ class TestValidator:
         [
             "plot",
             "sample",
+            "decorated_sample",
             "random_letters",
             "sample_values",
             "head",
@@ -1002,6 +1065,7 @@ class TestValidator:
                 "list_incorrect_parameter_type",
                 ('Parameter "kind" type should use "str" instead of "string"',),
             ),
+            ("BadParameters", "bad_decorator", ("Parameters {*args} not documented",)),
             pytest.param(
                 "BadParameters",
                 "blank_lines",
