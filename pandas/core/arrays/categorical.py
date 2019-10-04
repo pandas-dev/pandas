@@ -520,11 +520,11 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
+        if is_extension_array_dtype(dtype):
+            return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         if is_integer_dtype(dtype) and self.isna().any():
             msg = "Cannot convert float NaN to integer"
             raise ValueError(msg)
-        if is_extension_array_dtype(dtype):
-            return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
