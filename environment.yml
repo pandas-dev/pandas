@@ -56,7 +56,7 @@ dependencies:
   - pytest>=4.0.2
   - pytest-cov
   - pytest-mock
-  - pytest-xdist
+  - pytest-xdist>=1.21
   - seaborn
   - statsmodels
 
