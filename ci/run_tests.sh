@@ -29,9 +29,8 @@ PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --duratio
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-# 2019-08-21 disabling because this is hitting HTTP 400 errors GH#27602
-# if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-#    echo "uploading coverage for $TYPE tests"
-#    echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-#          bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
-# fi
+if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
+    echo "uploading coverage"
+    echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
+          bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
+fi
