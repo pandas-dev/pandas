@@ -27,7 +27,7 @@ from pandas.core.dtypes.missing import isna
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items):
+def _combine_hash_arrays(arrays, num_items: int):
     """
     Parameters
     ----------
@@ -56,7 +56,11 @@ def _combine_hash_arrays(arrays, num_items):
 
 
 def hash_pandas_object(
-    obj, index=True, encoding="utf8", hash_key=None, categorize=True
+    obj,
+    index: bool = True,
+    encoding: str = "utf8",
+    hash_key=None,
+    categorize: bool = True,
 ):
     """
     Return a data hash of the Index/Series/DataFrame.
@@ -126,7 +130,10 @@ def hash_pandas_object(
                 for _ in [None]
             )
             num_items += 1
-            hashes = itertools.chain(hashes, index_hash_generator)
+
+            # keep `hashes` specifically a generator to keep mypy happy
+            _hashes = itertools.chain(hashes, index_hash_generator)
+            hashes = (x for x in _hashes)
         h = _combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
@@ -180,7 +187,7 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     return h
 
 
-def hash_tuple(val, encoding="utf8", hash_key=None):
+def hash_tuple(val, encoding: str = "utf8", hash_key=None):
     """
     Hash a single tuple efficiently
 
@@ -202,7 +209,7 @@ def hash_tuple(val, encoding="utf8", hash_key=None):
     return h
 
 
-def _hash_categorical(c, encoding, hash_key):
+def _hash_categorical(c, encoding: str, hash_key: str):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
     to the hashes
@@ -240,7 +247,7 @@ def _hash_categorical(c, encoding, hash_key):
     return result
 
 
-def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
+def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = True):
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -318,7 +325,7 @@ def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     return vals
 
 
-def _hash_scalar(val, encoding="utf8", hash_key=None):
+def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
     """
     Hash scalar value
 

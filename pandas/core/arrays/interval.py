@@ -260,7 +260,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
-    copy : boolean, default False
+    copy : bool, default False
         copy the data
     dtype : dtype or None, default None
         If None, dtype will be inferred
@@ -316,7 +316,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed : {'left', 'right', 'both', 'neither'}, default 'right'
             Whether the intervals are closed on the left-side, right-side, both
             or neither.
-        copy : boolean, default False
+        copy : bool, default False
             Copy the data.
         dtype : dtype, optional
             If None, dtype will be inferred.
@@ -388,7 +388,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
-    copy : boolean, default False
+    copy : bool, default False
         by-default copy the data, this is compat only and ignored
     dtype : dtype or None, default None
         If None, dtype will be inferred
@@ -815,7 +815,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
