@@ -4736,7 +4736,8 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
                       'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
-                      'h': pd.Categorical(list('abc'))})
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
