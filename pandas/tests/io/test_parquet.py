@@ -167,6 +167,7 @@ def check_round_trip(
             df.to_parquet(path, **write_kwargs)
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
+
             tm.assert_frame_equal(expected, actual, check_names=check_names)
 
     if path is None:
@@ -461,11 +462,26 @@ class TestParquetPyArrow(Base):
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
-        df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
+        df = pd.DataFrame()
+        df["a"] = pd.Categorical(list("abcdef"))
 
-        # de-serialized as object
-        expected = df.assign(a=df.a.astype(object))
-        check_round_trip(df, pa, expected=expected)
+        # test for null, out-of-order values, and unobserved category
+        df["b"] = pd.Categorical(
+            ["bar", "foo", "foo", "bar", None, "bar"],
+            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+        )
+
+        # test for ordered flag
+        df["c"] = pd.Categorical(
+            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
+        )
+
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+            check_round_trip(df, pa)
+        else:
+            # de-serialized as object for pyarrow < 0.15
+            expected = df.astype(object)
+            check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
