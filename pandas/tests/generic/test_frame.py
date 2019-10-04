@@ -5,6 +5,7 @@ from operator import methodcaller
 import numpy as np
 import pytest
 from datetime import datetime
+import time
 
 import pandas.util._test_decorators as td
 
@@ -302,12 +303,16 @@ class TestDataFrame(Generic):
         df.at[start, "timenow"] = datetime.today()  # initial time.
         time1 = df.at[start, "timenow"]
 
+        time.sleep(1)  # sleep time of 1 second in between assignments.
+
         df.at[
             start, "timenow"
         ] = datetime.today()  # modified time before 'Live' column is set.
         time2 = df.at[start, "timenow"]
 
         df.Live = True  # setting the 'Live' column to True.
+
+        time.sleep(1)  # sleep time of 1 second in between assignments.
 
         df.at[
             start, "timenow"
