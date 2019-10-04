@@ -513,9 +513,21 @@ class PlotAccessor(PandasObject):
     y : label, position or list of label, positions, default None
         Allows plotting of one column versus another. Only used if data is a
         DataFrame.
-    kind : {'line', 'bar', 'barh', 'hist', 'box', 'kde', 'density', 'area', \
-'pie','scatter','hexbin'}, default 'line'
-        The kind of plot to produce.
+    kind : str, default 'line'
+        Possible values:
+
+        * 'line' : line plot
+        * 'bar' : vertical bar plot
+        * 'barh' : horizontal bar plot
+        * 'hist' : histogram
+        * 'box' : boxplot
+        * 'kde' : Kernel Density Estimation plot
+        * 'density' : same as 'kde'
+        * 'area' : area plot
+        * 'pie' : pie plot
+        * 'scatter' : scatter plot
+        * 'hexbin' : hexbin subplots.
+
     figsize : a tuple (width, height) in inches
     use_index : bool, default True
         Use index as ticks for x axis.
@@ -525,21 +537,21 @@ class PlotAccessor(PandasObject):
         True, print each item in the list above the corresponding subplot.
     grid : bool, default None (matlab style default)
         Axis grid lines.
-    legend : bool or 'reverse'
+    legend : bool or {'reverse'}
         Place legend on axis subplots.
     style : list or dict
         The matplotlib line style per column.
-    logx : bool or 'sym', default False
+    logx : bool or {'sym'}, default False
         Use log scaling or symlog scaling on x axis.
 
         .. versionchanged:: 0.25.0
 
-    logy : bool or 'sym', default False
+    logy : bool or {'sym'}, default False
         Use log scaling or symlog scaling on y axis.
 
         .. versionchanged:: 0.25.0
 
-    loglog : bool or 'sym', default False
+    loglog : bool or {'sym'}, default False
         Use log scaling or symlog scaling on both x and y axes.
 
         .. versionchanged:: 0.25.0
@@ -551,8 +563,7 @@ class PlotAccessor(PandasObject):
     xlim : tuple of (int, int) or list of int
     ylim : tuple of (int, int) or list of int
     rot : int, optional
-        Rotation for ticks (xticks for vertical, yticks for horizontal
-        plots).
+        Rotation for ticks (xticks for vertical, yticks for horizontal plots).
     fontsize : int, optional
         Font size for xticks and yticks.
     colormap : str or matplotlib colormap object, optional
