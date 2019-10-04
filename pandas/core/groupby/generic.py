@@ -1509,23 +1509,19 @@ class DataFrameGroupBy(NDFrameGroupBy):
         DataFrame
             Count of values within each group.
         """
-        obj = self._selected_obj
+        output = OrderedDict()
 
-        def groupby_series(obj, col=None):
-            return SeriesGroupBy(obj, selection=col, grouper=self.grouper).count()
+        # TODO: dispatch to _cython_agg_general instead of custom looping
+        # TODO: refactor with series logic
+        ids, _, ngroups = self.grouper.group_info
+        for name, obj in self._iterate_slices():
+            mask = (ids != -1) & ~isna(obj)
+            ids = ensure_platform_int(ids)
+            minlength = ngroups or 0
+            out = np.bincount(ids[mask], minlength=minlength)
+            output[name] = out
 
-        if isinstance(obj, Series):
-            results = groupby_series(obj)
-        else:
-            from pandas.core.reshape.concat import concat
-
-            results = [groupby_series(obj[col], col) for col in obj.columns]
-            results = concat(results, axis=1)
-            results.columns.names = obj.columns.names
-
-        if not self.as_index:
-            results.index = ibase.default_index(len(results))
-        return results
+        return self._wrap_aggregated_output(output)
 
     def nunique(self, dropna=True):
         """

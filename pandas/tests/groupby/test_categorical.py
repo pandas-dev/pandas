@@ -300,7 +300,7 @@ def test_observed(observed):
     exp_index = CategoricalIndex(
         list("ab"), name="cat", categories=list("abc"), ordered=True
     )
-    expected = DataFrame({"ints": [1.5, 1.5], "val": [20.0, 30]}, index=exp_index)
+    expected = DataFrame({"ints": [1.5, 1.5], "val": [20, 30]}, index=exp_index)
     if not observed:
         index = CategoricalIndex(
             list("abc"), name="cat", categories=list("abc"), ordered=True
