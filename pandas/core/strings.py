@@ -763,6 +763,16 @@ def _groups_or_na_fun(regex):
     return f
 
 
+def _result_dtype(arr):
+    # workaround #27953
+    # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
+    # when the list of values is empty.
+    if arr.dtype.name == "string":
+        return "string"
+    else:
+        return object
+
+
 def _str_extract_noexpand(arr, pat, flags=0):
     """
     Find groups in each string in the Series using passed regular
@@ -817,10 +827,7 @@ def _str_extract_frame(arr, pat, flags=0):
         result_index = arr.index
     except AttributeError:
         result_index = None
-    if arr.dtype.name == "string":
-        dtype = "string"
-    else:
-        dtype = object
+    dtype = _result_dtype(arr)
     return DataFrame(
         [groups_or_na(val) for val in arr],
         columns=columns,
@@ -1023,14 +1030,7 @@ def str_extractall(arr, pat, flags=0):
     from pandas import MultiIndex
 
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
-
-    # workaround #27953
-    # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
-    # when the list of values is empty.
-    if arr.dtype.name == "string":
-        dtype = arr.dtype
-    else:
-        dtype = None
+    dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(
         match_list, index=index, columns=columns, dtype=dtype
