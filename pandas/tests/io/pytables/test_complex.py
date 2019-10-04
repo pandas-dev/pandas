@@ -13,13 +13,6 @@ from pandas.util.testing import assert_frame_equal
 
 from pandas.io.pytables import read_hdf
 
-tables = pytest.importorskip("tables")
-# set these parameters so we don't have file sharing
-tables.parameters.MAX_NUMEXPR_THREADS = 1
-tables.parameters.MAX_BLOSC_THREADS = 1
-tables.parameters.MAX_THREADS = 1
-
-
 # GH10447
 
 

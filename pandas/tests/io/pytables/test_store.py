@@ -55,13 +55,6 @@ from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 
-tables = pytest.importorskip("tables")
-# set these parameters so we don't have file sharing
-tables.parameters.MAX_NUMEXPR_THREADS = 1
-tables.parameters.MAX_BLOSC_THREADS = 1
-tables.parameters.MAX_THREADS = 1
-
-
 _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"

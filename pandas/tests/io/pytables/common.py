@@ -2,7 +2,15 @@ from contextlib import contextmanager
 import os
 import tempfile
 
+import pytest
+
 from pandas.io.pytables import HDFStore
+
+tables = pytest.importorskip("tables")
+# set these parameters so we don't have file sharing
+tables.parameters.MAX_NUMEXPR_THREADS = 1
+tables.parameters.MAX_BLOSC_THREADS = 1
+tables.parameters.MAX_THREADS = 1
 
 
 def safe_remove(path):
