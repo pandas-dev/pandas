@@ -207,10 +207,18 @@ class TestCasting(base.BaseCastingTests):
         with pytest.raises((ValueError, TypeError), match=msg):
             s.astype(int)
 
-    def test_cast_category_to_interval(self):
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
+            pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
+            pd.Series([1, np.nan], dtype="Int64"),
+        ],
+    )
+    def test_cast_category_to_extension_dtype(self, values):
         # GH 28668
-        expected = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
-        result = expected.astype("category").astype("interval")
+        expected = values
+        result = expected.astype("category").astype(expected.dtype)
 
         tm.assert_series_equal(result, expected)
 
