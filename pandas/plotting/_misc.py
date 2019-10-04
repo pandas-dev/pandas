@@ -168,7 +168,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     colormap : str or :class:`matplotlib.colors.Colormap`, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
-    **kwds : optional
+    **kwds
         Options to pass to matplotlib scatter plotting method.
 
     Returns

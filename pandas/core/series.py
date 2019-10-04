@@ -4164,10 +4164,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             No change is made to the Series; use 'index' or 'labels' instead.
 
             .. versionadded:: 0.21.0
-        columns : None
-            Redundant for application on Series.
-
-            .. versionadded:: 0.21.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False

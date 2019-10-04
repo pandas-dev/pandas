@@ -256,9 +256,7 @@ class EWM(_Rolling):
 
         Parameters
         ----------
-        *args
-            Arguments to be passed into func.
-        **kwargs
+        *args, **kwargs
             Keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
