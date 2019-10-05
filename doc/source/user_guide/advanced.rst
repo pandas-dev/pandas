@@ -177,6 +177,37 @@ completely analogous way to selecting a column in a regular DataFrame:
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
 
+.. _advanced.set_levels:
+
+Set values in levels
+~~~~~~~~~~~~~~~~~~~~~
+
+The method :meth:`~MultiIndex.set_levels` changes the ``levels`` attribute by
+passing a new value for each index in the level. It is assumed that a new value
+is provided for each code describing values in the level.
+For example:
+
+.. ipython:: python
+
+   df.columns   # original MultiIndex columns
+
+   df.columns.levels   # original MultiIndex column levels
+
+   df.columns.set_levels([1, 3, 5, 7], level=0)
+
+   df.columns.set_levels([1, 3, 5, 7], level=0).levels
+
+If you pass more values than the number of index values in the level,
+``set_levels`` will still pass the values to the level. The passed values
+are stored in the MultiIndex ``FrozenList`` even though the index values
+may be truncated in the MultiIndex output from ``set_levels``.
+
+.. ipython:: python
+
+    df.columns.set_levels([1, 3, 5, 7], level=1)
+
+    df.columns.set_levels([1, 3, 5, 7], level=1).levels
+
 .. _advanced.shown_levels:
 
 Defined levels
