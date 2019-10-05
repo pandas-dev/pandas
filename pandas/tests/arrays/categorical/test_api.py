@@ -321,10 +321,6 @@ class TestCategoricalAPI:
         expected = Categorical(["a", "c", "d"], categories=list("acde"))
         tm.assert_categorical_equal(cat, expected)
 
-    def test_remove_categories_raises(self, message, categories, category_to_remove):
-        with pytest.raises(ValueError, match=message):
-            categories.remove_categories(category_to_remove)
-
     def test_remove_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         old = cat.copy()
@@ -345,11 +341,15 @@ class TestCategoricalAPI:
 
         assert res is None
 
-        # removal is not in categories
-        msg = re.escape("removals must all be in old categories: ['c']")
-        self.test_remove_categories_raises(msg, cat, ["c"])
-
-        self.test_remove_categories_raises(msg, cat, ["c", np.nan])
+    @pytest.mark.parametrize(
+        "message, old, new, category", [
+            "removals must all be in old categories: {'c'}", ["a", "b", "c", "a"], ["c"],
+            "removals must all be in old categories : {'c'}", ["a", "b", "c", "a"], ["c", np.nan]
+        ],
+    )
+    def test_remove_categories_raises(self, message, old, category):
+        with pytest.raises(ValueError, match=message):
+            old.remove_categories(category)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
