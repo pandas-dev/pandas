@@ -112,12 +112,36 @@ def nested_to_record(
      'nested.e.c': 1,
      'nested.e.d': 2}
     """
+    def is_key_match(key, use_keys):
+        if callable(use_keys):
+            return use_keys(key)
+
+        if use_keys is None:
+            return lambda x: True
+
+        if isinstance(use_keys, str):
+            use_keys = [use_keys]
+
+        if is_list_like(use_keys):
+            return any(key.split(".")[-len(i.split('.')):] == i.split('.') for i in use_keys)
+
+        raise TypeError("`use_keys` must be a str, list or a callable")
+
+    def new_lookup(_d, level, prev_keys = []):
+        nonlocal max_level
+        for key, val in _d.items():
+            if isinstance(val, dict) and (max_level is None or level < max_level):
+                yield from new_lookup(_d = val,
+                                      prev_keys=prev_keys + [key],
+                                      level=level + 1)
+            else:
+                yield prev_keys + [key, val]
+
+
     singleton = False
     if isinstance(ds, dict):
         ds = [ds]
         singleton = True
-
-    use_key = _parse_use_keys(use_keys)
 
     new_ds = []
     for d in ds:
@@ -131,25 +155,24 @@ def nested_to_record(
             else:
                 newkey = prefix + sep + k
 
-            # flatten if type is dict and
-            # current dict level  < maximum level provided and
-            # only dicts gets recurse-flattened
-            # only at level>1 do we rename the rest of the keys
-
+            # flatten if
+            # current dict level <= maximum level provided and
+            # only dicts gets recurse-flatten
             if (
-                not use_key(k)
-                or not isinstance(v, dict)
-                or (max_level is not None and level >= max_level)
+                is_key_match(newkey, use_keys)
+                and (max_level is None or level < max_level)
+                and isinstance(v, dict)
             ):
-                if level != 0:  # so we skip copying for top level, common case
-                    v = new_d.pop(k)
-                    new_d[newkey] = v
-                continue
+                new_d.pop(k)
+                for *j, val in new_lookup(v, level=level + 1):
+                    new_d[sep.join([k, *j])] = val
+
             else:
-                v = new_d.pop(k)
-                new_d.update(
-                    nested_to_record(v, newkey, sep, level + 1, max_level, use_keys)
-                )
+                if isinstance(v, dict) and (max_level is None or level < max_level):
+                    new_d[k] = nested_to_record(v, newkey, sep, level + 1, max_level, use_keys)
+                else:
+                    new_d[k] = v
+
         new_ds.append(new_d)
 
     if singleton:
