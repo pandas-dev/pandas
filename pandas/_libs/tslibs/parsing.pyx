@@ -10,7 +10,8 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyObject_Str, PyUnicode_Join
+from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
@@ -308,9 +309,9 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
                                       ignoretz=False, tzinfos=None)
-    except Exception as e:
+    except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
-        raise DateParseError(e)
+        raise DateParseError(err)
     if parsed is None:
         raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso
