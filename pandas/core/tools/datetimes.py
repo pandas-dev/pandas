@@ -627,7 +627,7 @@ def to_datetime(
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : str, default None
+    unit : str, default 'ns'
         unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
         Example, with unit='ms' and origin='unix' (the default), this
