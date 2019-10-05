@@ -348,8 +348,10 @@ class TestCategoricalAPI:
         ],
     )
     def test_remove_categories_raises(self, message, old, new, category):
+        cat = Categorical(old, categories=old)
+
         with pytest.raises(ValueError, match=message):
-            old.remove_categories(category)
+            cat.remove_categories(category)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
