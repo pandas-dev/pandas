@@ -208,16 +208,15 @@ class TestCasting(base.BaseCastingTests):
             s.astype(int)
 
     @pytest.mark.parametrize(
-        "values",
+        "expected",
         [
             pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
             pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
             pd.Series([1, np.nan], dtype="Int64"),
         ],
     )
-    def test_cast_category_to_extension_dtype(self, values):
+    def test_cast_category_to_extension_dtype(self, expected):
         # GH 28668
-        expected = values
         result = expected.astype("category").astype(expected.dtype)
 
         tm.assert_series_equal(result, expected)
