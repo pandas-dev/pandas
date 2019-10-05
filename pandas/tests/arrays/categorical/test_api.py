@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import re
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
@@ -337,12 +338,32 @@ class TestCategoricalAPI:
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
         tm.assert_categorical_equal(cat, new)
-
+        
         assert res is None
 
+        # for removing duplicates
+        cat = Categorical(["a", "b", "c", "a"], ordered=True)
+        old = cat.copy()
+        new = Categorical([np.nan, "b", "c", np.nan], categories=["b", "c"], ordered=True)
+
+        res = cat.remove_categories("a")
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
+
+        res = cat.remove_categories(["a"])
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
+
+        assert res in None
+
         # removal is not in categories
-        with pytest.raises(ValueError):
+        msg = re.escape("removals must all be in old categories: ['c']")
+        with pytest.raises(ValueError, match=msg):
             cat.remove_categories(["c"])
+
+        msg = re.escape("removals must all be in old categories: [np.nan]")
+        with pytest.raises(ValueError):
+            cat.remove_categories([np.nan])
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
