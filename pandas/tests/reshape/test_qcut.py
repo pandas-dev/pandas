@@ -241,12 +241,16 @@ def test_date_like_qcut_bins(arg, expected_bins):
 @pytest.mark.parametrize("bins", [6, 7])
 @pytest.mark.parametrize(
     "box, compare",
-    [(Series, tm.assert_series_equal), (np.array, tm.assert_categorical_equal)],
+    [
+        (Series, tm.assert_series_equal),
+        (np.array, tm.assert_categorical_equal),
+        (list, tm.assert_equal),
+    ],
 )
 def test_qcut_bool_coercion_to_int(bins, box, compare):
     # issue 20303
-    x = box(np.random.randint(2, size=200))
-    expected = qcut(x, bins, duplicates="drop")
-    data = x.astype(bool)
-    result = qcut(data, bins, duplicates="drop")
+    data_expected = box([0, 1, 1, 0, 1] * 10)
+    data_result = box([False, True, True, False, True] * 10)
+    expected = qcut(data_expected, bins, duplicates="drop")
+    result = qcut(data_result, bins, duplicates="drop")
     compare(result, expected)

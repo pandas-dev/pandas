@@ -439,14 +439,11 @@ def _coerce_to_type(x):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x):
-        dtype = x.dtype
+        x = x.astype(np.int64)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
-        if is_bool_dtype(x):
-            x = np.where(~np.isnan(x), x.astype(int), np.nan)
-        else:
-            x = np.where(x.notna(), x.view(np.int64), np.nan)
+        x = np.where(x.notna(), x.view(np.int64), np.nan)
 
     return x, dtype
 
