@@ -162,9 +162,160 @@ def _assert_match(result_fill_value, expected_fill_value):
     assert match_value or match_missing
 
 
-def test_maybe_promote_int_with_int():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+@pytest.mark.parametrize(
+    "dtype, fill_value, expected_dtype",
+    [
+        # size 8
+        ("int8", 1, "int8"),
+        ("int8", np.iinfo("int8").max + 1, "int16"),
+        ("int8", np.iinfo("int16").max + 1, "int32"),
+        ("int8", np.iinfo("int32").max + 1, "int64"),
+        ("int8", np.iinfo("int64").max + 1, "object"),
+        ("int8", -1, "int8"),
+        ("int8", np.iinfo("int8").min - 1, "int16"),
+        ("int8", np.iinfo("int16").min - 1, "int32"),
+        ("int8", np.iinfo("int32").min - 1, "int64"),
+        ("int8", np.iinfo("int64").min - 1, "object"),
+        # keep signed-ness as long as possible
+        ("uint8", 1, "uint8"),
+        ("uint8", np.iinfo("int8").max + 1, "uint8"),
+        ("uint8", np.iinfo("uint8").max + 1, "uint16"),
+        ("uint8", np.iinfo("int16").max + 1, "uint16"),
+        ("uint8", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint8", np.iinfo("int32").max + 1, "uint32"),
+        ("uint8", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint8", np.iinfo("int64").max + 1, "uint64"),
+        ("uint8", np.iinfo("uint64").max + 1, "object"),
+        # max of uint8 cannot be contained in int8
+        ("uint8", -1, "int16"),
+        ("uint8", np.iinfo("int8").min - 1, "int16"),
+        ("uint8", np.iinfo("int16").min - 1, "int32"),
+        ("uint8", np.iinfo("int32").min - 1, "int64"),
+        ("uint8", np.iinfo("int64").min - 1, "object"),
+        # size 16
+        ("int16", 1, "int16"),
+        ("int16", np.iinfo("int8").max + 1, "int16"),
+        ("int16", np.iinfo("int16").max + 1, "int32"),
+        ("int16", np.iinfo("int32").max + 1, "int64"),
+        ("int16", np.iinfo("int64").max + 1, "object"),
+        ("int16", -1, "int16"),
+        ("int16", np.iinfo("int8").min - 1, "int16"),
+        ("int16", np.iinfo("int16").min - 1, "int32"),
+        ("int16", np.iinfo("int32").min - 1, "int64"),
+        ("int16", np.iinfo("int64").min - 1, "object"),
+        ("uint16", 1, "uint16"),
+        ("uint16", np.iinfo("int8").max + 1, "uint16"),
+        ("uint16", np.iinfo("uint8").max + 1, "uint16"),
+        ("uint16", np.iinfo("int16").max + 1, "uint16"),
+        ("uint16", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint16", np.iinfo("int32").max + 1, "uint32"),
+        ("uint16", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint16", np.iinfo("int64").max + 1, "uint64"),
+        ("uint16", np.iinfo("uint64").max + 1, "object"),
+        ("uint16", -1, "int32"),
+        ("uint16", np.iinfo("int8").min - 1, "int32"),
+        ("uint16", np.iinfo("int16").min - 1, "int32"),
+        ("uint16", np.iinfo("int32").min - 1, "int64"),
+        ("uint16", np.iinfo("int64").min - 1, "object"),
+        # size 32
+        ("int32", 1, "int32"),
+        ("int32", np.iinfo("int8").max + 1, "int32"),
+        ("int32", np.iinfo("int16").max + 1, "int32"),
+        ("int32", np.iinfo("int32").max + 1, "int64"),
+        ("int32", np.iinfo("int64").max + 1, "object"),
+        ("int32", -1, "int32"),
+        ("int32", np.iinfo("int8").min - 1, "int32"),
+        ("int32", np.iinfo("int16").min - 1, "int32"),
+        ("int32", np.iinfo("int32").min - 1, "int64"),
+        ("int32", np.iinfo("int64").min - 1, "object"),
+        ("uint32", 1, "uint32"),
+        ("uint32", np.iinfo("int8").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint8").max + 1, "uint32"),
+        ("uint32", np.iinfo("int16").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint16").max + 1, "uint32"),
+        ("uint32", np.iinfo("int32").max + 1, "uint32"),
+        ("uint32", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint32", np.iinfo("int64").max + 1, "uint64"),
+        ("uint32", np.iinfo("uint64").max + 1, "object"),
+        ("uint32", -1, "int64"),
+        ("uint32", np.iinfo("int8").min - 1, "int64"),
+        ("uint32", np.iinfo("int16").min - 1, "int64"),
+        ("uint32", np.iinfo("int32").min - 1, "int64"),
+        ("uint32", np.iinfo("int64").min - 1, "object"),
+        # size 64
+        ("int64", 1, "int64"),
+        ("int64", np.iinfo("int8").max + 1, "int64"),
+        ("int64", np.iinfo("int16").max + 1, "int64"),
+        ("int64", np.iinfo("int32").max + 1, "int64"),
+        ("int64", np.iinfo("int64").max + 1, "object"),
+        ("int64", -1, "int64"),
+        ("int64", np.iinfo("int8").min - 1, "int64"),
+        ("int64", np.iinfo("int16").min - 1, "int64"),
+        ("int64", np.iinfo("int32").min - 1, "int64"),
+        ("int64", np.iinfo("int64").min - 1, "object"),
+        ("uint64", 1, "uint64"),
+        ("uint64", np.iinfo("int8").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint8").max + 1, "uint64"),
+        ("uint64", np.iinfo("int16").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint16").max + 1, "uint64"),
+        ("uint64", np.iinfo("int32").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint32").max + 1, "uint64"),
+        ("uint64", np.iinfo("int64").max + 1, "uint64"),
+        ("uint64", np.iinfo("uint64").max + 1, "object"),
+        ("uint64", -1, "object"),
+        ("uint64", np.iinfo("int8").min - 1, "object"),
+        ("uint64", np.iinfo("int16").min - 1, "object"),
+        ("uint64", np.iinfo("int32").min - 1, "object"),
+        ("uint64", np.iinfo("int64").min - 1, "object"),
+    ],
+)
+def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
+    dtype = np.dtype(dtype)
+    expected_dtype = np.dtype(expected_dtype)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if not boxed:
+        if expected_dtype == object:
+            pytest.xfail("overflow error")
+        if expected_dtype == "int32":
+            pytest.xfail("always upcasts to platform int")
+        if dtype == "int8" and expected_dtype == "int16":
+            pytest.xfail("casts to int32 instead of int16")
+        if (
+            issubclass(dtype.type, np.unsignedinteger)
+            and np.iinfo(dtype).max < fill_value <= np.iinfo("int64").max
+        ):
+            pytest.xfail("falsely casts to signed")
+        if (dtype, expected_dtype) in [
+            ("uint8", "int16"),
+            ("uint32", "int64"),
+        ] and fill_value != np.iinfo("int32").min - 1:
+            pytest.xfail("casts to int32 instead of int8/int16")
+        # this following xfail is "only" a consequence of the - now strictly
+        # enforced - principle that maybe_promote_with_scalar always casts
+        pytest.xfail("wrong return type of fill_value")
+    if boxed:
+        if expected_dtype != object:
+            pytest.xfail("falsely casts to object")
+        if box_dtype is None and (
+            fill_value > np.iinfo("int64").max or np.iinfo("int64").min < fill_value < 0
+        ):
+            pytest.xfail("falsely casts to float instead of object")
+
+    # output is not a generic int, but corresponds to expected_dtype
+    exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
+    # no missing value marker for integers
+    exp_val_for_array = None if expected_dtype != "object" else np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 # override parametrization due to to many xfails; see GH 23982 / 25425
