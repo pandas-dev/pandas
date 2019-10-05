@@ -1204,3 +1204,4 @@ def test_groupby_cat_preserves_group_name():
     result = df.groupby("a").grouper.levels[0].name
 
     assert result == expected
+    assert result == "a"
