@@ -674,7 +674,7 @@ def test_preserve_categories():
 
     # ordered=True
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=True)})
-    index = CategoricalIndex(categories, categories, ordered=True)
+    index = CategoricalIndex(categories, categories, ordered=True, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, index
     )
@@ -684,8 +684,8 @@ def test_preserve_categories():
 
     # ordered=False
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
-    sort_index = CategoricalIndex(categories, categories, ordered=False)
-    nosort_index = CategoricalIndex(list("bac"), list("bac"), ordered=False)
+    sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
+    nosort_index = CategoricalIndex(list("bac"), list("bac"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
     )
@@ -1193,3 +1193,14 @@ def test_groupby_categorical_axis_1(code):
     result = df.groupby(cat, axis=1).mean()
     expected = df.T.groupby(cat, axis=0).mean().T
     assert_frame_equal(result, expected)
+
+
+def test_groupby_cat_preserves_group_name():
+    # GH 28787
+    df = DataFrame({"a": [1, 2, 3]})
+    expected = df.groupby("a").grouper.levels[0].name
+
+    df["a"] = df["a"].astype("category")
+    result = df.groupby("a").grouper.levels[0].name
+
+    assert result == expected
