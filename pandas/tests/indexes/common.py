@@ -96,14 +96,6 @@ class Base:
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
-    def test_to_frame_datetime_tz(self):
-        # GH 25809
-        idx = pd.date_range(start="2019-01-01", end="2019-01-30", freq="D")
-        idx = idx.tz_localize("UTC")
-        result = idx.to_frame()
-        expected = pd.DataFrame(idx, index=idx)
-        tm.assert_frame_equal(result, expected)
-
     def test_shift(self):
 
         # GH8083 test the base class for shift
