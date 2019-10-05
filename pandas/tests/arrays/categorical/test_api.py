@@ -343,8 +343,8 @@ class TestCategoricalAPI:
 
     @pytest.mark.parametrize(
         "message, old, new, category", [
-            "removals must all be in old categories: {'c'}", ["a", "b", "c", "a"], ["c"],
-            "removals must all be in old categories : {'c'}", ["a", "b", "c", "a"], ["c", np.nan]
+            ("removals must all be in old categories: {'c'}", ["a", "b", "c", "a"], ["a", "b", np.nan, "a"], ["c"]),
+            ("removals must all be in old categories: {'c'}", ["a", "b", "c", "a"], ["a", "b", np.nan, "a"], ["c", np.nan]),
         ],
     )
     def test_remove_categories_raises(self, message, old, category):
