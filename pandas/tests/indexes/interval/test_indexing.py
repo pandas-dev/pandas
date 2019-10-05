@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Interval, IntervalIndex
+from pandas import Interval, IntervalIndex, Timedelta, date_range, timedelta_range
 from pandas.core.indexes.base import InvalidIndexError
 import pandas.util.testing as tm
 
@@ -55,6 +55,109 @@ class TestIntervalIndex:
         else:
             with pytest.raises(KeyError, match=str(scalar)):
                 idx.get_loc(scalar)
+
+    @pytest.mark.parametrize("scalar", [-1, 0, 0.5, 3, 4.5, 5, 6])
+    def test_get_loc_length_one_scalar(self, scalar, closed):
+        # GH 20921
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        if scalar in index[0]:
+            result = index.get_loc(scalar)
+            assert result == 0
+        else:
+            with pytest.raises(KeyError, match=str(scalar)):
+                index.get_loc(scalar)
+
+    @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
+    @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
+    def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
+        # GH 20921
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        interval = Interval(left, right, closed=other_closed)
+        if interval == index[0]:
+            result = index.get_loc(interval)
+            assert result == 0
+        else:
+            with pytest.raises(
+                KeyError,
+                match=re.escape(
+                    "Interval({left}, {right}, closed='{other_closed}')".format(
+                        left=left, right=right, other_closed=other_closed
+                    )
+                ),
+            ):
+                index.get_loc(interval)
+
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize(
+        "breaks",
+        [
+            date_range("20180101", periods=4),
+            date_range("20180101", periods=4, tz="US/Eastern"),
+            timedelta_range("0 days", periods=4),
+        ],
+        ids=lambda x: str(x.dtype),
+    )
+    def test_get_loc_datetimelike_nonoverlapping(self, breaks):
+        # GH 20636
+        # nonoverlapping = IntervalIndex method and no i8 conversion
+        index = IntervalIndex.from_breaks(breaks)
+
+        value = index[0].mid
+        result = index.get_loc(value)
+        expected = 0
+        assert result == expected
+
+        interval = Interval(index[0].left, index[0].right)
+        result = index.get_loc(interval)
+        expected = 0
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "arrays",
+        [
+            (date_range("20180101", periods=4), date_range("20180103", periods=4)),
+            (
+                date_range("20180101", periods=4, tz="US/Eastern"),
+                date_range("20180103", periods=4, tz="US/Eastern"),
+            ),
+            (
+                timedelta_range("0 days", periods=4),
+                timedelta_range("2 days", periods=4),
+            ),
+        ],
+        ids=lambda x: str(x[0].dtype),
+    )
+    def test_get_loc_datetimelike_overlapping(self, arrays):
+        # GH 20636
+        index = IntervalIndex.from_arrays(*arrays)
+
+        value = index[0].mid + Timedelta("12 hours")
+        result = index.get_loc(value)
+        expected = slice(0, 2, None)
+        assert result == expected
+
+        interval = Interval(index[0].left, index[0].right)
+        result = index.get_loc(interval)
+        expected = 0
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            date_range("2018-01-04", periods=4, freq="-1D"),
+            date_range("2018-01-04", periods=4, freq="-1D", tz="US/Eastern"),
+            timedelta_range("3 days", periods=4, freq="-1D"),
+            np.arange(3.0, -1.0, -1.0),
+            np.arange(3, -1, -1),
+        ],
+        ids=lambda x: str(x.dtype),
+    )
+    def test_get_loc_decreasing(self, values):
+        # GH 25860
+        index = IntervalIndex.from_arrays(values[1:], values[:-1])
+        result = index.get_loc(index[0])
+        expected = 0
+        assert result == expected
 
     def test_slice_locs_with_interval(self):
 
@@ -233,6 +336,22 @@ class TestIntervalIndex:
         expected = np.array(expected, dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("item", [[3], np.arange(0.5, 5, 0.5)])
+    def test_get_indexer_length_one(self, item, closed):
+        # GH 17284
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_indexer(item)
+        expected = np.array([0] * len(item), dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("size", [1, 5])
+    def test_get_indexer_length_one_interval(self, size, closed):
+        # GH 17284
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_indexer([Interval(0, 5, closed)] * size)
+        expected = np.array([0] * size, dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "tuples, closed",
         [
@@ -287,20 +406,3 @@ class TestIntervalIndex:
 
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
-
-    def test_contains_dunder(self):
-
-        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
-
-        # __contains__ requires perfect matches to intervals.
-        assert 0 not in index
-        assert 1 not in index
-        assert 2 not in index
-
-        assert Interval(0, 1, closed="right") in index
-        assert Interval(0, 2, closed="right") not in index
-        assert Interval(0, 0.5, closed="right") not in index
-        assert Interval(3, 5, closed="right") not in index
-        assert Interval(-1, 0, closed="left") not in index
-        assert Interval(0, 1, closed="left") not in index
-        assert Interval(0, 1, closed="both") not in index
