@@ -18,7 +18,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas.core.common as com
-from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
 
@@ -27,13 +26,8 @@ def name(request):
     return request.param
 
 
-class TestIntervalIndex(Base):
-    _holder = IntervalIndex
-
-    def setup_method(self, method):
-        self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
-        self.index_with_nan = IntervalIndex.from_tuples([(0, 1), np.nan, (1, 2)])
-        self.indices = dict(intervalIndex=tm.makeIntervalIndex(10))
+class TestIntervalIndex:
+    index = IntervalIndex.from_arrays([0, 1], [1, 2])
 
     def create_index(self, closed="right"):
         return IntervalIndex.from_breaks(range(11), closed=closed)
@@ -161,47 +155,6 @@ class TestIntervalIndex(Base):
             index.right.values, result.right.values, check_same="copy"
         )
 
-    def test_equals(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
-        assert expected.equals(expected)
-        assert expected.equals(expected.copy())
-
-        assert not expected.equals(expected.astype(object))
-        assert not expected.equals(np.array(expected))
-        assert not expected.equals(list(expected))
-
-        assert not expected.equals([1, 2])
-        assert not expected.equals(np.array([1, 2]))
-        assert not expected.equals(pd.date_range("20130101", periods=2))
-
-        expected_name1 = IntervalIndex.from_breaks(
-            np.arange(5), closed=closed, name="foo"
-        )
-        expected_name2 = IntervalIndex.from_breaks(
-            np.arange(5), closed=closed, name="bar"
-        )
-        assert expected.equals(expected_name1)
-        assert expected_name1.equals(expected_name2)
-
-        for other_closed in {"left", "right", "both", "neither"} - {closed}:
-            expected_other_closed = IntervalIndex.from_breaks(
-                np.arange(5), closed=other_closed
-            )
-            assert not expected.equals(expected_other_closed)
-
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where(self, closed, klass):
-        idx = self.create_index(closed=closed)
-        cond = [True] * len(idx)
-        expected = idx
-        result = expected.where(klass(cond))
-        tm.assert_index_equal(result, expected)
-
-        cond = [False] + [True] * len(idx[1:])
-        expected = IntervalIndex([np.nan] + idx[1:].tolist())
-        result = idx.where(klass(cond))
-        tm.assert_index_equal(result, expected)
-
     def test_delete(self, closed):
         expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
         result = self.create_index(closed=closed).delete(0)
@@ -253,16 +206,6 @@ class TestIntervalIndex(Base):
             expected = data[:1].append(na_idx).append(data[1:])
             result = data.insert(1, na)
             tm.assert_index_equal(result, expected)
-
-    def test_take(self, closed):
-        index = self.create_index(closed=closed)
-
-        result = index.take(range(10))
-        tm.assert_index_equal(result, index)
-
-        result = index.take([0, 0, 1])
-        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
-        tm.assert_index_equal(result, expected)
 
     def test_is_unique_interval(self, closed):
         """
@@ -350,38 +293,6 @@ class TestIntervalIndex(Base):
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
-
-    @pytest.mark.skip(reason="not a valid repr as we use interval notation")
-    def test_repr(self):
-        i = IntervalIndex.from_tuples([(0, 1), (1, 2)], closed="right")
-        expected = (
-            "IntervalIndex(left=[0, 1],"
-            "\n              right=[1, 2],"
-            "\n              closed='right',"
-            "\n              dtype='interval[int64]')"
-        )
-        assert repr(i) == expected
-
-        i = IntervalIndex.from_tuples(
-            (Timestamp("20130101"), Timestamp("20130102")),
-            (Timestamp("20130102"), Timestamp("20130103")),
-            closed="right",
-        )
-        expected = (
-            "IntervalIndex(left=['2013-01-01', '2013-01-02'],"
-            "\n              right=['2013-01-02', '2013-01-03'],"
-            "\n              closed='right',"
-            "\n              dtype='interval[datetime64[ns]]')"
-        )
-        assert repr(i) == expected
-
-    @pytest.mark.skip(reason="not a valid repr as we use interval notation")
-    def test_repr_max_seq_item_setting(self):
-        super().test_repr_max_seq_item_setting()
-
-    @pytest.mark.skip(reason="not a valid repr as we use interval notation")
-    def test_repr_roundtrip(self):
-        super().test_repr_roundtrip()
 
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files
