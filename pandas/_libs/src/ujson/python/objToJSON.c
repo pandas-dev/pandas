@@ -735,12 +735,20 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
     NpyArr_freeItemValue(obj, tc);
 
     if (PyArray_ISDATETIME(npyarr->array)) {
-        PRINTMARK();
-        GET_TC(tc)->itemValue = obj;
-        Py_INCREF(obj);
-        ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
-        ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
-        ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
+        if (PyArray_TYPE(npyarr->array) == NPY_TIMEDELTA) {
+            PRINTMARK();
+            PyObject *item = npyarr->getitem(npyarr->dataptr, npyarr->array);
+            PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
+            GET_TC(tc)->itemValue = td;
+            Py_DECREF(item);
+        } else {
+            PRINTMARK();
+            GET_TC(tc)->itemValue = obj;
+            Py_INCREF(obj);
+            ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
+            ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
+            ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
+        }
     } else {
         PRINTMARK();
         GET_TC(tc)->itemValue = npyarr->getitem(npyarr->dataptr, npyarr->array);
