@@ -3941,22 +3941,20 @@ Using level name when querying MultiIndex DataFrame.
    store.select('df_mi', "foo=baz and bar=two")
 
 Using ``level_0`` and ``level_1`` for MultiIndex without name.
- 
+
 .. ipython:: python
 
-   index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                 ['one', 'two', 'three']],
-                         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                        )
-   df_mi_2 = pd.DataFrame(np.random.randn(10, 3), index=index,
-                        columns=['A', 'B', 'C'])
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
    df_mi_2
 
-   store.append('df_mi_2', df_mi_2)
+   store.append("df_mi_2", df_mi_2)
 
    # the levels are automatically included as data columns
-   store.select('df_mi_2', 'level_0=foo and level_1=two')
+   store.select("df_mi_2", "level_0=foo and level_1=two")
 
 ``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
