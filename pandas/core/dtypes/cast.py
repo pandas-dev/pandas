@@ -375,7 +375,9 @@ def maybe_promote(dtype, fill_value=np.nan):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
         elif issubclass(dtype.type, np.integer):
-            dtype = np.float64
+            dtype = np.dtype(np.float64)
+            if not isna(fill_value):
+                fill_value = dtype.type(fill_value)
     elif is_bool(fill_value):
         if not issubclass(dtype.type, np.bool_):
             dtype = np.object_
