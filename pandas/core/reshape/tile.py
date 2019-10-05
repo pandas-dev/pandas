@@ -11,6 +11,7 @@ from pandas._libs.lib import infer_dtype
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     ensure_int64,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -18,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_timedelta64_dtype,
-    is_bool_dtype
 )
 from pandas.core.dtypes.missing import isna
 
@@ -439,12 +439,14 @@ def _coerce_to_type(x):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x):
-        x = x.astype(int)
         dtype = x.dtype
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
-        x = np.where(x.notna(), x.view(np.int64), np.nan)
+        if is_bool_dtype(x):
+            x = np.where(x.notna(), x.astype(int), np.nan)
+        else:
+            x = np.where(x.notna(), x.view(np.int64), np.nan)
 
     return x, dtype
 

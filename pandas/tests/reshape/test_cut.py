@@ -588,11 +588,14 @@ def test_timedelta_cut_roundtrip():
 
 
 @pytest.mark.parametrize("bins", [6, 7])
-@pytest.mark.parametrize("box", "compare",  [(Series, tm.assert_series_equal), (np.array,tm.assert_categorical_equal)])
+@pytest.mark.parametrize(
+    "box, compare",
+    [(Series, tm.assert_series_equal), (np.array, tm.assert_categorical_equal)],
+)
 def test_cut_bool_coercion_to_int(bins, box, compare):
     # issue 20303
     x = box(np.random.randint(2, size=200))
-    expected = cut(x, bins, duplicates='drop')
+    expected = cut(x, bins, duplicates="drop")
     data = x.astype(bool)
-    result = cut(data, bins, duplicates='drop')
+    result = cut(data, bins, duplicates="drop")
     compare(result, expected)
