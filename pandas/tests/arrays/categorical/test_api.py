@@ -347,7 +347,7 @@ class TestCategoricalAPI:
             ("removals must all be in old categories: {'c'}", ["a", "b", "c", "a"], ["a", "b", np.nan, "a"], ["c", np.nan]),
         ],
     )
-    def test_remove_categories_raises(self, message, old, category):
+    def test_remove_categories_raises(self, message, old, new, category):
         with pytest.raises(ValueError, match=message):
             old.remove_categories(category)
 
