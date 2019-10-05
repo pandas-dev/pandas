@@ -10,7 +10,7 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like, is_list_like
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
@@ -229,13 +229,15 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
 
-        if not lib.is_scalar(key) and is_list_like(key):
+        scalar_key = lib.is_scalar(key)
+        scalar_value = lib.is_scalar(value)
+
+        if not scalar_key and scalar_value:
             key = np.asarray(key)
 
-        if not lib.is_scalar(value):
-            value = np.asarray(value)
+        if not scalar_value:
+            value = np.asarray(value, dtype=self._ndarray.dtype)
 
-        value = np.asarray(value, dtype=self._ndarray.dtype)
         self._ndarray[key] = value
 
     def __len__(self) -> int:

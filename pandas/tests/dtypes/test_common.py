@@ -291,6 +291,8 @@ def test_is_string_dtype():
     assert com.is_string_dtype(str)
     assert com.is_string_dtype(object)
     assert com.is_string_dtype(np.array(["a", "b"]))
+    assert com.is_string_dtype(pd.StringDtype())
+    assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
 
 
 def test_is_period_arraylike():
