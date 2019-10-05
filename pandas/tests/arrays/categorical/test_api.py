@@ -338,8 +338,6 @@ class TestCategoricalAPI:
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
         tm.assert_categorical_equal(cat, new)
-        
-        assert res is None
 
         # for removing duplicates
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -354,7 +352,7 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
 
-        assert res in None
+        assert res is None
 
         # removal is not in categories
         msg = re.escape("removals must all be in old categories: ['c']")
