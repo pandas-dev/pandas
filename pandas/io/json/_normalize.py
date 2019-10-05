@@ -112,6 +112,7 @@ def nested_to_record(
      'nested.e.c': 1,
      'nested.e.d': 2}
     """
+
     def is_key_match(key, use_keys):
         if callable(use_keys):
             return use_keys(key)
@@ -123,20 +124,21 @@ def nested_to_record(
             use_keys = [use_keys]
 
         if is_list_like(use_keys):
-            return any(key.split(".")[-len(i.split('.')):] == i.split('.') for i in use_keys)
+            return any(
+                key.split(".")[-len(i.split(".")) :] == i.split(".") for i in use_keys
+            )
 
         raise TypeError("`use_keys` must be a str, list or a callable")
 
-    def new_lookup(_d, level, prev_keys = []):
+    def new_lookup(_d, level, prev_keys=[]):
         nonlocal max_level
         for key, val in _d.items():
             if isinstance(val, dict) and (max_level is None or level < max_level):
-                yield from new_lookup(_d = val,
-                                      prev_keys=prev_keys + [key],
-                                      level=level + 1)
+                yield from new_lookup(
+                    _d=val, prev_keys=prev_keys + [key], level=level + 1
+                )
             else:
                 yield prev_keys + [key, val]
-
 
     singleton = False
     if isinstance(ds, dict):
@@ -169,7 +171,9 @@ def nested_to_record(
 
             else:
                 if isinstance(v, dict) and (max_level is None or level < max_level):
-                    new_d[k] = nested_to_record(v, newkey, sep, level + 1, max_level, use_keys)
+                    new_d[k] = nested_to_record(
+                        v, newkey, sep, level + 1, max_level, use_keys
+                    )
                 else:
                     new_d[k] = v
 

@@ -801,14 +801,16 @@ class TestNestedToRecord:
             }
         ]
         output = nested_to_record(input_data, use_keys=use_keys)
-        expected = [{
-            'CreatedBy': {'Name': 'User001'},
-            'Image': {'a': 'b'},
-            'Lookup.CreatedBy.Name': 'User001',
-            'Lookup.TextField': 'Some text',
-            'Lookup.UserField.Id': 'ID001',
-            'Lookup.UserField.Name': 'Name001'
-        }]
+        expected = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Image": {"a": "b"},
+                "Lookup.CreatedBy.Name": "User001",
+                "Lookup.TextField": "Some text",
+                "Lookup.UserField.Id": "ID001",
+                "Lookup.UserField.Name": "Name001",
+            }
+        ]
         assert output == expected
 
     def test_use_key_include_specific_level(self):
@@ -840,7 +842,7 @@ class TestNestedToRecord:
         use_keys = ["Image", "Lookup.CreatedBy"]
         input_data = [
             {
-                "CreatedBy": {"Name":"User001"},
+                "CreatedBy": {"Name": "User001"},
                 "Lookup": {
                     "TextField": "Some text",
                     "UserField": {"Id": "ID001", "Name": "Name001"},
@@ -850,18 +852,18 @@ class TestNestedToRecord:
             }
         ]
         output = nested_to_record(input_data, use_keys=use_keys)
-        expected = [{
-            'CreatedBy': {"Name":'User001'},
-            "Lookup": {
-                "TextField": "Some text",
-                "UserField": {"Id": "ID001", "Name": "Name001"},
-                "CreatedBy.Name": "User001",
-            },
-            "Image.a": "b",
-        }]
+        expected = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                    "CreatedBy.Name": "User001",
+                },
+                "Image.a": "b",
+            }
+        ]
         assert output == expected
-
-
 
     # def test_use_keys_raises_type_error(self, nested_input_data):
     #     # GH 27241 ignore specific keys from flattening
