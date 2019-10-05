@@ -56,7 +56,7 @@ def should_series_dispatch(left, right, op):
     Parameters
     ----------
     left : DataFrame
-    right : DataFrame
+    right : DataFrame or Series
     op : binary operator
 
     Returns
@@ -65,6 +65,16 @@ def should_series_dispatch(left, right, op):
     """
     if left._is_mixed_type or right._is_mixed_type:
         return True
+
+    if op.__name__.strip("_") in ["and", "or", "xor", "rand", "ror", "rxor"]:
+        # TODO: GH references for what this fixes
+        # Note: this check must come before the check for nonempty columns.
+        return True
+
+    if right.ndim == 1:
+        # operating with Series, short-circuit checks that would fail
+        #  with AttributeError.
+        return False
 
     if not len(left.columns) or not len(right.columns):
         # ensure obj.dtypes[0] exists for each obj
