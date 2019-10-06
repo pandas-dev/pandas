@@ -2094,3 +2094,20 @@ def test_merge_equal_cat_dtypes2():
 
     # Categorical is unordered, so don't check ordering.
     tm.assert_frame_equal(result, expected, check_categorical=False)
+
+
+def test_merge_on_cat_and_ext_array():
+    # GH 28668
+    df1 = DataFrame(
+        {"a": Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")}
+    )
+    df2 = df1.copy()
+    df2["a"] = df1["a"].astype("category")
+
+    joined1 = pd.merge(df1, df2, how="inner", on="a")
+    joined2 = pd.merge(df2, df1, how="inner", on="a")
+
+    # dtype depends on order of join so this is necessary for now
+    joined2["a"] = joined2["a"].astype(joined1["a"].dtype)
+
+    assert_frame_equal(joined1, joined2)
