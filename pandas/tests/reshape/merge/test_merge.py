@@ -2102,7 +2102,7 @@ def test_merge_on_cat_and_ext_array():
         {"a": Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")}
     )
     df2 = df1.copy()
-    df2["a"] = df1["a"].astype("category")
+    df2["a"] = df2["a"].astype("category")
 
     joined1 = pd.merge(df1, df2, how="inner", on="a")
     joined2 = pd.merge(df2, df1, how="inner", on="a")
@@ -2111,3 +2111,33 @@ def test_merge_on_cat_and_ext_array():
     joined2["a"] = joined2["a"].astype(joined1["a"].dtype)
 
     assert_frame_equal(joined1, joined2)
+
+
+def test_merge_multiindex_columns():
+    # Issue #28518
+    # Verify that merging two dataframes give the expected labels
+    # The original cause of this issue come from a bug lexsort_depth and is tested in
+    # test_lexsort_depth
+
+    letters = ["a", "b", "c", "d"]
+    numbers = ["1", "2", "3"]
+    index = pd.MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
+
+    frame_x = pd.DataFrame(columns=index)
+    frame_x["id"] = ""
+    frame_y = pd.DataFrame(columns=index)
+    frame_y["id"] = ""
+
+    l_suf = "_x"
+    r_suf = "_y"
+    result = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf)))
+
+    # Constructing the expected results
+    expected_labels = [l + l_suf for l in letters] + [l + r_suf for l in letters]
+    expected_index = pd.MultiIndex.from_product(
+        [expected_labels, numbers], names=["outer", "inner"]
+    )
+    expected = pd.DataFrame(columns=expected_index)
+    expected["id"] = ""
+
+    tm.assert_frame_equal(result, expected)
