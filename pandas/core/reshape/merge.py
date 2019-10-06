@@ -3,6 +3,7 @@ SQL-style merge routines
 """
 
 import copy
+import datetime
 from functools import partial
 import string
 import warnings
@@ -98,7 +99,7 @@ def _groupby_and_merge(by, on, left, right, _merge_pieces, check_duplicates=True
     left: left frame
     right: right frame
     _merge_pieces: function for merging
-    check_duplicates: boolean, default True
+    check_duplicates: bool, default True
         should we check & clean duplicates
     """
 
@@ -338,9 +339,9 @@ def merge_asof(
         Field name to join on in left DataFrame.
     right_on : label
         Field name to join on in right DataFrame.
-    left_index : boolean
+    left_index : bool
         Use the index of the left DataFrame as the join key.
-    right_index : boolean
+    right_index : bool
         Use the index of the right DataFrame as the join key.
     by : column name or list of column names
         Match on these columns before performing merge operation.
@@ -351,10 +352,10 @@ def merge_asof(
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively.
-    tolerance : integer or Timedelta, optional, default None
+    tolerance : int or Timedelta, optional, default None
         Select asof tolerance within this range; must be compatible
         with the merge index.
-    allow_exact_matches : boolean, default True
+    allow_exact_matches : bool, default True
 
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
@@ -1266,7 +1267,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
     ----------
     left_keys: ndarray, Index, Series
     right_keys: ndarray, Index, Series
-    sort: boolean, default False
+    sort: bool, default False
     how: string {'inner', 'outer', 'left', 'right'}, default 'inner'
 
     Returns
@@ -1619,7 +1620,7 @@ class _AsOfMerge(_OrderedMerge):
                     )
                 raise MergeError(msg)
 
-        # validate tolerance; must be a Timedelta if we have a DTI
+        # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
 
             if self.left_index:
@@ -1635,7 +1636,7 @@ class _AsOfMerge(_OrderedMerge):
             )
 
             if is_datetimelike(lt):
-                if not isinstance(self.tolerance, Timedelta):
+                if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
                     raise MergeError("tolerance must be positive")
@@ -1705,6 +1706,7 @@ class _AsOfMerge(_OrderedMerge):
             left_values = left_values.view("i8")
             right_values = right_values.view("i8")
             if tolerance is not None:
+                tolerance = Timedelta(tolerance)
                 tolerance = tolerance.value
 
         # a "by" parameter requires special handling
