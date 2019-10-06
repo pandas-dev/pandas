@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import re
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
@@ -348,7 +347,7 @@ class TestCategoricalAPI:
         ],
     )
     def test_remove_categories_raises(self, message, old, new, category):
-        cat = Categorical(old, categories=old)
+        cat = Categorical(old)
 
         with pytest.raises(ValueError, match=message):
             cat.remove_categories(category)
