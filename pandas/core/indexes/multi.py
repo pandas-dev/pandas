@@ -2993,9 +2993,10 @@ class MultiIndex(Index):
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer & idxr
+            return idxr & indexer
 
-        for i, k in enumerate(seq):
+        for i, k in enumerate(reversed(seq)):
+            i = len(seq) - 1 - i  # Counting in reverse
 
             if com.is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
@@ -3011,21 +3012,31 @@ class MultiIndex(Index):
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
-                        indexers = idxrs if indexers is None else indexers | idxrs
-                    except KeyError:
+                        # We intersect with indexer to make idxrs
+                        # ordered as previously seen indexes
+                        if indexer is not None:
+                            idxrs = indexer.intersection(idxrs)
 
+                        indexers = (
+                            idxrs
+                            if indexers is None
+                            else indexers.union(idxrs, sort=False)
+                        )
+                    except KeyError:
                         # ignore not founds
                         continue
 
                 if indexers is not None:
-                    indexer = _update_indexer(indexers, indexer=indexer)
+                    # No need to update anymore, as we intersect in main loop
+                    indexer = indexers
                 else:
                     # no matches we are done
                     return Int64Index([])._ndarray_values
 
             elif com.is_null_slice(k):
                 # empty slice
-                indexer = _update_indexer(None, indexer=indexer)
+                # index is given to conserve the order of this level
+                indexer = _update_indexer(Int64Index(np.arange(n)), indexer=indexer)
 
             elif isinstance(k, slice):
 
