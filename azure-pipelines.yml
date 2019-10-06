@@ -121,7 +121,7 @@ jobs:
 
   - script: |
       source activate pandas-dev
-      python web/pandas_web.py web/pandas
+      python web/pandas_web.py web/pandas --target-path=web/build
     displayName: 'Build website'
 
   - script: |
@@ -171,7 +171,7 @@ jobs:
           eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - script: |
-      cd doc/build/html
+      cd to_deploy
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push -f origin master
     displayName: 'Publish web and docs to GitHub pages'

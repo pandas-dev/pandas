@@ -393,6 +393,18 @@ class TestDatetimeIndexOps(Ops):
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
 
+        # check that we do not raise when comparing with OutOfBounds objects
+        oob = pd.Index([datetime(2500, 1, 1)] * 3, dtype=object)
+        assert not idx.equals(oob)
+        assert not idx2.equals(oob)
+        assert not idx3.equals(oob)
+
+        # check that we do not raise when comparing with OutOfBounds dt64
+        oob2 = oob.map(np.datetime64)
+        assert not idx.equals(oob2)
+        assert not idx2.equals(oob2)
+        assert not idx3.equals(oob2)
+
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
