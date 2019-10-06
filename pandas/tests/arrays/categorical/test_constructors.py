@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p16
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -601,3 +603,10 @@ class TestCategoricalConstructors:
         c1 = Categorical(values)
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
+
+    @pytest.mark.skipif(_np_version_under1p16, reason="Skipping for NumPy <1.16")
+    def test_constructor_string_and_tuples(self):
+        # GH 21416
+        c = pd.Categorical(["c", ("a", "b"), ("b", "a"), "c"])
+        expected_index = pd.Index([("a", "b"), ("b", "a"), "c"])
+        assert c.categories.equals(expected_index)
