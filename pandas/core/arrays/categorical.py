@@ -1399,6 +1399,8 @@ class Categorical(ExtensionArray, PandasObject):
     @Substitution(klass="Categorical")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
+        # searchsorted is very performance sensitive. By converting codes
+        # to same dtype as self.codes, we get much faster performance.
         if is_scalar(value):
             codes = self.categories.get_loc(value)
             codes = self.codes.dtype.type(codes)
