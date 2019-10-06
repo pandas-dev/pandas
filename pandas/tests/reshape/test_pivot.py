@@ -2566,6 +2566,7 @@ class TestCrosstab:
                 "Val": range(1, 6),
             }
         )
+        # case with index/columns/value
         result = df.pivot_table(index="In", columns="Col", values="Val")
 
         expected_cols = pd.CategoricalIndex(["A", "B"], ordered=True, name="Col")
@@ -2576,6 +2577,15 @@ class TestCrosstab:
         expected.index = Index(
             pd.Categorical(["low", "high"], categories=["low", "high"], ordered=True),
             name="In",
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # case with columns/value
+        result = df.pivot_table(columns="Col", values="Val")
+
+        expected = pd.DataFrame(
+            data=[[3.5, 3.0]], columns=expected_cols, index=Index(["Val"])
         )
 
         tm.assert_frame_equal(result, expected)
