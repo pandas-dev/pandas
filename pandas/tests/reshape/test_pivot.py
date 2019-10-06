@@ -2555,7 +2555,7 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_categorical(self, dropna):
+    def test_pivot_with_categorical(self):
         # gh-21370
         idx = [np.nan, "low", "high", "low", np.nan]
         col = [np.nan, "A", "B", np.nan, "A"]
