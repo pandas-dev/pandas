@@ -210,7 +210,8 @@ class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize(
         "expected",
         [
-            pd.Series(["2019", "2020"], dtype=pd.DatetimeTZDtype(tz="UTC")),
+            pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+            pd.Series([0, 0], dtype="timedelta64[ns]"),
             pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
             pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
             pd.Series([1, np.nan], dtype="Int64"),
