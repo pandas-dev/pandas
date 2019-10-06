@@ -1195,19 +1195,13 @@ def test_groupby_categorical_axis_1(code):
     assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure():
+def test_groupby_cat_preserves_structure(observed):
     # GH 28787
-    df = DataFrame({"Name": ["Bob", "Greg"], "Item": [1, 2]})
-    expected = (
-        df.groupby("Name", observed=True)
-        .agg(pd.DataFrame.sum, skipna=True)
-        .reset_index()
-    )
-    expected["Name"] = expected["Name"].astype("category")
+    df = DataFrame({"Name": Categorical(["Bob", "Greg"]), "Item": [1, 2]})
+    expected = df.copy()
 
-    df["Name"] = df["Name"].astype("category")
     result = (
-        df.groupby("Name", observed=True)
+        df.groupby("Name", observed=observed)
         .agg(pd.DataFrame.sum, skipna=True)
         .reset_index()
     )
