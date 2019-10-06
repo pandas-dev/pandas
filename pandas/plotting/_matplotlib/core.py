@@ -1388,8 +1388,6 @@ class BarPlot(MPLPlot):
             ax = self._get_ax(i)
 
             if self.orientation == "vertical":
-                # import pdb
-                # pdb.set_trace()
                 ax.xaxis.update_units(self.ax_index)
                 self.tick_pos = ax.convert_xunits(self.ax_index)
                 self.ax_pos = self.tick_pos - self.tickoffset
