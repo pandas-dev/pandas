@@ -648,6 +648,7 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
+    _deprecations = frozenset(["item"])
 
     def transpose(self, *args, **kwargs):
         """

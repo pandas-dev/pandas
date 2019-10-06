@@ -331,7 +331,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = frozenset(["labels", "tolist"])
+    _deprecations = PandasObject._deprecations | frozenset(["get_values", "tolist"])
     _typ = "categorical"
 
     def __init__(
@@ -2521,6 +2521,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
     """
+
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["categorical", "index", "name"]
+    )
 
     def __init__(self, data):
         self._validate(data)

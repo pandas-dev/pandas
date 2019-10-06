@@ -175,11 +175,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
-    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = (
-        generic.NDFrame._deprecations
+        base.IndexOpsMixin._deprecations
+        | generic.NDFrame._deprecations
         | DirNamesMixin._deprecations
-        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
+        | frozenset(
+            [
+                "asobject",
+                "compress",
+                "reshape",
+                "valid",
+                "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+                "ftype",
+                "real",
+                "imag",
+                "put",
+                "ptp",
+                "nonzero",
+            ]
+        )
     )
 
     # Override cache_readonly bc Series is mutable
