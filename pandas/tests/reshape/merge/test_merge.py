@@ -2098,19 +2098,16 @@ def test_merge_equal_cat_dtypes2():
 
 def test_merge_on_cat_and_ext_array():
     # GH 28668
-    df1 = DataFrame(
+    right = DataFrame(
         {"a": Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")}
     )
-    df2 = df1.copy()
-    df2["a"] = df2["a"].astype("category")
+    left = right.copy()
+    left["a"] = left["a"].astype("category")
 
-    joined1 = pd.merge(df1, df2, how="inner", on="a")
-    joined2 = pd.merge(df2, df1, how="inner", on="a")
+    result = pd.merge(left, right, how="inner", on="a")
+    expected = right.copy()
 
-    # dtype depends on order of join so this is necessary for now
-    joined2["a"] = joined2["a"].astype(joined1["a"].dtype)
-
-    assert_frame_equal(joined1, joined2)
+    assert_frame_equal(result, expected)
 
 
 def test_merge_multiindex_columns():
