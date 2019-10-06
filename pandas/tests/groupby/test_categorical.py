@@ -1206,4 +1206,4 @@ def test_groupby_cat_preserves_structure(observed):
         .reset_index()
     )
 
-    assert_frame_equal(result, expected)
+    assert_frame_equal(result, expected, check_like=True)
