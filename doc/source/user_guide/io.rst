@@ -3948,7 +3948,8 @@ Using ``level_0`` and ``level_1`` for MultiIndex without name.
        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
    )
-   df_mi_2 = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
    df_mi_2
 
    store.append("df_mi_2", df_mi_2)
