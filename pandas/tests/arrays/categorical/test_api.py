@@ -341,7 +341,7 @@ class TestCategoricalAPI:
         assert res is None
 
     @pytest.mark.parametrize(
-        "message, old, category", [
+        "message, old, removals", [
             (
                 "removals must all be in old categories: {'c'}",
                 ["a", "b", "a"],
@@ -352,13 +352,23 @@ class TestCategoricalAPI:
                 ["a", "b", "a"],
                 ["c", np.nan]
             ),
+            (
+                "removals must all be in old categories: {'c'}",
+                ["a", "b", "a"],
+                "c"
+            ),
+            (
+                "removals must all be in old categories: {'c'}",
+                ["a", "b", "a"],
+                ["c", "c"]
+            )
         ],
     )
-    def test_remove_categories_raises(self, message, old, category):
+    def test_remove_categories_raises(self, message, old, removals):
         cat = Categorical(old)
 
         with pytest.raises(ValueError, match=message):
-            cat.remove_categories(category)
+            cat.remove_categories(removals)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
