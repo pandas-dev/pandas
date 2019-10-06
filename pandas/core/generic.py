@@ -5776,7 +5776,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise"):
+    def astype(self, dtype, copy=True, errors="raise", skipna=True):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5798,6 +5798,9 @@ class NDFrame(PandasObject, SelectionMixin):
             - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
+        skipna : bool, default True
+            Exclude NA/null values in type conversion.
+
 
         Returns
         -------
@@ -5884,7 +5887,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors)
+                return self.astype(new_type, copy, errors, skipna)
 
             for col_name in dtype.keys():
                 if col_name not in self:
@@ -5896,7 +5899,12 @@ class NDFrame(PandasObject, SelectionMixin):
             for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
-                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
+                        col.astype(
+                            dtype=dtype[col_name],
+                            copy=copy,
+                            errors=errors,
+                            skipna=skipna
+                        )
                     )
                 else:
                     results.append(results.append(col.copy() if copy else col))
@@ -5911,7 +5919,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
+            new_data = self._data.astype(
+                dtype=dtype, copy=copy, errors=errors, skipna=skipna
+            )
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat

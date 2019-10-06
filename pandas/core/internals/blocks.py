@@ -536,10 +536,10 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
+    def astype(self, dtype, copy=False, errors="raise", skipna=True, **kwargs):
+        return self._astype(dtype, copy=copy, errors=errors, skipna=skipna, **kwargs)
 
-    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
+    def _astype(self, dtype, copy=False, errors="raise", skipna=True, **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -606,7 +606,7 @@ class Block(PandasObject):
             else:
                 values = self.get_values(dtype=dtype)
 
-            skipna = kwargs.pop("skipna", True)
+            #skipna = kwargs.pop("skipna", True)
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:
