@@ -31,7 +31,11 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     rewrite_axis_style_signature,
 )
-from pandas.util._validators import validate_axis_style_args, validate_bool_kwarg
+from pandas.util._validators import (
+    validate_axis_style_args,
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
@@ -5282,7 +5286,7 @@ class DataFrame(NDFrame):
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
 
-        if self._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(self, other, func):
             # operate column-wise; avoid costly object-casting in `.values`
             new_data = ops.dispatch_to_series(self, other, func)
         else:
@@ -8178,7 +8182,7 @@ class DataFrame(NDFrame):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
-        self._check_percentile(q)
+        validate_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
