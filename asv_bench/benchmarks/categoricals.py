@@ -282,4 +282,18 @@ class Indexing:
         self.index.sort_values(ascending=False)
 
 
+class SearchSorted:
+    def setup(self):
+        N = 10 ** 5
+        self.ci = tm.makeCategoricalIndex(N).sort_values()
+        self.c = self.ci.values
+        self.key = self.ci.categories[1]
+
+    def time_categorical_index_contains(self):
+        self.ci.searchsorted(self.key)
+
+    def time_categorical_contains(self):
+        self.c.searchsorted(self.key)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
