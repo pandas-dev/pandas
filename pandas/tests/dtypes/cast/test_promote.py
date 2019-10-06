@@ -723,9 +723,6 @@ def test_maybe_promote_any_numpy_dtype_with_datetimetz(
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if dtype.kind == "M" and not boxed:
-        pytest.xfail("Comes back as M8 instead of object")
-
     fill_value = pd.Series([fill_value], dtype=fill_dtype)[0]
 
     # filling any numpy dtype with datetimetz casts to object
@@ -847,11 +844,6 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced, bo
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if boxed and box_dtype is None and fill_dtype.kind == "m":
-        pytest.xfail("wrong missing value marker")
-    if boxed and box_dtype is None and fill_dtype.kind == "M":
-        pytest.xfail("wrong missing value marker")
-
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
@@ -913,9 +905,6 @@ def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype_reduced, bo
     dtype = np.dtype(object_dtype)
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
-
-    if boxed and box_dtype is None and is_datetime_or_timedelta_dtype(fill_dtype):
-        pytest.xfail("wrong missing value marker")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
