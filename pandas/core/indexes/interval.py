@@ -1410,7 +1410,7 @@ def interval_range(
         Left bound for generating intervals
     end : numeric or datetime-like, default None
         Right bound for generating intervals
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
     freq : numeric, string, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
