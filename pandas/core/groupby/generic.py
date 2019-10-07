@@ -1454,18 +1454,20 @@ class DataFrameGroupBy(NDFrameGroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(self, output, names=None):
-        agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-
-        output_keys = self._decide_output_index(output, agg_labels)
+        if isinstance(output, dict):
+            result = DataFrame(output)
+        else:
+            agg_axis = 0 if self.axis == 1 else 1
+            agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+            output_keys = self._decide_output_index(output, agg_labels)
+            result = DataFrame(output, columns=output_keys)
 
         if not self.as_index:
-            result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            result = DataFrame(output, index=index, columns=output_keys)
+            result.index = index
 
         if self.axis == 1:
             result = result.T
