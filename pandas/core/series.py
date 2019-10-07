@@ -612,7 +612,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._values.ravel(order=order)
 
@@ -629,7 +629,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.compress
+        numpy.ndarray.compress : Return selected slices of an array along given axis.
         """
         msg = (
             "Series.compress(condition) is deprecated. "
@@ -660,7 +660,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.nonzero
+        numpy.nonzero : Return the indices of the elements that are non-zero.
 
         Examples
         --------
@@ -697,7 +697,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.put
+        numpy.ndarray.put : Set a.flat[n] = values[n] for all n in indices.
         """
         warnings.warn(
             "`put` has been deprecated and will be removed in a future version.",
@@ -2302,8 +2302,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile : Rolling quantile.
+        numpy.percentile : Numpy function to compute the percentile.
 
         Examples
         --------
@@ -3307,7 +3307,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         values = self._values
         mask = isna(values)
