@@ -392,7 +392,8 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     See Also
     --------
-    scipy.interpolate.BPoly.from_derivatives
+    scipy.interpolate.BPoly.from_derivatives : Construct a piecewise polynomial in the Bernstein basis,
+        compatible with the specified values and derivatives at breakpoints.
 
     Returns
     -------
@@ -436,7 +437,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     See Also
     --------
-    scipy.interpolate.Akima1DInterpolator
+    scipy.interpolate.Akima1DInterpolator : Fit piecewise cubic polynomials, given vectors x and y.
 
     Returns
     -------
