@@ -160,6 +160,7 @@ Documentation Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added new section on :ref:`scale` (:issue:`28315`).
+- Added sub-section Query MultiIndex in IO tools user guide (:issue:`28791`)
 
 .. _whatsnew_1000.deprecations:
 
