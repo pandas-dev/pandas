@@ -1656,6 +1656,41 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_with_categorical(self, observed):
+        # gh-21370
+        idx = [np.nan, "low", "high", "low", np.nan]
+        col = [np.nan, "A", "B", np.nan, "A"]
+        df = pd.DataFrame(
+            {
+                "In": pd.Categorical(idx, categories=["low", "high"], ordered=True),
+                "Col": pd.Categorical(col, categories=["A", "B"], ordered=True),
+                "Val": range(1, 6),
+            }
+        )
+        # case with index/columns/value
+        result = df.pivot_table(index="In", columns="Col", values="Val")
+
+        expected_cols = pd.CategoricalIndex(["A", "B"], ordered=True, name="Col")
+
+        expected = pd.DataFrame(
+            data=[[2.0, np.nan], [np.nan, 3.0]], columns=expected_cols
+        )
+        expected.index = Index(
+            pd.Categorical(["low", "high"], categories=["low", "high"], ordered=True),
+            name="In",
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # case with columns/value
+        result = df.pivot_table(columns="Col", values="Val")
+
+        expected = pd.DataFrame(
+            data=[[3.5, 3.0]], columns=expected_cols, index=Index(["Val"])
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_categorical_aggfunc(self, observed):
         # GH 9534
         df = pd.DataFrame(
@@ -2553,39 +2588,4 @@ class TestCrosstab:
             codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],
             names=["A", "B"],
         )
-        tm.assert_frame_equal(result, expected)
-
-    def test_pivot_with_categorical(self):
-        # gh-21370
-        idx = [np.nan, "low", "high", "low", np.nan]
-        col = [np.nan, "A", "B", np.nan, "A"]
-        df = pd.DataFrame(
-            {
-                "In": pd.Categorical(idx, categories=["low", "high"], ordered=True),
-                "Col": pd.Categorical(col, categories=["A", "B"], ordered=True),
-                "Val": range(1, 6),
-            }
-        )
-        # case with index/columns/value
-        result = df.pivot_table(index="In", columns="Col", values="Val")
-
-        expected_cols = pd.CategoricalIndex(["A", "B"], ordered=True, name="Col")
-
-        expected = pd.DataFrame(
-            data=[[2.0, np.nan], [np.nan, 3.0]], columns=expected_cols
-        )
-        expected.index = Index(
-            pd.Categorical(["low", "high"], categories=["low", "high"], ordered=True),
-            name="In",
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-        # case with columns/value
-        result = df.pivot_table(columns="Col", values="Val")
-
-        expected = pd.DataFrame(
-            data=[[3.5, 3.0]], columns=expected_cols, index=Index(["Val"])
-        )
-
         tm.assert_frame_equal(result, expected)
