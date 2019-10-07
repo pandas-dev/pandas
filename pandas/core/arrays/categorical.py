@@ -1399,14 +1399,14 @@ class Categorical(ExtensionArray, PandasObject):
     @Substitution(klass="Categorical")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        from pandas.core.series import Series
-
-        codes = _get_codes_for_values(Series(value).values, self.categories)
-        if -1 in codes:
-            raise KeyError("Value(s) to be inserted must be in categories.")
-
-        codes = codes[0] if is_scalar(value) else codes
-
+        # searchsorted is very performance sensitive. By converting codes
+        # to same dtype as self.codes, we get much faster performance.
+        if is_scalar(value):
+            codes = self.categories.get_loc(value)
+            codes = self.codes.dtype.type(codes)
+        else:
+            locs = [self.categories.get_loc(x) for x in value]
+            codes = np.array(locs, dtype=self.codes.dtype)
         return self.codes.searchsorted(codes, side=side, sorter=sorter)
 
     def isna(self):

@@ -151,6 +151,7 @@ Other API changes
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+- The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
 -
 
 .. _whatsnew_1000.api.documentation:
@@ -204,6 +205,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 - Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
+- Performance improvement in :meth:`Categorical.searchsorted` and  :meth:`CategoricalIndex.searchsorted` (:issue:`28795`)
 
 .. _whatsnew_1000.bug_fixes:
 
@@ -307,6 +309,7 @@ I/O
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
 - Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
+- Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
 
 Plotting
 ^^^^^^^^
@@ -328,6 +331,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
+- Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 
 Reshaping
 ^^^^^^^^^
@@ -357,6 +361,7 @@ Other
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+- Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
 
 .. _whatsnew_1000.contributors:
 
