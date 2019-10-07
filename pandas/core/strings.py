@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Dict, List, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 import warnings
 
 import numpy as np
@@ -2059,6 +2059,7 @@ class StringMethods(NoNewAttributesMixin):
         # case we'll want to return the same dtype as the input.
         # Or we can be wrapping a numeric output, in which case we don't want
         # to return a StringArray.
+        dtype: Optional[str]
         if self._is_string and returns_string:
             dtype = "string"
         else:
