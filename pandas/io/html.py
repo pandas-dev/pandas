@@ -525,8 +525,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
     See Also
     --------
-    pandas.io.html._HtmlFrameParser
-    pandas.io.html._LxmlFrameParser
+    pandas.io.html._HtmlFrameParser: Base class for parsers that parse HTML into DataFrames.
+    pandas.io.html._LxmlFrameParser: HTML to DataFrame parser that uses lxml under the hood.
 
     Notes
     -----
@@ -637,7 +637,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
     See Also
     --------
-    _HtmlFrameParser
+    _HtmlFrameParser: Base class for parsers that parse HTML into DataFrames.
     _BeautifulSoupLxmlFrameParser
 
     Notes
@@ -1041,7 +1041,7 @@ def read_html(
 
     See Also
     --------
-    read_csv
+    read_csv: Read a comma-separated values (csv) file into DataFrame.
 
     Notes
     -----
