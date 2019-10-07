@@ -180,13 +180,13 @@ def _reconstruct_data(values, dtype, original):
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndexClass):
-            values = values.astype(object)
+            values = values.astype(object, copy=False)
     elif dtype is not None:
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
     return values
 
@@ -396,7 +396,7 @@ def unique(values):
 
     table = htable(len(values))
     uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
     return uniques
 
 
