@@ -3856,15 +3856,3 @@ class TestDataFrameIndexingCategorical:
             df["group"] = pd.cut(
                 df.value, range(0, 105, 10), right=False, labels=labels
             )
-
-    def test_get_nonexistant_category(self):
-        # Accessing a Category that is not in the dataframe
-        df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
-        with pytest.raises(KeyError) as col_error:
-            df.groupby("var").apply(
-                lambda rows: pd.DataFrame(
-                    {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
-                )
-            )
-        # Correct Category is thrown with exception
-        assert str(col_error.value) == "'vau'"
