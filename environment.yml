@@ -27,8 +27,7 @@ dependencies:
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  # some styling is broken with sphinx >= 2 (https://github.com/pandas-dev/pandas/issues/26058)
-  - sphinx=1.8.5
+  - sphinx
   - numpydoc>=0.9.0
 
   # documentation (jupyter notebooks)

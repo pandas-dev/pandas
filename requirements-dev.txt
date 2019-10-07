@@ -12,7 +12,7 @@ isort
 mypy
 pycodestyle
 gitpython
-sphinx==1.8.5
+sphinx
 numpydoc>=0.9.0
 nbconvert>=5.4.1
 nbsphinx
