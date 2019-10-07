@@ -180,13 +180,13 @@ def _reconstruct_data(values, dtype, original):
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
+        values = values.astype(dtype)
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndexClass):
-            values = values.astype(object, copy=False)
+            values = values.astype(object)
     elif dtype is not None:
-        values = values.astype(dtype, copy=False)
+        values = values.astype(dtype)
 
     return values
 
@@ -331,8 +331,8 @@ def unique(values):
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    Index.unique : Return unique values in the index.
+    Series.unique : Return unique values of Series object.
 
     Examples
     --------
@@ -396,7 +396,7 @@ def unique(values):
 
     table = htable(len(values))
     uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, original.dtype, original)
+    uniques = _reconstruct_data(uniques, dtype, original)
     return uniques
 
 
@@ -1559,7 +1559,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
     See Also
     --------
-    numpy.take
+    numpy.take : Take elements from an array along an axis.
 
     Examples
     --------
