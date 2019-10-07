@@ -692,7 +692,7 @@ b  2""",
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        return self.grouper.get_iterator(self.obj, axis=self.axis)
+        return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
     @Appender(
         _apply_docs["template"].format(
