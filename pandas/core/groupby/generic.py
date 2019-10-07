@@ -1513,7 +1513,13 @@ class DataFrameGroupBy(NDFrameGroupBy):
         # TODO: dispatch to _cython_agg_general instead of custom looping
         # TODO: refactor with series logic
         ids, _, ngroups = self.grouper.group_info
-        for index, (name, obj) in enumerate(self._obj_with_exclusions.items()):
+
+        if self.axis == 0:
+            iter_obj = self._obj_with_exclusions
+        else:
+            iter_obj = self._obj_with_exclusions.T
+
+        for index, (name, obj) in enumerate(iter_obj.items()):
             mask = (ids != -1) & ~isna(obj)
             ids = ensure_platform_int(ids)
             minlength = ngroups or 0
