@@ -704,7 +704,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._ndarray_values.ravel(order=order)
 
@@ -804,7 +804,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.take
+        numpy.ndarray.take : Return an array formed from the elements of a at the given indices.
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -2069,8 +2069,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        unique
-        Series.unique
+        unique : Hash table-based unique. Uniques are returned in order of appearance. This does NOT sort.
+        Series.unique : Return unique values of Series object.
         """
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
@@ -3867,8 +3867,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values
-        _ndarray_values
+        values : Return a Numpy representation of the DataFrame.
+        _ndarray_values : Internal pandas method for lossy conversion to a NumPy ndarray.
         """
         return self._data
 
@@ -4294,7 +4294,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask
+        numpy.ndarray.putmask : Changes elements of an array based on conditional and input values.
         """
         values = self.values.copy()
         try:
