@@ -1380,7 +1380,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         See Also
         --------
-        indexer_at_time, DataFrame.between_time
+        indexer_at_time : Return index locations of index values at particular time of day (e.g. 9:30AM).
+        DataFrame.between_time : Select values between particular times of the day (e.g., 9:00-9:30 AM).
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
