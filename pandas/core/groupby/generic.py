@@ -1436,13 +1436,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
         else:
             return DataFrame(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self):
-        obj = self._obj_with_exclusions
-        if self.axis == 1:
-            return obj.T._data, 1
-        else:
-            return obj._data, 1
-
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
         izip = zip(
