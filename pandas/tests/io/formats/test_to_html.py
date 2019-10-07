@@ -243,6 +243,7 @@ def test_html_invalid_formatters_arg_raises(size):
     with pytest.raises(ValueError, match=re.escape(msg.format(size))):
         df.to_html(formatters=["{}".format] * size)
 
+
 def test_to_html_truncate_formatter(datapath):
     # issue-25955
     data = [
