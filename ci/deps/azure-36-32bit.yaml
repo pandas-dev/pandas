@@ -3,6 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - attrs=19.1.0
   - gcc_linux-32
   - gcc_linux-32
   - gxx_linux-32
@@ -11,7 +12,7 @@ dependencies:
   - python=3.6.*
   - pytz=2017.2
   # universal
-  - pytest>=4.0.2,<5.0.0
+  - pytest
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
