@@ -180,7 +180,7 @@ def test_arg_passthru():
 
         result = f(numeric_only=False)
 
-	# TODO: median isn't implemented for DTI but was working blockwise before?
+        # TODO: median isn't implemented for DTI but was working blockwise before?
         if attr == "median":
             new_expected = expected.drop(columns=["datetime", "datetimetz"])
             tm.assert_frame_equal(result, new_expected)

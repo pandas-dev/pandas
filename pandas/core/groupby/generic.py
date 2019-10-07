@@ -1297,7 +1297,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -1461,7 +1460,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
         else:
             agg_axis = 0 if self.axis == 1 else 1
             agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-            output_keys = self._decide_output_index(output, index=index, columns=agg_labels)
+            output_keys = self._decide_output_index(
+                output, index=index, columns=agg_labels
+            )
             result = DataFrame(output, columns=output_keys)
 
         if names:
