@@ -1631,10 +1631,10 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.pad
+        Series.pad : Pad strings in the Series/Index up to width.
         DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna : Fill NA/NaN values using the specified method in a Series
+        DataFrame.fillna : Fill NA/NaN values using the specified method in a DataFrame
         """
         return self._fill("ffill", limit=limit)
 
@@ -1657,10 +1657,10 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill : Backward fill the new missing values in the Series.
+        DataFrame.backfill : Backward fill the new missing values in the DataFrame.
+        Series.fillna : Fill NA/NaN values using the specified method in the Series
+        DataFrame.fillna : Fill NA/NaN values using the specified method in the DataFrame
         """
         return self._fill("bfill", limit=limit)
 
