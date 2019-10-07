@@ -3081,6 +3081,30 @@ class MultiIndex(Index):
         # empty indexer
         if indexer is None:
             return Int64Index([])._ndarray_values
+
+        # Generate tuples of keys by wich to order the results
+        keys = tuple()
+        for i, k in enumerate(seq):
+            if com.is_bool_indexer(k):
+                new_order = np.arange(n)[indexer]
+            elif is_list_like(k):
+                # Generate a map with all level codes as sorted initially
+                key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
+                    self.levels[i]
+                )
+                # Set order as given in the indexer list
+                for p, e in enumerate(k):
+                    if e in self.levels[i]:
+                        key_order_map[self.levels[i].get_loc(e)] = p
+                new_order = key_order_map[self.codes[i][indexer]]
+            else:
+                # For all other case, use the same order as the level
+                new_order = np.arange(n)[indexer]
+            keys = (new_order,) + keys
+        if len(keys) > 0:
+            ind = np.lexsort(keys)
+            indexer = indexer[ind]
+
         return indexer._ndarray_values
 
     # --------------------------------------------------------------------
