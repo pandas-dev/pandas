@@ -391,8 +391,8 @@ def standardize_mapping(into):
 
     See Also
     --------
-    DataFrame.to_dict
-    Series.to_dict
+    DataFrame.to_dict: Convert the DataFrame to a dictionary.
+    Series.to_dict: Convert Series to dict or dict-like object.
     """
     if not inspect.isclass(into):
         if isinstance(into, collections.defaultdict):
