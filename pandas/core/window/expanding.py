@@ -88,9 +88,9 @@ class Expanding(_Rolling_and_Expanding):
         """
     See Also
     --------
-    DataFrame.expanding.aggregate
-    DataFrame.rolling.aggregate
-    DataFrame.aggregate
+    DataFrame.expanding.aggregate : Aggregate using one or more operations over the specified axis in expanding window.
+    DataFrame.rolling.aggregate : Aggregate using one or more operations over the specified axis in rolling window.
+    DataFrame.aggregate : Aggregate using one or more operations over the specified axis.
     """
     )
 
