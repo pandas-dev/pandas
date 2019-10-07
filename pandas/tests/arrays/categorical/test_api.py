@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import re
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
@@ -337,20 +338,12 @@ class TestCategoricalAPI:
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
         tm.assert_categorical_equal(cat, new)
-
         assert res is None
 
-    @pytest.mark.parametrize(
-        "removals", [
-            (["c"]),
-            (["c", np.nan]),
-            ("c"),
-            (["c", "c"])
-        ],
-    )
+    @pytest.mark.parametrize("removals", [["c"], (["c", np.nan]), ("c"), (["c", "c"])])
     def test_remove_categories_raises(self, removals):
         cat = Categorical(["a", "b", "a"])
-        message = "removals must all be in old categories: {'c'}"
+        message = re.escape("removals must all be in old categories: {'c'}")
 
         with pytest.raises(ValueError, match=message):
             cat.remove_categories(removals)
