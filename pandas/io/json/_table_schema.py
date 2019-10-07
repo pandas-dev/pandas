@@ -302,7 +302,7 @@ def parse_table_schema(json, precise_float):
     See Also
     --------
     build_table_schema : Inverse function.
-    pandas.read_json
+    pandas.read_json : Convert a JSON string to pandas object.
     """
     table = loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
