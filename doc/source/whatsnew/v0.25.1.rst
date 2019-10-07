@@ -110,7 +110,6 @@ Other
 
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
 - Bug in :meth:`Series.rename` when using a custom type indexer. Now any value that isn't callable or dict-like is treated as a scalar. (:issue:`27814`)
-- :func:`qcut` and `cut` now handle boolean input (:issue:`20303`)
 
 .. _whatsnew_0.251.contributors:
 
