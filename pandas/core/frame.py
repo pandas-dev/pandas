@@ -2522,7 +2522,7 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             Specifies whether to include the memory usage of the DataFrame's
-            index in returned Series. If ``index=True``, the memory usage of 
+            index in returned Series. If ``index=True``, the memory usage of
             the index is the first item in the output.
         deep : bool, default False
             If True, introspect the data deeply by interrogating
