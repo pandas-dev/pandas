@@ -1,5 +1,6 @@
 from functools import partial
 import itertools
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -431,15 +432,14 @@ def _unstack_frame(obj, level, fill_value=None):
         blocks = obj._data.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(blocks)
     else:
-        unstacker = _Unstacker(
+        return _Unstacker(
             obj.values,
             obj.index,
             level=level,
             value_columns=obj.columns,
             fill_value=fill_value,
             constructor=obj._constructor,
-        )
-        return unstacker.get_result()
+        ).get_result()
 
 
 def _unstack_extension_series(series, level, fill_value):
@@ -897,6 +897,7 @@ def get_dummies(
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
+        with_dummies: List[Optional[DataFrame]]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
@@ -996,6 +997,7 @@ def _get_dummies_1d(
 
     if sparse:
 
+        fill_value: Union[bool, float]
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == bool:
@@ -1005,7 +1007,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices = [[] for _ in range(len(dummy_cols))]
+        sp_indices: List[List] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
