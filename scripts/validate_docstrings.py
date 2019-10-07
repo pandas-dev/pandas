@@ -422,22 +422,10 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        var_arg_combinations = {
-            "*args, **kwargs",
-            "*args, **kwds",
-            "**kwargs, *args",
-            "**kwds, *args",
-        }
-        docs = collections.OrderedDict()
-        for name, type_, desc in self.doc["Parameters"]:
-            info = (type_, "".join(desc))
-            if name in var_arg_combinations:
-                args = name.split(", ")
-                docs[args[0]] = info
-                docs[args[1]] = info
-            else:
-                docs[name] = info
-        return docs
+        return collections.OrderedDict(
+            (name, (type_, "".join(desc)))
+            for name, type_, desc in self.doc["Parameters"]
+        )
 
     @property
     def signature_parameters(self):
