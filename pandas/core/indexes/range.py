@@ -335,7 +335,7 @@ class RangeIndex(Int64Index):
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the array.
         """
         return self.nbytes
 
@@ -458,7 +458,7 @@ class RangeIndex(Int64Index):
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         nv.validate_argsort(args, kwargs)
 
