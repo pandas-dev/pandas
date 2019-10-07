@@ -117,7 +117,7 @@ def json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-    to_integer_array: Optional[bool] = False
+    to_integer_array: bool = False,
 ):
     """
     Normalize semi-structured JSON data into a flat table.
