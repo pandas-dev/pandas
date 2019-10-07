@@ -1465,7 +1465,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         See Also
         --------
-        numpy.ndarray.mean
+        numpy.ndarray.mean : Returns the average of the array elements along given axis.
         Series.mean : Return the mean value in a Series.
 
         Notes
