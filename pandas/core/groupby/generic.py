@@ -1454,20 +1454,23 @@ class DataFrameGroupBy(NDFrameGroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(self, output, names=None):
+        index = self.grouper.result_index
+
         if isinstance(output, dict):
-            result = DataFrame(output)
+            result = DataFrame(output, index=index)
         else:
             agg_axis = 0 if self.axis == 1 else 1
             agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-            output_keys = self._decide_output_index(output, agg_labels)
+            output_keys = self._decide_output_index(output, index=index, columns=agg_labels)
             result = DataFrame(output, columns=output_keys)
+
+        if names:
+            result.columns = names
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
-        else:
-            index = self.grouper.result_index
-            result.index = index
+            result = result.reset_index(drop=True)
 
         if self.axis == 1:
             result = result.T
@@ -1505,18 +1508,20 @@ class DataFrameGroupBy(NDFrameGroupBy):
             Count of values within each group.
         """
         output = OrderedDict()
+        names = []
 
         # TODO: dispatch to _cython_agg_general instead of custom looping
         # TODO: refactor with series logic
         ids, _, ngroups = self.grouper.group_info
-        for name, obj in self._iterate_slices():
+        for index, (name, obj) in enumerate(self._obj_with_exclusions.items()):
             mask = (ids != -1) & ~isna(obj)
             ids = ensure_platform_int(ids)
             minlength = ngroups or 0
             out = np.bincount(ids[mask], minlength=minlength)
-            output[name] = out
+            output[index] = out
+            names.append(name)
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, names=names)
 
     def nunique(self, dropna=True):
         """
