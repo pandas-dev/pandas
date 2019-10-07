@@ -10,7 +10,8 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyObject_Str, PyUnicode_Join
+from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
@@ -308,9 +309,9 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
                                       ignoretz=False, tzinfos=None)
-    except Exception as e:
+    except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
-        raise DateParseError(e)
+        raise DateParseError(err)
     if parsed is None:
         raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso
@@ -587,15 +588,11 @@ def try_parse_dates(object[:] values, parser=None,
     else:
         parse_date = parser
 
-        try:
-            for i in range(n):
-                if values[i] == '':
-                    result[i] = np.nan
-                else:
-                    result[i] = parse_date(values[i])
-        except Exception:
-            # raise if passed parser and it failed
-            raise
+        for i in range(n):
+            if values[i] == '':
+                result[i] = np.nan
+            else:
+                result[i] = parse_date(values[i])
 
     return result.base  # .base to access underlying ndarray
 
@@ -814,7 +811,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
     if dt_str_parse is None or dt_str_split is None:
         return None
 
-    if not isinstance(dt_str, (str, unicode)):
+    if not isinstance(dt_str, str):
         return None
 
     day_attribute_and_format = (('day',), '%d', 2)
@@ -840,19 +837,16 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
 
     try:
         parsed_datetime = dt_str_parse(dt_str, dayfirst=dayfirst)
-    except:
+    except (ValueError, OverflowError):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
 
     if parsed_datetime is None:
         return None
 
-    try:
-        tokens = dt_str_split(dt_str)
-    except:
-        # In case the datetime string can't be split, its format cannot
-        # be guessed
-        return None
+    # the default dt_str_split from dateutil will never raise here; we assume
+    #  that any user-provided function will not either.
+    tokens = dt_str_split(dt_str)
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
