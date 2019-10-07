@@ -1,7 +1,7 @@
 import abc
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
-from io import BytesIO
+from io import BytesIO, UnsupportedOperation
 import os
 from textwrap import fill
 
@@ -347,7 +347,12 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = filepath_or_buffer
         elif hasattr(filepath_or_buffer, "read"):
             # N.B. xlrd.Book has a read attribute too
-            filepath_or_buffer.seek(0)
+            try:
+                filepath_or_buffer.seek(0)
+            except UnsupportedOperation:
+                # HTTPResponse does not support seek()
+                # GH 28825
+                pass
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
             self.book = self.load_workbook(filepath_or_buffer)
