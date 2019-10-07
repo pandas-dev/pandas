@@ -606,7 +606,6 @@ class Block(PandasObject):
             else:
                 values = self.get_values(dtype=dtype)
 
-            #skipna = kwargs.pop("skipna", True)
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:

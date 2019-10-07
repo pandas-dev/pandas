@@ -5801,7 +5801,6 @@ class NDFrame(PandasObject, SelectionMixin):
         skipna : bool, default True
             Exclude NA/null values in type conversion.
 
-
         Returns
         -------
         casted : same type as caller
