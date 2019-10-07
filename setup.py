@@ -808,7 +808,7 @@ setup(
     maintainer=AUTHOR,
     version=versioneer.get_version(),
     packages=find_packages(include=["pandas", "pandas.*"]),
-    package_data={"": ["templates/*", "_libs/*.dll"]},
+    package_data={"": ["templates/*", "_libs/*.dll", "py.typed"]},
     ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
     maintainer_email=EMAIL,
     description=DESCRIPTION,
