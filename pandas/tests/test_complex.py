@@ -7,7 +7,7 @@ import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 
 
-class TestComplexSupportBasic:
+class TestBasicComplexSupport:
     @pytest.mark.parametrize(
         "array,expected",
         [
@@ -79,7 +79,7 @@ class TestComplexSupportBasic:
             (
                 DataFrame([dict(a=1, b=1 + 1j), dict(a=1, b=1 + 2j)]),
                 DataFrame(
-                    np.array([1, 1], dtype=np.intp),
+                    np.array([1, 1], dtype=np.int64),
                     index=Index([(1 + 1j), (1 + 2j)], dtype="object", name="b"),
                     columns=Index(["a"], dtype="object"),
                 ),
@@ -105,6 +105,9 @@ class TestComplexSupportBasic:
         result = Series(array).mode()
         tm.assert_series_equal(result, expected)
 
+    # mode tries to sort multimodal series.
+    # A warning will be raised since complex numbers
+    # are not ordered.
     @pytest.mark.parametrize(
         "array,expected",
         [
@@ -117,8 +120,6 @@ class TestComplexSupportBasic:
         ],
     )
     def test_multimode(self, array, expected):
-        # mode tries to sort multimodal series.
-        # A warning will be raise since complex numbers
-        # are not ordered.
-        result = Series(array).mode()
+        with tm.assert_produces_warning(UserWarning):
+            result = Series(array).mode()
         tm.assert_series_equal(result, expected)
