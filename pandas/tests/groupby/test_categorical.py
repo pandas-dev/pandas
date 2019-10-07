@@ -1195,9 +1195,12 @@ def test_groupby_categorical_axis_1(code):
     assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed):
+def test_groupby_cat_preserves_structure(observed, ordered_fixture):
     # GH 28787
-    df = DataFrame([("Bob", 1), ("Greg", 2)], columns=["Name", "Item"])
+    df = DataFrame(
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        columns=["Name", "Item"],
+    )
     expected = df.copy()
 
     result = (
