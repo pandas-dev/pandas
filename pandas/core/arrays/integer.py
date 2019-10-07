@@ -551,7 +551,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         See Also
         --------
-        Series.value_counts
+        Series.value_counts: Return a Series containing counts of unique values.
 
         """
 
@@ -592,7 +592,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort: Return the indices that would sort this array.
         """
         data = self._data.copy()
         data[self._mask] = data.min() - 1
