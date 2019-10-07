@@ -11,6 +11,7 @@ from pandas.core.arrays import (
     PandasArray,
     PeriodArray,
     SparseArray,
+    StringArray,
     TimedeltaArray,
 )
 
@@ -22,5 +23,6 @@ __all__ = [
     "PandasArray",
     "PeriodArray",
     "SparseArray",
+    "StringArray",
     "TimedeltaArray",
 ]

@@ -10,7 +10,7 @@ from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -27,6 +27,7 @@ from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
+from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -554,6 +555,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _can_reindex(self, indexer):
         """ always allow reindexing """
         pass
+
+    @Substitution(klass="CategoricalIndex")
+    @Appender(_shared_docs["searchsorted"])
+    def searchsorted(self, value, side="left", sorter=None):
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @Appender(_index_shared_docs["where"])
     def where(self, cond, other=None):
