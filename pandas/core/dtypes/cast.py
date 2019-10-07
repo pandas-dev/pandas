@@ -348,22 +348,12 @@ def maybe_promote(dtype, fill_value=np.nan):
                 dtype = np.dtype(np.object_)
             fill_value = np.nan
 
-        if dtype == np.object_ or dtype.kind in ["U", "S"]:
-            # We treat string-like dtypes as object, and _always_ fill
-            #  with np.nan
-            fill_value = np.nan
-            dtype = np.dtype(np.object_)
-
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
-        if isinstance(fill_value, datetime) and fill_value.tzinfo is not None:
-            # Trying to insert tzaware into tznaive, have to cast to object
+        try:
+            fill_value = tslibs.Timestamp(fill_value).to_datetime64()
+        except (TypeError, ValueError):
             dtype = np.dtype(np.object_)
-        else:
-            try:
-                fill_value = tslibs.Timestamp(fill_value).to_datetime64()
-            except (TypeError, ValueError):
-                dtype = np.dtype(np.object_)
     elif issubclass(dtype.type, np.timedelta64):
         try:
             fv = tslibs.Timedelta(fill_value)
@@ -426,6 +416,8 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     # in case we have a string that looked like a number
     if is_extension_array_dtype(dtype):
+        pass
+    elif is_datetime64tz_dtype(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, (bytes, str)):
         dtype = np.object_
@@ -1207,7 +1199,7 @@ def find_common_type(types):
 
     See Also
     --------
-    numpy.find_common_type
+    numpy.find_common_type: Determine common type following standard coercion rules.
 
     """
 
