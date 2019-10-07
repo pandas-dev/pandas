@@ -160,7 +160,7 @@ class EWM(_Rolling):
         """
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.rolling.aggregate: Aggregate using one or more operations over the specified axis.
     """
     )
 
