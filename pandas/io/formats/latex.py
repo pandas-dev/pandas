@@ -25,7 +25,7 @@ class LatexFormatter(TableFormatter):
 
     See Also
     --------
-    HTMLFormatter
+    HTMLFormatter: Internal class for formatting output data in html.
     """
 
     def __init__(
