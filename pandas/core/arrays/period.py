@@ -854,8 +854,8 @@ def period_array(
 
     See Also
     --------
-    PeriodArray
-    pandas.PeriodIndex
+    PeriodArray: Pandas ExtensionArray for storing Period data.
+    pandas.PeriodIndex: Immutable ndarray holding ordinal values indicating regular periods in time.
 
     Examples
     --------
