@@ -309,7 +309,7 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results = OrderedDict()
+        results: Dict = OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -387,7 +387,7 @@ class SeriesGroupBy(GroupBy):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = OrderedDict()
+        result: Dict = OrderedDict()
 
         for name, group in self:
             group.name = name
@@ -467,7 +467,7 @@ class SeriesGroupBy(GroupBy):
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func: Callable, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -502,8 +502,8 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notna(x, *args, **kwargs):
-            b = wrapper(x, *args, **kwargs)
+        def true_and_notna(x):
+            b = wrapper(x)
             return b and notna(b)
 
         try:
@@ -1016,7 +1016,7 @@ class DataFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result: Dict = OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -1038,7 +1038,7 @@ class DataFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = OrderedDict()
+        result: Dict = OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
