@@ -429,7 +429,7 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        def add_stars(param_name :str, info: inspect.Parameter):
+        def add_stars(param_name: str, info: inspect.Parameter):
             """
             Add stars to *args and **kwargs parameters
             """
@@ -453,7 +453,10 @@ class Docstring:
             # of the signature
             return tuple()
 
-        params = tuple(add_stars(parameter, sig.parameters[parameter]) for parameter in sig.parameters)
+        params = tuple(
+            add_stars(parameter, sig.parameters[parameter])
+            for parameter in sig.parameters
+        )
         if params and params[0] in ("self", "cls"):
             return params[1:]
         return params
