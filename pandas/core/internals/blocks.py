@@ -1795,13 +1795,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             return values.reshape(1, len(values))
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
-            values = self.get_values()
-            if slicer is not None:
-                values = values[:, slicer]
-            mask = isna(values)
-            values = values.astype(str)
-            values[mask] = na_rep
-            return values
+            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
