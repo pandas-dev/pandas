@@ -6729,7 +6729,6 @@ class DataFrame(NDFrame):
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
-
         Examples
         --------
 
