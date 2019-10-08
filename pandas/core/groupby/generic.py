@@ -894,7 +894,6 @@ class DataFrameGroupBy(GroupBy):
 
         return result._convert(datetime=True)
 
-
     agg = aggregate
 
     def _iterate_slices(self):
