@@ -314,8 +314,9 @@ def na_logical_op(x: np.ndarray, y, op):
             ):
                 raise TypeError(
                     "Cannot perform '{op}' with a dtyped [{dtype}] array "
-                    "and scalar of type [{typ}]"
-                    .format(op=op.__name__, dtype=x.dtype, typ=type(y).__name__)
+                    "and scalar of type [{typ}]".format(
+                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
+                    )
                 )
 
     return result
