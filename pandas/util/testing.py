@@ -1175,7 +1175,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -2282,7 +2282,7 @@ def network(
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
