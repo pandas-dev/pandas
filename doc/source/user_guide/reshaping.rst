@@ -729,6 +729,7 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 particular, the resulting DataFrame should look like:
 
 .. code-block::
+    :flake8-add-ignore: E999
 
     col   col0   col1   col2   col3  col4
     row
@@ -736,7 +737,7 @@ particular, the resulting DataFrame should look like:
     row2  0.13    NaN  0.395  0.500  0.25
     row3   NaN  0.310    NaN  0.545   NaN
     row4   NaN  0.100  0.395  0.760  0.24
-
+    
 This solution uses :func:`~pandas.pivot_table`. Also note that
 ``aggfunc='mean'`` is the default. It is included here to be explicit.
 
