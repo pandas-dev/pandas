@@ -64,6 +64,39 @@ class TestDatetimeIndexOps:
             result = getattr(Timestamp(idx[-1]), field)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "tz,expected_vals",
+        [
+            (
+                "utc",
+                [
+                    "2000-01-01T00:00:00.000000000Z",
+                    "2000-01-02T00:00:00.000000000Z",
+                    "2000-01-03T00:00:00.000000000Z",
+                ],
+            ),
+            # "US/Eastern",
+            #    [
+            #        "2000-01-01T00:00:00.000000000-05:00",
+            #        "2000-01-02T00:00:00.000000000-05:00",
+            #        "2000-01-03T00:00:00.000000000-05:00",
+            #    ],
+        ],
+    )
+    def test_dti_isoformat_datetimes(self, tz, expected_vals):
+        dts = pd.date_range(start="2000-01-1", periods=3, freq="D", tz=tz)
+        result = pd.Series(dts).dt.isoformat
+        expected = pd.Series(expected_vals)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.skip
+    def test_dti_isoformat_timedelts(self):
+        ...
+
+    @pytest.mark.skip
+    def test_dti_isoformat_period_raises(self):
+        ...
+
     def test_dti_timestamp_freq_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)

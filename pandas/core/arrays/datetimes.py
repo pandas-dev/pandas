@@ -134,9 +134,11 @@ def _field_accessor(name, field, docstring=None):
             return result
 
         if field in self._object_ops:
-            result = fields.get_date_name_field(values, field)
-            result = self._maybe_mask_results(result, fill_value=None)
-
+            if field == "isoformat":
+                result = fields.get_datetime_isoformats(values)
+            else:
+                result = fields.get_date_name_field(values, field)
+                result = self._maybe_mask_results(result, fill_value=None)
         else:
             result = fields.get_date_field(values, field)
             result = self._maybe_mask_results(
@@ -284,7 +286,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops = ["weekday_name", "freq", "tz"]
+    _object_ops = ["weekday_name", "freq", "tz", "isoformat"]
     _field_ops = [
         "year",
         "month",
@@ -1522,7 +1524,13 @@ default 'raise'
         The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0
         """,
     )
-
+    isoformat = _field_accessor(
+        "isoformat",
+        "isoformat",
+        """
+        ISO formatted string.
+        """,
+    )
     dayofyear = _field_accessor(
         "dayofyear",
         "doy",

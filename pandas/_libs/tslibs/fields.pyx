@@ -18,8 +18,13 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_day_of_year)
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
-    td64_to_tdstruct)
+    td64_to_tdstruct, NPY_DATETIMEUNIT, NPY_FR_ns)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
+
+
+cdef extern from "./src/datetime/np_datetime_strings.h":
+    int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+                               NPY_DATETIMEUNIT base)
 
 
 def get_time_micros(ndarray[int64_t] dtindex):
@@ -42,6 +47,36 @@ def get_time_micros(ndarray[int64_t] dtindex):
     micros //= 1000
     return micros
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_datetime_isoformats(ndarray[int64_t] dtindex) -> ndarray:
+    """
+    Return isoformats for an array of datetimelike objects.
+
+    Parameters
+    ----------
+    dtindex : DatetimeArray
+
+    Returns
+    -------
+    Array of ISO formats
+    """
+    cdef:
+        Py_ssize_t i, count = len(dtindex)
+        int64_t val, convert_status
+        npy_datetimestruct dts
+        char buf[34]  # ns precision with UTC offset max length
+        
+    out = np.empty(count, dtype=object)
+
+    for i in range(count):
+        dt64_to_dtstruct(dtindex[i], &dts);
+        # TODO: handle bad return
+        convert_status = make_iso_8601_datetime(&dts, buf, 34, NPY_FR_ns)
+        out[i] = buf.decode("UTF-8")
+
+    return out
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -128,7 +163,6 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
 
             dt64_to_dtstruct(dtindex[i], &dts)
             out[i] = names[dts.month].capitalize()
-
     else:
         raise ValueError("Field {field} not supported".format(field=field))
 
