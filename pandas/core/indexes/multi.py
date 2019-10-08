@@ -736,8 +736,16 @@ class MultiIndex(Index):
 
     def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
         """
-        Set new levels on MultiIndex. Defaults to returning
-        new index.
+        Set levels on MultiIndex by passing a new value for each
+        index in the level. Defaults to returning new
+        index.
+
+        It is assumed that a new value is provided for each code describing
+        values in the level. If the number of values passed is more than
+        the number of index values in the level, ``set_levels`` will still
+        pass the values to the level. The passed values are stored in the
+        MultiIndex FrozenList even though the index values may be truncated
+        in the MultiIndex output from set_levels.
 
         Parameters
         ----------
@@ -757,32 +765,51 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two')],
+                                            (2, 'one'), (2, 'two'),
+                                            (3, 'one'), (3, 'two')],
                                             names=['foo', 'bar'])
-        >>> idx.set_levels([['a', 'b'], [1, 2]])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
                     ('a', 2),
                     ('b', 1),
-                    ('b', 2)],
+                    ('b', 2),
+                    ('c', 1),
+                    ('c', 2)],
                    names=['foo', 'bar'])
-        >>> idx.set_levels(['a', 'b'], level=0)
+        >>> idx.set_levels(['a', 'b', 'c'], level=0)
         MultiIndex([('a', 'one'),
                     ('a', 'two'),
                     ('b', 'one'),
-                    ('b', 'two')],
+                    ('b', 'two'),
+                    ('c', 'one'),
+                    ('c', 'two')],
                    names=['foo', 'bar'])
         >>> idx.set_levels(['a', 'b'], level='bar')
         MultiIndex([(1, 'a'),
                     (1, 'b'),
                     (2, 'a'),
-                    (2, 'b')],
+                    (2, 'b'),
+                    (3, 'a'),
+                    (3, 'b')],
                    names=['foo', 'bar'])
-        >>> idx.set_levels([['a', 'b'], [1, 2]], level=[0, 1])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2]], level=[0, 1])
+        MultiIndex([('a', 1),
+                    ('a', 2),
+                    ('b', 1),
+                    ('b', 2),
+                    ('c', 1),
+                    ('c', 2)],
+                   names=['foo', 'bar'])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2]], level=[0, 1]).levels
+        FrozenList([['a', 'b', 'c'], [1, 2]])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
                     ('a', 2),
                     ('b', 1),
                     ('b', 2)],
                    names=['foo', 'bar'])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
+        FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
