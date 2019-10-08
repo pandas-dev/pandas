@@ -1,5 +1,6 @@
 from datetime import datetime, time, timedelta
 import operator
+from typing import Type, cast
 import warnings
 
 import numpy as np
@@ -228,7 +229,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _join_precedence = 10
 
     def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="M8[ns]", **kwargs)
+        return cast(
+            Type[DatetimeIndexOpsMixin], DatetimeIndexOpsMixin
+        )._join_i8_wrapper(joinf, dtype="M8[ns]", **kwargs)
 
     _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer_int64)
@@ -513,6 +516,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
+                assert result._data is not None
                 result._data._dtype = this.dtype
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
@@ -547,6 +551,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 if isinstance(this, DatetimeIndex):
                     # TODO: we shouldn't be setting attributes like this;
                     #  in all the tests this equality already holds
+                    assert this._data is not None
                     this._data._dtype = dtype
         return this
 
@@ -803,7 +808,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
+                # error: "DatetimeIndex" has no attribute "tz_convert"  [attr-defined]
+                other = other.tz_convert("UTC")  # type: ignore[attr-defined]
         return this, other
 
     def _wrap_joined_index(self, joined, other):
@@ -1156,7 +1162,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
 
-                indexer = mask.nonzero()[0][::step]
+                # error: "bool" has no attribute "nonzero"  [attr-defined]
+                indexer = mask.nonzero()[0][::step]  # type: ignore[attr-defined]
                 if len(indexer) == len(self):
                     return slice(None)
                 else:
