@@ -99,7 +99,6 @@ See :ref:`text.types` for more.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
