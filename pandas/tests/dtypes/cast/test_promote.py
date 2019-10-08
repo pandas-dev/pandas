@@ -549,9 +549,8 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
 @pytest.mark.parametrize(
     "box",
     [
-        # disabled due to too many xfails; see GH 23982 / 25425
-        # (True, None),  # fill_value wrapped in array with auto-dtype (fixed len)
-        # (True, "bytes"),  # fill_value wrapped in array with generic bytes-dtype
+        (True, None),  # fill_value wrapped in array with auto-dtype (fixed len)
+        (True, "bytes"),  # fill_value wrapped in array with generic bytes-dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value directly
     ],
@@ -568,7 +567,6 @@ def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box)
         else:
             pytest.xfail("wrong missing value marker")
     else:
-        pass
         if (
             boxed
             and (box_dtype == "bytes" or box_dtype is None)
