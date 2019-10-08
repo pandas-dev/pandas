@@ -68,6 +68,7 @@ def justify(request):
 @pytest.mark.parametrize("col_space", [30, 50])
 def test_to_html_with_col_space(col_space):
     df = DataFrame(np.random.random(size=(1, 3)))
+    print(float_frame)
     # check that col_space affects HTML generation
     # and be very brittle about it.
     result = df.to_html(col_space=col_space)
@@ -103,7 +104,7 @@ def test_to_html_encoding(float_frame, tmp_path):
     # GH 28663
     path = tmp_path / "test.html"
     float_frame.to_html(path, encoding="gbk")
-    with open(path, "r", encoding="gbk") as f:
+    with open(str(path), "r", encoding="gbk") as f:
         assert float_frame.to_html(encoding="gbk") == f.read()
 
 
