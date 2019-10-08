@@ -928,9 +928,6 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _wrap_applied_output(self, *args, **kwargs):
-        raise AbstractMethodError(self)
-
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
 
