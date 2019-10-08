@@ -347,7 +347,9 @@ class FrameApply:
                     # make sure i is defined
                     if i is not None:
                         k = res_index[i]
-                        err.args = err.args + ("occurred at index %s" % pprint_thing(k),)
+                        err.args = err.args + (
+                            "occurred at index %s" % pprint_thing(k),
+                        )
                 raise
 
         self.results = results
