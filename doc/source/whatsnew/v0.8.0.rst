@@ -157,7 +157,6 @@ New plotting methods
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
-   :suppress:
 
    import pandas as pd
    fx = pd.read_pickle('data/fx_prices')
