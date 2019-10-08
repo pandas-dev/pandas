@@ -206,6 +206,22 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info()
         frame.info(verbose=False)
 
+    def test_info_verbose(self):
+        buf = StringIO()
+        size = 5
+        header_size = 3
+
+        frame = DataFrame(np.random.randn(3, size))
+        frame.info(verbose=True, buf=buf)
+
+        buf.seek(0)
+        lines = buf.readlines()
+        assert len(lines) > 0
+
+        for i, line in enumerate(lines):
+            if i >= header_size and i < header_size + size:
+                assert line.startswith(str(i - header_size) + ". ") 
+
     def test_info_memory(self):
         # https://github.com/pandas-dev/pandas/issues/21056
         df = pd.DataFrame({"a": pd.Series([1, 2], dtype="i8")})
@@ -219,7 +235,7 @@ class TestDataFrameReprInfoEtc(TestData):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-        a    2 non-null int64
+        0. a    2 non-null int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(
@@ -263,8 +279,8 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert "a    1 non-null int64\n" == lines[3]
-        assert "a    1 non-null float64\n" == lines[4]
+        assert "0. a    1 non-null int64\n" == lines[3]
+        assert "1. a    1 non-null float64\n" == lines[4]
 
     def test_info_shows_column_dtypes(self):
         dtypes = [

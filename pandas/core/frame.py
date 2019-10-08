@@ -2343,9 +2343,9 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Data columns (total 3 columns):
-        int_col      5 non-null int64
-        text_col     5 non-null object
-        float_col    5 non-null float64
+        0. int_col      5 non-null int64
+        1. text_col     5 non-null object
+        2. float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
         memory usage: 248.0+ bytes
 
@@ -2455,7 +2455,7 @@ class DataFrame(NDFrame):
                     count = counts.iloc[i]
 
                 lines.append(
-                    _put_str(col, space) + tmpl.format(count=count, dtype=dtype)
+                    str(i) + ". " + _put_str(col, space) + tmpl.format(count=count, dtype=dtype)
                 )
 
         def _non_verbose_repr():
