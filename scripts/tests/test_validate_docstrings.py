@@ -88,19 +88,21 @@ class GoodDocStrings:
         return random.random()
 
     @Decorators.good_decorator
-    def decorated_sample(self):
+    def decorated_sample(self, max):
         """
-        Generate and return a random number.
+        Generate and return a random integer between 0 and max.
 
-        The value is sampled from a continuous uniform distribution between
-        0 and 1.
+        Parameters
+        ----------
+        max : int
+            The maximum value of the random number.
 
         Returns
         -------
-        float
+        int
             Random number generated.
         """
-        return random.random()
+        return random.randint(0, max)
 
     def random_letters(self):
         """
