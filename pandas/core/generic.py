@@ -2287,7 +2287,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 - allowed values are: {'split', 'records', 'index', 'columns',
                   'values', 'table'}.
 
-
             * The format of the JSON string:
 
                 - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
