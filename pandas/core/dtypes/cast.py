@@ -359,6 +359,8 @@ def maybe_promote(dtype, fill_value=np.nan):
         if isinstance(fill_value, datetime) and fill_value.tzinfo is not None:
             # Trying to insert tzaware into tznaive, have to cast to object
             dtype = np.dtype(np.object_)
+        elif is_integer(fill_value) or (is_float(fill_value) and not isna(fill_value)):
+            dtype = np.dtype(np.object_)
         else:
             try:
                 fill_value = tslibs.Timestamp(fill_value).to_datetime64()
