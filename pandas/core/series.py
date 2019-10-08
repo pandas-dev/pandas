@@ -181,11 +181,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         | DirNamesMixin._deprecations
         | frozenset(
             [
+                "tolist",  # tolist is not deprecated, just suppressed in the __dir__
                 "asobject",
                 "compress",
-                "reshape",
                 "valid",
-                "tolist",  # tolist is not deprecated, just suppressed in the __dir__
                 "ftype",
                 "real",
                 "imag",

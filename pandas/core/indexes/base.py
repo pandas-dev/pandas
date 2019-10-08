@@ -208,7 +208,7 @@ class Index(IndexOpsMixin, PandasObject):
     _deprecations = (
         IndexOpsMixin._deprecations
         | DirNamesMixin._deprecations
-        | frozenset(["contains", "tolist", "dtype_str", "get_values", "set_value"])
+        | frozenset(["tolist", "contains", "dtype_str", "get_values", "set_value"])
     )
 
     # To hand over control to subclasses
