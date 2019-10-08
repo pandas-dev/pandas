@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
@@ -329,11 +328,11 @@ class TestLreshape:
                 "29dec2008",
                 "20jan2009",
             ],
-            "visitdt2": ["21jan2009", nan, "22jan2009", "31dec2008", "03feb2009"],
-            "visitdt3": ["05feb2009", nan, nan, "02jan2009", "15feb2009"],
+            "visitdt2": ["21jan2009", np.nan, "22jan2009", "31dec2008", "03feb2009"],
+            "visitdt3": ["05feb2009", np.nan, np.nan, "02jan2009", "15feb2009"],
             "wt1": [1823, 3338, 1549, 3298, 4306],
-            "wt2": [2011.0, nan, 1892.0, 3338.0, 4575.0],
-            "wt3": [2293.0, nan, nan, 3377.0, 4805.0],
+            "wt2": [2011.0, np.nan, 1892.0, 3338.0, 4575.0],
+            "wt3": [2293.0, np.nan, np.nan, 3377.0, 4805.0],
         }
 
         df = DataFrame(data)
@@ -497,13 +496,13 @@ class TestLreshape:
                 "29dec2008",
                 "20jan2009",
                 "21jan2009",
-                nan,
+                np.nan,
                 "22jan2009",
                 "31dec2008",
                 "03feb2009",
                 "05feb2009",
-                nan,
-                nan,
+                np.nan,
+                np.nan,
                 "02jan2009",
                 "15feb2009",
             ],
@@ -514,13 +513,13 @@ class TestLreshape:
                 3298.0,
                 4306.0,
                 2011.0,
-                nan,
+                np.nan,
                 1892.0,
                 3338.0,
                 4575.0,
                 2293.0,
-                nan,
-                nan,
+                np.nan,
+                np.nan,
                 3377.0,
                 4805.0,
             ],

@@ -1,4 +1,4 @@
-from numpy import nan
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -17,8 +17,8 @@ class TestMergeOrdered:
         expected = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
-                "lvalue": [1, nan, 2, nan, 3, nan],
-                "rvalue": [nan, 1, 2, 3, nan, 4],
+                "lvalue": [1, np.nan, 2, np.nan, 3, np.nan],
+                "rvalue": [np.nan, 1, 2, 3, np.nan, 4],
             }
         )
 
@@ -30,7 +30,7 @@ class TestMergeOrdered:
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
                 "lvalue": [1.0, 1, 2, 2, 3, 3.0],
-                "rvalue": [nan, 1, 2, 3, 3, 4],
+                "rvalue": [np.nan, 1, 2, 3, 3, 4],
             }
         )
         assert_frame_equal(result, expected)
@@ -47,7 +47,7 @@ class TestMergeOrdered:
             {
                 "key": ["a", "b", "c", "d", "e", "f"] * 2,
                 "lvalue": [1.0, 1, 2, 2, 3, 3.0] * 2,
-                "rvalue": [nan, 1, 2, 3, 3, 4] * 2,
+                "rvalue": [np.nan, 1, 2, 3, 3, 4] * 2,
             }
         )
         expected["group"] = ["a"] * 6 + ["b"] * 6
@@ -110,7 +110,7 @@ class TestMergeOrdered:
                 "group": list("aaaaabbbbb"),
                 "key": ["a", "b", "c", "d", "e"] * 2,
                 "lvalue": [1, 1, 2, 2, 3] * 2,
-                "rvalue": [nan, 1, 2, 3, 3] * 2,
+                "rvalue": [np.nan, 1, 2, 3, 3] * 2,
             }
         )
 

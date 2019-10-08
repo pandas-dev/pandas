@@ -4,7 +4,6 @@ from io import BytesIO
 import os
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.compat import PY36
@@ -323,7 +322,7 @@ class TestExcelWriter(_WriterBase):
 
     def test_roundtrip(self, engine, ext, frame):
         frame = frame.copy()
-        frame["A"][:5] = nan
+        frame["A"][:5] = np.nan
 
         frame.to_excel(self.path, "test1")
         frame.to_excel(self.path, "test1", columns=["A", "B"])
@@ -388,7 +387,7 @@ class TestExcelWriter(_WriterBase):
 
     def test_basics_with_nan(self, engine, ext, frame):
         frame = frame.copy()
-        frame["A"][:5] = nan
+        frame["A"][:5] = np.nan
         frame.to_excel(self.path, "test1")
         frame.to_excel(self.path, "test1", columns=["A", "B"])
         frame.to_excel(self.path, "test1", header=False)
@@ -450,7 +449,7 @@ class TestExcelWriter(_WriterBase):
 
     def test_sheets(self, engine, ext, frame, tsframe):
         frame = frame.copy()
-        frame["A"][:5] = nan
+        frame["A"][:5] = np.nan
 
         frame.to_excel(self.path, "test1")
         frame.to_excel(self.path, "test1", columns=["A", "B"])
@@ -473,7 +472,7 @@ class TestExcelWriter(_WriterBase):
 
     def test_colaliases(self, engine, ext, frame):
         frame = frame.copy()
-        frame["A"][:5] = nan
+        frame["A"][:5] = np.nan
 
         frame.to_excel(self.path, "test1")
         frame.to_excel(self.path, "test1", columns=["A", "B"])
@@ -491,7 +490,7 @@ class TestExcelWriter(_WriterBase):
 
     def test_roundtrip_indexlabels(self, merge_cells, engine, ext, frame):
         frame = frame.copy()
-        frame["A"][:5] = nan
+        frame["A"][:5] = np.nan
 
         frame.to_excel(self.path, "test1")
         frame.to_excel(self.path, "test1", columns=["A", "B"])

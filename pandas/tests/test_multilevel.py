@@ -1475,17 +1475,14 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns
-
-        from numpy import nan
-
         df3 = DataFrame(
             {
                 "A" * 30: {("A", "A0006000", "nuit"): "A0006000"},
-                "B" * 30: {("A", "A0006000", "nuit"): nan},
-                "C" * 30: {("A", "A0006000", "nuit"): nan},
-                "D" * 30: {("A", "A0006000", "nuit"): nan},
+                "B" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "C" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "D" * 30: {("A", "A0006000", "nuit"): np.nan},
                 "E" * 30: {("A", "A0006000", "nuit"): "A"},
-                "F" * 30: {("A", "A0006000", "nuit"): nan},
+                "F" * 30: {("A", "A0006000", "nuit"): np.nan},
             }
         )
 

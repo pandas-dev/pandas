@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
@@ -195,9 +194,9 @@ def test_reindex(test_data):
 
 
 def test_reindex_nan():
-    ts = Series([2, 3, 5, 7], index=[1, 4, nan, 8])
+    ts = Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
 
-    i, j = [nan, 1, nan, 8, 4, nan], [2, 0, 2, 3, 1, 2]
+    i, j = [np.nan, 1, np.nan, 8, 4, np.nan], [2, 0, 2, 3, 1, 2]
     assert_series_equal(ts.reindex(i), ts.iloc[j])
 
     ts.index = ts.index.astype("object")
