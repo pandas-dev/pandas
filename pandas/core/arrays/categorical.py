@@ -913,17 +913,17 @@ class Categorical(ExtensionArray, PandasObject):
             New categories which will replace old categories.
 
             * list-like: all items must be unique and the number of items in
-            the new categories must match the existing number of categories.
+              the new categories must match the existing number of categories.
 
             * dict-like: specifies a mapping from
-            old categories to new. Categories not contained in the mapping
-            are passed through and extra categories in the mapping are
-            ignored.
+              old categories to new. Categories not contained in the mapping
+              are passed through and extra categories in the mapping are
+              ignored.
 
             .. versionadded:: 0.21.0.
 
             * callable : a callable that is called on all items in the old
-            categories and whose return values comprise the new categories.
+              categories and whose return values comprise the new categories.
 
             .. versionadded:: 0.23.0.
 

@@ -2284,19 +2284,20 @@ class NDFrame(PandasObject, SelectionMixin):
             * DataFrame:
 
                 - default is 'columns'
-                - allowed values are:
-                {'split','records','index','columns','values','table'}.
+                - allowed values are: {'split', 'records', 'index', 'columns',
+                  'values', 'table'}.
+
 
             * The format of the JSON string:
 
-                - 'split' : dict like {'index' -> [index],
-                'columns' -> [columns], 'data' -> [values]}
-                - 'records' : list like
-                [{column -> value}, ... , {column -> value}]
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
                 - 'index' : dict like {index -> {column -> value}}
                 - 'columns' : dict like {column -> {index -> value}}
                 - 'values' : just the values array
                 - 'table' : dict like {'schema': {schema}, 'data': {data}}
+
                 Describing the data, where data component is like ``orient='records'``.
 
             .. versionchanged:: 0.20.0
