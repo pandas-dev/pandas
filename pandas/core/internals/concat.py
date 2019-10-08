@@ -287,7 +287,7 @@ def get_empty_dtype_and_na(join_units):
             return np.float64, np.nan
 
     if is_uniform_reindex(join_units):
-        # XXX: integrate property
+        # FIXME: integrate property
         empty_dtype = join_units[0].block.dtype
         upcasted_na = join_units[0].block.fill_value
         return empty_dtype, upcasted_na
@@ -354,6 +354,7 @@ def get_empty_dtype_and_na(join_units):
         dtype = upcast_classes["datetimetz"]
         return dtype[0], tslibs.NaT
     elif "datetime" in upcast_classes:
+        assert False  # shouldn't be using iNaT
         return np.dtype("M8[ns]"), tslibs.iNaT
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), tslibs.iNaT
