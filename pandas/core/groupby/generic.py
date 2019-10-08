@@ -132,6 +132,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
+    def _iterate_slices(self):
+        yield self._selection_name, self._selected_obj
+
     @property
     def _selection_name(self):
         """
@@ -323,7 +326,7 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_output(self, output, index, names=None):
+    def _wrap_series_output(self, output, index, names=None):
         """ common agg/transform wrapping logic """
         output = output[self._selection_name]
 
@@ -336,13 +339,15 @@ class SeriesGroupBy(GroupBy):
             return Series(output, index=index, name=name)
 
     def _wrap_aggregated_output(self, output, names=None):
-        result = self._wrap_output(
+        result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
         )
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(self, output, names=None):
-        return self._wrap_output(output=output, index=self.obj.index, names=names)
+        return self._wrap_series_output(
+            output=output, index=self.obj.index, names=names
+        )
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -866,7 +871,7 @@ class DataFrameGroupBy(GroupBy):
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
-                result = self._aggregate_generic(func, *args, **kwargs)
+                result = self._aggregate_frame(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
@@ -875,7 +880,7 @@ class DataFrameGroupBy(GroupBy):
                         [func], _level=_level, _axis=self.axis
                     )
                 except Exception:
-                    result = self._aggregate_generic(func)
+                    result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
@@ -999,7 +1004,7 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_generic(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs):
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
@@ -1022,7 +1027,7 @@ class DataFrameGroupBy(GroupBy):
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
 
-        return self._wrap_generic_output(result, obj)
+        return self._wrap_frame_output(result, obj)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -1506,7 +1511,7 @@ class DataFrameGroupBy(GroupBy):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_generic_output(self, result, obj):
+    def _wrap_frame_output(self, result, obj):
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
