@@ -156,7 +156,7 @@ Other new features
 New plotting methods
 ~~~~~~~~~~~~~~~~~~~~
 
-.. ipython:: python
+.. code-block:: python
    :suppress:
 
    import pandas as pd
@@ -165,7 +165,7 @@ New plotting methods
 
 ``Series.plot`` now supports a ``secondary_y`` option:
 
-.. ipython:: python
+.. code-block:: python
 
    plt.figure()
 
