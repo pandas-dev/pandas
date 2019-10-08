@@ -273,6 +273,23 @@ class GoodDocStrings:
         else:
             return None
 
+    def multiple_variables_on_one_line(self, matrix, a, b, i, j):
+        """
+        Swap two values in a matrix.
+
+        Parameters
+        ----------
+        matrix : list of list
+            A double list that represents a matrix.
+        a, b : int
+            The indicies of the first value.
+        i, j : int
+            The indicies of the second value.
+        """
+        temp = matrix[a][b]
+        matrix[a][b] = matrix[i][j]
+        matrix[i][j] = temp
+
 
 class BadGenericDocStrings:
     """Everything here has a bad docstring
@@ -866,6 +883,7 @@ class TestValidator:
             "good_imports",
             "no_returns",
             "empty_returns",
+            "multiple_variables_on_one_line",
         ],
     )
     def test_good_functions(self, capsys, func):
