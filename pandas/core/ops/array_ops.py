@@ -282,6 +282,14 @@ def comparison_op(
 
 def na_logical_op(x: np.ndarray, y, op):
     try:
+        # For exposition, write:
+        #  yarr = isinstance(y, np.ndarray)
+        #  yint = is_integer(y) or (yarr and y.dtype.kind == "i")
+        #  ybool = is_bool(y) or (yarr and y.dtype.kind == "b")
+        #  xint = x.dtype.kind == "i"
+        #  xbool = x.dtype.kind == "b"
+        # Then Cases where this goes through without raising include:
+        #  (xint or xbool) and (yint or bool)
         result = op(x, y)
     except TypeError:
         if isinstance(y, np.ndarray):
