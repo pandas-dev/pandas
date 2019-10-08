@@ -125,8 +125,9 @@ def melt(
         if len(frame.index.names) == len(set(frame.index.names)):
             orig_index_names = frame.index.names
         else:
-            orig_index_names = ["original_index_{i}".format(i=i)
-                                for i in range(len(frame.index.names))]
+            orig_index_names = [
+                "original_index_{i}".format(i=i) for i in range(len(frame.index.names))
+            ]
 
         result[orig_index_names] = frame._constructor(orig_index_values)
 
