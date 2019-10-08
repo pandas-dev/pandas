@@ -235,6 +235,15 @@ def test_to_html_truncate(datapath):
     assert result == expected
 
 
+@pytest.mark.parametrize("size", [1, 5])
+def test_html_invalid_formatters_arg_raises(size):
+    # issue-28469
+    df = DataFrame(columns=["a", "b", "c"])
+    msg = "Formatters length({}) should match DataFrame number of columns(3)"
+    with pytest.raises(ValueError, match=re.escape(msg.format(size))):
+        df.to_html(formatters=["{}".format] * size)
+
+
 def test_to_html_truncate_formatter(datapath):
     # issue-25955
     data = [
