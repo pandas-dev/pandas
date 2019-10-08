@@ -561,7 +561,17 @@ class DataFrameFormatter(TableFormatter):
         self.sparsify = sparsify
 
         self.float_format = float_format
-        self.formatters = formatters if formatters is not None else {}
+        if formatters is None:
+            self.formatters = {}
+        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
+            self.formatters = formatters
+        else:
+            raise ValueError(
+                (
+                    "Formatters length({flen}) should match"
+                    " DataFrame number of columns({dlen})"
+                ).format(flen=len(formatters), dlen=len(frame.columns))
+            )
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = col_space
