@@ -11,6 +11,7 @@ import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
+import inspect
 import re
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
@@ -614,14 +615,17 @@ b  2""",
             return self.apply(lambda self: getattr(self, name))
 
         f = getattr(type(self._selected_obj), name)
+        sig = inspect.signature(f)
 
         def wrapper(*args, **kwargs):
             # a little trickery for aggregation functions that need an axis
             # argument
-            kwargs2 = kwargs.copy()
+            if "axis" in sig.parameters:
+                if kwargs.get("axis", None) is None:
+                    kwargs["axis"] = self.axis
 
             def curried(x):
-                return f(x, *args, **kwargs2)
+                return f(x, *args, **kwargs)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
@@ -631,13 +635,6 @@ b  2""",
             # exception below
             if name in base.plotting_methods:
                 return self.apply(curried)
-
-            import inspect
-
-            sig = inspect.signature(f)
-            if "axis" in sig.parameters:
-                if kwargs.get("axis", None) is None:
-                    kwargs2["axis"] = self.axis
 
             try:
                 return self.apply(curried)
