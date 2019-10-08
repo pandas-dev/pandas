@@ -1038,14 +1038,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if (
-        dtype == bytes
-        and not boxed
-        and fill_value is not None
-        and fill_value is not NaT
-    ):
-        pytest.xfail("does not upcast to object")
-    elif is_integer_dtype(dtype) and fill_value is not NaT:
+    if is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan
