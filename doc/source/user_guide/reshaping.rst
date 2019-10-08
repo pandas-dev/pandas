@@ -728,7 +728,7 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
-.. note::
+.. code-block::
 
    col   col0   col1   col2   col3  col4
    row
