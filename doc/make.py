@@ -204,7 +204,13 @@ class DocBuilder:
 
                 path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
 
-                title = self._get_page_title(row[1])
+                try:
+                    title = self._get_page_title(row[1])
+                except FileNotFoundError:
+                    # the file can be an ipynb and not an rst, or docutils
+                    # may not be able to read the rst because it has some
+                    # sphinx specific stuff
+                    title = "this page"
 
                 if os.path.exists(path):
                     raise RuntimeError(
