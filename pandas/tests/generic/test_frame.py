@@ -305,13 +305,13 @@ class TestDataFrame(Generic):
 
         result.Live = True
 
-        # Changing the value in "timenow" column after setting the "Live" column to True
+        # Changing the value in "timenow" column after setting the "Live" column to True.
         result.at[start, "timenow"] = new_datetime
 
         expected = pd.DataFrame(
-            [[new_datetime, "True"]],
+            [[new_datetime, True]],
             index=pd.date_range(start, periods=1),
             columns=["timenow", "Live"],
         )
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_dtype=False)
