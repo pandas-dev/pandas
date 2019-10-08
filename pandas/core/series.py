@@ -16,7 +16,7 @@ from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
@@ -2317,7 +2317,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
 
-        self._check_percentile(q)
+        validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
         #  about 2D cases.
@@ -2738,10 +2738,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        if func.__name__ in ["divmod", "rdivmod"]:
-            ret = ops._construct_divmod_result(self, result, new_index, name)
-        else:
-            ret = ops._construct_result(self, result, new_index, name)
+        ret = ops._construct_result(self, result, new_index, name)
         return ret
 
     def combine(self, other, func, fill_value=None):
@@ -4160,9 +4157,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index, columns : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
+        index : single label or list-like
+            Redundant for application on Series, but 'index' can be used instead
+            of 'labels'.
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
+            No change is made to the Series; use 'index' or 'labels' instead.
 
             .. versionadded:: 0.21.0
         level : int or level name, optional
@@ -4410,9 +4411,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        left : scalar
+        left : scalar or list-like
             Left boundary.
-        right : scalar
+        right : scalar or list-like
             Right boundary.
         inclusive : bool, default True
             Include boundaries.

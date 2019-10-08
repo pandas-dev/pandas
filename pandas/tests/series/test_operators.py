@@ -250,12 +250,20 @@ class TestSeriesLogicalOps:
 
         with pytest.raises(TypeError):
             d.__and__(s, axis="columns")
+        with pytest.raises(TypeError):
+            d.__and__(s, axis=1)
 
         with pytest.raises(TypeError):
             s & d
+        with pytest.raises(TypeError):
+            d & s
 
-        # this is wrong as its not a boolean result
-        # result = d.__and__(s,axis='index')
+        expected = (s & s).to_frame("A")
+        result = d.__and__(s, axis="index")
+        tm.assert_frame_equal(result, expected)
+
+        result = d.__and__(s, axis=0)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
     def test_logical_ops_with_index(self, op):
@@ -436,20 +444,19 @@ class TestSeriesLogicalOps:
         assert_series_equal(s2 & s1, exp)
 
         # True | np.nan => True
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s1 | s2, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        assert_series_equal(s1 | s2, exp_or1)
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
-        assert_series_equal(s2 | s1, exp)
+        exp_or = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
+        assert_series_equal(s2 | s1, exp_or)
 
         # DataFrame doesn't fill nan with False
-        exp = pd.DataFrame({"x": [True, False, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
+        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
+        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
 
         exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
+        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
+        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 
         # different length
         s3 = pd.Series([True, False, True], index=list("ABC"), name="x")
@@ -460,19 +467,17 @@ class TestSeriesLogicalOps:
         assert_series_equal(s4 & s3, exp)
 
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s3 | s4, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        assert_series_equal(s3 | s4, exp_or1)
         # True | np.nan => True
-        exp = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
-        assert_series_equal(s4 | s3, exp)
+        exp_or = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
+        assert_series_equal(s4 | s3, exp_or)
 
-        exp = pd.DataFrame({"x": [True, False, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
+        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp.to_frame())
+        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp.to_frame())
 
-        exp = pd.DataFrame({"x": [True, True, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
+        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
+        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
 
 class TestSeriesComparisons:

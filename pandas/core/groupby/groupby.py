@@ -11,6 +11,8 @@ import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
+import inspect
+import re
 import types
 from typing import FrozenSet, List, Optional, Tuple, Type, Union
 
@@ -212,9 +214,9 @@ func : callable or tuple of (callable, string)
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
-       positional arguments passed into `func`.
+       Positional arguments passed into `func`.
 kwargs : dict, optional
-         a dictionary of keyword arguments passed into `func`.
+         A dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
@@ -562,8 +564,6 @@ class _GroupBy(PandasObject, SelectionMixin):
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
-        if hasattr(self.obj, attr):
-            return self._make_wrapper(attr)
 
         raise AttributeError(
             "%r object has no attribute %r" % (type(self).__name__, attr)
@@ -615,23 +615,21 @@ b  2""",
             return self.apply(lambda self: getattr(self, name))
 
         f = getattr(type(self._selected_obj), name)
+        sig = inspect.signature(f)
 
         def wrapper(*args, **kwargs):
             # a little trickery for aggregation functions that need an axis
             # argument
-            kwargs_with_axis = kwargs.copy()
-            if "axis" not in kwargs_with_axis or kwargs_with_axis["axis"] is None:
-                kwargs_with_axis["axis"] = self.axis
-
-            def curried_with_axis(x):
-                return f(x, *args, **kwargs_with_axis)
+            if "axis" in sig.parameters:
+                if kwargs.get("axis", None) is None:
+                    kwargs["axis"] = self.axis
 
             def curried(x):
                 return f(x, *args, **kwargs)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
-            curried.__name__ = curried_with_axis.__name__ = name
+            curried.__name__ = name
 
             # special case otherwise extra plots are created when catching the
             # exception below
@@ -639,24 +637,31 @@ b  2""",
                 return self.apply(curried)
 
             try:
-                return self.apply(curried_with_axis)
-            except Exception:
-                try:
-                    return self.apply(curried)
-                except Exception:
+                return self.apply(curried)
+            except TypeError as err:
+                if not re.search(
+                    "reduction operation '.*' not allowed for this dtype", str(err)
+                ):
+                    # We don't have a cython implementation
+                    # TODO: is the above comment accurate?
+                    raise
 
-                    # related to : GH3688
-                    # try item-by-item
-                    # this can be called recursively, so need to raise
-                    # ValueError
-                    # if we don't have this method to indicated to aggregate to
-                    # mark this column as an error
-                    try:
-                        return self._aggregate_item_by_item(name, *args, **kwargs)
-                    except AttributeError:
-                        # e.g. SparseArray has no flags attr
-                        raise ValueError
+            # related to : GH3688
+            # try item-by-item
+            # this can be called recursively, so need to raise
+            # ValueError
+            # if we don't have this method to indicated to aggregate to
+            # mark this column as an error
+            try:
+                return self._aggregate_item_by_item(name, *args, **kwargs)
+            except AttributeError:
+                # e.g. SparseArray has no flags attr
+                # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
+                #  occurs in idxmax() case
+                #  in tests.groupby.test_function.test_non_cython_api
+                raise ValueError
 
+        wrapper.__name__ = name
         return wrapper
 
     def get_group(self, name, obj=None):
@@ -666,11 +671,11 @@ b  2""",
         Parameters
         ----------
         name : object
-            the name of the group to get as a DataFrame
+            The name of the group to get as a DataFrame.
         obj : DataFrame, default None
-            the DataFrame to take the DataFrame out of.  If
+            The DataFrame to take the DataFrame out of.  If
             it is None, the object groupby was called on will
-            be used
+            be used.
 
         Returns
         -------
@@ -870,6 +875,9 @@ b  2""",
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output, names)
+
+    def _wrap_aggregated_output(self, output, names=None):
+        raise AbstractMethodError(self)
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
         output = {}
@@ -1116,7 +1124,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
@@ -1133,7 +1141,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         skipna : bool, default True
-            Flag to ignore nan values during truth testing
+            Flag to ignore nan values during truth testing.
 
         Returns
         -------
@@ -1254,7 +1262,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1277,7 +1285,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1312,7 +1320,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1624,7 +1632,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1650,7 +1658,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -1682,10 +1690,10 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         n : int or list of ints
-            a single nth value for the row or a list of nth values
+            A single nth value for the row or a list of nth values.
         dropna : None or str, optional
-            apply the specified dropna operation before counting which row is
-            the nth row. Needs to be None, 'any' or 'all'
+            Apply the specified dropna operation before counting which row is
+            the nth row. Needs to be None, 'any' or 'all'.
 
         Returns
         -------
@@ -2100,13 +2108,13 @@ class GroupBy(_GroupBy):
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
         ascending : bool, default True
-            False for ranks by high (1) to low (N)
+            False for ranks by high (1) to low (N).
         na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
         pct : bool, default False
-            Compute percentage rank of data within each group
+            Compute percentage rank of data within each group.
         axis : int, default 0
             The axis of the object over which to compute the rank.
 
@@ -2314,7 +2322,7 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         periods : int, default 1
-            number of periods to shift
+            Number of periods to shift.
         freq : frequency string
         axis : axis to shift, default 0
         fill_value : optional
