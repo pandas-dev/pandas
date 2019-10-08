@@ -3271,24 +3271,29 @@ def _make_date_converter(
                 )
         else:
             try:
-                result = tools.to_datetime(
-                    date_parser(*date_cols), errors="ignore", cache=cache_dates
-                )
-                if isinstance(result, datetime.datetime):
-                    raise Exception("scalar parser")
-                return result
+                parsed_cols = date_parser(*date_cols)
+                if isinstance(parsed_cols, datetime.datetime):
+                    raise TypeError("scalar parser")
             except Exception:
+                # Since `date_parser` is user-provided, we can't guess
+                #  what it might raise.
+                dcs = parsing._concat_date_cols(date_cols)
                 try:
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing._concat_date_cols(date_cols),
-                            parser=date_parser,
-                            dayfirst=dayfirst,
-                        ),
-                        errors="ignore",
+                    parsed = parsing.try_parse_dates(
+                        dcs, parser=date_parser, dayfirst=dayfirst
                     )
                 except Exception:
+                    # Since `date_parser` is user-provided, we can't guess
+                    #  what it might raise.
                     return generic_parser(date_parser, *date_cols)
+                else:
+                    return tools.to_datetime(parsed, errors="ignore")
+
+            else:
+                result = tools.to_datetime(
+                    parsed_cols, errors="ignore", cache=cache_dates
+                )
+                return result
 
     return converter
 
