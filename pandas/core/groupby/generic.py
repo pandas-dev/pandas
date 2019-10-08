@@ -345,7 +345,9 @@ class SeriesGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(self, output, names=None):
-        return self._wrap_series_output(output=output, index=self.obj.index, names=names)
+        return self._wrap_series_output(
+            output=output, index=self.obj.index, names=names
+        )
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
