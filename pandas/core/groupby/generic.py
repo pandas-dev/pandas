@@ -11,7 +11,19 @@ import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -267,18 +279,39 @@ class NDFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _decide_output_index(self, output, labels):
-        if len(output) == len(labels):
-            output_keys = labels
-        else:
-            output_keys = sorted(output)
-            try:
-                output_keys.sort()
-            except TypeError:
-                pass
+    def _decide_output_index(
+        self,
+        output: Dict[int, np.ndarray],
+        labels: Index,
+        col_labels: Optional[List[Union[Hashable, Tuple[Hashable, ...]]]] = None,
+    ) -> Index:
+        """
+        Determine axis labels to use while wrapping aggregated values.
 
-            if isinstance(labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys, names=labels.names)
+        Parameters
+        ----------
+        output : dict of ndarrays
+            Results of aggregating by-column. Column names should be integer position
+        labels : Index
+            Existing labels of selected object. Used to determine resulting shape and name(s)
+        col_labels : list, optional
+            The ultimate column labels for the reshaped object. Each entry in this list
+            should correspond to a key value in output. Must be valid column labels and tuples
+            are contained within should map to a MultiIndex
+
+        Returns
+        -------
+        Index or MultiIndex
+        """
+        if col_labels:
+            keys = col_labels
+        else:
+            keys = output.keys()
+
+        if isinstance(labels, Index):
+            output_keys = Index(keys, name=labels.name)
+        elif isinstance(labels, MultiIndex):
+            output_keys = MultiIndex.from_tuples(keys, names=labels.names)
 
         return output_keys
 
@@ -1452,21 +1485,18 @@ class DataFrameGroupBy(NDFrameGroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(
+        self,
+        output: Dict,
+        names: Optional[List[Union[Hashable, Tuple[Hashable, ...]]]] = None,
+    ) -> DataFrame:
         index = self.grouper.result_index
+        result = DataFrame(output, index)
 
-        if isinstance(output, dict):
-            result = DataFrame(output, index=index)
-        else:
-            agg_axis = 0 if self.axis == 1 else 1
-            agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-            output_keys = self._decide_output_index(
-                output, index=index, columns=agg_labels
-            )
-            result = DataFrame(output, columns=output_keys)
-
-        if names:
-            result.columns = names
+        agg_axis = 0 if self.axis == 1 else 1
+        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+        output_keys = self._decide_output_index(output, agg_labels, names)
+        result.columns = output_keys
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
