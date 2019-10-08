@@ -515,14 +515,6 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if (
-            is_integer_dtype(fill_dtype)
-            or is_float_dtype(fill_dtype)
-            or is_complex_dtype(fill_dtype)
-            or is_object_dtype(fill_dtype)
-            or is_timedelta64_dtype(fill_dtype)
-        ) and not boxed:
-            pytest.xfail("does not upcast to object")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -557,15 +549,12 @@ def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box)
         else:
             pytest.xfail("wrong missing value marker")
     else:
-        pass
         if (
             boxed
             and (box_dtype == "bytes" or box_dtype is None)
             and not (is_string_dtype(dtype) or dtype == bool)
         ):
             pytest.xfail("does not upcast to object")
-        if not boxed and is_datetime_or_timedelta_dtype(dtype):
-            pytest.xfail("raises error")
 
     # create array of given dtype
     fill_value = b"abc"
