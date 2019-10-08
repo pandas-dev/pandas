@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -500,14 +501,93 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced, box):
     )
 
 
-def test_maybe_promote_bytes_with_any():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box):
+    dtype = np.dtype(bytes_dtype)
+    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if issubclass(fill_dtype.type, np.bytes_):
+        if not boxed or box_dtype == object:
+            pytest.xfail("falsely upcasts to object")
+        # takes the opinion that bool dtype has no missing value marker
+        else:
+            pytest.xfail("wrong missing value marker")
+    else:
+        if boxed and box_dtype is None:
+            pytest.xfail("does not upcast to object")
+        if (
+            is_integer_dtype(fill_dtype)
+            or is_float_dtype(fill_dtype)
+            or is_complex_dtype(fill_dtype)
+            or is_object_dtype(fill_dtype)
+            or is_timedelta64_dtype(fill_dtype)
+        ) and not boxed:
+            pytest.xfail("does not upcast to object")
+
+    # create array of given dtype; casts "1" to correct dtype
+    fill_value = np.array([1], dtype=fill_dtype)[0]
+
+    # filling bytes with anything but bytes casts to object
+    expected_dtype = (
+        dtype if issubclass(fill_dtype.type, np.bytes_) else np.dtype(object)
+    )
+    exp_val_for_scalar = fill_value
+    exp_val_for_array = None if issubclass(fill_dtype.type, np.bytes_) else np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
-def test_maybe_promote_any_with_bytes():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
+    dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(bytes_dtype)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if issubclass(dtype.type, np.bytes_):
+        if not boxed or box_dtype == object:
+            pytest.xfail("falsely upcasts to object")
+        # takes the opinion that bool dtype has no missing value marker
+        else:
+            pytest.xfail("wrong missing value marker")
+    else:
+        pass
+        if (
+            boxed
+            and (box_dtype == "bytes" or box_dtype is None)
+            and not (is_string_dtype(dtype) or dtype == bool)
+        ):
+            pytest.xfail("does not upcast to object")
+        if not boxed and is_datetime_or_timedelta_dtype(dtype):
+            pytest.xfail("raises error")
+
+    # create array of given dtype
+    fill_value = b"abc"
+
+    # special case for box_dtype (cannot use fixture in parametrization)
+    box_dtype = fill_dtype if box_dtype == "bytes" else box_dtype
+
+    # filling bytes with anything but bytes casts to object
+    expected_dtype = dtype if issubclass(dtype.type, np.bytes_) else np.dtype(object)
+    # output is not a generic bytes, but corresponds to expected_dtype
+    exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
+    exp_val_for_array = None if issubclass(dtype.type, np.bytes_) else np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 def test_maybe_promote_datetime64_with_any(
