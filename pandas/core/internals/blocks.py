@@ -687,7 +687,6 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-
         values = self.get_values()
 
         if slicer is not None:
@@ -1782,6 +1781,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def to_dense(self):
         return np.asarray(self.values)
+
+    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+        """override to use ExtensionArray astype for the conversion"""
+        values = self.values
+        if slicer is not None:
+            values = values[slicer]
+        mask = isna(values)
+        values = values.astype(str)
+        values[mask] = na_rep
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1, len(values))
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
