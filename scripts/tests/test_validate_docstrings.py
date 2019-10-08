@@ -39,6 +39,23 @@ class GoodDocStrings:
         """
         pass
 
+    def swap(self, arr, i, j, *args, **kwargs):
+        """
+        Swap two indecies on an array.
+
+        Parameters
+        ----------
+        arr : List
+            The list having indexes swapped.
+        i, j : int
+            The indexes being swapped.
+        *args, **kwargs
+            Extraneous parameters are being permitted.
+        """
+        temp = arr[i]
+        arr[i] = arr[j]
+        arr[j] = temp
+
     def sample(self):
         """
         Generate and return a random number.
@@ -634,6 +651,17 @@ class BadParameters:
         """
         pass
 
+    def bad_parameter_spacing(self, a, b):
+        """
+        The parameters on the same line have an extra space between them.
+
+        Parameters
+        ----------
+        a,  b : int
+            Foo bar baz.
+        """
+        pass
+
 
 class BadReturns:
     def return_not_documented(self):
@@ -827,6 +855,7 @@ class TestValidator:
         "func",
         [
             "plot",
+            "swap",
             "sample",
             "random_letters",
             "sample_values",
@@ -1001,6 +1030,11 @@ class TestValidator:
                 "BadParameters",
                 "list_incorrect_parameter_type",
                 ('Parameter "kind" type should use "str" instead of "string"',),
+            ),
+            (
+                "BadParameters",
+                "bad_parameter_spacing",
+                ("Parameters {b} not documented", "Unknown parameters { b}"),
             ),
             pytest.param(
                 "BadParameters",
