@@ -506,25 +506,13 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
     fill_dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if issubclass(fill_dtype.type, np.bytes_):
-        if not boxed or box_dtype == object:
-            pytest.xfail("falsely upcasts to object")
-        # takes the opinion that bool dtype has no missing value marker
-        else:
-            pytest.xfail("wrong missing value marker")
-    else:
-        if boxed and box_dtype is None:
-            pytest.xfail("does not upcast to object")
-
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
-    # filling bytes with anything but bytes casts to object
-    expected_dtype = (
-        dtype if issubclass(fill_dtype.type, np.bytes_) else np.dtype(object)
-    )
+    # we never use bytes dtype internally, always promote to object
+    expected_dtype = np.dtype(np.object_)
     exp_val_for_scalar = fill_value
-    exp_val_for_array = None if issubclass(fill_dtype.type, np.bytes_) else np.nan
+    exp_val_for_array = np.nan
 
     _check_promote(
         dtype,
