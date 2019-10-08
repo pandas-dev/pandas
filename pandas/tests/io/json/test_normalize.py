@@ -815,30 +815,6 @@ class TestNestedToRecord:
 
     def test_use_key_include_specific_level(self):
         # GH 27241 ignore specific keys from flattening
-        # use_keys = lambda key: key in ["Image", "CreatedBy"]
-        # input_data = [
-        #     {
-        #         "CreatedBy": {"Name": "User001"},
-        #         "Lookup": {
-        #             "TextField": "Some text",
-        #             "UserField": {"Id": "ID001", "Name": "Name001"},
-        #             "CreatedBy": {"Name": "User001"},
-        #         },
-        #         "Image": {"a": "b"},
-        #     }
-        # ]
-        # output = nested_to_record(input_data, use_keys=use_keys)
-        # expected = [{
-        #     'CreatedBy.Name': 'User001',
-        #     "Lookup": {
-        #             "TextField": "Some text",
-        #             "UserField": {"Id": "ID001", "Name": "Name001"},
-        #             "CreatedBy": {"Name": "User001"},
-        #         },
-        #     "Image.a": "b",
-        # }]
-        # assert output == expected
-
         use_keys = ["Image", "Lookup.CreatedBy"]
         input_data = [
             {
@@ -865,8 +841,8 @@ class TestNestedToRecord:
         ]
         assert output == expected
 
-    # def test_use_keys_raises_type_error(self, nested_input_data):
-    #     # GH 27241 ignore specific keys from flattening
-    #     use_keys = 1
-    #     with pytest.raises(TypeError):
-    #         nested_to_record(nested_input_data, use_keys=use_keys)
+    def test_use_keys_raises_type_error(self, nested_input_data):
+        # GH 27241 ignore specific keys from flattening
+        use_keys = 1
+        with pytest.raises(TypeError):
+            nested_to_record(nested_input_data, use_keys=use_keys)

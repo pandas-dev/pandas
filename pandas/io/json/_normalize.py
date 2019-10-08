@@ -27,7 +27,7 @@ def convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def _parse_use_keys(use_keys: Union[str, List, Callable, None]) -> Callable:
+def _parse_use_keys(use_keys: Optional[Union[str, List, Callable]]) -> Callable:
     """
     Converts different types of use_keys into a callable.
 
@@ -130,12 +130,12 @@ def nested_to_record(
 
         raise TypeError("`use_keys` must be a str, list or a callable")
 
-    def new_lookup(_d, level, prev_keys=[]):
+    def lookup_deeper(_dict, level, prev_keys=[]):
         nonlocal max_level
-        for key, val in _d.items():
+        for key, val in _dict.items():
             if isinstance(val, dict) and (max_level is None or level < max_level):
-                yield from new_lookup(
-                    _d=val, prev_keys=prev_keys + [key], level=level + 1
+                yield from lookup_deeper(
+                    _dict=val, prev_keys=prev_keys + [key], level=level + 1
                 )
             else:
                 yield prev_keys + [key, val]
@@ -166,7 +166,7 @@ def nested_to_record(
                 and isinstance(v, dict)
             ):
                 new_d.pop(k)
-                for *j, val in new_lookup(v, level=level + 1):
+                for *j, val in lookup_deeper(v, level=level + 1):
                     new_d[sep.join([k, *j])] = val
 
             else:
@@ -268,10 +268,10 @@ def json_normalize(
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
     >>> json_normalize(data, max_level=0)
-                fitness                 id        name
-    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
-    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
-    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+        id        name                        fitness
+    0  1.0   Cole Volk  {'height': 130, 'weight': 60}
+    1  NaN    Mose Reg  {'height': 130, 'weight': 60}
+    2  2.0  Faye Raker  {'height': 130, 'weight': 60}
 
     Normalizes nested data up to level 0.
 
@@ -283,10 +283,10 @@ def json_normalize(
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
     >>> json_normalize(data, max_level=1)
-      fitness.height  fitness.weight   id    name
-    0   130              60          1.0    Cole Volk
-    1   130              60          NaN    Mose Reg
-    2   130              60          2.0    Faye Raker
+        id        name  fitness.height  fitness.weight
+    0  1.0   Cole Volk             130              60
+    1  NaN    Mose Reg             130              60
+    2  2.0  Faye Raker             130              60
 
     Normalizes nested data up to level 1.
 
@@ -298,12 +298,27 @@ def json_normalize(
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
     >>> json_normalize(data, use_keys=lambda key: key not in ["fitness"])
-                fitness                 id        name
-    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
-    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
-    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+        id        name                        fitness
+    0  1.0   Cole Volk  {'height': 130, 'weight': 60}
+    1  NaN    Mose Reg  {'height': 130, 'weight': 60}
+    2  2.0  Faye Raker  {'height': 130, 'weight': 60}
 
     Ignores specific keys from being flattened
+
+    >>> data = [{'id': 1,
+    ...          'name': "Cole Volk",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'name': "Mose Reg",
+    ...          'fitness': {'height': 130, 'weight': 60}},
+    ...         {'id': 2, 'name': 'Faye Raker',
+    ...          'fitness': {'height': 130, 'weight': 60}}]
+    >>> json_normalize(data, use_keys="fitness")
+        id        name  fitness.height  fitness.weight
+    0  1.0   Cole Volk             130              60
+    1  NaN    Mose Reg             130              60
+    2  2.0  Faye Raker             130              60
+
+    Flattens specific set of selected keys
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
