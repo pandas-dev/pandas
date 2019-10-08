@@ -168,7 +168,6 @@ Categorical
 - Bug in :meth:`Categorical.astype` where ``NaN`` values were handled incorrectly when casting to int (:issue:`28406`)
 - :meth:`Categorical.searchsorted` and :meth:`CategoricalIndex.searchsorted` now work on unordered categoricals also (:issue:`21667`)
 - Added test to assert roundtripping to parquet with :func:`DataFrame.to_parquet` or :func:`read_parquet` will preserve Categorical dtypes for string types (:issue:`27955`)
-- Changed the error message in :meth:`Categorical.remove_categories` to always show the invalid removals as a set (:issue:`28669`)
 - 
 
 
