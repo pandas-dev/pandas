@@ -307,7 +307,7 @@ class NDFrameGroupBy(GroupBy):
         if col_labels:
             keys = col_labels
         else:
-            keys = output.keys()
+            keys = list(output.keys())
 
         if isinstance(labels, Index):
             output_keys = Index(keys, name=labels.name)
