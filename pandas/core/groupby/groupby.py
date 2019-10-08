@@ -869,6 +869,9 @@ b  2""",
 
         return self._wrap_transformed_output(output, names)
 
+    def _wrap_aggregated_output(self, output, names=None):
+        raise AbstractMethodError(self)
+
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
         output = {}
         for name, obj in self._iterate_slices():

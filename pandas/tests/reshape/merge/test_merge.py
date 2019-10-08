@@ -2096,6 +2096,20 @@ def test_merge_equal_cat_dtypes2():
     tm.assert_frame_equal(result, expected, check_categorical=False)
 
 
+def test_merge_on_cat_and_ext_array():
+    # GH 28668
+    right = DataFrame(
+        {"a": Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")}
+    )
+    left = right.copy()
+    left["a"] = left["a"].astype("category")
+
+    result = pd.merge(left, right, how="inner", on="a")
+    expected = right.copy()
+
+    assert_frame_equal(result, expected)
+
+
 def test_merge_multiindex_columns():
     # Issue #28518
     # Verify that merging two dataframes give the expected labels
