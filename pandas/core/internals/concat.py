@@ -354,7 +354,6 @@ def get_empty_dtype_and_na(join_units):
         dtype = upcast_classes["datetimetz"]
         return dtype[0], tslibs.NaT
     elif "datetime" in upcast_classes:
-        assert False  # shouldn't be using iNaT
         return np.dtype("M8[ns]"), tslibs.iNaT
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), tslibs.iNaT
