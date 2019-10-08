@@ -128,7 +128,7 @@ class DocBuilder:
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
         if kind not in ("html", "latex"):
-            raise ValueError("kind must be html or latex, " "not {}".format(kind))
+            raise ValueError("kind must be html or latex, not {}".format(kind))
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
@@ -204,17 +204,11 @@ class DocBuilder:
 
                 path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
 
-                try:
-                    title = self._get_page_title(row[1])
-                except Exception:
-                    # the file can be an ipynb and not an rst, or docutils
-                    # may not be able to read the rst because it has some
-                    # sphinx specific stuff
-                    title = "this page"
+                title = self._get_page_title(row[1])
 
                 if os.path.exists(path):
                     raise RuntimeError(
-                        ("Redirection would overwrite an existing file: " "{}").format(
+                        ("Redirection would overwrite an existing file: {}").format(
                             path
                         )
                     )
