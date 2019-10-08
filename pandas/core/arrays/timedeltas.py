@@ -14,6 +14,7 @@ from pandas._libs.tslibs.timedeltas import (
     precision_from_unit,
 )
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -41,6 +42,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 from pandas.core.ops.invalid import invalid_comparison
@@ -383,6 +385,62 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return self.copy()
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
+
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims: bool = False,
+        initial=None,
+        skipna: bool = True,
+        min_count: int = 0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nansum(
+            self._data, axis=axis, skipna=skipna, min_count=min_count
+        )
+        return Timedelta(result)
+
+    def std(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
+        return Timedelta(result)
+
+    def median(
+        self,
+        axis=None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_median(
+            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+        )
+        return nanops.nanmedian(self._data, axis=axis, skipna=skipna)
 
     # ----------------------------------------------------------------
     # Rendering Methods
