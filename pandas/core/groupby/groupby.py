@@ -739,9 +739,6 @@ b  2""",
 
         return result
 
-    def aggregate(self, func=None, *args, **kwargs):
-        raise AbstractMethodError
-
     def _python_apply_general(self, f):
         keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
 
