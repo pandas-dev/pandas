@@ -3028,6 +3028,7 @@ class MultiIndex(Index):
                 return indexer
             return indexer & idxr
 
+        need_sort = False
         for i, k in enumerate(seq):
 
             if com.is_bool_indexer(k):
@@ -3039,12 +3040,21 @@ class MultiIndex(Index):
                 # a collection of labels to include from this level (these
                 # are or'd)
                 indexers = None
+                start_pos = 0
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = idxrs if indexers is None else indexers | idxrs
+
+                        if not need_sort:
+                            next_key_pos = self.levels[i].get_loc(x)
+                            if next_key_pos < start_pos:
+                                need_sort = True
+                            else:
+                                start_pos = next_key_pos
+
                     except KeyError:
 
                         # ignore not founds
@@ -3082,26 +3092,28 @@ class MultiIndex(Index):
         if indexer is None:
             return Int64Index([])._ndarray_values
 
-        # Generate tuples of keys by wich to order the results
-        keys = tuple()
-        for i, k in enumerate(seq):
-            if com.is_bool_indexer(k):
-                new_order = np.arange(n)[indexer]
-            elif is_list_like(k):
-                # Generate a map with all level codes as sorted initially
-                key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
-                    self.levels[i]
-                )
-                # Set order as given in the indexer list
-                for p, e in enumerate(k):
-                    if e in self.levels[i]:
-                        key_order_map[self.levels[i].get_loc(e)] = p
-                new_order = key_order_map[self.codes[i][indexer]]
-            else:
-                # For all other case, use the same order as the level
-                new_order = np.arange(n)[indexer]
-            keys = (new_order,) + keys
-        if len(keys) > 0:
+        # Generate tuples of keys by which to order the results
+        if need_sort:
+            keys = tuple()
+            for i, k in enumerate(seq):
+                if com.is_bool_indexer(k):
+                    new_order = np.arange(n)[indexer]
+                elif is_list_like(k):
+                    # Generate a map with all level codes as sorted initially
+                    key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
+                        self.levels[i]
+                    )
+                    # Set order as given in the indexer list
+                    for p, e in enumerate(k):
+                        if e in self.levels[i]:
+                            key_order_map[self.levels[i].get_loc(e)] = p
+                    new_order = key_order_map[self.codes[i][indexer]]
+                    # Testing if the sort order of the result shoud be modified
+                else:
+                    # For all other case, use the same order as the level
+                    new_order = np.arange(n)[indexer]
+                keys = (new_order,) + keys
+
             ind = np.lexsort(keys)
             indexer = indexer[ind]
 
