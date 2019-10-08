@@ -129,6 +129,17 @@ class TestDataFrameConcatCommon:
         )
         assert_frame_equal(results, expected)
 
+    def test_append_empty_list(self):
+        df = DataFrame()
+        result = df.append([])
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
+        result = df.append([])
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
