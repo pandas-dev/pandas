@@ -338,6 +338,7 @@ def get_empty_dtype_and_na(join_units):
     if not upcast_classes:
         upcast_classes = null_upcast_classes
 
+    # TODO: de-duplicate with maybe_promote?
     # create the result
     if "object" in upcast_classes:
         return np.dtype(np.object_), np.nan
@@ -356,7 +357,7 @@ def get_empty_dtype_and_na(join_units):
     elif "datetime" in upcast_classes:
         return np.dtype("M8[ns]"), tslibs.iNaT
     elif "timedelta" in upcast_classes:
-        return np.dtype("m8[ns]"), tslibs.iNaT
+        return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
         try:
             g = np.find_common_type(upcast_classes, [])
