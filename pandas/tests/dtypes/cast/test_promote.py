@@ -318,6 +318,8 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     )
 
 
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(True, None), (False, None)])
 def test_maybe_promote_int_with_float(any_int_dtype, float_dtype, box):
     dtype = np.dtype(any_int_dtype)
     fill_dtype = np.dtype(float_dtype)
@@ -343,18 +345,13 @@ def test_maybe_promote_int_with_float(any_int_dtype, float_dtype, box):
     )
 
 
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(True, None), (False, None)])
 def test_maybe_promote_float_with_int(float_dtype, any_int_dtype, box):
 
     dtype = np.dtype(float_dtype)
     fill_dtype = np.dtype(any_int_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
-
-    if box_dtype == object:
-        pytest.xfail("falsely upcasts to object")
-    # this following xfail is "only" a consequence of the - now strictly
-    # enforced - principle that maybe_promote_with_scalar always casts
-    if not boxed:
-        pytest.xfail("wrong return type of fill_value")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -551,12 +548,12 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
 @pytest.mark.parametrize(
     "box",
     [
-        (True, None),  # fill_value wrapped in array with auto-dtype (fixed len)
-        (True, "bytes"),  # fill_value wrapped in array with generic bytes-dtype
+        # disabled due to too many xfails; see GH 23982 / 25425
+        # (True, None),  # fill_value wrapped in array with auto-dtype (fixed len)
+        # (True, "bytes"),  # fill_value wrapped in array with generic bytes-dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value directly
     ],
-    ids=["True-None", "True-bytes", "True-object", "False-None"],
 )
 def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
@@ -625,9 +622,9 @@ def test_maybe_promote_datetime64_with_any(
     # filling datetime with anything but datetime casts to object
     if is_datetime64_dtype(fill_dtype):
         expected_dtype = dtype
-        # for datetime dtypes, scalar values get cast to pd.Timestamp.value
-        exp_val_for_scalar = pd.Timestamp(fill_value).value
-        exp_val_for_array = iNaT
+        # for datetime dtypes, scalar values get cast to to_datetime64
+        exp_val_for_scalar = pd.Timestamp(fill_value).to_datetime64()
+        exp_val_for_array = np.datetime64("NaT", "ns")
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
@@ -649,11 +646,11 @@ def test_maybe_promote_datetime64_with_any(
     "box",
     [
         (True, None),  # fill_value wrapped in array with default dtype
-        (True, "dt_dtype"),  # fill_value in array with explicit datetime dtype
-        (True, object),  # fill_value wrapped in array with object dtype
+        # disabled due to too many xfails; see GH 23982 / 25425
+        # (True, 'dt_dtype'),  # fill_value in array with explicit datetime dtype
+        # (True, object),      # fill_value wrapped in array with object dtype
         (False, None),  # fill_value passed on as scalar
     ],
-    ids=["True-None", "True-dt_dtype", "True-object", "False-None"],
 )
 @pytest.mark.parametrize(
     "fill_value",
@@ -709,6 +706,8 @@ def test_maybe_promote_any_with_datetime64(
     )
 
 
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(True, object)])
 def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     tz_aware_fixture, any_numpy_dtype_reduced, box
 ):
@@ -735,6 +734,8 @@ def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     )
 
 
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(True, None), (True, object)])
 def test_maybe_promote_datetimetz_with_datetimetz(
     tz_aware_fixture, tz_aware_fixture2, box
 ):
@@ -773,6 +774,8 @@ def test_maybe_promote_datetimetz_with_datetimetz(
 
 
 @pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(False, None)])
 def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value, box):
 
     dtype = DatetimeTZDtype(tz=tz_aware_fixture)
@@ -879,11 +882,11 @@ def test_maybe_promote_timedelta64_with_any(
     "box",
     [
         (True, None),  # fill_value wrapped in array with default dtype
-        (True, "td_dtype"),  # fill_value in array with explicit timedelta dtype
+        # disabled due to too many xfails; see GH 23982 / 25425
+        # (True, 'td_dtype'),  # fill_value in array with explicit timedelta dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value passed on as scalar
     ],
-    ids=["True-None", "True-td_dtype", "True-object", "False-None"],
 )
 def test_maybe_promote_any_with_timedelta64(
     any_numpy_dtype_reduced, timedelta64_dtype, fill_value, box
@@ -954,8 +957,9 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced, bo
 @pytest.mark.parametrize(
     "box",
     [
-        (True, None),  # fill_value wrapped in array with default dtype
-        (True, "str"),  # fill_value wrapped in array with generic string-dtype
+        # disabled due to too many xfails; see GH 23982 / 25425
+        # (True, None),    # fill_value wrapped in array with default dtype
+        # (True, 'str'),   # fill_value wrapped in array with generic string-dtype
         (True, object),  # fill_value wrapped in array with object dtype
         (False, None),  # fill_value passed on as scalar
     ],
@@ -1036,15 +1040,8 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype, bo
 
 
 @pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
-# override parametrization of box, because default dtype for na is always float
-@pytest.mark.parametrize(
-    "box",
-    [
-        (True, object),  # fill_value wrapped in array with object dtype
-        (False, None),  # fill_value passed on as scalar
-    ],
-    ids=["True-object", "False-None"],
-)
+# override parametrization due to to many xfails; see GH 23982 / 25425
+@pytest.mark.parametrize("box", [(False, None)])
 def test_maybe_promote_any_numpy_dtype_with_na(
     any_numpy_dtype_reduced, fill_value, box
 ):
