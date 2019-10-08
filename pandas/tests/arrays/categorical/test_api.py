@@ -340,7 +340,7 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
-    @pytest.mark.parametrize("removals", [["c"], (["c", np.nan]), ("c"), (["c", "c"])])
+    @pytest.mark.parametrize("removals", [["c"], ["c", np.nan], "c", ["c", "c"]])
     def test_remove_categories_raises(self, removals):
         cat = Categorical(["a", "b", "a"])
         message = re.escape("removals must all be in old categories: {'c'}")
