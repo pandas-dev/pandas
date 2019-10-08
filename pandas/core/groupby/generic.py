@@ -28,14 +28,13 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import Timestamp
 from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
     maybe_convert_objects,
-    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -51,11 +50,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
-from pandas.core.base import DataError, SpecificationError
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
@@ -64,7 +63,6 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -291,13 +289,16 @@ class NDFrameGroupBy(GroupBy):
         Parameters
         ----------
         output : dict of ndarrays
-            Results of aggregating by-column. Column names should be integer position
+            Results of aggregating by-column. Column names should be integer
+            position.
         labels : Index
-            Existing labels of selected object. Used to determine resulting shape and name(s)
+            Existing labels of selected object. Used to determine resulting
+            shape and name(s).
         col_labels : list, optional
-            The ultimate column labels for the reshaped object. Each entry in this list
-            should correspond to a key value in output. Must be valid column labels and tuples
-            are contained within should map to a MultiIndex
+            The ultimate column labels for the reshaped object. Each entry in
+            this list should correspond to a key value in output. Must be valid
+            column labels and tuples are contained within should map to a
+            MultiIndex.
 
         Returns
         -------
