@@ -10,7 +10,7 @@ def rewrite_exception(old_name, new_name):
         msg = err.args[0]
         msg = msg.replace(old_name, new_name)
         args = (msg,)
-        if len(e.args) > 1:
+        if len(err.args) > 1:
             args = args + err.args[1:]
         err.args = args
         raise
