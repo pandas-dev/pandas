@@ -5899,7 +5899,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
                     )
                 else:
-                    results.append(results.append(col.copy() if copy else col))
+                    results.append(col.copy() if copy else col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
