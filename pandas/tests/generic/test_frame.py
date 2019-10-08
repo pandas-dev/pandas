@@ -1,11 +1,10 @@
 from copy import deepcopy
+from datetime import datetime
 from distutils.version import LooseVersion
 from operator import methodcaller
 
 import numpy as np
 import pytest
-from datetime import datetime
-import time
 
 import pandas.util._test_decorators as td
 
@@ -290,35 +289,29 @@ class TestDataFrame(Generic):
 
         self._compare(empty_frame_copy, empty_frame)
 
-    def test_datetimeField_after_setitem(self):
+    def test_datetimeField_after_setitem_with_at(self):
         # This test covers the unexpected behaviour of datetimeField when using
         # setitem on another column as reported in issue #6942
 
         start = pd.to_datetime("20140401")
 
-        df = pd.DataFrame(
+        result = pd.DataFrame(
             index=pd.date_range(start, periods=1), columns=["timenow", "Live"]
         )
 
-        df.at[start, "timenow"] = datetime.today()  # initial time.
-        time1 = df.at[start, "timenow"]
+        result.at[start, "timenow"] = datetime.today()  # initial datetime.
 
-        time.sleep(1)  # sleep time of 1 second in between assignments.
+        new_datetime = datetime.today()
 
-        df.at[
-            start, "timenow"
-        ] = datetime.today()  # modified time before 'Live' column is set.
-        time2 = df.at[start, "timenow"]
+        result.Live = True
 
-        df.Live = True  # setting the 'Live' column to True.
+        # Changing the value in "timenow" column after setting the "Live" column to True
+        result.at[start, "timenow"] = new_datetime
 
-        time.sleep(1)  # sleep time of 1 second in between assignments.
+        expected = pd.DataFrame(
+            [[new_datetime, "True"]],
+            index=pd.date_range(start, periods=1),
+            columns=["timenow", "Live"],
+        )
 
-        df.at[
-            start, "timenow"
-        ] = datetime.today()  # modified time after 'Live' column is set.
-        time3 = df.at[start, "timenow"]
-
-        assert not time1 == time2
-        assert not time2 == time3
-        assert not time3 == time1
+        assert_frame_equal(result, expected)
