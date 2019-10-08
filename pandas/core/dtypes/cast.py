@@ -367,16 +367,24 @@ def maybe_promote(dtype, fill_value=np.nan):
             except (TypeError, ValueError):
                 dtype = np.dtype(np.object_)
     elif issubclass(dtype.type, np.timedelta64):
-        try:
-            fv = tslibs.Timedelta(fill_value)
-        except ValueError:
+        if (
+            is_integer(fill_value)
+            or (is_float(fill_value) and not np.isnan(fill_value))
+            or isinstance(fill_value, str)
+        ):
+            # TODO: What about str that can be a timedelta?
             dtype = np.dtype(np.object_)
         else:
-            if fv is NaT:
-                # NaT has no `to_timedelta64` method
-                fill_value = np.timedelta64("NaT", "ns")
+            try:
+                fv = tslibs.Timedelta(fill_value)
+            except ValueError:
+                dtype = np.dtype(np.object_)
             else:
-                fill_value = fv.to_timedelta64()
+                if fv is NaT:
+                    # NaT has no `to_timedelta64` method
+                    fill_value = np.timedelta64("NaT", "ns")
+                else:
+                    fill_value = fv.to_timedelta64()
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
             fill_value = NaT
