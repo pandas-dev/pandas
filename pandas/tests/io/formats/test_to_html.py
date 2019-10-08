@@ -99,13 +99,12 @@ def test_to_html_unicode(df, expected, datapath):
     assert result == expected
 
 
-def test_to_html_encoding():
+def test_to_html_encoding(float_frame, tmp_path):
     # GH 28663
-    df = DataFrame({"A": ["a", "b"]})
-    with tm.ensure_clean("test.csv") as path:
-        df.to_html(path, encoding="gbk")
-        with open(path, "r", encoding="gbk") as f:
-            assert df.to_html() == f.read()
+    path = tmp_path / "test.html"
+    float_frame.to_html(path, encoding="gbk")
+    with open(path, "r", encoding="gbk") as f:
+        assert float_frame.to_html(encoding="gbk") == f.read()
 
 
 def test_to_html_decimal(datapath):

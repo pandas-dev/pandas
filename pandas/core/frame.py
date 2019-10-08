@@ -2180,7 +2180,6 @@ class DataFrame(NDFrame):
         header=True,
         index=True,
         na_rep="NaN",
-        encoding=None,
         formatters=None,
         float_format=None,
         sparsify=None,
@@ -2197,6 +2196,7 @@ class DataFrame(NDFrame):
         border=None,
         table_id=None,
         render_links=False,
+        encoding=None,
     ):
         """
         Render a DataFrame as an HTML table.
@@ -2214,6 +2214,8 @@ class DataFrame(NDFrame):
             `<table>` tag. Default ``pd.options.display.html.border``.
         encoding : str, default "utf-8"
             Set character encoding
+
+            .. versionadded:: 1.0
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
