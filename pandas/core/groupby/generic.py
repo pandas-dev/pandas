@@ -132,6 +132,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
+    def _iterate_slices(self):
+        yield self._selection_name, self._selected_obj
+
     @property
     def _selection_name(self):
         """
