@@ -33,10 +33,7 @@ from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import (
-    maybe_convert_objects,
-    maybe_downcast_to_dtype,
-)
+from pandas.core.dtypes.cast import maybe_convert_objects, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -59,11 +56,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
-from pandas.core.groupby.groupby import (
-    GroupBy,
-    _apply_docs,
-    _transform_template,
-)
+from pandas.core.groupby.groupby import GroupBy, _apply_docs, _transform_template
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.series import Series
@@ -279,7 +272,7 @@ class NDFrameGroupBy(GroupBy):
 
     def _decide_output_index(
         self,
-        output: Dict[int, np.ndarray],
+        output: Dict,
         labels: Index,
         col_labels: Optional[List[Union[Hashable, Tuple[Hashable, ...]]]] = None,
     ) -> Index:
@@ -289,8 +282,7 @@ class NDFrameGroupBy(GroupBy):
         Parameters
         ----------
         output : dict of ndarrays
-            Results of aggregating by-column. Column names should be integer
-            position.
+            Results of aggregating by-column.
         labels : Index
             Existing labels of selected object. Used to determine resulting
             shape and name(s).
@@ -303,16 +295,23 @@ class NDFrameGroupBy(GroupBy):
         Returns
         -------
         Index or MultiIndex
+
+        Notes
+        -----
+        Ideally output should always have integers as a key and the col_labels
+        should be provided separately, but as of writing this is not the case.
+        When output is not using integers there is a risk of duplicate column
+        labels not be handled correctly.
         """
         if col_labels:
             keys = col_labels
         else:
             keys = list(output.keys())
 
-        if isinstance(labels, Index):
-            output_keys = Index(keys, name=labels.name)
-        elif isinstance(labels, MultiIndex):
+        if isinstance(labels, MultiIndex):
             output_keys = MultiIndex.from_tuples(keys, names=labels.names)
+        else:
+            output_keys = Index(keys, name=labels.name)
 
         return output_keys
 
@@ -1488,7 +1487,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def _wrap_aggregated_output(
         self,
-        output: Dict,
+        output: Dict[int, np.ndarray],
         names: Optional[List[Union[Hashable, Tuple[Hashable, ...]]]] = None,
     ) -> DataFrame:
         index = self.grouper.result_index
