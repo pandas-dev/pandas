@@ -592,8 +592,6 @@ def test_maybe_promote_datetime64_with_any(
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if not boxed:
-            pytest.xfail("does not upcast to object or raises")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
