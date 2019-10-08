@@ -18,7 +18,6 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 from pandas.compat import PY36
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -1024,9 +1023,6 @@ class DataFrameGroupBy(GroupBy):
                     result[name] = data.apply(wrapper, axis=axis)
 
         return self._wrap_generic_output(result, obj)
-
-    def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
