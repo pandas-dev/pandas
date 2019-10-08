@@ -754,7 +754,7 @@ b  2""",
         )
 
     def _iterate_slices(self):
-        yield self._selection_name, self._selected_obj
+        raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
@@ -879,6 +879,12 @@ b  2""",
     def _wrap_aggregated_output(self, output, names=None):
         raise AbstractMethodError(self)
 
+    def _wrap_transformed_output(self, output, names=None):
+        raise AbstractMethodError(self)
+
+    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+        raise AbstractMethodError(self)
+
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
         output = {}
         for name, obj in self._iterate_slices():
@@ -928,9 +934,6 @@ b  2""",
                 output[name] = self._try_cast(values[mask], result)
 
         return self._wrap_aggregated_output(output)
-
-    def _wrap_applied_output(self, *args, **kwargs):
-        raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
