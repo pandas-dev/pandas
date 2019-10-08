@@ -747,7 +747,7 @@ class SeriesGroupBy(GroupBy):
 
 
 @pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
-class DataFrameGroupBy(NDFrameGroupBy):
+class DataFrameGroupBy(GroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
 
@@ -844,7 +844,56 @@ class DataFrameGroupBy(NDFrameGroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        return super().aggregate(func, *args, **kwargs)
+        _level = kwargs.pop("_level", None)
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, columns, order = _normalize_keyword_aggregation(kwargs)
+
+            kwargs = {}
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+        func = _maybe_mangle_lambdas(func)
+
+        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
+        if how is None:
+            return result
+
+        if result is None:
+
+            # grouper specific aggregations
+            if self.grouper.nkeys > 1:
+                return self._python_agg_general(func, *args, **kwargs)
+            elif args or kwargs:
+                result = self._aggregate_generic(func, *args, **kwargs)
+            else:
+
+                # try to treat as if we are passing a list
+                try:
+                    result = self._aggregate_multiple_funcs(
+                        [func], _level=_level, _axis=self.axis
+                    )
+                except Exception:
+                    result = self._aggregate_generic(func)
+                else:
+                    result.columns = Index(
+                        result.columns.levels[0], name=self._selected_obj.columns.name
+                    )
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+            result.index = np.arange(len(result))
+
+        if relabeling:
+
+            # used reordered index of columns
+            result = result.iloc[:, order]
+            result.columns = columns
+
+        return result._convert(datetime=True)
+
 
     agg = aggregate
 
@@ -951,59 +1000,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
             offset += loc
 
         return new_items, new_blocks
-
-    def aggregate(self, func, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
-
-        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
-        if relabeling:
-            func, columns, order = _normalize_keyword_aggregation(kwargs)
-
-            kwargs = {}
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = _maybe_mangle_lambdas(func)
-
-        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
-        if how is None:
-            return result
-
-        if result is None:
-
-            # grouper specific aggregations
-            if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
-                result = self._aggregate_generic(func, *args, **kwargs)
-            else:
-
-                # try to treat as if we are passing a list
-                try:
-                    result = self._aggregate_multiple_funcs(
-                        [func], _level=_level, _axis=self.axis
-                    )
-                except Exception:
-                    result = self._aggregate_generic(func)
-                else:
-                    result.columns = Index(
-                        result.columns.levels[0], name=self._selected_obj.columns.name
-                    )
-
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result.index = np.arange(len(result))
-
-        if relabeling:
-
-            # used reordered index of columns
-            result = result.iloc[:, order]
-            result.columns = columns
-
-        return result._convert(datetime=True)
-
-    agg = aggregate
 
     def _aggregate_generic(self, func, *args, **kwargs):
         if self.grouper.nkeys != 1:
@@ -1852,7 +1848,7 @@ def _maybe_mangle_lambdas(agg_spec: Any) -> Any:
     Parameters
     ----------
     agg_spec : Any
-        An argument to NDFrameGroupBy.agg.
+        An argument to GroupBy.agg.
         Non-dict-like `agg_spec` are pass through as is.
         For dict-like `agg_spec` a new spec is returned
         with name-mangled lambdas.
