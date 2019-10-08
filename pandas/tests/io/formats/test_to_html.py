@@ -68,7 +68,6 @@ def justify(request):
 @pytest.mark.parametrize("col_space", [30, 50])
 def test_to_html_with_col_space(col_space):
     df = DataFrame(np.random.random(size=(1, 3)))
-    print(float_frame)
     # check that col_space affects HTML generation
     # and be very brittle about it.
     result = df.to_html(col_space=col_space)
