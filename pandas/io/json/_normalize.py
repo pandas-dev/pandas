@@ -124,9 +124,7 @@ def nested_to_record(
             use_keys = [use_keys]
 
         if is_list_like(use_keys):
-            return any(
-                key.split(".")[-len(i.split(".")) :] == i.split(".") for i in use_keys
-            )
+            return key in use_keys
 
         raise TypeError("`use_keys` must be a str, list or a callable")
 
