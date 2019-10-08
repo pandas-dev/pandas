@@ -439,3 +439,26 @@ def test_timestamp_multiindex_indexer():
     )
     should_be = pd.Series(data=np.arange(24, len(qidx) + 24), index=qidx, name="foo")
     tm.assert_series_equal(result, should_be)
+
+
+def test_get_loc_with_a_missing_value():
+    # issue 19132
+    idx = MultiIndex.from_product([[np.nan, 1]] * 2)
+    expected = slice(0, 2, None)
+    assert idx.get_loc(np.nan) == expected
+
+    idx = MultiIndex.from_arrays([[np.nan, 1, 2, np.nan], [3, np.nan, np.nan, 4]])
+    expected = np.array([True, False, False, True])
+    tm.assert_numpy_array_equal(idx.get_loc(np.nan), expected)
+
+
+def test_get_indexer_with_nan():
+    # issue 19132
+    idx = MultiIndex.from_arrays([[1, np.nan, 2], [3, 4, 5]])
+    result = idx.get_indexer([1, np.nan, 2])
+    expected = np.array([-1, -1, -1], dtype="int32")
+    tm.assert_numpy_array_equal(result.astype("int32"), expected)
+
+    result = idx.get_indexer([(np.nan, 4)])
+    expected = np.array([1], dtype="int32")
+    tm.assert_numpy_array_equal(result.astype("int32"), expected)

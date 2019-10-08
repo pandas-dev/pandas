@@ -2890,6 +2890,24 @@ class MultiIndex(Index):
 
             return m
 
+        def search_code_location(code):
+            # Base on argument ``code``, search where is ``code`` in level's codes
+
+            if level > 0 or self.lexsort_depth == 0:
+                # Desired level is not sorted
+                locs = np.array(level_codes == code, dtype=bool, copy=False)
+                if not locs.any():
+                    # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            i = level_codes.searchsorted(code, side="left")
+            j = level_codes.searchsorted(code, side="right")
+            if i == j:
+                # The label is present in self.levels[level] but unused:
+                raise KeyError(key)
+            return slice(i, j)
+
         if isinstance(key, slice):
             # handle a slice, returning a slice if we can
             # otherwise a boolean indexer
@@ -2933,24 +2951,14 @@ class MultiIndex(Index):
                 j = level_codes.searchsorted(stop, side="right")
                 return slice(i, j, step)
 
+        elif not is_list_like(key) and isna(key):
+            # missing data's location is denoted by -1
+            # so find missing data's location
+            code = -1
+            return search_code_location(code)
         else:
-
             code = level_index.get_loc(key)
-
-            if level > 0 or self.lexsort_depth == 0:
-                # Desired level is not sorted
-                locs = np.array(level_codes == code, dtype=bool, copy=False)
-                if not locs.any():
-                    # The label is present in self.levels[level] but unused:
-                    raise KeyError(key)
-                return locs
-
-            i = level_codes.searchsorted(code, side="left")
-            j = level_codes.searchsorted(code, side="right")
-            if i == j:
-                # The label is present in self.levels[level] but unused:
-                raise KeyError(key)
-            return slice(i, j)
+            return search_code_location(code)
 
     def get_locs(self, seq):
         """
