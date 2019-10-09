@@ -1784,18 +1784,20 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
+        values = self.values
+        if slicer is not None:
+            values = values[slicer]
+        mask = isna(values)
+
         try:
-            values = self.values
-            if slicer is not None:
-                values = values[slicer]
-            mask = isna(values)
             values = values.astype(str)
             values[mask] = na_rep
-            # we are expected to return a 2-d ndarray
-            return values.reshape(1, len(values))
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
             return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1, len(values))
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
@@ -2351,6 +2353,22 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # as lots of code (e.g. anything using values_from_object)
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
+
+    def to_native_types(
+        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
+    ):
+        """
+        We need to pick DatetimeBlock's version, but the inheritance structure
+        would use ExtensionBlock's verison
+        """
+        return DatetimeBlock.to_native_types(
+            self,
+            slicer=slicer,
+            na_rep=na_rep,
+            date_format=date_format,
+            quoting=quoting,
+            **kwargs
+        )
 
     def _slice(self, slicer):
         """ return a slice of my values """
