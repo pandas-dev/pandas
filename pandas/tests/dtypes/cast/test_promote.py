@@ -154,6 +154,10 @@ def _assert_match(result_fill_value, expected_fill_value):
     if res_type.__name__ == "uint64":
         # No idea why, but these do not compare as equal
         assert ex_type.__name__ == "uint64"
+    elif res_type.__name__ == "ulonglong":
+        # On some builds we get this instead of np.uint64
+        assert res_type.dtype.itemsize == 8
+        assert ex_type == res_type or ex_type == np.uint64
     else:
         assert res_type == ex_type
 
