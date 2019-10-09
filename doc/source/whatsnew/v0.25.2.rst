@@ -97,6 +97,11 @@ Sparse
 
 -
 
+Enhancements
+^^^^^^^^^^^^
+
+- Show line numbers when calling :meth:`DataFrame.info` with verbose flag on. (:issue:`17304`)
+
 Other
 ^^^^^
 
