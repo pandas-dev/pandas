@@ -21,7 +21,6 @@ import sys
 import webbrowser
 
 import docutils
-import docutils.io
 import docutils.parsers.rst
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -207,7 +206,7 @@ class DocBuilder:
 
                 try:
                     title = self._get_page_title(row[1])
-                except docutils.io.InputError:
+                except docutils.utils.SystemMessage:
                     # the file can be an ipynb and not an rst, or docutils
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
