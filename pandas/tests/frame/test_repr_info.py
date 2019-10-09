@@ -221,7 +221,7 @@ class TestDataFrameReprInfoEtc(TestData):
             if i >= start and i < start + size:
                 index = i - start
                 line_nr = "{}. ".format(index)
-                assert line.startswith(line_nr) 
+                assert line.startswith(line_nr)
 
     def test_info_memory(self):
         # https://github.com/pandas-dev/pandas/issues/21056

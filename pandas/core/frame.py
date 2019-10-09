@@ -2455,7 +2455,10 @@ class DataFrame(NDFrame):
                     count = counts.iloc[i]
 
                 lines.append(
-                    str(i) + ". " + _put_str(col, space) + tmpl.format(count=count, dtype=dtype)
+                    str(i)
+                    + ". "
+                    + _put_str(col, space)
+                    + tmpl.format(count=count, dtype=dtype)
                 )
 
         def _non_verbose_repr():
