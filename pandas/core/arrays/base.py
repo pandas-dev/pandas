@@ -808,7 +808,7 @@ class ExtensionArray:
         See Also
         --------
         numpy.take: Take elements from an array along an axis
-        api.extensions.take : The helper method
+        api.extensions.take : The helper method which implements pandas.api.extensions.ExtensionArray.take
 
         Notes
         -----
