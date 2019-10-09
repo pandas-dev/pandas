@@ -367,6 +367,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._coerce_to_ndarray()
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        return pa.array(self._data, mask=self._mask, type=type)
+
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):

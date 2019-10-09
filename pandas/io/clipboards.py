@@ -131,7 +131,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
 
     if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", None):
             objstr = obj.to_string(**kwargs)
     else:
         objstr = str(obj)

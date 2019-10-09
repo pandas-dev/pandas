@@ -199,7 +199,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     index : bool, default True
         Whether to include ``data.index`` in the schema.
     primary_key : bool or None, default True
-        column names to designate as the primary key.
+        Column names to designate as the primary key.
         The default `None` will set `'primaryKey'` to the index
         level or levels if the index is unique.
     version : bool, default True

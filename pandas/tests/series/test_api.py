@@ -131,12 +131,6 @@ class SharedWithSparse:
         result = self.ts.sort_index(ascending=False)
         assert result.name == self.ts.name
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_to_sparse_pass_name(self):
-        result = self.ts.to_sparse()
-        assert result.name == self.ts.name
-
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
         result = self.series_klass(d)
@@ -206,11 +200,9 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        # multiple FutureWarnings, so can't assert stacklevel
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
             self.series_klass.from_array([1, 2, 3])
 
     def test_sparse_accessor_updates_on_inplace(self):
@@ -697,6 +689,7 @@ class TestCategoricalSeries:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            # FIXME: don't leave commented-out
             # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]
@@ -729,20 +722,11 @@ class TestCategoricalSeries:
                     res = getattr(c.dt, func)(*args, **kwargs)
                     exp = getattr(s.dt, func)(*args, **kwargs)
 
-                if isinstance(res, DataFrame):
-                    tm.assert_frame_equal(res, exp)
-                elif isinstance(res, Series):
-                    tm.assert_series_equal(res, exp)
-                else:
-                    tm.assert_almost_equal(res, exp)
+                tm.assert_equal(res, exp)
 
             for attr in attr_names:
-                try:
-                    res = getattr(c.dt, attr)
-                    exp = getattr(s.dt, attr)
-                except Exception as e:
-                    print(name, attr)
-                    raise e
+                res = getattr(c.dt, attr)
+                exp = getattr(s.dt, attr)
 
             if isinstance(res, DataFrame):
                 tm.assert_frame_equal(res, exp)

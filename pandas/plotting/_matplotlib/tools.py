@@ -12,14 +12,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
-    try:
-        for label in ax.get_xticklabels():
-            label.set_ha("right")
-            label.set_rotation(rot)
-        fig = ax.get_figure()
-        fig.subplots_adjust(bottom=0.2)
-    except Exception:  # pragma: no cover
-        pass
+    for label in ax.get_xticklabels():
+        label.set_ha("right")
+        label.set_rotation(rot)
+    fig = ax.get_figure()
+    fig.subplots_adjust(bottom=0.2)
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
@@ -281,17 +278,15 @@ def _remove_labels_from_axis(axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
-    try:
-        # set_visible will not be effective if
-        # minor axis has NullLocator and NullFormattor (default)
-        if isinstance(axis.get_minor_locator(), ticker.NullLocator):
-            axis.set_minor_locator(ticker.AutoLocator())
-        if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
-            axis.set_minor_formatter(ticker.FormatStrFormatter(""))
-        for t in axis.get_minorticklabels():
-            t.set_visible(False)
-    except Exception:  # pragma no cover
-        raise
+    # set_visible will not be effective if
+    # minor axis has NullLocator and NullFormattor (default)
+    if isinstance(axis.get_minor_locator(), ticker.NullLocator):
+        axis.set_minor_locator(ticker.AutoLocator())
+    if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
+        axis.set_minor_formatter(ticker.FormatStrFormatter(""))
+    for t in axis.get_minorticklabels():
+        t.set_visible(False)
+
     axis.get_label().set_visible(False)
 
 

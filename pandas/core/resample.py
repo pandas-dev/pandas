@@ -423,7 +423,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -514,7 +514,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             Limit of how many values to fill.
 
         Returns
@@ -628,7 +628,7 @@ class Resampler(_GroupBy):
             * 'backfill' or 'bfill': use next valid observation to fill gap.
             * 'nearest': use nearest valid observation to fill gap.
 
-        limit : integer, optional
+        limit : int, optional
             Limit of how many consecutive missing values to fill.
 
         Returns
@@ -823,7 +823,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             Degrees of freedom.
 
         Returns
@@ -840,7 +840,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns
