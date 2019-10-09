@@ -86,7 +86,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
-- Fix to ensure all int dtypes can be used in :meth:`pandas.core.reshape.merge_asof` when using a tolerance value (:issue:`28870`).
+- Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Before every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 -
 -
 -

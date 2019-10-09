@@ -1288,18 +1288,22 @@ class TestAsOfMerge:
 
         assert_frame_equal(result, expected)
 
-    def test_int_type_tolerance(self):
+    @pytest.mark.parametrize(
+        "dtype",
+        [int, "int64", "int32", "int16", "int8", "uint64", "uint32", "uint16", "uint8"],
+    )
+    def test_int_type_tolerance(self, dtype):
         # GH #28870
 
-        left = pd.DataFrame({"a": [0, 100, 200], "left_val": [1, 2, 3]})
-        right = pd.DataFrame({"a": [50, 150, 250], "right_val": [1, 2, 3]})
-        left["a"] = left["a"].astype(np.int32)
-        right["a"] = right["a"].astype(np.int32)
+        left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
+        right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
+        left["a"] = left["a"].astype(dtype)
+        right["a"] = right["a"].astype(dtype)
 
         expected = pd.DataFrame(
-            {"a": [0, 100, 200], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
+            {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
         )
-        expected["a"] = expected["a"].astype(np.int32)
+        expected["a"] = expected["a"].astype(dtype)
 
-        result = pd.merge_asof(left, right, on="a", tolerance=100)
+        result = pd.merge_asof(left, right, on="a", tolerance=10)
         assert_frame_equal(result, expected)
