@@ -4335,7 +4335,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
               valid.
-            * backfill / bfill: Ese next valid observation to fill gap.
+            * backfill / bfill: Use next valid observation to fill gap.
             * nearest: Use nearest valid observations to fill gap.
 
         copy : bool, default True
