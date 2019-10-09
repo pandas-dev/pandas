@@ -1,6 +1,7 @@
+import re
+
 import numpy as np
 import pytest
-import re
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
