@@ -224,7 +224,7 @@ class Resampler(_GroupBy):
         """
     See Also
     --------
-    DataFrame.groupby.aggregate : Aggregate using callable, string, dict, or list of string/callables
+    DataFrame.groupby.aggregate : Aggregate using callable, str, dict, or list of str/callables
     DataFrame.resample.transform : Call function producing a like-indexed Series on each group and return a
         Series with the transformed values.
     DataFrame.aggregate : Aggregate using one or more operations over the specified axis.
