@@ -75,7 +75,7 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    @pytest.mark.parametrize("index", ["int", "uint", "range"], indirect=True)
+    @pytest.mark.parametrize("index", ["int", "uint", "float"], indirect=True)
     def test_copy_and_deepcopy(self, index):
         new_copy2 = index.copy(dtype=int)
         assert new_copy2.dtype.kind == "i"
