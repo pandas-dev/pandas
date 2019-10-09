@@ -433,8 +433,8 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        Series.fillna : Fill NA/NaN values using the specified method in a Series.
-        DataFrame.fillna : Fill NA/NaN values using the specified method in a DataFrame.
+        Series.fillna : Fill missing values using the specified method in a Series.
+        DataFrame.fillna : Fill missing values using the specified method in a DataFrame.
         """
         return self._upsample("pad", limit=limit)
 
@@ -526,13 +526,13 @@ class Resampler(_GroupBy):
         See Also
         --------
         bfill : Alias of backfill.
-        fillna : Fill NaN values using the specified method, which can be
+        fillna : Fill missing values using the specified method, which can be
             'backfill'.
-        nearest : Fill NaN values with nearest neighbor starting from center.
-        pad : Forward fill NaN values.
-        Series.fillna : Fill NaN values in the Series using the
+        nearest : Fill missing values with nearest neighbor starting from center.
+        pad : Forward fill missing values.
+        Series.fillna : Fill missing values in the Series using the
             specified method, which can be 'backfill'.
-        DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill missing values in the DataFrame using the
             specified method, which can be 'backfill'.
 
         References
@@ -639,14 +639,14 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        backfill : Backward fill NaN values in the resampled data.
-        pad : Forward fill NaN values in the resampled data.
-        nearest : Fill NaN values in the resampled data
+        backfill : Backward fill missing values in the resampled data.
+        pad : Forward fill missing values in the resampled data.
+        nearest : Fill missing values in the resampled data
             with nearest neighbor starting from center.
-        interpolate : Fill NaN values using interpolation.
-        Series.fillna : Fill NaN values in the Series using the
+        interpolate : Fill missing values using interpolation.
+        Series.fillna : Fill missing values in the Series using the
             specified method, which can be 'bfill' and 'ffill'.
-        DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill missing values in the DataFrame using the
             specified method, which can be 'bfill' and 'ffill'.
 
         References
