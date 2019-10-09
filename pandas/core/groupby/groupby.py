@@ -1236,23 +1236,11 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Median of values within each group.
         """
-        try:
-            return self._cython_agg_general(
-                "median",
-                alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-                **kwargs
-            )
-        except GroupByError:
-            raise
-        except Exception:
-
-            def f(x):
-                if isinstance(x, np.ndarray):
-                    x = Series(x)
-                return x.median(axis=self.axis, **kwargs)
-
-            with _group_selection_context(self):
-                return self._python_agg_general(f)
+        return self._cython_agg_general(
+            "median",
+            alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
+            **kwargs
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
