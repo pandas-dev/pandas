@@ -515,14 +515,6 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if (
-            is_integer_dtype(fill_dtype)
-            or is_float_dtype(fill_dtype)
-            or is_complex_dtype(fill_dtype)
-            or is_object_dtype(fill_dtype)
-            or is_timedelta64_dtype(fill_dtype)
-        ) and not boxed:
-            pytest.xfail("does not upcast to object")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -557,15 +549,12 @@ def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box)
         else:
             pytest.xfail("wrong missing value marker")
     else:
-        pass
         if (
             boxed
             and (box_dtype == "bytes" or box_dtype is None)
             and not (is_string_dtype(dtype) or dtype == bool)
         ):
             pytest.xfail("does not upcast to object")
-        if not boxed and is_datetime_or_timedelta_dtype(dtype):
-            pytest.xfail("raises error")
 
     # create array of given dtype
     fill_value = b"abc"
@@ -603,8 +592,6 @@ def test_maybe_promote_datetime64_with_any(
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if not boxed:
-            pytest.xfail("does not upcast to object or raises")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -834,8 +821,6 @@ def test_maybe_promote_timedelta64_with_any(
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if not boxed:
-            pytest.xfail("does not upcast to object or raises")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -1038,14 +1023,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if (
-        dtype == bytes
-        and not boxed
-        and fill_value is not None
-        and fill_value is not NaT
-    ):
-        pytest.xfail("does not upcast to object")
-    elif is_integer_dtype(dtype) and fill_value is not NaT:
+    if is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan
