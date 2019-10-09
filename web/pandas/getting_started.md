@@ -4,7 +4,7 @@
 
 The next steps provides the easiest and recommended way to set up your
 environment to use pandas. Other installation options can be found in
-the [advanced installation page]({{ base_url}}/docs/install.html).
+the [advanced installation page]({{ base_url}}/docs/getting_started/install.html).
 
 1. Download [Anaconda](https://www.anaconda.com/distribution/) for your operating system and
    the latest Python version, run the installer, and follow the steps. Detailed instructions
