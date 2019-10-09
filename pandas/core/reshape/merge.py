@@ -1641,7 +1641,7 @@ class _AsOfMerge(_OrderedMerge):
                 if self.tolerance < Timedelta(0):
                     raise MergeError("tolerance must be positive")
 
-            elif is_int64_dtype(lt):
+            elif is_integer_dtype(lt):
                 if not is_integer(self.tolerance):
                     raise MergeError(msg)
                 if self.tolerance < 0:
