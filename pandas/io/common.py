@@ -221,6 +221,8 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
+    _ = kwargs.pop("session")
+
     return urllib.request.urlopen(*args, **kwargs)
 
 
