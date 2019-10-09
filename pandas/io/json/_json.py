@@ -366,6 +366,7 @@ def read_json(
     lines=False,
     chunksize=None,
     compression="infer",
+    session=None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -582,7 +583,7 @@ def read_json(
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        path_or_buf, encoding=encoding, compression=compression
+        path_or_buf, encoding=encoding, compression=compression, session=session
     )
 
     json_reader = JsonReader(

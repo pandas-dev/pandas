@@ -20,7 +20,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
-    urlopen,
+    _urlopen,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -336,10 +336,10 @@ def read_excel(
 
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer, session=None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if _is_url(filepath_or_buffer):
-            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+            filepath_or_buffer, _ = _urlopen(filepath_or_buffer, session=session)
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
 
