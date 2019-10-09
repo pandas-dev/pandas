@@ -557,8 +557,17 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        set(indices_dict.keys())
-        - {"unicode", "string", "categorical", "interval", "bool", "empty"},
+        [
+            "datetime",
+            "float",
+            "int",
+            "period",
+            "range",
+            "repeats",
+            "timedelta",
+            "tuples",
+            "uint",
+        ],
         indirect=True,
     )
     def test_view_with_args(self, index):
