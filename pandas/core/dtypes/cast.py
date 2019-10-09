@@ -449,11 +449,13 @@ def maybe_promote(dtype, fill_value=np.nan):
 
                 else:
                     # bump to signed integer dtype that holds all of `mst` range
+                    # Note: we have to use itemsize because some (windows)
+                    #  builds don't satisfiy e.g. np.uint32 == np.uint32
                     ndt = {
-                        np.uint32: np.int64,
-                        np.uint16: np.int32,
-                        np.uint8: np.int16,  # TODO: Test for this case
-                    }[mst.type]
+                        4: np.int64,
+                        2: np.int32,
+                        1: np.int16,  # TODO: Test for this case
+                    }[mst.itemsize]
                     dtype = np.dtype(ndt)
 
             fill_value = dtype.type(fill_value)

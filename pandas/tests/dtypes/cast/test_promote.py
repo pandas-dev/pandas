@@ -156,7 +156,8 @@ def _assert_match(result_fill_value, expected_fill_value):
         assert ex_type.__name__ == "uint64"
     elif res_type.__name__ == "ulonglong":
         # On some builds we get this instead of np.uint64
-        assert res_type.dtype.itemsize == 8
+        # Note: cant check res_type.dtype.itemsize directly on numpy 1.18
+        assert res_type(0).itemsize == 8
         assert ex_type == res_type or ex_type == np.uint64
     else:
         # On some builds, type comparison fails, e.g. np.int32 != np.int32
