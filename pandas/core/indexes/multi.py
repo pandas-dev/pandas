@@ -60,6 +60,8 @@ _index_doc_kwargs.update(
     dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
 )
 
+_no_default_names = object()
+
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """
@@ -363,6 +365,15 @@ class MultiIndex(Index):
                     "Level values must be unique: {values} on "
                     "level {level}".format(values=[value for value in level], level=i)
                 )
+        if self.sortorder is not None:
+            if self.sortorder > self._lexsort_depth():
+                raise ValueError(
+                    "Value for sortorder must be inferior or equal "
+                    "to actual lexsort_depth: "
+                    "sortorder {sortorder} with lexsort_depth {lexsort_depth}".format(
+                        sortorder=self.sortorder, lexsort_depth=self._lexsort_depth()
+                    )
+                )
 
         codes = [
             self._validate_codes(level, code) for level, code in zip(levels, codes)
@@ -371,7 +382,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
+    def from_arrays(cls, arrays, sortorder=None, names=_no_default_names):
         """
         Convert arrays to MultiIndex.
 
@@ -425,7 +436,7 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = _factorize_from_iterables(arrays)
-        if names is None:
+        if names is _no_default_names:
             names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(
@@ -496,7 +507,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
+    def from_product(cls, iterables, sortorder=None, names=_no_default_names):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
@@ -509,6 +520,11 @@ class MultiIndex(Index):
             level).
         names : list / sequence of str, optional
             Names for the levels in the index.
+
+            .. versionchanged:: 1.0.0
+
+               If not explicitly provided, names will be inferred from the
+               elements of iterables if an element has a name attribute
 
         Returns
         -------
@@ -542,6 +558,9 @@ class MultiIndex(Index):
             iterables = list(iterables)
 
         codes, levels = _factorize_from_iterables(iterables)
+        if names is _no_default_names:
+            names = [getattr(it, "name", None) for it in iterables]
+
         codes = cartesian_product(codes)
         return MultiIndex(levels, codes, sortorder=sortorder, names=names)
 
@@ -655,8 +674,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Index._is_homogeneous_type
-        DataFrame._is_homogeneous_type
+        Index._is_homogeneous_type : Whether the object has a single
+            dtype.
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
 
         Examples
         --------
@@ -1773,16 +1794,23 @@ class MultiIndex(Index):
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
-            if self.sortorder == 0:
-                return self.nlevels
-            else:
-                return 0
+            return self.sortorder
 
+        return self._lexsort_depth()
+
+    def _lexsort_depth(self) -> int:
+        """
+        Compute and return the lexsort_depth, the number of levels of the
+        MultiIndex that are sorted lexically
+
+        Returns
+        ------
+        int
+        """
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
                 return k
-
         return 0
 
     def _sort_levels_monotonic(self):

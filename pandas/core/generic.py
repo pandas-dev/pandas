@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    Any,
     Callable,
     Dict,
     FrozenSet,
@@ -31,9 +32,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+    validate_percentile,
+)
 
-from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -61,7 +65,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer
+from pandas._typing import Dtype, FilePathOrBuffer, Scalar
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -166,7 +170,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)  # type: Set[str]
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
-        ["as_blocks", "blocks", "is_copy"]
+        ["as_blocks", "blocks", "is_copy", "ftypes", "ix"]
     )  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
@@ -968,15 +972,12 @@ class NDFrame(PandasObject, SelectionMixin):
         1
         """
         axis = self._AXIS_NAMES if axis is None else (self._get_axis_number(axis),)
-        try:
-            return self.iloc[
-                tuple(
-                    0 if i in axis and len(a) == 1 else slice(None)
-                    for i, a in enumerate(self.axes)
-                )
-            ]
-        except Exception:
-            return self
+        return self.iloc[
+            tuple(
+                0 if i in axis and len(a) == 1 else slice(None)
+                for i, a in enumerate(self.axes)
+            )
+        ]
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
@@ -2249,17 +2250,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(
         self,
-        path_or_buf=None,
-        orient=None,
-        date_format=None,
-        double_precision=10,
-        force_ascii=True,
-        date_unit="ms",
-        default_handler=None,
-        lines=False,
-        compression="infer",
-        index=True,
-    ):
+        path_or_buf: Optional[FilePathOrBuffer] = None,
+        orient: Optional[str] = None,
+        date_format: Optional[str] = None,
+        double_precision: int = 10,
+        force_ascii: bool_t = True,
+        date_unit: str = "ms",
+        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
+        lines: bool_t = False,
+        compression: Optional[str] = "infer",
+        index: bool_t = True,
+        indent: Optional[int] = None,
+    ) -> Optional[str]:
         """
         Convert the object to a JSON string.
 
@@ -2310,7 +2312,7 @@ class NDFrame(PandasObject, SelectionMixin):
             floating point values.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
-        date_unit : string, default 'ms' (milliseconds)
+        date_unit : str, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
             precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
             microsecond, and nanosecond respectively.
@@ -2339,6 +2341,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
+        indent : integer, optional
+           Length of whitespace used to indent each record.
+
+           .. versionadded:: 1.0.0
+
         Returns
         -------
         None or str
@@ -2348,6 +2355,13 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         read_json
+
+        Notes
+        -----
+        The behavior of ``indent=0`` varies from the stdlib, which does not
+        indent the output but does insert newlines. Currently, ``indent=0``
+        and the default ``indent=None`` are equivalent in pandas, though this
+        may change in a future release.
 
         Examples
         --------
@@ -2399,6 +2413,10 @@ class NDFrame(PandasObject, SelectionMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
+
+        config.is_nonnegative_int(indent)
+        indent = indent or 0
+
         return json.to_json(
             path_or_buf=path_or_buf,
             obj=self,
@@ -2411,6 +2429,7 @@ class NDFrame(PandasObject, SelectionMixin):
             lines=lines,
             compression=compression,
             index=index,
+            indent=indent,
         )
 
     def to_hdf(self, path_or_buf, key, **kwargs):
@@ -2528,14 +2547,26 @@ class NDFrame(PandasObject, SelectionMixin):
         It is recommended to use pyarrow for on-the-wire transmission of
         pandas objects.
 
+        Example pyarrow usage:
+
+        >>> import pandas as pd
+        >>> import pyarrow as pa
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+        >>> context = pa.default_serialization_context()
+        >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
+
+        For documentation on pyarrow, see `here
+        <https://arrow.apache.org/docs/python/index.html>`__.
+
         Parameters
         ----------
-        path : string File path, buffer-like, or None
-            if None, return generated bytes
-        append : bool whether to append to an existing msgpack
-            (default is False)
-        compress : type of compressor (zlib or blosc), default to None (no
-            compression)
+        path : str, buffer-like, or None
+            Destination for the serialized object.
+            If None, return generated bytes
+        append : bool, default False
+            Whether to append to an existing msgpack.
+        compress : str, default None
+            Type of compressor (zlib, blosc or None).
 
         Returns
         -------
@@ -2770,10 +2801,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         excel : bool, default True
-            - True, use the provided separator, writing in a csv format for
-              allowing easy pasting into excel.
-            - False, write a string representation of the object to the
-              clipboard.
+            Produce output in a csv format for easy pasting into excel.
+
+            - True, use the provided separator for csv pasting.
+            - False, write a string representation of the object to the clipboard.
 
         sep : str, default ``'\t'``
             Field delimiter.
@@ -4618,8 +4649,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Keep labels from axis for which "like in label == True".
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
-        axis : int or string axis name
-            The axis to filter on.  By default this is the info axis,
+        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+            The axis to filter on, expressed either as an index (int)
+            or axis name (str). By default this is the info axis,
             'index' for Series, 'columns' for DataFrame.
 
         Returns
@@ -4852,7 +4884,7 @@ class NDFrame(PandasObject, SelectionMixin):
         random_state : int or numpy.random.RandomState, optional
             Seed for the random number generator (if int), or numpy RandomState
             object.
-        axis : int or string, optional
+        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
 
@@ -4996,15 +5028,15 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         func : function
-            function to apply to the %(klass)s.
+            Function to apply to the %(klass)s.
             ``args``, and ``kwargs`` are passed into ``func``.
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the %(klass)s.
         args : iterable, optional
-            positional arguments passed into ``func``.
+            Positional arguments passed into ``func``.
         kwargs : mapping, optional
-            a dictionary of keyword arguments passed into ``func``.
+            A dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
@@ -5575,9 +5607,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.23.0
 
-        This is useful for SparseDataFrame or for DataFrames containing
-        sparse arrays.
-
         Returns
         -------
         dtype : Series
@@ -5672,7 +5701,6 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.dtypes: Series with just dtype information.
-        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -5687,13 +5715,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1    float64:dense
         2    float64:dense
         3    float64:dense
-        dtype: object
-
-        >>> pd.SparseDataFrame(arr).ftypes  # doctest: +SKIP
-        0    float64:sparse
-        1    float64:sparse
-        2    float64:sparse
-        3    float64:sparse
         dtype: object
         """
         warnings.warn(
@@ -5755,7 +5776,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise", **kwargs):
+    def astype(self, dtype, copy=True, errors="raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5777,8 +5798,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
-
-        **kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
@@ -5865,7 +5884,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors, **kwargs)
+                return self.astype(new_type, copy, errors)
 
             for col_name in dtype.keys():
                 if col_name not in self:
@@ -5877,12 +5896,10 @@ class NDFrame(PandasObject, SelectionMixin):
             for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
-                        col.astype(
-                            dtype=dtype[col_name], copy=copy, errors=errors, **kwargs
-                        )
+                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
                     )
                 else:
-                    results.append(results.append(col.copy() if copy else col))
+                    results.append(col.copy() if copy else col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -5894,9 +5911,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(
-                dtype=dtype, copy=copy, errors=errors, **kwargs
-            )
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat
@@ -8456,7 +8471,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        offset : string, DateOffset, dateutil.relativedelta
+        offset : str, DateOffset, dateutil.relativedelta
 
         Returns
         -------
@@ -8519,7 +8534,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        offset : string, DateOffset, dateutil.relativedelta
+        offset : str, DateOffset, dateutil.relativedelta
 
         Returns
         -------
@@ -9051,22 +9066,9 @@ class NDFrame(PandasObject, SelectionMixin):
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
 
-                            try:
-                                new_other = com.values_from_object(self)
-                                new_other = new_other.copy()
-                                new_other[icond] = other
-                                other = new_other
-                            except Exception:
-                                try_quick = False
-
-                        # let's create a new (if we failed at the above
-                        # or not try_quick
-                        if not try_quick:
-
-                            dtype, fill_value = maybe_promote(other.dtype)
-                            new_other = np.empty(len(icond), dtype=dtype)
-                            new_other.fill(fill_value)
-                            maybe_upcast_putmask(new_other, icond, other)
+                            new_other = com.values_from_object(self)
+                            new_other = new_other.copy()
+                            new_other[icond] = other
                             other = new_other
 
                     else:
@@ -9127,7 +9129,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        cond : boolean %(klass)s, array-like, or callable
+        cond : bool %(klass)s, array-like, or callable
             Where `cond` is %(cond)s, keep the original value. Where
             %(cond_rev)s, replace with corresponding value from `other`.
             If `cond` is callable, it is computed on the %(klass)s and
@@ -9434,9 +9436,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        freq : DateOffset, timedelta, or time rule string, default None
-            Increment to use from the tseries module or time rule (e.g. 'EOM')
-        axis : int or basestring
+        freq : DateOffset, timedelta, or str, default None
+            Increment to use from the tseries module
+            or time rule expressed as a string (e.g. 'EOM')
+        axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
             Corresponds to the axis that contains the Index
 
         Returns
@@ -9494,9 +9497,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        before : date, string, int
+        before : date, str, int
             Truncate all rows before this index value.
-        after : date, string, int
+        after : date, str, int
             Truncate all rows after this index value.
         axis : {0 or 'index', 1 or 'columns'}, optional
             Axis to truncate. Truncates the index (rows) by default.
@@ -10169,7 +10172,7 @@ class NDFrame(PandasObject, SelectionMixin):
             percentiles = list(percentiles)
 
             # get them all to be in [0, 1]
-            self._check_percentile(percentiles)
+            validate_percentile(percentiles)
 
             # median should always be included
             if 0.5 not in percentiles:
@@ -10273,21 +10276,6 @@ class NDFrame(PandasObject, SelectionMixin):
         d.columns = data.columns.copy()
         return d
 
-    def _check_percentile(self, q):
-        """
-        Validate percentiles (used by describe and quantile).
-        """
-
-        msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
-        q = np.asarray(q)
-        if q.ndim == 0:
-            if not 0 <= q <= 1:
-                raise ValueError(msg.format(q / 100.0))
-        else:
-            if not all(0 <= qs <= 1 for qs in q):
-                raise ValueError(msg.format(q / 100.0))
-        return q
-
     _shared_docs[
         "pct_change"
     ] = """
@@ -10305,7 +10293,7 @@ class NDFrame(PandasObject, SelectionMixin):
             How to handle NAs before computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
-        freq : DateOffset, timedelta, or offset alias string, optional
+        freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
         **kwargs
             Additional keyword arguments are passed into

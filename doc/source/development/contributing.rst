@@ -208,7 +208,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python -m pip install -e . --no-build-isolation
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -252,7 +252,7 @@ You'll need to have at least python3.5 installed on your system.
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python -m pip install -e . --no-build-isolation
 
 Creating a branch
 -----------------
@@ -952,7 +952,7 @@ the expected correct result::
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+*pandas* existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 

@@ -245,7 +245,7 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             td - dt
 
-        msg = "bad operand type for unary -: 'DatetimeArray'"
+        msg = "(bad|unsupported) operand type for unary"
         with pytest.raises(TypeError, match=msg):
             td - dti
 

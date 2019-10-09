@@ -19,8 +19,8 @@ import sys
 
 import yaml
 
-EXCLUDE = {"python=3", "openssl=1.1.1c"}
-RENAME = {"pytables": "tables", "pyqt": "pyqt5"}
+EXCLUDE = {"python=3"}
+RENAME = {"pytables": "tables", "pyqt": "pyqt5", "dask-core": "dask"}
 
 
 def conda_package_to_pip(package):
@@ -47,6 +47,9 @@ def conda_package_to_pip(package):
             return "".join((RENAME[pkg], compare, version))
 
         break
+
+    if package in RENAME:
+        return RENAME[package]
 
     return package
 
