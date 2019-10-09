@@ -553,7 +553,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
 
-        if is_object_dtype(other):
+        if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
@@ -601,11 +601,11 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             # Note: we do not do type inference on the result, so either
             #  an object array or numeric-dtyped (if numpy does inference)
             #  will be returned.  GH#23829
@@ -649,12 +649,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
-        elif is_object_dtype(other):
-            # Note: unlike in __truediv__, we do not _need_ to do type#
+        elif is_object_dtype(other.dtype):
+            # Note: unlike in __truediv__, we do not _need_ to do type
             #  inference on the result.  It does not raise, a numeric array
             #  is returned.  GH#23829
             result = [other[n] / self[n] for n in range(len(self))]
@@ -701,7 +701,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -713,7 +713,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [self[n] // other[n] for n in range(len(self))]
             result = np.array(result)
             if lib.infer_dtype(result, skipna=False) == "timedelta":
@@ -721,7 +721,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return type(self)(result)
             return result
 
-        elif is_integer_dtype(other) or is_float_dtype(other):
+        elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
             result = self._data // other
             return type(self)(result)
 
@@ -763,7 +763,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -775,7 +775,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [other[n] // self[n] for n in range(len(self))]
             result = np.array(result)
             return result
