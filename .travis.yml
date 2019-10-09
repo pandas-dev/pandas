@@ -96,7 +96,8 @@ before_script:
 
 script:
   - echo "script start"
-  - if [ $JOB != "3.8-dev"]; then source activate pandas-dev; fi
+  - echo "$JOB"
+  - if [ "$JOB" != "3.8-dev" ]; then source activate pandas-dev; fi
   - ci/run_tests.sh
 
 after_script:
