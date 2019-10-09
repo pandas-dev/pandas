@@ -1287,3 +1287,19 @@ class TestAsOfMerge:
         )
 
         assert_frame_equal(result, expected)
+
+    def test_int_type_tolerance(self):
+        # GH #28870
+
+        left = pd.DataFrame({'ts_int': [0, 100, 200], 'left_val': [1, 2, 3]})
+        right = pd.DataFrame({'ts_int': [50, 150, 250], 'right_val': [1, 2, 3]})
+        left['ts_int'] = left['ts_int'].astype(np.int32)
+        right['ts_int'] = right['ts_int'].astype(np.int32)
+
+        expected = pd.DataFrame(
+            {"ts_int": [0, 100, 200], "left_val": [1, 2, 3],
+             "right_val": [np.nan, 1.0, 2.0]}
+        )
+
+        result = pd.merge_asof(left, right, on='ts_int', tolerance=100)
+        assert_frame_equal(result, expected)
