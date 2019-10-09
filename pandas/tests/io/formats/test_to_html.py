@@ -104,7 +104,7 @@ def test_to_html_encoding(float_frame, tmp_path):
     path = tmp_path / "test.html"
     float_frame.to_html(path, encoding="gbk")
     with open(str(path), "r", encoding="gbk") as f:
-        assert float_frame.to_html(encoding="gbk") == f.read()
+        assert float_frame.to_html() == f.read()
 
 
 def test_to_html_decimal(datapath):
