@@ -849,7 +849,7 @@ class Styler:
 
     def set_caption(self, caption):
         """
-        Set the caption on a Styler
+        Set the caption on a Styler.
 
         Parameters
         ----------

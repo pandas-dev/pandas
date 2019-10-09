@@ -1344,7 +1344,7 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution.
+        Return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
@@ -1355,7 +1355,7 @@ class Timedelta(_Timedelta):
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution.
+        Return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------
