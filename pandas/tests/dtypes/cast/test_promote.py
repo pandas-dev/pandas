@@ -408,25 +408,14 @@ def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype, box):
 
     if box_dtype == object:
         pytest.xfail("falsely upcasts to object")
-    if boxed and is_float_dtype(dtype) and is_complex_dtype(expected_dtype):
+    elif boxed and is_float_dtype(dtype) and is_complex_dtype(expected_dtype):
         pytest.xfail("does not upcast to complex")
-    if (dtype, expected_dtype) in [
+    elif boxed and (dtype, expected_dtype) in [
         ("float32", "float64"),
         ("float32", "complex64"),
         ("complex64", "complex128"),
     ]:
         pytest.xfail("does not upcast correctly depending on value")
-    # this following xfails are "only" a consequence of the - now strictly
-    # enforced - principle that maybe_promote_with_scalar always casts
-    if not boxed and abs(fill_value) < 2:
-        pytest.xfail("wrong return type of fill_value")
-    if (
-        not boxed
-        and dtype == "complex128"
-        and expected_dtype == "complex128"
-        and is_float_dtype(type(fill_value))
-    ):
-        pytest.xfail("wrong return type of fill_value")
 
     # output is not a generic float, but corresponds to expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
