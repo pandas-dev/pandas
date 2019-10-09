@@ -453,6 +453,8 @@ def maybe_promote(dtype, fill_value=np.nan):
                     pass
                 elif mst == np.uint32:
                     dtype = np.dtype(np.int64)
+                elif mst == np.uint16:
+                    dtype = np.dtype(np.int32)
                 else:
                     raise NotImplementedError(dtype, mst)
 

@@ -279,25 +279,6 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     expected_dtype = np.dtype(expected_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if not boxed:
-        if expected_dtype == "int32":
-            pytest.xfail("always upcasts to platform int")
-        elif dtype == "int8" and expected_dtype == "int16":
-            pytest.xfail("casts to int32 instead of int16")
-        elif (
-            issubclass(dtype.type, np.unsignedinteger)
-            and np.iinfo(dtype).max < fill_value <= np.iinfo("int64").max
-        ):
-            pytest.xfail("falsely casts to signed")
-        elif (dtype, expected_dtype) in [
-            ("uint8", "int16"),
-            ("uint32", "int64"),
-        ] and fill_value != np.iinfo("int32").min - 1:
-            pass#pytest.xfail("casts to int32 instead of int8/int16")
-        elif expected_dtype != object:
-            # this following xfail is "only" a consequence of the - now strictly
-            # enforced - principle that maybe_promote_with_scalar always casts
-            pass#pytest.xfail("wrong return type of fill_value")
     if boxed:
         if expected_dtype != object:
             pytest.xfail("falsely casts to object")
