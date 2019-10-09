@@ -854,8 +854,8 @@ class Window(_Window):
         """
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate : Aggregate using one or more operations over the specified axis.
-    pandas.DataFrame.aggregate: Aggregate using one or more operations over the specified axis.
+    pandas.DataFrame.rolling.aggregate : Rolling aggregate using one or more operations.
+    pandas.DataFrame.aggregate: Aggregate using one or more operations.
     """
     )
 
