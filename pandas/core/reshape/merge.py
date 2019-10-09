@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
