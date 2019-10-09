@@ -209,8 +209,7 @@ class TestDataFrameReprInfoEtc(TestData):
     def test_info_verbose(self):
         buf = StringIO()
         size = 5
-        header_size = 3
-
+        start = 3
         frame = DataFrame(np.random.randn(3, size))
         frame.info(verbose=True, buf=buf)
 
@@ -219,8 +218,10 @@ class TestDataFrameReprInfoEtc(TestData):
         assert len(lines) > 0
 
         for i, line in enumerate(lines):
-            if i >= header_size and i < header_size + size:
-                assert line.startswith(str(i - header_size) + ". ") 
+            if i >= start and i < start + size:
+                index = i - start
+                line_nr = "{}. ".format(index)
+                assert line.startswith(line_nr) 
 
     def test_info_memory(self):
         # https://github.com/pandas-dev/pandas/issues/21056
