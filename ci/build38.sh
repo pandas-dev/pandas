@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # Special build for python3.8 until numpy puts its own wheels up
 
-sudo apt-get install build-essential
+sudo apt-get install build-essential xvfb
 pip install --no-deps -U pip wheel setuptools
 pip install python-dateutil pytz cython pytest pytest-xdist hypothesis
 
