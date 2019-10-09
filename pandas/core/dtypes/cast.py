@@ -415,7 +415,6 @@ def maybe_promote(dtype, fill_value=np.nan):
                 #  uint[n] < uint[2*n]
                 #  u?int[n] < object_
                 dtype = mst
-                fill_value = dtype.type(fill_value)
 
             elif np.can_cast(fill_value, dtype):
                 pass
@@ -425,38 +424,37 @@ def maybe_promote(dtype, fill_value=np.nan):
                 if dtype.kind == "f":
                     # Case where we disagree with numpy
                     dtype = np.dtype(np.object_)
-                fill_value = dtype.type(fill_value)
-
-            elif dtype.kind == "i" and fill_value > np.iinfo(np.int64).max:
-                # object is the only way to represent fill_value and keep
-                #  the range allowed by the given dtype
-                dtype = np.dtype(np.object_)
-
-            elif dtype.kind == "i" and mst.kind == "u" and dtype.itemsize == mst.itemsize:
-                # We never cast signed to unsigned because that loses
-                #  parts of the original range, so find the smallest signed
-                #  integer that can hold all of `mst`.
-                ndt = {np.int64: np.object_, np.int32: np.int64, np.int16: np.int32, np.int8: np.int16}[dtype.type]
-                dtype = np.dtype(ndt)
-                assert dtype.type(fill_value) == fill_value
-                #if dtype == np.int64:
-                #    # no bigger signed integer dtypes to work with
-                #    dtype = np.dtype(np.object_)
-                #elif dtype == np.int32 and mdt == np.uint32:
-                #    dtype = np.dtype()
-                #else:
-                #    sdt = "i" + str(dtype.itemsize*2)
-                #    dtype = np.dtype(sdt)
 
             elif dtype.kind == "i" and mst.kind == "u":
-                if mst.itemsize < dtype.itemsize:
+
+                if fill_value > np.iinfo(np.int64).max:
+                    # object is the only way to represent fill_value and keep
+                    #  the range allowed by the given dtype
+                    dtype = np.dtype(np.object_)
+
+                elif mst.itemsize < dtype.itemsize:
                     pass
-                elif mst == np.uint32:
-                    dtype = np.dtype(np.int64)
-                elif mst == np.uint16:
-                    dtype = np.dtype(np.int32)
+
+                elif dtype.itemsize == mst.itemsize:
+                    # We never cast signed to unsigned because that loses
+                    #  parts of the original range, so find the smallest signed
+                    #  integer that can hold all of `mst`.
+                    ndt = {
+                        np.int64: np.object_,
+                        np.int32: np.int64,
+                        np.int16: np.int32,
+                        np.int8: np.int16,
+                    }[dtype.type]
+                    dtype = np.dtype(ndt)
+
                 else:
-                    raise NotImplementedError(dtype, mst)
+                    # bump to signed integer dtype that holds all of `mst` range
+                    ndt = {
+                        np.uint32: np.int64,
+                        np.uint16: np.int32,
+                        np.uint8: np.int16,  # TODO: Test for this case
+                    }[mst.type]
+                    dtype = np.dtype(ndt)
 
             fill_value = dtype.type(fill_value)
 
