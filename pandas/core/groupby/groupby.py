@@ -1212,16 +1212,9 @@ class GroupBy(_GroupBy):
         Name: B, dtype: float64
         """
         nv.validate_groupby_func("mean", args, kwargs, ["numeric_only"])
-        try:
-            return self._cython_agg_general(
-                "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
-            )
-        except GroupByError:
-            raise
-        except Exception:
-            with _group_selection_context(self):
-                f = lambda x: x.mean(axis=self.axis, **kwargs)
-                return self._python_agg_general(f)
+        return self._cython_agg_general(
+            "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
