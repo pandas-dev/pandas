@@ -1672,7 +1672,9 @@ class TestPivotTable:
             }
         )
         # case with index/columns/value
-        result = df.pivot_table(index="In", columns="Col", values="Val")
+        result = df.pivot_table(
+            index="In", columns="Col", values="Val", observed=observed
+        )
 
         expected_cols = pd.CategoricalIndex(
             ["A", "B"], ordered=ordered_fixture, name="Col"
@@ -1691,7 +1693,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
         # case with columns/value
-        result = df.pivot_table(columns="Col", values="Val")
+        result = df.pivot_table(columns="Col", values="Val", observed=observed)
 
         expected = pd.DataFrame(
             data=[[3.5, 3.0]], columns=expected_cols, index=Index(["Val"])
