@@ -1162,38 +1162,32 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert expected == ss.to_json()
 
     @pytest.mark.parametrize(
-        "ts",
+        "ts,expected",
         [
-            Timestamp("2013-01-10 05:00:00Z"),
-            Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
-            Timestamp("2013-01-10 00:00:00-0500"),
+            (Timestamp("2013-01-10 05:00:00Z"),
+             '"2013-01-10T05:00:00.000+00:00"'),
+            (Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
+             '"2013-01-10T00:00:00.000-05:00"'),
+            (Timestamp("2013-01-10 00:00:00-0500"),
+             '"2013-01-10T00:00:00.000-05:00"')
         ],
     )
-    def test_tz_is_utc(self, ts):
+    def test_tz_utc_offsets(self, ts, expected):
         from pandas.io.json import dumps
 
-        exp = '"2013-01-10T05:00:00.000Z"'
-
-        assert dumps(ts, iso_dates=True) == exp
+        assert dumps(ts, iso_dates=True) == expected
         dt = ts.to_pydatetime()
-        assert dumps(dt, iso_dates=True) == exp
+        assert dumps(dt, iso_dates=True) == expected
 
-    @pytest.mark.parametrize(
-        "tz_range",
-        [
-            pd.date_range("2013-01-01 05:00:00Z", periods=2),
-            pd.date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
-            pd.date_range("2013-01-01 00:00:00-0500", periods=2),
-        ],
-    )
-    def test_tz_range_is_utc(self, tz_range):
+    def test_tz_range_is_utc(self):
         from pandas.io.json import dumps
 
-        exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
+        tz_range = pd.date_range("2013-01-01 05:00:00Z", periods=2)
+        exp = '["2013-01-01T05:00:00.000+00:00","2013-01-02T05:00:00.000+00:00"]'
         dfexp = (
             '{"DT":{'
-            '"0":"2013-01-01T05:00:00.000Z",'
-            '"1":"2013-01-02T05:00:00.000Z"}}'
+            '"0":"2013-01-01T05:00:00.000+00:00",'
+            '"1":"2013-01-02T05:00:00.000+00:00"}}'
         )
 
         assert dumps(tz_range, iso_dates=True) == exp
