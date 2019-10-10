@@ -1111,7 +1111,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
                 values, tz = conversion.datetime_to_datetime64(v)
                 # error: "DatetimeIndex" has no attribute "tz_localize"
                 return (
-                    DatetimeIndex(values)  # type: ignore[attr-defined]
+                    DatetimeIndex(values)  # type: ignore
                     .tz_localize("UTC")
                     .tz_convert(tz=tz)
                 )

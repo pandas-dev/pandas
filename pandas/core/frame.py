@@ -3448,7 +3448,7 @@ class DataFrame(NDFrame):
                 unique_dtype
                 for unique_dtype in unique_dtypes
                 if issubclass(
-                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                    unique_dtype.type, tuple(dtypes_set)  # type: ignore
                 )
             ]
             return extracted_dtypes

@@ -481,7 +481,7 @@ def _justify(
     # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
     #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
     #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore[return-value] # noqa: F723
+    return head, tail  # type: ignore # noqa: F723
 
 
 def format_object_attrs(
@@ -506,16 +506,16 @@ def format_object_attrs(
     attrs = []  # type: List[Tuple[str, Union[str, int]]]
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore[attr-defined]
+        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore
     if getattr(obj, "name", None) is not None:
         # error: "Sequence[Any]" has no attribute "name"
-        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore
     # error: "Sequence[Any]" has no attribute "names"
     elif getattr(obj, "names", None) is not None and any(
-        obj.names  # type: ignore[attr-defined]
+        obj.names  # type: ignore
     ):
         # error: "Sequence[Any]" has no attribute "names"
-        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))

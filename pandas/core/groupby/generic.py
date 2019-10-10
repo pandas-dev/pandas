@@ -983,7 +983,7 @@ class DataFrameGroupBy(GroupBy):
                     result = maybe_downcast_numeric(result, block.dtype)
 
                     # error: "object" has no attribute "ndim"  [attr-defined]
-                    if result.ndim == 1 and isinstance(  # type: ignore[attr-defined]
+                    if result.ndim == 1 and isinstance(  # type: ignore
                         result, np.ndarray
                     ):
                         # e.g. block.values was an IntegerArray

@@ -762,7 +762,7 @@ class Index(IndexOpsMixin, PandasObject):
             tz = pandas_dtype(dtype).tz
             # error: "DatetimeIndex" has no attribute "tz_localize"
             return (
-                DatetimeIndex(np.asarray(self))  # type: ignore[attr-defined]
+                DatetimeIndex(np.asarray(self))  # type: ignore
                 .tz_localize("UTC")
                 .tz_convert(tz)
             )

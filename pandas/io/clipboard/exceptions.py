@@ -9,6 +9,6 @@ class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
         # error: Module has no attribute "WinError"
         message += " ({err})".format(
-            err=ctypes.WinError()  # type: ignore[attr-defined]
+            err=ctypes.WinError()  # type: ignore
         )
         super().__init__(message)

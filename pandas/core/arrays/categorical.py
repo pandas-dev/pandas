@@ -1616,7 +1616,7 @@ class Categorical(ExtensionArray, PandasObject):
         #  argument "ascending"  [misc]
         # error: "argsort" of "ExtensionArray" gets multiple values for keyword
         #  argument "kind"  [misc]
-        return super().argsort(  # type: ignore[misc]
+        return super().argsort(  # type: ignore
             ascending=ascending, kind=kind, *args, **kwargs
         )
 

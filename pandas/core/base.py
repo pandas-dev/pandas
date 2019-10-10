@@ -878,7 +878,7 @@ class IndexOpsMixin:
         # As a mixin, we depend on the mixing class having _values.
         # Special mixin syntax may be developed in the future:
         # https://github.com/python/typing/issues/246
-        result = self._values  # type: ignore[attr-defined]
+        result = self._values  # type: ignore
 
         if is_datetime64_ns_dtype(result.dtype):
             from pandas.arrays import DatetimeArray
@@ -1007,7 +1007,7 @@ class IndexOpsMixin:
         # As a mixin, we depend on the mixing class having values.
         # Special mixin syntax may be developed in the future:
         # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore[attr-defined]
+        return self.values  # type: ignore
 
     @property
     def empty(self):

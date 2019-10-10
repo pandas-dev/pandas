@@ -117,7 +117,7 @@ class Writer:
 
         if orient is None:
             # error: "Writer" has no attribute "_default_orient"
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient  # type: ignore
 
         self.orient = orient
         self.date_format = date_format

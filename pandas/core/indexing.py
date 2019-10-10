@@ -1751,7 +1751,7 @@ class _LocIndexer(_LocationIndexer):
                     # https://github.com/python/mypy/issues/5492
                     # error: List item 0 has incompatible type "slice"; expected "str"
                     [key]
-                    + [slice(None)]  # type: ignore[list-item]
+                    + [slice(None)]  # type: ignore
                     * (len(labels.levels) - 1)
                 )
 

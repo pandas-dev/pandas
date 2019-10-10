@@ -51,7 +51,7 @@ class Term(ops.Term):
             return self.name
 
     # error: Read-only property cannot override read-write property  [misc]
-    @property  # type: ignore[misc]
+    @property  # type: ignore
     def value(self):
         return self._value
 

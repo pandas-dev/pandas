@@ -170,12 +170,12 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     # TODO: GH27506 potential bug with ExtensionArrays
     try:
         # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
         pass
     try:
         # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
         return arr.astype("float64", copy=copy)
 

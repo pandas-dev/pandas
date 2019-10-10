@@ -5,7 +5,7 @@
 # objects
 def create_pandas_abc_type(name, attr, comp):
     # error: 'classmethod' used with a non-method
-    @classmethod  # type: ignore[misc]
+    @classmethod  # type: ignore
     def _check(cls, inst):
         return getattr(inst, attr, "_typ") in comp
 

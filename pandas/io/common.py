@@ -164,7 +164,7 @@ def _stringify_path(
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
         # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute "__fspath__"
-        return filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
+        return filepath_or_buffer.__fspath__()  # type: ignore
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
@@ -527,7 +527,7 @@ def _get_handle(
 #  definition in base class "IO"  [misc]
 # error: Definition of "__exit__" in base class "ZipFile" is incompatible with
 #  definition in base class "BytesIO"  [misc]
-class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
+class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.

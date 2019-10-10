@@ -809,7 +809,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
                 # error: "DatetimeIndex" has no attribute "tz_convert"  [attr-defined]
-                other = other.tz_convert("UTC")  # type: ignore[attr-defined]
+                other = other.tz_convert("UTC")  # type: ignore
         return this, other
 
     def _wrap_joined_index(self, joined, other):
@@ -1163,7 +1163,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                     mask = (self <= end_casted) & mask
 
                 # error: "bool" has no attribute "nonzero"  [attr-defined]
-                indexer = mask.nonzero()[0][::step]  # type: ignore[attr-defined]
+                indexer = mask.nonzero()[0][::step]  # type: ignore
                 if len(indexer) == len(self):
                     return slice(None)
                 else:
@@ -1180,13 +1180,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _is_unique = Index.is_unique
 
     _timezone = cache_readonly(
-        DatetimeArray._timezone.fget  # type: ignore[attr-defined]
+        DatetimeArray._timezone.fget  # type: ignore
     )
     is_normalized = cache_readonly(
-        DatetimeArray.is_normalized.fget  # type: ignore[attr-defined]
+        DatetimeArray.is_normalized.fget  # type: ignore
     )
     _resolution = cache_readonly(
-        DatetimeArray._resolution.fget  # type: ignore[attr-defined]
+        DatetimeArray._resolution.fget  # type: ignore
     )
 
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
