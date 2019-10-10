@@ -2980,7 +2980,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    found : Series/Index of integer values.
+    Series or Index of int.
 
     See Also
     --------
