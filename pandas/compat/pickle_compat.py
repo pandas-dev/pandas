@@ -71,7 +71,7 @@ class _LoadSparseSeries:
 
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "Series", but must return
-    # a subtype of "_LoadSparseSeries")    def __new__(cls) -> "Series":
+    # a subtype of "_LoadSparseSeries")
     def __new__(cls) -> "Series":  # type: ignore
         from pandas import Series
 
