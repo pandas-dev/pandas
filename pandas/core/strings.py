@@ -3054,7 +3054,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    found : Series/Index of objects.
+    Series or Index of object
 
     See Also
     --------
