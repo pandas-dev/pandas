@@ -398,6 +398,22 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.float64)
             if not isna(fill_value):
                 fill_value = dtype.type(fill_value)
+
+        elif dtype.kind == "f":
+            if not np.can_cast(fill_value, dtype):
+                # e.g. dtype is float32, need float64
+                dtype = np.min_scalar_type(fill_value)
+
+        elif dtype.kind == "c":
+            if not np.can_cast(fill_value, dtype):
+                if np.can_cast(fill_value, np.dtype("c16")):
+                    dtype = np.dtype(np.complex128)
+                else:
+                    dtype = np.dtype(np.object_)
+
+            if dtype.kind == "c" and not np.isnan(fill_value):
+                fill_value = dtype.type(fill_value)
+
     elif is_bool(fill_value):
         if not issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -405,7 +421,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = np.bool_(fill_value)
     elif is_integer(fill_value):
         if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
         elif issubclass(dtype.type, np.integer):
             # upcast to prevent overflow
             arr = np.asarray(fill_value)
@@ -415,11 +431,37 @@ def maybe_promote(dtype, fill_value=np.nan):
             # check if we can cast
             if _check_lossless_cast(fill_value, dtype):
                 fill_value = dtype.type(fill_value)
+
+        if dtype.kind in ["c", "f"]:
+            # e.g. if dtype is complex128 and fill_value is 1, we
+            #  want np.complex128(1)
+            fill_value = dtype.type(fill_value)
+
     elif is_complex(fill_value):
         if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
         elif issubclass(dtype.type, (np.integer, np.floating)):
-            dtype = np.complex128
+            c8 = np.dtype(np.complex64)
+            info = np.finfo(dtype) if dtype.kind == "f" else np.iinfo(dtype)
+            if (
+                np.can_cast(fill_value, c8)
+                and np.can_cast(info.min, c8)
+                and np.can_cast(info.max, c8)
+            ):
+                dtype = np.dtype(np.complex64)
+            else:
+                dtype = np.dtype(np.complex128)
+
+        elif dtype.kind == "c":
+            mst = np.min_scalar_type(fill_value)
+            if mst > dtype and mst.kind == "c":
+                # e.g. mst is np.complex128 and dtype is np.complex64
+                dtype = mst
+
+        if dtype.kind == "c":
+            # make sure we have a np.complex and not python complex
+            fill_value = dtype.type(fill_value)
+
     elif fill_value is None:
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
