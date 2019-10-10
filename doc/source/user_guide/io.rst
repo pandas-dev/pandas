@@ -5596,14 +5596,14 @@ Given the next test set:
     from numpy.random import randn
     sz = 1000000
     df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
-
+    
     def test_sql_write(df):
         if os.path.exists('test.sql'):
             os.remove('test.sql')
         sql_db = sqlite3.connect('test.sql')
         df.to_sql(name='test_table', con=sql_db)
         sql_db.close()
-
+        
     def test_sql_read():
         sql_db = sqlite3.connect('test.sql')
         pd.read_sql_query("select * from test_table", sql_db)
@@ -5701,7 +5701,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    
    In [8]: %timeit test_hdf_table_write_compress(df)
    448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
+   
    In [9]: %timeit test_csv_write(df)
    3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
@@ -5734,7 +5734,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
   
    In [17]: %timeit test_hdf_table_read()
    38.6 ms ± 857 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
+   
    In [18]: %timeit test_hdf_table_read_compress()
    38.8 ms ± 1.49 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
@@ -5746,14 +5746,14 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
   
    In [21]: %timeit test_pickle_read()
    18.4 ms ± 191 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
+   
    In [22]: %timeit test_pickle_read_compress()
    915 ms ± 7.48 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
    
    In [23]: %timeit test_parquet_read()
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   
+
 For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
 Space on disk (in bytes)
 
