@@ -5597,7 +5597,6 @@ Given the next test set:
     sz = 1000000
     df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
-
     def test_sql_write(df):
         if os.path.exists('test.sql'):
             os.remove('test.sql')
@@ -5702,7 +5701,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    
    In [8]: %timeit test_hdf_table_write_compress(df)
    448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-   
+
    In [9]: %timeit test_csv_write(df)
    3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
@@ -5735,7 +5734,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
   
    In [17]: %timeit test_hdf_table_read()
    38.6 ms ± 857 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
-  
+
    In [18]: %timeit test_hdf_table_read_compress()
    38.8 ms ± 1.49 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
@@ -5753,10 +5752,9 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
    
    In [23]: %timeit test_parquet_read()
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
-  
+
    
 For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
-
 Space on disk (in bytes)
 
 .. code-block:: none
