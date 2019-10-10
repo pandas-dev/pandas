@@ -263,6 +263,7 @@ pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
+requests                  2.10.0             Improves reading data from URLs
 s3fs                      0.0.8              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
