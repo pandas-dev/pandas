@@ -982,7 +982,10 @@ class DataFrameGroupBy(GroupBy):
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
 
-                    if result.ndim == 1 and isinstance(result, np.ndarray):
+                    # error: "object" has no attribute "ndim"  [attr-defined]
+                    if result.ndim == 1 and isinstance(  # type: ignore[attr-defined]
+                        result, np.ndarray
+                    ):
                         # e.g. block.values was an IntegerArray
                         try:
                             # Cast back if feasible
