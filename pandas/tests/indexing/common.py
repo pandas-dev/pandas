@@ -1,6 +1,5 @@
 """ common utilities """
 import itertools
-from typing import Dict, Hashable, Union
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -29,8 +28,6 @@ def _axify(obj, key, axis):
 class Base:
     """ indexing comprehensive base class """
 
-    frame = None  # type: Dict[str, DataFrame]
-    series = None  # type: Dict[str, Series]
     _kinds = {"series", "frame"}
     _typs = {
         "ints",
@@ -104,7 +101,7 @@ class Base:
 
         # form agglomerates
         for kind in self._kinds:
-            d = dict()  # type: Dict[str, Union[DataFrame, Series]]
+            d = dict()
             for typ in self._typs:
                 d[typ] = getattr(self, "{kind}_{typ}".format(kind=kind, typ=typ))
 
@@ -191,14 +188,7 @@ class Base:
         axes=None,
         fails=None,
     ):
-        def _eq(
-            typ: str,
-            kind: str,
-            axis: int,
-            obj: Union[DataFrame, Series],
-            key1: Hashable,
-            key2: Hashable,
-        ) -> None:
+        def _eq(typ, kind, axis, obj, key1, key2):
             """ compare equal for these 2 keys """
             if axis > obj.ndim - 1:
                 return
@@ -276,11 +266,11 @@ class Base:
             axes = [axes]
 
         # check
-        for kind in kinds:  # type: str
+        for kind in kinds:
             if kind not in self._kinds:
                 continue
 
-            d = getattr(self, kind)  # type: Dict[str, Union[DataFrame, Series]]
+            d = getattr(self, kind)
             for ax in axes:
                 for typ in typs:
                     if typ not in self._typs:
