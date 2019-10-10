@@ -289,7 +289,7 @@ class TestDataFrame(Generic):
 
         self._compare(empty_frame_copy, empty_frame)
 
-    def test_datetimeField_after_setitem_with_at(self):
+    def test_datetime_after_setitem_with_at(self):
         # This test covers the unexpected behaviour of datetimeField when using
         # setitem on another column as reported in issue #6942
 
@@ -299,13 +299,13 @@ class TestDataFrame(Generic):
             index=pd.date_range(start, periods=1), columns=["timenow", "Live"]
         )
 
-        result.at[start, "timenow"] = datetime.today()  # initial datetime.
+        result.at[start, "timenow"] = datetime.today()
 
         new_datetime = datetime.today()
 
         result.Live = True
 
-        # Changing the value in "timenow" column after setting the "Live" column to True.
+        # Changing the value in "timenow" column after "Live" colunn is set to True.
         result.at[start, "timenow"] = new_datetime
 
         expected = pd.DataFrame(
@@ -314,4 +314,4 @@ class TestDataFrame(Generic):
             columns=["timenow", "Live"],
         )
 
-        assert_frame_equal(result, expected, check_dtype=False)
+        assert_frame_equal(result, expected)
