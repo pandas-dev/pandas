@@ -424,9 +424,58 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
         elif issubclass(dtype.type, np.integer):
             # upcast to prevent overflow
-            arr = np.asarray(fill_value)
-            if arr != arr.astype(dtype):
-                dtype = arr.dtype
+            mst = np.min_scalar_type(fill_value)
+            if mst > dtype:
+                # np.dtype ordering considers:
+                #  int[n] < int[2*n]
+                #  uint[n] < uint[2*n]
+                #  u?int[n] < object_
+                dtype = mst
+
+            elif np.can_cast(fill_value, dtype):
+                pass
+
+            elif dtype.kind == "u" and mst.kind == "i":
+                dtype = np.promote_types(dtype, mst)
+                if dtype.kind == "f":
+                    # Case where we disagree with numpy
+                    dtype = np.dtype(np.object_)
+
+            elif dtype.kind == "i" and mst.kind == "u":
+
+                if fill_value > np.iinfo(np.int64).max:
+                    # object is the only way to represent fill_value and keep
+                    #  the range allowed by the given dtype
+                    dtype = np.dtype(np.object_)
+
+                elif mst.itemsize < dtype.itemsize:
+                    pass
+
+                elif dtype.itemsize == mst.itemsize:
+                    # We never cast signed to unsigned because that loses
+                    #  parts of the original range, so find the smallest signed
+                    #  integer that can hold all of `mst`.
+                    ndt = {
+                        np.int64: np.object_,
+                        np.int32: np.int64,
+                        np.int16: np.int32,
+                        np.int8: np.int16,
+                    }[dtype.type]
+                    dtype = np.dtype(ndt)
+
+                else:
+                    # bump to signed integer dtype that holds all of `mst` range
+                    # Note: we have to use itemsize because some (windows)
+                    #  builds don't satisfiy e.g. np.uint32 == np.uint32
+                    ndt = {
+                        4: np.int64,
+                        2: np.int32,
+                        1: np.int16,  # TODO: Test for this case
+                    }[mst.itemsize]
+                    dtype = np.dtype(ndt)
+
+            fill_value = dtype.type(fill_value)
+
         elif issubclass(dtype.type, np.floating):
             # check if we can cast
             if _check_lossless_cast(fill_value, dtype):
