@@ -5678,8 +5678,8 @@ Given the next test set:
    
     def test_parquet_write(df):
         df.to_parquet('test.parquet')
-    
-    
+
+
     def test_parquet_read():
         pd.read_parquet('test.parquet')
 
@@ -5702,7 +5702,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    
    In [8]: %timeit test_hdf_table_write_compress(df)
    448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
+   
    In [9]: %timeit test_csv_write(df)
    3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
