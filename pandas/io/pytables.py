@@ -396,11 +396,12 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
     except (ValueError, TypeError, KeyError):
-        # if there is an error, close the store
-        try:
-            store.close()
-        except AttributeError:
-            pass
+        if not isinstance(path_or_buf, HDFStore):
+            # if there is an error, close the store if we opened it.
+            try:
+                store.close()
+            except AttributeError:
+                pass
 
         raise
 
