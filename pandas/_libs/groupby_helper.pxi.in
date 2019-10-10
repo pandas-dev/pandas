@@ -600,7 +600,7 @@ def group_cummin(groupby_t[:, :] out,
 def group_cummax(groupby_t[:, :] out,
                  groupby_t[:, :] values,
                  const int64_t[:] labels,
-		         int ngroups,
+                 int ngroups,
                  bint is_datetimelike):
     """
     Cumulative maximum of columns of `values`, in row groups `labels`.
