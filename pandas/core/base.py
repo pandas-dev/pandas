@@ -715,7 +715,7 @@ class IndexOpsMixin:
             FutureWarning,
             stacklevel=2,
         )
-        return self.values.item()
+        return self.values.item(0)
 
     @property
     def data(self):
