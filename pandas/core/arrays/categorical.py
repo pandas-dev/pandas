@@ -636,7 +636,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        codes : array-like, integers
+        codes : array-like, ints
             An integer array, where each integer points to a category in
             categories or dtype.categories, or else is -1 for NaN.
         categories : index-like, optional
@@ -647,7 +647,7 @@ class Categorical(ExtensionArray, PandasObject):
             Whether or not this categorical is treated as an ordered
             categorical. If not given here or in `dtype`, the resulting
             categorical will be unordered.
-        dtype : CategoricalDtype or the string "category", optional
+        dtype : CategoricalDtype or the str "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
 
