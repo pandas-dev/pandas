@@ -342,9 +342,6 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
-session : requests.Session
-    object with the a requests session configuration for remote file.
-    (requires the requests library)
 
 Returns
 -------
@@ -426,7 +423,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
 
-    session = kwds.get("session", None)
     compression = kwds.get("compression", "infer")
     compression = _infer_compression(filepath_or_buffer, compression)
 
@@ -435,7 +431,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, session=session
+        filepath_or_buffer, encoding, compression
     )
     kwds["compression"] = compression
 
@@ -592,7 +588,6 @@ def _make_parser_function(name, default_sep=","):
         low_memory=_c_parser_defaults["low_memory"],
         memory_map=False,
         float_precision=None,
-        session=None,
     ):
 
         # gh-23761
@@ -679,7 +674,6 @@ def _make_parser_function(name, default_sep=","):
             mangle_dupe_cols=mangle_dupe_cols,
             infer_datetime_format=infer_datetime_format,
             skip_blank_lines=skip_blank_lines,
-            session=session,
         )
 
         return _read(filepath_or_buffer, kwds)

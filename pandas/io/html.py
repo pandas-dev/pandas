@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import is_list_like
 
 from pandas import Series
 
-from pandas.io.common import _is_url, _urlopen, _validate_header_arg
+from pandas.io.common import _is_url, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -109,7 +109,7 @@ def _get_skiprows(skiprows):
     )
 
 
-def _read(obj, session=None):
+def _read(obj):
     """
     Try to read from a url, file or string.
 
@@ -122,7 +122,7 @@ def _read(obj, session=None):
     raw_text : str
     """
     if _is_url(obj):
-        text, _ = _urlopen(obj, session=session)
+        text, _ = urlopen(obj)
     elif hasattr(obj, "read"):
         text = obj.read()
     elif isinstance(obj, (str, bytes)):
@@ -198,13 +198,12 @@ class _HtmlFrameParser:
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, displayed_only, session=None):
+    def __init__(self, io, match, attrs, encoding, displayed_only):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
-        self.session = session
 
     def parse_tables(self):
         """
@@ -588,7 +587,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return table.select("tfoot tr")
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io, self.session)
+        raw_text = _read(self.io)
         if not raw_text:
             raise ValueError("No text parsed from document: {doc}".format(doc=self.io))
         return raw_text
@@ -714,7 +713,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         try:
             if _is_url(self.io):
-                with _urlopen(self.io) as f:
+                with urlopen(self.io) as f:
                     r = parse(f, parser=parser)
             else:
                 # try to parse the input in the simplest way
@@ -891,10 +890,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
     # hack around python 3 deleting the exception variable
     retained = None
-    session = kwargs.get("session", None)
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only, session)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only)
 
         try:
             tables = p.parse_tables()
@@ -944,7 +942,6 @@ def read_html(
     na_values=None,
     keep_default_na=True,
     displayed_only=True,
-    session=None,
 ):
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.

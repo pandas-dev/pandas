@@ -183,28 +183,20 @@ def is_gcs_url(url) -> bool:
     return parse_url(url).scheme in ["gcs", "gs"]
 
 
-def _urlopen(*args, **kwargs):
+def urlopen(*args, **kwargs):
     compression = None
     content_encoding = None
     try:
         import requests
 
-        url = args[0]
-        session = kwargs.pop("session", None)
-        if session:
-            if not isinstance(session, requests.sessions.Session):
-                raise ValueError(
-                    "Expected a requests.sessions.Session object, "
-                    "got {!r}".format(session)
-                )
-            r = session.get(url)
-        else:
-            r = requests.get(url)
+        r = requests.get(*args, **kwargs)
         r.raise_for_status()
         content = r.content
         r.close()
     except ImportError:
-        r = urlopen(*args, **kwargs)
+        import urllib.request
+
+        r = urllib.request.urlopen(*args, **kwargs)
         content = r.read()
         content_encoding = r.headers.get("Content-Encoding", None)
     if content_encoding == "gzip":
@@ -214,24 +206,11 @@ def _urlopen(*args, **kwargs):
     return reader, compression
 
 
-def urlopen(*args, **kwargs):
-    """
-    Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
-    the stdlib.
-    """
-    import urllib.request
-
-    _ = kwargs.pop("session")
-
-    return urllib.request.urlopen(*args, **kwargs)
-
-
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-    session=None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -255,7 +234,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
-        reader, compression = _urlopen(filepath_or_buffer, session=session)
+        reader, compression = urlopen(filepath_or_buffer)
         return reader, encoding, compression, True
 
     if is_s3_url(filepath_or_buffer):
