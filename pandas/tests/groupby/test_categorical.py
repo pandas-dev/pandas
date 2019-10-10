@@ -1195,9 +1195,12 @@ def test_groupby_categorical_axis_1(code):
     assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed):
+def test_groupby_cat_preserves_structure(observed, ordered_fixture):
     # GH 28787
-    df = DataFrame([("Bob", 1), ("Greg", 2)], columns=["Name", "Item"])
+    df = DataFrame(
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        columns=["Name", "Item"],
+    )
     expected = df.copy()
 
     result = (
@@ -1207,3 +1210,14 @@ def test_groupby_cat_preserves_structure(observed):
     )
 
     assert_frame_equal(result, expected)
+
+
+def test_get_nonexistent_category():
+    # Accessing a Category that is not in the dataframe
+    df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
+    with pytest.raises(KeyError, match="'vau'"):
+        df.groupby("var").apply(
+            lambda rows: pd.DataFrame(
+                {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
+            )
+        )

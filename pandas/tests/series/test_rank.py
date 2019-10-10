@@ -1,7 +1,6 @@
 from itertools import chain, product
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas._libs.algos import Infinity, NegInfinity
@@ -16,14 +15,14 @@ from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesRank(TestData):
-    s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
+    s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
 
     results = {
-        "average": np.array([1.5, 5.5, 7.0, 3.5, nan, 3.5, 1.5, 8.0, nan, 5.5]),
-        "min": np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
-        "max": np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        "first": np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
-        "dense": np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
+        "average": np.array([1.5, 5.5, 7.0, 3.5, np.nan, 3.5, 1.5, 8.0, np.nan, 5.5]),
+        "min": np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5]),
+        "max": np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6]),
+        "first": np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6]),
+        "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
     def test_rank(self):

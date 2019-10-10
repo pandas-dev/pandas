@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -150,7 +151,17 @@ def _assert_match(result_fill_value, expected_fill_value):
     # GH#23982/25425 require the same type in addition to equality/NA-ness
     res_type = type(result_fill_value)
     ex_type = type(expected_fill_value)
-    assert res_type == ex_type
+    if res_type.__name__ == "uint64":
+        # No idea why, but these (sometimes) do not compare as equal
+        assert ex_type.__name__ == "uint64"
+    elif res_type.__name__ == "ulonglong":
+        # On some builds we get this instead of np.uint64
+        # Note: cant check res_type.dtype.itemsize directly on numpy 1.18
+        assert res_type(0).itemsize == 8
+        assert ex_type == res_type or ex_type == np.uint64
+    else:
+        # On some builds, type comparison fails, e.g. np.int32 != np.int32
+        assert res_type == ex_type or res_type.__name__ == ex_type.__name__
 
     match_value = result_fill_value == expected_fill_value
 
@@ -274,26 +285,6 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype, box):
     expected_dtype = np.dtype(expected_dtype)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if not boxed:
-        if expected_dtype == object:
-            pytest.xfail("overflow error")
-        if expected_dtype == "int32":
-            pytest.xfail("always upcasts to platform int")
-        if dtype == "int8" and expected_dtype == "int16":
-            pytest.xfail("casts to int32 instead of int16")
-        if (
-            issubclass(dtype.type, np.unsignedinteger)
-            and np.iinfo(dtype).max < fill_value <= np.iinfo("int64").max
-        ):
-            pytest.xfail("falsely casts to signed")
-        if (dtype, expected_dtype) in [
-            ("uint8", "int16"),
-            ("uint32", "int64"),
-        ] and fill_value != np.iinfo("int32").min - 1:
-            pytest.xfail("casts to int32 instead of int8/int16")
-        # this following xfail is "only" a consequence of the - now strictly
-        # enforced - principle that maybe_promote_with_scalar always casts
-        pytest.xfail("wrong return type of fill_value")
     if boxed:
         if expected_dtype != object:
             pytest.xfail("falsely casts to object")
@@ -407,25 +398,14 @@ def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype, box):
 
     if box_dtype == object:
         pytest.xfail("falsely upcasts to object")
-    if boxed and is_float_dtype(dtype) and is_complex_dtype(expected_dtype):
+    elif boxed and is_float_dtype(dtype) and is_complex_dtype(expected_dtype):
         pytest.xfail("does not upcast to complex")
-    if (dtype, expected_dtype) in [
+    elif boxed and (dtype, expected_dtype) in [
         ("float32", "float64"),
         ("float32", "complex64"),
         ("complex64", "complex128"),
     ]:
         pytest.xfail("does not upcast correctly depending on value")
-    # this following xfails are "only" a consequence of the - now strictly
-    # enforced - principle that maybe_promote_with_scalar always casts
-    if not boxed and abs(fill_value) < 2:
-        pytest.xfail("wrong return type of fill_value")
-    if (
-        not boxed
-        and dtype == "complex128"
-        and expected_dtype == "complex128"
-        and is_float_dtype(type(fill_value))
-    ):
-        pytest.xfail("wrong return type of fill_value")
 
     # output is not a generic float, but corresponds to expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
@@ -500,14 +480,82 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype_reduced, box):
     )
 
 
-def test_maybe_promote_bytes_with_any():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box):
+    dtype = np.dtype(bytes_dtype)
+    fill_dtype = np.dtype(any_numpy_dtype_reduced)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if issubclass(fill_dtype.type, np.bytes_):
+        if not boxed or box_dtype == object:
+            pytest.xfail("falsely upcasts to object")
+        # takes the opinion that bool dtype has no missing value marker
+        else:
+            pytest.xfail("wrong missing value marker")
+    else:
+        if boxed and box_dtype is None:
+            pytest.xfail("does not upcast to object")
+
+    # create array of given dtype; casts "1" to correct dtype
+    fill_value = np.array([1], dtype=fill_dtype)[0]
+
+    # filling bytes with anything but bytes casts to object
+    expected_dtype = (
+        dtype if issubclass(fill_dtype.type, np.bytes_) else np.dtype(object)
+    )
+    exp_val_for_scalar = fill_value
+    exp_val_for_array = None if issubclass(fill_dtype.type, np.bytes_) else np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
-def test_maybe_promote_any_with_bytes():
-    # placeholder due to too many xfails; see GH 23982 / 25425
-    pass
+def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
+    dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = np.dtype(bytes_dtype)
+    boxed, box_dtype = box  # read from parametrized fixture
+
+    if issubclass(dtype.type, np.bytes_):
+        if not boxed or box_dtype == object:
+            pytest.xfail("falsely upcasts to object")
+        # takes the opinion that bool dtype has no missing value marker
+        else:
+            pytest.xfail("wrong missing value marker")
+    else:
+        if (
+            boxed
+            and (box_dtype == "bytes" or box_dtype is None)
+            and not (is_string_dtype(dtype) or dtype == bool)
+        ):
+            pytest.xfail("does not upcast to object")
+
+    # create array of given dtype
+    fill_value = b"abc"
+
+    # special case for box_dtype (cannot use fixture in parametrization)
+    box_dtype = fill_dtype if box_dtype == "bytes" else box_dtype
+
+    # filling bytes with anything but bytes casts to object
+    expected_dtype = dtype if issubclass(dtype.type, np.bytes_) else np.dtype(object)
+    # output is not a generic bytes, but corresponds to expected_dtype
+    exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
+    exp_val_for_array = None if issubclass(dtype.type, np.bytes_) else np.nan
+
+    _check_promote(
+        dtype,
+        fill_value,
+        boxed,
+        box_dtype,
+        expected_dtype,
+        exp_val_for_scalar,
+        exp_val_for_array,
+    )
 
 
 def test_maybe_promote_datetime64_with_any(
@@ -523,8 +571,6 @@ def test_maybe_promote_datetime64_with_any(
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if not boxed:
-            pytest.xfail("does not upcast to object or raises")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -754,8 +800,6 @@ def test_maybe_promote_timedelta64_with_any(
     else:
         if boxed and box_dtype is None:
             pytest.xfail("does not upcast to object")
-        if not boxed:
-            pytest.xfail("does not upcast to object or raises")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -958,14 +1002,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(
     dtype = np.dtype(any_numpy_dtype_reduced)
     boxed, box_dtype = box  # read from parametrized fixture
 
-    if (
-        dtype == bytes
-        and not boxed
-        and fill_value is not None
-        and fill_value is not NaT
-    ):
-        pytest.xfail("does not upcast to object")
-    elif is_integer_dtype(dtype) and fill_value is not NaT:
+    if is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan

@@ -172,7 +172,7 @@ installed (or you wish to install a newer version) you can install a compiler
     yum groupinstall "Development Tools"
 
 For other Linux distributions, consult your favourite search engine for
-commpiler installation instructions.
+compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
