@@ -553,7 +553,7 @@ class TestFrameArithmetic:
         expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
 
         # FIXME: remove; this is changed when we do things
-        # blockwise instead of column-wise
+        #  blockwise instead of column-wise
         if False:  # opname in ["__rmod__", "__rfloordiv__"]:
             # exvals will have dtypes [f8, i8, i8] so expected will be
             #   all-f8, but the DataFrame operation will return mixed dtypes

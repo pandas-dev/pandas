@@ -623,8 +623,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 raise NotImplementedError(result)
 
             result = np.asarray(result)
-            if result.size and (isinstance(result.flat[0], Timedelta)
-                                or result.flat[0] is NaT):
+            if result.size and (
+                isinstance(result.flat[0], Timedelta) or result.flat[0] is NaT
+            ):
                 # try to do inference, since we are no longer calling the
                 #  Series constructor to do it for us.  Only do it if we
                 #  know we aren't incorrectly casting numerics.
