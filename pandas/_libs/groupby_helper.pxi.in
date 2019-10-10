@@ -12,6 +12,102 @@ _int64_max = np.iinfo(np.int64).max
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
+ctypedef fused rank_t:
+    float64_t
+    float32_t
+    int64_t
+    object
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_last(rank_t[:, :] out,
+               int64_t[:] counts,
+               rank_t[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=-1):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        rank_t val
+        ndarray[rank_t, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+    if rank_t is object:
+        resx = np.empty((<object>out).shape, dtype=object)
+    else:
+        resx = np.empty_like(out)
+
+    N, K = (<object>values).shape
+
+    if rank_t is object:
+        # TODO: De-duplicate once conditional-nogil is available
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    resx[lab, j] = val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = resx[i, j]
+    else:
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if rank_t is int64_t:
+                        # need a special notna check
+                        if val != NPY_NAT:
+                            nobs[lab, j] += 1
+                            resx[lab, j] = val
+                    else:
+                        if val == val:
+                            nobs[lab, j] += 1
+                            resx[lab, j] = val
+
+            for i in range(ncounts):
+                for j in range(K):
+                    if nobs[i, j] == 0:
+                        if rank_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        else:
+                            out[i, j] = NAN
+                    else:
+                        out[i, j] = resx[i, j]
+
+group_last_float64 = group_last["float64_t"]
+group_last_float32 = group_last["float32_t"]
+group_last_int64 = group_last["int64_t"]
+group_last_object = group_last["object"]
+
+
 {{py:
 
 # name, c_type, nan_val
@@ -29,67 +125,6 @@ def get_dispatch(dtypes):
 
 
 {{for name, c_type, nan_val in get_dispatch(dtypes)}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_last_{{name}}({{c_type}}[:, :] out,
-                        int64_t[:] counts,
-                        {{c_type}}[:, :] values,
-                        const int64_t[:] labels,
-                        Py_ssize_t min_count=-1):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{c_type}} val
-        ndarray[{{c_type}}, ndim=2] resx
-        ndarray[int64_t, ndim=2] nobs
-
-    assert min_count == -1, "'min_count' only used in add and prod"
-
-    if not len(values) == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    {{if name == 'object'}}
-    resx = np.empty((<object>out).shape, dtype=object)
-    {{else}}
-    resx = np.empty_like(out)
-    {{endif}}
-
-    N, K = (<object>values).shape
-
-    {{if name == "object"}}
-    if True:  # make templating happy
-    {{else}}
-    with nogil:
-    {{endif}}
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                # not nan
-                if (
-                {{if not name.startswith("int")}}
-                val == val and
-                {{endif}}
-                val != {{nan_val}}):
-                    nobs[lab, j] += 1
-                    resx[lab, j] = val
-
-        for i in range(ncounts):
-            for j in range(K):
-                if nobs[i, j] == 0:
-                    out[i, j] = {{nan_val}}
-                else:
-                    out[i, j] = resx[i, j]
 
 
 @cython.wraparound(False)
@@ -484,7 +519,8 @@ def group_cummin(groupby_t[:, :] out,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):
-    """Cumulative minimum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative minimum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -548,9 +584,10 @@ def group_cummin(groupby_t[:, :] out,
 def group_cummax(groupby_t[:, :] out,
                  groupby_t[:, :] values,
                  const int64_t[:] labels,
-		 int ngroups,
+		         int ngroups,
                  bint is_datetimelike):
-    """Cumulative maximum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative maximum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
