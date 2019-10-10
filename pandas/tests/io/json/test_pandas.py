@@ -1141,10 +1141,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 12997
         tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern")
         df = DataFrame(tz_range, columns=['date'])
-        result = pd.read_json(df.to_json(orient=orient, date_format="iso"), orient=orient)
-        expected = df.copy()
+        result = df.to_json(orient=orient, date_format="iso")
 
-        assert_json_roundtrip_equal(result, expected, orient)
+        assert "2013-01-01T00:00:00.000-05:00" in result
 
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
