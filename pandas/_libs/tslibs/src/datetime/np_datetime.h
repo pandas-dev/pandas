@@ -48,6 +48,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          NPY_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
 
+extern char *_datetime_strings[NPY_DATETIME_NUMUNITS];
 extern const int days_per_month_table[2][12];
 
 // stuff numpy-derived code needs in header

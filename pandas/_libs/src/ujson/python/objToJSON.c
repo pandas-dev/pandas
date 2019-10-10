@@ -477,7 +477,10 @@ static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
             return NULL;
         }
 
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, base)) {
+        // The current make_iso_8601_datetime implementation requires you to provide local
+        // offsets in minutes
+        int tzoffset = -300;
+        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 1, 0, base, tzoffset, 0)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;

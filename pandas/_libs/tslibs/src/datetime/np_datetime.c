@@ -28,6 +28,24 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/ndarraytypes.h>
 #include "np_datetime.h"
 
+char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
+    "Y",
+    "M",
+    "W",
+    "<invalid>",
+    "D",
+    "h",
+    "m",
+    "s",
+    "ms",
+    "us",
+    "ns",
+    "ps",
+    "fs",
+    "as",
+    "generic"
+};
+
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_AsLong PyLong_AsLong
 #endif  // PyInt_AsLong
