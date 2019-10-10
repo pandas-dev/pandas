@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.base import (
@@ -721,6 +722,10 @@ b  2""",
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
+            elif hasattr(nanops, "nan" + func):
+                # TODO: should we wrap this in to e.g. _is_builtin_func?
+                f = getattr(nanops, "nan" + func)
+
             else:
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
@@ -1212,16 +1217,9 @@ class GroupBy(_GroupBy):
         Name: B, dtype: float64
         """
         nv.validate_groupby_func("mean", args, kwargs, ["numeric_only"])
-        try:
-            return self._cython_agg_general(
-                "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
-            )
-        except GroupByError:
-            raise
-        except Exception:
-            with _group_selection_context(self):
-                f = lambda x: x.mean(axis=self.axis, **kwargs)
-                return self._python_agg_general(f)
+        return self._cython_agg_general(
+            "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1236,23 +1234,11 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Median of values within each group.
         """
-        try:
-            return self._cython_agg_general(
-                "median",
-                alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-                **kwargs
-            )
-        except GroupByError:
-            raise
-        except Exception:
-
-            def f(x):
-                if isinstance(x, np.ndarray):
-                    x = Series(x)
-                return x.median(axis=self.axis, **kwargs)
-
-            with _group_selection_context(self):
-                return self._python_agg_general(f)
+        return self._cython_agg_general(
+            "median",
+            alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
+            **kwargs
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1297,16 +1283,9 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func("var", args, kwargs)
         if ddof == 1:
-            try:
-                return self._cython_agg_general(
-                    "var",
-                    alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs),
-                    **kwargs
-                )
-            except Exception:
-                f = lambda x: x.var(ddof=ddof, **kwargs)
-                with _group_selection_context(self):
-                    return self._python_agg_general(f)
+            return self._cython_agg_general(
+                "var", alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs), **kwargs
+            )
         else:
             f = lambda x: x.var(ddof=ddof, **kwargs)
             with _group_selection_context(self):

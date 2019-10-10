@@ -971,6 +971,18 @@ class DataFrameGroupBy(GroupBy):
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
+
+                    if result.ndim == 1 and isinstance(result, np.ndarray):
+                        # e.g. block.values was an IntegerArray
+                        try:
+                            # Cast back if feasible
+                            result = type(block.values)._from_sequence(
+                                result, dtype=block.values.dtype
+                            )
+                        except ValueError:
+                            # reshape to be valid for non-Extension Block
+                            result = result.reshape(1, -1)
+
                     newb = block.make_block(result)
 
             new_items.append(locs)
