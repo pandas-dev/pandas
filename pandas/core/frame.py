@@ -5286,7 +5286,7 @@ class DataFrame(NDFrame):
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
 
-        if self._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(self, other, func):
             # operate column-wise; avoid costly object-casting in `.values`
             new_data = ops.dispatch_to_series(self, other, func)
         else:
@@ -6728,14 +6728,6 @@ class DataFrame(NDFrame):
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
-
-        Notes
-        -----
-        In the current implementation apply calls `func` twice on the
-        first column/row to decide whether it can take a fast or slow
-        code path. This can lead to unexpected behavior if `func` has
-        side-effects, as they will take effect twice for the first
-        column/row.
 
         Examples
         --------
