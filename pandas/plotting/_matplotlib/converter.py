@@ -74,7 +74,6 @@ def pandas_converters():
     """
     Context manager registering pandas' converters for a plot.
 
-    When
     See Also
     --------
     pandas_converters_deco : Decorator that applies this.
