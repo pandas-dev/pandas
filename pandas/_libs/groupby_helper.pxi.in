@@ -398,7 +398,7 @@ group_rank_float64 = group_rank["float64_t"]
 group_rank_float32 = group_rank["float32_t"]
 group_rank_int64 = group_rank["int64_t"]
 # Note: we do not have a group_rank_object because that would require a
-#  not-nogil implementation.
+#  not-nogil implementation, see GH#19560
 
 
 # ----------------------------------------------------------------------
