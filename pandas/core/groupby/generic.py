@@ -151,10 +151,9 @@ class SeriesGroupBy(GroupBy):
         """
     See Also
     --------
-    pandas.Series.groupby.apply : Apply function func group-wise and combine the results together.
-    pandas.Series.groupby.transform : Call function producing a like-indexed NDFrame and return a NDFrame 
-        with the transformed values
-    pandas.Series.aggregate : Aggregate using one or more operations.
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
     """
     )
 
@@ -762,10 +761,9 @@ class DataFrameGroupBy(GroupBy):
         """
     See Also
     --------
-    pandas.DataFrame.groupby.apply : Apply function func group-wise and combine the results together.
-    pandas.DataFrame.groupby.transform : Call func on self producing a DataFrame with transformed values and that has
-        the same axis length as self.
-    pandas.DataFrame.aggregate : Aggregate using one or more operations.
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
+    pandas.DataFrame.aggregate
     """
     )
 
