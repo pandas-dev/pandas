@@ -41,20 +41,18 @@ class GoodDocStrings:
 
     def swap(self, arr, i, j, *args, **kwargs):
         """
-        Swap two indecies on an array.
+        Swap two indicies on an array.
 
         Parameters
         ----------
-        arr : List
+        arr : list
             The list having indexes swapped.
         i, j : int
             The indexes being swapped.
         *args, **kwargs
             Extraneous parameters are being permitted.
         """
-        temp = arr[i]
-        arr[i] = arr[j]
-        arr[j] = temp
+        pass
 
     def sample(self):
         """
@@ -286,9 +284,7 @@ class GoodDocStrings:
         i, j : int
             The indicies of the second value.
         """
-        temp = matrix[a][b]
-        matrix[a][b] = matrix[i][j]
-        matrix[i][j] = temp
+        pass
 
 
 class BadGenericDocStrings:
