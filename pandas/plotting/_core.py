@@ -538,7 +538,7 @@ class PlotAccessor(PandasObject):
         True, print each item in the list above the corresponding subplot.
     grid : bool, default None (matlab style default)
         Axis grid lines.
-    legend : False/True/'reverse'
+    legend : bool or {'reverse'}
         Place legend on axis subplots.
     style : list or dict
         The matplotlib line style per column.
