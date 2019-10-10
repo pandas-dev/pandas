@@ -12,16 +12,15 @@ from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
 
         # GH6134
         # example test case
-        ix = MultiIndex.from_product(
+        midx = MultiIndex.from_product(
             [_mklbl("A", 5), _mklbl("B", 7), _mklbl("C", 4), _mklbl("D", 2)]
         )
-        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)
+        df = DataFrame(np.arange(len(midx)), index=midx)
 
         result = df.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
@@ -98,7 +97,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # multi-level series
-        s = Series(np.arange(len(ix.to_numpy())), index=ix)
+        s = Series(np.arange(len(midx)), index=midx)
         result = s.loc["A1":"A3", :, ["C1", "C3"]]
         expected = s.loc[
             [
@@ -637,8 +636,6 @@ class TestMultiIndexSlicers:
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
             tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-            with catch_warnings(record=True):
-                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
 
         assert_slices_equivalent(SLC[::-1], SLC[::-1])
 
