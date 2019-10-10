@@ -1137,6 +1137,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
+    def test_datetime_tz_iso_maintains_offset(self, orient):
+        # GH 12997
+        tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        df = DataFrame(tz_range, columns=['date'])
+        result = pd.read_json(df.to_json(orient=orient, date_format="iso"), orient=orient)
+        expected = df.copy()
+
+        assert_json_roundtrip_equal(result, expected, orient)
+
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
