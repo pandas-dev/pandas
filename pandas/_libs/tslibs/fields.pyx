@@ -22,7 +22,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 
 
-def get_time_micros(ndarray[int64_t] dtindex):
+def get_time_micros(const int64_t[:] dtindex):
     """
     Return the number of microseconds in the time component of a
     nanosecond timestamp.
@@ -537,7 +537,7 @@ def get_date_field(const int64_t[:] dtindex, object field):
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
 
-    raise ValueError("Field %s not supported" % field)
+    raise ValueError("Field {field} not supported".format(field=field))
 
 
 @cython.wraparound(False)

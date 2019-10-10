@@ -60,7 +60,7 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
         val = arr[i]
         if isinstance(val, bytes):
             data = <bytes>val
-        elif isinstance(val, unicode):
+        elif isinstance(val, str):
             data = <bytes>val.encode(encoding)
         elif val is None or is_nan(val):
             # null, stringify and encode

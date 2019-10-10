@@ -2448,7 +2448,10 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in nat_strings:
+        elif is_null_datetimelike(value) or (isinstance(value, str) and
+                                             value in nat_strings):
+            # explicit str check is necessary to avoid raising incorrectly
+            #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):

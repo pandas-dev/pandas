@@ -161,7 +161,7 @@ def arithmetic_op(
     right: Any,
     op,
     str_rep: str,
-    eval_kwargs: Dict[str, str],
+    eval_kwargs: Dict[str, bool],
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
