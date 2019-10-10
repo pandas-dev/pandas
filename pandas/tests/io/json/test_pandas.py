@@ -1137,14 +1137,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
-    def test_datetime_tz_iso_maintains_offset(self, orient):
-        # GH 12997
-        tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern")
-        df = DataFrame(tz_range, columns=['date'])
-        result = df.to_json(orient=orient, date_format="iso")
-
-        assert "2013-01-01T00:00:00.000-05:00" in result
-
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
@@ -1196,6 +1188,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
         assert result == dfexp
+
+    def test_datetime_tz_iso_maintains_offset(self, orient):
+        # GH 12997
+        tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        df = DataFrame(tz_range, columns=['date'])
+        result = df.to_json(orient=orient, date_format="iso")
+
+        assert "2013-01-01T00:00:00.000-05:00" in result        
 
     def test_read_inline_jsonl(self):
         # GH9180
