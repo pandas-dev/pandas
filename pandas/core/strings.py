@@ -3152,7 +3152,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects.
+    Series or Index of object
 
     See Also
     --------
