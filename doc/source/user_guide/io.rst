@@ -5680,11 +5680,11 @@ Given the next test set:
    
    def test_parquet_write(df):
        df.to_parquet('test.parquet')
-   
+
    
    def test_parquet_read():
        pd.read_parquet('test.parquet')
-    
+
 
 When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
