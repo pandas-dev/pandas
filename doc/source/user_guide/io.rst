@@ -5676,16 +5676,17 @@ Given the next test set:
 
    def test_pickle_read_compress():
        pd.read_pickle('test.pkl.compress', compression='xz')
-       
+   
+   
    def test_parquet_write(df):
        df.to_parquet('test.parquet')
-       
+   
+   
    def test_parquet_read():
        pd.read_parquet('test.parquet')
     
 
-When writing, the top-three functions in terms of speed are
-``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
+When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
@@ -5703,13 +5704,13 @@ When writing, the top-three functions in terms of speed are
    
    In [8]: %timeit test_hdf_table_write_compress(df)
    448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
+   
    In [9]: %timeit test_csv_write(df)
    3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
    
    In [10]: %timeit test_feather_write(df)
    9.75 ms ± 117 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-  
+   
    In [11]: %timeit test_pickle_write(df)
    30.1 ms ± 229 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
