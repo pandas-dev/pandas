@@ -464,7 +464,7 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
                                         JSONTypeContext *tc, void *outValue,
-                                        size_t *_outLen) {
+                                        size_t *_outLen, int offset_in_min) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
 
     if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
@@ -477,10 +477,7 @@ static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
             return NULL;
         }
 
-        // The current make_iso_8601_datetime implementation requires you to provide local
-        // offsets in minutes
-        int tzoffset = -300;
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 1, 0, base, tzoffset, 0)) {
+        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 1, 0, base, offset_in_min, 0)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
@@ -508,19 +505,29 @@ static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
 
     pandas_datetime_to_datetimestruct(obj->obval,
                                       (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen, 0);
 }
 
 static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                               size_t *_outLen) {
     npy_datetimestruct dts;
-    PyDateTime_Date *obj = (PyDateTime_Date *)_obj;
+    PyDateTime_DateTime *obj = (PyDateTime_DateTime *)_obj;
 
     PRINTMARK();
 
     if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
-        return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+
+        // tz awareness gets lost when converting to pydatetime_datetime, so
+        // send separately to serialization function
+        PyObject *utcoffset = PyObject_CallMethod(_obj, "utcoffset", NULL);
+        PyObject *tot_seconds = PyObject_CallMethod(utcoffset, "total_seconds", NULL);
+        Py_DECREF(utcoffset);
+        
+        long offset_in_min = PyLong_AsLong(tot_seconds) / 60;
+        Py_DECREF(tot_seconds);
+
+        return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen, offset_in_min);
     } else {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
@@ -538,7 +545,9 @@ static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
 
     pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,
                                       NPY_FR_ns, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+
+    // TODO: should the offset here be 0?
+    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen, 0);
 }
 
 static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
