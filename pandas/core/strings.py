@@ -2143,7 +2143,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        list : others transformed into list of Series.
+        list of Series
+            Others transformed into list of Series.
         """
         from pandas import Series, DataFrame
 
