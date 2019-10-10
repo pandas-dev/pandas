@@ -122,7 +122,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
     invgrep -R --include="*.py*" -E "from collections.abc import " pandas
-    # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
+    invgrep -R --include="*.py*" -E "from numpy import nan " pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of exec' ; echo $MSG
+    invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for pytest warns' ; echo $MSG
@@ -184,7 +188,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
+    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
@@ -262,13 +266,17 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests arrays/string_.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA01, SA02, SA03, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA01,SA02,SA03,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
