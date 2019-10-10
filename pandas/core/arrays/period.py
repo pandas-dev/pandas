@@ -46,7 +46,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.ops import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -269,7 +268,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             periods = periods.copy()
 
         freq = freq or libperiod.extract_freq(periods.ravel())
-        ordinals = libperiod.extract_ordinals(periods.ravel(), freq).reshape(periods.shape)
+        ordinals1d = libperiod.extract_ordinals(periods.ravel(), freq)
+        ordinals = ordinals1d.reshape(periods.shape)
         return cls(ordinals, freq=freq)
 
     @classmethod
