@@ -462,6 +462,27 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     return PyBytes_AS_STRING(newObj);
 }
 
+/*
+Generic function to serialize date time structs to the appropriate JSON format.
+
+Parameters
+----------
+npy_datetimestruct *dts : Pointer to a struct holding datetime information (year, month, day, etc...)
+JSONTypeContext *tc : Pointer to the context for serialization
+void *outValue : Pointer to a JSON serializable value
+size_t *_outLen : For C-string output, the length of the string that needs to be accounted for
+int offset_in_min : Number of minutes the npy_datetimestruct is offset from UTC
+
+Returns
+-------
+TODO : This returns a C String for ISO dates while also modifying the cStr for the type context.
+    That seems buggy and/or unnecessary?
+
+Notes
+-----
+In an ideal world we wouldn't have to handle offset_in_min separate from npy_datetimestruct.
+Unfortunately npy_datetimestruct does not hold this info, so we pass it alongside the struct.
+*/
 static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
                                         JSONTypeContext *tc, void *outValue,
                                         size_t *_outLen, int offset_in_min) {
@@ -508,6 +529,27 @@ static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen, 0);
 }
 
+/*
+Top level method for returning the conversion routine for serializing a datetimestruct to JSON.
+
+Parameters
+----------
+JSOBJ _obj : In all actuality, this is a PyObject* passed from the Object_ type context; should be a datetime
+JSONTypeContext *tc : Pointer to the Type Context at this point in serialization
+void *outValue : Pointer to the serializable object; in this scope, can be either an integer or C-string,
+    depending on whether or not we are serializing dates to Unix epoch or ISO format
+size_t *_outLen : Pointer to the C-string length of the serializable object; should be modified locally
+
+Returns
+-------
+Function pointer to appropriate serialization routine.
+
+Notes
+-----
+For iso_date formats, this passes a npy_datetimestruct to the appropriate conversion function.
+Unfortunately the npy_datetimestuct does not have timezone awareness, so the offset from UTC in
+minutes is passed instead.
+*/
 static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                               size_t *_outLen) {
     npy_datetimestruct dts;
@@ -549,7 +591,8 @@ static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
     pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,
                                       NPY_FR_ns, &dts);
 
-    // TODO: should the offset here be 0?
+    // Because this function is for numpy datetimes which by nature are not tz-aware
+    // we can pass the offset_in_min as 0
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen, 0);
 }
 
