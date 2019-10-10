@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.base import (
@@ -721,6 +722,10 @@ b  2""",
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
+            elif hasattr(nanops, "nan" + func):
+                # TODO: should we wrap this in to e.g. _is_builtin_func?
+                f = getattr(nanops, "nan" + func)
+
             else:
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
@@ -1297,16 +1302,9 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func("var", args, kwargs)
         if ddof == 1:
-            try:
-                return self._cython_agg_general(
-                    "var",
-                    alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs),
-                    **kwargs
-                )
-            except Exception:
-                f = lambda x: x.var(ddof=ddof, **kwargs)
-                with _group_selection_context(self):
-                    return self._python_agg_general(f)
+            return self._cython_agg_general(
+                "var", alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs), **kwargs
+            )
         else:
             f = lambda x: x.var(ddof=ddof, **kwargs)
             with _group_selection_context(self):
