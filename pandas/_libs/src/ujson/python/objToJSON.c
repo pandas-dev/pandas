@@ -569,16 +569,25 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
 
-        // tz awareness gets lost when converting to pydatetime_datetime, so
-        // send separately to serialization function
         long offset_in_min = 0;
         PyObject *utcoffset = PyObject_CallMethod(_obj, "utcoffset", NULL);
-        if (utcoffset != Py_None) {
+
+        if (utcoffset == NULL)
+            return PyErr_NoMemory();
+
+        else if (utcoffset != Py_None) {
             PyObject *tot_seconds =
                 PyObject_CallMethod(utcoffset, "total_seconds", NULL);
+
+            if (tot_seconds == NULL) {
+                Py_DECREF(utcoffset);
+                return PyErr_NoMemory();
+            }
+
             offset_in_min = PyLong_AsLong(tot_seconds) / 60;
             Py_DECREF(tot_seconds);
         }
+
         Py_DECREF(utcoffset);
 
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen,
