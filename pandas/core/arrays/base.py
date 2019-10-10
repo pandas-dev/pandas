@@ -769,7 +769,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of ints
+        indices : sequence of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
