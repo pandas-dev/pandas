@@ -168,10 +168,10 @@ class TestPeriodIndexComparisons:
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
-        rev_msg = (
-            r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=A-DEC\)"
-        )
-        idx_msg = None#rev_msg if box_with_array is tm.to_array else msg
+        # rev_msg = (
+        #    r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=A-DEC\)"
+        # )
+        idx_msg = None  # FIXME: restore message
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
@@ -184,8 +184,8 @@ class TestPeriodIndexComparisons:
             Period("2011", freq="4M") >= base
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
-        rev_msg = r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=4M\)"
-        idx_msg = None#rev_msg if box_with_array is tm.to_array else msg
+        # rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=4M\)"
+        idx_msg = None  # FIXME: restore message
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
