@@ -5594,8 +5594,10 @@ Given the next test set:
 .. code-block:: python
 
    from numpy.random import randn
+
    sz = 1000000
    df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   
    
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -5603,7 +5605,8 @@ Given the next test set:
        sql_db = sqlite3.connect('test.sql')
        df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
-       
+
+
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
        pd.read_sql_query("select * from test_table", sql_db)
