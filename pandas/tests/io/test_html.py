@@ -4,6 +4,7 @@ from io import BytesIO, StringIO
 import os
 import re
 import threading
+from urllib.error import URLError
 
 import numpy as np
 from numpy.random import rand
@@ -17,7 +18,7 @@ from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
 
-from pandas.io.common import URLError, file_path_to_url
+from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 
@@ -134,8 +135,8 @@ class TestReadHtml:
     @network
     def test_spam_url(self):
         url = (
-            "http://ndb.nal.usda.gov/ndb/foods/show/300772?fg=&man=&"
-            "lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/spam.html"
         )
         df1 = self.read_html(url, ".*Water.*")
         df2 = self.read_html(url, "Unit")

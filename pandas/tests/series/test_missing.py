@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta
 
 import numpy as np
-from numpy import nan
 import pytest
 import pytz
 
 from pandas._libs.tslib import iNaT
-from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -761,17 +759,17 @@ class TestSeriesMissingData:
             assert_series_equal(result, expected)
 
     def test_fillna_bug(self):
-        x = Series([nan, 1.0, nan, 3.0, nan], ["z", "a", "b", "c", "d"])
+        x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
         filled = x.fillna(method="ffill")
-        expected = Series([nan, 1.0, 1.0, 3.0, 3.0], x.index)
+        expected = Series([np.nan, 1.0, 1.0, 3.0, 3.0], x.index)
         assert_series_equal(filled, expected)
 
         filled = x.fillna(method="bfill")
-        expected = Series([1.0, 1.0, 3.0, 3.0, nan], x.index)
+        expected = Series([1.0, 1.0, 3.0, 3.0, np.nan], x.index)
         assert_series_equal(filled, expected)
 
     def test_fillna_inplace(self):
-        x = Series([nan, 1.0, nan, 3.0, nan], ["z", "a", "b", "c", "d"])
+        x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
         y = x.copy()
 
         y.fillna(value=0, inplace=True)
@@ -917,20 +915,20 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, ts[pd.notna(ts)])
 
     def test_isna(self):
-        ser = Series([0, 5.4, 3, nan, -0.001])
+        ser = Series([0, 5.4, 3, np.nan, -0.001])
         expected = Series([False, False, False, True, False])
         tm.assert_series_equal(ser.isna(), expected)
 
-        ser = Series(["hi", "", nan])
+        ser = Series(["hi", "", np.nan])
         expected = Series([False, False, True])
         tm.assert_series_equal(ser.isna(), expected)
 
     def test_notna(self):
-        ser = Series([0, 5.4, 3, nan, -0.001])
+        ser = Series([0, 5.4, 3, np.nan, -0.001])
         expected = Series([True, True, True, False, True])
         tm.assert_series_equal(ser.notna(), expected)
 
-        ser = Series(["hi", "", nan])
+        ser = Series(["hi", "", np.nan])
         expected = Series([True, True, False])
         tm.assert_series_equal(ser.notna(), expected)
 
@@ -992,65 +990,6 @@ class TestSeriesMissingData:
         expected[:3] = np.nan
         assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_sparse_series_fillna_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-
-        ss = s[:2].reindex(index).to_sparse()
-        # TODO: what is this test doing? why are result an expected
-        # the same call to fillna?
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            # TODO: release-note fillna performance warning
-            result = ss.fillna(method="pad", limit=5)
-            expected = ss.fillna(method="pad", limit=5)
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        ss = s[-2:].reindex(index).to_sparse()
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            result = ss.fillna(method="backfill", limit=5)
-            expected = ss.fillna(method="backfill")
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_sparse_series_pad_backfill_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-        s = s.to_sparse()
-
-        result = s[:2].reindex(index, method="pad", limit=5)
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            expected = s[:2].reindex(index).fillna(method="pad")
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        result = s[-2:].reindex(index, method="backfill", limit=5)
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            expected = s[-2:].reindex(index).fillna(method="backfill")
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
@@ -1417,35 +1356,39 @@ class TestSeriesInterpolateData:
     # limit_area introduced GH #16284
     def test_interp_limit_area(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
-        s = Series([nan, nan, 3, nan, nan, nan, 7, nan, nan])
+        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
 
-        expected = Series([nan, nan, 3.0, 4.0, 5.0, 6.0, 7.0, nan, nan])
+        expected = Series([np.nan, np.nan, 3.0, 4.0, 5.0, 6.0, 7.0, np.nan, np.nan])
         result = s.interpolate(method="linear", limit_area="inside")
         assert_series_equal(result, expected)
 
-        expected = Series([nan, nan, 3.0, 4.0, nan, nan, 7.0, nan, nan])
+        expected = Series(
+            [np.nan, np.nan, 3.0, 4.0, np.nan, np.nan, 7.0, np.nan, np.nan]
+        )
         result = s.interpolate(method="linear", limit_area="inside", limit=1)
 
-        expected = Series([nan, nan, 3.0, 4.0, nan, 6.0, 7.0, nan, nan])
+        expected = Series([np.nan, np.nan, 3.0, 4.0, np.nan, 6.0, 7.0, np.nan, np.nan])
         result = s.interpolate(
             method="linear", limit_area="inside", limit_direction="both", limit=1
         )
         assert_series_equal(result, expected)
 
-        expected = Series([nan, nan, 3.0, nan, nan, nan, 7.0, 7.0, 7.0])
+        expected = Series([np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0])
         result = s.interpolate(method="linear", limit_area="outside")
         assert_series_equal(result, expected)
 
-        expected = Series([nan, nan, 3.0, nan, nan, nan, 7.0, 7.0, nan])
+        expected = Series(
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
+        )
         result = s.interpolate(method="linear", limit_area="outside", limit=1)
 
-        expected = Series([nan, 3.0, 3.0, nan, nan, nan, 7.0, 7.0, nan])
+        expected = Series([np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan])
         result = s.interpolate(
             method="linear", limit_area="outside", limit_direction="both", limit=1
         )
         assert_series_equal(result, expected)
 
-        expected = Series([3.0, 3.0, 3.0, nan, nan, nan, 7.0, nan, nan])
+        expected = Series([3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
         result = s.interpolate(
             method="linear", limit_area="outside", direction="backward"
         )

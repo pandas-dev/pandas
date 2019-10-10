@@ -1,15 +1,17 @@
 import gc
+
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    Index,
+    IntervalIndex,
+    RangeIndex,
     Series,
     date_range,
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Float64Index,
-    IntervalIndex,
 )
+import pandas.util.testing as tm
 
 
 class SetOperations:
@@ -243,4 +245,4 @@ class GC:
             gc.enable()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

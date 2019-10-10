@@ -9,7 +9,7 @@ from typing import Optional, Sequence, Union, cast
 import numpy as np
 import numpy.ma as ma
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 
 from pandas.core.dtypes.cast import (
@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -275,7 +275,7 @@ def array(
         if inferred_dtype == "period":
             try:
                 return period_array(data, copy=copy)
-            except tslibs.IncompatibleFrequency:
+            except IncompatibleFrequency:
                 # We may have a mixture of frequencies.
                 # We choose to return an ndarray, rather than raising.
                 pass
@@ -365,7 +365,9 @@ def extract_array(obj, extract_numpy=False):
     return obj
 
 
-def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False):
+def sanitize_array(
+    data, index, dtype=None, copy: bool = False, raise_cast_failure: bool = False
+):
     """
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
@@ -413,14 +415,7 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-            except Exception:
-                if raise_cast_failure:  # pragma: no cover
-                    raise
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = lib.maybe_convert_objects(subarr)
-
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
 
@@ -493,13 +488,19 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
     return subarr
 
 
-def _try_cast(arr, dtype, copy, raise_cast_failure):
+def _try_cast(
+    arr,
+    dtype: Optional[Union[np.dtype, "ExtensionDtype"]],
+    copy: bool,
+    raise_cast_failure: bool,
+):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : array-like
+    arr : ndarray, list, tuple, iterator (catchall)
+        Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
         If False, don't copy the data if not needed.
@@ -535,11 +536,13 @@ def _try_cast(arr, dtype, copy, raise_cast_failure):
         if is_categorical_dtype(dtype):
             # We *do* allow casting to categorical, since we know
             # that Categorical is the only array type for 'category'.
+            dtype = cast(CategoricalDtype, dtype)
             subarr = dtype.construct_array_type()(
                 arr, dtype.categories, ordered=dtype._ordered
             )
         elif is_extension_array_dtype(dtype):
             # create an extension array from its dtype
+            dtype = cast(ExtensionDtype, dtype)
             array_type = dtype.construct_array_type()._from_sequence
             subarr = array_type(arr, dtype=dtype, copy=copy)
         elif dtype is not None and raise_cast_failure:

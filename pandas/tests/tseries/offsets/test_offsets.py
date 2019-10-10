@@ -132,10 +132,7 @@ class Base:
         elif klass is DateOffset:
             klass = klass(days=value, normalize=normalize)
         else:
-            try:
-                klass = klass(value, normalize=normalize)
-            except Exception:
-                klass = klass(normalize=normalize)
+            klass = klass(value, normalize=normalize)
         return klass
 
     def test_apply_out_of_range(self, tz_naive_fixture):
@@ -4351,3 +4348,12 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+def test_week_add_invalid():
+    # Week with weekday should raise TypeError and _not_ AttributeError
+    #  when adding invalid offset
+    offset = Week(weekday=1)
+    other = Day()
+    with pytest.raises(TypeError, match="Cannot add"):
+        offset + other

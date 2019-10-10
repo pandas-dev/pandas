@@ -1653,7 +1653,10 @@ class Rolling(_Rolling_and_Expanding):
     def _on(self):
 
         if self.on is None:
-            return self.obj.index
+            if self.axis == 0:
+                return self.obj.index
+            elif self.axis == 1:
+                return self.obj.columns
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
             return Index(self.obj[self.on])
         else:

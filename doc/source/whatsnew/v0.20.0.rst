@@ -338,8 +338,7 @@ See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    from scipy.sparse import csr_matrix
    arr = np.random.random(size=(1000, 5))
@@ -351,7 +350,7 @@ All sparse formats are supported, but matrices that are not in :mod:`COOrdinate 
 
 To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
 
-.. ipython:: python
+.. code-block:: python
 
    sdf.to_coo()
 
@@ -495,7 +494,7 @@ Other enhancements
 - :func:`pandas.util.hash_pandas_object` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
-- ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
+- ``pd.read_html()`` will parse multiple header rows, creating a MultiIndex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 - :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </user_guide/style.ipynb#Subclassing>` (:issue:`15649`)
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)

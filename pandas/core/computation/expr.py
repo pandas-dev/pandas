@@ -367,8 +367,8 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
-
-    """Custom ast walker. Parsers of other engines should subclass this class
+    """
+    Custom ast walker. Parsers of other engines should subclass this class
     if necessary.
 
     Parameters
@@ -803,8 +803,8 @@ class PythonExprVisitor(BaseExprVisitor):
 
 
 class Expr:
-
-    """Object encapsulating an expression.
+    """
+    Object encapsulating an expression.
 
     Parameters
     ----------

@@ -1,5 +1,6 @@
 import numpy as np
-from pandas import DataFrame, date_range, HDFStore, read_hdf
+
+from pandas import DataFrame, HDFStore, date_range, read_hdf
 import pandas.util.testing as tm
 
 from ..pandas_vb_common import BaseIO
@@ -127,4 +128,4 @@ class HDF(BaseIO):
         self.df.to_hdf(self.fname, "df", format=format)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

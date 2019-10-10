@@ -85,11 +85,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1d integer np.ndarray or PeriodArray), optional
+    data : array-like (1d int np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
-    freq : string or period object, optional
+    freq : str or period object, optional
         One of pandas period strings or corresponding objects
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
@@ -651,10 +651,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(target, PeriodIndex):
             target = target.asi8
+            self_index = self._int64index
+        else:
+            self_index = self
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
-        return Index.get_indexer(self._int64index, target, method, limit, tolerance)
+        return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -998,18 +1001,18 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
 
     Parameters
     ----------
-    start : string or period-like, default None
+    start : str or period-like, default None
         Left bound for generating periods
-    end : string or period-like, default None
+    end : str or period-like, default None
         Right bound for generating periods
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
-    freq : string or DateOffset, optional
+    freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
 
-    name : string, default None
+    name : str, default None
         Name of the resulting PeriodIndex
 
     Returns

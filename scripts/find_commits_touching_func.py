@@ -10,11 +10,11 @@ files will probably erase them.
 Usage::
     $ ./find_commits_touching_func.py  (see arguments below)
 """
-import logging
-import re
-import os
 import argparse
 from collections import namedtuple
+import logging
+import os
+import re
 
 from dateutil.parser import parse
 

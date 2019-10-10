@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, lib, tslib
+from pandas._libs import NaT, Timestamp, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -416,15 +416,16 @@ class Block(PandasObject):
             return self if inplace else self.copy()
 
         # operate column-by-column
-        def f(m, v, i):
+        def f(mask, val, idx):
             block = self.coerce_to_target_dtype(value)
 
             # slice out our block
-            if i is not None:
-                block = block.getitem_block(slice(i, i + 1))
+            if idx is not None:
+                # i.e. self.ndim == 2
+                block = block.getitem_block(slice(idx, idx + 1))
             return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
 
-        return self.split_and_operate(mask, f, inplace)
+        return self.split_and_operate(None, f, inplace)
 
     def split_and_operate(self, mask, f, inplace: bool):
         """
@@ -444,7 +445,8 @@ class Block(PandasObject):
         """
 
         if mask is None:
-            mask = np.ones(self.shape, dtype=bool)
+            mask = np.broadcast_to(True, shape=self.shape)
+
         new_values = self.values
 
         def make_a_block(nv, ref_loc):
@@ -523,19 +525,14 @@ class Block(PandasObject):
             raise ValueError(
                 "downcast must have a dictionary or 'infer' as its argument"
             )
+        elif dtypes != "infer":
+            raise AssertionError("dtypes as dict is not supported yet")
 
         # operate column-by-column
         # this is expensive as it splits the blocks items-by-item
-        def f(m, v, i):
-
-            if dtypes == "infer":
-                dtype = "infer"
-            else:
-                raise AssertionError("dtypes as dict is not supported yet")
-
-            if dtype is not None:
-                v = maybe_downcast_to_dtype(v, dtype)
-            return v
+        def f(mask, val, idx):
+            val = maybe_downcast_to_dtype(val, dtype="infer")
+            return val
 
         return self.split_and_operate(None, f, False)
 
@@ -577,18 +574,6 @@ class Block(PandasObject):
         # may need to convert to categorical
         if self.is_categorical_astype(dtype):
 
-            # deprecated 17636
-            for deprecated_arg in ("categories", "ordered"):
-                if deprecated_arg in kwargs:
-                    raise ValueError(
-                        "Got an unexpected argument: {}".format(deprecated_arg)
-                    )
-
-            categories = kwargs.get("categories", None)
-            ordered = kwargs.get("ordered", None)
-            if com.any_not_none(categories, ordered):
-                dtype = CategoricalDtype(categories, ordered)
-
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
@@ -603,41 +588,42 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if self.is_extension:
-                values = self.values.astype(dtype)
-            else:
-                if issubclass(dtype.type, str):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
-                else:
-                    values = self.get_values(dtype=dtype)
-
-                # _astype_nansafe works fine with 1-d only
-                vals1d = values.ravel()
-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-            # TODO(extension)
-            # should we make this attribute?
-            if isinstance(values, np.ndarray):
-                values = values.reshape(self.shape)
-
-        except Exception:
-            # e.g. astype_nansafe can fail on object-dtype of strings
-            #  trying to convert to float
-            if errors == "raise":
-                raise
-            newb = self.copy() if copy else self
+        # force the copy here
+        if self.is_extension:
+            # TODO: Should we try/except this astype?
+            values = self.values.astype(dtype)
         else:
-            newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+            if issubclass(dtype.type, str):
+
+                # use native type formatting for datetime/tz/timedelta
+                if self.is_datelike:
+                    values = self.to_native_types()
+
+                # astype formatting
+                else:
+                    values = self.get_values()
+
+            else:
+                values = self.get_values(dtype=dtype)
+
+            # _astype_nansafe works fine with 1-d only
+            vals1d = values.ravel()
+            try:
+                values = astype_nansafe(vals1d, dtype, copy=True)
+            except (ValueError, TypeError):
+                # e.g. astype_nansafe can fail on object-dtype of strings
+                #  trying to convert to float
+                if errors == "raise":
+                    raise
+                newb = self.copy() if copy else self
+                return newb
+
+        # TODO(extension)
+        # should we make this attribute?
+        if isinstance(values, np.ndarray):
+            values = values.reshape(self.shape)
+
+        newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -709,7 +695,8 @@ class Block(PandasObject):
         mask = isna(values)
 
         if not self.is_object and not quoting:
-            values = values.astype(str)
+            itemsize = writers.word_len(na_rep)
+            values = values.astype("<U{size}".format(size=itemsize))
         else:
             values = np.array(values, dtype="object")
 
@@ -1002,15 +989,15 @@ class Block(PandasObject):
                     new = new.reshape(tuple(new_shape))
 
             # operate column-by-column
-            def f(m, v, i):
+            def f(mask, val, idx):
 
-                if i is None:
+                if idx is None:
                     # ndim==1 case.
                     n = new
                 else:
 
                     if isinstance(new, np.ndarray):
-                        n = np.squeeze(new[i % new.shape[0]])
+                        n = np.squeeze(new[idx % new.shape[0]])
                     else:
                         n = np.array(new)
 
@@ -1020,7 +1007,7 @@ class Block(PandasObject):
                     # we need to explicitly astype here to make a copy
                     n = n.astype(dtype)
 
-                nv = _putmask_smart(v, m, n)
+                nv = _putmask_smart(val, mask, n)
                 return nv
 
             new_blocks = self.split_and_operate(mask, f, inplace)
@@ -2129,7 +2116,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return True
 
     def _maybe_coerce_values(self, values):
-        """Input validation for values passed to __init__. Ensure that
+        """
+        Input validation for values passed to __init__. Ensure that
         we have datetime64ns, coercing if necessary.
 
         Parameters
@@ -2627,10 +2615,10 @@ class ObjectBlock(Block):
         """
 
         # operate column-by-column
-        def f(m, v, i):
-            shape = v.shape
+        def f(mask, val, idx):
+            shape = val.shape
             values = soft_convert_objects(
-                v.ravel(),
+                val.ravel(),
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
@@ -3172,14 +3160,15 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _putmask_smart(v, m, n):
+def _putmask_smart(v, mask, n):
     """
     Return a new ndarray, try to preserve dtype if possible.
 
     Parameters
     ----------
     v : `values`, updated in-place (array like)
-    m : `mask`, applies to both sides (array like)
+    mask : np.ndarray
+        Applies to both sides (array like).
     n : `new values` either scalar or an array like aligned with `values`
 
     Returns
@@ -3197,12 +3186,12 @@ def _putmask_smart(v, m, n):
 
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
-        n = np.repeat(n, len(m))
+        n = np.repeat(n, len(mask))
 
     # see if we are only masking values that if putted
     # will work in the current dtype
     try:
-        nn = n[m]
+        nn = n[mask]
     except TypeError:
         # TypeError: only integer scalar arrays can be converted to a scalar index
         pass
@@ -3227,16 +3216,16 @@ def _putmask_smart(v, m, n):
             comp = nn == nn_at
             if is_list_like(comp) and comp.all():
                 nv = v.copy()
-                nv[m] = nn_at
+                nv[mask] = nn_at
                 return nv
 
     n = np.asarray(n)
 
     def _putmask_preserve(nv, n):
         try:
-            nv[m] = n[m]
+            nv[mask] = n[mask]
         except (IndexError, ValueError):
-            nv[m] = n
+            nv[mask] = n
         return nv
 
     # preserves dtype if possible

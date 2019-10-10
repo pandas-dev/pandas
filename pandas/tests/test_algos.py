@@ -3,7 +3,6 @@ from itertools import permutations
 import struct
 
 import numpy as np
-from numpy import nan
 from numpy.random import RandomState
 import pytest
 
@@ -1623,11 +1622,11 @@ class TestRank:
             result = libalgos.rank_1d_float64(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
-            exp[mask] = nan
+            exp[mask] = np.nan
             assert_almost_equal(result, exp)
 
-        _check(np.array([nan, nan, 5.0, 5.0, 5.0, nan, 1, 2, 3, nan]))
-        _check(np.array([4.0, nan, 5.0, 5.0, 5.0, nan, 1, 2, 4.0, nan]))
+        _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
+        _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
     def test_basic(self):
         exp = np.array([1, 2], dtype=np.float64)

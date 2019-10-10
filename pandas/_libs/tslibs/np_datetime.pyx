@@ -1,4 +1,4 @@
-from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
+from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,

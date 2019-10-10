@@ -1,19 +1,17 @@
 from collections import OrderedDict
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, get_dummies
-from pandas.core.sparse.api import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestGetDummies:
     @pytest.fixture
     def df(self):
@@ -141,19 +139,19 @@ class TestGetDummies:
         # Sparse dataframes do not allow nan labelled columns, see #GH8822
         res_na = get_dummies(s, dummy_na=True, sparse=sparse, dtype=dtype)
         exp_na = DataFrame(
-            {nan: [0, 0, 1], "a": [1, 0, 0], "b": [0, 1, 0]},
+            {np.nan: [0, 0, 1], "a": [1, 0, 0], "b": [0, 1, 0]},
             dtype=self.effective_dtype(dtype),
         )
-        exp_na = exp_na.reindex(["a", "b", nan], axis=1)
+        exp_na = exp_na.reindex(["a", "b", np.nan], axis=1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         if sparse:
             exp_na = exp_na.apply(pd.SparseArray, fill_value=0.0)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, sparse=sparse, dtype=dtype)
+        res_just_na = get_dummies([np.nan], dummy_na=True, sparse=sparse, dtype=dtype)
         exp_just_na = DataFrame(
-            Series(1, index=[0]), columns=[nan], dtype=self.effective_dtype(dtype)
+            Series(1, index=[0]), columns=[np.nan], dtype=self.effective_dtype(dtype)
         )
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
@@ -273,7 +271,7 @@ class TestGetDummies:
         expected[["C"]] = df[["C"]]
         if sparse:
             cols = ["from_A_a", "from_A_b"]
-            expected[cols] = expected[cols].apply(lambda x: pd.SparseSeries(x))
+            expected[cols] = expected[cols].astype(pd.SparseDtype("uint8", 0))
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_sep(self, df, sparse):
@@ -292,7 +290,7 @@ class TestGetDummies:
         expected = expected[["C", "A..a", "A..b", "B..b", "B..c"]]
         if sparse:
             cols = ["A..a", "A..b", "B..b", "B..c"]
-            expected[cols] = expected[cols].apply(lambda x: pd.SparseSeries(x))
+            expected[cols] = expected[cols].astype(pd.SparseDtype("uint8", 0))
 
         assert_frame_equal(result, expected)
 
@@ -329,7 +327,7 @@ class TestGetDummies:
         columns = ["from_A_a", "from_A_b", "from_B_b", "from_B_c"]
         expected[columns] = expected[columns].astype(np.uint8)
         if sparse:
-            expected[columns] = expected[columns].apply(lambda x: pd.SparseSeries(x))
+            expected[columns] = expected[columns].astype(pd.SparseDtype("uint8", 0))
 
         assert_frame_equal(result, expected)
 
@@ -465,14 +463,16 @@ class TestGetDummies:
         assert_frame_equal(res, exp)
 
         res_na = get_dummies(s_NA, dummy_na=True, drop_first=True, sparse=sparse)
-        exp_na = DataFrame({"b": [0, 1, 0], nan: [0, 0, 1]}, dtype=np.uint8).reindex(
-            ["b", nan], axis=1
+        exp_na = DataFrame({"b": [0, 1, 0], np.nan: [0, 0, 1]}, dtype=np.uint8).reindex(
+            ["b", np.nan], axis=1
         )
         if sparse:
             exp_na = exp_na.apply(pd.SparseArray, fill_value=0)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, drop_first=True, sparse=sparse)
+        res_just_na = get_dummies(
+            [np.nan], dummy_na=True, drop_first=True, sparse=sparse
+        )
         exp_just_na = DataFrame(index=np.arange(1))
         assert_frame_equal(res_just_na, exp_just_na)
 
@@ -495,7 +495,7 @@ class TestGetDummies:
         expected = expected[["C", "A_b", "B_c", "cat_y"]]
         if sparse:
             for col in cols:
-                expected[col] = pd.SparseSeries(expected[col])
+                expected[col] = pd.SparseArray(expected[col])
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_drop_first_with_na(self, df, sparse):
@@ -517,7 +517,7 @@ class TestGetDummies:
         expected = expected.sort_index(axis=1)
         if sparse:
             for col in cols:
-                expected[col] = pd.SparseSeries(expected[col])
+                expected[col] = pd.SparseArray(expected[col])
 
         assert_frame_equal(result, expected)
 
