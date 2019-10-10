@@ -5725,34 +5725,34 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
 
 .. code-block:: ipython
 
-   In [18]: %timeit test_sql_read()
+   In [14]: %timeit test_sql_read()
    1.77 s ± 17.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [19]: %timeit test_hdf_fixed_read()
+   In [15]: %timeit test_hdf_fixed_read()
    19.4 ms ± 436 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [28]: %timeit test_hdf_fixed_read_compress()
+   In [16]: %timeit test_hdf_fixed_read_compress()
    19.5 ms ± 222 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
   
-   In [20]: %timeit test_hdf_table_read()
+   In [17]: %timeit test_hdf_table_read()
    38.6 ms ± 857 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
   
-   In [29]: %timeit test_hdf_table_read_compress()
+   In [18]: %timeit test_hdf_table_read_compress()
    38.8 ms ± 1.49 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [22]: %timeit test_csv_read()
+   In [19]: %timeit test_csv_read()
    452 ms ± 9.04 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [33]: %timeit test_feather_read()
+   In [20]: %timeit test_feather_read()
    12.4 ms ± 99.7 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
   
-   In [34]: %timeit test_pickle_read()
+   In [21]: %timeit test_pickle_read()
    18.4 ms ± 191 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [35]: %timeit test_pickle_read_compress()
+   In [22]: %timeit test_pickle_read_compress()
    915 ms ± 7.48 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
    
-   In [35]: %timeit test_parquet_read()
+   In [23]: %timeit test_parquet_read()
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
   
    
