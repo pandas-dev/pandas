@@ -177,7 +177,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -200,7 +200,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -769,7 +769,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of integers
+        indices : sequence of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
