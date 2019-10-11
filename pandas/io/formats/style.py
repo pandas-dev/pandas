@@ -789,7 +789,7 @@ class Styler:
 
         Parameters
         ----------
-        attributes : string
+        attributes : str
 
         Returns
         -------
