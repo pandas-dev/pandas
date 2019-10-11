@@ -12,39 +12,27 @@ _int64_max = np.iinfo(np.int64).max
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-{{py:
-
-# name, c_type, nan_val
-dtypes = [('float64', 'float64_t', 'NAN'),
-          ('float32', 'float32_t', 'NAN'),
-          ('int64', 'int64_t', 'NPY_NAT'),
-          ('object', 'object', 'NAN')]
-
-def get_dispatch(dtypes):
-
-    for name, c_type, nan_val in dtypes:
-
-        yield name, c_type, nan_val
-}}
-
-
-{{for name, c_type, nan_val in get_dispatch(dtypes)}}
+ctypedef fused rank_t:
+    float64_t
+    float32_t
+    int64_t
+    object
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_last_{{name}}({{c_type}}[:, :] out,
-                        int64_t[:] counts,
-                        {{c_type}}[:, :] values,
-                        const int64_t[:] labels,
-                        Py_ssize_t min_count=-1):
+def group_last(rank_t[:, :] out,
+               int64_t[:] counts,
+               rank_t[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{c_type}} val
-        ndarray[{{c_type}}, ndim=2] resx
+        rank_t val
+        ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -53,19 +41,15 @@ def group_last_{{name}}({{c_type}}[:, :] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    {{if name == 'object'}}
-    resx = np.empty((<object>out).shape, dtype=object)
-    {{else}}
-    resx = np.empty_like(out)
-    {{endif}}
+    if rank_t is object:
+        resx = np.empty((<object>out).shape, dtype=object)
+    else:
+        resx = np.empty_like(out)
 
     N, K = (<object>values).shape
 
-    {{if name == "object"}}
-    if True:  # make templating happy
-    {{else}}
-    with nogil:
-    {{endif}}
+    if rank_t is object:
+        # TODO: De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -76,36 +60,77 @@ def group_last_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
-                if (
-                {{if not name.startswith("int")}}
-                val == val and
-                {{endif}}
-                val != {{nan_val}}):
-                    nobs[lab, j] += 1
-                    resx[lab, j] = val
+                if rank_t is int64_t:
+                    # need a special notna check
+                    if val != NPY_NAT:
+                        nobs[lab, j] += 1
+                        resx[lab, j] = val
+                else:
+                    if val == val:
+                        nobs[lab, j] += 1
+                        resx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = {{nan_val}}
+                    if rank_t is int64_t:
+                        out[i, j] = NPY_NAT
+                    else:
+                        out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+    else:
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if rank_t is int64_t:
+                        # need a special notna check
+                        if val != NPY_NAT:
+                            nobs[lab, j] += 1
+                            resx[lab, j] = val
+                    else:
+                        if val == val:
+                            nobs[lab, j] += 1
+                            resx[lab, j] = val
+
+            for i in range(ncounts):
+                for j in range(K):
+                    if nobs[i, j] == 0:
+                        if rank_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        else:
+                            out[i, j] = NAN
+                    else:
+                        out[i, j] = resx[i, j]
+
+group_last_float64 = group_last["float64_t"]
+group_last_float32 = group_last["float32_t"]
+group_last_int64 = group_last["int64_t"]
+group_last_object = group_last["object"]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_nth_{{name}}({{c_type}}[:, :] out,
-                       int64_t[:] counts,
-                       {{c_type}}[:, :] values,
-                       const int64_t[:] labels, int64_t rank,
-                       Py_ssize_t min_count=-1):
+def group_nth(rank_t[:, :] out,
+              int64_t[:] counts,
+              rank_t[:, :] values,
+              const int64_t[:] labels, int64_t rank,
+              Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{c_type}} val
-        ndarray[{{c_type}}, ndim=2] resx
+        rank_t val
+        ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -114,19 +139,15 @@ def group_nth_{{name}}({{c_type}}[:, :] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    {{if name=='object'}}
-    resx = np.empty((<object>out).shape, dtype=object)
-    {{else}}
-    resx = np.empty_like(out)
-    {{endif}}
+    if rank_t is object:
+        resx = np.empty((<object>out).shape, dtype=object)
+    else:
+        resx = np.empty_like(out)
 
     N, K = (<object>values).shape
 
-    {{if name == "object"}}
-    if True:  # make templating happy
-    {{else}}
-    with nogil:
-    {{endif}}
+    if rank_t is object:
+        # TODO: De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -137,11 +158,7 @@ def group_nth_{{name}}({{c_type}}[:, :] out,
                 val = values[i, j]
 
                 # not nan
-                if (
-                {{if not name.startswith("int")}}
-                val == val and
-                {{endif}}
-                val != {{nan_val}}):
+                if val == val:
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -149,28 +166,65 @@ def group_nth_{{name}}({{c_type}}[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = {{nan_val}}
+                    out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
 
+    else:
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-{{if name != 'object'}}
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if rank_t is int64_t:
+                        # need a special notna check
+                        if val != NPY_NAT:
+                            nobs[lab, j] += 1
+                            if nobs[lab, j] == rank:
+                                resx[lab, j] = val
+                    else:
+                        if val == val:
+                            nobs[lab, j] += 1
+                            if nobs[lab, j] == rank:
+                                resx[lab, j] = val
+
+            for i in range(ncounts):
+                for j in range(K):
+                    if nobs[i, j] == 0:
+                        if rank_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        else:
+                            out[i, j] = NAN
+                    else:
+                        out[i, j] = resx[i, j]
+
+
+group_nth_float64 = group_nth["float64_t"]
+group_nth_float32 = group_nth["float32_t"]
+group_nth_int64 = group_nth["int64_t"]
+group_nth_object = group_nth["object"]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_rank_{{name}}(float64_t[:, :] out,
-                        {{c_type}}[:, :] values,
-                        const int64_t[:] labels,
-                        bint is_datetimelike, object ties_method,
-                        bint ascending, bint pct, object na_option):
+def group_rank(float64_t[:, :] out,
+               rank_t[:, :] values,
+               const int64_t[:] labels,
+               bint is_datetimelike, object ties_method,
+               bint ascending, bint pct, object na_option):
     """
     Provides the rank of values within each group.
 
     Parameters
     ----------
     out : array of float64_t values which this method will write its results to
-    values : array of {{c_type}} values to be ranked
+    values : array of rank_t values to be ranked
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
     is_datetimelike : bool, default False
@@ -203,10 +257,13 @@ def group_rank_{{name}}(float64_t[:, :] out,
         Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
         ndarray[int64_t] _as
         ndarray[float64_t, ndim=2] grp_sizes
-        ndarray[{{c_type}}] masked_vals
+        ndarray[rank_t] masked_vals
         ndarray[uint8_t] mask
         bint keep_na
-        {{c_type}} nan_fill_val
+        rank_t nan_fill_val
+
+    if rank_t is object:
+        raise NotImplementedError("Cant do nogil")
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
@@ -217,25 +274,23 @@ def group_rank_{{name}}(float64_t[:, :] out,
     # with mask, without obfuscating location of missing data
     # in values array
     masked_vals = np.array(values[:, 0], copy=True)
-    {{if name == 'int64'}}
-    mask = (masked_vals == {{nan_val}}).astype(np.uint8)
-    {{else}}
-    mask = np.isnan(masked_vals).astype(np.uint8)
-    {{endif}}
+    if rank_t is int64_t:
+        mask = (masked_vals == NPY_NAT).astype(np.uint8)
+    else:
+        mask = np.isnan(masked_vals).astype(np.uint8)
 
     if ascending ^ (na_option == 'top'):
-        {{if name == 'int64'}}
-        nan_fill_val = np.iinfo(np.int64).max
-        {{else}}
-        nan_fill_val = np.inf
-        {{endif}}
+        if rank_t is int64_t:
+            nan_fill_val = np.iinfo(np.int64).max
+        else:
+            nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
     else:
-        {{if name == 'int64'}}
-        nan_fill_val = np.iinfo(np.int64).min
-        {{else}}
-        nan_fill_val = -np.inf
-        {{endif}}
+        if rank_t is int64_t:
+            nan_fill_val = np.iinfo(np.int64).min
+        else:
+            nan_fill_val = -np.inf
+
         order = (masked_vals, ~mask, labels)
     np.putmask(masked_vals, mask, nan_fill_val)
 
@@ -337,8 +392,13 @@ def group_rank_{{name}}(float64_t[:, :] out,
                     out[i, 0] = NAN
                 elif grp_sizes[i, 0] != 0:
                     out[i, 0] = out[i, 0] / grp_sizes[i, 0]
-{{endif}}
-{{endfor}}
+
+
+group_rank_float64 = group_rank["float64_t"]
+group_rank_float32 = group_rank["float32_t"]
+group_rank_int64 = group_rank["int64_t"]
+# Note: we do not have a group_rank_object because that would require a
+#  not-nogil implementation, see GH#19560
 
 
 # ----------------------------------------------------------------------
@@ -484,7 +544,8 @@ def group_cummin(groupby_t[:, :] out,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):
-    """Cumulative minimum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative minimum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -548,9 +609,10 @@ def group_cummin(groupby_t[:, :] out,
 def group_cummax(groupby_t[:, :] out,
                  groupby_t[:, :] values,
                  const int64_t[:] labels,
-		 int ngroups,
+                 int ngroups,
                  bint is_datetimelike):
-    """Cumulative maximum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative maximum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
