@@ -5,8 +5,8 @@ import itertools
 
 import numpy as np
 
+from pandas._libs import Timestamp
 import pandas._libs.hashing as hashing
-import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -26,12 +26,16 @@ from pandas.core.dtypes.missing import isna
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items: int):
+def _combine_hash_arrays(arrays, num_items: int) -> np.uint64:
     """
     Parameters
     ----------
     arrays : generator
     num_items : int
+
+    Returns
+    -------
+    np.uint64
 
     Should be the same as CPython's tupleobject.c
     """
@@ -58,7 +62,7 @@ def hash_pandas_object(
     obj,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key=None,
+    hash_key: str = _default_hash_key,
     categorize: bool = True,
 ):
     """
@@ -142,7 +146,7 @@ def hash_pandas_object(
     return h
 
 
-def hash_tuples(vals, encoding="utf8", hash_key=None):
+def hash_tuples(vals, encoding: str = "utf8", hash_key: str = _default_hash_key):
     """
     Hash an MultiIndex / list-of-tuples efficiently
 
@@ -187,7 +191,7 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     return h
 
 
-def hash_tuple(val, encoding: str = "utf8", hash_key=None):
+def hash_tuple(val, encoding: str = "utf8", hash_key: str = _default_hash_key):
     """
     Hash a single tuple efficiently
 
@@ -247,7 +251,12 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     return result
 
 
-def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = True):
+def hash_array(
+    vals,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+):
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -272,9 +281,6 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask
@@ -326,9 +332,17 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     return vals
 
 
-def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
+def _hash_scalar(
+    val, encoding: str = "utf8", hash_key: str = _default_hash_key
+) -> np.ndarray:
     """
-    Hash scalar value
+    Hash scalar value.
+
+    Parameters
+    ----------
+    val : scalar
+    encoding : str, default "utf8"
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -343,8 +357,8 @@ def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslibs.Timestamp):
-            val = tslibs.Timestamp(val)
+        if not isinstance(val, Timestamp):
+            val = Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)
