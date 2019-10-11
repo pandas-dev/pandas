@@ -285,12 +285,12 @@ class TestTableOrient:
                     ("idx", 0),
                     ("A", 1),
                     ("B", "a"),
-                    ("C", "2016-01-01T00:00:00.000Z"),
+                    ("C", "2016-01-01T00:00:00.000+00:00"),
                     ("D", "P0DT1H0M0S"),
                     ("E", "a"),
                     ("F", "a"),
                     ("G", 1.0),
-                    ("H", "2016-01-01T06:00:00.000Z"),
+                    ("H", "2016-01-01T00:00:00.000-06:00"),
                 ]
             ),
             OrderedDict(
@@ -298,12 +298,12 @@ class TestTableOrient:
                     ("idx", 1),
                     ("A", 2),
                     ("B", "b"),
-                    ("C", "2016-01-02T00:00:00.000Z"),
+                    ("C", "2016-01-02T00:00:00.000+00:00"),
                     ("D", "P0DT1H1M0S"),
                     ("E", "b"),
                     ("F", "b"),
                     ("G", 2.0),
-                    ("H", "2016-01-02T06:00:00.000Z"),
+                    ("H", "2016-01-02T00:00:00.000-06:00"),
                 ]
             ),
             OrderedDict(
@@ -311,12 +311,12 @@ class TestTableOrient:
                     ("idx", 2),
                     ("A", 3),
                     ("B", "c"),
-                    ("C", "2016-01-03T00:00:00.000Z"),
+                    ("C", "2016-01-03T00:00:00.000+00:00"),
                     ("D", "P0DT1H2M0S"),
                     ("E", "c"),
                     ("F", "c"),
                     ("G", 3.0),
-                    ("H", "2016-01-03T06:00:00.000Z"),
+                    ("H", "2016-01-03T00:00:00.000-06:00"),
                 ]
             ),
             OrderedDict(
@@ -324,12 +324,12 @@ class TestTableOrient:
                     ("idx", 3),
                     ("A", 4),
                     ("B", "c"),
-                    ("C", "2016-01-04T00:00:00.000Z"),
+                    ("C", "2016-01-04T00:00:00.000+00:00"),
                     ("D", "P0DT1H3M0S"),
                     ("E", "c"),
                     ("F", "c"),
                     ("G", 4.0),
-                    ("H", "2016-01-04T06:00:00.000Z"),
+                    ("H", "2016-01-04T00:00:00.000-06:00"),
                 ]
             ),
         ]
@@ -381,8 +381,8 @@ class TestTableOrient:
 
         schema = {"fields": fields, "primaryKey": ["index"]}
         data = [
-            OrderedDict([("index", "2015-11-01T00:00:00.000Z"), ("values", 1)]),
-            OrderedDict([("index", "2016-02-01T00:00:00.000Z"), ("values", 1)]),
+            OrderedDict([("index", "2015-11-01T00:00:00.000+00:00"), ("values", 1)]),
+            OrderedDict([("index", "2016-02-01T00:00:00.000+00:00"), ("values", 1)]),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
@@ -612,7 +612,7 @@ class TestTableOrient:
         )
         result = df.to_json(orient="table")
         js = json.loads(result)
-        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
+        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000+00:00"
         # TODO - below expectation is not correct; see GH 28256
         assert js["schema"]["fields"][2]["name"] == 10000
 
