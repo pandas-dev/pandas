@@ -43,7 +43,7 @@ def group_last(rank_t[:, :] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        rank_t val
+        rank_t val, nan_val
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
@@ -57,6 +57,11 @@ def group_last(rank_t[:, :] out,
         resx = np.empty((<object>out).shape, dtype=object)
     else:
         resx = np.empty_like(out)
+
+    if rank_t is int64_t:
+        nan_val = NPY_NAT
+    else:
+        nan_val = NAN
 
     N, K = (<object>values).shape
 
@@ -80,10 +85,7 @@ def group_last(rank_t[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    if rank_t is int64_t:
-                        out[i, j] = NPY_NAT
-                    else:
-                        out[i, j] = NAN
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = resx[i, j]
     else:
@@ -105,10 +107,7 @@ def group_last(rank_t[:, :] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] == 0:
-                        if rank_t is int64_t:
-                            out[i, j] = NPY_NAT
-                        else:
-                            out[i, j] = NAN
+                        out[i, j] = nan_val
                     else:
                         out[i, j] = resx[i, j]
 
@@ -131,7 +130,7 @@ def group_nth(rank_t[:, :] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        rank_t val
+        rank_t val, nan_val
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
@@ -145,6 +144,11 @@ def group_nth(rank_t[:, :] out,
         resx = np.empty((<object>out).shape, dtype=object)
     else:
         resx = np.empty_like(out)
+
+    if rank_t is int64_t:
+        nan_val = NPY_NAT
+    else:
+        nan_val = NAN
 
     N, K = (<object>values).shape
 
@@ -169,7 +173,7 @@ def group_nth(rank_t[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = resx[i, j]
 
@@ -193,10 +197,7 @@ def group_nth(rank_t[:, :] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] == 0:
-                        if rank_t is int64_t:
-                            out[i, j] = NPY_NAT
-                        else:
-                            out[i, j] = NAN
+                        out[i, j] = nan_val
                     else:
                         out[i, j] = resx[i, j]
 
