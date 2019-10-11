@@ -68,7 +68,11 @@ Loading a saved '{cls}' as a {new} with sparse values.
 
 class _LoadSparseSeries:
     # To load a SparseSeries as a Series[Sparse]
-    def __new__(cls) -> "Series":
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "Series", but must return
+    # a subtype of "_LoadSparseSeries")
+    def __new__(cls) -> "Series":  # type: ignore
         from pandas import Series
 
         warnings.warn(
@@ -82,7 +86,11 @@ class _LoadSparseSeries:
 
 class _LoadSparseFrame:
     # To load a SparseDataFrame as a DataFrame[Sparse]
-    def __new__(cls) -> "DataFrame":
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "DataFrame", but must
+    # return a subtype of "_LoadSparseFrame")
+    def __new__(cls) -> "DataFrame":  # type: ignore
         from pandas import DataFrame
 
         warnings.warn(
