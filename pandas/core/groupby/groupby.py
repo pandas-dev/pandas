@@ -1631,8 +1631,6 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.pad : Pad strings in the Series/Index up to width.
-        DataFrame.pad
         Series.fillna : Fill NA/NaN values using the specified method in a Series
         DataFrame.fillna : Fill NA/NaN values using the specified method in a DataFrame
         """
