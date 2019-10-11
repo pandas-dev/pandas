@@ -5642,10 +5642,10 @@ Given the next test set:
         pd.read_csv('test.csv', index_col=0)
 
     def test_feather_write(df):
-         df.to_feather('test.feather')
+        df.to_feather('test.feather')
 
     def test_feather_read():
-       pd.read_feather('test.feather')
+        pd.read_feather('test.feather')
 
     def test_pickle_write(df):
         df.to_pickle('test.pkl')
