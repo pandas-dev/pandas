@@ -1655,8 +1655,8 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.backfill : Backward fill the new missing values in the Series.
-        DataFrame.backfill : Backward fill the new missing values in the DataFrame.
+        Series.bfill : Backward fill the new missing values in the Series.
+        DataFrame.bfill : Backward fill the new missing values in the DataFrame.
         Series.fillna : Fill NA/NaN values using the specified method in the Series
         DataFrame.fillna : Fill NA/NaN values using the specified method in the DataFrame
         """
