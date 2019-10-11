@@ -2281,6 +2281,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     _can_hold_element = DatetimeBlock._can_hold_element
+    to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
 
     @property
@@ -2353,22 +2354,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # as lots of code (e.g. anything using values_from_object)
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
-
-    def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None, **kwargs
-    ):
-        """
-        We need to pick DatetimeBlock's version, but the inheritance structure
-        would use ExtensionBlock's verison
-        """
-        return DatetimeBlock.to_native_types(
-            self,
-            slicer=slicer,
-            na_rep=na_rep,
-            date_format=date_format,
-            quoting=quoting,
-            **kwargs
-        )
 
     def _slice(self, slicer):
         """ return a slice of my values """
