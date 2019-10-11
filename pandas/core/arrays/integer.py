@@ -95,7 +95,7 @@ def integer_array(values, dtype=None, copy=False):
     values : 1D list-like
     dtype : dtype, optional
         dtype to coerce
-    copy : boolean, default False
+    copy : bool, default False
 
     Returns
     -------
@@ -140,8 +140,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     ----------
     values : 1D list-like
     dtype : integer dtype
-    mask : boolean 1D array, optional
-    copy : boolean, default False
+    mask : bool 1D array, optional
+    copy : bool, default False
         if True, copy the input
 
     Returns
@@ -542,7 +542,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns

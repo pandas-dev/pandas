@@ -521,7 +521,7 @@ def na_value_for_dtype(dtype, compat=True):
     Parameters
     ----------
     dtype : string / dtype
-    compat : boolean, default True
+    compat : bool, default True
 
     Returns
     -------
