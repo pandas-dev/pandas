@@ -58,13 +58,14 @@ class DatetimeLike(Base):
         tm.assert_index_equal(result, i_view)
 
     def test_map_callable(self):
-        expected = self.index + self.index.freq
-        result = self.index.map(lambda x: x + x.freq)
+        index = self.create_index()
+        expected = index + index.freq
+        result = index.map(lambda x: x + x.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT
-        result = self.index.map(lambda x: pd.NaT if x == self.index[0] else x)
-        expected = pd.Index([pd.NaT] + self.index[1:].tolist())
+        result = index.map(lambda x: pd.NaT if x == index[0] else x)
+        expected = pd.Index([pd.NaT] + index[1:].tolist())
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -75,23 +76,24 @@ class DatetimeLike(Base):
         ],
     )
     def test_map_dictlike(self, mapper):
-        expected = self.index + self.index.freq
+        index = self.create_index()
+        expected = index + index.freq
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):
             expected.freq = None
 
-        result = self.index.map(mapper(expected, self.index))
+        result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
-        expected = pd.Index([pd.NaT] + self.index[1:].tolist())
-        result = self.index.map(mapper(expected, self.index))
+        expected = pd.Index([pd.NaT] + index[1:].tolist())
+        result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
         # empty map; these map to np.nan because we cannot know
         # to re-infer things
-        expected = pd.Index([np.nan] * len(self.index))
-        result = self.index.map(mapper([], []))
+        expected = pd.Index([np.nan] * len(index))
+        result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
 
     def test_asobject_deprecated(self):

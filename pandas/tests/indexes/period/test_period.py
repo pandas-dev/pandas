@@ -25,12 +25,15 @@ from ..datetimelike import DatetimeLike
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
 
-    def setup_method(self, method):
-        self.indices = dict(
-            index=tm.makePeriodIndex(10),
-            index_dec=period_range("20130101", periods=10, freq="D")[::-1],
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[
+            tm.makePeriodIndex(10),
+            period_range("20130101", periods=10, freq="D")[::-1],
+        ],
+        ids=["index_inc", "index_dec"],
+    )
+    def indices(self, request):
+        return request.param
 
     def create_index(self):
         return period_range("20130101", periods=5, freq="D")
