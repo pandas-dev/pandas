@@ -1237,20 +1237,13 @@ add_time_zone:
         if (sublen < 3 ) {
             goto string_too_short;
         }
-
-        // This is a modification to the vendored code to add a : separator
-        substr[2] = ':';
-        if (sublen < 4 ) {
+        substr[2] = (char)(((timezone_offset % 60) / 10) % 10 + '0');
+        if (sublen < 3 ) {
             goto string_too_short;
         }
-        substr[3] = (char)(((timezone_offset % 60) / 10) % 10 + '0');
-        if (sublen < 5 ) {
-            goto string_too_short;
-        }
-        substr[4] = (char)((timezone_offset % 60) % 10 + '0');
-        substr += 5;
-        sublen -= 5;
-        // End of modifications!
+        substr[3] = (char)((timezone_offset % 60) % 10 + '0');
+        substr += 4;
+        sublen -= 4;
     }
     /* UTC "Zulu" time */
     else if (utc) {

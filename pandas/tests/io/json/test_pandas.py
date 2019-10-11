@@ -1156,12 +1156,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.parametrize(
         "ts,expected",
         [
-            (Timestamp("2013-01-10 05:00:00Z"), '"2013-01-10T05:00:00.000+00:00"'),
+            (Timestamp("2013-01-10 05:00:00Z"), '"2013-01-10T05:00:00.000+0000"'),
             (
                 Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
-                '"2013-01-10T00:00:00.000-05:00"',
+                '"2013-01-10T00:00:00.000-0500"',
             ),
-            (Timestamp("2013-01-10 00:00:00-0500"), '"2013-01-10T00:00:00.000-05:00"'),
+            (Timestamp("2013-01-10 00:00:00-0500"), '"2013-01-10T00:00:00.000-0500"'),
         ],
     )
     def test_tz_utc_offsets(self, ts, expected):
@@ -1175,11 +1175,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         from pandas.io.json import dumps
 
         tz_range = pd.date_range("2013-01-01 05:00:00Z", periods=2)
-        exp = '["2013-01-01T05:00:00.000+00:00","2013-01-02T05:00:00.000+00:00"]'
+        exp = '["2013-01-01T05:00:00.000+0000","2013-01-02T05:00:00.000+0000"]'
         dfexp = (
             '{"DT":{'
-            '"0":"2013-01-01T05:00:00.000+00:00",'
-            '"1":"2013-01-02T05:00:00.000+00:00"}}'
+            '"0":"2013-01-01T05:00:00.000+0000",'
+            '"1":"2013-01-02T05:00:00.000+0000"}}'
         )
 
         assert dumps(tz_range, iso_dates=True) == exp
@@ -1195,7 +1195,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame(tz_range, columns=["date"])
         result = df.to_json(orient=orient, date_format="iso")
 
-        assert "2013-01-01T00:00:00.000-05:00" in result
+        assert "2013-01-01T00:00:00.000-0500" in result
 
     def test_read_inline_jsonl(self):
         # GH9180
