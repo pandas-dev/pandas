@@ -3867,7 +3867,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values : Return a Numpy representation of the DataFrame.
+        values : Return an array representing the data in the Index.
         _ndarray_values : Internal pandas method for lossy conversion to a NumPy ndarray.
         """
         return self._data
