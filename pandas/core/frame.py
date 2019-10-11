@@ -2343,9 +2343,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Data columns (total 3 columns):
-        0. int_col      5 non-null int64
-        1. text_col     5 non-null object
-        2. float_col    5 non-null float64
+         #   Column     Non-Null Count  Dtype
+        ---  ------     --------------  -----
+         0   int_col    5 non-null      int64
+         1   text_col   5 non-null      object
+         2   float_col  5 non-null      float64
         dtypes: float64(1), int64(1), object(1)
         memory usage: 248.0+ bytes
 
@@ -2384,9 +2386,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
         dtypes: object(3)
         memory usage: 22.9+ MB
 
@@ -2394,9 +2398,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
         dtypes: object(3)
         memory usage: 188.8 MB
         """
@@ -2431,15 +2437,21 @@ class DataFrame(NDFrame):
 
         def _verbose_repr():
             lines.append("Data columns (total %d columns):" % len(self.columns))
-            space = max(len(pprint_thing(k)) for k in cols)
-            len_column = len(pprint_thing('Column'))
-            space = max(space, len_column) + 4
-            space_num = len(pprint_thing(col_count))
-            len_id = len(pprint_thing(' #.'))
-            space_num = max(space_num, len_id) + 2
+
+            id_head = " # "
+            column_head = "Column"
+            col_space = 2
+
+            max_col = max(len(pprint_thing(k)) for k in cols)
+            len_column = len(pprint_thing(column_head))
+            space = max(max_col, len_column) + col_space
+
+            max_id = len(pprint_thing(col_count))
+            len_id = len(pprint_thing(id_head))
+            space_num = max(max_id, len_id) + col_space
             counts = None
 
-            header = _put_str(" # ", space_num) + _put_str("Column", space)
+            header = _put_str(id_head, space_num) + _put_str(column_head, space)
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
@@ -2449,22 +2461,39 @@ class DataFrame(NDFrame):
                             cols=len(cols), counts=len(counts)
                         )
                     )
-                col_header = 'Non-Null Count & Dtype'
-                tmpl = "{count} non-null {dtype}"
+                count_header = "Non-Null Count"
+                len_count = len(count_header)
+                non_null = " non-null"
+                max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
+                space_count = max(len_count, max_count) + col_space
+                count_temp = "{count}" + non_null
             else:
-                col_header = 'Dtype'
-                tmpl = '{count}{dtype}'
-            header += col_header
+                count_header = ""
+                space_count = len(count_header)
+                len_count = space_count
+                count_temp = "{count}"
+
+            dtype_header = "Dtype"
+            len_dtype = len("Dtype")
+            max_dtypes = max(len(pprint_thing(k)) for k in self.dtypes)
+            space_dtype = max(len_dtype, max_dtypes)
+            header += _put_str(count_header, space_count) + _put_str(
+                dtype_header, space_dtype
+            )
 
             lines.append(header)
-            lines.append(_put_str('-' * len_id, space_num) +
-                         _put_str('-' * len_column, space) +
-                         '-' * len(pprint_thing(col_header)))
+            lines.append(
+                _put_str("-" * len_id, space_num)
+                + _put_str("-" * len_column, space)
+                + _put_str("-" * len_count, space_count)
+                + _put_str("-" * len_dtype, space_dtype)
+            )
+
             for i, col in enumerate(self.columns):
                 dtype = self.dtypes.iloc[i]
                 col = pprint_thing(col)
 
-                line_no = _put_str(' {num}'.format(num=i), space_num)
+                line_no = _put_str(" {num}".format(num=i), space_num)
                 count = ""
                 if show_counts:
                     count = counts.iloc[i]
@@ -2472,7 +2501,8 @@ class DataFrame(NDFrame):
                 lines.append(
                     line_no
                     + _put_str(col, space)
-                    + tmpl.format(count=count, dtype=dtype)
+                    + _put_str(count_temp.format(count=count), space_count)
+                    + _put_str(dtype, space_dtype)
                 )
 
         def _non_verbose_repr():
