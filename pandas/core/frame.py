@@ -2415,6 +2415,7 @@ class DataFrame(NDFrame):
             return
 
         cols = self.columns
+        col_count = len(self.columns)
 
         # hack
         if max_cols is None:
@@ -2423,17 +2424,22 @@ class DataFrame(NDFrame):
         max_rows = get_option("display.max_info_rows", len(self) + 1)
 
         if null_counts is None:
-            show_counts = (len(self.columns) <= max_cols) and (len(self) < max_rows)
+            show_counts = (col_count <= max_cols) and (len(self) < max_rows)
         else:
             show_counts = null_counts
-        exceeds_info_cols = len(self.columns) > max_cols
+        exceeds_info_cols = col_count > max_cols
 
         def _verbose_repr():
             lines.append("Data columns (total %d columns):" % len(self.columns))
-            space = max(len(pprint_thing(k)) for k in self.columns) + 4
+            space = max(len(pprint_thing(k)) for k in cols)
+            len_column = len(pprint_thing('Column'))
+            space = max(space, len_column) + 4
+            space_num = len(pprint_thing(col_count))
+            len_id = len(pprint_thing(' #.'))
+            space_num = max(space_num, len_id) + 2
             counts = None
 
-            tmpl = "{count}{dtype}"
+            header = _put_str(" # ", space_num) + _put_str("Column", space)
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
@@ -2443,20 +2449,28 @@ class DataFrame(NDFrame):
                             cols=len(cols), counts=len(counts)
                         )
                     )
+                col_header = 'Non-Null Count & Dtype'
                 tmpl = "{count} non-null {dtype}"
+            else:
+                col_header = 'Dtype'
+                tmpl = '{count}{dtype}'
+            header += col_header
 
-            dtypes = self.dtypes
+            lines.append(header)
+            lines.append(_put_str('-' * len_id, space_num) +
+                         _put_str('-' * len_column, space) +
+                         '-' * len(pprint_thing(col_header)))
             for i, col in enumerate(self.columns):
-                dtype = dtypes.iloc[i]
+                dtype = self.dtypes.iloc[i]
                 col = pprint_thing(col)
 
+                line_no = _put_str(' {num}'.format(num=i), space_num)
                 count = ""
                 if show_counts:
                     count = counts.iloc[i]
 
                 lines.append(
-                    str(i)
-                    + ". "
+                    line_no
                     + _put_str(col, space)
                     + tmpl.format(count=count, dtype=dtype)
                 )
