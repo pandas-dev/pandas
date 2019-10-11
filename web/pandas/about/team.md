@@ -36,24 +36,21 @@ If you want to support pandas development, you can find information in the [dona
     {% endfor %}
 </div>
 
-## BDFL
+## Diversity and Inclusion
 
-Wes McKinney is the Benevolent Dictator for Life (BDFL).
+> _pandas_ expressly welcomes and encourages contributions from anyone who faces under-representation, discrimination in the technology industry
+> or anyone willing to increase the diversity of our team.
+> We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
+> the diversity of our team.
+> We have a [code of conduct]({base_url}/community/coc.html) to ensure a friendly and welcoming environment.
+> Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
+> better job at achieving this goal.
 
 ## Governance
 
+Wes McKinney is the Benevolent Dictator for Life (BDFL).
+
 The project governance is available in the [project governance documents](https://github.com/pandas-dev/pandas-governance).
-
-## NumFOCUS
-
-![](https://numfocus.org/wp-content/uploads/2018/01/optNumFocus_LRG.png)
-
-_pandas_ is a Sponsored Project of [NumFOCUS](https://numfocus.org/), a 501(c)(3) nonprofit charity in the United States.
-NumFOCUS provides _pandas_ with fiscal, legal, and administrative support to help ensure the
-health and sustainability of the project. Visit numfocus.org for more information.
-
-Donations to _pandas_ are managed by NumFOCUS. For donors in the United States, your gift is tax-deductible
-to the extent provided by law. As with any donation, you should consult with your tax adviser about your particular tax situation.
 
 ## Code of conduct committee
 
@@ -71,31 +68,10 @@ to the extent provided by law. As with any donation, you should consult with you
     {% endfor %}
 </ul>
 
-## Institutional partners
-
-<ul>
-    {% for company in partners.active if company.employs %}
-        <li><a href="{{ company.url }}">{{ company.name }}</a> ({{ company.employs }})</li>
-    {% endfor %}
-</ul>
-
-In-kind sponsors
-
-- [Indeed](https://opensource.indeedeng.io/): Logo and website design
-- Can we find a donor for the hosting (website, benchmarks,...?)
-
 ## Emeritus maintainers
 
 <ul>
     {% for person in maintainers.emeritus %}
         <li>{{ person }}</li>
-    {% endfor %}
-</ul>
-
-## Past institutional partners
-
-<ul>
-    {% for company in partners.past %}
-        <li><a href="{{ company.url }}">{{ company.name }}</a></li>
     {% endfor %}
 </ul>

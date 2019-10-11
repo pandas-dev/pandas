@@ -674,7 +674,7 @@ def test_preserve_categories():
 
     # ordered=True
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=True)})
-    index = CategoricalIndex(categories, categories, ordered=True)
+    index = CategoricalIndex(categories, categories, ordered=True, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, index
     )
@@ -684,8 +684,8 @@ def test_preserve_categories():
 
     # ordered=False
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
-    sort_index = CategoricalIndex(categories, categories, ordered=False)
-    nosort_index = CategoricalIndex(list("bac"), list("bac"), ordered=False)
+    sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
+    nosort_index = CategoricalIndex(list("bac"), list("bac"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
     )
@@ -782,7 +782,7 @@ def test_categorical_no_compress():
 
 def test_sort():
 
-    # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby  # noqa: flake8
+    # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby  # noqa: E501
     # This should result in a properly sorted Series so that the plot
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
@@ -1193,3 +1193,31 @@ def test_groupby_categorical_axis_1(code):
     result = df.groupby(cat, axis=1).mean()
     expected = df.T.groupby(cat, axis=0).mean().T
     assert_frame_equal(result, expected)
+
+
+def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+    # GH 28787
+    df = DataFrame(
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        columns=["Name", "Item"],
+    )
+    expected = df.copy()
+
+    result = (
+        df.groupby("Name", observed=observed)
+        .agg(pd.DataFrame.sum, skipna=True)
+        .reset_index()
+    )
+
+    assert_frame_equal(result, expected)
+
+
+def test_get_nonexistent_category():
+    # Accessing a Category that is not in the dataframe
+    df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
+    with pytest.raises(KeyError, match="'vau'"):
+        df.groupby("var").apply(
+            lambda rows: pd.DataFrame(
+                {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
+            )
+        )

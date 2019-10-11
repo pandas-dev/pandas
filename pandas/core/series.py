@@ -16,7 +16,7 @@ from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import CachedAccessor, DirNamesMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -176,8 +176,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = generic.NDFrame._deprecations | frozenset(
-        ["asobject", "reshape", "valid", "tolist"]
+    _deprecations = (
+        generic.NDFrame._deprecations
+        | DirNamesMixin._deprecations
+        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -1129,7 +1131,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, tuple):
             try:
                 return self._get_values_tuple(key)
-            except Exception:
+            except ValueError:
+                # if we don't have a MultiIndex, we may still be able to handle
+                #  a 1-tuple.  see test_1tuple_without_multiindex
                 if len(key) == 1:
                     key = key[0]
                     if isinstance(key, slice):
@@ -1184,7 +1188,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._constructor(
                 self._data.get_slice(indexer), fastpath=True
             ).__finalize__(self)
-        except Exception:
+        except ValueError:
+            # mpl compat if we look up e.g. ser[:, np.newaxis];
+            #  see tests.series.timeseries.test_mpl_compat_hack
             return self._values[indexer]
 
     def _get_value(self, label, takeable: bool = False):
@@ -2311,7 +2317,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
 
-        self._check_percentile(q)
+        validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
         #  about 2D cases.
@@ -2732,10 +2738,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        if func.__name__ in ["divmod", "rdivmod"]:
-            ret = ops._construct_divmod_result(self, result, new_index, name)
-        else:
-            ret = ops._construct_result(self, result, new_index, name)
+        ret = ops._construct_result(self, result, new_index, name)
         return ret
 
     def combine(self, other, func, fill_value=None):
@@ -4154,9 +4157,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index, columns : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
+        index : single label or list-like
+            Redundant for application on Series, but 'index' can be used instead
+            of 'labels'.
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
+            No change is made to the Series; use 'index' or 'labels' instead.
 
             .. versionadded:: 0.21.0
         level : int or level name, optional
@@ -4404,9 +4411,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        left : scalar
+        left : scalar or list-like
             Left boundary.
-        right : scalar
+        right : scalar or list-like
             Right boundary.
         inclusive : bool, default True
             Include boundaries.

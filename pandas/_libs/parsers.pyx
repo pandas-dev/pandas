@@ -2249,7 +2249,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 def _maybe_encode(values):
     if values is None:
         return []
-    return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
+    return [x.encode('utf-8') if isinstance(x, str) else x for x in values]
 
 
 def sanitize_objects(ndarray[object] values, set na_values,
