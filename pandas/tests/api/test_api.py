@@ -42,7 +42,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = []
+    deprecated_modules = []  # type: List[int]
 
     # misc
     misc = ["IndexSlice", "NaT"]
@@ -93,10 +93,10 @@ class TestPDApi(Base):
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: List[str] = []
+    deprecated_classes = []  # type: List[int]
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = []
+    deprecated_classes_in_future = []  # type: List[int]
 
     # external modules exposed in pandas namespace
     modules = ["np", "datetime"]
@@ -172,10 +172,10 @@ class TestPDApi(Base):
     funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future: List[str] = []
+    deprecated_funcs_in_future = []  # type: List[int]
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs: List[str] = []
+    deprecated_funcs = []  # type: List[int]
 
     # private modules in pandas namespace
     private_modules = [
