@@ -728,7 +728,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ----------
         result : a ndarray
         fill_value : object, default iNaT
-        convert : str/dtype or None
+        convert : str, dtype or None
 
         Returns
         -------
