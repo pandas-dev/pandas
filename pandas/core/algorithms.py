@@ -428,7 +428,7 @@ def unique(values, return_inverse=False):
     else:
         uniques = table.unique(values)
 
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
 
     if return_inverse:
         return uniques, inverse
