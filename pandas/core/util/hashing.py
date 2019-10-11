@@ -26,7 +26,9 @@ from pandas.core.dtypes.missing import isna
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items: int) -> np.uint64:
+# Note: The return type is technically a np.uint64, see GH#28916 for
+#  annotation discussion.
+def _combine_hash_arrays(arrays, num_items: int) -> int:
     """
     Parameters
     ----------
@@ -87,9 +89,6 @@ def hash_pandas_object(
     Series of uint64, same length as the object
     """
     from pandas import Series
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
