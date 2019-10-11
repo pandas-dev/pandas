@@ -1,10 +1,9 @@
 from collections import OrderedDict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import random
 import re
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
@@ -565,9 +564,7 @@ class TestMerge:
         assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
-        # #2098, anything to do?
-
-        from datetime import datetime
+        # GH#2098, TODO: anything to do?
 
         d = {
             "var1": np.random.randint(0, 10, size=10),
@@ -621,9 +618,9 @@ class TestMerge:
         expected = DataFrame(
             {
                 "i1": {0: 0, 1: 1},
-                "i1_": {0: 0.0, 1: nan},
+                "i1_": {0: 0.0, 1: np.nan},
                 "i2": {0: 0.5, 1: 1.5},
-                "i3": {0: 0.69999999999999996, 1: nan},
+                "i3": {0: 0.69999999999999996, 1: np.nan},
             }
         )[["i1", "i2", "i1_", "i3"]]
         assert_frame_equal(result, expected)
@@ -640,21 +637,17 @@ class TestMerge:
         assert isinstance(result, NotADataFrame)
 
     def test_join_append_timedeltas(self):
-
-        import datetime as dt
-        from pandas import NaT
-
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {"d": dt.datetime(2013, 11, 5, 5, 56), "t": dt.timedelta(0, 22500)}
+        d = {"d": datetime(2013, 11, 5, 5, 56), "t": timedelta(0, 22500)}
         df = DataFrame(columns=list("dt"))
         df = df.append(d, ignore_index=True)
         result = df.append(d, ignore_index=True)
         expected = DataFrame(
             {
-                "d": [dt.datetime(2013, 11, 5, 5, 56), dt.datetime(2013, 11, 5, 5, 56)],
-                "t": [dt.timedelta(0, 22500), dt.timedelta(0, 22500)],
+                "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
+                "t": [timedelta(0, 22500), timedelta(0, 22500)],
             }
         )
         assert_frame_equal(result, expected)
@@ -667,7 +660,7 @@ class TestMerge:
         expected = DataFrame(
             {
                 "0": Series([td, td], index=list("AB")),
-                "0r": Series([td, NaT], index=list("AB")),
+                "0r": Series([td, pd.NaT], index=list("AB")),
             }
         )
         assert_frame_equal(result, expected)
@@ -2094,6 +2087,20 @@ def test_merge_equal_cat_dtypes2():
 
     # Categorical is unordered, so don't check ordering.
     tm.assert_frame_equal(result, expected, check_categorical=False)
+
+
+def test_merge_on_cat_and_ext_array():
+    # GH 28668
+    right = DataFrame(
+        {"a": Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")}
+    )
+    left = right.copy()
+    left["a"] = left["a"].astype("category")
+
+    result = pd.merge(left, right, how="inner", on="a")
+    expected = right.copy()
+
+    assert_frame_equal(result, expected)
 
 
 def test_merge_multiindex_columns():
