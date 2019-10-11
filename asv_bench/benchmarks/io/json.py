@@ -67,10 +67,11 @@ class ToJSON(BaseIO):
     params = [
         ["split", "columns", "index", "values", "records"],
         ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+        ["epoch", "iso"],
     ]
-    param_names = ["orient", "frame"]
+    param_names = ["orient", "frame", "date_format"]
 
-    def setup(self, orient, frame):
+    def setup(self, orient, frame, date_format):
         N = 10 ** 5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
@@ -115,21 +116,21 @@ class ToJSON(BaseIO):
             index=index,
         )
 
-    def time_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+    def time_to_json(self, orient, frame, date_format):
+        getattr(self, frame).to_json(self.fname, orient=orient, date_format=date_format)
 
-    def peakmem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+    def peakmem_to_json(self, orient, frame, date_format):
+        getattr(self, frame).to_json(self.fname, orient=orient, date_format=date_format)
 
-    def time_to_json_wide(self, orient, frame):
+    def time_to_json_wide(self, orient, frame, date_format):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        df.to_json(self.fname, orient=orient, date_format=date_format)
 
-    def peakmem_to_json_wide(self, orient, frame):
+    def peakmem_to_json_wide(self, orient, frame, date_format):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        df.to_json(self.fname, orient=orient, date_format=date_format)
 
 
 class ToJSONLines(BaseIO):
