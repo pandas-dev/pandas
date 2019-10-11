@@ -422,10 +422,11 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return collections.OrderedDict(
-            (name, (type_, "".join(desc)))
-            for name, type_, desc in self.doc["Parameters"]
-        )
+        parameters = collections.OrderedDict()
+        for names, type_, desc in self.doc["Parameters"]:
+            for name in names.split(", "):
+                parameters[name] = (type_, "".join(desc))
+        return parameters
 
     @property
     def signature_parameters(self):
