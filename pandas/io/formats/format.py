@@ -561,7 +561,17 @@ class DataFrameFormatter(TableFormatter):
         self.sparsify = sparsify
 
         self.float_format = float_format
-        self.formatters = formatters if formatters is not None else {}
+        if formatters is None:
+            self.formatters = {}
+        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
+            self.formatters = formatters
+        else:
+            raise ValueError(
+                (
+                    "Formatters length({flen}) should match"
+                    " DataFrame number of columns({dlen})"
+                ).format(flen=len(formatters), dlen=len(frame.columns))
+            )
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = col_space
@@ -858,6 +868,8 @@ class DataFrameFormatter(TableFormatter):
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
             for col in strcols
         ]
+
+        assert lwidth is not None
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
@@ -1880,7 +1892,7 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _binify(cols: List[np.int32], line_width: Union[np.int32, int]) -> List[int]:
+def _binify(cols: List[int], line_width: int) -> List[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

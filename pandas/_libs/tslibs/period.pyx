@@ -1710,7 +1710,7 @@ cdef class _Period:
     def asfreq(self, freq, how='E'):
         """
         Convert Period to desired frequency, either at the start or end of the
-        interval
+        interval.
 
         Parameters
         ----------
@@ -1777,7 +1777,7 @@ cdef class _Period:
     def to_timestamp(self, freq=None, how='start', tz=None):
         """
         Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period
+        frequency at the specified end (how) of the Period.
 
         Parameters
         ----------
@@ -2380,7 +2380,7 @@ cdef class _Period:
 
 class Period(_Period):
     """
-    Represents a period of time
+    Represents a period of time.
 
     Parameters
     ----------
@@ -2448,7 +2448,10 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in nat_strings:
+        elif is_null_datetimelike(value) or (isinstance(value, str) and
+                                             value in nat_strings):
+            # explicit str check is necessary to avoid raising incorrectly
+            #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):

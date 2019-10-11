@@ -251,11 +251,11 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         ordinal : int
-            date corresponding to a proleptic Gregorian ordinal
+            Date corresponding to a proleptic Gregorian ordinal.
         freq : str, DateOffset
-            Offset which Timestamp will have
+            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will have.
+            Time zone for the Timestamp.
         """
         return cls(datetime.fromordinal(ordinal),
                    freq=freq, tz=tz)
@@ -271,7 +271,7 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
@@ -289,7 +289,7 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """
         return cls.now(tz)
 
@@ -441,31 +441,34 @@ class Timestamp(_Timestamp):
 
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the rounding resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
@@ -483,80 +486,86 @@ default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the flooring resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the ceiling resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     @property
     def tz(self):
         """
-        Alias for tzinfo
+        Alias for tzinfo.
         """
         return self.tzinfo
 
@@ -606,7 +615,7 @@ default 'raise'
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the day name
+            Locale determining the language in which to return the day name.
 
         Returns
         -------
@@ -623,7 +632,7 @@ default 'raise'
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the month name
+            Locale determining the language in which to return the month name.
 
         Returns
         -------
@@ -754,7 +763,7 @@ default 'raise'
     def resolution(self):
         """
         Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state
+        times that can be represented by Timestamp object_state.
         """
         # GH#21336, GH#21365
         return Timedelta(nanoseconds=1)
@@ -779,35 +788,42 @@ default 'raise'
             `ambiguous` parameter dictates how ambiguous times should be
             handled.
 
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            The behavior is as follows:
+
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
-
         errors : 'raise', 'coerce', default None
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified timezone (e.g. due to a transition from
-               or to DST time). Use ``nonexistent='raise'`` instead.
-            - 'coerce' will return NaT if the timestamp can not be converted
+            Determine how errors should be handled.
+
+            The behavior is as follows:
+
+            * 'raise' will raise a NonExistentTimeError if a timestamp is not
+              valid in the specified timezone (e.g. due to a transition from
+              or to DST time). Use ``nonexistent='raise'`` instead.
+            * 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-              .. deprecated:: 0.24.0
+            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -893,7 +909,7 @@ default 'raise'
                 hour=None, minute=None, second=None, microsecond=None,
                 nanosecond=None, tzinfo=object, fold=0):
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

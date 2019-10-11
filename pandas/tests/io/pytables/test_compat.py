@@ -1,7 +1,7 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.io.pytables.test_pytables import ensure_clean_path
+from pandas.tests.io.pytables.common import ensure_clean_path
 from pandas.util.testing import assert_frame_equal
 
 tables = pytest.importorskip("tables")
