@@ -11,10 +11,9 @@ class DummyException(Exception):
     pass
 
 
-class TestExceptions(object):
-
+class TestExceptions:
     def test_raise_on_find_unsupported_value(self):
-        msg = "can\'t serialize datetime"
+        msg = "can't serialize datetime"
         with pytest.raises(TypeError, match=msg):
             packb(datetime.now())
 
@@ -25,13 +24,13 @@ class TestExceptions(object):
         with pytest.raises(DummyException):
             unpackb(packb({}), object_hook=hook)
         with pytest.raises(DummyException):
-            unpackb(packb({'fizz': 'buzz'}), object_hook=hook)
+            unpackb(packb({"fizz": "buzz"}), object_hook=hook)
         with pytest.raises(DummyException):
-            unpackb(packb({'fizz': 'buzz'}), object_pairs_hook=hook)
+            unpackb(packb({"fizz": "buzz"}), object_pairs_hook=hook)
         with pytest.raises(DummyException):
-            unpackb(packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
+            unpackb(packb({"fizz": {"buzz": "spam"}}), object_hook=hook)
         with pytest.raises(DummyException):
-            unpackb(packb({'fizz': {'buzz': 'spam'}}), object_pairs_hook=hook)
+            unpackb(packb({"fizz": {"buzz": "spam"}}), object_pairs_hook=hook)
 
     def test_invalid_value(self):
         msg = "Unpack failed: error"

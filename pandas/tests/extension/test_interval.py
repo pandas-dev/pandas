@@ -70,7 +70,7 @@ def data_for_grouping():
     return IntervalArray.from_tuples([b, b, None, None, a, a, b, c])
 
 
-class BaseInterval(object):
+class BaseInterval:
     pass
 
 
@@ -95,7 +95,10 @@ class TestGrouping(BaseInterval, base.BaseGroupbyTests):
 
 
 class TestInterface(BaseInterval, base.BaseInterfaceTests):
-    pass
+    def test_view(self, data):
+        # __setitem__ incorrectly makes a copy (GH#27147), so we only
+        #  have a smoke-test
+        data.view()
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -103,8 +106,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-
-    @pytest.mark.skip(reason='addition is not defined for intervals')
+    @pytest.mark.skip(reason="addition is not defined for intervals")
     def test_combine_add(self, data_repeated):
         pass
 
@@ -155,8 +157,8 @@ class TestPrinting(BaseInterval, base.BasePrintingTests):
 
 
 class TestParsing(BaseInterval, base.BaseParsingTests):
-    @pytest.mark.parametrize('engine', ['c', 'python'])
+    @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
-        expected_msg = r'.*must implement _from_sequence_of_strings.*'
+        expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super(TestParsing, self).test_EA_types(engine, data)
+            super().test_EA_types(engine, data)

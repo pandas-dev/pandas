@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************
-10 Minutes to pandas
+10 minutes to pandas
 ********************
 
 This is a short introduction to pandas, geared mainly for new users.
@@ -16,7 +16,7 @@ Customarily, we import as follows:
    import numpy as np
    import pandas as pd
 
-Object Creation
+Object creation
 ---------------
 
 See the :ref:`Data Structure Intro section <dsintro>`.
@@ -83,7 +83,7 @@ As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
 truncated for brevity.
 
-Viewing Data
+Viewing data
 ------------
 
 See the :ref:`Basics section <basics>`.
@@ -103,7 +103,7 @@ Display the index, columns:
    df.columns
 
 :meth:`DataFrame.to_numpy` gives a NumPy representation of the underlying data.
-Note that his can be an expensive operation when your :class:`DataFrame` has
+Note that this can be an expensive operation when your :class:`DataFrame` has
 columns with different data types, which comes down to a fundamental difference
 between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
 while pandas DataFrames have one dtype per column**. When you call
@@ -183,7 +183,7 @@ Selecting via ``[]``, which slices the rows.
    df[0:3]
    df['20130102':'20130104']
 
-Selection by Label
+Selection by label
 ~~~~~~~~~~~~~~~~~~
 
 See more in :ref:`Selection by Label <indexing.label>`.
@@ -224,7 +224,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 
    df.at[dates[0], 'A']
 
-Selection by Position
+Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
 
 See more in :ref:`Selection by Position <indexing.integer>`.
@@ -271,14 +271,14 @@ For getting fast access to a scalar (equivalent to the prior method):
 
    df.iat[1, 1]
 
-Boolean Indexing
+Boolean indexing
 ~~~~~~~~~~~~~~~~
 
 Using a single column's values to select data.
 
 .. ipython:: python
 
-   df[df.A > 0]
+   df[df['A'] > 0]
 
 Selecting values from a DataFrame where a boolean condition is met.
 
@@ -340,7 +340,7 @@ A ``where`` operation with setting.
    df2
 
 
-Missing Data
+Missing data
 ------------
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
@@ -449,8 +449,8 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series and
+DataFrame objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
@@ -467,6 +467,13 @@ Concatenating pandas objects together with :func:`concat`:
    pieces = [df[:3], df[3:7], df[7:]]
 
    pd.concat(pieces)
+
+.. note::
+   Adding a column to a ``DataFrame`` is relatively fast. However, adding
+   a row requires a copy, and may be expensive. We recommend passing a
+   pre-built list of records to the ``DataFrame`` constructor instead
+   of building a ``DataFrame`` by iteratively appending records to it.
+   See :ref:`Appending to dataframe <merging.concatenation>` for more.
 
 Join
 ~~~~
@@ -490,21 +497,6 @@ Another example that can be given is:
    left
    right
    pd.merge(left, right, on='key')
-
-
-Append
-~~~~~~
-
-Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
-section.
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
-   df
-   s = df.iloc[3]
-   df.append(s, ignore_index=True)
-
 
 Grouping
 --------
@@ -580,7 +572,7 @@ With a "stacked" DataFrame or Series (having a ``MultiIndex`` as the
    stacked.unstack(1)
    stacked.unstack(0)
 
-Pivot Tables
+Pivot tables
 ~~~~~~~~~~~~
 See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
@@ -600,7 +592,7 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
 
 
-Time Series
+Time series
 -----------
 
 pandas has simple, powerful, and efficient functionality for performing
@@ -734,7 +726,7 @@ of the columns with labels:
    @savefig frame_plot_basic.png
    plt.legend(loc='best')
 
-Getting Data In/Out
+Getting data in/out
 -------------------
 
 CSV

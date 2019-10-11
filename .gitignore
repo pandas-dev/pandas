@@ -57,13 +57,19 @@ dist
 # wheel files
 *.whl
 **/wheelhouse/*
+pip-wheel-metadata
 # coverage
 .coverage
 coverage.xml
 coverage_html_report
+.mypy_cache
 *.pytest_cache
 # hypothesis test database
 .hypothesis/
+__pycache__
+# pytest-monkeytype
+monkeytype.sqlite3
+
 
 # OS generated files #
 ######################

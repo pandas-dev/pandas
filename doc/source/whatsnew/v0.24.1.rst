@@ -1,14 +1,12 @@
-:orphan:
-
 .. _whatsnew_0241:
 
-Whats New in 0.24.1 (February XX, 2019)
----------------------------------------
+Whats new in 0.24.1 (February 3, 2019)
+--------------------------------------
 
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+   releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 {{ header }}
 
@@ -17,7 +15,7 @@ including other versions of pandas. See :ref:`whatsnew_0240` for the 0.24.0 chan
 
 .. _whatsnew_0241.api:
 
-API Changes
+API changes
 ~~~~~~~~~~~
 
 Changing the ``sort`` parameter for :class:`Index` set operations
@@ -47,19 +45,23 @@ The `sort` option for :meth:`Index.intersection` has changed in three ways.
 
 .. _whatsnew_0241.regressions:
 
-Fixed Regressions
+Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Bug in :meth:`DataFrame.itertuples` with ``records`` orient raising an ``AttributeError`` when the ``DataFrame`` contained more than 255 columns (:issue:`24939`)
-- Bug in :meth:`DataFrame.itertuples` orient converting integer column names to strings prepended with an underscore (:issue:`24940`)
+- Fixed regression in :meth:`DataFrame.to_dict` with ``records`` orient raising an
+  ``AttributeError`` when the ``DataFrame`` contained more than 255 columns, or
+  wrongly converting column names that were not valid python identifiers (:issue:`24939`, :issue:`24940`).
 - Fixed regression in :func:`read_sql` when passing certain queries with MySQL/pymysql (:issue:`24988`).
 - Fixed regression in :class:`Index.intersection` incorrectly sorting the values by default (:issue:`24959`).
 - Fixed regression in :func:`merge` when merging an empty ``DataFrame`` with multiple timezone-aware columns on one of the timezone-aware columns (:issue:`25014`).
 - Fixed regression in :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` where passing ``None`` failed to remove the axis name (:issue:`25034`)
+- Fixed regression in :func:`to_timedelta` with `box=False` incorrectly returning a ``datetime64`` object instead of a ``timedelta64`` object (:issue:`24961`)
+- Fixed regression where custom hashable types could not be used as column keys in :meth:`DataFrame.set_index` (:issue:`24969`)
 
-**Timedelta**
+.. _whatsnew_0241.bug_fixes:
 
-- Bug in :func:`to_timedelta` with `box=False` incorrectly returning a ``datetime64`` object instead of a ``timedelta64`` object (:issue:`24961`)
+Bug fixes
+~~~~~~~~~
 
 **Reshaping**
 
@@ -68,7 +70,6 @@ Fixed Regressions
 **Visualization**
 
 - Fixed the warning for implicitly registered matplotlib converters not showing. See :ref:`whatsnew_0211.converters` for more (:issue:`24963`).
-
 
 **Other**
 
@@ -79,4 +80,15 @@ Fixed Regressions
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.0..v0.24.1
+.. Including the contributors hardcoded for this release, as backporting with
+   MeeseeksDev loses the commit authors
+
+A total of 7 people contributed patches to this release. People with a "+" by their names contributed a patch for the first time.
+
+* Alex Buchkovsky
+* Roman Yurchak
+* h-vetinari
+* jbrockmendel
+* Jeremy Schendel
+* Joris Van den Bossche
+* Tom Augspurger

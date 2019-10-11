@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 
 import time
@@ -19,19 +17,17 @@ cnp.import_array()
 
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
-from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, pydt_to_i8, localize_pydatetime)
+from pandas._libs.tslibs.conversion cimport pydt_to_i8, localize_pydatetime
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
-
-PY2 = bytes == str
 
 # ---------------------------------------------------------------------
 # Constants
@@ -251,7 +247,7 @@ def _to_dt64(dt, dtype='datetime64'):
 
 
 def _validate_business_time(t_input):
-    if is_string_object(t_input):
+    if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
             return dt_time(hour=t.tm_hour, minute=t.tm_min)
@@ -314,7 +310,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset(object):
+class _BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -333,7 +329,7 @@ class _BaseOffset(object):
         raise AttributeError("DateOffset objects are immutable.")
 
     def __eq__(self, other):
-        if is_string_object(other):
+        if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True
@@ -535,7 +531,7 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-class _Tick(object):
+class _Tick:
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
@@ -551,10 +547,6 @@ class _Tick(object):
     def __rtruediv__(self, other):
         result = self.delta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
-
-    if PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
 
 
 # ----------------------------------------------------------------------
@@ -587,7 +579,7 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:

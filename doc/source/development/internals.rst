@@ -102,7 +102,7 @@ So, for example, ``Series[category]._values`` is a ``Categorical``, while
 
 .. _ref-subclassing-pandas:
 
-Subclassing pandas Data Structures
+Subclassing pandas data structures
 ----------------------------------
 
 This section has been moved to :ref:`extending.subclassing-pandas`.

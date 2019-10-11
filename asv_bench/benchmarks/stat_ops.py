@@ -1,15 +1,14 @@
 import numpy as np
+
 import pandas as pd
 
-
-ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
-       'var']
+ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
 
 
-class FrameOps(object):
+class FrameOps:
 
-    params = [ops, ['float', 'int'], [0, 1], [True, False]]
-    param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
+    params = [ops, ["float", "int"], [0, 1], [True, False]]
+    param_names = ["op", "dtype", "axis", "use_bottleneck"]
 
     def setup(self, op, dtype, axis, use_bottleneck):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
@@ -17,6 +16,7 @@ class FrameOps(object):
             pd.options.compute.use_bottleneck = use_bottleneck
         except TypeError:
             from pandas.core import nanops
+
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
 
@@ -24,16 +24,18 @@ class FrameOps(object):
         self.df_func(axis=axis)
 
 
-class FrameMultiIndexOps(object):
+class FrameMultiIndexOps:
 
     params = ([0, 1, [0, 1]], ops)
-    param_names = ['level', 'op']
+    param_names = ["level", "op"]
 
     def setup(self, level, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
-        codes = [np.arange(10).repeat(10000),
-                 np.tile(np.arange(100).repeat(100), 10),
-                 np.tile(np.tile(np.arange(100), 100), 10)]
+        codes = [
+            np.arange(10).repeat(10000),
+            np.tile(np.arange(100).repeat(100), 10),
+            np.tile(np.tile(np.arange(100), 100), 10),
+        ]
         index = pd.MultiIndex(levels=levels, codes=codes)
         df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
         self.df_func = getattr(df, op)
@@ -42,10 +44,10 @@ class FrameMultiIndexOps(object):
         self.df_func(level=level)
 
 
-class SeriesOps(object):
+class SeriesOps:
 
-    params = [ops, ['float', 'int'], [True, False]]
-    param_names = ['op', 'dtype', 'use_bottleneck']
+    params = [ops, ["float", "int"], [True, False]]
+    param_names = ["op", "dtype", "use_bottleneck"]
 
     def setup(self, op, dtype, use_bottleneck):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
@@ -53,6 +55,7 @@ class SeriesOps(object):
             pd.options.compute.use_bottleneck = use_bottleneck
         except TypeError:
             from pandas.core import nanops
+
             nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
 
@@ -60,16 +63,18 @@ class SeriesOps(object):
         self.s_func()
 
 
-class SeriesMultiIndexOps(object):
+class SeriesMultiIndexOps:
 
     params = ([0, 1, [0, 1]], ops)
-    param_names = ['level', 'op']
+    param_names = ["level", "op"]
 
     def setup(self, level, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
-        codes = [np.arange(10).repeat(10000),
-                 np.tile(np.arange(100).repeat(100), 10),
-                 np.tile(np.tile(np.arange(100), 100), 10)]
+        codes = [
+            np.arange(10).repeat(10000),
+            np.tile(np.arange(100).repeat(100), 10),
+            np.tile(np.tile(np.arange(100), 100), 10),
+        ]
         index = pd.MultiIndex(levels=levels, codes=codes)
         s = pd.Series(np.random.randn(len(index)), index=index)
         self.s_func = getattr(s, op)
@@ -78,13 +83,13 @@ class SeriesMultiIndexOps(object):
         self.s_func(level=level)
 
 
-class Rank(object):
+class Rank:
 
-    params = [['DataFrame', 'Series'], [True, False]]
-    param_names = ['constructor', 'pct']
+    params = [["DataFrame", "Series"], [True, False]]
+    param_names = ["constructor", "pct"]
 
     def setup(self, constructor, pct):
-        values = np.random.randn(10**5)
+        values = np.random.randn(10 ** 5)
         self.data = getattr(pd, constructor)(values)
 
     def time_rank(self, constructor, pct):
@@ -94,24 +99,36 @@ class Rank(object):
         self.data.rank(pct=pct) / len(self.data)
 
 
-class Correlation(object):
+class Correlation:
 
-    params = [['spearman', 'kendall', 'pearson'], [True, False]]
-    param_names = ['method', 'use_bottleneck']
+    params = [["spearman", "kendall", "pearson"], [True, False]]
+    param_names = ["method", "use_bottleneck"]
 
     def setup(self, method, use_bottleneck):
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
         except TypeError:
             from pandas.core import nanops
+
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.df2 = pd.DataFrame(np.random.randn(1000, 30))
+        self.df_wide = pd.DataFrame(np.random.randn(1000, 200))
+        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 200)) < 0.9)
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
     def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
+
+    def time_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
+
+    def time_corr_wide_nans(self, method, use_bottleneck):
+        self.df_wide_nans.corr(method=method)
+
+    def peakmem_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
 
     def time_corr_series(self, method, use_bottleneck):
         self.s.corr(self.s2, method=method)
@@ -123,16 +140,17 @@ class Correlation(object):
         self.df.corrwith(self.df2, axis=1, method=method)
 
 
-class Covariance(object):
+class Covariance:
 
     params = [[True, False]]
-    param_names = ['use_bottleneck']
+    param_names = ["use_bottleneck"]
 
     def setup(self, use_bottleneck):
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
         except TypeError:
             from pandas.core import nanops
+
             nanops._USE_BOTTLENECK = use_bottleneck
         self.s = pd.Series(np.random.randn(100000))
         self.s2 = pd.Series(np.random.randn(100000))
@@ -141,4 +159,4 @@ class Covariance(object):
         self.s.cov(self.s2)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

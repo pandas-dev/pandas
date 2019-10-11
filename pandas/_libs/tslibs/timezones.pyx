@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+from datetime import timezone
 
 # dateutil compat
 from dateutil.tz import (
@@ -19,15 +19,15 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport (
-    is_string_object, is_integer_object, get_nat)
+from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 
 cdef int64_t NPY_NAT = get_nat()
+cdef object utc_stdlib = timezone.utc
 
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or isinstance(tz, _dateutil_tzutc)
+    return tz is UTC or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
 cdef inline bint is_tzlocal(object tz):
@@ -86,7 +86,7 @@ cpdef inline object maybe_get_tz(object tz):
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
     """
-    if is_string_object(tz):
+    if isinstance(tz, str):
         if tz == 'tzlocal()':
             tz = _dateutil_tzlocal()
         elif tz.startswith('dateutil/'):
@@ -167,6 +167,8 @@ cdef inline bint is_fixed_offset(object tz):
             return 1
         else:
             return 0
+    # This also implicitly accepts datetime.timezone objects which are
+    # considered fixed
     return 1
 
 

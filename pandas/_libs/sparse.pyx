@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import cython
 
 import numpy as np
@@ -614,7 +613,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 
-cdef class BlockMerge(object):
+cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication

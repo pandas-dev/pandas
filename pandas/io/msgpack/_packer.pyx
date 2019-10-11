@@ -1,15 +1,17 @@
 # coding: utf-8
 # cython: embedsignature=True
 
-from cpython cimport (
-    PyFloat_Check, PyLong_Check, PyInt_Check,
-    PyDict_CheckExact, PyDict_Check,
-    PyTuple_Check, PyList_Check,
-    PyCallable_Check,
-    PyUnicode_Check, PyBytes_Check,
-    PyBytes_AsString,
-    PyBytes_FromStringAndSize,
-    PyUnicode_AsEncodedString)
+from cpython.bytes cimport (PyBytes_Check, PyBytes_AsString,
+                            PyBytes_FromStringAndSize)
+from cpython.dict cimport PyDict_Check, PyDict_CheckExact
+from cpython.float cimport PyFloat_Check
+from cpython.int cimport PyInt_Check
+from cpython.list cimport PyList_Check
+from cpython.long cimport PyLong_Check
+from cpython.object cimport PyCallable_Check
+from cpython.tuple cimport PyTuple_Check
+from cpython.unicode cimport PyUnicode_Check, PyUnicode_AsEncodedString
+
 from libc.stdlib cimport free, malloc
 
 from pandas.io.msgpack.exceptions import PackValueError
@@ -44,7 +46,7 @@ cdef extern from "../../src/msgpack/pack.h":
 cdef int DEFAULT_RECURSE_LIMIT=511
 
 
-cdef class Packer(object):
+cdef class Packer:
     """
     MessagePack Packer
 
@@ -194,7 +196,7 @@ cdef class Packer(object):
                     raise ValueError("dict is too large")
                 ret = msgpack_pack_map(&self.pk, L)
                 if ret == 0:
-                    for k, v in d.iteritems():
+                    for k, v in d.items():
                         ret = self._pack(k, nest_limit - 1)
                         if ret != 0: break
                         ret = self._pack(v, nest_limit - 1)

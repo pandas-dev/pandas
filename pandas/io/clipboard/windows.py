@@ -9,10 +9,9 @@ import time
 from .exceptions import PyperclipWindowsException
 
 
-class CheckedCall(object):
-
+class CheckedCall:
     def __init__(self, f):
-        super(CheckedCall, self).__setattr__("f", f)
+        super().__setattr__("f", f)
 
     def __call__(self, *args):
         ret = self.f(*args)
@@ -25,15 +24,38 @@ class CheckedCall(object):
 
 
 def init_windows_clipboard():
-    from ctypes.wintypes import (HGLOBAL, LPVOID, DWORD, LPCSTR, INT, HWND,
-                                 HINSTANCE, HMENU, BOOL, UINT, HANDLE)
+    from ctypes.wintypes import (
+        HGLOBAL,
+        LPVOID,
+        DWORD,
+        LPCSTR,
+        INT,
+        HWND,
+        HINSTANCE,
+        HMENU,
+        BOOL,
+        UINT,
+        HANDLE,
+    )
 
     windll = ctypes.windll
-    msvcrt = ctypes.CDLL('msvcrt')
+    msvcrt = ctypes.CDLL("msvcrt")
 
     safeCreateWindowExA = CheckedCall(windll.user32.CreateWindowExA)
-    safeCreateWindowExA.argtypes = [DWORD, LPCSTR, LPCSTR, DWORD, INT, INT,
-                                    INT, INT, HWND, HMENU, HINSTANCE, LPVOID]
+    safeCreateWindowExA.argtypes = [
+        DWORD,
+        LPCSTR,
+        LPCSTR,
+        DWORD,
+        INT,
+        INT,
+        INT,
+        INT,
+        HWND,
+        HMENU,
+        HINSTANCE,
+        LPVOID,
+    ]
     safeCreateWindowExA.restype = HWND
 
     safeDestroyWindow = CheckedCall(windll.user32.DestroyWindow)
@@ -86,8 +108,9 @@ def init_windows_clipboard():
         """
         # we really just need the hwnd, so setting "STATIC"
         # as predefined lpClass is just fine.
-        hwnd = safeCreateWindowExA(0, b"STATIC", None, 0, 0, 0, 0, 0,
-                                   None, None, None, None)
+        hwnd = safeCreateWindowExA(
+            0, b"STATIC", None, 0, 0, 0, 0, 0, None, None, None, None
+        )
         try:
             yield hwnd
         finally:
@@ -135,12 +158,14 @@ def init_windows_clipboard():
                     # the object must have been allocated using the
                     # function with the GMEM_MOVEABLE flag.
                     count = wcslen(text) + 1
-                    handle = safeGlobalAlloc(GMEM_MOVEABLE,
-                                             count * sizeof(c_wchar))
+                    handle = safeGlobalAlloc(GMEM_MOVEABLE, count * sizeof(c_wchar))
                     locked_handle = safeGlobalLock(handle)
 
-                    ctypes.memmove(c_wchar_p(locked_handle), c_wchar_p(text),
-                                   count * sizeof(c_wchar))
+                    ctypes.memmove(
+                        c_wchar_p(locked_handle),
+                        c_wchar_p(text),
+                        count * sizeof(c_wchar),
+                    )
 
                     safeGlobalUnlock(handle)
                     safeSetClipboardData(CF_UNICODETEXT, handle)

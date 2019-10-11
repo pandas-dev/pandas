@@ -1,19 +1,17 @@
 # coding: utf-8
-from __future__ import (
-    absolute_import, division, print_function, unicode_literals)
-
 import pytest
 
 from pandas.io.msgpack import ExtType, Packer, Unpacker, packb, unpackb
 
 
-class TestLimits(object):
-
+class TestLimits:
     def test_integer(self):
         x = -(2 ** 63)
         assert unpackb(packb(x)) == x
-        msg = (r"((long |Python )?(int )?too (big|large) to convert"
-               r"( to C (unsigned )?long))?")
+        msg = (
+            r"((long |Python )?(int )?too (big|large) to convert"
+            r"( to C (unsigned )?long))?"
+        )
         with pytest.raises((OverflowError, ValueError), match=msg):
             packb(x - 1)
         x = 2 ** 64 - 1
@@ -34,14 +32,14 @@ class TestLimits(object):
             packer.pack_array_header(2 ** 32)
 
     def test_max_str_len(self):
-        d = 'x' * 3
+        d = "x" * 3
         packed = packb(d)
 
-        unpacker = Unpacker(max_str_len=3, encoding='utf-8')
+        unpacker = Unpacker(max_str_len=3, encoding="utf-8")
         unpacker.feed(packed)
         assert unpacker.unpack() == d
 
-        unpacker = Unpacker(max_str_len=2, encoding='utf-8')
+        unpacker = Unpacker(max_str_len=2, encoding="utf-8")
         unpacker.feed(packed)
 
         msg = "3 exceeds max_str_len"
@@ -49,7 +47,7 @@ class TestLimits(object):
             unpacker.unpack()
 
     def test_max_bin_len(self):
-        d = b'x' * 3
+        d = b"x" * 3
         packed = packb(d, use_bin_type=True)
 
         unpacker = Unpacker(max_bin_len=3)

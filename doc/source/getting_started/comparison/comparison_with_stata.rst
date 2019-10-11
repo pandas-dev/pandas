@@ -31,10 +31,10 @@ libraries as ``pd`` and ``np``, respectively, for the rest of the document.
 
       list in 1/5
 
-Data Structures
+Data structures
 ---------------
 
-General Terminology Translation
+General terminology translation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table::
@@ -78,10 +78,10 @@ see the :ref:`indexing documentation<indexing>` for much more on how to use an
 ``Index`` effectively.
 
 
-Data Input / Output
+Data input / output
 -------------------
 
-Constructing a DataFrame from Values
+Constructing a DataFrame from values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A Stata data set can be built from specified values by
@@ -107,7 +107,7 @@ and the values are the data.
    df
 
 
-Reading External Data
+Reading external data
 ~~~~~~~~~~~~~~~~~~~~~
 
 Like Stata, pandas provides utilities for reading in data from
@@ -155,7 +155,7 @@ such as Excel, SAS, HDF5, Parquet, and SQL databases.  These are all read via a 
 function.  See the :ref:`IO documentation<io>` for more details.
 
 
-Exporting Data
+Exporting data
 ~~~~~~~~~~~~~~
 
 The inverse of ``import delimited`` in Stata is ``export delimited``
@@ -177,10 +177,10 @@ Pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` 
    tips.to_stata('tips2.dta')
 
 
-Data Operations
+Data operations
 ---------------
 
-Operations on Columns
+Operations on columns
 ~~~~~~~~~~~~~~~~~~~~~
 
 In Stata, arbitrary math expressions can be used with the ``generate`` and
@@ -222,7 +222,7 @@ DataFrames can be filtered in multiple ways; the most intuitive of which is usin
 
    tips[tips['total_bill'] > 10].head()
 
-If/Then Logic
+If/then logic
 ~~~~~~~~~~~~~
 
 In Stata, an ``if`` clause can also be used to create new columns.
@@ -245,7 +245,7 @@ the ``where`` method from ``numpy``.
 
    tips = tips.drop('bucket', axis=1)
 
-Date Functionality
+Date functionality
 ~~~~~~~~~~~~~~~~~~
 
 Stata provides a variety of functions to do operations on
@@ -290,7 +290,7 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips = tips.drop(['date1', 'date2', 'date1_year', 'date2_month',
                      'date1_next', 'months_between'], axis=1)
 
-Selection of Columns
+Selection of columns
 ~~~~~~~~~~~~~~~~~~~~
 
 Stata provides keywords to select, drop, and rename columns.
@@ -319,7 +319,7 @@ to a variable.
    tips.rename(columns={'total_bill': 'total_bill_2'}).head()
 
 
-Sorting by Values
+Sorting by values
 ~~~~~~~~~~~~~~~~~
 
 Sorting in Stata is accomplished via ``sort``
@@ -337,10 +337,10 @@ takes a list of columns to sort by.
    tips.head()
 
 
-String Processing
+String processing
 -----------------
 
-Finding Length of String
+Finding length of string
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Stata determines the length of a character string with the :func:`strlen` and
@@ -361,7 +361,7 @@ Use ``len`` and ``rstrip`` to exclude trailing blanks.
    tips['time'].str.rstrip().str.len().head()
 
 
-Finding Position of Substring
+Finding position of substring
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Stata determines the position of a character in a string with the :func:`strpos` function.
@@ -383,7 +383,7 @@ the function will return -1 if it fails to find the substring.
    tips['sex'].str.find("ale").head()
 
 
-Extracting Substring by Position
+Extracting substring by position
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Stata extracts a substring from a string based on its position with the :func:`substr` function.
@@ -401,7 +401,7 @@ indexes are zero-based.
    tips['sex'].str[0:1].head()
 
 
-Extracting nth Word
+Extracting nth word
 ~~~~~~~~~~~~~~~~~~~
 
 The Stata :func:`word` function returns the nth word from a string.
@@ -431,7 +431,7 @@ approaches, but this just shows a simple approach.
    firstlast
 
 
-Changing Case
+Changing case
 ~~~~~~~~~~~~~
 
 The Stata :func:`strupper`, :func:`strlower`, :func:`strproper`,
@@ -547,7 +547,7 @@ types are accomplished via the ``how`` keyword.
    outer_join
 
 
-Missing Data
+Missing data
 ------------
 
 Like Stata, pandas has a representation for missing data -- the
@@ -634,7 +634,7 @@ For example, to subtract the mean for each observation by smoker group.
    generate adj_total_bill = total_bill - group_bill
 
 
-pandas ``groubpy`` provides a ``transform`` mechanism that allows
+pandas ``groupby`` provides a ``transform`` mechanism that allows
 these type of operations to be succinctly expressed in one
 operation.
 
@@ -645,7 +645,7 @@ operation.
    tips.head()
 
 
-By Group Processing
+By group processing
 ~~~~~~~~~~~~~~~~~~~
 
 In addition to aggregation, pandas ``groupby`` can be used to
@@ -664,10 +664,10 @@ In pandas this would be written as:
    tips.groupby(['sex', 'smoker']).first()
 
 
-Other Considerations
+Other considerations
 --------------------
 
-Disk vs Memory
+Disk vs memory
 ~~~~~~~~~~~~~~
 
 Pandas and Stata both operate exclusively in memory. This means that the size of

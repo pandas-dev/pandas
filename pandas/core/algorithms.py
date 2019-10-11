@@ -2,9 +2,8 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-
 from textwrap import dedent
+from typing import Dict
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -28,19 +27,18 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
+    is_datetime64_ns_dtype,
     is_datetimelike,
     is_extension_array_dtype,
     is_float_dtype,
+    is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_sparse,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
@@ -49,8 +47,10 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
+from pandas.core.construction import array
+from pandas.core.indexers import validate_indices
 
-_shared_docs = {}
+_shared_docs = {}  # type: Dict[str, str]
 
 
 # --------------- #
@@ -130,6 +130,13 @@ def _ensure_data(values, dtype=None):
             dtype = values.dtype
         else:
             # Datetime
+            if values.ndim > 1 and is_datetime64_ns_dtype(values):
+                # Avoid calling the DatetimeIndex constructor as it is 1D only
+                # Note: this is reached by DataFrame.rank calls GH#27027
+                asi8 = values.view("i8")
+                dtype = values.dtype
+                return asi8, dtype, "int64"
+
             from pandas import DatetimeIndex
 
             values = DatetimeIndex(values)
@@ -169,20 +176,17 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-    from pandas import Index
 
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
-    elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
-        values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
-        if isinstance(original, Index):
-            values = values.astype(object)
+        if isinstance(original, ABCIndexClass):
+            values = values.astype(object, copy=False)
     elif dtype is not None:
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
     return values
 
@@ -242,7 +246,6 @@ def _get_hashtable_algo(values):
 
 
 def _get_data_algo(values, func_map):
-
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
@@ -293,7 +296,6 @@ def match(to_match, values, na_sentinel=-1):
     result = table.lookup(to_match)
 
     if na_sentinel != -1:
-
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
@@ -320,19 +322,24 @@ def unique(values, return_inverse=False):
         contains the mapping between the indices of the elements in the
         calling Categorical and their locations in the unique values.
 
-        .. versionadded:: 0.25.0
+        .. versionadded:: 1.0.0
 
     Returns
     -------
-    unique values.
-      - If the input is an Index, the return is an Index
-      - If the input is a Categorical dtype, the return is a Categorical
-      - If the input is a Series/ndarray, the return will be an ndarray
+    numpy.ndarray or ExtensionArray
+
+        The return can be:
+
+        * Index : when the input is an Index
+        * Categorical : when the input is a Categorical dtype
+        * ndarray : when the input is a Series/ndarray
+
+        Return numpy.ndarray or ExtensionArray.
 
     See Also
     --------
-    pandas.Index.unique
-    pandas.Series.unique
+    Index.unique
+    Series.unique
 
     Examples
     --------
@@ -638,7 +645,7 @@ _shared_docs[
     ),
     order=dedent(
         """\
-    order
+    order : None
         .. deprecated:: 0.23.0
 
            This parameter has no effect and is deprecated.
@@ -696,16 +703,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
 
-        try:
-            order = uniques.argsort()
-            order2 = order.argsort()
-            labels = take_1d(order2, labels, fill_value=na_sentinel)
-            uniques = uniques.take(order)
-        except TypeError:
-            # Mixed types, where uniques.argsort fails.
-            uniques, labels = safe_sort(
-                uniques, labels, na_sentinel=na_sentinel, assume_unique=True
-            )
+        uniques, labels = safe_sort(
+            uniques, labels, na_sentinel=na_sentinel, assume_unique=True, verify=False
+        )
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -774,7 +774,7 @@ def value_counts(
 
     else:
 
-        if is_extension_array_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -844,8 +844,6 @@ def duplicated(values, keep="first"):
     """
     Return boolean ndarray denoting duplicate values.
 
-    .. versionadded:: 0.19.0
-
     Parameters
     ----------
     values : ndarray-like
@@ -867,7 +865,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna=True):
+def mode(values, dropna: bool = True):
     """
     Returns the mode(s) of an array.
 
@@ -1130,7 +1128,9 @@ def quantile(x, q, interpolation_method="fraction"):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return algos.arrmap_float64(q, _get_score)
+        result = [_get_score(x) for x in q]
+        result = np.array(result, dtype=np.float64)
+        return result
 
 
 # --------------- #
@@ -1138,7 +1138,7 @@ def quantile(x, q, interpolation_method="fraction"):
 # --------------- #
 
 
-class SelectN(object):
+class SelectN:
     def __init__(self, obj, n, keep):
         self.obj = obj
         self.n = n
@@ -1196,7 +1196,6 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-
             reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
             slc = np.s_[::-1] if reverse_it else np.s_[:]
@@ -1209,6 +1208,10 @@ class SelectNSeries(SelectN):
             if is_integer_dtype(pandas_dtype):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
+
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
 
         if self.keep == "last":
             arr = arr[::-1]
@@ -1247,7 +1250,7 @@ class SelectNFrame(SelectN):
     """
 
     def __init__(self, obj, n, keep, columns):
-        super(SelectNFrame, self).__init__(obj, n, keep)
+        super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
         columns = list(columns)
@@ -1612,8 +1615,6 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
-    from pandas.core.indexing import validate_indices
-
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
@@ -1621,7 +1622,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
     if allow_fill:
         # Pandas style, -1 means NA
-        validate_indices(indices, len(arr))
+        validate_indices(indices, arr.shape[axis])
         result = take_1d(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
@@ -1652,7 +1653,7 @@ def take_nd(
     out : ndarray or None, default None
         Optional output array, must be appropriate type to hold input and
         fill_value together, if indexer has any -1 value entries; call
-        _maybe_promote to determine this type for any fill_value
+        maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
     mask_info : tuple of (ndarray, boolean)
@@ -1670,19 +1671,11 @@ def take_nd(
         May be the same type as the input, or cast to an ndarray.
     """
 
-    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
-    # dispatch to internal type takes
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_datetime64tz_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_interval_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
-    if is_sparse(arr):
-        arr = arr.get_values()
-    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
-        arr = arr.values
+    if isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr._values
 
     arr = np.asarray(arr)
 
@@ -1824,6 +1817,94 @@ def take_2d_multi(
     return out
 
 
+# ------------ #
+# searchsorted #
+# ------------ #
+
+
+def searchsorted(arr, value, side="left", sorter=None):
+    """
+    Find indices where elements should be inserted to maintain order.
+
+    .. versionadded:: 0.25.0
+
+    Find the indices into a sorted array `arr` (a) such that, if the
+    corresponding elements in `value` were inserted before the indices,
+    the order of `arr` would be preserved.
+
+    Assuming that `arr` is sorted:
+
+    ======  ================================
+    `side`  returned index `i` satisfies
+    ======  ================================
+    left    ``arr[i-1] < value <= self[i]``
+    right   ``arr[i-1] <= value < self[i]``
+    ======  ================================
+
+    Parameters
+    ----------
+    arr: array-like
+        Input array. If `sorter` is None, then it must be sorted in
+        ascending order, otherwise `sorter` must be an array of indices
+        that sort it.
+    value : array_like
+        Values to insert into `arr`.
+    side : {'left', 'right'}, optional
+        If 'left', the index of the first suitable location found is given.
+        If 'right', return the last such index.  If there is no suitable
+        index, return either 0 or N (where N is the length of `self`).
+    sorter : 1-D array_like, optional
+        Optional array of integer indices that sort array a into ascending
+        order. They are typically the result of argsort.
+
+    Returns
+    -------
+    array of ints
+        Array of insertion points with the same shape as `value`.
+
+    See Also
+    --------
+    numpy.searchsorted : Similar method from NumPy.
+    """
+    if sorter is not None:
+        sorter = ensure_platform_int(sorter)
+
+    if (
+        isinstance(arr, np.ndarray)
+        and is_integer_dtype(arr)
+        and (is_integer(value) or is_integer_dtype(value))
+    ):
+        # if `arr` and `value` have different dtypes, `arr` would be
+        # recast by numpy, causing a slow search.
+        # Before searching below, we therefore try to give `value` the
+        # same dtype as `arr`, while guarding against integer overflows.
+        iinfo = np.iinfo(arr.dtype.type)
+        value_arr = np.array([value]) if is_scalar(value) else np.array(value)
+        if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
+            # value within bounds, so no overflow, so can convert value dtype
+            # to dtype of arr
+            dtype = arr.dtype
+        else:
+            dtype = value_arr.dtype
+
+        if is_scalar(value):
+            value = dtype.type(value)
+        else:
+            value = array(value, dtype=dtype)
+    elif not (
+        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
+    ):
+        from pandas.core.series import Series
+
+        # E.g. if `arr` is an array with dtype='datetime64[ns]'
+        # and `value` is a pd.Timestamp, we may need to convert value
+        value_ser = Series(value)._values
+        value = value_ser[0] if is_scalar(value) else value_ser
+
+    result = arr.searchsorted(value, side=side, sorter=sorter)
+    return result
+
+
 # ---- #
 # diff #
 # ---- #
@@ -1838,7 +1919,7 @@ _diff_special = {
 }
 
 
-def diff(arr, n, axis=0):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1854,7 +1935,6 @@ def diff(arr, n, axis=0):
     Returns
     -------
     shifted
-
     """
 
     n = int(n)
@@ -1862,6 +1942,7 @@ def diff(arr, n, axis=0):
     dtype = arr.dtype
 
     is_timedelta = False
+    is_bool = False
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view("i8")
@@ -1870,6 +1951,7 @@ def diff(arr, n, axis=0):
 
     elif is_bool_dtype(dtype):
         dtype = np.object_
+        is_bool = True
 
     elif is_integer_dtype(dtype):
         dtype = np.float64
@@ -1885,13 +1967,15 @@ def diff(arr, n, axis=0):
         f = _diff_special[arr.dtype.name]
         f(arr, out_arr, n, axis)
     else:
-        res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
-        res_indexer = tuple(res_indexer)
+        # To keep mypy happy, _res_indexer is a list while res_indexer is
+        #  a tuple, ditto for lag_indexer.
+        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
+        res_indexer = tuple(_res_indexer)
 
-        lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
-        lag_indexer = tuple(lag_indexer)
+        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
+        lag_indexer = tuple(_lag_indexer)
 
         # need to make sure that we account for na for datelike/timedelta
         # we don't actually want to subtract these i8 numbers
@@ -1909,16 +1993,12 @@ def diff(arr, n, axis=0):
             result = res - lag
             result[mask] = na
             out_arr[res_indexer] = result
+        elif is_bool:
+            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        from pandas import TimedeltaIndex
-
-        out_arr = (
-            TimedeltaIndex(out_arr.ravel().astype("int64"))
-            .asi8.reshape(out_arr.shape)
-            .astype("timedelta64[ns]")
-        )
+        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
     return out_arr

@@ -7,21 +7,27 @@ from pandas.util.testing import assert_frame_equal
 
 @pytest.fixture
 def df1():
-    return DataFrame(dict(
-        outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
-        inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
-        v1=np.linspace(0, 1, 11)))
+    return DataFrame(
+        dict(
+            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            v1=np.linspace(0, 1, 11),
+        )
+    )
 
 
 @pytest.fixture
 def df2():
-    return DataFrame(dict(
-        outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
-        inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
-        v2=np.linspace(10, 11, 12)))
+    return DataFrame(
+        dict(
+            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            v2=np.linspace(10, 11, 12),
+        )
+    )
 
 
-@pytest.fixture(params=[[], ['outer'], ['outer', 'inner']])
+@pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def left_df(request, df1):
     """ Construct left test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v1')"""
@@ -32,7 +38,7 @@ def left_df(request, df1):
     return df1
 
 
-@pytest.fixture(params=[[], ['outer'], ['outer', 'inner']])
+@pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def right_df(request, df2):
     """ Construct right test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v2')"""
@@ -44,8 +50,7 @@ def right_df(request, df2):
     return df2
 
 
-def compute_expected(df_left, df_right,
-                     on=None, left_on=None, right_on=None, how=None):
+def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, how=None):
     """
     Compute the expected merge result for the test case.
 
@@ -85,8 +90,7 @@ def compute_expected(df_left, df_right,
     right_levels = [n for n in df_right.index.names if n is not None]
 
     # Compute output named index levels
-    output_levels = [i for i in left_on
-                     if i in right_levels and i in left_levels]
+    output_levels = [i for i in left_on if i in right_levels and i in left_levels]
 
     # Drop index levels that aren't involved in the merge
     drop_left = [n for n in left_levels if n not in left_on]
@@ -107,10 +111,7 @@ def compute_expected(df_left, df_right,
         df_right = df_right.reset_index(level=reset_right)
 
     # Perform merge
-    expected = df_left.merge(df_right,
-                             left_on=left_on,
-                             right_on=right_on,
-                             how=how)
+    expected = df_left.merge(df_right, left_on=left_on, right_on=right_on, how=how)
 
     # Restore index levels
     if output_levels:
@@ -119,11 +120,15 @@ def compute_expected(df_left, df_right,
     return expected
 
 
-@pytest.mark.parametrize('on,how',
-                         [(['outer'], 'inner'),
-                          (['inner'], 'left'),
-                          (['outer', 'inner'], 'right'),
-                          (['inner', 'outer'], 'outer')])
+@pytest.mark.parametrize(
+    "on,how",
+    [
+        (["outer"], "inner"),
+        (["inner"], "left"),
+        (["outer", "inner"], "right"),
+        (["inner", "outer"], "outer"),
+    ],
+)
 def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
 
     # Construct expected result
@@ -134,44 +139,50 @@ def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
     assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.parametrize('left_on,right_on,how',
-                         [(['outer'], ['outer'], 'inner'),
-                          (['inner'], ['inner'], 'right'),
-                          (['outer', 'inner'], ['outer', 'inner'], 'left'),
-                          (['inner', 'outer'], ['inner', 'outer'], 'outer')])
+@pytest.mark.parametrize(
+    "left_on,right_on,how",
+    [
+        (["outer"], ["outer"], "inner"),
+        (["inner"], ["inner"], "right"),
+        (["outer", "inner"], ["outer", "inner"], "left"),
+        (["inner", "outer"], ["inner", "outer"], "outer"),
+    ],
+)
 def test_merge_indexes_and_columns_lefton_righton(
-        left_df, right_df, left_on, right_on, how):
+    left_df, right_df, left_on, right_on, how
+):
 
     # Construct expected result
-    expected = compute_expected(left_df, right_df,
-                                left_on=left_on,
-                                right_on=right_on,
-                                how=how)
+    expected = compute_expected(
+        left_df, right_df, left_on=left_on, right_on=right_on, how=how
+    )
 
     # Perform merge
-    result = left_df.merge(right_df,
-                           left_on=left_on, right_on=right_on, how=how)
+    result = left_df.merge(right_df, left_on=left_on, right_on=right_on, how=how)
     assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.parametrize('left_index',
-                         ['inner', ['inner', 'outer']])
+@pytest.mark.parametrize("left_index", ["inner", ["inner", "outer"]])
 def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
 
     # Construct left_df
     left_df = df1.set_index(left_index)
 
     # Construct right_df
-    right_df = df2.set_index(['outer', 'inner'])
+    right_df = df2.set_index(["outer", "inner"])
 
     # Result
-    expected = (left_df.reset_index()
-                .join(right_df, on=['outer', 'inner'], how=join_type,
-                      lsuffix='_x', rsuffix='_y')
-                .set_index(left_index))
+    expected = (
+        left_df.reset_index()
+        .join(
+            right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
+        )
+        .set_index(left_index)
+    )
 
     # Perform join
-    result = left_df.join(right_df, on=['outer', 'inner'], how=join_type,
-                          lsuffix='_x', rsuffix='_y')
+    result = left_df.join(
+        right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
+    )
 
     assert_frame_equal(result, expected, check_like=True)

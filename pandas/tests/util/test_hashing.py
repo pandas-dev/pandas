@@ -10,15 +10,18 @@ from pandas.util import hash_array, hash_pandas_object
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[
-    Series([1, 2, 3] * 3, dtype="int32"),
-    Series([None, 2.5, 3.5] * 3, dtype="float32"),
-    Series(["a", "b", "c"] * 3, dtype="category"),
-    Series(["d", "e", "f"] * 3),
-    Series([True, False, True] * 3),
-    Series(pd.date_range("20130101", periods=9)),
-    Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-    Series(pd.timedelta_range("2000", periods=9))])
+@pytest.fixture(
+    params=[
+        Series([1, 2, 3] * 3, dtype="int32"),
+        Series([None, 2.5, 3.5] * 3, dtype="float32"),
+        Series(["a", "b", "c"] * 3, dtype="category"),
+        Series(["d", "e", "f"] * 3),
+        Series([True, False, True] * 3),
+        Series(pd.date_range("20130101", periods=9)),
+        Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
+        Series(pd.timedelta_range("2000", periods=9)),
+    ]
+)
 def series(request):
     return request.param
 
@@ -65,9 +68,13 @@ def test_consistency():
     # Check that our hash doesn't change because of a mistake
     # in the actual code; this is the ground truth.
     result = hash_pandas_object(Index(["foo", "bar", "baz"]))
-    expected = Series(np.array([3600424527151052760, 1374399572096150070,
-                                477881037637427054], dtype="uint64"),
-                      index=["foo", "bar", "baz"])
+    expected = Series(
+        np.array(
+            [3600424527151052760, 1374399572096150070, 477881037637427054],
+            dtype="uint64",
+        ),
+        index=["foo", "bar", "baz"],
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -76,10 +83,9 @@ def test_hash_array(series):
     tm.assert_numpy_array_equal(hash_array(arr), hash_array(arr))
 
 
-@pytest.mark.parametrize("arr2", [
-    np.array([3, 4, "All"]),
-    np.array([3, 4, "All"], dtype=object),
-])
+@pytest.mark.parametrize(
+    "arr2", [np.array([3, 4, "All"]), np.array([3, 4, "All"], dtype=object)]
+)
 def test_hash_array_mixed(arr2):
     result1 = hash_array(np.array(["3", "4", "All"]))
     result2 = hash_array(arr2)
@@ -105,9 +111,10 @@ def test_hash_tuples():
     assert result == expected[0]
 
 
-@pytest.mark.parametrize("tup", [
-    (1, "one"), (1, np.nan), (1.0, pd.NaT, "A"),
-    ("A", pd.Timestamp("2012-01-01"))])
+@pytest.mark.parametrize(
+    "tup",
+    [(1, "one"), (1, np.nan), (1.0, pd.NaT, "A"), ("A", pd.Timestamp("2012-01-01"))],
+)
 def test_hash_tuple(tup):
     # Test equivalence between
     # hash_tuples and hash_tuple.
@@ -117,14 +124,26 @@ def test_hash_tuple(tup):
     assert result == expected
 
 
-@pytest.mark.parametrize("val", [
-    1, 1.4, "A", b"A", u"A", pd.Timestamp("2012-01-01"),
-    pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
-    datetime.datetime(2012, 1, 1),
-    pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),
-    pd.Timedelta("1 days"), datetime.timedelta(1),
-    pd.Period("2012-01-01", freq="D"), pd.Interval(0, 1),
-    np.nan, pd.NaT, None])
+@pytest.mark.parametrize(
+    "val",
+    [
+        1,
+        1.4,
+        "A",
+        b"A",
+        pd.Timestamp("2012-01-01"),
+        pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
+        datetime.datetime(2012, 1, 1),
+        pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),
+        pd.Timedelta("1 days"),
+        datetime.timedelta(1),
+        pd.Period("2012-01-01", freq="D"),
+        pd.Interval(0, 1),
+        np.nan,
+        pd.NaT,
+        None,
+    ],
+)
 def test_hash_scalar(val):
     result = _hash_scalar(val)
     expected = hash_array(np.array([val], dtype=object), categorize=True)
@@ -140,8 +159,7 @@ def test_hash_tuples_err(val):
 
 
 def test_multiindex_unique():
-    mi = MultiIndex.from_tuples([(118, 472), (236, 118),
-                                 (51, 204), (102, 51)])
+    mi = MultiIndex.from_tuples([(118, 472), (236, 118), (51, 204), (102, 51)])
     assert mi.is_unique is True
 
     result = hash_pandas_object(mi)
@@ -149,9 +167,11 @@ def test_multiindex_unique():
 
 
 def test_multiindex_objects():
-    mi = MultiIndex(levels=[["b", "d", "a"], [1, 2, 3]],
-                    codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
-                    names=["col1", "col2"])
+    mi = MultiIndex(
+        levels=[["b", "d", "a"], [1, 2, 3]],
+        codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
+        names=["col1", "col2"],
+    )
     recons = mi._sort_levels_monotonic()
 
     # These are equal.
@@ -176,32 +196,36 @@ def test_multiindex_objects():
     tm.assert_numpy_array_equal(np.sort(result), np.sort(expected))
 
 
-@pytest.mark.parametrize("obj", [
-    Series([1, 2, 3]),
-    Series([1.0, 1.5, 3.2]),
-    Series([1.0, 1.5, np.nan]),
-    Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
-    Series(["a", "b", "c"]),
-    Series(["a", np.nan, "c"]),
-    Series(["a", None, "c"]),
-    Series([True, False, True]),
-    Series(),
-    Index([1, 2, 3]),
-    Index([True, False, True]),
-    DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
-    DataFrame(),
-    tm.makeMissingDataframe(),
-    tm.makeMixedDataFrame(),
-    tm.makeTimeDataFrame(),
-    tm.makeTimeSeries(),
-    tm.makeTimedeltaIndex(),
-    tm.makePeriodIndex(),
-    Series(tm.makePeriodIndex()),
-    Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
-    MultiIndex.from_product([range(5), ["foo", "bar", "baz"],
-                             pd.date_range("20130101", periods=2)]),
-    MultiIndex.from_product([pd.CategoricalIndex(list("aabc")), range(3)])
-])
+@pytest.mark.parametrize(
+    "obj",
+    [
+        Series([1, 2, 3]),
+        Series([1.0, 1.5, 3.2]),
+        Series([1.0, 1.5, np.nan]),
+        Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
+        Series(["a", "b", "c"]),
+        Series(["a", np.nan, "c"]),
+        Series(["a", None, "c"]),
+        Series([True, False, True]),
+        Series(),
+        Index([1, 2, 3]),
+        Index([True, False, True]),
+        DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
+        DataFrame(),
+        tm.makeMissingDataframe(),
+        tm.makeMixedDataFrame(),
+        tm.makeTimeDataFrame(),
+        tm.makeTimeSeries(),
+        tm.makeTimedeltaIndex(),
+        tm.makePeriodIndex(),
+        Series(tm.makePeriodIndex()),
+        Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+        MultiIndex.from_product(
+            [range(5), ["foo", "bar", "baz"], pd.date_range("20130101", periods=2)]
+        ),
+        MultiIndex.from_product([pd.CategoricalIndex(list("aabc")), range(3)]),
+    ],
+)
 def test_hash_pandas_object(obj, index):
     _check_equal(obj, index=index)
     _check_not_equal_with_index(obj)
@@ -212,18 +236,23 @@ def test_hash_pandas_object2(series, index):
     _check_not_equal_with_index(series)
 
 
-@pytest.mark.parametrize("obj", [
-    Series([], dtype="float64"), Series([], dtype="object"), Index([])])
+@pytest.mark.parametrize(
+    "obj", [Series([], dtype="float64"), Series([], dtype="object"), Index([])]
+)
 def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
     _check_equal(obj, index=index)
 
 
-@pytest.mark.parametrize("s1", [
-    Series(["a", "b", "c", "d"]),
-    Series([1000, 2000, 3000, 4000]),
-    Series(pd.date_range(0, periods=4))])
+@pytest.mark.parametrize(
+    "s1",
+    [
+        Series(["a", "b", "c", "d"]),
+        Series([1000, 2000, 3000, 4000]),
+        Series(pd.date_range(0, periods=4)),
+    ],
+)
 @pytest.mark.parametrize("categorize", [True, False])
 def test_categorical_consistency(s1, categorize):
     # see gh-15143
@@ -244,21 +273,18 @@ def test_categorical_consistency(s1, categorize):
 
 def test_categorical_with_nan_consistency():
     c = pd.Categorical.from_codes(
-        [-1, 0, 1, 2, 3, 4],
-        categories=pd.date_range("2012-01-01", periods=5, name="B"))
+        [-1, 0, 1, 2, 3, 4], categories=pd.date_range("2012-01-01", periods=5, name="B")
+    )
     expected = hash_array(c, categorize=False)
 
-    c = pd.Categorical.from_codes(
-        [-1, 0],
-        categories=[pd.Timestamp("2012-01-01")])
+    c = pd.Categorical.from_codes([-1, 0], categories=[pd.Timestamp("2012-01-01")])
     result = hash_array(c, categorize=False)
 
     assert result[0] in expected
     assert result[1] in expected
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-@pytest.mark.parametrize("obj", [pd.Timestamp("20130101"), tm.makePanel()])
+@pytest.mark.parametrize("obj", [pd.Timestamp("20130101")])
 def test_pandas_errors(obj):
     msg = "Unexpected type for hashing"
     with pytest.raises(TypeError, match=msg):
@@ -300,7 +326,7 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_exp", range(8))
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
-    length = 2**(l_exp + 8) + l_add
+    length = 2 ** (l_exp + 8) + l_add
     s = tm.rands_array(length, 2)
 
     result = hash_array(s, "utf8")
@@ -311,8 +337,10 @@ def test_hash_collisions():
     # Hash collisions are bad.
     #
     # https://github.com/pandas-dev/pandas/issues/14711#issuecomment-264885726
-    hashes = ["Ingrid-9Z9fKIZmkO7i7Cn51Li34pJm44fgX6DYGBNj3VPlOH50m7HnBlPxfIwFMrcNJNMP6PSgLmwWnInciMWrCSAlLEvt7JkJl4IxiMrVbXSa8ZQoVaq5xoQPjltuJEfwdNlO6jo8qRRHvD8sBEBMQASrRa6TsdaPTPCBo3nwIBpE7YzzmyH0vMBhjQZLx1aCT7faSEx7PgFxQhHdKFWROcysamgy9iVj8DO2Fmwg1NNl93rIAqC3mdqfrCxrzfvIY8aJdzin2cHVzy3QUJxZgHvtUtOLxoqnUHsYbNTeq0xcLXpTZEZCxD4PGubIuCNf32c33M7HFsnjWSEjE2yVdWKhmSVodyF8hFYVmhYnMCztQnJrt3O8ZvVRXd5IKwlLexiSp4h888w7SzAIcKgc3g5XQJf6MlSMftDXm9lIsE1mJNiJEv6uY6pgvC3fUPhatlR5JPpVAHNSbSEE73MBzJrhCAbOLXQumyOXigZuPoME7QgJcBalliQol7YZ9",  # noqa
-              "Tim-b9MddTxOWW2AT1Py6vtVbZwGAmYCjbp89p8mxsiFoVX4FyDOF3wFiAkyQTUgwg9sVqVYOZo09Dh1AzhFHbgij52ylF0SEwgzjzHH8TGY8Lypart4p4onnDoDvVMBa0kdthVGKl6K0BDVGzyOXPXKpmnMF1H6rJzqHJ0HywfwS4XYpVwlAkoeNsiicHkJUFdUAhG229INzvIAiJuAHeJDUoyO4DCBqtoZ5TDend6TK7Y914yHlfH3g1WZu5LksKv68VQHJriWFYusW5e6ZZ6dKaMjTwEGuRgdT66iU5nqWTHRH8WSzpXoCFwGcTOwyuqPSe0fTe21DVtJn1FKj9F9nEnR9xOvJUO7E0piCIF4Ad9yAIDY4DBimpsTfKXCu1vdHpKYerzbndfuFe5AhfMduLYZJi5iAw8qKSwR5h86ttXV0Mc0QmXz8dsRvDgxjXSmupPxBggdlqUlC828hXiTPD7am0yETBV0F3bEtvPiNJfremszcV8NcqAoARMe"]  # noqa
+    hashes = [
+        "Ingrid-9Z9fKIZmkO7i7Cn51Li34pJm44fgX6DYGBNj3VPlOH50m7HnBlPxfIwFMrcNJNMP6PSgLmwWnInciMWrCSAlLEvt7JkJl4IxiMrVbXSa8ZQoVaq5xoQPjltuJEfwdNlO6jo8qRRHvD8sBEBMQASrRa6TsdaPTPCBo3nwIBpE7YzzmyH0vMBhjQZLx1aCT7faSEx7PgFxQhHdKFWROcysamgy9iVj8DO2Fmwg1NNl93rIAqC3mdqfrCxrzfvIY8aJdzin2cHVzy3QUJxZgHvtUtOLxoqnUHsYbNTeq0xcLXpTZEZCxD4PGubIuCNf32c33M7HFsnjWSEjE2yVdWKhmSVodyF8hFYVmhYnMCztQnJrt3O8ZvVRXd5IKwlLexiSp4h888w7SzAIcKgc3g5XQJf6MlSMftDXm9lIsE1mJNiJEv6uY6pgvC3fUPhatlR5JPpVAHNSbSEE73MBzJrhCAbOLXQumyOXigZuPoME7QgJcBalliQol7YZ9",  # noqa: E501
+        "Tim-b9MddTxOWW2AT1Py6vtVbZwGAmYCjbp89p8mxsiFoVX4FyDOF3wFiAkyQTUgwg9sVqVYOZo09Dh1AzhFHbgij52ylF0SEwgzjzHH8TGY8Lypart4p4onnDoDvVMBa0kdthVGKl6K0BDVGzyOXPXKpmnMF1H6rJzqHJ0HywfwS4XYpVwlAkoeNsiicHkJUFdUAhG229INzvIAiJuAHeJDUoyO4DCBqtoZ5TDend6TK7Y914yHlfH3g1WZu5LksKv68VQHJriWFYusW5e6ZZ6dKaMjTwEGuRgdT66iU5nqWTHRH8WSzpXoCFwGcTOwyuqPSe0fTe21DVtJn1FKj9F9nEnR9xOvJUO7E0piCIF4Ad9yAIDY4DBimpsTfKXCu1vdHpKYerzbndfuFe5AhfMduLYZJi5iAw8qKSwR5h86ttXV0Mc0QmXz8dsRvDgxjXSmupPxBggdlqUlC828hXiTPD7am0yETBV0F3bEtvPiNJfremszcV8NcqAoARMe",  # noqa: E501
+    ]
 
     # These should be different.
     result1 = hash_array(np.asarray(hashes[0:1], dtype=object), "utf8")
@@ -324,5 +352,4 @@ def test_hash_collisions():
     tm.assert_numpy_array_equal(result2, expected2)
 
     result = hash_array(np.asarray(hashes, dtype=object), "utf8")
-    tm.assert_numpy_array_equal(result, np.concatenate([expected1,
-                                                        expected2], axis=0))
+    tm.assert_numpy_array_equal(result, np.concatenate([expected1, expected2], axis=0))

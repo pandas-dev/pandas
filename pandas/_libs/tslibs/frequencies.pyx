@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import re
 
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_string_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
@@ -22,7 +21,7 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # Period codes
 
 
-class FreqGroup(object):
+class FreqGroup:
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000
@@ -139,6 +138,10 @@ cpdef get_freq_code(freqstr):
     -------
     return : tuple of base frequency code and stride (mult)
 
+    Raises
+    ------
+    TypeError : if passed a tuple witth incorrect types
+
     Examples
     --------
     >>> get_freq_code('3D')
@@ -157,16 +160,16 @@ cpdef get_freq_code(freqstr):
         if is_integer_object(freqstr[0]) and is_integer_object(freqstr[1]):
             # e.g., freqstr = (2000, 1)
             return freqstr
+        elif is_integer_object(freqstr[0]):
+            # Note: passing freqstr[1] below will raise TypeError if that
+            #  is not a str
+            code = _period_str_to_code(freqstr[1])
+            stride = freqstr[0]
+            return code, stride
         else:
             # e.g., freqstr = ('T', 5)
-            try:
-                code = _period_str_to_code(freqstr[0])
-                stride = freqstr[1]
-            except:
-                if is_integer_object(freqstr[1]):
-                    raise
-                code = _period_str_to_code(freqstr[1])
-                stride = freqstr[0]
+            code = _period_str_to_code(freqstr[0])
+            stride = freqstr[1]
             return code, stride
 
     if is_integer_object(freqstr):
@@ -178,7 +181,7 @@ cpdef get_freq_code(freqstr):
     return code, stride
 
 
-cpdef _base_and_stride(freqstr):
+cpdef _base_and_stride(str freqstr):
     """
     Return base freq and stride info from string representation
 
@@ -208,7 +211,7 @@ cpdef _base_and_stride(freqstr):
     return base, stride
 
 
-cpdef _period_str_to_code(freqstr):
+cpdef _period_str_to_code(str freqstr):
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
@@ -316,7 +319,7 @@ cpdef object get_freq(object freq):
     >>> get_freq('3A')
     1000
     """
-    if is_string_object(freq):
+    if isinstance(freq, str):
         base, mult = get_freq_code(freq)
         freq = base
     return freq

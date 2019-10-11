@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -9,16 +7,26 @@ from pandas import DatetimeIndex, Series, Timestamp
 from pandas.util import testing as tm
 
 
-@pytest.mark.parametrize("arr,dtype,expected", [
-    (np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995]), "infer",
-     np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])),
-
-    (np.array([8., 8., 8., 8., 8.9999999999995]), "infer",
-     np.array([8, 8, 8, 8, 9], dtype=np.int64)),
-
-    (np.array([8., 8., 8., 8., 9.0000000000005]), "infer",
-     np.array([8, 8, 8, 8, 9], dtype=np.int64)),
-])
+@pytest.mark.parametrize(
+    "arr,dtype,expected",
+    [
+        (
+            np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995]),
+            "infer",
+            np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995]),
+        ),
+        (
+            np.array([8.0, 8.0, 8.0, 8.0, 8.9999999999995]),
+            "infer",
+            np.array([8, 8, 8, 8, 9], dtype=np.int64),
+        ),
+        (
+            np.array([8.0, 8.0, 8.0, 8.0, 9.0000000000005]),
+            "infer",
+            np.array([8, 8, 8, 8, 9], dtype=np.int64),
+        ),
+    ],
+)
 def test_downcast(arr, expected, dtype):
     result = maybe_downcast_to_dtype(arr, dtype)
     tm.assert_numpy_array_equal(result, expected)

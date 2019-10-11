@@ -5,7 +5,7 @@
 .. _timedeltas.timedeltas:
 
 ***********
-Time Deltas
+Time deltas
 ***********
 
 Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes,
@@ -191,13 +191,12 @@ Operands can also appear in a reversed order (a singular object operated with a 
    df.min().idxmax()
    df.min(axis=1).idxmin()
 
-You can fillna on timedeltas. Integers will be interpreted as seconds. You can
-pass a timedelta to get a particular value.
+You can fillna on timedeltas, passing a timedelta to get a particular value.
 
 .. ipython:: python
 
-   y.fillna(0)
-   y.fillna(10)
+   y.fillna(pd.Timedelta(0))
+   y.fillna(pd.Timedelta(10, unit='s'))
    y.fillna(pd.Timedelta('-1 days, 00:00:05'))
 
 You can also negate, multiply and use ``abs`` on ``Timedeltas``:
@@ -230,7 +229,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 
 .. _timedeltas.timedeltas_convert:
 
-Frequency Conversion
+Frequency conversion
 --------------------
 
 Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
@@ -361,7 +360,7 @@ inferred frequency upon creation:
 
    pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
 
-Generating Ranges of Time Deltas
+Generating ranges of time deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``

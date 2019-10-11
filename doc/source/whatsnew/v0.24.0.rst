@@ -1,12 +1,12 @@
 .. _whatsnew_0240:
 
-What's New in 0.24.0 (January 25, 2019)
+What's new in 0.24.0 (January 25, 2019)
 ---------------------------------------
 
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`install.dropping-27` for more
+   releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more
    details.
 
 {{ header }}
@@ -35,7 +35,7 @@ Enhancements
 
 .. _whatsnew_0240.enhancements.intna:
 
-Optional Integer NA Support
+Optional integer NA support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
@@ -194,7 +194,7 @@ is a float.
 
 .. _whatsnew_0240.enhancements.interval:
 
-Storing Interval and Period Data in Series and DataFrame
+Storing Interval and Period data in Series and DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Interval` and :class:`Period` data may now be stored in a :class:`Series` or :class:`DataFrame`, in addition to an
@@ -300,7 +300,7 @@ value. (:issue:`17054`)
         </tbody>
       </table>""")
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -309,7 +309,7 @@ value. (:issue:`17054`)
     [   A  B   C
      0  1  2 NaN]
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -361,7 +361,7 @@ See the :ref:`Advanced documentation on renaming<advanced.index_names>` for more
 
 .. _whatsnew_0240.enhancements.other:
 
-Other Enhancements
+Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
@@ -482,7 +482,7 @@ for the default line terminator (:issue:`20353`).
 This change only affects when running on Windows, where ``'\r\n'`` was used for line terminator
 even when ``'\n'`` was passed in ``line_terminator``.
 
-*Previous Behavior* on Windows:
+*Previous behavior* on Windows:
 
 .. code-block:: ipython
 
@@ -508,7 +508,7 @@ even when ``'\n'`` was passed in ``line_terminator``.
     Out[5]: b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
 
 
-*New Behavior* on Windows:
+*New behavior* on Windows:
 
 Passing ``line_terminator`` explicitly, set thes ``line terminator`` to that character.
 
@@ -567,9 +567,9 @@ missing indicator, ``np.nan``. (:issue:`20377`)
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -579,7 +579,7 @@ missing indicator, ``np.nan``. (:issue:`20377`)
    Out[7]:
    'nan'
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -591,7 +591,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
-Parsing Datetime Strings with Timezone Offsets
+Parsing datetime strings with timezone offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, parsing datetime strings with UTC offsets with :func:`to_datetime`
@@ -602,7 +602,7 @@ offset in the ``tz`` attribute. Now, :func:`to_datetime` preserves the UTC
 offset in the ``tz`` attribute when all the datetime strings have the same
 UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -616,7 +616,7 @@ UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
     In [4]: pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
     Out[4]: DatetimeIndex(['2015-11-18 10:00:00', '2015-11-18 10:00:00'], dtype='datetime64[ns]', freq=None)
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -656,7 +656,7 @@ Parsing mixed-timezones with :func:`read_csv`
 
 :func:`read_csv` no longer silently converts mixed-timezone columns to UTC (:issue:`24987`).
 
-*Previous Behavior*
+*Previous behavior*
 
 .. code-block:: python
 
@@ -671,7 +671,7 @@ Parsing mixed-timezones with :func:`read_csv`
    1   1999-12-31 18:00:00
    Name: a, dtype: datetime64[ns]
 
-*New Behavior*
+*New behavior*
 
 .. ipython:: python
 
@@ -704,7 +704,7 @@ to '23:59:59.999999999' when calling :attr:`Series.dt.end_time`, :attr:`Period.e
 :attr:`PeriodIndex.end_time`, :func:`Period.to_timestamp()` with ``how='end'``,
 or :func:`PeriodIndex.to_timestamp()` with ``how='end'`` (:issue:`17157`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -717,7 +717,7 @@ or :func:`PeriodIndex.to_timestamp()` with ``how='end'`` (:issue:`17157`)
    In [5]: p.end_time
    Out[5]: Timestamp(2017-01-01 23:59:59.999999999)
 
-*New Behavior*:
+*New behavior*:
 
 Calling :attr:`Series.dt.end_time` will now result in a time of '23:59:59.999999999' as
 is the case with :attr:`Period.end_time`, for example
@@ -744,7 +744,7 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
    ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
                     pd.Timestamp('2000', tz='UTC')])
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -752,7 +752,7 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
    Out[3]: array([Timestamp('2000-01-01 00:00:00+0000', tz='UTC')], dtype=object)
 
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -761,7 +761,7 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
 
 .. _whatsnew_0240.api_breaking.sparse_values:
 
-Sparse Data Structure Refactor
+Sparse data structure refactor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``SparseArray``, the array backing ``SparseSeries`` and the columns in a ``SparseDataFrame``,
@@ -807,7 +807,7 @@ Previously, when ``sparse=True`` was passed to :func:`get_dummies`, the return v
 a :class:`DataFrame` or a :class:`SparseDataFrame`, depending on whether all or a just a subset
 of the columns were dummy-encoded. Now, a :class:`DataFrame` is always returned (:issue:`24284`).
 
-*Previous Behavior*
+*Previous behavior*
 
 The first :func:`get_dummies` returns a :class:`DataFrame` because the column ``A``
 is not dummy encoded. When just ``["B", "C"]`` are passed to ``get_dummies``,
@@ -828,7 +828,7 @@ then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was retur
 
    df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
 
-*New Behavior*
+*New behavior*
 
 Now, the return type is consistently a :class:`DataFrame`.
 
@@ -861,7 +861,7 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
-Tick DateOffset Normalize Restrictions
+Tick DateOffset normalize restrictions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
@@ -869,7 +869,7 @@ Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 ``normalize=True`` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -891,7 +891,7 @@ where addition could fail to be monotone or associative.  (:issue:`21427`)
    In [7]: ts + tic + tic + tic == ts + (tic + tic + tic)
    Out[7]: False
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -905,13 +905,13 @@ where addition could fail to be monotone or associative.  (:issue:`21427`)
 
 .. _whatsnew_0240.api.period_subtraction:
 
-Period Subtraction
+Period subtraction
 ^^^^^^^^^^^^^^^^^^
 
 Subtraction of a ``Period`` from another ``Period`` will give a ``DateOffset``.
 instead of an integer (:issue:`21314`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -922,7 +922,7 @@ instead of an integer (:issue:`21314`)
     In [4]: june - april
     Out [4]: 2
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -933,7 +933,7 @@ instead of an integer (:issue:`21314`)
 Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
 an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -942,7 +942,7 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -952,7 +952,7 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 .. _whatsnew_0240.api.timedelta64_subtract_nan:
 
-Addition/Subtraction of ``NaN`` from :class:`DataFrame`
+Addition/subtraction of ``NaN`` from :class:`DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Adding or subtracting ``NaN`` from a :class:`DataFrame` column with
@@ -965,7 +965,7 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
    df = pd.DataFrame([pd.Timedelta(days=1)])
    df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -976,7 +976,7 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
         0
     0 NaT
 
-*New Behavior*:
+*New behavior*:
 
 .. code-block:: ipython
 
@@ -986,7 +986,7 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 
 .. _whatsnew_0240.api.dataframe_cmp_broadcasting:
 
-DataFrame Comparison Operations Broadcasting Changes
+DataFrame comparison operations broadcasting changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Previously, the broadcasting behavior of :class:`DataFrame` comparison
 operations (``==``, ``!=``, ...) was inconsistent with the behavior of
@@ -1006,7 +1006,7 @@ The affected cases are:
    df = pd.DataFrame(arr)
    df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -1045,7 +1045,7 @@ The affected cases are:
    ...
    ValueError: Unable to coerce to Series, length must be 2: given 3
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -1061,7 +1061,7 @@ The affected cases are:
 
 .. code-block:: ipython
 
-   # Comparison operations and arithmetic opeartions both raise ValueError.
+   # Comparison operations and arithmetic operations both raise ValueError.
    In [6]: df == (1, 2, 3)
    ...
    ValueError: Unable to coerce to Series, length must be 2: given 3
@@ -1072,7 +1072,7 @@ The affected cases are:
 
 .. _whatsnew_0240.api.dataframe_arithmetic_broadcasting:
 
-DataFrame Arithmetic Operations Broadcasting Changes
+DataFrame arithmetic operations broadcasting changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`DataFrame` arithmetic operations when operating with 2-dimensional
@@ -1085,7 +1085,7 @@ broadcast.  (:issue:`23000`)
    df = pd.DataFrame(arr)
    df
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -1096,7 +1096,7 @@ broadcast.  (:issue:`23000`)
    ...
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
 
@@ -1105,13 +1105,13 @@ broadcast.  (:issue:`23000`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
-Series and Index Data-Dtype Incompatibilities
+Series and Index data-dtype incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Series`` and ``Index`` constructors now raise when the
 data is incompatible with a passed ``dtype=`` (:issue:`15832`)
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -1120,7 +1120,7 @@ data is incompatible with a passed ``dtype=`` (:issue:`15832`)
     0    18446744073709551615
     dtype: uint64
 
-*New Behavior*:
+*New behavior*:
 
 .. code-block:: ipython
 
@@ -1143,7 +1143,7 @@ other than another ``Categorical`` of ints (:issue:`19214`)
     s = pd.Series([0, 1, np.nan])
     c = pd.Series([0, 1, np.nan], dtype="category")
 
-*Previous Behavior*
+*Previous behavior*
 
 .. code-block:: ipython
 
@@ -1157,13 +1157,13 @@ other than another ``Categorical`` of ints (:issue:`19214`)
     2    NaN
     dtype: float64
 
-*New Behavior*
+*New behavior*
 
 .. ipython:: python
 
     pd.concat([s, c])
 
-Datetimelike API Changes
+Datetimelike API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
@@ -1175,7 +1175,7 @@ Datetimelike API Changes
 
 .. _whatsnew_0240.api.other:
 
-Other API Changes
+Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
@@ -1212,10 +1212,10 @@ Other API Changes
 
 .. _whatsnew_0240.api.extension:
 
-Extension Type Changes
+Extension type changes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**Equality and Hashability**
+**Equality and hashability**
 
 Pandas now requires that extension dtypes be hashable (i.e. the respective
 ``ExtensionDtype`` objects; hashability is not a requirement for the values
@@ -1263,7 +1263,7 @@ ways of adding operator support.
 - :meth:`ExtensionArray._formatting_values` is deprecated. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
 
-**Bug Fixes**
+**Bug fixes**
 
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`~Series.shift` now dispatches to :meth:`ExtensionArray.shift` (:issue:`22386`)
@@ -1298,7 +1298,7 @@ Deprecations
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 - The signature of :meth:`Series.to_csv` has been uniformed to that of :meth:`DataFrame.to_csv`: the name of the first argument is now ``path_or_buf``, the order of subsequent arguments has changed, the ``header`` argument now defaults to ``True``. (:issue:`19715`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
-- :func:`pandas.read_table` is deprecated. Instead, use :func:`read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
+- :func:`pandas.read_table` is deprecated. Instead, use :func:`read_csv` passing ``sep='\t'`` if necessary. This deprecation has been removed in 0.25.0. (:issue:`21948`)
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
@@ -1324,12 +1324,12 @@ Deprecations
 - :meth:`Series.clip_lower`, :meth:`Series.clip_upper`, :meth:`DataFrame.clip_lower` and :meth:`DataFrame.clip_upper` are deprecated and will be removed in a future version. Use ``Series.clip(lower=threshold)``, ``Series.clip(upper=threshold)`` and the equivalent ``DataFrame`` methods (:issue:`24203`)
 - :meth:`Series.nonzero` is deprecated and will be removed in a future version (:issue:`18262`)
 - Passing an integer to :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtypes is deprecated, will raise ``TypeError`` in a future version.  Use ``obj.fillna(pd.Timedelta(...))`` instead (:issue:`24694`)
-- ``Series.cat.categorical``, ``Series.cat.name`` and ``Sersies.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
+- ``Series.cat.categorical``, ``Series.cat.name`` and ``Series.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
 - Passing a dtype without a precision like ``np.dtype('datetime64')`` or ``timedelta64`` to :class:`Index`, :class:`DatetimeIndex` and :class:`TimedeltaIndex` is now deprecated. Use the nanosecond-precision dtype instead (:issue:`24753`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
-Integer Addition/Subtraction with Datetimes and Timedeltas is Deprecated
+Integer addition/subtraction with datetimes and timedeltas is deprecated
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the past, users could—in some cases—add or subtract integers or integer-dtype
@@ -1338,7 +1338,7 @@ arrays from :class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaInde
 This usage is now deprecated.  Instead add or subtract integer multiples of
 the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
-*Previous Behavior*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -1354,7 +1354,7 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
     In [10]: dti + pd.Index([1, 2])
     Out[10]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
 
-*New Behavior*:
+*New behavior*:
 
 .. ipython:: python
     :okwarning:
@@ -1371,7 +1371,7 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 .. _whatsnew_0240.deprecations.integer_tz:
 
-Passing Integer data and a timezone to DatetimeIndex
+Passing integer data and a timezone to datetimeindex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The behavior of :class:`DatetimeIndex` when passed integer data and
@@ -1417,7 +1417,7 @@ The old behavior can be retained with by localizing directly to the final timezo
 
 .. _whatsnew_0240.deprecations.tz_aware_array:
 
-Converting Timezone-Aware Series and Index to NumPy Arrays
+Converting timezone-aware Series and Index to NumPy arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The conversion from a :class:`Series` or :class:`Index` with timezone-aware
@@ -1459,13 +1459,13 @@ The default behavior remains the same, but issues a warning
 The previous or future behavior can be obtained, without any warnings, by specifying
 the ``dtype``
 
-*Previous Behavior*
+*Previous behavior*
 
 .. ipython:: python
 
    np.asarray(ser, dtype='datetime64[ns]')
 
-*Future Behavior*
+*Future behavior*
 
 .. ipython:: python
 
@@ -1512,7 +1512,7 @@ Removal of prior version deprecations/changes
 
 .. _whatsnew_0240.performance:
 
-Performance Improvements
+Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Slicing Series and DataFrames with an monotonically increasing :class:`CategoricalIndex`
@@ -1547,7 +1547,7 @@ Performance Improvements
 
 .. _whatsnew_0240.bug_fixes:
 
-Bug Fixes
+Bug fixes
 ~~~~~~~~~
 
 Categorical
@@ -1604,7 +1604,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
 - Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
-- Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are undordered and have the same categories, but in a different order (:issue:`24142`)
+- Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are unordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
 - Bug in :class:`DatetimeIndex` where constructing a :class:`DatetimeIndex` from a :class:`Categorical` or :class:`CategoricalIndex` would incorrectly drop timezone information (:issue:`18664`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where indexing with ``Ellipsis`` would incorrectly lose the index's ``freq`` attribute (:issue:`21282`)
@@ -1670,7 +1670,7 @@ Timezones
 Offsets
 ^^^^^^^
 
-- Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
+- Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operations (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
 - Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
 - Bug in comparing :class:`DateOffset` objects with non-DateOffset objects, particularly strings, raising ``ValueError`` instead of returning ``False`` for equality checks and ``True`` for not-equal checks (:issue:`23524`)
@@ -1827,7 +1827,7 @@ Plotting
 - Bug in :func:`DataFrame.plot.bar` caused bars to use multiple colors instead of a single one (:issue:`20585`)
 - Bug in validating color parameter caused extra color to be appended to the given color array. This happened to multiple plotting functions using matplotlib. (:issue:`20726`)
 
-Groupby/Resample/Rolling
+Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.window.Rolling.min` and :func:`pandas.core.window.Rolling.max` with ``closed='left'``, a datetime-like index and only one entry in the series leading to segfault (:issue:`24718`)
@@ -1838,7 +1838,7 @@ Groupby/Resample/Rolling
   ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.window.Rolling.min` with ``closed='left'`` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
-- Bug in :meth:`pandas.core.resample.Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
+- Bug in :meth:`pandas.core.resample.Resampler.apply` when passing positional arguments to applied func (:issue:`14615`).
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
 - Bug in :meth:`pandas.core.resample.Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
@@ -1915,7 +1915,7 @@ Style
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 
-Build Changes
+Build changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)

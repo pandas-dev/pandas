@@ -41,7 +41,7 @@ cdef class StringHashTable(HashTable):
 
 cdef struct Int64VectorData:
     int64_t *data
-    size_t n, m
+    Py_ssize_t n, m
 
 cdef class Int64Vector:
     cdef Int64VectorData *data

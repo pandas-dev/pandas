@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -15,7 +13,7 @@ def test_fillna(idx):
     # GH 11343
 
     # TODO: Remove or Refactor.  Not Implemented for MultiIndex
-    for name, index in [('idx', idx), ]:
+    for name, index in [("idx", idx)]:
         if len(index) == 0:
             pass
         elif isinstance(index, MultiIndex):
@@ -56,24 +54,42 @@ def test_fillna(idx):
 
 def test_dropna():
     # GH 6194
-    idx = pd.MultiIndex.from_arrays([[1, np.nan, 3, np.nan, 5],
-                                     [1, 2, np.nan, np.nan, 5],
-                                     ['a', 'b', 'c', np.nan, 'e']])
+    idx = pd.MultiIndex.from_arrays(
+        [
+            [1, np.nan, 3, np.nan, 5],
+            [1, 2, np.nan, np.nan, 5],
+            ["a", "b", "c", np.nan, "e"],
+        ]
+    )
 
-    exp = pd.MultiIndex.from_arrays([[1, 5],
-                                     [1, 5],
-                                     ['a', 'e']])
+    exp = pd.MultiIndex.from_arrays([[1, 5], [1, 5], ["a", "e"]])
     tm.assert_index_equal(idx.dropna(), exp)
-    tm.assert_index_equal(idx.dropna(how='any'), exp)
+    tm.assert_index_equal(idx.dropna(how="any"), exp)
 
-    exp = pd.MultiIndex.from_arrays([[1, np.nan, 3, 5],
-                                     [1, 2, np.nan, 5],
-                                     ['a', 'b', 'c', 'e']])
-    tm.assert_index_equal(idx.dropna(how='all'), exp)
+    exp = pd.MultiIndex.from_arrays(
+        [[1, np.nan, 3, 5], [1, 2, np.nan, 5], ["a", "b", "c", "e"]]
+    )
+    tm.assert_index_equal(idx.dropna(how="all"), exp)
 
     msg = "invalid how option: xxx"
     with pytest.raises(ValueError, match=msg):
-        idx.dropna(how='xxx')
+        idx.dropna(how="xxx")
+
+    # GH26408
+    # test if missing values are dropped for multiindex constructed
+    # from codes and values
+    idx = MultiIndex(
+        levels=[[np.nan, None, pd.NaT, "128", 2], [np.nan, None, pd.NaT, "128", 2]],
+        codes=[[0, -1, 1, 2, 3, 4], [0, -1, 3, 3, 3, 4]],
+    )
+    expected = MultiIndex.from_arrays([["128", 2], ["128", 2]])
+    tm.assert_index_equal(idx.dropna(), expected)
+    tm.assert_index_equal(idx.dropna(how="any"), expected)
+
+    expected = MultiIndex.from_arrays(
+        [[np.nan, np.nan, "128", 2], ["128", "128", "128", 2]]
+    )
+    tm.assert_index_equal(idx.dropna(how="all"), expected)
 
 
 def test_nulls(idx):
@@ -110,13 +126,11 @@ def test_hasnans_isnans(idx):
 def test_nan_stays_float():
 
     # GH 7031
-    idx0 = pd.MultiIndex(levels=[["A", "B"], []],
-                         codes=[[1, 0], [-1, -1]],
-                         names=[0, 1])
-    idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
-                         codes=[[0], [0]],
-                         names=[0, 1])
-    idxm = idx0.join(idx1, how='outer')
+    idx0 = pd.MultiIndex(
+        levels=[["A", "B"], []], codes=[[1, 0], [-1, -1]], names=[0, 1]
+    )
+    idx1 = pd.MultiIndex(levels=[["C"], ["D"]], codes=[[0], [0]], names=[0, 1])
+    idxm = idx0.join(idx1, how="outer")
     assert pd.isna(idx0.get_level_values(1)).all()
     # the following failed in 0.14.1
     assert pd.isna(idxm.get_level_values(1)[:-1]).all()

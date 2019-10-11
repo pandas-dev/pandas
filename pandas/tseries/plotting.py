@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from pandas.plotting._timeseries import tsplot
+from pandas.plotting._matplotlib.timeseries import tsplot

@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
-from cpython cimport Py_INCREF
+from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
@@ -24,9 +23,17 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
-        raise ValueError('function does not reduce')
+        raise ValueError('Function does not reduce')
 
     return np.empty(size, dtype='O')
+
+
+cdef bint _is_sparse_array(object obj):
+    # TODO can be removed one SparseArray.values is removed (GH26421)
+    if hasattr(obj, '_subtyp'):
+        if obj._subtyp == 'sparse_array':
+            return True
+    return False
 
 
 cdef class Reducer:
@@ -96,7 +103,7 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            bint has_labels
+            bint has_labels, has_ndarray_labels
             object res, name, labels, index
             object cached_typ=None
 
@@ -106,14 +113,18 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
+        has_ndarray_labels = util.is_array(labels)
         has_index = self.index is not None
         incr = self.increment
 
         try:
             for i in range(self.nresults):
 
-                if has_labels:
+                if has_ndarray_labels:
                     name = util.get_value_at(labels, i)
+                elif has_labels:
+                    # labels is an ExtensionArray
+                    name = labels[i]
                 else:
                     name = None
 
@@ -147,7 +158,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res, 'values') and util.is_array(res.values):
+                if (not _is_sparse_array(res) and hasattr(res, 'values')
+                        and util.is_array(res.values)):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
@@ -288,8 +300,6 @@ cdef class SeriesBinGrouper:
                 islider.advance(group_size)
                 vslider.advance(group_size)
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
@@ -342,7 +352,9 @@ cdef class SeriesGrouper:
             index = None
         else:
             values = dummy.values
-            if dummy.dtype != self.arr.dtype:
+            # GH 23683: datetimetz types are equivalent to datetime types here
+            if (dummy.dtype != self.arr.dtype
+                    and values.dtype != self.arr.dtype):
                 raise ValueError('Dummy array must be same dtype')
             if not values.flags.contiguous:
                 values = values.copy()
@@ -354,7 +366,8 @@ cdef class SeriesGrouper:
 
     def get_result(self):
         cdef:
-            ndarray arr, result
+            # Define result to avoid UnboundLocalError
+            ndarray arr, result = None
             ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res
@@ -415,12 +428,13 @@ cdef class SeriesGrouper:
 
                     group_size = 0
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
             vslider.reset()
+
+        if result is None:
+            raise ValueError("No result.")
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
@@ -431,7 +445,8 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values') and util.is_array(res.values):
+    if (not _is_sparse_array(res) and hasattr(res, 'values')
+            and util.is_array(res.values)):
         res = res.values
     if not np.isscalar(res):
         if util.is_array(res):
@@ -507,17 +522,6 @@ def apply_frame_axis0(object frame, object f, object names,
 
     results = []
 
-    # Need to infer if our low-level mucking is going to cause a segfault
-    if n > 0:
-        chunk = frame.iloc[starts[0]:ends[0]]
-        object.__setattr__(chunk, 'name', names[0])
-        try:
-            result = f(chunk)
-            if result is chunk:
-                raise InvalidApply('Function unsafe for fast apply')
-        except:
-            raise InvalidApply('Let this error raise above us')
-
     slider = BlockSlider(frame)
 
     mutated = False
@@ -527,20 +531,33 @@ def apply_frame_axis0(object frame, object f, object names,
             slider.move(starts[i], ends[i])
 
             item_cache.clear()  # ugh
+            chunk = slider.dummy
+            object.__setattr__(chunk, 'name', names[i])
 
-            object.__setattr__(slider.dummy, 'name', names[i])
-            piece = f(slider.dummy)
-
-            # I'm paying the price for index-sharing, ugh
             try:
-                if piece.index is slider.dummy.index:
+                piece = f(chunk)
+            except Exception:
+                # We can't be more specific without knowing something about `f`
+                raise InvalidApply('Let this error raise above us')
+
+            # Need to infer if low level index slider will cause segfaults
+            require_slow_apply = i == 0 and piece is chunk
+            try:
+                if piece.index is chunk.index:
                     piece = piece.copy(deep='all')
                 else:
                     mutated = True
             except AttributeError:
+                # `piece` might not have an index, could be e.g. an int
                 pass
 
             results.append(piece)
+
+            # If the data was modified inplace we need to
+            # take the slow path to not risk segfaults
+            # we have already computed the first piece
+            if require_slow_apply:
+                break
     finally:
         slider.reset()
 
@@ -617,7 +634,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def reduce(arr, f, axis=0, dummy=None, labels=None):
+def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
     """
 
     Parameters
@@ -630,12 +647,11 @@ def reduce(arr, f, axis=0, dummy=None, labels=None):
     """
 
     if labels is not None:
-        if labels._has_complex_internals:
-            raise Exception('Cannot use shortcut')
+        # Caller is responsible for ensuring we don't have MultiIndex
+        assert not labels._has_complex_internals
 
-        # pass as an ndarray
-        if hasattr(labels, 'values'):
-            labels = labels.values
+        # pass as an ndarray/ExtensionArray
+        labels = labels._values
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

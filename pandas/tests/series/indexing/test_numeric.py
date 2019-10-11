@@ -1,10 +1,5 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pytest
-
-from pandas.compat import lrange, range
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
@@ -14,21 +9,88 @@ from pandas.util.testing import assert_series_equal
 
 def test_get():
     # GH 6383
-    s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56, 45,
-                         51, 39, 55, 43, 54, 52, 51, 54]))
+    s = Series(
+        np.array(
+            [
+                43,
+                48,
+                60,
+                48,
+                50,
+                51,
+                50,
+                45,
+                57,
+                48,
+                56,
+                45,
+                51,
+                39,
+                55,
+                43,
+                54,
+                52,
+                51,
+                54,
+            ]
+        )
+    )
 
     result = s.get(25, 0)
     expected = 0
     assert result == expected
 
-    s = Series(np.array([43, 48, 60, 48, 50, 51, 50, 45, 57, 48, 56,
-                         45, 51, 39, 55, 43, 54, 52, 51, 54]),
-               index=pd.Float64Index(
-                   [25.0, 36.0, 49.0, 64.0, 81.0, 100.0,
-                    121.0, 144.0, 169.0, 196.0, 1225.0,
-                    1296.0, 1369.0, 1444.0, 1521.0, 1600.0,
-                    1681.0, 1764.0, 1849.0, 1936.0],
-                   dtype='object'))
+    s = Series(
+        np.array(
+            [
+                43,
+                48,
+                60,
+                48,
+                50,
+                51,
+                50,
+                45,
+                57,
+                48,
+                56,
+                45,
+                51,
+                39,
+                55,
+                43,
+                54,
+                52,
+                51,
+                54,
+            ]
+        ),
+        index=pd.Float64Index(
+            [
+                25.0,
+                36.0,
+                49.0,
+                64.0,
+                81.0,
+                100.0,
+                121.0,
+                144.0,
+                169.0,
+                196.0,
+                1225.0,
+                1296.0,
+                1369.0,
+                1444.0,
+                1521.0,
+                1600.0,
+                1681.0,
+                1764.0,
+                1849.0,
+                1936.0,
+            ],
+            dtype="object",
+        ),
+    )
 
     result = s.get(25, 0)
     expected = 43
@@ -36,24 +98,24 @@ def test_get():
 
     # GH 7407
     # with a boolean accessor
-    df = pd.DataFrame({'i': [0] * 3, 'b': [False] * 3})
+    df = pd.DataFrame({"i": [0] * 3, "b": [False] * 3})
     vc = df.i.value_counts()
-    result = vc.get(99, default='Missing')
-    assert result == 'Missing'
+    result = vc.get(99, default="Missing")
+    assert result == "Missing"
 
     vc = df.b.value_counts()
-    result = vc.get(False, default='Missing')
+    result = vc.get(False, default="Missing")
     assert result == 3
 
-    result = vc.get(True, default='Missing')
-    assert result == 'Missing'
+    result = vc.get(True, default="Missing")
+    assert result == "Missing"
 
 
 def test_get_nan():
     # GH 8569
     s = pd.Float64Index(range(10)).to_series()
     assert s.get(np.nan) is None
-    assert s.get(np.nan, default='Missing') == 'Missing'
+    assert s.get(np.nan, default="Missing") == "Missing"
 
 
 def test_get_nan_multiple():
@@ -64,33 +126,31 @@ def test_get_nan_multiple():
 
     idx = [2, 30]
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert_series_equal(s.get(idx),
-                            Series([2, np.nan], index=idx))
+        assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
 
     idx = [2, np.nan]
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert_series_equal(s.get(idx),
-                            Series([2, np.nan], index=idx))
+        assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
 
     # GH 17295 - all missing keys
     idx = [20, 30]
-    assert(s.get(idx) is None)
+    assert s.get(idx) is None
 
     idx = [np.nan, np.nan]
-    assert(s.get(idx) is None)
+    assert s.get(idx) is None
 
 
 def test_delitem():
     # GH 5542
     # should delete the item inplace
-    s = Series(lrange(5))
+    s = Series(range(5))
     del s[0]
 
-    expected = Series(lrange(1, 5), index=lrange(1, 5))
+    expected = Series(range(1, 5), index=range(1, 5))
     assert_series_equal(s, expected)
 
     del s[1]
-    expected = Series(lrange(2, 5), index=lrange(2, 5))
+    expected = Series(range(2, 5), index=range(2, 5))
     assert_series_equal(s, expected)
 
     # empty
@@ -102,28 +162,24 @@ def test_delitem():
     # only 1 left, del, add, del
     s = Series(1)
     del s[0]
-    assert_series_equal(s, Series(dtype='int64', index=Index(
-        [], dtype='int64')))
+    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
     s[0] = 1
     assert_series_equal(s, Series(1))
     del s[0]
-    assert_series_equal(s, Series(dtype='int64', index=Index(
-        [], dtype='int64')))
+    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
 
     # Index(dtype=object)
-    s = Series(1, index=['a'])
-    del s['a']
-    assert_series_equal(s, Series(dtype='int64', index=Index(
-        [], dtype='object')))
-    s['a'] = 1
-    assert_series_equal(s, Series(1, index=['a']))
-    del s['a']
-    assert_series_equal(s, Series(dtype='int64', index=Index(
-        [], dtype='object')))
+    s = Series(1, index=["a"])
+    del s["a"]
+    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
+    s["a"] = 1
+    assert_series_equal(s, Series(1, index=["a"]))
+    del s["a"]
+    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
 
 
 def test_slice_float64():
-    values = np.arange(10., 50., 2)
+    values = np.arange(10.0, 50.0, 2)
     index = Index(values)
 
     start, end = values[[5, 15]]
@@ -155,17 +211,17 @@ def test_getitem_negative_out_of_bounds():
         s[-11]
     msg = "index -11 is out of bounds for axis 0 with size 10"
     with pytest.raises(IndexError, match=msg):
-        s[-11] = 'foo'
+        s[-11] = "foo"
 
 
 def test_getitem_regression():
-    s = Series(lrange(5), index=lrange(5))
-    result = s[lrange(5)]
+    s = Series(range(5), index=list(range(5)))
+    result = s[list(range(5))]
     assert_series_equal(result, s)
 
 
 def test_getitem_setitem_slice_bug():
-    s = Series(lrange(10), lrange(10))
+    s = Series(range(10), index=list(range(10)))
     result = s[-12:]
     assert_series_equal(result, s)
 
@@ -175,7 +231,7 @@ def test_getitem_setitem_slice_bug():
     result = s[:-12]
     assert_series_equal(result, s[:0])
 
-    s = Series(lrange(10), lrange(10))
+    s = Series(range(10), index=list(range(10)))
     s[-12:] = 0
     assert (s == 0).all()
 
@@ -197,19 +253,21 @@ def test_getitem_setitem_slice_integers():
 
 def test_setitem_float_labels():
     # note labels are floats
-    s = Series(['a', 'b', 'c'], index=[0, 0.5, 1])
+    s = Series(["a", "b", "c"], index=[0, 0.5, 1])
     tmp = s.copy()
 
-    s.loc[1] = 'zoo'
-    tmp.iloc[2] = 'zoo'
+    s.loc[1] = "zoo"
+    tmp.iloc[2] = "zoo"
 
     assert_series_equal(s, tmp)
 
 
 def test_slice_float_get_set(test_data):
-    msg = (r"cannot do slice indexing on <class 'pandas\.core\.indexes"
-           r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
-           r" of <(class|type) 'float'>")
+    msg = (
+        r"cannot do slice indexing on <class 'pandas\.core\.indexes"
+        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
+        r" of <class 'float'>"
+    )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         test_data.ts[4.0:10.0]
 
@@ -242,7 +300,7 @@ def test_int_indexing():
         s[5]
 
     with pytest.raises(KeyError, match=r"^'c'$"):
-        s['c']
+        s["c"]
 
     # not monotonic
     s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
@@ -251,7 +309,7 @@ def test_int_indexing():
         s[5]
 
     with pytest.raises(KeyError, match=r"^'c'$"):
-        s['c']
+        s["c"]
 
 
 def test_getitem_int64(test_data):

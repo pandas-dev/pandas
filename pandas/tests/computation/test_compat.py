@@ -2,8 +2,9 @@ from distutils.version import LooseVersion
 
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 import pandas as pd
-from pandas.core.computation.check import _MIN_NUMEXPR_VERSION
 from pandas.core.computation.engines import _engines
 import pandas.core.computation.expr as expr
 
@@ -12,10 +13,12 @@ def test_compat():
     # test we have compat with our version of nu
 
     from pandas.core.computation.check import _NUMEXPR_INSTALLED
+
     try:
         import numexpr as ne
+
         ver = ne.__version__
-        if LooseVersion(ver) < LooseVersion(_MIN_NUMEXPR_VERSION):
+        if LooseVersion(ver) < LooseVersion(VERSIONS["numexpr"]):
             assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
@@ -23,22 +26,21 @@ def test_compat():
         pytest.skip("not testing numexpr version compat")
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
+@pytest.mark.parametrize("engine", _engines)
+@pytest.mark.parametrize("parser", expr._parsers)
 def test_invalid_numexpr_version(engine, parser):
     def testit():
         a, b = 1, 2  # noqa
-        res = pd.eval('a + b', engine=engine, parser=parser)
+        res = pd.eval("a + b", engine=engine, parser=parser)
         assert res == 3
 
-    if engine == 'numexpr':
+    if engine == "numexpr":
         try:
             import numexpr as ne
         except ImportError:
             pytest.skip("no numexpr")
         else:
-            if (LooseVersion(ne.__version__) <
-                    LooseVersion(_MIN_NUMEXPR_VERSION)):
+            if LooseVersion(ne.__version__) < LooseVersion(VERSIONS["numexpr"]):
                 with pytest.raises(ImportError):
                     testit()
             else:

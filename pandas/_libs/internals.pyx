@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyObject
+from cpython.object cimport PyObject
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -384,7 +382,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         object blkno
         list group_order
-        dict group_slices
+        dict group_dict
         int64_t[:] res_view
 
     n = blknos.shape[0]

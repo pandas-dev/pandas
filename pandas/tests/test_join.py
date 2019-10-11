@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 
 from pandas._libs import join as _join
@@ -9,14 +7,15 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
-class TestIndexer(object):
-
+class TestIndexer:
     def test_outer_join_indexer(self):
-        typemap = [('int32', _join.outer_join_indexer_int32),
-                   ('int64', _join.outer_join_indexer_int64),
-                   ('float32', _join.outer_join_indexer_float32),
-                   ('float64', _join.outer_join_indexer_float64),
-                   ('object', _join.outer_join_indexer_object)]
+        typemap = [
+            ("int32", _join.outer_join_indexer_int32),
+            ("int64", _join.outer_join_indexer_int64),
+            ("float32", _join.outer_join_indexer_float32),
+            ("float64", _join.outer_join_indexer_float64),
+            ("object", _join.outer_join_indexer_object),
+        ]
 
         for dtype, indexer in typemap:
             left = np.arange(3, dtype=dtype)
@@ -58,12 +57,111 @@ def test_left_join_indexer_unique():
 
 
 def test_left_outer_join_bug():
-    left = np.array([0, 1, 0, 1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 1, 2, 3, 2, 3,
-                     2, 1, 1, 3, 0, 3, 2, 3, 0, 0, 2, 3, 2, 0, 3, 1, 3, 0, 1,
-                     3, 0, 0, 1, 0, 3, 1, 0, 1, 0, 1, 1, 0, 2, 2, 2, 2, 2, 0,
-                     3, 1, 2, 0, 0, 3, 1, 3, 2, 2, 0, 1, 3, 0, 2, 3, 2, 3, 3,
-                     2, 3, 3, 1, 3, 2, 0, 0, 3, 1, 1, 1, 0, 2, 3, 3, 1, 2, 0,
-                     3, 1, 2, 0, 2], dtype=np.int64)
+    left = np.array(
+        [
+            0,
+            1,
+            0,
+            1,
+            1,
+            2,
+            3,
+            1,
+            0,
+            2,
+            1,
+            2,
+            0,
+            1,
+            1,
+            2,
+            3,
+            2,
+            3,
+            2,
+            1,
+            1,
+            3,
+            0,
+            3,
+            2,
+            3,
+            0,
+            0,
+            2,
+            3,
+            2,
+            0,
+            3,
+            1,
+            3,
+            0,
+            1,
+            3,
+            0,
+            0,
+            1,
+            0,
+            3,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            2,
+            2,
+            2,
+            2,
+            2,
+            0,
+            3,
+            1,
+            2,
+            0,
+            0,
+            3,
+            1,
+            3,
+            2,
+            2,
+            0,
+            1,
+            3,
+            0,
+            2,
+            3,
+            2,
+            3,
+            3,
+            2,
+            3,
+            3,
+            1,
+            3,
+            2,
+            0,
+            0,
+            3,
+            1,
+            1,
+            1,
+            0,
+            2,
+            3,
+            3,
+            1,
+            2,
+            0,
+            3,
+            1,
+            2,
+            0,
+            2,
+        ],
+        dtype=np.int64,
+    )
 
     right = np.array([3, 1], dtype=np.int64)
     max_groups = 4
@@ -198,39 +296,55 @@ def test_inner_join_indexer2():
 
 def test_merge_join_categorical_multiindex():
     # From issue 16627
-    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
-                             ['a', 'b', 'c']),
-         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = {
+        "Cat1": Categorical(["a", "b", "a", "c", "a", "b"], ["a", "b", "c"]),
+        "Int1": [0, 1, 0, 1, 0, 0],
+    }
     a = DataFrame(a)
 
-    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
-                            ['a', 'b', 'c']),
-         'Int': [0, 0, 0, 1, 1, 1],
-         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
-    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+    b = {
+        "Cat": Categorical(["a", "b", "c", "a", "b", "c"], ["a", "b", "c"]),
+        "Int": [0, 0, 0, 1, 1, 1],
+        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+    }
+    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
 
-    expected = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
-                     right_on=['Cat', 'Int'], how='left')
-    result = a.join(b, on=['Cat1', 'Int1'])
-    expected = expected.drop(['Cat', 'Int'], axis=1)
+    expected = merge(
+        a,
+        b.reset_index(),
+        left_on=["Cat1", "Int1"],
+        right_on=["Cat", "Int"],
+        how="left",
+    )
+    result = a.join(b, on=["Cat1", "Int1"])
+    expected = expected.drop(["Cat", "Int"], axis=1)
     assert_frame_equal(expected, result)
 
     # Same test, but with ordered categorical
-    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
-                             ['b', 'a', 'c'],
-                             ordered=True),
-         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = {
+        "Cat1": Categorical(
+            ["a", "b", "a", "c", "a", "b"], ["b", "a", "c"], ordered=True
+        ),
+        "Int1": [0, 1, 0, 1, 0, 0],
+    }
     a = DataFrame(a)
 
-    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
-                            ['b', 'a', 'c'],
-                            ordered=True),
-         'Int': [0, 0, 0, 1, 1, 1],
-         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
-    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+    b = {
+        "Cat": Categorical(
+            ["a", "b", "c", "a", "b", "c"], ["b", "a", "c"], ordered=True
+        ),
+        "Int": [0, 0, 0, 1, 1, 1],
+        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+    }
+    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
 
-    expected = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
-                     right_on=['Cat', 'Int'], how='left')
-    result = a.join(b, on=['Cat1', 'Int1'])
-    expected = expected.drop(['Cat', 'Int'], axis=1)
+    expected = merge(
+        a,
+        b.reset_index(),
+        left_on=["Cat1", "Int1"],
+        right_on=["Cat", "Int"],
+        how="left",
+    )
+    result = a.join(b, on=["Cat1", "Int1"])
+    expected = expected.drop(["Cat", "Int"], axis=1)
     assert_frame_equal(expected, result)
