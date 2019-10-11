@@ -30,6 +30,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -39,9 +40,9 @@ from pandas.tseries.frequencies import to_offset
 
 class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
-    # which we we dont' want to expose in the .dt accessor.
+    # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
     _delegated_methods = TimedeltaArray._datetimelike_methods + [
@@ -173,6 +174,9 @@ class TimedeltaIndex(
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
+    sum = ea_passthrough(TimedeltaArray.sum)
+    std = ea_passthrough(TimedeltaArray.std)
+    median = ea_passthrough(TimedeltaArray.median)
 
     # -------------------------------------------------------------------
     # Constructors

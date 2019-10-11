@@ -152,7 +152,7 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     ----------
     arr : array-like
           The array whose data type we want to enforce.
-    copy: boolean
+    copy: bool
           Whether to copy the original array or reuse
           it in place, if possible.
 

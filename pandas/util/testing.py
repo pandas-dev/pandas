@@ -294,7 +294,7 @@ def assert_almost_equal(
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default 'equiv'
+    check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -585,7 +585,7 @@ def assert_index_equal(
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -860,7 +860,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1089,7 +1089,7 @@ def assert_series_equal(
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
     check_series_type : bool, default True
@@ -1175,7 +1175,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -1251,10 +1251,10 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : bool or {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
@@ -1431,6 +1431,9 @@ def assert_equal(left, right, **kwargs):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
+    elif isinstance(left, str):
+        assert kwargs == {}
+        return left == right
     else:
         raise NotImplementedError(type(left))
 
@@ -2360,26 +2363,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2387,7 +2390,7 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper

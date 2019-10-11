@@ -4710,7 +4710,8 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4734,7 +4735,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
