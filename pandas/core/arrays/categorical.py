@@ -645,7 +645,7 @@ class Categorical(ExtensionArray, PandasObject):
             Whether or not this categorical is treated as an ordered
             categorical. If not given here or in `dtype`, the resulting
             categorical will be unordered.
-        dtype : CategoricalDtype or the str "category", optional
+        dtype : CategoricalDtype or "category", optional
             If :class:`Categoarray-like, intricalDtype`, cannot be used together with
             `categories` or `ordered`.
 
