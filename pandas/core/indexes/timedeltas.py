@@ -40,9 +40,9 @@ from pandas.tseries.frequencies import to_offset
 
 class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
-    # which we we dont' want to expose in the .dt accessor.
+    # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
     _delegated_methods = TimedeltaArray._datetimelike_methods + [
