@@ -371,6 +371,7 @@ class TestFactorize:
         else:
             tm.assert_extension_array_equal(uniques, expected_uniques)
 
+
 class TestUnique:
     def test_unique_all_dtypes(self, any_numpy_dtype):
         dtype = any_numpy_dtype
