@@ -483,9 +483,9 @@ def _ensure_dtype_type(value, dtype):
     # Start with exceptions in which we do _not_ cast to numpy types
     if is_extension_array_dtype(dtype):
         return value
-    if dtype == np.object_:
+    elif dtype == np.object_:
         return value
-    if isna(value):
+    elif isna(value):
         # e.g. keep np.nan rather than try to cast to np.float32(np.nan)
         return value
 
