@@ -405,11 +405,8 @@ def maybe_promote(dtype, fill_value=np.nan):
                 dtype = np.min_scalar_type(fill_value)
 
         elif dtype.kind == "c":
-            if not np.can_cast(fill_value, dtype):
-                if np.can_cast(fill_value, np.dtype("c16")):
-                    dtype = np.dtype(np.complex128)
-                else:
-                    dtype = np.dtype(np.object_)
+            mst = np.min_scalar_type(fill_value)
+            dtype = np.promote_types(dtype, mst)
 
             if dtype.kind == "c" and not np.isnan(fill_value):
                 fill_value = dtype.type(fill_value)
@@ -447,16 +444,8 @@ def maybe_promote(dtype, fill_value=np.nan):
         if issubclass(dtype.type, np.bool_):
             dtype = np.dtype(np.object_)
         elif issubclass(dtype.type, (np.integer, np.floating)):
-            c8 = np.dtype(np.complex64)
-            info = np.finfo(dtype) if dtype.kind == "f" else np.iinfo(dtype)
-            if (
-                np.can_cast(fill_value, c8)
-                and np.can_cast(info.min, c8)
-                and np.can_cast(info.max, c8)
-            ):
-                dtype = np.dtype(np.complex64)
-            else:
-                dtype = np.dtype(np.complex128)
+            mst = np.min_scalar_type(fill_value)
+            dtype = np.promote_types(dtype, mst)
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
