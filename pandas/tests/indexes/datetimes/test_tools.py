@@ -10,7 +10,8 @@ from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
-from pytz import FixedOffset, timezone, utc as pytz_utc  # type:ignore
+import pytz
+from pytz import FixedOffset  # type:ignore
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
@@ -615,7 +616,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_tz_pytz(self, cache):
         # see gh-8260
-        us_eastern = timezone("US/Eastern")
+        us_eastern = pytz.timezone("US/Eastern")
         arr = np.array(
             [
                 us_eastern.localize(
@@ -2225,7 +2226,7 @@ class TestOrigin:
     def test_invalid_origins_tzinfo(self):
         # GH16842
         with pytest.raises(ValueError):
-            pd.to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz_utc))
+            pd.to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
