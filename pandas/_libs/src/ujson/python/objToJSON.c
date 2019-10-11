@@ -573,15 +573,15 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
         PyObject *utcoffset = PyObject_CallMethod(_obj, "utcoffset", NULL);
 
         if (utcoffset == NULL)
-            return PyErr_NoMemory();
-
+          return NULL;
+        }
         else if (utcoffset != Py_None) {
             PyObject *tot_seconds =
                 PyObject_CallMethod(utcoffset, "total_seconds", NULL);
 
             if (tot_seconds == NULL) {
                 Py_DECREF(utcoffset);
-                return PyErr_NoMemory();
+                return NULL;
             }
 
             offset_in_min = PyLong_AsLong(tot_seconds) / 60;
