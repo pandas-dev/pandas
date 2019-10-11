@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -1641,7 +1640,7 @@ class _AsOfMerge(_OrderedMerge):
                 if self.tolerance < Timedelta(0):
                     raise MergeError("tolerance must be positive")
 
-            elif is_int64_dtype(lt):
+            elif is_integer_dtype(lt):
                 if not is_integer(self.tolerance):
                     raise MergeError(msg)
                 if self.tolerance < 0:
