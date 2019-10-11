@@ -185,7 +185,7 @@ skip_if_has_locale = pytest.mark.skipif(
 )
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(),
-    reason="Specific locale is set " "{lang}".format(lang=locale.getlocale()[0]),
+    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"

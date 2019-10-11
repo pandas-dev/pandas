@@ -628,11 +628,11 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/{}{}".format(
             fn, linespec
         )
     else:
-        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/v{}/pandas/{}{}".format(
             pandas.__version__, fn, linespec
         )
 

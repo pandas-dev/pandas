@@ -289,7 +289,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     # First fill with explicit values provided by the user...
     if arg_name in kwargs:
         if args:
-            msg = "{} got multiple values for argument " "'{}'".format(
+            msg = "{} got multiple values for argument '{}'".format(
                 method_name, arg_name
             )
             raise TypeError(msg)
@@ -318,7 +318,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     elif len(args) == 2:
         if "axis" in kwargs:
             # Unambiguously wrong
-            msg = "Cannot specify both 'axis' and any of 'index' " "or 'columns'"
+            msg = "Cannot specify both 'axis' and any of 'index' or 'columns'"
             raise TypeError(msg)
 
         msg = (

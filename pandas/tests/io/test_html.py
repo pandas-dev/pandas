@@ -1233,8 +1233,8 @@ class TestReadHtml:
             def run(self):
                 try:
                     super().run()
-                except Exception as e:
-                    self.err = e
+                except Exception as err:
+                    self.err = err
                 else:
                     self.err = None
 

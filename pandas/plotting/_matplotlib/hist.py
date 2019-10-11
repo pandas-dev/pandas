@@ -184,7 +184,7 @@ def _grouped_plot(
     if figsize == "default":
         # allowed to specify mpl default with 'default'
         warnings.warn(
-            "figsize='default' is deprecated. Specify figure " "size by tuple instead",
+            "figsize='default' is deprecated. Specify figure size by tuple instead",
             FutureWarning,
             stacklevel=5,
         )
@@ -298,9 +298,7 @@ def hist_series(
 
     if by is None:
         if kwds.get("layout", None) is not None:
-            raise ValueError(
-                "The 'layout' keyword is not supported when " "'by' is None"
-            )
+            raise ValueError("The 'layout' keyword is not supported when 'by' is None")
         # hack until the plotting interface is a bit more unified
         fig = kwds.pop(
             "figure", plt.gcf() if plt.get_fignums() else plt.figure(figsize=figsize)
@@ -394,7 +392,7 @@ def hist_frame(
     naxes = len(data.columns)
 
     if naxes == 0:
-        raise ValueError("hist method requires numerical columns, " "nothing to plot.")
+        raise ValueError("hist method requires numerical columns, nothing to plot.")
 
     fig, axes = _subplots(
         naxes=naxes,

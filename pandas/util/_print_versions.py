@@ -139,7 +139,7 @@ def main():
         "--json",
         metavar="FILE",
         nargs=1,
-        help="Save output as JSON into file, pass in " "'-' to output to stdout",
+        help="Save output as JSON into file, pass in '-' to output to stdout",
     )
 
     (options, args) = parser.parse_args()

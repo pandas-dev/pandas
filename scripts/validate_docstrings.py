@@ -91,7 +91,7 @@ ERROR_MSGS = {
     "whitespace only",
     "GL06": 'Found unknown section "{section}". Allowed sections are: '
     "{allowed_sections}",
-    "GL07": "Sections are in the wrong order. Correct order is: " "{correct_sections}",
+    "GL07": "Sections are in the wrong order. Correct order is: {correct_sections}",
     "GL08": "The object does not have a docstring",
     "GL09": "Deprecation warning should precede extended summary",
     "GL10": "reST directives {directives} must be followed by two colons",

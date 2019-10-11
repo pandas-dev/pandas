@@ -672,7 +672,7 @@ class SAS7BDATReader(BaseIterator):
             return True
         elif len(self._cached_page) != self._page_length:
             self.close()
-            msg = "failed to read complete page from file " "(read {:d} of {:d} bytes)"
+            msg = "failed to read complete page from file (read {:d} of {:d} bytes)"
             raise ValueError(msg.format(len(self._cached_page), self._page_length))
 
         self._read_page_header()
