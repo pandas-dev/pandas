@@ -572,23 +572,29 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
         long offset_in_min = 0;
         PyObject *utcoffset = PyObject_CallMethod(_obj, "utcoffset", NULL);
 
-        if (utcoffset == NULL)
-          return NULL;
-        }
-        else if (utcoffset != Py_None) {
-            PyObject *tot_seconds =
-                PyObject_CallMethod(utcoffset, "total_seconds", NULL);
-
-            if (tot_seconds == NULL) {
-                Py_DECREF(utcoffset);
+        if (utcoffset == NULL) {
+            if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                // 'datetime.date' object has no attribute 'utcoffset'
+                PyErr_Clear();
+            } else {
+                // Propogate any other errors
                 return NULL;
             }
+        } else {
+            if (utcoffset != Py_None) {
+                PyObject *tot_seconds =
+                    PyObject_CallMethod(utcoffset, "total_seconds", NULL);
 
-            offset_in_min = PyLong_AsLong(tot_seconds) / 60;
-            Py_DECREF(tot_seconds);
+                if (tot_seconds == NULL) {
+                    Py_DECREF(utcoffset);
+                    return NULL;
+                }
+
+                offset_in_min = PyLong_AsLong(tot_seconds) / 60;
+                Py_DECREF(tot_seconds);
+            }
+            Py_DECREF(utcoffset);
         }
-
-        Py_DECREF(utcoffset);
 
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen,
                                           offset_in_min);
