@@ -100,7 +100,7 @@ class HTMLFormatter(TableFormatter):
         self, s: Any, header: bool = False, indent: int = 0, tags: Optional[str] = None
     ) -> None:
         """
-        Method for writting a formatted <th> cell.
+        Method for writing a formatted <th> cell.
 
         If col_space is set on the formatter then that is used for
         the value of min-width.
@@ -122,8 +122,9 @@ class HTMLFormatter(TableFormatter):
         A written <th> cell.
         """
         if header and self.fmt.col_space is not None:
-            tags = tags or ""
-            tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
+            if self.fmt.col_space_cols is None or s in self.fmt.col_space_cols:
+                tags = tags or ""
+                tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 

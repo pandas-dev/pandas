@@ -533,6 +533,7 @@ class DataFrameFormatter(TableFormatter):
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
         col_space: Optional[Union[str, int]] = None,
+        col_space_cols: Optional[Sequence[str]] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -575,6 +576,7 @@ class DataFrameFormatter(TableFormatter):
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = col_space
+        self.col_space_cols = col_space_cols
         self.header = header
         self.index = index
         self.line_width = line_width
