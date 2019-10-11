@@ -1,7 +1,7 @@
+from typing import List
 import pandas as pd
 from pandas import api, compat
 from pandas.util import testing as tm
-from typing import List
 
 
 class Base:
