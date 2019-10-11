@@ -504,6 +504,16 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced, box)
     )
 
 
+# override parametrization of box to add special case for bytes
+@pytest.mark.parametrize(
+    "box",
+    [
+        (True, None),  # fill_value wrapped in array with auto-dtype (fixed len)
+        (True, "bytes"),  # fill_value wrapped in array with generic bytes-dtype
+        (True, object),  # fill_value wrapped in array with object dtype
+        (False, None),  # fill_value directly
+    ],
+)
 def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype, box):
     dtype = np.dtype(any_numpy_dtype_reduced)
     fill_dtype = np.dtype(bytes_dtype)
