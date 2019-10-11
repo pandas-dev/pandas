@@ -1029,7 +1029,7 @@ class TestValidator:
             (
                 "BadReturns",
                 "no_capitalization",
-                ("Return value description should start with a capital " "letter",),
+                ("Return value description should start with a capital letter",),
             ),
             (
                 "BadReturns",
