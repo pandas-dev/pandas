@@ -1148,7 +1148,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         )
 
         # For EA self.astype('O') returns a numpy array, not an Index
-        left = lib.values_from_object(self.astype("O"))
+        left = self.astype("O")
 
         res_values = op(left, np.array(other))
         kwargs = {}

@@ -4555,10 +4555,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # check if we are a multi reindex
         if self._needs_reindex_multi(axes, method, level):
-            try:
-                return self._reindex_multi(axes, copy, fill_value)
-            except Exception:
-                pass
+            return self._reindex_multi(axes, copy, fill_value)
 
         # perform the reindex on the axes
         return self._reindex_axes(
@@ -5899,7 +5896,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
                     )
                 else:
-                    results.append(results.append(col.copy() if copy else col))
+                    results.append(col.copy() if copy else col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -9065,7 +9062,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
-
                             new_other = com.values_from_object(self)
                             new_other = new_other.copy()
                             new_other[icond] = other

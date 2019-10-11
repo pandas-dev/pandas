@@ -1195,8 +1195,22 @@ class TestHDFStore:
             # read with KeyError before another write
             df.to_hdf(path, "k2")
 
-    def test_append_frame_column_oriented(self, setup_path):
+    def test_read_missing_key_opened_store(self, setup_path):
+        # GH 28699
+        with ensure_clean_path(setup_path) as path:
+            df = pd.DataFrame({"a": range(2), "b": range(2)})
+            df.to_hdf(path, "k1")
 
+            store = pd.HDFStore(path, "r")
+
+            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                pd.read_hdf(store, "k2")
+
+            # Test that the file is still open after a KeyError and that we can
+            # still read from it.
+            pd.read_hdf(store, "k1")
+
+    def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
 
             # column oriented

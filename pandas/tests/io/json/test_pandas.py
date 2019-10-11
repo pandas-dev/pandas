@@ -166,8 +166,7 @@ class TestPandasContainer:
 
         expected = self.frame.copy()
 
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
-            # TODO: debug why sort is required
+        if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
 
         assert_json_roundtrip_equal(result, expected, orient)
@@ -181,7 +180,7 @@ class TestPandasContainer:
             data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
         expected = self.intframe.copy()
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
 
         if (
@@ -216,7 +215,7 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and PY35 and orient in ("index", "columns"):
             expected = expected.sort_index()
 
         if not dtype:
