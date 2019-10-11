@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
@@ -114,8 +113,8 @@ class TestSeriesCombine:
         assert_series_equal(s, result)
 
     def test_update(self):
-        s = Series([1.5, nan, 3.0, 4.0, nan])
-        s2 = Series([nan, 3.5, nan, 5.0])
+        s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
+        s2 = Series([np.nan, 3.5, np.nan, 5.0])
         s.update(s2)
 
         expected = Series([1.5, 3.5, 3.0, 5.0, np.nan])

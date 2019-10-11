@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import isna
-from pandas.core.sparse.api import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 

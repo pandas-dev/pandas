@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas._libs import groupby, lib, reduction as libreduction
@@ -96,7 +95,7 @@ def test_group_ohlc():
 
         def _ohlc(group):
             if isna(group).all():
-                return np.repeat(nan, 4)
+                return np.repeat(np.nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
         expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
@@ -104,9 +103,9 @@ def test_group_ohlc():
         assert_almost_equal(out, expected)
         tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
 
-        obj[:6] = nan
+        obj[:6] = np.nan
         func(out, counts, obj[:, None], labels)
-        expected[0] = nan
+        expected[0] = np.nan
         assert_almost_equal(out, expected)
 
     _check("float32")
