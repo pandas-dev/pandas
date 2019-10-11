@@ -4,11 +4,13 @@ import calendar
 from datetime import datetime, time
 import locale
 
+# https://github.com/python/typeshed/pull/XXXX
+# error: Module 'pytz' has no attribute 'FixedOffset'
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
-import pytz
+from pytz import FixedOffset, timezone, utc as pytz_utc  # type:ignore
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
@@ -267,19 +269,19 @@ class TestTimeConversionFormats:
             [
                 "%Y-%m-%d %H:%M:%S%z",
                 ["2010-01-01 12:00:00+0100"] * 2,
-                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=FixedOffset(60))] * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100"] * 2,
-                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=FixedOffset(60))] * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100"],
                 [
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60)),
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(-60)),
+                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=FixedOffset(60)),
+                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=FixedOffset(-60)),
                 ],
             ],
             [
@@ -287,9 +289,9 @@ class TestTimeConversionFormats:
                 ["2010-01-01 12:00:00 Z", "2010-01-01 12:00:00 Z"],
                 [
                     pd.Timestamp(
-                        "2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)
-                    ),  # pytz coerces to UTC
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)),
+                        "2010-01-01 12:00:00", tzinfo=FixedOffset(0)
+                    ),  # pytz.FixedOffset coerces to UTC
+                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=FixedOffset(0)),
                 ],
             ],
         ],
@@ -613,7 +615,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_tz_pytz(self, cache):
         # see gh-8260
-        us_eastern = pytz.timezone("US/Eastern")
+        us_eastern = timezone("US/Eastern")
         arr = np.array(
             [
                 us_eastern.localize(
@@ -931,8 +933,8 @@ class TestToDatetime:
 
         expected = np.array(
             [
-                datetime(2018, 1, 4, 9, 1, tzinfo=pytz.FixedOffset(540)),
-                datetime(2018, 1, 4, 9, 2, tzinfo=pytz.FixedOffset(540)),
+                datetime(2018, 1, 4, 9, 1, tzinfo=FixedOffset(540)),
+                datetime(2018, 1, 4, 9, 2, tzinfo=FixedOffset(540)),
             ],
             dtype=object,
         )
@@ -1006,7 +1008,7 @@ class TestToDatetime:
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
         expected = DatetimeIndex(
-            [datetime(2018, 3, 1, 12, tzinfo=pytz.FixedOffset(240))] * 2
+            [datetime(2018, 3, 1, 12, tzinfo=FixedOffset(240))] * 2
         )
         tm.assert_index_equal(result, expected)
 
@@ -2079,12 +2081,12 @@ class TestDatetimeParsingWrappers:
         [
             (
                 "2013-01-01 05:45+0545",
-                pytz.FixedOffset(345),
+                FixedOffset(345),
                 "Timestamp('2013-01-01 05:45:00+0545', tz='pytz.FixedOffset(345)')",
             ),
             (
                 "2013-01-01 05:30+0530",
-                pytz.FixedOffset(330),
+                FixedOffset(330),
                 "Timestamp('2013-01-01 05:30:00+0530', tz='pytz.FixedOffset(330)')",
             ),
         ],
@@ -2223,7 +2225,7 @@ class TestOrigin:
     def test_invalid_origins_tzinfo(self):
         # GH16842
         with pytest.raises(ValueError):
-            pd.to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
+            pd.to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz_utc))
 
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
