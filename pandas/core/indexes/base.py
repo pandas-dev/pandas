@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Union
+from typing import TYPE_CHECKING, Sequence, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -83,6 +83,9 @@ from pandas.io.formats.printing import (
     pprint_thing,
 )
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
+
 __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
@@ -129,7 +132,7 @@ def _make_arithmetic_op(op, cls):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
             return NotImplemented
 
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         result = op(Series(self), other)
         if isinstance(result, tuple):
@@ -161,6 +164,9 @@ def _new_Index(cls, d):
 
         return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
+
+
+_IndexT = TypeVar("_IndexT", bound="Index")
 
 
 class Index(IndexOpsMixin, PandasObject):
@@ -928,8 +934,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["copy"])
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+    def copy(self: _IndexT, name=None, deep=False, dtype=None, **kwargs) -> _IndexT:
         if deep:
+            assert self._data is not None
             new_index = self._shallow_copy(self._data.copy())
         else:
             new_index = self._shallow_copy()
@@ -1190,7 +1197,7 @@ class Index(IndexOpsMixin, PandasObject):
         Series : dtype will be based on the type of the Index values.
         """
 
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         if index is None:
             index = self._shallow_copy()
@@ -2289,12 +2296,12 @@ class Index(IndexOpsMixin, PandasObject):
     def __add__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         return Index(Series(self) + other)
 
     def __radd__(self, other):
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         return Index(other + Series(self))
 
@@ -2307,7 +2314,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __rsub__(self, other):
         # wrap Series to ensure we pin name correctly
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         return Index(other - Series(self))
 
@@ -5553,7 +5560,9 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy=False):
+def ensure_index(
+    index_like: Union[Index, ExtensionArray, "Series", Sequence], copy: bool = False
+) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
@@ -5589,8 +5598,15 @@ def ensure_index(index_like, copy=False):
         if copy:
             index_like = index_like.copy()
         return index_like
+    # https://github.com/python/mypy/issues/1424
+    # error: Item "ExtensionArray" of "Union[ExtensionArray, Series, Sequence[Any]]"
+    #  has no attribute "name"  [union-attr]
+    # error: Item "Sequence[Any]" of "Union[ExtensionArray, Series, Sequence[Any]]"
+    #  has no attribute "name"  [union-attr]
     if hasattr(index_like, "name"):
-        return Index(index_like, name=index_like.name, copy=copy)
+        return Index(
+            index_like, name=index_like.name, copy=copy  # type: ignore
+        )
 
     if is_iterator(index_like):
         index_like = list(index_like)
