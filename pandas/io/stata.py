@@ -59,11 +59,11 @@ convert_categoricals : bool, defaults to True
     Read value labels and convert columns to Categorical/Factor variables."""
 
 _encoding_params = """\
-encoding : string, None or encoding
+encoding : str, None or encoding
     Encoding used to parse the files. None defaults to latin-1."""
 
 _statafile_processing_params2 = """\
-index_col : string, optional, default: None
+index_col : str, optional, default: None
     Column to set as index.
 convert_missing : bool, defaults to False
     Flag indicating whether to convert missing values to their Stata
@@ -86,7 +86,7 @@ chunksize : int, default None
     given number of lines."""
 
 _iterator_params = """\
-iterator : boolean, default False
+iterator : bool, default False
     Return StataReader object."""
 
 _read_stata_doc = """
