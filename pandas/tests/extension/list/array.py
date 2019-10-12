@@ -1,4 +1,5 @@
-"""Test extension array for storing nested data in a pandas container.
+"""
+Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
@@ -21,7 +22,8 @@ class ListDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
