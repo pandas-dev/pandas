@@ -360,7 +360,7 @@ def _wrap_results(result, dtype, fill_value=None):
 
             result = tslibs.Timedelta(result, unit="ns")
         else:
-            result = result.astype("i8").view(dtype)
+            result = result.astype("m8[ns]").view(dtype)
 
     return result
 
