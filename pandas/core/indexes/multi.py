@@ -1650,7 +1650,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
         name : list / sequence of strings, optional
