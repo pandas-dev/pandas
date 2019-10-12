@@ -151,6 +151,8 @@ Other API changes
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+  To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
 -
 

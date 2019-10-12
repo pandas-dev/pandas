@@ -263,6 +263,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
+    _deprecations = PandasObject._deprecations | frozenset(["get_values"])
 
     def __init__(
         self,
