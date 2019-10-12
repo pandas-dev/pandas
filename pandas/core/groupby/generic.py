@@ -505,9 +505,7 @@ class SeriesGroupBy(GroupBy):
             indices = [
                 self._get_index(name) for name, group in self if true_and_notna(group)
             ]
-        except ValueError:
-            raise TypeError("the filter must return a boolean result")
-        except TypeError:
+        except (ValueError, TypeError):
             raise TypeError("the filter must return a boolean result")
 
         filtered = self._apply_filter(indices, dropna)
@@ -1052,8 +1050,8 @@ class DataFrameGroupBy(GroupBy):
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
+            cast = self._transform_should_cast(func)
             try:
-                cast = self._transform_should_cast(func)
 
                 result[item] = colg.aggregate(func, *args, **kwargs)
                 if cast:
