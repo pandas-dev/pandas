@@ -50,6 +50,8 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+- :meth:`Dataframe.info` now shows line numbers for the columns summary (:issue:`17304`)
+
 .. _whatsnew_100.string:
 
 Dedicated string data type
