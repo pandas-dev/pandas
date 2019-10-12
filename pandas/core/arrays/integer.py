@@ -629,7 +629,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op_name}__")
+                    method = getattr(
+                        self._data, "__{op_name}__".format(op_name=op_name)
+                    )
                     result = method(other)
 
                     if result is NotImplemented:
