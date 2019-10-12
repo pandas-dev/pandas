@@ -1007,7 +1007,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     Parameters
     ----------
     value : np.array / Series / Index / list-like
-    convert_dates : boolean, default False
+    convert_dates : bool, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
 
@@ -1446,7 +1446,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
         The array to cast.
     dtype : str, np.dtype
         The integer dtype to cast the array to.
-    copy: boolean, default False
+    copy: bool, default False
         Whether to make a copy of the array before returning.
 
     Returns

@@ -669,7 +669,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaT values.
 
         Returns
@@ -727,7 +727,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ----------
         result : a ndarray
         fill_value : object, default iNaT
-        convert : string/dtype or None
+        convert : str, dtype or None
 
         Returns
         -------
@@ -1167,7 +1167,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ----------
         periods : int
             Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
+        freq : pandas.DateOffset, pandas.Timedelta, or str
             Frequency increment to shift by.
         """
         if freq is not None and freq != self.freq:
