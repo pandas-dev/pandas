@@ -175,11 +175,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _metadata = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
-    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = (
-        generic.NDFrame._deprecations
+        base.IndexOpsMixin._deprecations
+        | generic.NDFrame._deprecations
         | DirNamesMixin._deprecations
-        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
+        | frozenset(
+            [
+                "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+                "asobject",
+                "compress",
+                "valid",
+                "ftype",
+                "real",
+                "imag",
+                "put",
+                "ptp",
+                "nonzero",
+            ]
+        )
     )
 
     # Override cache_readonly bc Series is mutable
@@ -2076,12 +2089,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
@@ -2146,12 +2159,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
