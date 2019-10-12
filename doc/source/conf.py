@@ -120,6 +120,9 @@ plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
 import pandas as pd"""
 
+# nbsphinx do not use requirejs (breaks bootstrap)
+nbsphinx_requirejs_path = ""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
 
