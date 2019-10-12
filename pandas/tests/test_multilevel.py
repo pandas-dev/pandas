@@ -1065,6 +1065,22 @@ Thur,Lunch,Yes,51.51,17"""
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
+    def test_series_any_timedelta(self):
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        ex = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, ex)
+
+        result = df.any(axis=1)
+        ex = Series(data=[False, True])
+        tm.assert_series_equal(result, ex)
+
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
             [np.arange(5).repeat(10), np.tile(np.arange(10), 5)]
