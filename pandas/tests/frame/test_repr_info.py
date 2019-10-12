@@ -214,8 +214,7 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(verbose=True, buf=buf)
 
         res = buf.getvalue()
-        header = " #    Column  Dtype  \n" \
-                 "---   ------  -----  "
+        header = " #    Column  Dtype  \n" "---   ------  -----  "
         assert header in res
 
         frame.info(verbose=True, buf=buf)
@@ -309,8 +308,10 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
         df.info(buf=buf)
         res = buf.getvalue()
-        header = " #   Column  Non-Null Count  Dtype          \n" \
-                 "---  ------  --------------  -----          "
+        header = (
+            " #   Column  Non-Null Count  Dtype          \n"
+            "---  ------  --------------  -----          "
+        )
         assert header in res
         for i, dtype in enumerate(dtypes):
             name = " {i:d}   {i:d}       {n:d} non-null     {dtype}".format(
