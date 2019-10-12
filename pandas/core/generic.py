@@ -32,7 +32,11 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+    validate_percentile,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -4551,10 +4555,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # check if we are a multi reindex
         if self._needs_reindex_multi(axes, method, level):
-            try:
-                return self._reindex_multi(axes, copy, fill_value)
-            except Exception:
-                pass
+            return self._reindex_multi(axes, copy, fill_value)
 
         # perform the reindex on the axes
         return self._reindex_axes(
@@ -5895,7 +5896,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
                     )
                 else:
-                    results.append(results.append(col.copy() if copy else col))
+                    results.append(col.copy() if copy else col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -9061,7 +9062,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
-
                             new_other = com.values_from_object(self)
                             new_other = new_other.copy()
                             new_other[icond] = other
@@ -10168,7 +10168,7 @@ class NDFrame(PandasObject, SelectionMixin):
             percentiles = list(percentiles)
 
             # get them all to be in [0, 1]
-            self._check_percentile(percentiles)
+            validate_percentile(percentiles)
 
             # median should always be included
             if 0.5 not in percentiles:
@@ -10271,21 +10271,6 @@ class NDFrame(PandasObject, SelectionMixin):
         d = pd.concat([x.reindex(names, copy=False) for x in ldesc], axis=1, sort=False)
         d.columns = data.columns.copy()
         return d
-
-    def _check_percentile(self, q):
-        """
-        Validate percentiles (used by describe and quantile).
-        """
-
-        msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
-        q = np.asarray(q)
-        if q.ndim == 0:
-            if not 0 <= q <= 1:
-                raise ValueError(msg.format(q / 100.0))
-        else:
-            if not all(0 <= qs <= 1 for qs in q):
-                raise ValueError(msg.format(q / 100.0))
-        return q
 
     _shared_docs[
         "pct_change"

@@ -2,7 +2,6 @@ from itertools import product
 import operator
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas.util._test_decorators as td
@@ -20,6 +19,7 @@ from pandas import (
 from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -228,14 +228,75 @@ class TestSeriesAnalytics:
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
-    def test_npdiff(self):
+    def test_np_diff(self):
         pytest.skip("skipping due to Series no longer being an ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
 
         r = np.diff(s)
-        assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+        assert_series_equal(Series([np.nan, 0, 0, 0, np.nan]), r)
+
+    def test_int_diff(self):
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        result = s.diff()
+        assert result[1] == 1
+
+    def test_tz_diff(self):
+        # Combined datetime diff, normal diff and boolean diff test
+        ts = tm.makeTimeSeries(name="ts")
+        ts.diff()
+
+        # neg n
+        result = ts.diff(-1)
+        expected = ts - ts.shift(-1)
+        assert_series_equal(result, expected)
+
+        # 0
+        result = ts.diff(0)
+        expected = ts - ts
+        assert_series_equal(result, expected)
+
+        # datetime diff (GH3100)
+        s = Series(date_range("20130102", periods=5))
+        result = s.diff()
+        expected = s - s.shift(1)
+        assert_series_equal(result, expected)
+
+        # timedelta diff
+        result = result - result.shift(1)  # previous result
+        expected = expected.diff()  # previously expected
+        assert_series_equal(result, expected)
+
+        # with tz
+        s = Series(
+            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
+        )
+        result = s.diff()
+        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input,output,diff",
+        [([False, True, True, False, False], [np.nan, True, False, True, False], 1)],
+    )
+    def test_bool_diff(self, input, output, diff):
+        # boolean series (test for fixing #17294)
+        s = Series(input)
+        result = s.diff()
+        expected = Series(output)
+        assert_series_equal(result, expected)
+
+    def test_obj_diff(self):
+        # object series
+        s = Series([False, True, 5.0, np.nan, True, False])
+        result = s.diff()
+        expected = s - s.shift(1)
+        assert_series_equal(result, expected)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
@@ -476,14 +537,14 @@ class TestSeriesAnalytics:
 
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
-        mi = MultiIndex.from_arrays([list("aabbcc"), [1, 2, 2, nan, 1, 2]])
+        mi = MultiIndex.from_arrays([list("aabbcc"), [1, 2, 2, np.nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
 
         left = ts.count(level=1)
-        right = Series([2, 3, 1], index=[1, 2, nan])
+        right = Series([2, 3, 1], index=[1, 2, np.nan])
         assert_series_equal(left, right)
 
-        ts.iloc[[0, 3, 5]] = nan
+        ts.iloc[[0, 3, 5]] = np.nan
         assert_series_equal(ts.count(level=1), right - 1)
 
     def test_dot(self):
@@ -708,11 +769,11 @@ class TestSeriesAnalytics:
             result = getattr(s, method)()
             assert_series_equal(result, expected)
 
-        e = pd.Series([False, True, nan, False])
-        cse = pd.Series([0, 1, nan, 1], dtype=object)
-        cpe = pd.Series([False, 0, nan, 0])
-        cmin = pd.Series([False, False, nan, False])
-        cmax = pd.Series([False, True, nan, True])
+        e = pd.Series([False, True, np.nan, False])
+        cse = pd.Series([0, 1, np.nan, 1], dtype=object)
+        cpe = pd.Series([False, 0, np.nan, 0])
+        cmin = pd.Series([False, False, np.nan, False])
+        cmax = pd.Series([False, True, np.nan, True])
         expecteds = {"cumsum": cse, "cumprod": cpe, "cummin": cmin, "cummax": cmax}
 
         for method in methods:
@@ -980,7 +1041,6 @@ class TestSeriesAnalytics:
         assert_index_equal(s.values.categories, sn2.values.categories)
 
     def test_unstack(self):
-        from numpy import nan
 
         index = MultiIndex(
             levels=[["bar", "foo"], ["one", "three", "two"]],
@@ -991,7 +1051,7 @@ class TestSeriesAnalytics:
         unstacked = s.unstack()
 
         expected = DataFrame(
-            [[2.0, nan, 3.0], [0.0, 1.0, nan]],
+            [[2.0, np.nan, 3.0], [0.0, 1.0, np.nan]],
             index=["bar", "foo"],
             columns=["one", "three", "two"],
         )
@@ -1018,7 +1078,9 @@ class TestSeriesAnalytics:
         idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
         ts = pd.Series([1, 2], index=idx)
         left = ts.unstack()
-        right = DataFrame([[nan, 1], [2, nan]], index=[101, 102], columns=[nan, 3.5])
+        right = DataFrame(
+            [[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5]
+        )
         assert_frame_equal(left, right)
 
         idx = pd.MultiIndex.from_arrays(
@@ -1030,9 +1092,10 @@ class TestSeriesAnalytics:
         )
         ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
         right = DataFrame(
-            [[1.0, 1.3], [1.1, nan], [nan, 1.4], [1.2, nan]], columns=["cat", "dog"]
+            [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]],
+            columns=["cat", "dog"],
         )
-        tpls = [("a", 1), ("a", 2), ("b", nan), ("b", 1)]
+        tpls = [("a", 1), ("a", 2), ("b", np.nan), ("b", 1)]
         right.index = pd.MultiIndex.from_tuples(tpls)
         assert_frame_equal(ts.unstack(level=0), right)
 

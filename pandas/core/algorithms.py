@@ -180,13 +180,13 @@ def _reconstruct_data(values, dtype, original):
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndexClass):
-            values = values.astype(object)
+            values = values.astype(object, copy=False)
     elif dtype is not None:
-        values = values.astype(dtype)
+        values = values.astype(dtype, copy=False)
 
     return values
 
@@ -246,7 +246,6 @@ def _get_hashtable_algo(values):
 
 
 def _get_data_algo(values, func_map):
-
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
@@ -297,7 +296,6 @@ def match(to_match, values, na_sentinel=-1):
     result = table.lookup(to_match)
 
     if na_sentinel != -1:
-
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
@@ -398,7 +396,7 @@ def unique(values):
 
     table = htable(len(values))
     uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
     return uniques
 
 
@@ -1163,7 +1161,6 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-
             reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
             slc = np.s_[::-1] if reverse_it else np.s_[:]
@@ -1910,6 +1907,7 @@ def diff(arr, n: int, axis: int = 0):
     dtype = arr.dtype
 
     is_timedelta = False
+    is_bool = False
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view("i8")
@@ -1918,6 +1916,7 @@ def diff(arr, n: int, axis: int = 0):
 
     elif is_bool_dtype(dtype):
         dtype = np.object_
+        is_bool = True
 
     elif is_integer_dtype(dtype):
         dtype = np.float64
@@ -1959,6 +1958,8 @@ def diff(arr, n: int, axis: int = 0):
             result = res - lag
             result[mask] = na
             out_arr[res_indexer] = result
+        elif is_bool:
+            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 

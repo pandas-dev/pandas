@@ -19,9 +19,9 @@ from .common import Base
 class TestCategoricalIndex(Base):
     _holder = CategoricalIndex
 
-    def setup_method(self, method):
-        self.indices = dict(catIndex=tm.makeCategoricalIndex(100))
-        self.setup_indices()
+    @pytest.fixture
+    def indices(self, request):
+        return tm.makeCategoricalIndex(100)
 
     def create_index(self, categories=None, ordered=False):
         if categories is None:
@@ -780,7 +780,7 @@ class TestCategoricalIndex(Base):
         assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
-    def test_ensure_copied_data(self):
+    def test_ensure_copied_data(self, indices):
         # gh-12309: Check the "copy" argument of each
         # Index.__new__ is honored.
         #
@@ -788,13 +788,12 @@ class TestCategoricalIndex(Base):
         # self.value is not an ndarray.
         _base = lambda ar: ar if ar.base is None else ar.base
 
-        for index in self.indices.values():
-            result = CategoricalIndex(index.values, copy=True)
-            tm.assert_index_equal(index, result)
-            assert _base(index.values) is not _base(result.values)
+        result = CategoricalIndex(indices.values, copy=True)
+        tm.assert_index_equal(indices, result)
+        assert _base(indices.values) is not _base(result.values)
 
-            result = CategoricalIndex(index.values, copy=False)
-            assert _base(index.values) is _base(result.values)
+        result = CategoricalIndex(indices.values, copy=False)
+        assert _base(indices.values) is _base(result.values)
 
     def test_equals_categorical(self):
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
