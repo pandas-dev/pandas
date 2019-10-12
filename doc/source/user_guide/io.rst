@@ -5593,12 +5593,12 @@ Given the next test set:
 
 .. code-block:: python
 
-    from numpy.random import randn
-    from numpy.random import seed
+
+    import numpy as np
 
     sz = 1000000
-    seed(42)
-    df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+    np.random.seed(42)
+    df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
     def test_sql_write(df):
         if os.path.exists('test.sql'):
