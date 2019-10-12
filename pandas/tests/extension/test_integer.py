@@ -168,6 +168,15 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
+    def test_can_compare_to_string(self):
+        # GH 28930
+        s = pd.Series([0, None], dtype="Int64")
+
+        result = s == "a"
+        expected = pd.Series([False, False])
+
+        self.assert_series_equal(result, expected)
+
 
 class TestInterface(base.BaseInterfaceTests):
     pass
