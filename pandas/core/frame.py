@@ -14,7 +14,20 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -23,7 +36,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -114,7 +127,7 @@ from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
 
-_DFT = TypeVar("_DFT", bound="DataFrame")
+_DataFrameT = TypeVar("_DataFrameT", bound="DataFrame")
 
 
 # ---------------------------------------------------------------------
@@ -928,7 +941,9 @@ class DataFrame(NDFrame):
             s = klass(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index=True, name="Pandas"):
+    def itertuples(
+        self, index: bool = True, name: Optional[str] = "Pandas"
+    ) -> Iterable:
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -1002,7 +1017,11 @@ class DataFrame(NDFrame):
 
         # Python 3 supports at most 255 arguments to constructor
         if name is not None and len(self.columns) + index < 256:
-            itertuple = collections.namedtuple(name, fields, rename=True)
+            # https://github.com/python/mypy/issues/848
+            # error: namedtuple() expects a string literal as the first argument  [misc]
+            itertuple = collections.namedtuple(  # type: ignore
+                name, fields, rename=True
+            )
             return map(itertuple._make, zip(*arrays))
 
         # fallback to regular tuples
@@ -2054,7 +2073,11 @@ class DataFrame(NDFrame):
                 raise ValueError("strl support is only available when using format 117")
             from pandas.io.stata import StataWriter as statawriter
         else:
-            from pandas.io.stata import StataWriter117 as statawriter
+            # https://github.com/python/mypy/issues/1153
+            # error: Name 'statawriter' already defined (possibly by an import)
+            from pandas.io.stata import (  # type: ignore
+                StataWriter117 as statawriter,
+            )
 
             kwargs["convert_strl"] = convert_strl
 
@@ -2455,6 +2478,7 @@ class DataFrame(NDFrame):
 
                 count = ""
                 if show_counts:
+                    assert counts is not None
                     count = counts.iloc[i]
 
                 lines.append(
@@ -2706,38 +2730,6 @@ class DataFrame(NDFrame):
         return super().transpose(1, 0, **kwargs)
 
     T = property(transpose)
-
-    # ----------------------------------------------------------------------
-    # Picklability
-
-    # legacy pickle formats
-    def _unpickle_frame_compat(self, state):  # pragma: no cover
-        if len(state) == 2:  # pragma: no cover
-            series, idx = state
-            columns = sorted(series)
-        else:
-            series, cols, idx = state
-            columns = com._unpickle_array(cols)
-
-        index = com._unpickle_array(idx)
-        self._data = self._init_dict(series, index, columns, None)
-
-    def _unpickle_matrix_compat(self, state):  # pragma: no cover
-        # old unpickling
-        (vals, idx, cols), object_state = state
-
-        index = com._unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols), copy=False)
-
-        if object_state is not None:
-            ovals, _, ocols = object_state
-            objects = DataFrame(
-                ovals, index=index, columns=com._unpickle_array(ocols), copy=False
-            )
-
-            dm = dm.join(objects)
-
-        self._data = dm._data
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -3489,7 +3481,7 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(column, value, broadcast=False)
         self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
-    def assign(self, **kwargs):
+    def assign(self: _DataFrameT, **kwargs) -> _DataFrameT:
         r"""
         Assign new columns to a DataFrame.
 
@@ -3515,16 +3507,10 @@ class DataFrame(NDFrame):
         Notes
         -----
         Assigning multiple columns within the same ``assign`` is possible.
-        For Python 3.6 and above, later items in '\*\*kwargs' may refer to
-        newly created or modified columns in 'df'; items are computed and
-        assigned into 'df' in order.  For Python 3.5 and below, the order of
-        keyword arguments is not specified, you cannot refer to newly created
-        or modified columns. All items are computed first, and then assigned
-        in alphabetical order.
 
         .. versionchanged:: 0.23.0
 
-           Keyword argument order is maintained for Python 3.6 and later.
+           Keyword argument order is maintained.
 
         Examples
         --------
@@ -3550,7 +3536,7 @@ class DataFrame(NDFrame):
         Portland    17.0    62.6
         Berkeley    25.0    77.0
 
-        In Python 3.6+, you can create multiple columns within the same assign
+        It is possible to create multiple columns within the same assign
         where one of the columns depends on another one defined within the same
         assign:
 
@@ -3562,21 +3548,8 @@ class DataFrame(NDFrame):
         """
         data = self.copy()
 
-        # >= 3.6 preserve order of kwargs
-        if PY36:
-            for k, v in kwargs.items():
-                data[k] = com.apply_if_callable(v, data)
-        else:
-            # <= 3.5: do all calculations first...
-            results = OrderedDict()
-            for k, v in kwargs.items():
-                results[k] = com.apply_if_callable(v, data)
-
-            # <= 3.5 and earlier
-            results = sorted(results.items())
-            # ... and then assign
-            for k, v in results:
-                data[k] = v
+        for k, v in kwargs.items():
+            data[k] = com.apply_if_callable(v, data)
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -4146,7 +4119,6 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
     ):
         return super().fillna(
             value=value,
@@ -4155,7 +4127,6 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -4285,7 +4256,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
-        missing = []
+        missing: List = []
         for col in keys:
             if isinstance(
                 col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
@@ -4315,7 +4286,7 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
-        names = []
+        names: List = []
         if append:
             names = [x for x in self.index.names]
             if isinstance(self.index, ABCMultiIndex):
@@ -4324,7 +4295,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(self.index)
 
-        to_remove = []
+        to_remove: List = []
         for col in keys:
             if isinstance(col, ABCMultiIndex):
                 for n in range(col.nlevels):
@@ -4558,7 +4529,9 @@ class DataFrame(NDFrame):
                         values, changed = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
+                        # TODO: DatetimeLikeArray is a mixin not a base class
+                        # error: Too many arguments for "DatetimeLikeArrayMixin"
+                        values = values_type(values, dtype=values_dtype)  # type: ignore
 
             return values
 
@@ -4571,6 +4544,7 @@ class DataFrame(NDFrame):
                 new_index = self.index.droplevel(level)
 
         if not drop:
+            to_insert: Iterable[Tuple[Any, Any]]
             if isinstance(self.index, ABCMultiIndex):
                 names = [
                     n if n is not None else ("level_%d" % i)
@@ -7022,7 +6996,7 @@ class DataFrame(NDFrame):
 
         from pandas.core.reshape.concat import concat
 
-        if isinstance(other, (list, tuple)):
+        if isinstance(other, list):
             to_concat = [self] + other
         else:
             to_concat = [self, other]
@@ -7034,14 +7008,14 @@ class DataFrame(NDFrame):
         )
 
     def join(
-        self: _DFT,
+        self: _DataFrameT,
         other,
         on=None,
         how: str = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
-    ) -> _DFT:
+    ) -> _DataFrameT:
         """
         Join columns of another DataFrame.
 
@@ -8410,7 +8384,7 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data: Dict = OrderedDict()
     for index, s in data.items():
         for col, v in s.items():
             new_data[col] = new_data.get(col, OrderedDict())
