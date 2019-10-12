@@ -683,7 +683,7 @@ class SQLTable(PandasObject):
 
     def _execute_upsert_update(self):
         """Execute an SQL UPSERT, and in cases of key clashes,
-        over-write records in the Database with incoming records.
+        overwrite records in the Database with incoming records.
         """
         pass
 
@@ -704,6 +704,7 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
+        # TODO: column_names by list comprehension?
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
