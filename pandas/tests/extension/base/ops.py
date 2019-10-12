@@ -1,4 +1,5 @@
 import operator
+from typing import Type, Union
 
 import pytest
 
@@ -61,10 +62,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc = TypeError
-    frame_scalar_exc = TypeError
-    series_array_exc = TypeError
-    divmod_exc = TypeError
+    series_scalar_exc = TypeError  # type: Union[Type[Exception], None]
+    frame_scalar_exc = TypeError  # type: Union[Type[Exception], None]
+    series_array_exc = TypeError  # type: Union[Type[Exception], None]
+    divmod_exc = TypeError  # type: Union[Type[Exception], None]
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
