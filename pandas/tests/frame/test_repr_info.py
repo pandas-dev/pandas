@@ -208,11 +208,17 @@ class TestDataFrameReprInfoEtc(TestData):
 
     def test_info_verbose(self):
         buf = StringIO()
-        size = 5
+        size = 1001
         start = 5
         frame = DataFrame(np.random.randn(3, size))
         frame.info(verbose=True, buf=buf)
 
+        res = buf.getvalue()
+        header = " #    Column  Dtype  \n" \
+                 "---   ------  -----  "
+        assert header in res
+
+        frame.info(verbose=True, buf=buf)
         buf.seek(0)
         lines = buf.readlines()
         assert len(lines) > 0
@@ -303,6 +309,9 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
         df.info(buf=buf)
         res = buf.getvalue()
+        header = " #   Column  Non-Null Count  Dtype          \n" \
+                 "---  ------  --------------  -----          "
+        assert header in res
         for i, dtype in enumerate(dtypes):
             name = " {i:d}   {i:d}       {n:d} non-null     {dtype}".format(
                 i=i, n=n, dtype=dtype
