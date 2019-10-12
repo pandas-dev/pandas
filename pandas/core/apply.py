@@ -398,15 +398,11 @@ class FrameRowApply(FrameApply):
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
-            try:
+            if len(result.index) == len(self.res_columns):
                 result.index = self.res_columns
-            except ValueError:
-                pass
 
-        try:
+        if len(result.columns) == len(self.res_index):
             result.columns = self.res_index
-        except ValueError:
-            pass
 
         return result
 
