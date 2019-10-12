@@ -1025,7 +1025,7 @@ class HDFStore:
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
                        / selecting subsets of the data
-        append       : boolean, default True, append the input data to the
+        append       : bool, default True, append the input data to the
             existing
         data_columns :  list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
@@ -1037,7 +1037,7 @@ class HDFStore:
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : boolean, default False, do not write an ALL nan row to
+        dropna       : bool, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
 
         Notes
