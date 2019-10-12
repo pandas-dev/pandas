@@ -2035,7 +2035,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
             values = b.values
             if copy:
                 values = values.copy()
-            elif not copy:
+            else:
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif is_uniform_join_units(join_units):

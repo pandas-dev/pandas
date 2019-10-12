@@ -592,13 +592,7 @@ class TestAsOfMerge:
 
     @pytest.mark.parametrize(
         "tolerance",
-        [
-            Timedelta("1day"),
-            pytest.param(
-                datetime.timedelta(days=1),
-                marks=pytest.mark.xfail(reason="not implemented", strict=True),
-            ),
-        ],
+        [Timedelta("1day"), datetime.timedelta(days=1)],
         ids=["pd.Timedelta", "datetime.timedelta"],
     )
     def test_tolerance(self, tolerance):
@@ -1292,4 +1286,20 @@ class TestAsOfMerge:
             left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
         )
 
+        assert_frame_equal(result, expected)
+
+    def test_int_type_tolerance(self, any_int_dtype):
+        # GH #28870
+
+        left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
+        right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
+        left["a"] = left["a"].astype(any_int_dtype)
+        right["a"] = right["a"].astype(any_int_dtype)
+
+        expected = pd.DataFrame(
+            {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
+        )
+        expected["a"] = expected["a"].astype(any_int_dtype)
+
+        result = pd.merge_asof(left, right, on="a", tolerance=10)
         assert_frame_equal(result, expected)

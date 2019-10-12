@@ -519,7 +519,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)
-            except Exception:
+            except (ValueError, OverflowError):
                 raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)

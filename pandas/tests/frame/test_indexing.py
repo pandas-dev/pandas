@@ -2145,13 +2145,6 @@ class TestDataFrameIndexing(TestData):
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        df = SparseDataFrame({"A": [999, 1]}, default_fill_value=999)
-        assert len(df["A"].sp_values) == len(df.iloc[:, 0].sp_values)
-
     def test_iat(self, float_frame):
 
         for i, row in enumerate(float_frame.index):
@@ -2223,6 +2216,22 @@ class TestDataFrameIndexing(TestData):
         mask = com.isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
+
+    def test_reindex_limit(self):
+        # GH 28631
+        data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]
+        exp_data = [
+            ["A", "A", "A"],
+            ["B", "B", "B"],
+            ["C", "C", "C"],
+            ["D", "D", "D"],
+            ["D", "D", "D"],
+            [np.nan, np.nan, np.nan],
+        ]
+        df = DataFrame(data)
+        result = df.reindex([0, 1, 2, 3, 4, 5], method="ffill", limit=1)
+        expected = DataFrame(exp_data)
+        tm.assert_frame_equal(result, expected)
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])

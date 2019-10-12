@@ -30,6 +30,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -39,9 +40,9 @@ from pandas.tseries.frequencies import to_offset
 
 class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not not re-boxed in an Index
+    # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
-    # which we we dont' want to expose in the .dt accessor.
+    # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
     _delegated_methods = TimedeltaArray._datetimelike_methods + [
@@ -173,6 +174,9 @@ class TimedeltaIndex(
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
+    sum = ea_passthrough(TimedeltaArray.sum)
+    std = ea_passthrough(TimedeltaArray.std)
+    median = ea_passthrough(TimedeltaArray.median)
 
     # -------------------------------------------------------------------
     # Constructors
@@ -717,17 +721,17 @@ def timedelta_range(
 
     Parameters
     ----------
-    start : string or timedelta-like, default None
+    start : str or timedelta-like, default None
         Left bound for generating timedeltas
-    end : string or timedelta-like, default None
+    end : str or timedelta-like, default None
         Right bound for generating timedeltas
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D'
+    freq : str or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'
-    name : string, default None
+    name : str, default None
         Name of the resulting TimedeltaIndex
-    closed : string, default None
+    closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 

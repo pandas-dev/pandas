@@ -204,26 +204,31 @@ class FrameApply:
         from pandas import Series
 
         if not should_reduce:
-
-            EMPTY_SERIES = Series([])
             try:
-                r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
+                r = self.f(Series([]))
             except Exception:
                 pass
             else:
                 should_reduce = not isinstance(r, Series)
 
         if should_reduce:
-            return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
+            if len(self.agg_axis):
+                r = self.f(Series([]))
+            else:
+                r = np.nan
+
+            return self.obj._constructor_sliced(r, index=self.agg_axis)
         else:
             return self.obj.copy()
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-
         try:
             result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except Exception:
+        except ValueError as err:
+            if "Function does not reduce" not in str(err):
+                # catch only ValueError raised intentionally in libreduction
+                raise
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -270,24 +275,38 @@ class FrameApply:
         if (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_type).any()
+            # Disallow complex_internals since libreduction shortcut
+            #  cannot handle MultiIndex
+            and not self.agg_axis._has_complex_internals
         ):
-
-            # Create a dummy Series from an empty array
-            from pandas import Series
 
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
             empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
+
+            # Preserve subclass for e.g. test_subclassed_apply
+            dummy = self.obj._constructor_sliced(
+                empty_arr, index=index, dtype=values.dtype
+            )
 
             try:
                 result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-                return self.obj._constructor_sliced(result, index=labels)
-            except Exception:
+            except ValueError as err:
+                if "Function does not reduce" not in str(err):
+                    # catch only ValueError raised intentionally in libreduction
+                    raise
+            except TypeError:
+                # e.g. test_apply_ignore_failures we just ignore
+                if not self.ignore_failures:
+                    raise
+            except ZeroDivisionError:
+                # reached via numexpr; fall back to python implementation
                 pass
+            else:
+                return self.obj._constructor_sliced(result, index=labels)
 
         # compute the result using the series generator
         self.apply_series_generator()
@@ -322,13 +341,15 @@ class FrameApply:
                 for i, v in enumerate(series_gen):
                     results[i] = self.f(v)
                     keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
+            except Exception as err:
+                if hasattr(err, "args"):
 
                     # make sure i is defined
                     if i is not None:
                         k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
+                        err.args = err.args + (
+                            "occurred at index %s" % pprint_thing(k),
+                        )
                 raise
 
         self.results = results
@@ -339,7 +360,7 @@ class FrameApply:
         results = self.results
 
         # see if we can infer the results
-        if len(results) > 0 and is_sequence(results[0]):
+        if len(results) > 0 and 0 in results and is_sequence(results[0]):
 
             return self.wrap_results_for_axis()
 
@@ -375,15 +396,11 @@ class FrameRowApply(FrameApply):
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
-            try:
+            if len(result.index) == len(self.res_columns):
                 result.index = self.res_columns
-            except ValueError:
-                pass
 
-        try:
+        if len(result.columns) == len(self.res_index):
             result.columns = self.res_index
-        except ValueError:
-            pass
 
         return result
 
