@@ -608,7 +608,7 @@ class TestGetDummies:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("values", ["baz", "zoo"])
+    @pytest.mark.parametrize("values", ["baz"])
     def test_get_dummies_with_string_values(self, values):
         # issue #28383
         df = pd.DataFrame(
