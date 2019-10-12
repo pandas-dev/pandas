@@ -681,6 +681,18 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(data))
 
+    def _execute_upsert_update(self):
+        """Execute an SQL UPSERT, and in cases of key clashes,
+        over-write records in the Database with incoming records.
+        """
+        pass
+
+    def _execute_upsert_ignore(self):
+        """Execute an SQL UPSERT, and in cases of key clashes,
+        keep records in the Database, and ignore incoming records.
+        """
+        pass
+
     def insert_data(self):
         if self.index is not None:
             temp = self.frame.copy()
@@ -728,6 +740,10 @@ class SQLTable(PandasObject):
             exec_insert = self._execute_insert
         elif method == "multi":
             exec_insert = self._execute_insert_multi
+        elif method == "upsert_update":
+            raise NotImplementedError
+        elif method == "upsert_ignore":
+            raise NotImplementedError
         elif callable(method):
             exec_insert = partial(method, self)
         else:
