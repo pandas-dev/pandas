@@ -658,9 +658,7 @@ class BusinessHourMixin(BusinessMixin):
 
         # Validation of input
         if len(start) != len(end):
-            raise ValueError(
-                "number of starting time and ending time " "must be the same"
-            )
+            raise ValueError("number of starting time and ending time must be the same")
         num_openings = len(start)
 
         # sort starting and ending time by starting time
@@ -2242,7 +2240,7 @@ class FY5253(DateOffset):
             variation = "last"
         else:
             raise ValueError(
-                "Unable to parse varion_code: " "{code}".format(code=varion_code)
+                "Unable to parse varion_code: {code}".format(code=varion_code)
             )
 
         startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
@@ -2557,7 +2555,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
         if normalize:
             raise ValueError(
-                "Tick offset with `normalize=True` are not " "allowed."
+                "Tick offset with `normalize=True` are not allowed."
             )  # GH#21427
 
     __gt__ = _tick_comp(operator.gt)

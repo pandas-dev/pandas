@@ -16,6 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
@@ -566,25 +567,27 @@ class SelectionMixin:
         # degenerate case
         if obj.ndim == 1:
             for a in arg:
+                colg = self._gotitem(obj.name, ndim=1, subset=obj)
                 try:
-                    colg = self._gotitem(obj.name, ndim=1, subset=obj)
-                    results.append(colg.aggregate(a))
+                    new_res = colg.aggregate(a)
 
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
                 except (TypeError, DataError):
                     pass
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
 
         # multiples
         else:
             for index, col in enumerate(obj):
+                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
-                    results.append(colg.aggregate(arg))
-                    keys.append(col)
+                    new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
                 except ValueError:
@@ -592,6 +595,9 @@ class SelectionMixin:
                     continue
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+                    keys.append(col)
 
         # if we are empty
         if not len(results):
@@ -604,7 +610,6 @@ class SelectionMixin:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
 
-            from pandas.core.dtypes.cast import is_nested_object
             from pandas import Series
 
             result = Series(results, index=keys, name=self.name)
@@ -648,6 +653,7 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
+    _deprecations = frozenset(["item"])
 
     def transpose(self, *args, **kwargs):
         """
