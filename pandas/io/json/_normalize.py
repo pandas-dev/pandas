@@ -114,7 +114,7 @@ def nested_to_record(
 def json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
     errors: Optional[str] = "raise",
@@ -273,21 +273,21 @@ def json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta = [m if isinstance(m, list) else [m] for m in meta]
+    meta_ = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records = []  # type: List
     lengths = []
 
     meta_vals = defaultdict(list)  # type: DefaultDict
-    meta_keys = [sep.join(val) for val in meta]
+    meta_keys = [sep.join(val) for val in meta_]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(meta_, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -304,7 +304,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(meta_, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
