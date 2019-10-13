@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from typing import Optional, Type
 
 from pandas import IntervalIndex, Series, date_range
 from pandas.tests.indexes.common import Base
@@ -12,7 +13,7 @@ class TestBase(Base):
     in test_interval.py or the specific test file (e.g. test_astype.py)
     """
 
-    _holder = IntervalIndex
+    _holder = IntervalIndex # type: Optional[Type[IntervalIndex]]
 
     @pytest.fixture
     def indices(self):
