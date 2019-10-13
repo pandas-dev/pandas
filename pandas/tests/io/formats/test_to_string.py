@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 def test_to_string_encoding(float_frame,):
     # GH 28766
     path = "test_to_string_file"
