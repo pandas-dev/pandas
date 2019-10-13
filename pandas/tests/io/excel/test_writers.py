@@ -31,6 +31,27 @@ def path(ext):
     with ensure_clean(ext) as file_path:
         yield file_path
 
+@pytest.fixture
+def set_engine(engine, ext):
+        """Fixture to set engine for use in each test case.
+
+        Rather than requiring `engine=...` to be provided explicitly as an
+        argument in each test, this fixture sets a global option to dictate
+        which engine should be used to write Excel files. After executing
+        the test it rolls back said change to the global option.
+
+        Notes
+        -----
+        This fixture will run as part of each test method defined in the
+        class and any subclasses, on account of the `autouse=True`
+        argument
+        """
+        option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
+        prev_engine = get_option(option_name)
+        set_option(option_name, engine)
+        yield
+        set_option(option_name, prev_engine)  # Roll back option change
+
 
 @td.skip_if_no("xlrd")
 @pytest.mark.parametrize("ext", [".xls", ".xlsx", ".xlsm"])
@@ -251,29 +272,8 @@ class TestRoundTrip:
         pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
     ],
 )
+@pytest.mark.usefixtures("set_engine")
 class TestExcelWriter:
-    # Base class for test cases to run with different Excel writers.
-    @pytest.fixture(autouse=True)
-    def set_engine(self, engine, ext):
-        """Fixture to set engine for use in each test case.
-
-        Rather than requiring `engine=...` to be provided explicitly as an
-        argument in each test, this fixture sets a global option to dictate
-        which engine should be used to write Excel files. After executing
-        the test it rolls back said change to the global option.
-
-        Notes
-        -----
-        This fixture will run as part of each test method defined in the
-        class and any subclasses, on account of the `autouse=True`
-        argument
-        """
-        option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
-        prev_engine = get_option(option_name)
-        set_option(option_name, engine)
-        yield
-        set_option(option_name, prev_engine)  # Roll back option change
-
     def test_excel_sheet_size(self, path):
 
         # GH 26080
