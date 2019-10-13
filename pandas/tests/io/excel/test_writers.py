@@ -26,7 +26,8 @@ from pandas.io.excel import (
 
 @pytest.fixture
 def path(ext):
-    """Fixture to open file for use in each test case.
+    """
+    Fixture to open file for use in each test case.
     """
     with ensure_clean(ext) as file_path:
         yield file_path
@@ -34,13 +35,14 @@ def path(ext):
 
 @pytest.fixture
 def set_engine(engine, ext):
-    """Fixture to set engine for use in each test case.
+    """
+    Fixture to set engine for use in each test case.
 
-        Rather than requiring `engine=...` to be provided explicitly as an
-        argument in each test, this fixture sets a global option to dictate
-        which engine should be used to write Excel files. After executing
-        the test it rolls back said change to the global option.
-        """
+    Rather than requiring `engine=...` to be provided explicitly as an
+    argument in each test, this fixture sets a global option to dictate
+    which engine should be used to write Excel files. After executing
+    the test it rolls back said change to the global option.
+    """
     option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
     prev_engine = get_option(option_name)
     set_option(option_name, engine)
