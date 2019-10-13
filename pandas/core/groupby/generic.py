@@ -505,9 +505,7 @@ class SeriesGroupBy(GroupBy):
             indices = [
                 self._get_index(name) for name, group in self if true_and_notna(group)
             ]
-        except ValueError:
-            raise TypeError("the filter must return a boolean result")
-        except TypeError:
+        except (ValueError, TypeError):
             raise TypeError("the filter must return a boolean result")
 
         filtered = self._apply_filter(indices, dropna)
@@ -971,6 +969,18 @@ class DataFrameGroupBy(GroupBy):
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
+
+                    if result.ndim == 1 and isinstance(result, np.ndarray):
+                        # e.g. block.values was an IntegerArray
+                        try:
+                            # Cast back if feasible
+                            result = type(block.values)._from_sequence(
+                                result, dtype=block.values.dtype
+                            )
+                        except ValueError:
+                            # reshape to be valid for non-Extension Block
+                            result = result.reshape(1, -1)
+
                     newb = block.make_block(result)
 
             new_items.append(locs)
@@ -1040,8 +1050,8 @@ class DataFrameGroupBy(GroupBy):
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
+            cast = self._transform_should_cast(func)
             try:
-                cast = self._transform_should_cast(func)
 
                 result[item] = colg.aggregate(func, *args, **kwargs)
                 if cast:

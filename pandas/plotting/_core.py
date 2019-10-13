@@ -685,7 +685,7 @@ class PlotAccessor(PandasObject):
         else:
             raise TypeError(
                 (
-                    "Called plot accessor for type {}, expected " "Series or DataFrame"
+                    "Called plot accessor for type {}, expected Series or DataFrame"
                 ).format(type(data).__name__)
             )
 
@@ -740,7 +740,7 @@ class PlotAccessor(PandasObject):
                 return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)
             else:
                 raise ValueError(
-                    ("plot kind {} can only be used for " "data frames").format(kind)
+                    ("plot kind {} can only be used for data frames").format(kind)
                 )
         elif kind in self._series_kinds:
             if isinstance(data, ABCDataFrame):

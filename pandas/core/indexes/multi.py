@@ -229,6 +229,10 @@ class MultiIndex(Index):
     of the mentioned helper methods.
     """
 
+    _deprecations = Index._deprecations | frozenset(
+        ["labels", "set_labels", "to_hierarchical"]
+    )
+
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
     _names = FrozenList()
@@ -638,7 +642,7 @@ class MultiIndex(Index):
 
     @property
     def _values(self):
-        # We override here, since our parent uses _data, which we dont' use.
+        # We override here, since our parent uses _data, which we don't use.
         return self.values
 
     @property
