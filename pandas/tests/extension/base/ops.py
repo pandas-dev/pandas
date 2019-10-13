@@ -1,5 +1,5 @@
 import operator
-from typing import Type, Union
+from typing import Optional, Type
 
 import pytest
 
