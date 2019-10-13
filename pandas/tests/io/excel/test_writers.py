@@ -31,9 +31,10 @@ def path(ext):
     with ensure_clean(ext) as file_path:
         yield file_path
 
+
 @pytest.fixture
 def set_engine(engine, ext):
-        """Fixture to set engine for use in each test case.
+    """Fixture to set engine for use in each test case.
 
         Rather than requiring `engine=...` to be provided explicitly as an
         argument in each test, this fixture sets a global option to dictate
@@ -46,11 +47,11 @@ def set_engine(engine, ext):
         class and any subclasses, on account of the `autouse=True`
         argument
         """
-        option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
-        prev_engine = get_option(option_name)
-        set_option(option_name, engine)
-        yield
-        set_option(option_name, prev_engine)  # Roll back option change
+    option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
+    prev_engine = get_option(option_name)
+    set_option(option_name, engine)
+    yield
+    set_option(option_name, prev_engine)  # Roll back option change
 
 
 @td.skip_if_no("xlrd")
