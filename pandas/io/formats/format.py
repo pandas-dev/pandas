@@ -532,7 +532,7 @@ class DataFrameFormatter(TableFormatter):
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[Union[dict, str, int]] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",

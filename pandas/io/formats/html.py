@@ -123,7 +123,11 @@ class HTMLFormatter(TableFormatter):
         """
         if header and self.fmt.col_space is not None:
             tags = tags or ""
-            tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
+            if type(self.fmt.col_space) is dict:
+                if s in self.fmt.col_space:
+                    tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space[s])
+            else:
+                tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
