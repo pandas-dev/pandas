@@ -40,12 +40,6 @@ def set_engine(engine, ext):
         argument in each test, this fixture sets a global option to dictate
         which engine should be used to write Excel files. After executing
         the test it rolls back said change to the global option.
-
-        Notes
-        -----
-        This fixture will run as part of each test method defined in the
-        class and any subclasses, on account of the `autouse=True`
-        argument
         """
     option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
     prev_engine = get_option(option_name)
