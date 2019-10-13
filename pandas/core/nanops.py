@@ -1,7 +1,7 @@
 import functools
 import itertools
 import operator
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
@@ -38,6 +38,10 @@ _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
 
 
+_FuncType = Callable[..., Any]
+_F = TypeVar("_F", bound=_FuncType)
+
+
 def set_use_bottleneck(v=True):
     # set/unset to use bottleneck
     global _USE_BOTTLENECK
@@ -56,7 +60,7 @@ class disallow:
     def check(self, obj):
         return hasattr(obj, "dtype") and issubclass(obj.dtype.type, self.dtypes)
 
-    def __call__(self, f):
+    def __call__(self, f: _F) -> _F:
         @functools.wraps(f)
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
@@ -75,7 +79,7 @@ class disallow:
                     raise TypeError(e)
                 raise
 
-        return _f
+        return cast(_F, _f)
 
 
 class bottleneck_switch:
@@ -83,7 +87,7 @@ class bottleneck_switch:
         self.name = name
         self.kwargs = kwargs
 
-    def __call__(self, alt):
+    def __call__(self, alt: _F) -> _F:
         bn_name = self.name or alt.__name__
 
         try:
@@ -125,7 +129,7 @@ class bottleneck_switch:
 
             return result
 
-        return f
+        return cast(_F, f)
 
 
 def _bn_ok_dtype(dt, name):
@@ -499,7 +503,9 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
 
 @disallow("M8", DatetimeTZDtype)
 @bottleneck_switch()
-def nanmean(values, axis=None, skipna=True, mask=None):
+def nanmean(
+    values, axis: Optional[int] = None, skipna: bool = True, mask=None
+) -> float:
     """
     Compute the mean of the element along an axis ignoring NaNs
 
@@ -513,7 +519,7 @@ def nanmean(values, axis=None, skipna=True, mask=None):
 
     Returns
     -------
-    result : float
+    float
         Unless input is a float array, in which case use the same
         precision as the input array.
 
@@ -542,7 +548,8 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
-    if axis is not None and getattr(the_sum, "ndim", False):
+    if not is_scalar(count):
+        count = cast(np.ndarray, count)
         with np.errstate(all="ignore"):
             # suppress division by zero warnings
             the_mean = the_sum / count
@@ -1153,7 +1160,7 @@ def _get_counts(
 
     Returns
     -------
-    count : scalar or array
+    scalar or array
     """
     dtype = _get_dtype(dtype)
     if axis is None:
