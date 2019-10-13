@@ -1038,7 +1038,8 @@ class HDFStore:
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
         dropna       : bool, default False,
-            do not write an ALL nan row to the store settable by the option 'io.hdf.dropna_table'
+            do not write an ALL nan row to the store settable
+            by the option 'io.hdf.dropna_table'
 
         Notes
         -----
