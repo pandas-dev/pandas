@@ -909,7 +909,7 @@ class DataFrameGroupBy(GroupBy):
     agg = aggregate
 
     def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
-        obj = self._selected_obj.copy()
+        obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
 
