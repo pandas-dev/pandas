@@ -1,7 +1,7 @@
 import functools
 import itertools
 import operator
-from typing import Any, Callable, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
@@ -32,6 +32,9 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -504,14 +507,17 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
 @disallow("M8", DatetimeTZDtype)
 @bottleneck_switch()
 def nanmean(
-    values, axis: Optional[int] = None, skipna: bool = True, mask=None
+    values: Union[np.ndarray, "ExtensionArray"],
+    axis: Optional[int] = None,
+    skipna: bool = True,
+    mask=None,
 ) -> float:
     """
     Compute the mean of the element along an axis ignoring NaNs
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray or ExtensionArray
     axis: int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
