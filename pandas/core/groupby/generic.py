@@ -11,7 +11,17 @@ import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Hashable,
+    Iterator,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -132,7 +142,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self):
+    def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
         yield self._selection_name, self._selected_obj
 
     @property
@@ -898,22 +908,20 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self):
-        if self.axis == 0:
-            # kludge
-            if self._selection is None:
-                slice_axis = self.obj.columns
-            else:
-                slice_axis = self._selection_list
-            slicer = lambda x: self.obj[x]
-        else:
-            slice_axis = self.obj.index
-            slicer = self.obj.xs
+    def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
+        obj = self._selected_obj.copy()
+        if self.axis == 1:
+            obj = obj.T
 
-        for val in slice_axis:
-            if val in self.exclusions:
-                continue
-            yield val, slicer(val)
+        if isinstance(obj, Series) and obj.name not in self.exclusions:
+            # Occurs when doing DataFrameGroupBy(...)["X"]
+            yield obj.name, obj
+        else:
+            for label, values in obj.items():
+                if label in self.exclusions:
+                    continue
+
+                yield label, values
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
         new_items, new_blocks = self._cython_agg_blocks(

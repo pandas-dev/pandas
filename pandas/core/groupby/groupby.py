@@ -14,7 +14,7 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import FrozenSet, Hashable, Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -758,7 +758,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self):
+    def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
