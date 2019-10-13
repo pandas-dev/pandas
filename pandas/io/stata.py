@@ -53,9 +53,9 @@ _version_error = (
 )
 
 _statafile_processing_params1 = """\
-convert_dates : bool, defaults to True
+convert_dates : bool, default True
     Convert date variables to DataFrame time values.
-convert_categoricals : bool, defaults to True
+convert_categoricals : bool, default True
     Read value labels and convert columns to Categorical/Factor variables."""
 
 _encoding_params = """\
@@ -63,21 +63,21 @@ encoding : str, None or encoding
     Encoding used to parse the files. None defaults to latin-1."""
 
 _statafile_processing_params2 = """\
-index_col : str, optional, default: None
+index_col : str, optional
     Column to set as index.
-convert_missing : bool, defaults to False
+convert_missing : bool, default False
     Flag indicating whether to convert missing values to their Stata
     representations.  If False, missing values are replaced with nan.
     If True, columns containing missing values are returned with
     object data types and missing values are represented by
     StataMissingValue objects.
-preserve_dtypes : bool, defaults to True
+preserve_dtypes : bool, default True
     Preserve Stata datatypes. If False, numeric data are upcast to pandas
     default types for foreign data (float64 or int64).
 columns : list or None
     Columns to retain.  Columns will be returned in the given order.  None
     returns all columns.
-order_categoricals : bool, defaults to True
+order_categoricals : bool, default True
     Flag indicating whether converted categorical data are ordered."""
 
 _chunksize_params = """\
