@@ -16,7 +16,7 @@ from typing import (
     Callable,
     FrozenSet,
     Hashable,
-    Iterator,
+    Iterable,
     Sequence,
     Tuple,
     Type,
@@ -142,7 +142,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
         yield self._selection_name, self._selected_obj
 
     @property
@@ -908,7 +908,7 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterator[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T

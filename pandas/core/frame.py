@@ -17,7 +17,7 @@ from textwrap import dedent
 from typing import (
     FrozenSet,
     Hashable,
-    Iterator,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -872,7 +872,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterator[Tuple[Hashable, Series]]:
+    def items(self) -> Iterable[Tuple[Hashable, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
