@@ -15,6 +15,7 @@ Reference for binary data compression:
 """
 from datetime import datetime
 import struct
+from typing import Any, List, Union
 
 import numpy as np
 
@@ -28,11 +29,19 @@ import pandas.io.sas.sas_constants as const
 
 
 class _subheader_pointer:
-    pass
+    offset: Any
+    length: Any
+    compression: Any
+    ptype: Any
 
 
 class _column:
-    pass
+    col_id: Any
+    name: Any
+    label: Any
+    format: Any
+    ctype: Any
+    length: Any
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
@@ -87,16 +96,16 @@ class SAS7BDATReader(BaseIterator):
 
         self.default_encoding = "latin-1"
         self.compression = ""
-        self.column_names_strings = []
-        self.column_names = []
-        self.column_formats = []
-        self.columns = []
+        self.column_names_strings: List = []
+        self.column_names: List = []
+        self.column_formats: List = []
+        self.columns: List = []
 
-        self._current_page_data_subheader_pointers = []
+        self._current_page_data_subheader_pointers: List = []
         self._cached_page = None
-        self._column_data_lengths = []
-        self._column_data_offsets = []
-        self._column_types = []
+        self._column_data_lengths: List = []
+        self._column_data_offsets: List = []
+        self._column_types: List = []
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
@@ -482,7 +491,7 @@ class SAS7BDATReader(BaseIterator):
         self.column_names_strings.append(cname)
 
         if len(self.column_names_strings) == 1:
-            compression_literal = ""
+            compression_literal: Union[str, bytes] = ""
             for cl in const.compression_literals:
                 if cl in cname_raw:
                     compression_literal = cl
