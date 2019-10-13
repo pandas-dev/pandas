@@ -251,6 +251,8 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
+            except AssertionError:
+                raise
             except Exception:
                 result = self._aggregate_named(func, *args, **kwargs)
 
@@ -877,6 +879,8 @@ class DataFrameGroupBy(GroupBy):
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
+                except AssertionError:
+                    raise
                 except Exception:
                     result = self._aggregate_frame(func)
                 else:
@@ -1026,6 +1030,8 @@ class DataFrameGroupBy(GroupBy):
             try:
                 for name, data in self:
                     result[name] = self._try_cast(func(data, *args, **kwargs), data)
+            except AssertionError:
+                raise
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
@@ -1033,6 +1039,8 @@ class DataFrameGroupBy(GroupBy):
                 try:
                     data = self.get_group(name, obj=obj)
                     result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                except AssertionError:
+                    raise
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
@@ -1386,6 +1394,8 @@ class DataFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
+        except AssertionError:
+            raise
         except Exception:
             # Hard to know ex-ante what exceptions `fast_path` might raise
             return path, res
@@ -1411,6 +1421,8 @@ class DataFrameGroupBy(GroupBy):
             try:
                 output[col] = self[col].transform(wrapper)
                 inds.append(i)
+            except AssertionError:
+                raise
             except Exception:
                 pass
 

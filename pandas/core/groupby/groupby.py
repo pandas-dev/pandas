@@ -44,13 +44,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
-from pandas.core.base import (
-    DataError,
-    GroupByError,
-    PandasObject,
-    SelectionMixin,
-    SpecificationError,
-)
+from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
@@ -869,8 +863,6 @@ b  2""",
                 result, names = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
-            except AssertionError as e:
-                raise GroupByError(str(e))
             if self._transform_should_cast(how):
                 output[name] = self._try_cast(result, obj)
             else:
@@ -897,12 +889,7 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            try:
-                result, names = self.grouper.aggregate(
-                    obj.values, how, min_count=min_count
-                )
-            except AssertionError as e:
-                raise GroupByError(str(e))
+            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -1359,8 +1346,8 @@ class GroupBy(_GroupBy):
                 # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError as e:
-                    raise SpecificationError(str(e))
+                except AssertionError:
+                    raise
                 except Exception:
                     pass
 
