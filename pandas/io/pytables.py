@@ -1025,8 +1025,8 @@ class HDFStore:
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
                        / selecting subsets of the data
-        append       : bool, default True, append the input data to the
-            existing
+        append       : bool, default True,
+            append the input data to the existing
         data_columns :  list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
