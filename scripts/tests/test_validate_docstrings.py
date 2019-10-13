@@ -1,4 +1,4 @@
-from functools import wraps
+import functools
 import io
 import random
 import string
@@ -11,24 +11,6 @@ import validate_docstrings
 import pandas as pd
 
 validate_one = validate_docstrings.validate_one
-
-
-class Decorators:
-    @staticmethod
-    def good_decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            """
-            Wrapper function.
-
-            This docstring should be hidden, and not used during validation.
-            Using the @wraps decorator should allow validation to get the
-            signature of the wrapped function when comparing against the
-            docstring.
-            """
-            return func(*args, **kwargs)
-
-        return wrapper
 
 
 class GoodDocStrings:
@@ -87,7 +69,7 @@ class GoodDocStrings:
         """
         return random.random()
 
-    @Decorators.good_decorator
+    @functools.lru_cache(None)
     def decorated_sample(self, max):
         """
         Generate and return a random integer between 0 and max.
