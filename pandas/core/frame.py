@@ -744,7 +744,7 @@ class DataFrame(NDFrame):
         decimal: str = ".",
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
-        encoding = None,
+        encoding=None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
