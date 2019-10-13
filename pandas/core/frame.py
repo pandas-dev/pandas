@@ -756,7 +756,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.0.0
         encoding : str, default "utf-8"
-            Set character encoding
+            Set character encoding.
 
             .. versionadded:: 1.0
         %(returns)s
