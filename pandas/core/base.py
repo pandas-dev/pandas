@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, Optional
+from typing import Dict, FrozenSet, Optional
 import warnings
 
 import numpy as np
@@ -653,7 +653,17 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations = frozenset(["item"])
+    _deprecations = frozenset(
+        [
+            "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+            "base",
+            "data",
+            "item",
+            "itemsize",
+            "flags",
+            "strides",
+        ]
+    )  # type: FrozenSet[str]
 
     def transpose(self, *args, **kwargs):
         """

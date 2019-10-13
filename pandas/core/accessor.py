@@ -4,7 +4,7 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from typing import Set
+from typing import FrozenSet, Set
 import warnings
 
 from pandas.util._decorators import Appender
@@ -12,9 +12,7 @@ from pandas.util._decorators import Appender
 
 class DirNamesMixin:
     _accessors = set()  # type: Set[str]
-    _deprecations = frozenset(
-        ["asobject", "base", "data", "flags", "itemsize", "strides"]
-    )
+    _deprecations = frozenset()  # type: FrozenSet[str]
 
     def _dir_deletions(self):
         """
