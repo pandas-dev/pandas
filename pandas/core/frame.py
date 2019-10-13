@@ -744,6 +744,7 @@ class DataFrame(NDFrame):
         decimal: str = ".",
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
+        encoding = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -754,6 +755,10 @@ class DataFrame(NDFrame):
             Max width to truncate each column in characters. By default, no limit.
 
             .. versionadded:: 1.0.0
+        encoding : str, default "utf-8"
+            Set character encoding
+
+            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
