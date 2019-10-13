@@ -4,6 +4,7 @@
 from functools import reduce
 import itertools
 import re
+from typing import Iterable
 import warnings
 
 import numpy as np
@@ -528,7 +529,7 @@ class ExcelFormatter:
         else:
             gen = self._format_header_regular()
 
-        gen2 = ()
+        gen2: Iterable[ExcelCell] = ()
         if self.df.index.names:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
@@ -727,7 +728,11 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            writer = ExcelWriter(_stringify_path(writer), engine=engine)
+            # TODO: check ExcelWriter implementation for PEP 3119 compliance
+            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
+            #  attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
+            #   [abstract]
+            writer = ExcelWriter(_stringify_path(writer), engine=engine)  # type: ignore
             need_save = True
 
         formatted_cells = self.get_formatted_cells()
