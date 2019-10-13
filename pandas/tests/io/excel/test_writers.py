@@ -383,10 +383,10 @@ class TestExcelWriter:
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
         frame["A"][:5] = np.nan
-        frame.to_excel(self.path, "test1")
-        frame.to_excel(self.path, "test1", columns=["A", "B"])
-        frame.to_excel(self.path, "test1", header=False)
-        frame.to_excel(self.path, "test1", index=False)
+        frame.to_excel(path, "test1")
+        frame.to_excel(path, "test1", columns=["A", "B"])
+        frame.to_excel(path, "test1", header=False)
+        frame.to_excel(path, "test1", index=False)
 
     @pytest.mark.parametrize("np_type", [np.int8, np.int16, np.int32, np.int64])
     def test_int_types(self, np_type, path):
