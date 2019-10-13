@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List
+from typing import TYPE_CHECKING, Iterable, List, Optional, Union, cast
 import warnings
 
 from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
@@ -10,6 +10,11 @@ from pandas.errors import PerformanceWarning
 from pandas import DateOffset, Series, Timestamp, date_range
 
 from pandas.tseries.offsets import Day, Easter
+
+if TYPE_CHECKING:
+    from pandas import DatetimeIndex  # noqa: F401
+
+_DatetimeLike = Union[datetime, Timestamp, str, float]
 
 
 def next_monday(dt):
@@ -198,7 +203,12 @@ class Holiday:
         repr = "Holiday: {name} ({info})".format(name=self.name, info=info)
         return repr
 
-    def dates(self, start_date, end_date, return_name=False):
+    def dates(
+        self,
+        start_date: Optional[_DatetimeLike],
+        end_date: Optional[_DatetimeLike],
+        return_name: bool = False,
+    ) -> Union["DatetimeIndex", List[Timestamp], Series]:
         """
         Calculate holidays observed between start date and end date
 
@@ -238,14 +248,19 @@ class Holiday:
             filter_end_date = min(
                 self.end_date.tz_localize(filter_end_date.tz), filter_end_date
             )
+        # TODO: comparison ops are created dynamically
+        # error: Unsupported left operand type for >= ("DatetimeIndex")  [operator]
         holiday_dates = holiday_dates[
-            (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
+            (holiday_dates >= filter_start_date)  # type: ignore
+            & (holiday_dates <= filter_end_date)  # type: ignore
         ]
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
 
-    def _reference_dates(self, start_date, end_date):
+    def _reference_dates(
+        self, start_date: Timestamp, end_date: Timestamp
+    ) -> "DatetimeIndex":
         """
         Get reference dates for the holiday.
 
@@ -278,7 +293,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: "DatetimeIndex") -> "DatetimeIndex":
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -344,12 +359,14 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     Abstract interface to create holidays following certain rules.
     """
 
-    rules = []  # type: List[Holiday]
+    rules: Iterable[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
     _cache = None
 
-    def __init__(self, name=None, rules=None):
+    def __init__(
+        self, name: Optional[str] = None, rules: Optional[Iterable[Holiday]] = None
+    ):
         """
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.
@@ -376,11 +393,16 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name=False):
+    def holidays(
+        self,
+        start: Optional[_DatetimeLike] = None,
+        end: Optional[_DatetimeLike] = None,
+        return_name: bool = False,
+    ) -> Union["DatetimeIndex", Series]:
         """
         Returns a curve with holidays between start_date and end_date
 
-        Parameters
+        Parametersholiday
         ----------
         start : starting date, datetime-like, optional
         end : ending date, datetime-like, optional
@@ -419,10 +441,13 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
                 else:
                     holidays = holidays.append(rule_holidays)
 
-            self._cache = (start, end, holidays.sort_index())
+            # TODO: overload rule.dates(return_name=True) to return Series
+            self._cache = (start, end, cast(Series, holidays).sort_index())
 
-        holidays = self._cache[2]
-        holidays = holidays[start:end]
+        # TODO: concreate subclass must have rules
+        holidays = cast(Series, self._cache[2])
+        # TODO: slice indexing on a Series should return Series
+        holidays = cast(Series, holidays[start:end])
 
         if return_name:
             return holidays

@@ -225,6 +225,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     been deprecated in favor of :func:`date_range`.
     """
 
+    dayofweek: Int64Index
+
     _typ = "datetimeindex"
     _join_precedence = 10
 
@@ -1438,7 +1440,7 @@ def date_range(
     name=None,
     closed=None,
     **kwargs
-):
+) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex.
 
@@ -1470,7 +1472,7 @@ def date_range(
 
     Returns
     -------
-    rng : DatetimeIndex
+    DatetimeIndex
 
     See Also
     --------
