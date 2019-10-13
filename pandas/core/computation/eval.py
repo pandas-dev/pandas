@@ -205,7 +205,7 @@ def eval(
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : str or None, default 'numexpr', {'python', 'numexpr'}
+    engine : {'python', 'numexpr'}, optional, default 'numexpr'
 
         The engine used to evaluate the expression. Supported engines are
 
