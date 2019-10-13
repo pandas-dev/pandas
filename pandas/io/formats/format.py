@@ -895,8 +895,8 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
-    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
-        return self.get_result(buf=buf)
+    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None, encoding: Optional[str] = None) -> Optional[str]:
+        return self.get_result(buf=buf, encoding = encoding)
 
     def to_latex(
         self,
