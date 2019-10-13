@@ -1066,6 +1066,7 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, ex)
 
     def test_series_any_timedelta(self):
+        # GH 17667
         df = DataFrame(
             {
                 "a": Series([0, 0]),
@@ -1074,12 +1075,12 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         result = df.any(axis=0)
-        ex = Series(data=[False, True], index=["a", "t"])
-        tm.assert_series_equal(result, ex)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
 
         result = df.any(axis=1)
-        ex = Series(data=[False, True])
-        tm.assert_series_equal(result, ex)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
