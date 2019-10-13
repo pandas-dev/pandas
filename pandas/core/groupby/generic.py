@@ -1644,7 +1644,7 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include NaN in the counts.
 
         Returns

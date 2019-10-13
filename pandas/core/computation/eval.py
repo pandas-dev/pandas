@@ -198,14 +198,14 @@ def eval(
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
         <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
-    parser : string, default 'pandas', {'pandas', 'python'}
+    parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
         Python. Alternatively, you can parse an expression using the
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : string or None, default 'numexpr', {'python', 'numexpr'}
+    engine : {'python', 'numexpr'}, default 'numexpr'
 
         The engine used to evaluate the expression. Supported engines are
 

@@ -287,7 +287,7 @@ def read_sql_query(
         If a DBAPI2 object, only sqlite3 is supported.
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
-    coerce_float : boolean, default True
+    coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Useful for SQL result sets.
     params : list, tuple or dict, optional, default: None
