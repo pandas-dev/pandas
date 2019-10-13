@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 from pandas import api, compat
 from pandas.util import testing as tm
@@ -41,7 +43,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = []
+    deprecated_modules = []  # type: List[str]
 
     # misc
     misc = ["IndexSlice", "NaT"]
@@ -92,10 +94,10 @@ class TestPDApi(Base):
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = []
+    deprecated_classes = []  # type: List[str]
 
     # these should be deprecated in the future
-    deprecated_classes_in_future = []
+    deprecated_classes_in_future = []  # type: List[str]
 
     # external modules exposed in pandas namespace
     modules = ["np", "datetime"]
@@ -171,10 +173,10 @@ class TestPDApi(Base):
     funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future = []
+    deprecated_funcs_in_future = []  # type: List[str]
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = []
+    deprecated_funcs = []  # type: List[str]
 
     # private modules in pandas namespace
     private_modules = [
