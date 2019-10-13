@@ -317,7 +317,6 @@ I/O
 - Bug in :func:`read_hdf` closing stores that it didn't open when Exceptions are raised (:issue:`28699`)
 - Bug in :meth:`DataFrame.read_json` where using ``orient="index"`` would not maintain the order (:issue:`28557`)
 - Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
-- Added ``encoding`` argument to :func:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 
 Plotting
 ^^^^^^^^
@@ -372,6 +371,7 @@ Other
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Added ``encoding`` argument to :func:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 
 .. _whatsnew_1000.contributors:
 
