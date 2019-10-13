@@ -1,3 +1,5 @@
+from typing import Dict, Optional, Tuple
+
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
@@ -32,7 +34,12 @@ class _XlwtWriter(ExcelWriter):
         return self.book.save(self.path)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+        self,
+        cells,
+        sheet_name: Optional[str] = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: Optional[Tuple[int, int]] = None,
     ):
         # Write the frame cells using xlwt.
 
@@ -41,15 +48,18 @@ class _XlwtWriter(ExcelWriter):
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
         else:
+            assert self.book is not None
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
         if _validate_freeze_panes(freeze_panes):
+            assert freeze_panes is not None
             wks.set_panes_frozen(True)
-            wks.set_horz_split_pos(freeze_panes[0])
-            wks.set_vert_split_pos(freeze_panes[1])
+            row, column = freeze_panes
+            wks.set_horz_split_pos(row)
+            wks.set_vert_split_pos(column)
 
-        style_dict = {}
+        style_dict: Dict = {}
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)

@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
 
 from pandas._config import config
 
@@ -656,9 +656,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self,
         cells,
         sheet_name: Optional[str] = None,
-        startrow=0,
-        startcol=0,
-        freeze_panes=None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: Optional[Tuple[int, int]] = None,
     ):
         """
         Write given formatted cells into Excel an excel sheet

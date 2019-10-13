@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Tuple
 import warnings
 
 from pandas.compat._optional import import_optional_dependency
@@ -154,7 +154,7 @@ def _maybe_convert_usecols(usecols):
     return usecols
 
 
-def _validate_freeze_panes(freeze_panes):
+def _validate_freeze_panes(freeze_panes: Optional[Tuple[int, int]]) -> bool:
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
