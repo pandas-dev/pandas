@@ -30,21 +30,6 @@ class Decorators:
 
         return wrapper
 
-    @staticmethod
-    def missing_wraps(func):
-        def wrapper(*args):
-            """
-            Wrapper function.
-
-            The signature of this wrapper should override the underlying
-            function. So, we should see errors regarding the parameters,
-            like expecting documentation for *args and **kwargs and missing
-            documentation for the underlying signature.
-            """
-            return func(*args)
-
-        return wrapper
-
 
 class GoodDocStrings:
     """
@@ -715,19 +700,6 @@ class BadParameters:
         """
         pass
 
-    @Decorators.missing_wraps
-    def bad_decorator(self, kind: bool):
-        """
-        The decorator is missing the @wraps, and overrides the signature
-        of the method.
-
-        Parameters
-        ----------
-        kind : bool
-            Foo bar baz
-        """
-        pass
-
     def bad_parameter_spacing(self, a, b):
         """
         The parameters on the same line have an extra space between them.
@@ -1110,7 +1082,6 @@ class TestValidator:
                 "list_incorrect_parameter_type",
                 ('Parameter "kind" type should use "str" instead of "string"',),
             ),
-            ("BadParameters", "bad_decorator", ("Parameters {*args} not documented",)),
             (
                 "BadParameters",
                 "bad_parameter_spacing",
