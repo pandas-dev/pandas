@@ -2359,7 +2359,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
-        indent : integer, optional
+        indent : int, optional
            Length of whitespace used to indent each record.
 
            .. versionadded:: 1.0.0
