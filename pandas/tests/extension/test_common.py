@@ -95,3 +95,20 @@ def test_compare_unequal_to_string(array):
     expected = pd.Series([False, False])
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array",
+    [
+        pd.Series([1, None], dtype="Int64"),
+        pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+        pd.Series([0, 0], dtype="timedelta64[ns]"),
+    ],
+)
+@pytest.mark.parametrize("op", ["__lt__", "__le__", "__gt__", "__ge__"])
+def test_compare_to_string_invalid(array, op):
+    # GH 28930
+    method = getattr(array, op)
+
+    with pytest.raises(TypeError):
+        method("a")
