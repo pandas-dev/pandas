@@ -1838,7 +1838,7 @@ class _TestSQLiteAlchemy:
 
     """
 
-    flavor = "sqlite"
+    flavor = "sqlite"  # type: Optional[str]
 
     @classmethod
     def connect(cls):
@@ -1887,7 +1887,7 @@ class _TestMySQLAlchemy:
 
     """
 
-    flavor = "mysql"
+    flavor = "mysql"  # type: Optional[str]
 
     @classmethod
     def connect(cls):
@@ -1956,7 +1956,7 @@ class _TestPostgreSQLAlchemy:
 
     """
 
-    flavor = "postgresql"
+    flavor = "postgresql"  # type: Optional[str]
 
     @classmethod
     def connect(cls):
