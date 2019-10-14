@@ -21,6 +21,7 @@ import csv
 from datetime import date, datetime, time
 from io import StringIO
 import sqlite3
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -583,7 +584,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None
+    mode = None  # type: Optional[str]
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1234,7 +1235,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None
+    flavor = None  # type: Optional[str]
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
