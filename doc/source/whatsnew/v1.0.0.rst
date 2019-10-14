@@ -256,7 +256,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
-- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
+- :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 -
 
@@ -311,6 +311,8 @@ I/O
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
 - Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
+- Bug in :func:`read_hdf` closing stores that it didn't open when Exceptions are raised (:issue:`28699`)
+- Bug in :meth:`DataFrame.read_json` where using ``orient="index"`` would not maintain the order (:issue:`28557`)
 - Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
 
 Plotting
@@ -343,6 +345,7 @@ Reshaping
 - Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
 - Bug in :func:`merge`, did not append suffixes correctly with MultiIndex (:issue:`28518`)
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
+- Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 
 Sparse
 ^^^^^^
