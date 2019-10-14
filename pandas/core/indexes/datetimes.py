@@ -149,13 +149,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
+        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
     dayfirst : bool, default False
-        If True, parse dates in `data` with the day first order
+        If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
-        If True parse dates in `data` with the year first order
+        If True parse dates in `data` with the year first order.
 
     Attributes
     ----------
@@ -1328,7 +1328,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Parameters
         ----------
-        time : datetime.time or string
+        time : datetime.time or str
             datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
             "%I%M%S%p").
