@@ -2066,7 +2066,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 floats[i] = float(val)
                 complexes[i] = complex(val)
                 seen.float_ = 1
-            except ValueError:
+            except (ValueError, TypeError):
                 seen.object_ = 1
                 break
         else:
