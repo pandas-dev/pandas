@@ -338,11 +338,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         data : dict or dict-like
-            Data used to populate the new Series
+            Data used to populate the new Series.
         index : Index or index-like, default None
-            index for the new Series: if None, use dict keys
+            Index for the new Series: if None, use dict keys.
         dtype : dtype, default None
-            dtype for the new Series: if None, infer from data
+            The dtype for the new Series: if None, infer from data.
 
         Returns
         -------
@@ -1337,9 +1337,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         label : object
-            Partial indexing with MultiIndex not allowed
+            Partial indexing with MultiIndex not allowed.
         value : object
-            Scalar value
+            Scalar value.
         takeable : interpret the index as indexers, default False
 
         Returns
@@ -1794,7 +1794,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         name : str
         inplace : bool
-            whether to modify `self` directly or return a copy
+            Whether to modify `self` directly or return a copy.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         ser = self if inplace else self.copy()
@@ -1937,9 +1937,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'
+            Method to handle dropping duplicates:
+
             - 'first' : Drop duplicates except for the first occurrence.
             - 'last' : Drop duplicates except for the last occurrence.
             - ``False`` : Drop all duplicates.
+
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
 
@@ -2015,6 +2018,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         keep : {'first', 'last', False}, default 'first'
+            Method to handle dropping duplicates:
+
             - 'first' : Mark duplicates as ``True`` except for the first
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
@@ -2257,10 +2262,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        decimals : int
-            Number of decimal places to round to (default: 0).
-            If decimals is negative, it specifies the number of
-            positions to the left of the decimal point.
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
 
         Returns
         -------
@@ -2294,7 +2298,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute.
+            The quantile(s) to compute, which can lie in range: 0 <= q <= 1.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2356,15 +2360,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         other : Series
             Series with which to compute the correlation.
         method : {'pearson', 'kendall', 'spearman'} or callable
-            * pearson : standard correlation coefficient
-            * kendall : Kendall Tau correlation coefficient
-            * spearman : Spearman rank correlation
-            * callable: callable with input two 1d ndarrays
-                and returning a float. Note that the returned matrix from corr
-                will have 1 along the diagonals and will be symmetric
-                regardless of the callable's behavior
-                .. versionadded:: 0.24.0
+            Method used to compute correlation:
 
+            - pearson : Standard correlation coefficient
+            - kendall : Kendall Tau correlation coefficient
+            - spearman : Spearman rank correlation
+            - callable: Callable with input two 1d ndarrays and returning a float.
+
+            .. versionadded:: 0.24.0
+                Note that the returned matrix from corr will have 1 along the
+                diagonals and will be symmetric regardless of the callable's
+                behavior.
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
 
@@ -2725,10 +2731,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         func : binary operator
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
-            location, the result will be NA regardless of the passed fill value
+            location, the result will be NA regardless of the passed fill value.
         level : int or level name, default None
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
+            passed MultiIndex level.
 
         Returns
         -------
@@ -3308,7 +3314,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm
+            information. 'mergesort' is the only stable algorithm.
         order : None
             Has no effect but is accepted for compatibility with numpy.
 
@@ -3562,7 +3568,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         order : list of int representing new level order
-               (reference level by number or key)
+            Reference level by number or key.
 
         Returns
         -------
@@ -3763,9 +3769,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         key : string / list of selections
         ndim : 1,2
-            requested ndim of result
+            Requested ndim of result.
         subset : object, default None
-            subset to act on
+            Subset to act on.
         """
         return self
 
@@ -4089,7 +4095,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         index : scalar, hashable sequence, dict-like or function, optional
-            dict-like or functions are transformations to apply to
+            Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.

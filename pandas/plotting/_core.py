@@ -36,28 +36,28 @@ def hist_series(
     Parameters
     ----------
     by : object, optional
-        If passed, then used to form histograms for separate groups
+        If passed, then used to form histograms for separate groups.
     ax : matplotlib axis object
-        If not passed, uses gca()
+        If not passed, uses gca().
     grid : bool, default True
-        Whether to show axis grid lines
+        Whether to show axis grid lines.
     xlabelsize : int, default None
-        If specified changes the x-axis label size
+        If specified changes the x-axis label size.
     xrot : float, default None
-        rotation of x axis labels
+        Rotation of x axis labels.
     ylabelsize : int, default None
-        If specified changes the y-axis label size
+        If specified changes the y-axis label size.
     yrot : float, default None
-        rotation of y axis labels
+        Rotation of y axis labels.
     figsize : tuple, default None
-        figure size in inches by default
+        Figure size in inches by default.
     bins : int or sequence, default 10
         Number of histogram bins to be used. If an integer is given, bins + 1
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
     **kwargs
-        To be passed to the actual plotting function
+        To be passed to the actual plotting function.
 
     Returns
     -------
@@ -441,27 +441,28 @@ def boxplot_frame_groupby(
     grouped : Grouped DataFrame
     subplots : bool
         * ``False`` - no subplots will be used
-        * ``True`` - create a subplot for each group
+        * ``True`` - create a subplot for each group.
+
     column : column name or list of names, or vector
-        Can be any valid input to groupby
+        Can be any valid input to groupby.
     fontsize : int or str
     rot : label rotation angle
     grid : Setting this to True will show the grid
     ax : Matplotlib axis object, default None
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
-        (rows, columns) for the layout of the plot
+        The layout of the plot: (rows, columns).
     sharex : bool, default False
-        Whether x-axes will be shared among subplots
+        Whether x-axes will be shared among subplots.
 
         .. versionadded:: 0.23.1
     sharey : bool, default True
-        Whether y-axes will be shared among subplots
+        Whether y-axes will be shared among subplots.
 
         .. versionadded:: 0.23.1
     **kwargs
         All other plotting keyword arguments to be passed to
-        matplotlib's boxplot function
+        matplotlib's boxplot function.
 
     Returns
     -------
@@ -507,7 +508,7 @@ class PlotAccessor(PandasObject):
     Parameters
     ----------
     data : Series or DataFrame
-        The object for which the method is called
+        The object for which the method is called.
     x : label or position, default None
         Only used if data is a DataFrame.
     y : label, position or list of label, positions, default None
@@ -526,30 +527,31 @@ class PlotAccessor(PandasObject):
         - 'area' : area plot
         - 'pie' : pie plot
         - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot
+        - 'hexbin' : hexbin plot.
+
     figsize : a tuple (width, height) in inches
     use_index : bool, default True
-        Use index as ticks for x axis
+        Use index as ticks for x axis.
     title : str or list
         Title to use for the plot. If a string is passed, print the string
         at the top of the figure. If a list is passed and `subplots` is
         True, print each item in the list above the corresponding subplot.
     grid : bool, default None (matlab style default)
-        Axis grid lines
-    legend : False/True/'reverse'
-        Place legend on axis subplots
+        Axis grid lines.
+    legend : bool or {'reverse'}
+        Place legend on axis subplots.
     style : list or dict
-        The matplotlib line style per column
+        The matplotlib line style per column.
     logx : bool or 'sym', default False
-        Use log scaling or symlog scaling on x axis
+        Use log scaling or symlog scaling on x axis.
         .. versionchanged:: 0.25.0
 
     logy : bool or 'sym' default False
-        Use log scaling or symlog scaling on y axis
+        Use log scaling or symlog scaling on y axis.
         .. versionchanged:: 0.25.0
 
     loglog : bool or 'sym', default False
-        Use log scaling or symlog scaling on both x and y axes
+        Use log scaling or symlog scaling on both x and y axes.
         .. versionchanged:: 0.25.0
 
     xticks : sequence
@@ -560,7 +562,7 @@ class PlotAccessor(PandasObject):
     ylim : 2-tuple/list
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
-        plots)
+        plots).
     fontsize : int, default None
         Font size for xticks and yticks.
     colormap : str or matplotlib colormap object, default None
@@ -568,11 +570,11 @@ class PlotAccessor(PandasObject):
         name from matplotlib.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
-        plots)
+        plots).
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
-        (center)
+        (center).
     table : bool, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data
         will be transposed to meet matplotlib's default layout.
@@ -585,7 +587,7 @@ class PlotAccessor(PandasObject):
         Equivalent to yerr.
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
-        labels with "(right)" in the legend
+        labels with "(right)" in the legend.
     include_bool : bool, default is False
         If True, boolean values can be plotted.
     **kwargs

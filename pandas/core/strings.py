@@ -57,12 +57,12 @@ def cat_core(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
     if sep == "":
         # no need to interleave sep if it is empty
@@ -85,12 +85,12 @@ def cat_safe(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
     try:
         result = cat_core(list_of_columns, sep)
@@ -506,13 +506,18 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None
+        Determines if replace is case sensitive:
+
         - If True, case sensitive (the default if `pat` is a string)
         - Set to False for case insensitive
-        - Cannot be set if `pat` is a compiled regex
+        - Cannot be set if `pat` is a compiled regex.
+
     flags : int, default 0 (no flags)
-        - re module flags, e.g. re.IGNORECASE
-        - Cannot be set if `pat` is a compiled regex
+        Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
+        regex.
     regex : bool, default True
+        Determines if assumes the passed-in pattern is a regular expression:
+
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
@@ -713,7 +718,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     case : bool, default True
         If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE.
+        Regex module flags, e.g. re.IGNORECASE.
     na : default NaN
         Fill value for missing values.
 
@@ -1681,7 +1686,7 @@ def str_translate(arr, table):
     Parameters
     ----------
     table : dict
-        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        Table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
         None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
@@ -2134,11 +2139,12 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         others : Series, DataFrame, np.ndarray, list-like or list-like of
-            objects that are either Series, Index or np.ndarray (1-dim)
+            Objects that are either Series, Index or np.ndarray (1-dim).
 
         Returns
         -------
-        list : others transformed into list of Series
+        list of Series
+            Others transformed into list of Series.
         """
         from pandas import Series, DataFrame
 
@@ -2556,7 +2562,7 @@ class StringMethods(NoNewAttributesMixin):
         String to split on.
     pat : str, default whitespace
         .. deprecated:: 0.24.0
-           Use ``sep`` instead
+           Use ``sep`` instead.
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2712,13 +2718,13 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with ``fillchar``
+        with ``fillchar``.
     fillchar : str
-        Additional character for filling, default is whitespace
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    filled : Series/Index of objects
+    filled : Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
@@ -2754,7 +2760,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/Index of objects
+        Series/Index of objects.
 
         See Also
         --------
@@ -2842,7 +2848,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -2967,15 +2973,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of integer values
+    Series or Index of int.
 
     See Also
     --------
@@ -3018,7 +3024,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         form : {'NFC', 'NFKC', 'NFD', 'NFKD'}
-            Unicode form
+            Unicode form.
 
         Returns
         -------
@@ -3041,15 +3047,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -3147,7 +3153,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
