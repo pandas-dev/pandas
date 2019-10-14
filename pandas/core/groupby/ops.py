@@ -526,7 +526,13 @@ class BaseGrouper:
             func = self._get_cython_function(kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = ensure_float64(values)
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
                 func = self._get_cython_function(kind, how, values, is_numeric)
             else:
                 raise
