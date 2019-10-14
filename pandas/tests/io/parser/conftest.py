@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Optional
 
 import pytest
 
@@ -7,9 +7,9 @@ from pandas import read_csv, read_table
 
 
 class BaseParser:
-    engine = None  # type: Union[str, None]
+    engine = None  # type: Optional[str]
     low_memory = True
-    float_precision_choices = []  # type: List[Union[str, None]]
+    float_precision_choices = []  # type: List[Optional[str]]
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()
