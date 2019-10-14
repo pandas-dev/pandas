@@ -876,7 +876,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-            A view of the :class:`ExtensionArray` calling :meth:`view`.
+            A view of the :class:`ExtensionArray`.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
