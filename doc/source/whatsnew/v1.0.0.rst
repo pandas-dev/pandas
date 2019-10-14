@@ -151,6 +151,8 @@ Other API changes
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+  To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
 -
 
@@ -239,6 +241,7 @@ Datetimelike
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 - Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
+- Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 
 Timedelta
 ^^^^^^^^^
@@ -256,7 +259,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
-- :class:`DataFrame` inequality comparisons with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
+- :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 -
 
@@ -311,6 +314,7 @@ I/O
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
 - Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
+- Bug in :func:`read_hdf` closing stores that it didn't open when Exceptions are raised (:issue:`28699`)
 - Bug in :meth:`DataFrame.read_json` where using ``orient="index"`` would not maintain the order (:issue:`28557`)
 - Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
 
@@ -344,6 +348,7 @@ Reshaping
 - Bug :func:`merge_asof` could not use :class:`datetime.timedelta` for ``tolerance`` kwarg (:issue:`28098`)
 - Bug in :func:`merge`, did not append suffixes correctly with MultiIndex (:issue:`28518`)
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
+- Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 
 Sparse
 ^^^^^^

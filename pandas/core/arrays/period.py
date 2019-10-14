@@ -464,7 +464,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         Parameters
         ----------
-        freq : string or DateOffset, optional
+        freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             'S' otherwise
         how : {'s', 'e', 'start', 'end'}
@@ -535,7 +535,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         periods : int
             Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
+        freq : pandas.DateOffset, pandas.Timedelta, or str
             Frequency increment to shift by.
         """
         if freq is not None:
