@@ -767,7 +767,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self):
+            def __eq__(self, other):
                 return False
 
             def __hash__(self):
