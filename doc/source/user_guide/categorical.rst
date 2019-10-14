@@ -821,23 +821,13 @@ dtypes will likely have higher memory usage. Use ``.astype`` or
    s3 = pd.Series(['b', 'c'], dtype='category')
    pd.concat([s1, s3])
 
+   # Output dtype is inferred based on categories values
+   int_cats = pd.Series([1, 2], dtype="category")
+   float_cats = pd.Series([3.0, 4.0], dtype="category")
+   pd.concat([int_cats, float_cats])
+
    pd.concat([s1, s3]).astype('category')
    union_categoricals([s1.array, s3.array])
-
-
-Following table summarizes the results of ``Categoricals`` related combinations.
-
-+----------+--------------------------------------------------------+----------------------------+
-| arg1     | arg2                                                   | result                     |
-+==========+========================================================+============================+
-| category | category (identical categories)                        | category                   |
-+----------+--------------------------------------------------------+----------------------------+
-| category | category (different categories, both not ordered)      | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
-| category | category (different categories, either one is ordered) | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
-| category | not category                                           | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
 
 See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about preserving merge dtypes and performance.
 
