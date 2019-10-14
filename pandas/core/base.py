@@ -16,6 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
@@ -566,25 +567,27 @@ class SelectionMixin:
         # degenerate case
         if obj.ndim == 1:
             for a in arg:
+                colg = self._gotitem(obj.name, ndim=1, subset=obj)
                 try:
-                    colg = self._gotitem(obj.name, ndim=1, subset=obj)
-                    results.append(colg.aggregate(a))
+                    new_res = colg.aggregate(a)
 
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
                 except (TypeError, DataError):
                     pass
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
 
         # multiples
         else:
             for index, col in enumerate(obj):
+                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
-                    results.append(colg.aggregate(arg))
-                    keys.append(col)
+                    new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
                 except ValueError:
@@ -592,6 +595,9 @@ class SelectionMixin:
                     continue
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+                    keys.append(col)
 
         # if we are empty
         if not len(results):
@@ -604,7 +610,6 @@ class SelectionMixin:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
 
-            from pandas.core.dtypes.cast import is_nested_object
             from pandas import Series
 
             result = Series(results, index=keys, name=self.name)
@@ -648,6 +653,7 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
+    _deprecations = frozenset(["item"])
 
     def transpose(self, *args, **kwargs):
         """
@@ -678,8 +684,10 @@ class IndexOpsMixin:
 
         See Also
         --------
-        DataFrame._is_homogeneous_type
-        MultiIndex._is_homogeneous_type
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
+        MultiIndex._is_homogeneous_type : Whether all the levels of a
+            MultiIndex have the same dtype.
         """
         return True
 
@@ -898,7 +906,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is a not a view on
             another array. Note that ``copy=False`` does not *ensure* that
@@ -1515,6 +1523,12 @@ class IndexOpsMixin:
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
+        .. note::
+
+            The %(klass)s *must* be monotonically sorted, otherwise
+            wrong locations will likely be returned. Pandas does *not*
+            check this for you.
+
         Parameters
         ----------
         value : array_like
@@ -1540,6 +1554,7 @@ class IndexOpsMixin:
 
         See Also
         --------
+        sort_values
         numpy.searchsorted
 
         Notes
@@ -1578,6 +1593,13 @@ class IndexOpsMixin:
 
         >>> x.searchsorted(['bread'], side='right')
         array([3])
+
+        If the values are not monotonically sorted, wrong locations
+        may be returned:
+
+        >>> x = pd.Series([2, 1, 3])
+        >>> x.searchsorted(1)
+        0  # wrong result, correct would be 1
         """
 
     @Substitution(klass="Index")

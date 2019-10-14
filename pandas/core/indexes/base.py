@@ -205,7 +205,11 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist", "dtype_str"])
+    _deprecations = (
+        IndexOpsMixin._deprecations
+        | DirNamesMixin._deprecations
+        | frozenset(["tolist", "contains", "dtype_str", "get_values", "set_value"])
+    )
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -4527,7 +4531,7 @@ class Index(IndexOpsMixin, PandasObject):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
             Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
@@ -4680,10 +4684,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fast lookup of value from 1-dimensional ndarray.
 
+        .. deprecated:: 1.0
+
         Notes
         -----
         Only use this if you know what you're doing.
         """
+        warnings.warn(
+            (
+                "The 'set_value' method is deprecated, and "
+                "will be removed in a future version."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
         self._engine.set_value(
             com.values_from_object(arr), com.values_from_object(key), value
         )
