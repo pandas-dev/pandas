@@ -3,6 +3,7 @@ Template for intervaltree
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
+
 from pandas._libs.algos import is_monotonic
 
 ctypedef fused scalar_t:
