@@ -57,7 +57,7 @@ from pandas.core.algorithms import (
 )
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
@@ -331,7 +331,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = frozenset(["labels", "tolist"])
+    _deprecations = PandasObject._deprecations | frozenset(["tolist", "get_values"])
     _typ = "categorical"
 
     def __init__(
@@ -520,6 +520,8 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype == self.dtype:
                 return self
             return self._set_dtype(dtype)
+        if is_extension_array_dtype(dtype):
+            return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         if is_integer_dtype(dtype) and self.isna().any():
             msg = "Cannot convert float NaN to integer"
             raise ValueError(msg)
@@ -634,7 +636,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        codes : array-like, integers
+        codes : array-like of int
             An integer array, where each integer points to a category in
             categories or dtype.categories, or else is -1 for NaN.
         categories : index-like, optional
@@ -645,7 +647,7 @@ class Categorical(ExtensionArray, PandasObject):
             Whether or not this categorical is treated as an ordered
             categorical. If not given here or in `dtype`, the resulting
             categorical will be unordered.
-        dtype : CategoricalDtype or the string "category", optional
+        dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
 
@@ -910,24 +912,26 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         new_categories : list-like, dict-like or callable
 
-           * list-like: all items must be unique and the number of items in
-             the new categories must match the existing number of categories.
+            New categories which will replace old categories.
 
-           * dict-like: specifies a mapping from
-             old categories to new. Categories not contained in the mapping
-             are passed through and extra categories in the mapping are
-             ignored.
+            * list-like: all items must be unique and the number of items in
+              the new categories must match the existing number of categories.
 
-             .. versionadded:: 0.21.0
+            * dict-like: specifies a mapping from
+              old categories to new. Categories not contained in the mapping
+              are passed through and extra categories in the mapping are
+              ignored.
 
-           * callable : a callable that is called on all items in the old
-             categories and whose return values comprise the new categories.
+            .. versionadded:: 0.21.0.
 
-             .. versionadded:: 0.23.0
+            * callable : a callable that is called on all items in the old
+              categories and whose return values comprise the new categories.
+
+            .. versionadded:: 0.23.0.
 
         inplace : bool, default False
-           Whether or not to rename the categories inplace or return a copy of
-           this categorical with renamed categories.
+            Whether or not to rename the categories inplace or return a copy of
+            this categorical with renamed categories.
 
         Returns
         -------
@@ -1399,21 +1403,14 @@ class Categorical(ExtensionArray, PandasObject):
     @Substitution(klass="Categorical")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if not self.ordered:
-            raise ValueError(
-                "Categorical not ordered\nyou can use "
-                ".as_ordered() to change the Categorical to an "
-                "ordered one"
-            )
-
-        from pandas.core.series import Series
-
-        codes = _get_codes_for_values(Series(value).values, self.categories)
-        if -1 in codes:
-            raise KeyError("Value(s) to be inserted must be in categories.")
-
-        codes = codes[0] if is_scalar(value) else codes
-
+        # searchsorted is very performance sensitive. By converting codes
+        # to same dtype as self.codes, we get much faster performance.
+        if is_scalar(value):
+            codes = self.categories.get_loc(value)
+            codes = self.codes.dtype.type(codes)
+        else:
+            locs = [self.categories.get_loc(x) for x in value]
+            codes = np.array(locs, dtype=self.codes.dtype)
         return self.codes.searchsorted(codes, side=side, sorter=sorter)
 
     def isna(self):
@@ -2526,6 +2523,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
     """
+
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["categorical", "index", "name"]
+    )
 
     def __init__(self, data):
         self._validate(data)

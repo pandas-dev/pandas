@@ -36,6 +36,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.construction import extract_array
 from pandas.core.ops import missing
+from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.roperator import rpow
 
@@ -117,14 +118,14 @@ def masked_arith_op(x, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep, eval_kwargs):
+def define_na_arithmetic_op(op, str_rep: str, eval_kwargs):
     def na_op(x, y):
         return na_arithmetic_op(x, y, op, str_rep, eval_kwargs)
 
     return na_op
 
 
-def na_arithmetic_op(left, right, op, str_rep, eval_kwargs):
+def na_arithmetic_op(left, right, op, str_rep: str, eval_kwargs):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -160,7 +161,7 @@ def arithmetic_op(
     right: Any,
     op,
     str_rep: str,
-    eval_kwargs: Dict[str, str],
+    eval_kwargs: Dict[str, bool],
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
@@ -172,6 +173,7 @@ def arithmetic_op(
         Cannot be a DataFrame or Index.  Series is *not* excluded.
     op : {operator.add, operator.sub, ...}
         Or one of the reversed variants from roperator.
+    str_rep : str
 
     Returns
     -------
@@ -179,11 +181,7 @@ def arithmetic_op(
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
-    from pandas.core.ops import (
-        maybe_upcast_for_op,
-        should_extension_dispatch,
-        dispatch_to_extension_op,
-    )
+    from pandas.core.ops import maybe_upcast_for_op
 
     keep_null_freq = isinstance(
         right,
@@ -236,7 +234,6 @@ def comparison_op(
     -------
     ndarrray or ExtensionArray
     """
-    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
@@ -283,8 +280,16 @@ def comparison_op(
     return res_values
 
 
-def na_logical_op(x, y, op):
+def na_logical_op(x: np.ndarray, y, op):
     try:
+        # For exposition, write:
+        #  yarr = isinstance(y, np.ndarray)
+        #  yint = is_integer(y) or (yarr and y.dtype.kind == "i")
+        #  ybool = is_bool(y) or (yarr and y.dtype.kind == "b")
+        #  xint = x.dtype.kind == "i"
+        #  xbool = x.dtype.kind == "b"
+        # Then Cases where this goes through without raising include:
+        #  (xint or xbool) and (yint or bool)
         result = op(x, y)
     except TypeError:
         if isinstance(y, np.ndarray):
@@ -308,9 +313,9 @@ def na_logical_op(x, y, op):
                 NotImplementedError,
             ):
                 raise TypeError(
-                    "cannot compare a dtyped [{dtype}] array "
-                    "with a scalar of type [{typ}]".format(
-                        dtype=x.dtype, typ=type(y).__name__
+                    "Cannot perform '{op}' with a dtyped [{dtype}] array "
+                    "and scalar of type [{typ}]".format(
+                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
                     )
                 )
 
@@ -335,7 +340,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-    from pandas.core.ops import should_extension_dispatch, dispatch_to_extension_op
 
     fill_int = lambda x: x
 

@@ -128,6 +128,7 @@ isnull = isna
 
 
 def _isna_new(obj):
+
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
@@ -520,7 +521,7 @@ def na_value_for_dtype(dtype, compat=True):
     Parameters
     ----------
     dtype : string / dtype
-    compat : boolean, default True
+    compat : bool, default True
 
     Returns
     -------

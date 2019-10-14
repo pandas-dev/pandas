@@ -71,7 +71,7 @@ class PandasDelegate:
         accessors : string list of accessors to add
         typ : 'property' or 'method'
         overwrite : boolean, default False
-           overwrite the method/property in the target class if it exists.
+           Overwrite the method/property in the target class if it exists.
         """
 
         def _create_delegator_property(name):
@@ -118,12 +118,12 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
     Parameters
     ----------
     delegate : object
-        the class to get methods/properties & doc-strings
+        The class to get methods/properties & doc-strings.
     accessors : Sequence[str]
-        List of accessor to add
+        List of accessor to add.
     typ : {'property', 'method'}
     overwrite : boolean, default False
-       overwrite the method/property in the target class if it exists
+       Overwrite the method/property in the target class if it exists.
 
     Returns
     -------
@@ -157,11 +157,11 @@ class CachedAccessor:
     Parameters
     ----------
     name : str
-        The namespace this will be accessed under, e.g. ``df.foo``
+        The namespace this will be accessed under, e.g. ``df.foo``.
     accessor : cls
         The class with the extension methods. The class' __init__ method
         should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
-        the single argument ``data``
+        the single argument ``data``.
     """
 
     def __init__(self, name, accessor):
