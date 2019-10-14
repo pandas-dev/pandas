@@ -467,8 +467,10 @@ def group_max(groupby_t[:, :] out,
         maxx[:] = -_int64_max
         nan_val = NPY_NAT
     elif groupby_t is uint64_t:
+        # NB: We do not define nan_val because there is no such thing
+        #  for uint64_t.  We carefully avoid having to reference it in this
+        #  case.
         maxx[:] = 0
-        nan_val = 0  # We better not need this!  TODO: Can we use e.g. NULL?
     else:
         maxx[:] = -np.inf
         nan_val = NAN
@@ -492,7 +494,7 @@ def group_max(groupby_t[:, :] out,
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
                 else:
-                    if val == val and val != nan_val:
+                    if val == val:
                         nobs[lab, j] += 1
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
@@ -541,8 +543,10 @@ def group_min(groupby_t[:, :] out,
         minx[:] = _int64_max
         nan_val = NPY_NAT
     elif groupby_t is uint64_t:
+        # NB: We do not define nan_val because there is no such thing
+        #  for uint64_t.  We carefully avoid having to reference it in this
+        #  case.
         minx[:] = np.iinfo(np.uint64).max
-        nan_val = 0  # We better not need this!  TODO: Can we use e.g. NULL?
     else:
         minx[:] = np.inf
         nan_val = NAN
@@ -566,7 +570,7 @@ def group_min(groupby_t[:, :] out,
                         if val < minx[lab, j]:
                             minx[lab, j] = val
                 else:
-                    if val == val and val != nan_val:
+                    if val == val:
                         nobs[lab, j] += 1
                         if val < minx[lab, j]:
                             minx[lab, j] = val
