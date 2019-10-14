@@ -2,6 +2,7 @@ import gc
 
 import numpy as np
 import pytest
+from typing import Optional, Type
 
 from pandas._libs.tslib import iNaT
 
@@ -30,7 +31,7 @@ import pandas.util.testing as tm
 class Base:
     """ base class for index sub-class tests """
 
-    _holder = None
+    _holder = None  # type: Optional[Type[IntervalIndex]]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def test_pickle_compat_construction(self):
