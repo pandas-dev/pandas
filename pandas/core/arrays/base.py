@@ -546,8 +546,8 @@ class ExtensionArray:
 
         Returns
         -------
-            ExtensionArray
-                Shifted.
+        ExtensionArray
+            Shifted.
 
         Notes
         -----
