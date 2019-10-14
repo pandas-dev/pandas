@@ -474,7 +474,7 @@ class ExtensionArray:
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use NEXT valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -485,7 +485,8 @@ class ExtensionArray:
 
         Returns
         -------
-        filled : ExtensionArray with NA/NaN filled
+        ExtensionArray
+            With NA/NaN filled.
         """
         value, method = validate_fillna_kwargs(value, method)
 
@@ -539,13 +540,14 @@ class ExtensionArray:
 
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
-            The default is ``self.dtype.na_value``
+            The default is ``self.dtype.na_value``.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        shifted : ExtensionArray
+        ExtensionArray
+            Shifted.
 
         Notes
         -----
@@ -869,11 +871,12 @@ class ExtensionArray:
         Parameters
         ----------
         dtype : str, np.dtype, or ExtensionDtype, optional
-            Default None
+            Default None.
 
         Returns
         -------
         ExtensionArray
+            A view of the :class:`ExtensionArray`.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
