@@ -273,8 +273,7 @@ class MergeOrdered:
 
 
 class MergeAsof:
-    params = [["backward", "forward", "nearest"],
-              [None, 5000]]
+    params = [["backward", "forward", "nearest"], [None, 5]]
     param_names = ["direction", "tolerance"]
 
     def setup(self, direction, tolerance):
@@ -332,26 +331,37 @@ class MergeAsof:
 
     def time_on_uint64(self, direction, tolerance):
         merge_asof(
-            self.df1f, self.df2f, on="timeu64",
-            direction=direction, tolerance=tolerance
+            self.df1f, self.df2f, on="timeu64", direction=direction, tolerance=tolerance
         )
 
     def time_by_object(self, direction, tolerance):
         merge_asof(
-            self.df1b, self.df2b, on="time", by="key",
-            direction=direction, tolerance=tolerance
+            self.df1b,
+            self.df2b,
+            on="time",
+            by="key",
+            direction=direction,
+            tolerance=tolerance,
         )
 
     def time_by_int(self, direction, tolerance):
         merge_asof(
-            self.df1c, self.df2c, on="time", by="key2",
-            direction=direction, tolerance=tolerance
+            self.df1c,
+            self.df2c,
+            on="time",
+            by="key2",
+            direction=direction,
+            tolerance=tolerance,
         )
 
     def time_multiby(self, direction, tolerance):
         merge_asof(
-            self.df1e, self.df2e, on="time", by=["key", "key2"],
-            direction=direction, tolerance=tolerance
+            self.df1e,
+            self.df2e,
+            on="time",
+            by=["key", "key2"],
+            direction=direction,
+            tolerance=tolerance,
         )
 
 
