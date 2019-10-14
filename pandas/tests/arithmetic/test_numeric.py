@@ -11,6 +11,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas.conftest import all_arithmetic_functions
 from pandas.core import ops
 import pandas.util.testing as tm
 
@@ -70,6 +71,25 @@ class TestNumericComparisons:
         b = pd.Series(np.random.randn(5))
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
+
+
+class TestNumericArraylikeArithmeticWithBool:
+    @pytest.mark.parametrize("num", [1.0, 1])
+    def test_array_like_bool_and_num_op_coerce(
+        self, num, all_arithmetic_functions, box_with_array
+    ):
+        # GH 18549
+        op = all_arithmetic_functions
+        expected = [op(num, num)]
+        expected = tm.box_expected(expected, box_with_array)
+        bool_box = tm.box_expected([True], box_with_array)
+        try:
+            tm.assert_equal(expected, op(bool_box, num))
+            tm.assert_equal(expected, op(num, bool_box))
+        except TypeError:
+            # Some operators may not be supported and that's okay. If supported
+            # we should should see the operation coerce to a numeric value.
+            pass
 
 
 # ------------------------------------------------------------------
