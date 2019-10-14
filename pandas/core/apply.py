@@ -341,13 +341,15 @@ class FrameApply:
                 for i, v in enumerate(series_gen):
                     results[i] = self.f(v)
                     keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
+            except Exception as err:
+                if hasattr(err, "args"):
 
                     # make sure i is defined
                     if i is not None:
                         k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
+                        err.args = err.args + (
+                            "occurred at index %s" % pprint_thing(k),
+                        )
                 raise
 
         self.results = results
@@ -394,15 +396,11 @@ class FrameRowApply(FrameApply):
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
-            try:
+            if len(result.index) == len(self.res_columns):
                 result.index = self.res_columns
-            except ValueError:
-                pass
 
-        try:
+        if len(result.columns) == len(self.res_index):
             result.columns = self.res_index
-        except ValueError:
-            pass
 
         return result
 
