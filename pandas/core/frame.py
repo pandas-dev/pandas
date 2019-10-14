@@ -31,7 +31,11 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     rewrite_axis_style_signature,
 )
-from pandas.util._validators import validate_axis_style_args, validate_bool_kwarg
+from pandas.util._validators import (
+    validate_axis_style_args,
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
@@ -5282,7 +5286,7 @@ class DataFrame(NDFrame):
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
 
-        if self._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(self, other, func):
             # operate column-wise; avoid costly object-casting in `.values`
             new_data = ops.dispatch_to_series(self, other, func)
         else:
@@ -6234,7 +6238,7 @@ class DataFrame(NDFrame):
         ----------
         level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name.
-        fill_value : int, string or dict
+        fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
 
         Returns
@@ -6724,14 +6728,6 @@ class DataFrame(NDFrame):
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
-
-        Notes
-        -----
-        In the current implementation apply calls `func` twice on the
-        first column/row to decide whether it can take a fast or slow
-        code path. This can lead to unexpected behavior if `func` has
-        side-effects, as they will take effect twice for the first
-        column/row.
 
         Examples
         --------
@@ -8178,7 +8174,7 @@ class DataFrame(NDFrame):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
-        self._check_percentile(q)
+        validate_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)

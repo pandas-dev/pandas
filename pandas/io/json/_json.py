@@ -12,7 +12,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
 from pandas._typing import Scalar
 from pandas.core.reshape.concat import concat
 
@@ -384,7 +384,7 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    orient : string,
+    orient : str
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -1112,15 +1112,13 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = (
-                DataFrame.from_dict(
-                    loads(json, precise_float=self.precise_float),
-                    dtype=None,
-                    orient="index",
-                )
-                .sort_index(axis="columns")
-                .sort_index(axis="index")
+            self.obj = DataFrame.from_dict(
+                loads(json, precise_float=self.precise_float),
+                dtype=None,
+                orient="index",
             )
+            if compat.PY35:
+                self.obj = self.obj.sort_index(axis="columns").sort_index(axis="index")
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
