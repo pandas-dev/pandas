@@ -1,4 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
+from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import pytest
@@ -92,7 +93,7 @@ def test_to_M8():
 
 
 class Base:
-    _offset = None
+    _offset = None  # type: Union[BusinessHour, CustomBusinessHour, Callable]
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -659,7 +660,7 @@ class TestDateOffset(Base):
 
 
 class TestBusinessDay(Base):
-    _offset = BDay
+    _offset = BDay  # type: Callable
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
@@ -740,7 +741,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: List[Tuple[int, Dict[datetime, datetime]]]
     apply_cases.append(
         (
             BDay(),
@@ -1697,7 +1698,7 @@ class TestBusinessHour(Base):
                 assert offset._next_opening_time(dt) == exp_next
                 assert offset._prev_opening_time(dt) == exp_prev
 
-    apply_cases = []
+    apply_cases = []  # type: List[Tuple[int, Dict[datetime, datetime]]]
     apply_cases.append(
         (
             BusinessHour(),
@@ -2631,7 +2632,7 @@ class TestCustomBusinessDay(Base):
     apply_cases = []
     apply_cases.append(
         (
-            CDay(),
+            1 * CDay(),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 2),
                 datetime(2008, 1, 4): datetime(2008, 1, 7),
@@ -2878,7 +2879,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     apply_cases = []
     apply_cases.append(
         (
-            CBMonthEnd(),
+            1 * CBMonthEnd(),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 2, 7): datetime(2008, 2, 29),
@@ -3027,7 +3028,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     apply_cases = []
     apply_cases.append(
         (
-            CBMonthBegin(),
+            1 * CBMonthBegin(),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 1),
                 datetime(2008, 2, 7): datetime(2008, 3, 3),
@@ -3120,7 +3121,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 
 class TestWeek(Base):
-    _offset = Week
+    _offset = Week  # type: Callable
     d = Timestamp(datetime(2008, 1, 2))
     offset1 = _offset()
     offset2 = _offset(2)
@@ -3219,7 +3220,7 @@ class TestWeek(Base):
 
 
 class TestWeekOfMonth(Base):
-    _offset = WeekOfMonth
+    _offset = WeekOfMonth  # type: Callable
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3319,7 +3320,7 @@ class TestWeekOfMonth(Base):
 
 
 class TestLastWeekOfMonth(Base):
-    _offset = LastWeekOfMonth
+    _offset = LastWeekOfMonth  # type: Callable
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3396,7 +3397,7 @@ class TestLastWeekOfMonth(Base):
 
 
 class TestSemiMonthEnd(Base):
-    _offset = SemiMonthEnd
+    _offset = SemiMonthEnd  # type: Callable
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3655,7 +3656,7 @@ class TestSemiMonthEnd(Base):
 
 
 class TestSemiMonthBegin(Base):
-    _offset = SemiMonthBegin
+    _offset = SemiMonthBegin  # type: Callable
     offset1 = _offset()
     offset2 = _offset(2)
 
