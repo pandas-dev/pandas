@@ -81,11 +81,14 @@ def test_is_extension_array_dtype(dtype):
     assert is_extension_array_dtype(dtype)
 
 
-@pytest.mark.parametrize("array", [
-    pd.Series([1, None], dtype="Int64"),
-    pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
-    pd.Series([0, 0], dtype="timedelta64[ns]"),
-])
+@pytest.mark.parametrize(
+    "array",
+    [
+        pd.Series([1, None], dtype="Int64"),
+        pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+        pd.Series([0, 0], dtype="timedelta64[ns]"),
+    ],
+)
 def test_compare_unequal_to_string(array):
     # GH 28930
     result = array == "a"
