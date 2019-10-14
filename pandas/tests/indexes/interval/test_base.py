@@ -13,7 +13,7 @@ class TestBase(Base):
     in test_interval.py or the specific test file (e.g. test_astype.py)
     """
 
-    _holder = IntervalIndex # type: Optional[Type[IntervalIndex]]
+    _holder = IntervalIndex  # type: Optional[Type[IntervalIndex]]
 
     @pytest.fixture
     def indices(self):
