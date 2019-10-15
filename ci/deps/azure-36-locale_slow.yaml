@@ -32,6 +32,6 @@ dependencies:
   - pytest-azurepipelines
   - moto
   - pip=19.2.3
-  - setuptools=41.4.0
+  - setuptools=41.0.1
   - pip:
     - hypothesis>=3.58.0

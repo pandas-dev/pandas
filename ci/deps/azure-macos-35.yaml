@@ -22,7 +22,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pip=19.2.3
-  - setuptools=41.4.0
+  - setuptools=41.0.1
   - pip:
     # Anaconda / conda-forge don't build for 3.5
     - cython>=0.29.13
