@@ -44,7 +44,7 @@ dependencies:
   - pytest-cov
   - pytest-mock
   - hypothesis>=3.58.0
-  - pip
+  - pip=19.2.3
   - pip:
     - brotlipy
     - coverage

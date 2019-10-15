@@ -22,7 +22,7 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
-  - pip
+  - pip=19.2.3
   - pip:
     # for python 3.5, pytest>=4.0.2, cython>=0.29.13 is not available in conda
     - cython>=0.29.13

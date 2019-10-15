@@ -17,7 +17,7 @@ dependencies:
   - pytest-mock
   - pytest-azurepipelines
   - hypothesis>=3.58.0
-  - pip
+  - pip=19.2.3
   - pip:
     # Anaconda doesn't build a new enough Cython
     - cython>=0.29.13

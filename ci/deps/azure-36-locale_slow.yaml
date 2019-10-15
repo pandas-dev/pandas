@@ -31,6 +31,6 @@ dependencies:
   - pytest-mock
   - pytest-azurepipelines
   - moto
-  - pip
+  - pip=19.2.3
   - pip:
     - hypothesis>=3.58.0

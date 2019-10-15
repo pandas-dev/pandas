@@ -37,6 +37,6 @@ dependencies:
   - pytest>=5.0.1
   - pytest-xdist>=1.29.0
   - pytest-mock
-  - pip
+  - pip=19.2.3
   - pip:
     - hypothesis>=3.58.0

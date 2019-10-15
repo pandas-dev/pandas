@@ -21,7 +21,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
+  - pip=19.2.3
   - pip:
     # Anaconda / conda-forge don't build for 3.5
     - cython>=0.29.13

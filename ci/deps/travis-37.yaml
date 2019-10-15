@@ -18,7 +18,7 @@ dependencies:
   - pytest-mock
   - hypothesis>=3.58.0
   - s3fs<0.3
-  - pip
+  - pip=19.2.3
   - pyreadstat
   - pip:
     - moto
