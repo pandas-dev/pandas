@@ -3206,7 +3206,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options                                     # noqa: E402
+   from pandas import options  # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
@@ -4642,6 +4642,14 @@ Several caveats.
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
+
+.. ipython:: python
 
    df = pd.DataFrame({'a': list('abc'),
                       'b': list(range(1, 4)),
@@ -4702,7 +4710,8 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4726,7 +4735,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
@@ -4845,7 +4856,7 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
 
 .. _io.sql:
@@ -5047,6 +5058,17 @@ Example of a callable using PostgreSQL `COPY clause
   from io import StringIO
 
   def psql_insert_copy(table, conn, keys, data_iter):
+      """
+      Execute SQL statement inserting data
+
+      Parameters
+      ----------
+      table : pandas.io.sql.SQLTable
+      conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+      keys : list of str
+          Column names
+      data_iter : Iterable that iterates the values to be inserted
+      """
       # gets a DBAPI connection that can provide a cursor
       dbapi_conn = conn.connection
       with dbapi_conn.cursor() as cur:
@@ -5079,6 +5101,18 @@ table name and optionally a subset of columns to read.
 .. ipython:: python
 
    pd.read_sql_table('data', engine)
+
+.. note::
+
+  Note that pandas infers column dtypes from query outputs, and not by looking
+  up data types in the physical database schema. For example, assume ``userid``
+  is an integer column in a table. Then, intuitively, ``select userid ...`` will
+  return integer-valued series, while ``select cast(userid as text) ...`` will
+  return object-valued (str) series. Accordingly, if the query output is empty,
+  then all resulting columns will be returned as object-valued (since they are
+  most general). If you foresee that your query will sometimes generate an empty
+  result, you may want to explicitly typecast afterwards to ensure dtype
+  integrity.
 
 You can also specify the name of the column as the ``DataFrame`` index,
 and specify a subset of columns to be read.

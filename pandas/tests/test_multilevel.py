@@ -1065,6 +1065,23 @@ Thur,Lunch,Yes,51.51,17"""
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
+    def test_series_any_timedelta(self):
+        # GH 17667
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.any(axis=1)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
+
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
             [np.arange(5).repeat(10), np.tile(np.arange(10), 5)]
@@ -1475,17 +1492,14 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns
-
-        from numpy import nan
-
         df3 = DataFrame(
             {
                 "A" * 30: {("A", "A0006000", "nuit"): "A0006000"},
-                "B" * 30: {("A", "A0006000", "nuit"): nan},
-                "C" * 30: {("A", "A0006000", "nuit"): nan},
-                "D" * 30: {("A", "A0006000", "nuit"): nan},
+                "B" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "C" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "D" * 30: {("A", "A0006000", "nuit"): np.nan},
                 "E" * 30: {("A", "A0006000", "nuit"): "A"},
-                "F" * 30: {("A", "A0006000", "nuit"): nan},
+                "F" * 30: {("A", "A0006000", "nuit"): np.nan},
             }
         )
 
@@ -2054,6 +2068,53 @@ class TestSorted(Base):
             levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]]
         )
         assert not index.is_lexsorted()
+        assert index.lexsort_depth == 0
+
+    def test_raise_invalid_sortorder(self):
+        # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        # Correct sortorder
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+
+        with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
+                sortorder=2,
+            )
+
+        with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
+                sortorder=1,
+            )
+
+    def test_lexsort_depth(self):
+        # Test that lexsort_depth return the  correct sortorder
+        # when it was given to the MultiIndex const.
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+        assert index.lexsort_depth == 2
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=1
+        )
+        assert index.lexsort_depth == 1
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
+        )
         assert index.lexsort_depth == 0
 
     def test_sort_index_and_reconstruction(self):

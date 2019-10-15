@@ -206,8 +206,8 @@ class EWM(_Rolling):
         axis="",
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, arg, *args, **kwargs):
-        return super().aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 

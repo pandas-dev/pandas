@@ -8,44 +8,38 @@ import pandas.util._test_decorators as td
 
 import pandas
 
+dummy_backend = types.ModuleType("pandas_dummy_backend")
+dummy_backend.plot = lambda *args, **kwargs: None
 
-def test_matplotlib_backend_error():
-    msg = (
-        "matplotlib is required for plotting when the default backend "
-        '"matplotlib" is selected.'
-    )
-    try:
-        import matplotlib  # noqa
-    except ImportError:
-        with pytest.raises(ImportError, match=msg):
-            pandas.set_option("plotting.backend", "matplotlib")
+
+@pytest.fixture
+def restore_backend():
+    """Restore the plotting backend to matplotlib"""
+    pandas.set_option("plotting.backend", "matplotlib")
+    yield
+    pandas.set_option("plotting.backend", "matplotlib")
 
 
 def test_backend_is_not_module():
-    msg = (
-        '"not_an_existing_module" does not seem to be an installed module. '
-        "A pandas plotting backend must be a module that can be imported"
-    )
+    msg = "Could not find plotting backend 'not_an_existing_module'."
     with pytest.raises(ValueError, match=msg):
         pandas.set_option("plotting.backend", "not_an_existing_module")
 
+    assert pandas.options.plotting.backend == "matplotlib"
 
-def test_backend_is_correct(monkeypatch):
-    monkeypatch.setattr(
-        "pandas.core.config_init.importlib.import_module", lambda name: None
+
+def test_backend_is_correct(monkeypatch, restore_backend):
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
+
+    pandas.set_option("plotting.backend", "pandas_dummy_backend")
+    assert pandas.get_option("plotting.backend") == "pandas_dummy_backend"
+    assert (
+        pandas.plotting._core._get_plot_backend("pandas_dummy_backend") is dummy_backend
     )
-    pandas.set_option("plotting.backend", "correct_backend")
-    assert pandas.get_option("plotting.backend") == "correct_backend"
-
-    # Restore backend for other tests (matplotlib can be not installed)
-    try:
-        pandas.set_option("plotting.backend", "matplotlib")
-    except ImportError:
-        pass
 
 
 @td.skip_if_no_mpl
-def test_register_entrypoint():
+def test_register_entrypoint(restore_backend):
 
     dist = pkg_resources.get_distribution("pandas")
     if dist.module_path not in pandas.__file__:
@@ -74,13 +68,18 @@ def test_register_entrypoint():
     assert result is mod
 
 
-def test_register_import():
-    mod = types.ModuleType("my_backend2")
-    mod.plot = lambda *args, **kwargs: 1
-    sys.modules["my_backend2"] = mod
+def test_setting_backend_without_plot_raises():
+    # GH-28163
+    module = types.ModuleType("pandas_plot_backend")
+    sys.modules["pandas_plot_backend"] = module
 
-    result = pandas.plotting._core._get_plot_backend("my_backend2")
-    assert result is mod
+    assert pandas.options.plotting.backend == "matplotlib"
+    with pytest.raises(
+        ValueError, match="Could not find plotting backend 'pandas_plot_backend'."
+    ):
+        pandas.set_option("plotting.backend", "pandas_plot_backend")
+
+    assert pandas.options.plotting.backend == "matplotlib"
 
 
 @td.skip_if_mpl

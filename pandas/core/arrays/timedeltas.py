@@ -14,6 +14,7 @@ from pandas._libs.tslibs.timedeltas import (
     precision_from_unit,
 )
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -41,6 +42,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 from pandas.core.ops.invalid import invalid_comparison
@@ -384,6 +386,62 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims: bool = False,
+        initial=None,
+        skipna: bool = True,
+        min_count: int = 0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nansum(
+            self._data, axis=axis, skipna=skipna, min_count=min_count
+        )
+        return Timedelta(result)
+
+    def std(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
+        return Timedelta(result)
+
+    def median(
+        self,
+        axis=None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_median(
+            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+        )
+        return nanops.nanmedian(self._data, axis=axis, skipna=skipna)
+
     # ----------------------------------------------------------------
     # Rendering Methods
 
@@ -495,7 +553,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
 
-        if is_object_dtype(other):
+        if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
@@ -543,11 +601,11 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             # Note: we do not do type inference on the result, so either
             #  an object array or numeric-dtyped (if numpy does inference)
             #  will be returned.  GH#23829
@@ -591,12 +649,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
-        elif is_object_dtype(other):
-            # Note: unlike in __truediv__, we do not _need_ to do type#
+        elif is_object_dtype(other.dtype):
+            # Note: unlike in __truediv__, we do not _need_ to do type
             #  inference on the result.  It does not raise, a numeric array
             #  is returned.  GH#23829
             result = [other[n] / self[n] for n in range(len(self))]
@@ -643,7 +701,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -655,7 +713,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [self[n] // other[n] for n in range(len(self))]
             result = np.array(result)
             if lib.infer_dtype(result, skipna=False) == "timedelta":
@@ -663,7 +721,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return type(self)(result)
             return result
 
-        elif is_integer_dtype(other) or is_float_dtype(other):
+        elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
             result = self._data // other
             return type(self)(result)
 
@@ -705,7 +763,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -717,7 +775,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [other[n] // self[n] for n in range(len(self))]
             result = np.array(result)
             return result
