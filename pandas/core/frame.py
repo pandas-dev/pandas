@@ -6238,7 +6238,7 @@ class DataFrame(NDFrame):
         ----------
         level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name.
-        fill_value : int, string or dict
+        fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
 
         Returns
