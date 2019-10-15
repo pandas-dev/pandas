@@ -151,6 +151,8 @@ Other API changes
 
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
+- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+  To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
 -
 
@@ -239,6 +241,7 @@ Datetimelike
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 - Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
+- Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 
 Timedelta
 ^^^^^^^^^
