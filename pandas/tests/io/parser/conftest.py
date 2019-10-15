@@ -1,4 +1,5 @@
 import os
+from typing import List, Optional
 
 import pytest
 
@@ -6,9 +7,9 @@ from pandas import read_csv, read_table
 
 
 class BaseParser:
-    engine = None
+    engine = None  # type: Optional[str]
     low_memory = True
-    float_precision_choices = []
+    float_precision_choices = []  # type: List[Optional[str]]
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()
@@ -59,11 +60,11 @@ _pythonParser = PythonParser()
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_all_parsers = _c_parsers_only + _py_parsers_only
+_all_parsers = [*_c_parsers_only, *_py_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
-_all_parser_ids = _c_parser_ids + _py_parser_ids
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
