@@ -714,8 +714,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_modify_datetime(self):
         # GH 28837
-        df = pd.DataFrame.from_dict({"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]})
-        df["date_dt"] = pd.to_datetime(df["date"], unit='ms', cache=True)
+        df = pd.DataFrame.from_dict(
+            {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
+        )
+        df["date_dt"] = pd.to_datetime(df["date"], unit="ms", cache=True)
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
         result = df
@@ -726,7 +728,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 1540215845888,2018-10-22 13:44:05.888,2018-10-22 13:44:05.888
 1540282121025,2018-10-23 08:08:41.025,2018-10-23 08:08:41.025"""
         expected = pd.read_csv(StringIO(data))
-        expected[["date_dt", "date_dt_cp"]] = expected[["date_dt", "date_dt_cp"]].apply(pd.to_datetime)
+        expected[["date_dt", "date_dt_cp"]] = expected[["date_dt", "date_dt_cp"]].apply(
+            pd.to_datetime
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_frame(self):
