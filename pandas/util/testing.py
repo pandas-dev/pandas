@@ -1156,7 +1156,7 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal("dtype", left, right, obj="Attributes of {obj}".format(obj=obj))
 
     if check_exact:
         assert_numpy_array_equal(
