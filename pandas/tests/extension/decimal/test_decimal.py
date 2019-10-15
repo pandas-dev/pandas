@@ -110,27 +110,27 @@ class BaseDecimal:
         tm.assert_frame_equal(left, right, *args, **kwargs)
 
 
-class TestDtype(BaseDecimal, base.BaseDtypeTests):
+class TestDtype(BaseDecimal, base.BaseDtypeTests):  # type: ignore
     def test_hashable(self, dtype):
         pass
 
 
-class TestInterface(BaseDecimal, base.BaseInterfaceTests):
+class TestInterface(BaseDecimal, base.BaseInterfaceTests):  # type: ignore
     pass
 
 
-class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
+class TestConstructors(BaseDecimal, base.BaseConstructorsTests):  # type: ignore
     @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass
 
 
-class TestReshaping(BaseDecimal, base.BaseReshapingTests):
+class TestReshaping(BaseDecimal, base.BaseReshapingTests):  # type: ignore
     pass
 
 
-class TestGetitem(BaseDecimal, base.BaseGetitemTests):
+class TestGetitem(BaseDecimal, base.BaseGetitemTests):  # type: ignore
     def test_take_na_value_other_decimal(self):
         arr = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
         result = arr.take([0, -1], allow_fill=True, fill_value=decimal.Decimal("-1.0"))
@@ -138,7 +138,7 @@ class TestGetitem(BaseDecimal, base.BaseGetitemTests):
         self.assert_extension_array_equal(result, expected)
 
 
-class TestMissing(BaseDecimal, base.BaseMissingTests):
+class TestMissing(BaseDecimal, base.BaseMissingTests):  # type: ignore
     pass
 
 
@@ -163,7 +163,7 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
     pass
 
 
-class TestMethods(BaseDecimal, base.BaseMethodsTests):
+class TestMethods(BaseDecimal, base.BaseMethodsTests):  # type: ignore
     @pytest.mark.parametrize("dropna", [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts(self, all_data, dropna):
@@ -179,11 +179,11 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
-class TestCasting(BaseDecimal, base.BaseCastingTests):
+class TestCasting(BaseDecimal, base.BaseCastingTests):  # type: ignore
     pass
 
 
-class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
+class TestGroupby(BaseDecimal, base.BaseGroupbyTests):  # type: ignore
     @pytest.mark.xfail(
         reason="needs to correctly define __eq__ to handle nans, xref #27081."
     )
@@ -191,11 +191,11 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
         super().test_groupby_apply_identity(data_for_grouping)
 
 
-class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):  # type: ignore
     pass
 
 
-class TestPrinting(BaseDecimal, base.BasePrintingTests):
+class TestPrinting(BaseDecimal, base.BasePrintingTests):  # type: ignore
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
         # the custom _formatter is used
@@ -264,7 +264,7 @@ def test_astype_dispatches(frame):
     assert result.dtype.context.prec == ctx.prec
 
 
-class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):  # type: ignore
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
@@ -298,7 +298,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         pass
 
 
-class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):  # type: ignore
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
