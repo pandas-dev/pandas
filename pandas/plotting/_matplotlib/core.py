@@ -230,7 +230,7 @@ class MPLPlot:
             "color" in self.kwds or "colors" in self.kwds
         ) and self.colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used " "simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
             )
 
         if "color" in self.kwds and self.style is not None:
