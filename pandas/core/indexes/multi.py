@@ -229,6 +229,10 @@ class MultiIndex(Index):
     of the mentioned helper methods.
     """
 
+    _deprecations = Index._deprecations | frozenset(
+        ["labels", "set_labels", "to_hierarchical"]
+    )
+
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
     _names = FrozenList()
@@ -638,7 +642,7 @@ class MultiIndex(Index):
 
     @property
     def _values(self):
-        # We override here, since our parent uses _data, which we dont' use.
+        # We override here, since our parent uses _data, which we don't use.
         return self.values
 
     @property
@@ -1646,7 +1650,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
         name : list / sequence of strings, optional
@@ -2330,7 +2334,7 @@ class MultiIndex(Index):
         level : list-like, int or str, default 0
             If a string is given, must be a name of the level
             If list-like must be names or ints of levels.
-        ascending : boolean, default True
+        ascending : bool, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
         sort_remaining : sort by the remaining levels after level

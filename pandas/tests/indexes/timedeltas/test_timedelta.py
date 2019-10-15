@@ -30,9 +30,9 @@ randn = np.random.randn
 class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
 
-    def setup_method(self, method):
-        self.indices = dict(index=tm.makeTimedeltaIndex(10))
-        self.setup_indices()
+    @pytest.fixture
+    def indices(self):
+        return tm.makeTimedeltaIndex(10)
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)

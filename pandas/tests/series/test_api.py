@@ -247,9 +247,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
     def test_tab_completion_with_categorical(self):
         # test the tab completion display
         ok_for_cat = [
-            "name",
-            "index",
-            "categorical",
             "categories",
             "codes",
             "ordered",

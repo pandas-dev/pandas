@@ -79,7 +79,7 @@ else:
         except ImportError:
             import tempita
     except ImportError:
-        raise ImportError("Building pandas requires Tempita: " "pip install Tempita")
+        raise ImportError("Building pandas requires Tempita: pip install Tempita")
 
 
 _pxi_dep_template = {
@@ -142,9 +142,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = (
-    "Powerful data structures for data analysis, time series, " "and statistics"
-)
+DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with structured (tabular, multidimensional,
@@ -230,6 +228,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]

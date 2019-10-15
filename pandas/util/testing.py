@@ -1175,7 +1175,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -2363,26 +2363,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2390,7 +2390,7 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper
