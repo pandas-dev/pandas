@@ -137,8 +137,8 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
-    >>> dt = pd.datetime.datetime(2018, 10, 3)
-    >>> pd.is_scalar(dt)
+    >>> dt = datetime.datetime(2018, 10, 3)
+    >>> pd.api.types.is_scalar(dt)
     True
 
     >>> pd.api.types.is_scalar([2, 3])
