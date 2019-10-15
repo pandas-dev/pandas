@@ -41,11 +41,13 @@ cdef inline bint is_definitely_invalid_key(object val):
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
+    obj = util.get_value_at(arr, loc)
+
     if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_at(arr, loc), tz=tz)
+        return Timestamp(obj, tz=tz)
     elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_at(arr, loc))
-    return util.get_value_at(arr, loc)
+        return Timedelta(obj)
+    return obj
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -102,6 +104,9 @@ cdef class IndexEngine:
         arr[loc] = value
 
     cpdef get_loc(self, object val):
+        cdef:
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError("'{val}' is an invalid key".format(val=val))
 
@@ -114,7 +119,7 @@ cdef class IndexEngine:
             loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
-            if util.get_value_at(values, loc) != val:
+            if values[loc] != val:
                 raise KeyError(val)
             return loc
 
@@ -352,22 +357,22 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
+    if hi == 0 or (hi > 0 and val > values[hi]):
         return len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = util.get_value_at(values, mid)
+        pval = values[mid]
         if val < pval:
             hi = mid
         elif val > pval:
             lo = mid + 1
         else:
-            while mid > 0 and val == util.get_value_at(values, mid - 1):
+            while mid > 0 and val == values[mid - 1]:
                 mid -= 1
             return mid
 
-    if val <= util.get_value_at(values, mid):
+    if val <= values[mid]:
         return mid
     else:
         return mid + 1
@@ -387,13 +392,16 @@ cdef class DatetimeEngine(Int64Engine):
         return 'M8[ns]'
 
     def __contains__(self, object val):
+        cdef:
+            int64_t loc
+
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
             conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
-            return util.get_value_at(values, loc) == conv
+            return values[loc] == conv
 
         self._ensure_mapping_populated()
         return maybe_datetimelike_to_i8(val) in self.mapping
@@ -405,6 +413,8 @@ cdef class DatetimeEngine(Int64Engine):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
+        cdef:
+            int64_t loc
         if is_definitely_invalid_key(val):
             raise TypeError
 
@@ -422,7 +432,7 @@ cdef class DatetimeEngine(Int64Engine):
                 self._date_check_type(val)
                 raise KeyError(val)
 
-            if loc == len(values) or util.get_value_at(values, loc) != conv:
+            if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
             return loc
 
