@@ -168,6 +168,15 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    def test_compare_unequal_to_string(self, dtype):
+        # GH 28930
+        s = pd.Series([1, None], dtype=dtype)
+        result = s == "a"
+        expected = pd.Series([False, False])
+
+        self.assert_series_equal(result, expected)
+
 
 class TestInterface(base.BaseInterfaceTests):
     pass
