@@ -2072,7 +2072,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 floats[i] = float(val)
                 complexes[i] = complex(val)
                 seen.float_ = 1
-            except Exception:
+            except (ValueError, TypeError):
                 seen.object_ = 1
                 break
         else:
@@ -2352,7 +2352,8 @@ def to_object_array_tuples(rows: object):
             row = rows[i]
             for j in range(len(row)):
                 result[i, j] = row[j]
-    except Exception:
+    except TypeError:
+        # e.g. "Expected tuple, got list"
         # upcast any subclasses to tuple
         for i in range(n):
             row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
