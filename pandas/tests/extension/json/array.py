@@ -27,7 +27,7 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value = UserDict()
+    na_value = UserDict()  # type: UserDict
 
     @classmethod
     def construct_array_type(cls):
