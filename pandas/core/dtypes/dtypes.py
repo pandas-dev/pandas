@@ -85,7 +85,7 @@ class Registry:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype] or string
+        dtype : Type[ExtensionDtype] or str
 
         Returns
         -------
