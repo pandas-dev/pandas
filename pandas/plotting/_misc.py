@@ -399,7 +399,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     lag : lag of the scatter plot, default 1
     ax : Matplotlib axis object, optional
     **kwds
-        Matplotlib scatter method keyword arguments, optional
+        Matplotlib scatter method keyword arguments.
 
     Returns
     -------
