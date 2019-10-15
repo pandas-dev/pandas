@@ -8,6 +8,229 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
 
+ctypedef fused rank_t:
+    object
+    float64_t
+    uint64_t
+    int64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def rank_1d(rank_t[:] in_arr, ties_method='average',
+            ascending=True, na_option='keep', pct=False):
+    """
+    Fast NaN-friendly version of scipy.stats.rankdata
+    """
+
+    cdef:
+        Py_ssize_t i, j, n, dups = 0, total_tie_count = 0, non_na_idx = 0
+
+        ndarray[rank_t] sorted_data, values
+
+        ndarray[float64_t] ranks
+        ndarray[int64_t] argsorted
+        ndarray[uint8_t, cast=True] sorted_mask
+
+        rank_t val, nan_value
+
+        float64_t sum_ranks = 0
+        int tiebreak = 0
+        bint keep_na = 0
+        bint isnan, condition
+        float64_t count = 0.0
+
+    tiebreak = tiebreakers[ties_method]
+
+    if rank_t is float64_t:
+        values = np.asarray(in_arr).copy()
+    elif rank_t is object:
+        values = np.array(in_arr, copy=True)
+
+        if values.dtype != np.object_:
+            values = values.astype('O')
+    else:
+        values = np.asarray(in_arr)
+
+    keep_na = na_option == 'keep'
+
+    if rank_t is object:
+        mask = missing.isnaobj(values)
+    elif rank_t is float64_t:
+        mask = np.isnan(values)
+    elif rank_t is int64_t:
+        mask = values == NPY_NAT
+
+        # create copy in case of NPY_NAT
+        # values are mutated inplace
+        if mask.any():
+            values = values.copy()
+
+    # double sort first by mask and then by values to ensure nan values are
+    # either at the beginning or the end. mask/(~mask) controls padding at
+    # tail or the head
+    if rank_t is not uint64_t:
+        if ascending ^ (na_option == 'top'):
+            if rank_t is object:
+                nan_value = Infinity()
+            elif rank_t is float64_t:
+                nan_value = np.inf
+            elif rank_t is int64_t:
+                nan_value = np.iinfo(np.int64).max
+
+            order = (values, mask)
+        else:
+            if rank_t is object:
+                nan_value = NegInfinity()
+            elif rank_t is float64_t:
+                nan_value = -np.inf
+            elif rank_t is int64_t:
+                nan_value = np.iinfo(np.int64).min
+
+            order = (values, ~mask)
+        np.putmask(values, mask, nan_value)
+    else:
+        mask = np.zeros(shape=len(values), dtype=bool)
+        order = (values, mask)
+
+    n = len(values)
+    ranks = np.empty(n, dtype='f8')
+
+    if rank_t is object:
+        _as = np.lexsort(keys=order)
+    else:
+        if tiebreak == TIEBREAK_FIRST:
+            # need to use a stable sort here
+            _as = np.lexsort(keys=order)
+            if not ascending:
+                tiebreak = TIEBREAK_FIRST_DESCENDING
+        else:
+            _as = np.lexsort(keys=order)
+
+    if not ascending:
+        _as = _as[::-1]
+
+    sorted_data = values.take(_as)
+    sorted_mask = mask.take(_as)
+    _indices = np.diff(sorted_mask.astype(int)).nonzero()[0]
+    non_na_idx = _indices[0] if len(_indices) > 0 else -1
+    argsorted = _as.astype('i8')
+
+    if rank_t is object:
+        # TODO: de-duplicate once cython supports conditional nogil
+        for i in range(n):
+            sum_ranks += i + 1
+            dups += 1
+
+            val = sorted_data[i]
+
+            if rank_t is not uint64_t:
+                isnan = sorted_mask[i]
+                if isnan and keep_na:
+                    ranks[argsorted[i]] = NaN
+                    continue
+
+            count += 1.0
+
+            if rank_t is object:
+                condition = (i == n - 1 or
+                    are_diff(sorted_data[i + 1], val) or
+                    i == non_na_idx)
+            else:
+                condition = (i == n - 1 or sorted_data[i + 1] != val or i == non_na_idx)
+
+            if condition:
+
+                if tiebreak == TIEBREAK_AVERAGE:
+                    for j in range(i - dups + 1, i + 1):
+                        ranks[argsorted[j]] = sum_ranks / dups
+                elif tiebreak == TIEBREAK_MIN:
+                    for j in range(i - dups + 1, i + 1):
+                        ranks[argsorted[j]] = i - dups + 2
+                elif tiebreak == TIEBREAK_MAX:
+                    for j in range(i - dups + 1, i + 1):
+                        ranks[argsorted[j]] = i + 1
+                elif tiebreak == TIEBREAK_FIRST:
+                    if rank_t is object:
+                        raise ValueError('first not supported for '
+                                         'non-numeric data')
+                    else:
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = j + 1
+                elif tiebreak == TIEBREAK_FIRST_DESCENDING:
+                    for j in range(i - dups + 1, i + 1):
+                        ranks[argsorted[j]] = 2 * i - j - dups + 2
+                elif tiebreak == TIEBREAK_DENSE:
+                    total_tie_count += 1
+                    for j in range(i - dups + 1, i + 1):
+                        ranks[argsorted[j]] = total_tie_count
+                sum_ranks = dups = 0
+
+    else:
+        with nogil:
+            # TODO: why does the 2d version not have a nogil block?
+            for i in range(n):
+                sum_ranks += i + 1
+                dups += 1
+
+                val = sorted_data[i]
+
+                if rank_t is not uint64_t:
+                    isnan = sorted_mask[i]
+                    if isnan and keep_na:
+                        ranks[argsorted[i]] = NaN
+                        continue
+
+                count += 1.0
+
+                if rank_t is object:
+                    condition = (i == n - 1 or
+                        are_diff(sorted_data[i + 1], val) or
+                        i == non_na_idx)
+                else:
+                    condition = (i == n - 1 or sorted_data[i + 1] != val or i == non_na_idx)
+
+                if condition:
+
+                    if tiebreak == TIEBREAK_AVERAGE:
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = sum_ranks / dups
+                    elif tiebreak == TIEBREAK_MIN:
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = i - dups + 2
+                    elif tiebreak == TIEBREAK_MAX:
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = i + 1
+                    elif tiebreak == TIEBREAK_FIRST:
+                        if rank_t is object:
+                            raise ValueError('first not supported for '
+                                             'non-numeric data')
+                        else:
+                            for j in range(i - dups + 1, i + 1):
+                                ranks[argsorted[j]] = j + 1
+                    elif tiebreak == TIEBREAK_FIRST_DESCENDING:
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = 2 * i - j - dups + 2
+                    elif tiebreak == TIEBREAK_DENSE:
+                        total_tie_count += 1
+                        for j in range(i - dups + 1, i + 1):
+                            ranks[argsorted[j]] = total_tie_count
+                    sum_ranks = dups = 0
+
+    if pct:
+        if tiebreak == TIEBREAK_DENSE:
+            return ranks / total_tie_count
+        else:
+            return ranks / count
+    else:
+        return ranks
+
+rank_1d_object = rank_1d["object"]
+rank_1d_float64 = rank_1d["float64_t"]
+rank_1d_uint64 = rank_1d["uint64_t"]
+rank_1d_int64 = rank_1d["int64_t"]
+
+
 {{py:
 
 # dtype ctype pos_nan_value neg_nan_value
@@ -20,173 +243,6 @@ dtypes = [('object', 'object', 'Infinity()', 'NegInfinity()'),
 }}
 
 {{for dtype, ctype, pos_nan_value, neg_nan_value in dtypes}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def rank_1d_{{dtype}}({{ctype}}[:] in_arr, ties_method='average',
-                      ascending=True, na_option='keep', pct=False):
-    """
-    Fast NaN-friendly version of scipy.stats.rankdata
-    """
-
-    cdef:
-        Py_ssize_t i, j, n, dups = 0, total_tie_count = 0, non_na_idx = 0
-
-        {{if dtype == 'object'}}
-        ndarray sorted_data, values
-        {{else}}
-        ndarray[{{ctype}}] sorted_data, values
-        {{endif}}
-
-        ndarray[float64_t] ranks
-        ndarray[int64_t] argsorted
-        ndarray[uint8_t, cast=True] sorted_mask
-
-        {{if dtype == 'uint64'}}
-        {{ctype}} val
-        {{else}}
-        {{ctype}} val, nan_value
-        {{endif}}
-
-        float64_t sum_ranks = 0
-        int tiebreak = 0
-        bint keep_na = 0
-        bint isnan
-        float64_t count = 0.0
-    tiebreak = tiebreakers[ties_method]
-
-    {{if dtype == 'float64'}}
-    values = np.asarray(in_arr).copy()
-    {{elif dtype == 'object'}}
-    values = np.array(in_arr, copy=True)
-
-    if values.dtype != np.object_:
-        values = values.astype('O')
-    {{else}}
-    values = np.asarray(in_arr)
-    {{endif}}
-
-    keep_na = na_option == 'keep'
-
-    {{if dtype == 'object'}}
-    mask = missing.isnaobj(values)
-    {{elif dtype == 'float64'}}
-    mask = np.isnan(values)
-    {{elif dtype == 'int64'}}
-    mask = values == NPY_NAT
-
-    # create copy in case of NPY_NAT
-    # values are mutated inplace
-    if mask.any():
-        values = values.copy()
-    {{endif}}
-
-    # double sort first by mask and then by values to ensure nan values are
-    # either at the beginning or the end. mask/(~mask) controls padding at
-    # tail or the head
-    {{if dtype != 'uint64'}}
-    if ascending ^ (na_option == 'top'):
-        nan_value = {{pos_nan_value}}
-        order = (values, mask)
-    else:
-        nan_value = {{neg_nan_value}}
-        order = (values, ~mask)
-    np.putmask(values, mask, nan_value)
-    {{else}}
-    mask = np.zeros(shape=len(values), dtype=bool)
-    order = (values, mask)
-    {{endif}}
-
-    n = len(values)
-    ranks = np.empty(n, dtype='f8')
-
-    {{if dtype == 'object'}}
-    _as = np.lexsort(keys=order)
-    {{else}}
-    if tiebreak == TIEBREAK_FIRST:
-        # need to use a stable sort here
-        _as = np.lexsort(keys=order)
-        if not ascending:
-            tiebreak = TIEBREAK_FIRST_DESCENDING
-    else:
-        _as = np.lexsort(keys=order)
-    {{endif}}
-
-    if not ascending:
-        _as = _as[::-1]
-
-    sorted_data = values.take(_as)
-    sorted_mask = mask.take(_as)
-    _indices = np.diff(sorted_mask.astype(int)).nonzero()[0]
-    non_na_idx = _indices[0] if len(_indices) > 0 else -1
-    argsorted = _as.astype('i8')
-
-    {{if dtype == 'object'}}
-    if True:
-    {{else}}
-    with nogil:
-    {{endif}}
-        # TODO: why does the 2d version not have a nogil block?
-        for i in range(n):
-            sum_ranks += i + 1
-            dups += 1
-
-            {{if dtype == 'object'}}
-            val = util.get_value_at(sorted_data, i)
-            {{else}}
-            val = sorted_data[i]
-            {{endif}}
-
-            {{if dtype != 'uint64'}}
-            isnan = sorted_mask[i]
-            if isnan and keep_na:
-                ranks[argsorted[i]] = NaN
-                continue
-            {{endif}}
-
-            count += 1.0
-
-            {{if dtype == 'object'}}
-            if (i == n - 1 or
-                    are_diff(util.get_value_at(sorted_data, i + 1), val) or
-                    i == non_na_idx):
-            {{else}}
-            if (i == n - 1 or sorted_data[i + 1] != val or i == non_na_idx):
-            {{endif}}
-
-                if tiebreak == TIEBREAK_AVERAGE:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = sum_ranks / dups
-                elif tiebreak == TIEBREAK_MIN:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = i - dups + 2
-                elif tiebreak == TIEBREAK_MAX:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = i + 1
-                elif tiebreak == TIEBREAK_FIRST:
-                    {{if dtype == 'object'}}
-                    raise ValueError('first not supported for '
-                                     'non-numeric data')
-                    {{else}}
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = j + 1
-                    {{endif}}
-                elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = 2 * i - j - dups + 2
-                elif tiebreak == TIEBREAK_DENSE:
-                    total_tie_count += 1
-                    for j in range(i - dups + 1, i + 1):
-                        ranks[argsorted[j]] = total_tie_count
-                sum_ranks = dups = 0
-    if pct:
-        if tiebreak == TIEBREAK_DENSE:
-            return ranks / total_tie_count
-        else:
-            return ranks / count
-    else:
-        return ranks
 
 
 def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
