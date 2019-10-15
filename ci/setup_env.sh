@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+if [ "$JOB" == "3.8-dev" ]; then
+    /bin/bash ci/build38.sh
+    exit 0
+fi
 
 # edit the locale file if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
