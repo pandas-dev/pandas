@@ -36,8 +36,8 @@ from pandas.tseries.offsets import (
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    min_dt = (pd.Timestamp(1900, 1, 1).to_pydatetime(),)
-    max_dt = (pd.Timestamp(1900, 1, 1).to_pydatetime(),)
+    min_dt = pd.Timestamp(1900, 1, 1).to_pydatetime()
+    max_dt = pd.Timestamp(1900, 1, 1).to_pydatetime()
 
 gen_date_range = st.builds(
     pd.date_range,
