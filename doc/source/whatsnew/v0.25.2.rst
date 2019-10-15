@@ -6,6 +6,10 @@ What's new in 0.25.2 (October XX, 2019)
 These are the changes in pandas 0.25.2. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. note::
+
+    Pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
+
 .. _whatsnew_0252.bug_fixes:
 
 Bug fixes
@@ -64,7 +68,7 @@ I/O
 
 - Fix regression in notebook display where <th> tags not used for :attr:`DataFrame.index` (:issue:`28204`).
 - Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
--
+- Fix :meth:`~DataFrame.to_csv` with ``ExtensionArray`` with list-like values (:issue:`28840`).
 -
 
 Plotting
