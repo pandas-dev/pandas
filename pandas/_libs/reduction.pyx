@@ -121,7 +121,7 @@ cdef class Reducer:
             for i in range(self.nresults):
 
                 if has_ndarray_labels:
-                    name = util.get_value_at(labels, i)
+                    name = labels[i]
                 elif has_labels:
                     # labels is an ExtensionArray
                     name = labels[i]

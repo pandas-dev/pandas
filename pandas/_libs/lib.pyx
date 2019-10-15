@@ -782,8 +782,16 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray index, const int64_t[:] labels, list keys,
                  list sorted_labels):
+    """
+    Parameters
+    ----------
+    index : ndarray
+    labels : ndarray[int64]
+    keys : list
+    sorted_labels : list[ndarray[int64]]
+    """
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
         dict result = {}
@@ -803,8 +811,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
             if lab != -1:
                 tup = PyTuple_New(k)
                 for j in range(k):
-                    val = util.get_value_at(keys[j],
-                                            sorted_labels[j][i - 1])
+                    val = keys[j][sorted_labels[j][i - 1]]
                     PyTuple_SET_ITEM(tup, j, val)
                     Py_INCREF(val)
 
@@ -814,8 +821,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
 
     tup = PyTuple_New(k)
     for j in range(k):
-        val = util.get_value_at(keys[j],
-                                sorted_labels[j][n - 1])
+        val = keys[j][sorted_labels[j][n - 1]]
         PyTuple_SET_ITEM(tup, j, val)
         Py_INCREF(val)
     result[tup] = index[start:]
