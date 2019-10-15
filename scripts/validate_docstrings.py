@@ -245,7 +245,7 @@ class Docstring:
         self.name = name
         obj = self._load_obj(name)
         self.obj = obj
-        self.code_obj = self._to_original_callable(obj)
+        self.code_obj = inspect.unwrap(obj)
         self.raw_doc = obj.__doc__ or ""
         self.clean_doc = pydoc.getdoc(obj)
         self.doc = NumpyDocString(self.clean_doc)
@@ -291,30 +291,6 @@ class Docstring:
         for part in func_parts:
             obj = getattr(obj, part)
         return obj
-
-    @staticmethod
-    def _to_original_callable(obj):
-        """
-        Find the Python object that contains the source code of the object.
-
-        This is useful to find the place in the source code (file and line
-        number) where a docstring is defined. It does not currently work for
-        all cases, but it should help find some (properties...).
-        """
-        while True:
-            if inspect.isfunction(obj) or inspect.isclass(obj):
-                f = inspect.getfile(obj)
-                if f.startswith("<") and f.endswith(">"):
-                    return None
-                return obj
-            if inspect.ismethod(obj):
-                obj = obj.__func__
-            elif isinstance(obj, functools.partial):
-                obj = obj.func
-            elif isinstance(obj, property):
-                obj = obj.fget
-            else:
-                return None
 
     @property
     def type(self):
