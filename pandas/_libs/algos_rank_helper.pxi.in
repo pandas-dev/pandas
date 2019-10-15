@@ -225,28 +225,15 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
     else:
         return ranks
 
+
 rank_1d_object = rank_1d["object"]
 rank_1d_float64 = rank_1d["float64_t"]
 rank_1d_uint64 = rank_1d["uint64_t"]
 rank_1d_int64 = rank_1d["int64_t"]
 
 
-{{py:
-
-# dtype ctype pos_nan_value neg_nan_value
-dtypes = [('object', 'object', 'Infinity()', 'NegInfinity()'),
-          ('float64', 'float64_t', 'np.inf', '-np.inf'),
-          ('uint64', 'uint64_t', '', ''),
-          ('int64', 'int64_t', 'np.iinfo(np.int64).max',
-           'np.iinfo(np.int64).min')]
-
-}}
-
-{{for dtype, ctype, pos_nan_value, neg_nan_value in dtypes}}
-
-
-def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
-                      ascending=True, na_option='keep', pct=False):
+def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
+            ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -254,29 +241,20 @@ def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
     cdef:
         Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
 
-        {{if dtype == 'object'}}
         Py_ssize_t infs
-        {{endif}}
 
         ndarray[float64_t, ndim=2] ranks
-        {{if dtype == 'int64' or dtype == 'uint64'}}
-        ndarray[{{ctype}}, ndim=2, cast=True] values
-        {{else}}
-        ndarray[{{ctype}}, ndim=2] values
-        {{endif}}
+        ndarray[rank_t, ndim=2] values
 
         ndarray[int64_t, ndim=2] argsorted
 
-        {{if dtype == 'uint64'}}
-        {{ctype}} val
-        {{else}}
-        {{ctype}} val, nan_value
-        {{endif}}
+        rank_t val, nan_value
 
         float64_t sum_ranks = 0
         int tiebreak = 0
         bint keep_na = 0
         float64_t count = 0.0
+        bint condition, skip_condition
 
     tiebreak = tiebreakers[ties_method]
 
@@ -287,103 +265,106 @@ def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
     else:
         values = np.asarray(in_arr).copy()
 
-    {{if dtype == 'object'}}
-    if values.dtype != np.object_:
-        values = values.astype('O')
-    {{endif}}
+    if rank_t is object:
+        if values.dtype != np.object_:
+            values = values.astype('O')
 
-    {{if dtype != 'uint64'}}
-    if ascending ^ (na_option == 'top'):
-        nan_value = {{pos_nan_value}}
-    else:
-        nan_value = {{neg_nan_value}}
+    if rank_t is not uint64_t:
+        if ascending ^ (na_option == 'top'):
+            if rank_t is object:
+                nan_value = Infinity()
+            elif rank_t is float64_t:
+                nan_value = np.inf
+            elif rank_t is int64_t:
+                nan_value = np.iinfo(np.int64).max
 
-    {{if dtype == 'object'}}
-    mask = missing.isnaobj2d(values)
-    {{elif dtype == 'float64'}}
-    mask = np.isnan(values)
-    {{elif dtype == 'int64'}}
-    mask = values == NPY_NAT
-    {{endif}}
+        else:
+            if rank_t is object:
+                nan_value = NegInfinity()
+            elif rank_t is float64_t:
+                nan_value = -np.inf
+            elif rank_t is int64_t:
+                nan_value = NPY_NAT
 
-    np.putmask(values, mask, nan_value)
-    {{endif}}
+        if rank_t is object:
+            mask = missing.isnaobj2d(values)
+        elif rank_t is float64_t:
+            mask = np.isnan(values)
+        elif rank_t is int64_t:
+            mask = values == NPY_NAT
+
+        np.putmask(values, mask, nan_value)
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
 
-    {{if dtype == 'object'}}
-    try:
-        _as = values.argsort(1)
-    except TypeError:
-        values = in_arr
-        for i in range(len(values)):
-            ranks[i] = rank_1d_object(in_arr[i], ties_method=ties_method,
-                                      ascending=ascending, pct=pct)
-        if axis == 0:
-            return ranks.T
-        else:
-            return ranks
-    {{else}}
-    if tiebreak == TIEBREAK_FIRST:
-        # need to use a stable sort here
-        _as = values.argsort(axis=1, kind='mergesort')
-        if not ascending:
-            tiebreak = TIEBREAK_FIRST_DESCENDING
+    if rank_t is object:
+        try:
+            _as = values.argsort(1)
+        except TypeError:
+            values = in_arr
+            for i in range(len(values)):
+                ranks[i] = rank_1d_object(in_arr[i], ties_method=ties_method,
+                                          ascending=ascending, pct=pct)
+            if axis == 0:
+                return ranks.T
+            else:
+                return ranks
     else:
-        _as = values.argsort(1)
-    {{endif}}
+        if tiebreak == TIEBREAK_FIRST:
+            # need to use a stable sort here
+            _as = values.argsort(axis=1, kind='mergesort')
+            if not ascending:
+                tiebreak = TIEBREAK_FIRST_DESCENDING
+        else:
+            _as = values.argsort(1)
 
     if not ascending:
         _as = _as[:, ::-1]
 
-    values = _take_2d_{{dtype}}(values, _as)
+    values = _take_2d(values, _as)
     argsorted = _as.astype('i8')
 
     for i in range(n):
-        {{if dtype == 'object'}}
-        dups = sum_ranks = infs = 0
-        {{else}}
-        dups = sum_ranks = 0
-        {{endif}}
+        if rank_t is object:
+            dups = sum_ranks = infs = 0
+        else:
+            dups = sum_ranks = 0
 
         total_tie_count = 0
         count = 0.0
         for j in range(k):
-            {{if dtype != 'object'}}
-            sum_ranks += j + 1
-            dups += 1
-            {{endif}}
+            if rank_t is not object:
+                sum_ranks += j + 1
+                dups += 1
 
             val = values[i, j]
 
-            {{if dtype != 'uint64'}}
-            {{if dtype == 'object'}}
-            if (val is nan_value) and keep_na:
-            {{else}}
-            if (val == nan_value) and keep_na:
-            {{endif}}
-                ranks[i, argsorted[i, j]] = NaN
+            if rank_t is not uint64_t:
+                if rank_t is object:
+                    skip_condition = (val is nan_value) and keep_na
+                else:
+                    skip_condition = (val == nan_value) and keep_na
+                if skip_condition:
+                    ranks[i, argsorted[i, j]] = NaN
 
-                {{if dtype == 'object'}}
-                infs += 1
-                {{endif}}
+                    if rank_t is object:
+                        infs += 1
 
-                continue
-            {{endif}}
+                    continue
 
             count += 1.0
 
-            {{if dtype == 'object'}}
-            sum_ranks += (j - infs) + 1
-            dups += 1
-            {{endif}}
+            if rank_t is object:
+                sum_ranks += (j - infs) + 1
+                dups += 1
 
-            {{if dtype == 'object'}}
-            if j == k - 1 or are_diff(values[i, j + 1], val):
-            {{else}}
-            if j == k - 1 or values[i, j + 1] != val:
-            {{endif}}
+            if rank_t is object:
+                condition = j == k - 1 or are_diff(values[i, j + 1], val)
+            else:
+                condition = j == k - 1 or values[i, j + 1] != val
+
+            if condition:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = sum_ranks / dups
@@ -394,13 +375,12 @@ def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
-                    {{if dtype == 'object'}}
-                    raise ValueError('first not supported '
-                                     'for non-numeric data')
-                    {{else}}
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = z + 1
-                    {{endif}}
+                    if rank_t is object:
+                        raise ValueError('first not supported '
+                                         'for non-numeric data')
+                    else:
+                        for z in range(j - dups + 1, j + 1):
+                            ranks[i, argsorted[i, z]] = z + 1
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = 2 * j - z - dups + 2
@@ -419,4 +399,8 @@ def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
     else:
         return ranks
 
-{{endfor}}
+
+rank_2d_object = rank_2d["object"]
+rank_2d_float64 = rank_2d["float64_t"]
+rank_2d_uint64 = rank_2d["uint64_t"]
+rank_2d_int64 = rank_2d["int64_t"]
