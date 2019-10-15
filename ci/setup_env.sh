@@ -41,12 +41,9 @@ else
   exit 1
 fi
 
-# wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
-wget -q "https://repo.anconda.com/pkgs/misc/conda-execs/conda-latest-$CONDA_OS.exe" -O conda.exe
-export CONDA_ALWAYS_YES=1
-chmod +x conda.exe
-
-./conda.exe create -p $MINICONDA_DIR python=3.7 conda
+wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
+chmod +x miniconda.sh
+./miniconda.sh -b
 
 export PATH=$MINICONDA_DIR/bin:$PATH
 
