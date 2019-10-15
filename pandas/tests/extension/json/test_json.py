@@ -93,6 +93,7 @@ class BaseJSON:
                 name=right.name,
             )
         tm.assert_series_equal(left, right, **kwargs)
+
     def assert_frame_equal(self, left, right, *args, **kwargs):
         tm.assert_index_equal(
             left.columns,
