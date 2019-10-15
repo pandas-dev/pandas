@@ -24,7 +24,7 @@ dtypes = [('object', 'object', 'Infinity()', 'NegInfinity()'),
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def rank_1d_{{dtype}}(object in_arr, ties_method='average',
+def rank_1d_{{dtype}}({{ctype}}[:] in_arr, ties_method='average',
                       ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
@@ -189,7 +189,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
         return ranks
 
 
-def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
+def rank_2d_{{dtype}}({{ctype}}[:, :] in_arr, axis=0, ties_method='average',
                       ascending=True, na_option='keep', pct=False):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
@@ -226,12 +226,10 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
 
     keep_na = na_option == 'keep'
 
-    in_arr = np.asarray(in_arr)
-
     if axis == 0:
-        values = in_arr.T.copy()
+        values = np.asarray(in_arr).T.copy()
     else:
-        values = in_arr.copy()
+        values = np.asarray(in_arr).copy()
 
     {{if dtype == 'object'}}
     if values.dtype != np.object_:
