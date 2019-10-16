@@ -2218,6 +2218,7 @@ class DataFrame(NDFrame):
         border=None,
         table_id=None,
         render_links=False,
+        encoding=None,
     ):
         """
         Render a DataFrame as an HTML table.
@@ -2233,6 +2234,10 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
+        encoding : str, default "utf-8"
+            Set character encoding
+
+            .. versionadded:: 1.0
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2274,7 +2279,11 @@ class DataFrame(NDFrame):
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
-            buf=buf, classes=classes, notebook=notebook, border=border
+            buf=buf,
+            classes=classes,
+            notebook=notebook,
+            border=border,
+            encoding=encoding,
         )
 
     # ----------------------------------------------------------------------
