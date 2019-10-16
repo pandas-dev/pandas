@@ -2161,7 +2161,7 @@ class TestDatetimeIndexArithmetic:
         [
             datetime(2011, 1, 1),
             DatetimeIndex(["2011-01-01", "2011-01-02"]),
-            getattr(DatetimeIndex(["2011-01-01", "2011-01-02"]), "tz_localize")(
+            DatetimeIndex(["2011-01-01", "2011-01-02"]).__getattribute__("tz_localize")(
                 "US/Eastern"
             ),
             np.datetime64("2011-01-01"),
