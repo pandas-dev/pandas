@@ -3811,6 +3811,8 @@ storing/selecting from homogeneous index ``DataFrames``.
         # the levels are automatically included as data columns
         store.select('df_mi', 'foo=bar')
 
+.. note::
+   The ``index`` keyword is reserved and cannot be use as a level name.
 
 .. _io.hdf5-query:
 
@@ -3829,6 +3831,7 @@ A query is specified using the ``Term`` class under the hood, as a boolean expre
 
 * ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
+* level name in a MultiIndex, with default name  ``level_0``, ``level_1``, … if not provided.
 
 Valid comparison operators are:
 
@@ -3947,7 +3950,7 @@ space. These are in terms of the total number of rows in a table.
 
 .. _io.hdf5-timedelta:
 
-Using timedelta64[ns]
+Query timedelta64[ns]
 +++++++++++++++++++++
 
 You can store and query using the ``timedelta64[ns]`` type. Terms can be
@@ -3965,6 +3968,35 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+Query MultiIndex
+++++++++++++++++
+
+Selecting from a ``MultiIndex`` can be achieved by using the name of the level.
+
+.. ipython:: python
+
+   df_mi.index.names
+   store.select('df_mi', "foo=baz and bar=two")
+
+If the ``MultiIndex`` levels names are ``None``, the levels are automatically made available via
+the ``level_n`` keyword with ``n`` the level of the ``MultiIndex`` you want to select from.
+
+.. ipython:: python
+
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
+   df_mi_2
+
+   store.append("df_mi_2", df_mi_2)
+
+   # the levels are automatically included as data columns with keyword level_n
+   store.select("df_mi_2", "level_0=foo and level_1=two")
+
 
 Indexing
 ++++++++
