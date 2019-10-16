@@ -176,14 +176,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
         self.assert_series_equal(result, expected)
 
-    def test_compare_to_int(self, Int_dtype, compare_operators_no_eq_ne):
+    def test_compare_to_int(self, Int_dtype, all_compare_operators):
         # GH 28930
         s = pd.Series([1, 2, 3], dtype=Int_dtype)
 
-        method = getattr(s, compare_operators_no_eq_ne)
+        method = getattr(s, all_compare_operators)
         result = method(2)
 
-        method = getattr(np.array(s), compare_operators_no_eq_ne)
+        method = getattr(np.array(s), all_compare_operators)
         expected = pd.Series(method(2))
 
         self.assert_series_equal(result, expected)
