@@ -2,6 +2,8 @@ try:
     import json
 except ImportError:
     import simplejson as json  # type: ignore
+    # https://github.com/python/mypy/issues/1153
+    # error: Name 'json' already defined (by an import)
 import calendar
 import datetime
 import decimal
