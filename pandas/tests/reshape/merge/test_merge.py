@@ -1439,8 +1439,8 @@ class TestMergeDtypes:
 
     def test_merge_key_dtype_cast(self):
         # GH 17044
-        df1 = pd.DataFrame({'key':[1., 2.], 'c1':[10, 20]})
-        df2 = pd.DataFrame({'key':[2], 'c2':[200]})
+        df1 = pd.DataFrame({'key': [1., 2.], 'c1': [10, 20]})
+        df2 = pd.DataFrame({'key': [2], 'c2': [200]})
         df = df1.merge(df2, on='key', how='left')
         assert df['key'].dtype == 'float64'
 
