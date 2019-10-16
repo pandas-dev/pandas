@@ -378,7 +378,7 @@ def test_median_empty_bins(observed):
 
 
 @pytest.mark.parametrize(
-    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64"]
+    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64", "uint64"]
 )
 @pytest.mark.parametrize(
     "method,data",
