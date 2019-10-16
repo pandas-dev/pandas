@@ -5207,7 +5207,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         i, j : int or str
-            Levels indecies to be swapped. Can pass level name as string.
+            Levels indices to be swapped. Can pass level name as string.
 
         Returns
         -------

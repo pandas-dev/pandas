@@ -3545,7 +3545,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         i, j : int, str
-            Level of the indecies to be swapped. Can pass level name as string.
+            Level of the indices to be swapped. Can pass level name as string.
         copy : bool, default True
             Whether to copy underlying data.
 
