@@ -360,6 +360,8 @@ class Resampler(_GroupBy):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
+        except AssertionError:
+            raise
         except Exception:
 
             # we have a non-reducing function
