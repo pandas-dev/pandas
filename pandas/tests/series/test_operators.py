@@ -7,7 +7,6 @@ import pytest
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, bdate_range, date_range, isna
 from pandas.core import ops
-from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -282,13 +281,27 @@ class TestSeriesLogicalOps:
         result = op(ser, idx2)
         assert_series_equal(result, expected)
 
+    def test_reversed_xor_with_index_returns_index(self):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Index.symmetric_difference(idx1, ser)
+        result = idx1 ^ ser
+        assert_index_equal(result, expected)
+
+        expected = Index.symmetric_difference(idx2, ser)
+        result = idx2 ^ ser
+        assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "op",
         [
             pytest.param(
                 ops.rand_,
                 marks=pytest.mark.xfail(
-                    reason="GH#22092 Index implementation returns Index",
+                    reason="GH#22092 Index __and__ returns Index intersection",
                     raises=AssertionError,
                     strict=True,
                 ),
@@ -296,30 +309,26 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.ror_,
                 marks=pytest.mark.xfail(
-                    reason="Index.get_indexer with non unique index",
-                    raises=InvalidIndexError,
+                    reason="GH#22092 Index __or__ returns Index union",
+                    raises=AssertionError,
                     strict=True,
                 ),
             ),
-            ops.rxor,
         ],
     )
-    def test_reversed_logical_ops_with_index(self, op):
+    def test_reversed_logical_op_with_index_returns_series(self, op):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
-        # symmetric_difference is only for rxor, but other 2 should fail
-        expected = idx1.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx1.values, ser.values))
         result = op(ser, idx1)
-        assert_index_equal(result, expected)
+        assert_series_equal(result, expected)
 
-        expected = idx2.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx2.values, ser.values))
         result = op(ser, idx2)
-        assert_index_equal(result, expected)
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "op, expected",

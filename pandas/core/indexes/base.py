@@ -2493,8 +2493,12 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
-            indexer, = (indexer == -1).nonzero()
+            # find indexes of things in "other" that are not in "self"
+            if self.is_unique:
+                indexer = self.get_indexer(other)
+                indexer = (indexer == -1).nonzero()[0]
+            else:
+                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)

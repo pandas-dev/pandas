@@ -1009,6 +1009,12 @@ class TestIndexOps(Ops):
             s = pd.Series(idx)
             tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
+    def test_get_indexer_non_unique_dtype_mismatch(self):
+        # GH 25459
+        indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
+        tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([0], dtype=np.int64), missing)
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"

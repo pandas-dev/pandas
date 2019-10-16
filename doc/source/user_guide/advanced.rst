@@ -783,27 +783,41 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. ipython:: python
 
-   df2.reindex(['a', 'e'])
-   df2.reindex(['a', 'e']).index
-   df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde')))
-   df2.reindex(pd.Categorical(['a', 'e'], categories=list('abcde'))).index
+   df3 = pd.DataFrame({'A': np.arange(3),
+                       'B': pd.Series(list('abc')).astype('category')})
+   df3 = df3.set_index('B')
+   df3
+
+.. ipython:: python
+
+   df3.reindex(['a', 'e'])
+   df3.reindex(['a', 'e']).index
+   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
+   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe'))).index
 
 .. warning::
 
    Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
+   .. ipython:: python
+
+      df4 = pd.DataFrame({'A': np.arange(2),
+                          'B': list('ba')})
+      df4['B'] = df4['B'].astype(CategoricalDtype(list('ab')))
+      df4 = df4.set_index('B')
+      df4.index
+
+      df5 = pd.DataFrame({'A': np.arange(2),
+                          'B': list('bc')})
+      df5['B'] = df5['B'].astype(CategoricalDtype(list('bc')))
+      df5 = df5.set_index('B')
+      df5.index
+
    .. code-block:: ipython
 
-    In [9]: df3 = pd.DataFrame({'A': np.arange(6), 'B': pd.Series(list('aabbca')).astype('category')})
-
-    In [11]: df3 = df3.set_index('B')
-
-    In [11]: df3.index
-    Out[11]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['a', 'b', 'c'], ordered=False, name='B', dtype='category')
-
-    In [12]: pd.concat([df2, df3])
-    TypeError: categories must match existing categories when appending
+      In [1]: pd.concat([df4, df5])
+      TypeError: categories must match existing categories when appending
 
 .. _indexing.rangeindex:
 
