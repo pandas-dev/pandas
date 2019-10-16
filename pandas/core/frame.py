@@ -7800,8 +7800,8 @@ class DataFrame(NDFrame):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         if numeric_only is None:
+            values = self.values
             try:
-                values = self.values
                 result = f(values)
 
                 if filter_type == "bool" and is_object_dtype(values) and axis is None:
