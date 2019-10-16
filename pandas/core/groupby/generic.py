@@ -952,6 +952,7 @@ class DataFrameGroupBy(GroupBy):
                 if alt is None:
                     # we cannot perform the operation
                     # in an alternate way, exclude the block
+                    assert how == "ohlc"
                     deleted_items.append(locs)
                     continue
 
@@ -1025,17 +1026,20 @@ class DataFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                    fres = func(data, *args, **kwargs)
+                    result[name] = self._try_cast(fres, data)
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
             for name in self.indices:
+                data = self.get_group(name, obj=obj)
                 try:
-                    data = self.get_group(name, obj=obj)
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                    fres = func(data, *args, **kwargs)
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
+                else:
+                    result[name] = self._try_cast(fres, data)
 
         return self._wrap_frame_output(result, obj)
 
@@ -1410,9 +1414,10 @@ class DataFrameGroupBy(GroupBy):
         for i, col in enumerate(obj):
             try:
                 output[col] = self[col].transform(wrapper)
-                inds.append(i)
             except Exception:
                 pass
+            else:
+                inds.append(i)
 
         if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
