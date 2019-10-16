@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import numpy as np
 import pytest
@@ -929,7 +929,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep = {}  # type: Dict[str, List[Any]]
+    rep = {}  # type: Dict[str, List]
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]
