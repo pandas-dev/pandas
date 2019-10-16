@@ -1355,7 +1355,15 @@ class GroupBy(_GroupBy):
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
                 except AssertionError as e:
                     raise SpecificationError(str(e))
+                except DataError:
+                    pass
                 except Exception:
+                    # TODO: the remaining test cases that get here are from:
+                    #  - AttributeError from _cython_agg_blocks bug passing
+                    #    DataFrame to make_block; see  GH#28275
+                    #  - TypeError in _cython_operation calling ensure_float64
+                    #    on object array containing complex numbers;
+                    #    see test_groupby_complex, test_max_nan_bug
                     pass
 
                 # apply a non-cython aggregation
