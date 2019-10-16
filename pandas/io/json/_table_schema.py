@@ -243,8 +243,10 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
 
     if index:
         if data.index.nlevels > 1:
-            for level in data.index.levels:
-                fields.append(convert_pandas_type_to_json_field(level))
+            for level, name in zip(data.index.levels, data.index.names):
+                new_field = convert_pandas_type_to_json_field(level)
+                new_field["name"] = name
+                fields.append(new_field)
         else:
             fields.append(convert_pandas_type_to_json_field(data.index))
 

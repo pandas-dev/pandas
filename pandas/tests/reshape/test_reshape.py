@@ -618,16 +618,15 @@ class TestCategoricalReshape:
         df.index.names = ["major", "minor"]
         df["str"] = "foo"
 
-        dti = df.index.levels[0]
-
         df["category"] = df["str"].astype("category")
         result = df["category"].unstack()
 
+        dti = df.index.levels[0]
         c = Categorical(["foo"] * len(dti))
         expected = DataFrame(
             {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
             columns=Index(list("ABCD"), name="minor"),
-            index=dti,
+            index=dti.rename("major"),
         )
         tm.assert_frame_equal(result, expected)
 
