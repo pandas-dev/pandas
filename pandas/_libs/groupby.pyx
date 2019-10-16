@@ -904,6 +904,7 @@ def group_last(rank_t[:, :] out,
         #  block.
         raise RuntimeError("empty group with uint64_t")
 
+
 group_last_float64 = group_last["float64_t"]
 group_last_float32 = group_last["float32_t"]
 group_last_int64 = group_last["int64_t"]
