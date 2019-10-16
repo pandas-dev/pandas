@@ -177,6 +177,30 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    @pytest.mark.parametrize("op", ["__lt__", "__le__"])
+    def test_compare_lt(self, dtype, op):
+        # GH 28930
+        s = pd.Series([0, 0], dtype=dtype)
+        method = getattr(s, op)
+        result = method(1)
+
+        expected = pd.Series([True, True])
+
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    @pytest.mark.parametrize("op", ["__gt__", "__ge__"])
+    def test_compare_gt(self, dtype, op):
+        # GH 28930
+        s = pd.Series([0, 0], dtype=dtype)
+        method = getattr(s, op)
+        result = method(-1)
+
+        expected = pd.Series([True, True])
+
+        self.assert_series_equal(result, expected)
+
 
 class TestInterface(base.BaseInterfaceTests):
     pass
