@@ -1357,6 +1357,8 @@ class GroupBy(_GroupBy):
                     raise SpecificationError(str(e))
                 except DataError:
                     pass
+                except TypeError:
+                    raise
                 except Exception:
                     # TODO: the remaining test cases that get here are from:
                     #  - AttributeError from _cython_agg_blocks bug passing
