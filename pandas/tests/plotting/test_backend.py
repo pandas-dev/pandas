@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas
 
 dummy_backend = types.ModuleType("pandas_dummy_backend")
-dummy_backend.plot = lambda *args, **kwargs: None
+setattr(dummy_backend, "plot", lambda *args, **kwargs: None)
 
 
 @pytest.fixture
