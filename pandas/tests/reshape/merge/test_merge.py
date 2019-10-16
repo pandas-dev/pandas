@@ -1437,6 +1437,13 @@ class TestMergeDtypes:
         result = B.merge(A, left_on="Y", right_on="X")
         assert_frame_equal(result, expected[["Y", "X"]])
 
+    def test_merge_key_dtype_cast(self):
+        # GH 17044
+        df1 = pd.DataFrame({'key':[1., 2.], 'c1':[10, 20]})
+        df2 = pd.DataFrame({'key':[2], 'c2':[200]})
+        df = df1.merge(df2, on='key', how='left')
+        assert df['key'].dtype == 'float64'
+
     def test_merge_on_ints_floats_warning(self):
         # GH 16572
         # merge will produce a warning when merging on int and
