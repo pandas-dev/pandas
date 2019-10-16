@@ -14,7 +14,18 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, Union
+from typing import (
+    FrozenSet,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -866,7 +877,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self):
+    def items(self) -> Iterable[Tuple[Hashable, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -2212,6 +2223,7 @@ class DataFrame(NDFrame):
         border=None,
         table_id=None,
         render_links=False,
+        encoding=None,
     ):
         """
         Render a DataFrame as an HTML table.
@@ -2227,6 +2239,10 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
+        encoding : str, default "utf-8"
+            Set character encoding
+
+            .. versionadded:: 1.0
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2268,7 +2284,11 @@ class DataFrame(NDFrame):
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
-            buf=buf, classes=classes, notebook=notebook, border=border
+            buf=buf,
+            classes=classes,
+            notebook=notebook,
+            border=border,
+            encoding=encoding,
         )
 
     # ----------------------------------------------------------------------
@@ -6243,7 +6263,7 @@ class DataFrame(NDFrame):
         ----------
         level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name.
-        fill_value : int, string or dict
+        fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
 
         Returns

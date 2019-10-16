@@ -1,3 +1,4 @@
+import functools
 import io
 import random
 import string
@@ -67,6 +68,23 @@ class GoodDocStrings:
             Random number generated.
         """
         return random.random()
+
+    @functools.lru_cache(None)
+    def decorated_sample(self, max):
+        """
+        Generate and return a random integer between 0 and max.
+
+        Parameters
+        ----------
+        max : int
+            The maximum value of the random number.
+
+        Returns
+        -------
+        int
+            Random number generated.
+        """
+        return random.randint(0, max)
 
     def random_letters(self):
         """
@@ -870,6 +888,7 @@ class TestValidator:
             "plot",
             "swap",
             "sample",
+            "decorated_sample",
             "random_letters",
             "sample_values",
             "head",

@@ -207,7 +207,7 @@ class TimelikeOps:
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
-              times
+              times.
 
             .. versionadded:: 0.24.0
 
@@ -223,7 +223,7 @@ default 'raise'
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 

@@ -285,10 +285,10 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : integer or array of quantiles
+    q : int or list-like of int
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
-    labels : array or boolean, default None
+    labels : array or bool, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins.
