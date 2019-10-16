@@ -442,7 +442,7 @@ def _group_add(floating[:, :] out,
         floating[:, :] sumx, nobs
 
     if len(values) != len(labels):
-        raise AssertionError("len(index) != len(labels)")
+        raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -492,7 +492,7 @@ def _group_prod(floating[:, :] out,
         floating[:, :] prodx, nobs
 
     if not len(values) == len(labels):
-        raise AssertionError("len(index) != len(labels)")
+        raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
@@ -542,7 +542,7 @@ def _group_var(floating[:, :] out,
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
-        raise AssertionError("len(index) != len(labels)")
+        raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     mean = np.zeros_like(out)
@@ -597,7 +597,7 @@ def _group_mean(floating[:, :] out,
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
-        raise AssertionError("len(index) != len(labels)")
+        raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
