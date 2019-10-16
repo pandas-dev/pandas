@@ -1359,6 +1359,11 @@ class GroupBy(_GroupBy):
                     pass
                 except TypeError:
                     raise
+                except NotImplementedError as err:
+                    if "function is not implemented for this dtype" not in str(err):
+                        # raised in _get_cython_function, in some cases can
+                        #  be trimmed by implementing cython funcs for more dtypes
+                        raise
                 except Exception:
                     # TODO: the remaining test cases that get here are from:
                     #  - AttributeError from _cython_agg_blocks bug passing
