@@ -168,7 +168,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
-    def test_compare_unequal_to_string(self, Int_dtype):
+    def test_compare_to_string(self, Int_dtype):
         # GH 28930
         s = pd.Series([1, None], dtype=Int_dtype)
         result = s == "a"
@@ -176,7 +176,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
         self.assert_series_equal(result, expected)
 
-    def test_compare_unequal_to_int(self, Int_dtype, compare_operators_no_eq_ne):
+    def test_compare_to_int(self, Int_dtype, compare_operators_no_eq_ne):
         # GH 28930
         s = pd.Series([1, 2, 3], dtype=Int_dtype)
 
