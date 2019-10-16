@@ -16,6 +16,7 @@ ctypedef fused rank_t:
     float64_t
     float32_t
     int64_t
+    uint64_t
     object
 
 
@@ -46,6 +47,7 @@ def group_last(rank_t[:, :] out,
         rank_t val, nan_val
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+        bint runtime_error = False
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -107,10 +109,21 @@ def group_last(rank_t[:, :] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] == 0:
-                        out[i, j] = nan_val
+                        if rank_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        elif rank_t is uint64_t:
+                            runtime_error = True
+                            break
+                        else:
+                            out[i, j] = NAN
+
                     else:
                         out[i, j] = resx[i, j]
 
+    if runtime_error:
+        # We cannot raise directly above because that is within a nogil
+        #  block.
+        raise RuntimeError("empty group with uint64_t")
 
 group_last_float64 = group_last["float64_t"]
 group_last_float32 = group_last["float32_t"]
@@ -133,6 +146,7 @@ def group_nth(rank_t[:, :] out,
         rank_t val, nan_val
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+        bint runtime_error = False
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -197,9 +211,20 @@ def group_nth(rank_t[:, :] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] == 0:
-                        out[i, j] = nan_val
+                        if rank_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        elif rank_t is uint64_t:
+                            runtime_error = True
+                            break
+                        else:
+                            out[i, j] = NAN
                     else:
                         out[i, j] = resx[i, j]
+
+    if runtime_error:
+        # We cannot raise directly above because that is within a nogil
+        #  block.
+        raise RuntimeError("empty group with uint64_t")
 
 
 group_nth_float64 = group_nth["float64_t"]
@@ -279,12 +304,16 @@ def group_rank(float64_t[:, :] out,
     if ascending ^ (na_option == 'top'):
         if rank_t is int64_t:
             nan_fill_val = np.iinfo(np.int64).max
+        elif rank_t is uint64_t:
+            nan_fill_val = np.iinfo(np.uint64).max
         else:
             nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
     else:
         if rank_t is int64_t:
             nan_fill_val = np.iinfo(np.int64).min
+        elif rank_t is uint64_t:
+            nan_fill_val = 0
         else:
             nan_fill_val = -np.inf
 
@@ -394,6 +423,7 @@ def group_rank(float64_t[:, :] out,
 group_rank_float64 = group_rank["float64_t"]
 group_rank_float32 = group_rank["float32_t"]
 group_rank_int64 = group_rank["int64_t"]
+group_rank_uint64 = group_rank["uint64_t"]
 # Note: we do not have a group_rank_object because that would require a
 #  not-nogil implementation, see GH#19560
 
@@ -407,6 +437,7 @@ ctypedef fused groupby_t:
     float64_t
     float32_t
     int64_t
+    uint64_t
 
 
 @cython.wraparound(False)
@@ -423,6 +454,7 @@ def group_max(groupby_t[:, :] out,
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
         ndarray[groupby_t, ndim=2] maxx, nobs
+        bint runtime_error = False
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -436,6 +468,11 @@ def group_max(groupby_t[:, :] out,
         # Note: evaluated at compile-time
         maxx[:] = -_int64_max
         nan_val = NPY_NAT
+    elif groupby_t is uint64_t:
+        # NB: We do not define nan_val because there is no such thing
+        #  for uint64_t.  We carefully avoid having to reference it in this
+        #  case.
+        maxx[:] = 0
     else:
         maxx[:] = -np.inf
         nan_val = NAN
@@ -461,9 +498,17 @@ def group_max(groupby_t[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
+                    if groupby_t is uint64_t:
+                        runtime_error = True
+                        break
                     out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
+
+    if runtime_error:
+        # We cannot raise directly above because that is within a nogil
+        #  block.
+        raise RuntimeError("empty group with uint64_t")
 
 
 @cython.wraparound(False)
@@ -480,6 +525,7 @@ def group_min(groupby_t[:, :] out,
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
         ndarray[groupby_t, ndim=2] minx, nobs
+        bint runtime_error = False
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -492,6 +538,11 @@ def group_min(groupby_t[:, :] out,
     if groupby_t is int64_t:
         minx[:] = _int64_max
         nan_val = NPY_NAT
+    elif groupby_t is uint64_t:
+        # NB: We do not define nan_val because there is no such thing
+        #  for uint64_t.  We carefully avoid having to reference it in this
+        #  case.
+        minx[:] = np.iinfo(np.uint64).max
     else:
         minx[:] = np.inf
         nan_val = NAN
@@ -517,9 +568,17 @@ def group_min(groupby_t[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
+                    if groupby_t is uint64_t:
+                        runtime_error = True
+                        break
                     out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
+
+    if runtime_error:
+        # We cannot raise directly above because that is within a nogil
+        #  block.
+        raise RuntimeError("empty group with uint64_t")
 
 
 @cython.boundscheck(False)
@@ -560,6 +619,8 @@ def group_cummin(groupby_t[:, :] out,
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
         accum[:] = _int64_max
+    elif groupby_t is uint64_t:
+        accum[:] = np.iinfo(np.uint64).max
     else:
         accum[:] = np.inf
 
@@ -619,6 +680,8 @@ def group_cummax(groupby_t[:, :] out,
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max
+    elif groupby_t is uint64_t:
+        accum[:] = 0
     else:
         accum[:] = -np.inf
 
