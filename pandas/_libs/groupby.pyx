@@ -372,7 +372,8 @@ def group_any_all(uint8_t[:] out,
                   const uint8_t[:] mask,
                   object val_test,
                   bint skipna):
-    """Aggregated boolean values to show truthfulness of group elements
+    """
+    Aggregated boolean values to show truthfulness of group elements.
 
     Parameters
     ----------
