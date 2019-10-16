@@ -640,6 +640,24 @@ def any_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=ALL_EA_INT_DTYPES)
+def Int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+
+    return request.param
+
+
 @pytest.fixture(params=ALL_REAL_DTYPES)
 def any_real_dtype(request):
     """
