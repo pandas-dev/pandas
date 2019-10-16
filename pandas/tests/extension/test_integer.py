@@ -168,36 +168,23 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
-    def test_compare_unequal_to_string(self, dtype):
+    def test_compare_unequal_to_string(self, Int_dtype):
         # GH 28930
-        s = pd.Series([1, None], dtype=dtype)
+        s = pd.Series([1, None], dtype=Int_dtype)
         result = s == "a"
         expected = pd.Series([False, False])
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
-    @pytest.mark.parametrize("op", ["__lt__", "__le__"])
-    def test_compare_lt(self, dtype, op):
+    def test_compare_unequal_to_int(self, Int_dtype, compare_operators_no_eq_ne):
         # GH 28930
-        s = pd.Series([0, 0], dtype=dtype)
-        method = getattr(s, op)
-        result = method(1)
+        s = pd.Series([1, 2, 3], dtype=Int_dtype)
 
-        expected = pd.Series([True, True])
+        method = getattr(s, compare_operators_no_eq_ne)
+        result = method(2)
 
-        self.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
-    @pytest.mark.parametrize("op", ["__gt__", "__ge__"])
-    def test_compare_gt(self, dtype, op):
-        # GH 28930
-        s = pd.Series([0, 0], dtype=dtype)
-        method = getattr(s, op)
-        result = method(-1)
-
-        expected = pd.Series([True, True])
+        method = getattr(np.array(s), compare_operators_no_eq_ne)
+        expected = pd.Series(method(2))
 
         self.assert_series_equal(result, expected)
 
