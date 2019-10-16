@@ -27,28 +27,25 @@ def test_index_name_retained():
 
 
 def test_changing_names(idx):
-
-    # names should be applied to levels
-    level_names = [level.name for level in idx.levels]
-    check_level_names(idx, idx.names)
+    assert [level.name for level in idx.levels] == [None, None]
 
     view = idx.view()
     copy = idx.copy()
     shallow_copy = idx._shallow_copy()
 
-    # changing names should change level names on object
+    # changing names should not change level names on object
     new_names = [name + "a" for name in idx.names]
     idx.names = new_names
-    check_level_names(idx, new_names)
+    check_level_names(idx, [None, None])
 
-    # but not on copies
-    check_level_names(view, level_names)
-    check_level_names(copy, level_names)
-    check_level_names(shallow_copy, level_names)
+    # and not on copies
+    check_level_names(view, [None, None])
+    check_level_names(copy, [None, None])
+    check_level_names(shallow_copy, [None, None])
 
     # and copies shouldn't change original
     shallow_copy.names = [name + "c" for name in shallow_copy.names]
-    check_level_names(idx, new_names)
+    check_level_names(idx, [None, None])
 
 
 def test_take_preserve_name(idx):
@@ -82,9 +79,9 @@ def test_copy_names():
 def test_names(idx, index_names):
 
     # names are assigned in setup
-    names = index_names
+    assert index_names == ["first", "second"]
     level_names = [level.name for level in idx.levels]
-    assert names == level_names
+    assert level_names == [None, None]
 
     # setting bad names on existing
     index = idx
@@ -109,11 +106,10 @@ def test_names(idx, index_names):
             names=["first", "second", "third"],
         )
 
-    # names are assigned
+    # names are assigned on index, but not transferred to the levels
     index.names = ["a", "b"]
-    ind_names = list(index.names)
     level_names = [level.name for level in index.levels]
-    assert ind_names == level_names
+    assert level_names == [None, None]
 
 
 def test_duplicate_level_names_access_raises(idx):
