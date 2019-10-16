@@ -158,7 +158,7 @@ cdef class IntervalTree(IntervalMixin):
 
         # TODO: write get_indexer_intervals
         cdef:
-            size_t old_len
+            Py_ssize_t old_len
             Py_ssize_t i
             Int64Vector result
 
@@ -179,7 +179,7 @@ cdef class IntervalTree(IntervalMixin):
         the given array of scalar targets. Non-unique positions are repeated.
         """
         cdef:
-            size_t old_len
+            Py_ssize_t old_len
             Py_ssize_t i
             Int64Vector result, missing
 
