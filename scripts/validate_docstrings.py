@@ -17,7 +17,6 @@ import argparse
 import ast
 import collections
 import doctest
-import functools
 import glob
 import importlib
 import inspect
