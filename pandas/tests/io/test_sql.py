@@ -583,7 +583,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None
+    mode = None  # type: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1234,7 +1234,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None
+    flavor = None  # type: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
