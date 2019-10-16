@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37, is_platform_windows
+from pandas.compat import PY37
 
 import pandas as pd
 from pandas import (
@@ -209,10 +209,9 @@ def test_level_get_group(observed):
     assert_frame_equal(result, expected)
 
 
-# GH#21636 previously flaky on py37
-@pytest.mark.xfail(
-    is_platform_windows() and PY37, reason="Flaky, GH-27902", strict=False
-)
+# GH#21636 flaky on py37; may be related to older numpy, see discussion
+#  https://github.com/MacPython/pandas-wheels/pull/64
+@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -229,6 +228,9 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = DataFrame([0, 1, 2.0], index=idx, columns=["values"])
 
+    # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
+    #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
+    #  when we expect Series(0., index=["values"])
     result = grouped.apply(lambda x: np.mean(x))
     assert_frame_equal(result, expected)
 
