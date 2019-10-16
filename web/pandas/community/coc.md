@@ -1,4 +1,4 @@
-# Contributor Code of Conduct
+# Code of conduct
 
 As contributors and maintainers of this project, and in the interest of
 fostering an open and welcoming community, we pledge to respect all people who

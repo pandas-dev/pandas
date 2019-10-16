@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Union
+from typing import FrozenSet, Union
 import warnings
 
 import numpy as np
@@ -63,7 +63,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -205,7 +205,11 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = DirNamesMixin._deprecations | frozenset(["tolist", "dtype_str"])
+    _deprecations = (
+        PandasObject._deprecations
+        | IndexOpsMixin._deprecations
+        | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
+    )  # type: FrozenSet[str]
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -904,8 +908,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : string, optional
-        deep : boolean, default False
+        name : str, optional
+        deep : bool, default False
         dtype : numpy dtype or pandas type
 
         Returns
@@ -1172,7 +1176,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         index : Index, optional
             index of resulting Series. If None, defaults to original index
-        name : string, optional
+        name : str, optional
             name of resulting Series. If None, defaults to name of original
             index
 
@@ -1198,7 +1202,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Set the index of the returned DataFrame as the original Index.
 
         name : object, default None
@@ -1401,7 +1405,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         name : label or list of labels
             Name(s) to set.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
 
@@ -1494,7 +1498,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        ascending : boolean, default True
+        ascending : bool, default True
             False to sort in descending order
 
         level, sort_remaining are compat parameters
@@ -2489,8 +2493,12 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
-            indexer, = (indexer == -1).nonzero()
+            # find indexes of things in "other" that are not in "self"
+            if self.is_unique:
+                indexer = self.get_indexer(other)
+                indexer = (indexer == -1).nonzero()[0]
+            else:
+                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
@@ -2588,8 +2596,9 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             indexer = Index(rvals).get_indexer(lvals)
             indexer = indexer.take((indexer != -1).nonzero()[0])
-        except Exception:
-            # duplicates
+        except (InvalidIndexError, IncompatibleFrequency):
+            # InvalidIndexError raised by get_indexer if non-unique
+            # IncompatibleFrequency raised by PeriodIndex.get_indexer
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
@@ -3415,8 +3424,8 @@ class Index(IndexOpsMixin, PandasObject):
         other : Index
         how : {'left', 'right', 'inner', 'outer'}
         level : int or level name, default None
-        return_indexers : boolean, default False
-        sort : boolean, default False
+        return_indexers : bool, default False
+        sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword)
 
@@ -3942,7 +3951,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        cond : boolean array-like with the same length as self
+        cond : bool array-like with the same length as self
         other : scalar, or array-like
 
         Returns
@@ -4526,7 +4535,7 @@ class Index(IndexOpsMixin, PandasObject):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
             Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
@@ -4679,10 +4688,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fast lookup of value from 1-dimensional ndarray.
 
+        .. deprecated:: 1.0
+
         Notes
         -----
         Only use this if you know what you're doing.
         """
+        warnings.warn(
+            (
+                "The 'set_value' method is deprecated, and "
+                "will be removed in a future version."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
         self._engine.set_value(
             com.values_from_object(arr), com.values_from_object(key), value
         )
@@ -4924,7 +4943,7 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end
         step : int, default None
-        kind : string, default None
+        kind : str, default None
 
         Returns
         -------

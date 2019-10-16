@@ -574,18 +574,6 @@ class Block(PandasObject):
         # may need to convert to categorical
         if self.is_categorical_astype(dtype):
 
-            # deprecated 17636
-            for deprecated_arg in ("categories", "ordered"):
-                if deprecated_arg in kwargs:
-                    raise ValueError(
-                        "Got an unexpected argument: {}".format(deprecated_arg)
-                    )
-
-            categories = kwargs.get("categories", None)
-            ordered = kwargs.get("ordered", None)
-            if com.any_not_none(categories, ordered):
-                dtype = CategoricalDtype(categories, ordered)
-
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
@@ -621,7 +609,7 @@ class Block(PandasObject):
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:
-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
+                values = astype_nansafe(vals1d, dtype, copy=True)
             except (ValueError, TypeError):
                 # e.g. astype_nansafe can fail on object-dtype of strings
                 #  trying to convert to float
@@ -699,7 +687,6 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-
         values = self.get_values()
 
         if slicer is not None:
@@ -1795,6 +1782,23 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def to_dense(self):
         return np.asarray(self.values)
 
+    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+        """override to use ExtensionArray astype for the conversion"""
+        values = self.values
+        if slicer is not None:
+            values = values[slicer]
+        mask = isna(values)
+
+        try:
+            values = values.astype(str)
+            values[mask] = na_rep
+        except Exception:
+            # eg SparseArray does not support setitem, needs to be converted to ndarray
+            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1, len(values))
+
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
         Take values according to indexer and return them as a block.
@@ -2277,6 +2281,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     _can_hold_element = DatetimeBlock._can_hold_element
+    to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
 
     @property

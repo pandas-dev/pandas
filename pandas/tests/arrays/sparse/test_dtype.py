@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 
 
 @pytest.mark.parametrize(
