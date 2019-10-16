@@ -1357,13 +1357,14 @@ class GroupBy(_GroupBy):
                     raise SpecificationError(str(e))
                 except DataError:
                     pass
-                except Exception:
-                    # TODO: the remaining test cases that get here are from:
-                    #  - AttributeError from _cython_agg_blocks bug passing
-                    #    DataFrame to make_block; see  GH#28275
-                    #  - TypeError in _cython_operation calling ensure_float64
-                    #    on object array containing complex numbers;
-                    #    see test_groupby_complex, test_max_nan_bug
+                except (TypeError, NotImplementedError):
+                    # TODO:
+                    #  - TypeError: this is reached via test_groupby_complex
+                    #    and can be fixed by implementing _group_add for
+                    #    complex dtypes
+                    #  - NotImplementedError: reached in test_max_nan_bug,
+                    #    raised in _get_cython_function and should probably
+                    #    be handled inside _cython_agg_blocks
                     pass
 
                 # apply a non-cython aggregation
