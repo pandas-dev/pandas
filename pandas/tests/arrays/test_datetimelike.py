@@ -1,11 +1,12 @@
+from typing import Type, Union
+
 import numpy as np
 import pytest
-from typing import Type, Union
 
 from pandas._libs import OutOfBoundsDatetime
 
 import pandas as pd
-from pandas import DatetimeIndex, TimedeltaIndex, PeriodIndex
+from pandas import DatetimeIndex, PeriodIndex, TimedeltaIndex
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
 
