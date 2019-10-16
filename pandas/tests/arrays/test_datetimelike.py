@@ -1,4 +1,4 @@
-from typing import Type, Union
+from typing import Type
 
 import numpy as np
 import pytest
@@ -6,7 +6,7 @@ import pytest
 from pandas._libs import OutOfBoundsDatetime
 
 import pandas as pd
-from pandas import DatetimeIndex, PeriodIndex, TimedeltaIndex
+from pandas._typing import DatetimeLikeIndex
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
 
@@ -55,7 +55,7 @@ def timedelta_index(request):
 
 
 class SharedTests:
-    index_cls = None  # type: Type[Union[DatetimeIndex, TimedeltaIndex, PeriodIndex]]
+    index_cls = None  # type: Type[DatetimeLikeIndex]
 
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific
