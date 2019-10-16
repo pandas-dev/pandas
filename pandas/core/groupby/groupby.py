@@ -14,7 +14,7 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -598,14 +598,7 @@ b  2""",
     plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
-        if name not in self._apply_whitelist:
-            is_callable = callable(getattr(self._selected_obj, name, None))
-            kind = " callable " if is_callable else " "
-            msg = (
-                "Cannot access{0}attribute {1!r} of {2!r} objects, try "
-                "using the 'apply' method".format(kind, name, type(self).__name__)
-            )
-            raise AttributeError(msg)
+        assert name in self._apply_whitelist
 
         self._set_group_selection()
 
@@ -758,7 +751,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self):
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -919,9 +912,10 @@ b  2""",
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj, numeric_only=True)
             except TypeError:
                 continue
+            else:
+                output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
