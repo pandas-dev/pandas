@@ -1,7 +1,7 @@
 try:
     import json
 except ImportError:
-    import simplejson as json
+    import simplejson as json # type: ignore
 import calendar
 import datetime
 import decimal
