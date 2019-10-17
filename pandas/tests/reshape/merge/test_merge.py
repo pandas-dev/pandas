@@ -1439,10 +1439,12 @@ class TestMergeDtypes:
 
     def test_merge_key_dtype_cast(self):
         # GH 17044
-        df1 = pd.DataFrame({'key': [1., 2.], 'c1': [10, 20]})
-        df2 = pd.DataFrame({'key': [2], 'c2': [200]})
-        df = df1.merge(df2, on='key', how='left')
-        assert df['key'].dtype == 'float64'
+        df1 = DataFrame({'key': [1., 2.], 'c1': [10, 20]})
+        df2 = DataFrame({'key': [2], 'c2': [200]})
+        result = df1.merge(df2, on='key', how='left')
+        expected = DataFrame({'key': [1.0, 2.0], 'c1': [10, 20], 'c2': [np.nan, 200.0]})
+        # df['key'].dtype == 'float64'
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_on_ints_floats_warning(self):
         # GH 16572
