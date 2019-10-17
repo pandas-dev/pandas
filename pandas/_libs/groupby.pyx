@@ -421,6 +421,7 @@ def group_any_all(uint8_t[:] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+
 # ----------------------------------------------------------------------
 # group_add, group_prod, group_var, group_mean, group_ohlc
 # ----------------------------------------------------------------------
@@ -469,7 +470,8 @@ def _group_add(complexfloating_t[:, :] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    if complexfloating_t is complex64_t or complexfloating_t is complex128_t:
+                    if (complexfloating_t is complex64_t or
+                        complexfloating_t is complex128_t):
                         # clang errors if we use += with these dtypes
                         sumx[lab, j] = sumx[lab, j] + val
                     else:
