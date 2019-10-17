@@ -876,14 +876,14 @@ b  2""",
         raise AbstractMethodError(self)
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
-        output = {}
+        output = []  # type: List[Series]
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
             result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
-            output[name] = self._try_cast(result, obj)
+            output.append(Series(self._try_cast(result, obj), name=name))
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
@@ -895,14 +895,14 @@ b  2""",
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output = {}
+        output = []  # type: List[Series]
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
             else:
-                output[name] = self._try_cast(result, obj, numeric_only=True)
+                output.append(Series(self._try_cast(result, obj, numeric_only=True), name=name))
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -910,14 +910,14 @@ b  2""",
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in output.items():
+            for index, result in enumerate(output):
 
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[name] = self._try_cast(values[mask], result)
+                output[index] = self._try_cast(values[mask], result)
 
         return self._wrap_aggregated_output(output)
 
@@ -2239,7 +2239,7 @@ class GroupBy(_GroupBy):
                 )
 
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()
+        output = []  # type: List[Series]
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
@@ -2278,7 +2278,7 @@ class GroupBy(_GroupBy):
             if post_processing:
                 result = post_processing(result, inferences)
 
-            output[name] = result
+            output.append(Series(result, name=name))
 
         if aggregate:
             return self._wrap_aggregated_output(output)

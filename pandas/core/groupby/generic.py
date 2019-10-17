@@ -17,6 +17,7 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
+    List,
     Sequence,
     Tuple,
     Type,
@@ -340,15 +341,12 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_series_output(self, output, index, names=None):
         """ common agg/transform wrapping logic """
-        output = output[self._selection_name]
-
         if names is not None:
             return DataFrame(output, index=index, columns=names)
         else:
-            name = self._selection_name
-            if name is None:
-                name = self._selected_obj.name
-            return Series(output, index=index, name=name)
+            result = output[0]
+            result.index = index
+            return result
 
     def _wrap_aggregated_output(self, output, names=None):
         result = self._wrap_series_output(
@@ -1116,21 +1114,6 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _decide_output_index(self, output, labels):
-        if len(output) == len(labels):
-            output_keys = labels
-        else:
-            output_keys = sorted(output)
-            try:
-                output_keys.sort()
-            except TypeError:
-                pass
-
-            if isinstance(labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys, names=labels.names)
-
-        return output_keys
-
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -1595,19 +1578,20 @@ class DataFrameGroupBy(GroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(self, output: List[Series], names=None):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
 
-        output_keys = self._decide_output_index(output, agg_labels)
+
+        from pandas.core.reshape.concat import concat
+        result = concat(output, axis=1)
 
         if not self.as_index:
-            result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            result = DataFrame(output, index=index, columns=output_keys)
+            result.index = index
 
         if self.axis == 1:
             result = result.T
