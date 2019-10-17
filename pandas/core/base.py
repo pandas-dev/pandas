@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, FrozenSet, Optional
+from typing import Dict, FrozenSet, Hashable, Optional
 import warnings
 
 import numpy as np
@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
@@ -662,6 +663,16 @@ class IndexOpsMixin:
             "strides",
         ]
     )  # type: FrozenSet[str]
+
+    @property
+    def name(self) -> Optional[Hashable]:
+        return self.attrs.get("name", None)
+
+    @name.setter
+    def name(self, value: Hashable) -> None:
+        if not is_hashable(value):
+            raise TypeError("Series.name must be a hashable type")
+        self.attrs["name"] = value
 
     def transpose(self, *args, **kwargs):
         """

@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_extension_type,
-    is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
@@ -173,7 +172,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = ["name"]
+    _metadata = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -324,7 +323,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data = SingleBlockManager(data, index, fastpath=True)
 
         generic.NDFrame.__init__(self, data, fastpath=True)
-
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -456,19 +454,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
         return generic.NDFrame._update_inplace(self, result, **kwargs)
-
-    @property
-    def name(self):
-        """
-        Return name of the Series.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        if value is not None and not is_hashable(value):
-            raise TypeError("Series.name must be a hashable type")
-        object.__setattr__(self, "_name", value)
 
     # ndarray compatibility
     @property

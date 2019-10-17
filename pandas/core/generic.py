@@ -14,6 +14,7 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -197,6 +198,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
+        attrs: Mapping[Hashable, Any] = None,
         fastpath: bool = False,
     ):
 
@@ -213,6 +215,11 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_data", data)
         object.__setattr__(self, "_item_cache", {})
+        if attrs is None:
+            attrs = {}
+        else:
+            attrs = dict(attrs)
+        object.__setattr__(self, "_attrs", attrs)
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
@@ -232,6 +239,19 @@ class NDFrame(PandasObject, SelectionMixin):
         return mgr
 
     # ----------------------------------------------------------------------
+
+    @property
+    def attrs(self):
+        """
+        Dictionary of global attributes on this object.
+        """
+        if self._attrs is None:
+            self._attrs = {}
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        self._attrs = dict(value)
 
     @property
     def is_copy(self):
@@ -2029,7 +2049,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __getstate__(self):
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(_data=self._data, _typ=self._typ, _metadata=self._metadata, **meta)
+        return dict(
+            _data=self._data,
+            _typ=self._typ,
+            _metadata=self._metadata,
+            attrs=self.attrs,
+            **meta
+        )
 
     def __setstate__(self, state):
 
@@ -2038,6 +2064,8 @@ class NDFrame(PandasObject, SelectionMixin):
         elif isinstance(state, dict):
             typ = state.get("_typ")
             if typ is not None:
+                attrs = state.get("_attrs", {})
+                object.__setattr__(self, "_attrs", attrs)
 
                 # set in the order of internal names
                 # to avoid definitional recursion
@@ -5213,6 +5241,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
         if isinstance(other, NDFrame):
+            for name in other.attrs:
+                self.attrs[name] = other.attrs[name]
+            # For subclasses using _metadata.
             for name in self._metadata:
                 object.__setattr__(self, name, getattr(other, name, None))
         return self
