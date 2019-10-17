@@ -1944,3 +1944,12 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     result = getattr(grouped, op)()
     expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = pd.DataFrame([[True, True]], columns=['a', 'a'])
+    result = getattr(df.groupby([0]), bool_agg_func)()
+    expected = df
+    tm.assert_frame_equal(result, expected)
