@@ -1950,6 +1950,21 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
 def test_bool_aggs_dup_column_labels(bool_agg_func):
     # 21668
     df = pd.DataFrame([[True, True]], columns=['a', 'a'])
-    result = getattr(df.groupby([0]), bool_agg_func)()
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+def test_dup_labels_output_shape(reduction_func):
+    # TODO: see if these can be fixed as well
+    if reduction_func in {"size", "quantile", "nunique", "nth", "ngroup"}:
+        pytest.xfail("Inconsistent output shape")
+
+    df = pd.DataFrame([[1, 1]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, reduction_func)()
+
+    assert result.shape == (1, 2)
+    tm.assert_index_equal(result.columns, pd.Index(["a", "a"]))
