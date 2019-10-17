@@ -8,7 +8,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+                    uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
 cnp.import_array()
 
 
@@ -421,16 +421,23 @@ def group_any_all(uint8_t[:] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+
 # ----------------------------------------------------------------------
 # group_add, group_prod, group_var, group_mean, group_ohlc
 # ----------------------------------------------------------------------
 
+ctypedef fused complexfloating_t:
+    float64_t
+    float32_t
+    complex64_t
+    complex128_t
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_add(floating[:, :] out,
+def _group_add(complexfloating_t[:, :] out,
                int64_t[:] counts,
-               floating[:, :] values,
+               complexfloating_t[:, :] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=0):
     """
@@ -438,13 +445,14 @@ def _group_add(floating[:, :] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, count
-        floating[:, :] sumx, nobs
+        complexfloating_t val, count
+        complexfloating_t[:, :] sumx
+        int64_t[:, :] nobs
 
     if len(values) != len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((len(out), out.shape[1]), dtype=np.int64)
     sumx = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -462,7 +470,12 @@ def _group_add(floating[:, :] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    sumx[lab, j] += val
+                    if (complexfloating_t is complex64_t or
+                            complexfloating_t is complex128_t):
+                        # clang errors if we use += with these dtypes
+                        sumx[lab, j] = sumx[lab, j] + val
+                    else:
+                        sumx[lab, j] += val
 
         for i in range(ncounts):
             for j in range(K):
@@ -472,8 +485,10 @@ def _group_add(floating[:, :] out,
                     out[i, j] = sumx[i, j]
 
 
-group_add_float32 = _group_add['float']
-group_add_float64 = _group_add['double']
+group_add_float32 = _group_add['float32_t']
+group_add_float64 = _group_add['float64_t']
+group_add_complex64 = _group_add['float complex']
+group_add_complex128 = _group_add['double complex']
 
 
 @cython.wraparound(False)
