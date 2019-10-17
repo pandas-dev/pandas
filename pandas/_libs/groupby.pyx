@@ -23,7 +23,7 @@ from pandas._libs.algos import (take_2d_axis1_float64_float64,
                                 groupsort_indexer, tiebreakers)
 
 cdef int64_t NPY_NAT = get_nat()
-cdef int64_t _int64_max = np.iinfo(np.int64).max
+_int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
