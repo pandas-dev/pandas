@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, Optional
+from typing import Dict, FrozenSet, Optional
 import warnings
 
 import numpy as np
@@ -267,7 +267,7 @@ class SelectionMixin:
 
     agg = aggregate
 
-    def _try_aggregate_string_function(self, arg, *args, **kwargs):
+    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
         - try to find a function (or attribute) on ourselves
@@ -292,11 +292,9 @@ class SelectionMixin:
 
         f = getattr(np, arg, None)
         if f is not None:
-            try:
+            if hasattr(self, "__array__"):
+                # in particular exclude Window
                 return f(self, *args, **kwargs)
-
-            except (AttributeError, TypeError):
-                pass
 
         raise AttributeError(
             "'{arg}' is not a valid function for "
@@ -653,7 +651,17 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations = frozenset(["item"])
+    _deprecations = frozenset(
+        [
+            "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+            "base",
+            "data",
+            "item",
+            "itemsize",
+            "flags",
+            "strides",
+        ]
+    )  # type: FrozenSet[str]
 
     def transpose(self, *args, **kwargs):
         """
