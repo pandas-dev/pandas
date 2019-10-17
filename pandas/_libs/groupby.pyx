@@ -471,7 +471,7 @@ def _group_add(complexfloating_t[:, :] out,
                 if val == val:
                     nobs[lab, j] += 1
                     if (complexfloating_t is complex64_t or
-                        complexfloating_t is complex128_t):
+                            complexfloating_t is complex128_t):
                         # clang errors if we use += with these dtypes
                         sumx[lab, j] = sumx[lab, j] + val
                     else:
