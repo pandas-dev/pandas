@@ -17,7 +17,7 @@ def test_constructor_single_level():
         levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
     )
     assert isinstance(result, MultiIndex)
-    expected = Index(["foo", "bar", "baz", "qux"], name="first")
+    expected = Index(["foo", "bar", "baz", "qux"])
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["first"]
 
@@ -292,8 +292,9 @@ def test_from_arrays_empty():
     # 1 level
     result = MultiIndex.from_arrays(arrays=[[]], names=["A"])
     assert isinstance(result, MultiIndex)
-    expected = Index([], name="A")
+    expected = Index([])
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
     # N levels
     for N in [2, 3]:
@@ -439,8 +440,9 @@ def test_from_product_empty_zero_levels():
 
 def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
-    expected = pd.Index([], name="A")
+    expected = pd.Index([])
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
 
 @pytest.mark.parametrize(
