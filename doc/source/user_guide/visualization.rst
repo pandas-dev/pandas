@@ -1190,6 +1190,18 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    plt.close('all')
 
+Custom formatters for timeseries plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionchanged:: 1.0.0
+
+Pandas provides custom formatters for timeseries plots. These change the
+formatting of the axis labels for dates and times. By default,
+the custom formatters are applied only to plots created by pandas with
+:meth:`DataFrame.plot` or :meth:`Series.plot`. To have them apply to all
+plots, including those made by matplotlib, set the option
+``pd.options.matplotlib.register_converters = True``.
+
 Suppressing tick resolution adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1243,12 +1255,6 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
    :suppress:
 
    plt.close('all')
-
-.. versionchanged:: 1.0.0
-
-The custom date formatters are applied only to plots created by pandas.
-To have them apply to all plots, including those made by matplotlib, set
-the option ``pd.options.matplotlib.register_converters = True``.
 
 Automatic date tick adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
