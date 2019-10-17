@@ -3146,9 +3146,6 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
             return False
 
-        if len(self) != len(other):
-            return False
-
         if not isinstance(other, MultiIndex):
             if not is_object_dtype(other):  # d-level MultiIndex can equal d-tuple Index
                 if self.nlevels != other.nlevels:
@@ -3158,6 +3155,9 @@ class MultiIndex(Index):
             return array_equivalent(self._ndarray_values, other_vals)
 
         if self.nlevels != other.nlevels:
+            return False
+
+        if len(self) != len(other):
             return False
 
         for i in range(self.nlevels):
