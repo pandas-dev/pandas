@@ -728,14 +728,14 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
-.. note::
+.. code-block:: text
 
-   col   col0   col1   col2   col3  col4
-   row
-   row0  0.77  0.605    NaN  0.860  0.65
-   row2  0.13    NaN  0.395  0.500  0.25
-   row3   NaN  0.310    NaN  0.545   NaN
-   row4   NaN  0.100  0.395  0.760  0.24
+    col   col0   col1   col2   col3  col4
+    row
+    row0  0.77  0.605    NaN  0.860  0.65
+    row2  0.13    NaN  0.395  0.500  0.25
+    row3   NaN  0.310    NaN  0.545   NaN
+    row4   NaN  0.100  0.395  0.760  0.24
 
 This solution uses :func:`~pandas.pivot_table`. Also note that
 ``aggfunc='mean'`` is the default. It is included here to be explicit.

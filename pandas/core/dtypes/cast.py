@@ -393,123 +393,51 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, np.integer):
             dtype = np.dtype(np.float64)
-            if not isna(fill_value):
-                fill_value = dtype.type(fill_value)
 
         elif dtype.kind == "f":
-            if not np.can_cast(fill_value, dtype):
-                # e.g. dtype is float32, need float64
-                dtype = np.min_scalar_type(fill_value)
+            mst = np.min_scalar_type(fill_value)
+            if mst > dtype:
+                # e.g. mst is np.float64 and dtype is np.float32
+                dtype = mst
 
         elif dtype.kind == "c":
-            if not np.can_cast(fill_value, dtype):
-                if np.can_cast(fill_value, np.dtype("c16")):
-                    dtype = np.dtype(np.complex128)
-                else:
-                    dtype = np.dtype(np.object_)
-
-            if dtype.kind == "c" and not np.isnan(fill_value):
-                fill_value = dtype.type(fill_value)
+            mst = np.min_scalar_type(fill_value)
+            dtype = np.promote_types(dtype, mst)
 
     elif is_bool(fill_value):
         if not issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-        else:
-            fill_value = np.bool_(fill_value)
+            dtype = np.dtype(np.object_)
+
     elif is_integer(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, np.integer):
-            # upcast to prevent overflow
-            mst = np.min_scalar_type(fill_value)
-            if mst > dtype:
-                # np.dtype ordering considers:
-                #  int[n] < int[2*n]
-                #  uint[n] < uint[2*n]
-                #  u?int[n] < object_
-                dtype = mst
-
-            elif np.can_cast(fill_value, dtype):
-                pass
-
-            elif dtype.kind == "u" and mst.kind == "i":
+            if not np.can_cast(fill_value, dtype):
+                # upcast to prevent overflow
+                mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
                 if dtype.kind == "f":
                     # Case where we disagree with numpy
                     dtype = np.dtype(np.object_)
 
-            elif dtype.kind == "i" and mst.kind == "u":
-
-                if fill_value > np.iinfo(np.int64).max:
-                    # object is the only way to represent fill_value and keep
-                    #  the range allowed by the given dtype
-                    dtype = np.dtype(np.object_)
-
-                elif mst.itemsize < dtype.itemsize:
-                    pass
-
-                elif dtype.itemsize == mst.itemsize:
-                    # We never cast signed to unsigned because that loses
-                    #  parts of the original range, so find the smallest signed
-                    #  integer that can hold all of `mst`.
-                    ndt = {
-                        np.int64: np.object_,
-                        np.int32: np.int64,
-                        np.int16: np.int32,
-                        np.int8: np.int16,
-                    }[dtype.type]
-                    dtype = np.dtype(ndt)
-
-                else:
-                    # bump to signed integer dtype that holds all of `mst` range
-                    # Note: we have to use itemsize because some (windows)
-                    #  builds don't satisfiy e.g. np.uint32 == np.uint32
-                    ndt = {
-                        4: np.int64,
-                        2: np.int32,
-                        1: np.int16,  # TODO: Test for this case
-                    }[mst.itemsize]
-                    dtype = np.dtype(ndt)
-
-            fill_value = dtype.type(fill_value)
-
-        elif issubclass(dtype.type, np.floating):
-            # check if we can cast
-            if _check_lossless_cast(fill_value, dtype):
-                fill_value = dtype.type(fill_value)
-
-        if dtype.kind in ["c", "f"]:
-            # e.g. if dtype is complex128 and fill_value is 1, we
-            #  want np.complex128(1)
-            fill_value = dtype.type(fill_value)
-
     elif is_complex(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, (np.integer, np.floating)):
-            c8 = np.dtype(np.complex64)
-            info = np.finfo(dtype) if dtype.kind == "f" else np.iinfo(dtype)
-            if (
-                np.can_cast(fill_value, c8)
-                and np.can_cast(info.min, c8)
-                and np.can_cast(info.max, c8)
-            ):
-                dtype = np.dtype(np.complex64)
-            else:
-                dtype = np.dtype(np.complex128)
+            mst = np.min_scalar_type(fill_value)
+            dtype = np.promote_types(dtype, mst)
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
-            if mst > dtype and mst.kind == "c":
+            if mst > dtype:
                 # e.g. mst is np.complex128 and dtype is np.complex64
                 dtype = mst
-
-        if dtype.kind == "c":
-            # make sure we have a np.complex and not python complex
-            fill_value = dtype.type(fill_value)
 
     elif fill_value is None:
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
@@ -520,37 +448,48 @@ def maybe_promote(dtype, fill_value=np.nan):
         elif is_datetime_or_timedelta_dtype(dtype):
             fill_value = dtype.type("NaT", "ns")
         else:
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
             fill_value = np.nan
     else:
-        dtype = np.object_
+        dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
     if is_extension_array_dtype(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, (bytes, str)):
-        dtype = np.object_
+        dtype = np.dtype(np.object_)
 
+    fill_value = _ensure_dtype_type(fill_value, dtype)
     return dtype, fill_value
 
 
-def _check_lossless_cast(value, dtype: np.dtype) -> bool:
+def _ensure_dtype_type(value, dtype):
     """
-    Check if we can cast the given value to the given dtype _losslesly_.
+    Ensure that the given value is an instance of the given dtype.
+
+    e.g. if out dtype is np.complex64, we should have an instance of that
+    as opposed to a python complex object.
 
     Parameters
     ----------
     value : object
-    dtype : np.dtype
+    dtype : np.dtype or ExtensionDtype
 
     Returns
     -------
-    bool
+    object
     """
-    casted = dtype.type(value)
-    if casted == value:
-        return True
-    return False
+
+    # Start with exceptions in which we do _not_ cast to numpy types
+    if is_extension_array_dtype(dtype):
+        return value
+    elif dtype == np.object_:
+        return value
+    elif isna(value):
+        # e.g. keep np.nan rather than try to cast to np.float32(np.nan)
+        return value
+
+    return dtype.type(value)
 
 
 def infer_dtype_from(val, pandas_dtype=False):
@@ -1060,7 +999,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     Parameters
     ----------
     value : np.array / Series / Index / list-like
-    convert_dates : boolean, default False
+    convert_dates : bool, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
 
@@ -1493,7 +1432,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
         The array to cast.
     dtype : str, np.dtype
         The integer dtype to cast the array to.
-    copy: boolean, default False
+    copy: bool, default False
         Whether to make a copy of the array before returning.
 
     Returns

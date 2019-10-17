@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Union
+from typing import FrozenSet, Union
 import warnings
 
 import numpy as np
@@ -63,7 +63,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -205,9 +205,11 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = DirNamesMixin._deprecations | frozenset(
-        ["tolist", "dtype_str", "get_values", "set_value"]
-    )
+    _deprecations = (
+        PandasObject._deprecations
+        | IndexOpsMixin._deprecations
+        | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
+    )  # type: FrozenSet[str]
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -2491,8 +2493,12 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
-            indexer, = (indexer == -1).nonzero()
+            # find indexes of things in "other" that are not in "self"
+            if self.is_unique:
+                indexer = self.get_indexer(other)
+                indexer = (indexer == -1).nonzero()[0]
+            else:
+                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
@@ -4529,7 +4535,7 @@ class Index(IndexOpsMixin, PandasObject):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
             Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.

@@ -335,7 +335,7 @@ class TestMultiLevel(Base):
         df = self.frame[:0]
         result = df.count(level=0)
         expected = (
-            DataFrame(index=s.index.levels[0], columns=df.columns)
+            DataFrame(index=s.index.levels[0].set_names(["first"]), columns=df.columns)
             .fillna(0)
             .astype(np.int64)
         )
@@ -976,13 +976,11 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = series.count(level="b")
         expect = self.series.count(level=1)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "b"
+        tm.assert_series_equal(result, expect)
 
         result = series.count(level="a")
         expect = self.series.count(level=0)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "a"
+        tm.assert_series_equal(result, expect)
 
         msg = "Level x not found"
         with pytest.raises(KeyError, match=msg):
@@ -1014,6 +1012,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
+        level_name = self.frame.index.names[level]
+
         if axis == 0:
             frame = self.frame
         else:
@@ -1034,7 +1034,7 @@ Thur,Lunch,Yes,51.51,17"""
             frame = frame.sort_index(level=level, axis=axis)
 
         # for good measure, groupby detail
-        level_index = frame._get_axis(axis).levels[level]
+        level_index = frame._get_axis(axis).levels[level].rename(level_name)
 
         tm.assert_index_equal(leftside._get_axis(axis), level_index)
         tm.assert_index_equal(rightside._get_axis(axis), level_index)
@@ -1064,6 +1064,23 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
+
+    def test_series_any_timedelta(self):
+        # GH 17667
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.any(axis=1)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
@@ -1622,12 +1639,18 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         result = MultiIndex.from_arrays([index, columns])
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
+
+        assert result.names == ["dt1", "dt2"]
+        # levels don't have names set, so set name of index/columns to None in checks
+        tm.assert_index_equal(result.levels[0], index.rename(name=None))
+        tm.assert_index_equal(result.levels[1], columns.rename(name=None))
 
         result = MultiIndex.from_arrays([Series(index), Series(columns)])
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
+
+        assert result.names == ["dt1", "dt2"]
+        # levels don't have names set, so set name of index/columns to None in checks
+        tm.assert_index_equal(result.levels[0], index.rename(name=None))
+        tm.assert_index_equal(result.levels[1], columns.rename(name=None))
 
     def test_set_index_datetime(self):
         # GH 3950
@@ -1649,18 +1672,19 @@ Thur,Lunch,Yes,51.51,17"""
         df.index = df.index.tz_convert("US/Pacific")
 
         expected = pd.DatetimeIndex(
-            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            name="datetime",
+            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"]
         )
         expected = expected.tz_localize("UTC").tz_convert("US/Pacific")
 
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
-        tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
+        tm.assert_index_equal(df.index.levels[1], Index(["a", "b"]))
+        assert df.index.names == ["datetime", "label"]
 
         df = df.swaplevel(0, 1)
-        tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
+        tm.assert_index_equal(df.index.levels[0], Index(["a", "b"]))
         tm.assert_index_equal(df.index.levels[1], expected)
+        assert df.index.names == ["label", "datetime"]
 
         df = DataFrame(np.random.random(6))
         idx1 = pd.DatetimeIndex(
