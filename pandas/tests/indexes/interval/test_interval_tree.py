@@ -154,7 +154,6 @@ class TestIntervalTree:
             (np.array([0, 2, np.nan]), np.array([1, 3, np.nan]), False),
         ],
     )
-
     @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
