@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Union
+from typing import FrozenSet, Union
 import warnings
 
 import numpy as np
@@ -63,7 +63,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -206,10 +206,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = (
-        IndexOpsMixin._deprecations
-        | DirNamesMixin._deprecations
-        | frozenset(["tolist", "contains", "dtype_str", "get_values", "set_value"])
-    )
+        PandasObject._deprecations
+        | IndexOpsMixin._deprecations
+        | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
+    )  # type: FrozenSet[str]
 
     # To hand over control to subclasses
     _join_precedence = 1

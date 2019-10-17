@@ -124,7 +124,37 @@ source, you should no longer need to install Cython into your build environment 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
+.. _whatsnew_1000.api_breaking.MultiIndex._names:
+
+``MultiIndex.levels`` do not hold level names any longer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- A :class:`MultiIndex` previously stored the level names as attributes of each of its
+  :attr:`MultiIndex.levels`. From Pandas 1.0, the names are only accessed through
+  :attr:`MultiIndex.names` (which was also possible previously). This is done in order to
+  make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories` (:issue:`27242`:).
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   Out[2]: mi
+   MultiIndex([(1, 'a'),
+               (1, 'b'),
+               (2, 'a'),
+               (2, 'b')],
+              names=['x', 'y'])
+   Out[3]: mi.levels[0].name
+   'x'
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi.levels[0].name
+
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
@@ -150,6 +180,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
+- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
@@ -196,6 +227,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
+- Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
 -
 
 .. _whatsnew_1000.performance:
