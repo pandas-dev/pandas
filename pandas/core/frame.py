@@ -14,7 +14,18 @@ from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, Union
+from typing import (
+    FrozenSet,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -861,7 +872,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self):
+    def items(self) -> Iterable[Tuple[Hashable, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -2207,6 +2218,7 @@ class DataFrame(NDFrame):
         border=None,
         table_id=None,
         render_links=False,
+        encoding=None,
     ):
         """
         Render a DataFrame as an HTML table.
@@ -2222,6 +2234,10 @@ class DataFrame(NDFrame):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
+        encoding : str, default "utf-8"
+            Set character encoding
+
+            .. versionadded:: 1.0
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -2263,7 +2279,11 @@ class DataFrame(NDFrame):
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
-            buf=buf, classes=classes, notebook=notebook, border=border
+            buf=buf,
+            classes=classes,
+            notebook=notebook,
+            border=border,
+            encoding=encoding,
         )
 
     # ----------------------------------------------------------------------
@@ -6628,15 +6648,7 @@ class DataFrame(NDFrame):
         return super().transform(func, *args, **kwargs)
 
     def apply(
-        self,
-        func,
-        axis=0,
-        broadcast=None,
-        raw=False,
-        reduce=None,
-        result_type=None,
-        args=(),
-        **kwds
+        self, func, axis=0, raw=False, reduce=None, result_type=None, args=(), **kwds
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -6656,21 +6668,9 @@ class DataFrame(NDFrame):
 
             * 0 or 'index': apply function to each column.
             * 1 or 'columns': apply function to each row.
-        broadcast : bool, optional
-            Only relevant for aggregation functions:
-
-            * ``False`` or ``None`` : returns a Series whose length is the
-              length of the index or the number of columns (based on the
-              `axis` parameter)
-            * ``True`` : results will be broadcast to the original shape
-              of the frame, the original index and columns will be retained.
-
-            .. deprecated:: 0.23.0
-               This argument will be removed in a future version, replaced
-               by result_type='broadcast'.
 
         raw : bool, default False
-            Determines if row or column is passed as a Series or ndarry object:
+            Determines if row or column is passed as a Series or ndarray object:
 
             * ``False`` : passes each row or column as a Series to the
               function.
@@ -6678,20 +6678,6 @@ class DataFrame(NDFrame):
               instead.
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
-        reduce : bool or None, default None
-            Try to apply reduction procedures. If the DataFrame is empty,
-            `apply` will use `reduce` to determine whether the result
-            should be a Series or a DataFrame. If ``reduce=None`` (the
-            default), `apply`'s return value will be guessed by calling
-            `func` on an empty Series
-            (note: while guessing, exceptions raised by `func` will be
-            ignored).
-            If ``reduce=True`` a Series will always be returned, and if
-            ``reduce=False`` a DataFrame will always be returned.
-
-            .. deprecated:: 0.23.0
-               This argument will be removed in a future version, replaced
-               by ``result_type='reduce'``.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
@@ -6805,9 +6791,7 @@ class DataFrame(NDFrame):
             self,
             func=func,
             axis=axis,
-            broadcast=broadcast,
             raw=raw,
-            reduce=reduce,
             result_type=result_type,
             args=args,
             kwds=kwds,
@@ -7772,7 +7756,8 @@ class DataFrame(NDFrame):
         if isinstance(level, str):
             level = count_axis._get_level_number(level)
 
-        level_index = count_axis.levels[level]
+        level_name = count_axis._names[level]
+        level_index = count_axis.levels[level]._shallow_copy(name=level_name)
         level_codes = ensure_int64(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
 
