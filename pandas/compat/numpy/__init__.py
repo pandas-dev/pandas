@@ -12,6 +12,7 @@ _np_version_under1p14 = _nlv < LooseVersion("1.14")
 _np_version_under1p15 = _nlv < LooseVersion("1.15")
 _np_version_under1p16 = _nlv < LooseVersion("1.16")
 _np_version_under1p17 = _nlv < LooseVersion("1.17")
+_np_version_under1p18 = _nlv < LooseVersion("1.18")
 _is_numpy_dev = ".dev" in str(_nlv)
 
 
