@@ -261,6 +261,8 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
+            except AssertionError:
+                raise
             except Exception:
                 result = self._aggregate_named(func, *args, **kwargs)
 
@@ -887,6 +889,8 @@ class DataFrameGroupBy(GroupBy):
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
+                except AssertionError:
+                    raise
                 except Exception:
                     result = self._aggregate_frame(func)
                 else:
@@ -966,6 +970,11 @@ class DataFrameGroupBy(GroupBy):
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
+                if obj.shape[1] == 1:
+                    # Avoid call to self.values that can occur in DataFrame
+                    #  reductions; see GH#28949
+                    obj = obj.iloc[:, 0]
+
                 s = groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
@@ -974,17 +983,29 @@ class DataFrameGroupBy(GroupBy):
                     # continue and exclude the block
                     deleted_items.append(locs)
                     continue
+
+                # unwrap DataFrame to get array
+                assert len(result._data.blocks) == 1
+                result = result._data.blocks[0].values
+                if result.ndim == 1 and isinstance(result, np.ndarray):
+                    result = result.reshape(1, -1)
+
             finally:
+                assert not isinstance(result, DataFrame)
+
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
 
-                    if result.ndim == 1 and isinstance(result, np.ndarray):
+                    if block.is_extension and isinstance(result, np.ndarray):
                         # e.g. block.values was an IntegerArray
+                        # (1, N) case can occur if block.values was Categorical
+                        #  and result is ndarray[object]
+                        assert result.ndim == 1 or result.shape[0] == 1
                         try:
                             # Cast back if feasible
                             result = type(block.values)._from_sequence(
-                                result, dtype=block.values.dtype
+                                result.ravel(), dtype=block.values.dtype
                             )
                         except ValueError:
                             # reshape to be valid for non-Extension Block
@@ -1036,6 +1057,8 @@ class DataFrameGroupBy(GroupBy):
                 for name, data in self:
                     fres = func(data, *args, **kwargs)
                     result[name] = self._try_cast(fres, data)
+            except AssertionError:
+                raise
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
@@ -1043,6 +1066,8 @@ class DataFrameGroupBy(GroupBy):
                 data = self.get_group(name, obj=obj)
                 try:
                     fres = func(data, *args, **kwargs)
+                except AssertionError:
+                    raise
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
@@ -1398,6 +1423,8 @@ class DataFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
+        except AssertionError:
+            raise
         except Exception:
             # Hard to know ex-ante what exceptions `fast_path` might raise
             return path, res
@@ -1422,6 +1449,8 @@ class DataFrameGroupBy(GroupBy):
         for i, col in enumerate(obj):
             try:
                 output[col] = self[col].transform(wrapper)
+            except AssertionError:
+                raise
             except Exception:
                 pass
             else:
