@@ -1,4 +1,5 @@
 """ s3 support for remote file interactivity """
+import os
 from typing import IO, Any, Optional, Tuple
 from urllib.parse import urlparse as parse_url
 
@@ -25,7 +26,15 @@ def get_file_and_filesystem(
     if mode is None:
         mode = "rb"
 
-    fs = s3fs.S3FileSystem(anon=False)
+    # Support customised S3 servers endpoint URL via environment variable
+    # The S3_ENDPOINT should be the complete URL to S3 service following
+    # the format: http(s)://{host}:{port}
+    s3_endpoint = os.environ.get('S3_ENDPOINT')
+    if s3_endpoint:
+        client_kwargs = {'endpoint_url': s3_endpoint}
+    else:
+        client_kwargs = None
+    fs = s3fs.S3FileSystem(anon=False, client_kwargs=client_kwargs)
     try:
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
     except (FileNotFoundError, NoCredentialsError):
@@ -35,7 +44,7 @@ def get_file_and_filesystem(
         # aren't valid for that bucket.
         # A NoCredentialsError is raised if you don't have creds
         # for that bucket.
-        fs = s3fs.S3FileSystem(anon=True)
+        fs = s3fs.S3FileSystem(anon=True, client_kwargs=client_kwargs)
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
     return file, fs
 
