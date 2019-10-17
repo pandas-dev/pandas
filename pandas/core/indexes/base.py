@@ -53,6 +53,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCMultiIndex,
     ABCPandasArray,
@@ -65,7 +66,6 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import maybe_convert_indices
@@ -100,7 +100,7 @@ _index_shared_docs = dict()
 
 def _make_comparison_op(op, cls):
     def cmp_method(self, other):
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ABCExtensionArray)):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
@@ -3840,7 +3840,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
+    def _values(self) -> Union[ABCExtensionArray, ABCIndexClass, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
@@ -4268,7 +4268,12 @@ class Index(IndexOpsMixin, PandasObject):
         Concatenate to_concat which has the same class.
         """
         # must be overridden in specific classes
-        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
+        klasses = (
+            ABCDatetimeIndex,
+            ABCTimedeltaIndex,
+            ABCPeriodIndex,
+            ABCExtensionArray,
+        )
         to_concat = [
             x.astype(object) if isinstance(x, klasses) else x for x in to_concat
         ]
@@ -4631,7 +4636,7 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
         s = getattr(series, "_values", series)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
+        if isinstance(s, (ABCExtensionArray, Index)) and is_scalar(key):
             # GH 20882, 21257
             # Unify Index and ExtensionArray treatment
             # First try to convert the key to a location
