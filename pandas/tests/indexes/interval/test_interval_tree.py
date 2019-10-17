@@ -154,20 +154,15 @@ class TestIntervalTree:
             (np.array([0, 2, np.nan]), np.array([1, 3, np.nan]), False),
         ],
     )
-    # https://github.com/python/mypy/issues/6697
-    # error: Argument 1 to "map" has incompatible type "Type[List[Any]]";
-    #  expected "Callable[[Tuple[int, ...]], List[_T]]"
-    @pytest.mark.parametrize("order", map(list, permutations(range(3))))  # type: ignore
+
+    @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
         tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
         assert result is expected
 
-    # https://github.com/python/mypy/issues/6697
-    # error: Argument 1 to "map" has incompatible type "Type[List[Any]]";
-    #  expected "Callable[[Tuple[int, ...]], List[_T]]"
-    @pytest.mark.parametrize("order", map(list, permutations(range(3))))  # type: ignore
+    @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping_endpoints(self, closed, order):
         """shared endpoints are marked as overlapping"""
         # GH 23309
