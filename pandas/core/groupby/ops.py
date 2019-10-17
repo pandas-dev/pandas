@@ -529,7 +529,7 @@ class BaseGrouper:
                 try:
                     values = ensure_float64(values)
                 except TypeError:
-                    if lib.infer_dtype(values) == "complex":
+                    if lib.infer_dtype(values, skipna=False) == "complex":
                         values = values.astype(complex)
                     else:
                         raise
