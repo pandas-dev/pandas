@@ -8,7 +8,7 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import FixedOffset, utc  # type: ignore
 
 import pandas.util._test_decorators as td
 
@@ -483,7 +483,7 @@ UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
 SIGNED_EA_INT_DTYPES = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES  # type: ignore
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES = [float, "float32", "float64"]
@@ -497,13 +497,13 @@ BOOL_DTYPES = [bool, "bool"]
 BYTES_DTYPES = [bytes, "bytes"]
 OBJECT_DTYPES = [object, "object"]
 
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES  # type: ignore
 ALL_NUMPY_DTYPES = (
     ALL_REAL_DTYPES
     + COMPLEX_DTYPES
     + STRING_DTYPES
-    + DATETIME64_DTYPES
-    + TIMEDELTA64_DTYPES
+    + DATETIME64_DTYPES  # type: ignore
+    + TIMEDELTA64_DTYPES  # type: ignore
     + BOOL_DTYPES
     + OBJECT_DTYPES
     + BYTES_DTYPES
