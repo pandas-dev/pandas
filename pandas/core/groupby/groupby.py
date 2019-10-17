@@ -44,13 +44,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
-from pandas.core.base import (
-    DataError,
-    GroupByError,
-    PandasObject,
-    SelectionMixin,
-    SpecificationError,
-)
+from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
@@ -862,8 +856,6 @@ b  2""",
                 result, names = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
-            except AssertionError as e:
-                raise GroupByError(str(e))
             if self._transform_should_cast(how):
                 output[name] = self._try_cast(result, obj)
             else:
@@ -890,12 +882,7 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            try:
-                result, names = self.grouper.aggregate(
-                    obj.values, how, min_count=min_count
-                )
-            except AssertionError as e:
-                raise GroupByError(str(e))
+            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -1353,8 +1340,8 @@ class GroupBy(_GroupBy):
                 # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError as e:
-                    raise SpecificationError(str(e))
+                except AssertionError:
+                    raise
                 except DataError:
                     pass
                 except TypeError:
@@ -1364,14 +1351,6 @@ class GroupBy(_GroupBy):
                         # raised in _get_cython_function, in some cases can
                         #  be trimmed by implementing cython funcs for more dtypes
                         raise
-                except Exception:
-                    # TODO: the remaining test cases that get here are from:
-                    #  - AttributeError from _cython_agg_blocks bug passing
-                    #    DataFrame to make_block; see  GH#28275
-                    #  - TypeError in _cython_operation calling ensure_float64
-                    #    on object array containing complex numbers;
-                    #    see test_groupby_complex, test_max_nan_bug
-                    pass
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
