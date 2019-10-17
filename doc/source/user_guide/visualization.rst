@@ -1244,6 +1244,12 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 
    plt.close('all')
 
+.. versionchanged:: 1.0.0
+
+The custom date formatters are applied only to plots created by pandas.
+To have them apply to all plots, including those made by matplotlib, set
+the option ``pd.options.matplotlib.register_converters = True``.
+
 Automatic date tick adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
