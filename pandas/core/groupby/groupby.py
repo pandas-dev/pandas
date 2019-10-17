@@ -1340,16 +1340,17 @@ class GroupBy(_GroupBy):
                 # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError:
-                    raise
                 except DataError:
                     pass
-                except TypeError:
-                    raise
                 except NotImplementedError as err:
-                    if "function is not implemented for this dtype" not in str(err):
+                    if "function is not implemented for this dtype" in str(err):
                         # raised in _get_cython_function, in some cases can
                         #  be trimmed by implementing cython funcs for more dtypes
+                        pass
+                    elif "decimal does not support skipna=True" in str(err):
+                        # FIXME: kludge for test_decimal:test_in_numeric_groupby
+                        pass
+                    else:
                         raise
 
                 # apply a non-cython aggregation
