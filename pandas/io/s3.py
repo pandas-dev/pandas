@@ -1,6 +1,6 @@
 """ s3 support for remote file interactivity """
 import os
-from typing import IO, Any, Optional, Tuple, Dict
+from typing import IO, Any, Dict, Optional, Tuple
 from urllib.parse import urlparse as parse_url
 
 from pandas.compat._optional import import_optional_dependency
