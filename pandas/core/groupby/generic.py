@@ -889,9 +889,23 @@ class DataFrameGroupBy(GroupBy):
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
-                except AssertionError:
-                    raise
-                except Exception:
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                except NotImplementedError as err:
+                    if "axis other than 0 is not supported" in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        pass
+                    elif "decimal does not support skipna=True" in str(err):
+                        # FIXME: kludge for DecimalArray tests
+                        pass
+                    else:
+                        raise
+                    # FIXME: this is raised in a bunch of
+                    #  test_whitelist.test_regression_whitelist_methods tests,
+                    #  can be avoided
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
