@@ -14,7 +14,7 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -44,13 +44,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical
-from pandas.core.base import (
-    DataError,
-    GroupByError,
-    PandasObject,
-    SelectionMixin,
-    SpecificationError,
-)
+from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
@@ -598,14 +592,7 @@ b  2""",
     plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
-        if name not in self._apply_whitelist:
-            is_callable = callable(getattr(self._selected_obj, name, None))
-            kind = " callable " if is_callable else " "
-            msg = (
-                "Cannot access{0}attribute {1!r} of {2!r} objects, try "
-                "using the 'apply' method".format(kind, name, type(self).__name__)
-            )
-            raise AttributeError(msg)
+        assert name in self._apply_whitelist
 
         self._set_group_selection()
 
@@ -758,7 +745,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self):
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -869,8 +856,6 @@ b  2""",
                 result, names = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
-            except AssertionError as e:
-                raise GroupByError(str(e))
             if self._transform_should_cast(how):
                 output[name] = self._try_cast(result, obj)
             else:
@@ -897,12 +882,7 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            try:
-                result, names = self.grouper.aggregate(
-                    obj.values, how, min_count=min_count
-                )
-            except AssertionError as e:
-                raise GroupByError(str(e))
+            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -919,9 +899,10 @@ b  2""",
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj, numeric_only=True)
             except TypeError:
                 continue
+            else:
+                output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -1359,10 +1340,18 @@ class GroupBy(_GroupBy):
                 # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError as e:
-                    raise SpecificationError(str(e))
-                except Exception:
+                except DataError:
                     pass
+                except NotImplementedError as err:
+                    if "function is not implemented for this dtype" in str(err):
+                        # raised in _get_cython_function, in some cases can
+                        #  be trimmed by implementing cython funcs for more dtypes
+                        pass
+                    elif "decimal does not support skipna=True" in str(err):
+                        # FIXME: kludge for test_decimal:test_in_numeric_groupby
+                        pass
+                    else:
+                        raise
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
