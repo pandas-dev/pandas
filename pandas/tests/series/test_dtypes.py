@@ -518,3 +518,9 @@ class TestSeriesDtypes:
         result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_uint_drop(self):
+        for type in ["uint8", "uint16", "uint32", "uint64"]:
+            series = pd.Series([1, 2, 3], dtype=type)
+            series.loc[0] = 4
+            assert series.dtype == type
