@@ -1219,7 +1219,7 @@ class TestConcatenate:
             names=["group_key"],
         )
 
-        tm.assert_index_equal(result.columns.levels[0], Index(level))
+        tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
         assert result.columns.names == ["group_key", None]
@@ -1412,7 +1412,9 @@ class TestConcatenate:
             names=["first", "second"],
         )
         assert result.index.names == ("first", "second", None)
-        tm.assert_index_equal(result.index.levels[0], Index(["baz", "foo"]))
+        tm.assert_index_equal(
+            result.index.levels[0], Index(["baz", "foo"], name="first")
+        )
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406
