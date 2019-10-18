@@ -141,7 +141,7 @@ def test_empty_dtypes(check_dtype):
     df1["col1"] = df1["col1"].astype("int64")
 
     if check_dtype:
-        msg = "Attributes are different"
+        msg = r"Attributes of DataFrame\..* are different"
         with pytest.raises(AssertionError, match=msg):
             assert_frame_equal(df1, df2, **kwargs)
     else:

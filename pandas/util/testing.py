@@ -1156,7 +1156,9 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal(
+                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
+            )
 
     if check_exact:
         assert_numpy_array_equal(
@@ -1315,8 +1317,9 @@ def assert_frame_equal(
 
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
-    AssertionError: Attributes are different
     ...
+    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64

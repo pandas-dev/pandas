@@ -179,7 +179,7 @@ Series values are different \\(33\\.33333 %\\)
 
 
 def test_series_equal_categorical_mismatch(check_categorical):
-    msg = """Attributes are different
+    msg = """Attributes of Series are different
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
