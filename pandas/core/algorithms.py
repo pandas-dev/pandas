@@ -1304,7 +1304,7 @@ class SelectNFrame(SelectN):
         return frame.sort_values(columns, ascending=ascending, kind="mergesort")
 
 
-# ------- ## ---- #
+# ---- #
 # take #
 # ---- #
 
