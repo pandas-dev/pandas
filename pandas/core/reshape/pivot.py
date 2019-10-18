@@ -60,8 +60,10 @@ def pivot_table(
     values_passed = values is not None
     if values_passed:
         if is_list_like(values):
-            values_multi = True
             values = list(values)
+            # fix bug where ['c'] returns the whole table with multi-level columns
+            # possibly add ValueError if values=[]
+            values_multi = len(values) > 1
         else:
             values_multi = False
             values = [values]
