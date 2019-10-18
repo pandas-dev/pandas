@@ -28,7 +28,8 @@ def get_file_and_filesystem(
 
     # Support customised S3 servers endpoint URL via environment variable
     # The S3_ENDPOINT should be the complete URL to S3 service following
-    # the format: http(s)://{host}:{port}
+    # the format: http(s)://{host}:{port}. If S3_ENDPOINT is undefined, it will
+    # fallback to use the default AWS S3 endpoint as determined by boto3.
     s3_endpoint = os.environ.get("S3_ENDPOINT")
     client_kwargs: Optional[Dict[str, str]] = {
         "endpoint_url": s3_endpoint
