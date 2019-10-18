@@ -9,7 +9,7 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc  # type: ignore
+from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
 from pandas._typing import Dtype
