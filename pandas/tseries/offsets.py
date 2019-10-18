@@ -1113,7 +1113,10 @@ class MonthOffset(SingleConstructorOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize"])
 
-    __init__ = BaseOffset.__init__
+    # error: Incompatible types in assignment (expression has type
+    #  "Callable[[_BaseOffset, Any, Any], Any]", base class "object" defined the type
+    #  as "Callable[[object], None]")  [assignment]
+    __init__ = BaseOffset.__init__  # type: ignore
 
     @property
     def name(self):
@@ -2490,7 +2493,10 @@ class Easter(DateOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize"])
 
-    __init__ = BaseOffset.__init__
+    # error: Incompatible types in assignment (expression has type
+    #  "Callable[[_BaseOffset, Any, Any], Any]", base class "object" defined the type
+    #  as "Callable[[object], None]")  [assignment]
+    __init__ = BaseOffset.__init__  # type: ignore
 
     @apply_wraps
     def apply(self, other):
