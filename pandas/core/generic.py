@@ -3363,7 +3363,6 @@ class NDFrame(PandasObject, SelectionMixin):
                     #  AssertionError because of shape mismatch
                     assert not ref.ndim == self.ndim
 
-
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
 
