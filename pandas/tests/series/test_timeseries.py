@@ -373,9 +373,9 @@ class TestTimeSeries(TestData):
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
-    @pytest.mark.parametrize("n_1", ["1", "15"])
+    @pytest.mark.parametrize("n_1", ["", "1", "15", "70"])
     @pytest.mark.parametrize("offset_1", ["D", "BM"])
-    @pytest.mark.parametrize("n_2", ["1", "3"])
+    @pytest.mark.parametrize("n_2", ["", "1", "3", "70"])
     @pytest.mark.parametrize("offset_2", ["D", "BM"])
     def test_pct_change_with_duplicate_axis(self, n_1, offset_1, n_2, offset_2):
         # GH 28664
