@@ -5,7 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable, Hashable, List, Optional
+from typing import Any, Callable, Hashable, List
 import warnings
 
 import numpy as np
@@ -472,7 +472,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.dtype
 
     @property
-    def name(self) -> Optional[Hashable]:
+    def name(self) -> Hashable:
         return self.attrs.get("name", None)
 
     @name.setter
