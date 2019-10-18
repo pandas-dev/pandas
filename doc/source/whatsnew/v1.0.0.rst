@@ -109,6 +109,7 @@ Other enhancements
   (:issue:`28368`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
+- Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -123,7 +124,37 @@ source, you should no longer need to install Cython into your build environment 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
+.. _whatsnew_1000.api_breaking.MultiIndex._names:
+
+``MultiIndex.levels`` do not hold level names any longer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- A :class:`MultiIndex` previously stored the level names as attributes of each of its
+  :attr:`MultiIndex.levels`. From Pandas 1.0, the names are only accessed through
+  :attr:`MultiIndex.names` (which was also possible previously). This is done in order to
+  make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories` (:issue:`27242`:).
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   Out[2]: mi
+   MultiIndex([(1, 'a'),
+               (1, 'b'),
+               (2, 'a'),
+               (2, 'b')],
+              names=['x', 'y'])
+   Out[3]: mi.levels[0].name
+   'x'
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi.levels[0].name
+
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
@@ -149,6 +180,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
+- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
@@ -162,6 +194,7 @@ Documentation Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added new section on :ref:`scale` (:issue:`28315`).
+- Added sub-section Query MultiIndex in IO tools user guide (:issue:`28791`)
 
 .. _whatsnew_1000.deprecations:
 
@@ -194,6 +227,7 @@ Removal of prior version deprecations/changes
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
+- Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
 -
 
 .. _whatsnew_1000.performance:
@@ -221,6 +255,7 @@ Categorical
 
 - Added test to assert the :func:`fillna` raises the correct ValueError message when the value isn't a value from categories (:issue:`13628`)
 - Bug in :meth:`Categorical.astype` where ``NaN`` values were handled incorrectly when casting to int (:issue:`28406`)
+- :meth:`DataFrame.reindex` with a :class:`CategoricalIndex` would fail when the targets contained duplicates, and wouldn't fail if the source contained duplicates (:issue:`28107`)
 - Bug in :meth:`Categorical.astype` not allowing for casting to extension dtypes (:issue:`28668`)
 - Bug where :func:`merge` was unable to join on categorical and extension dtype columns (:issue:`28668`)
 - :meth:`Categorical.searchsorted` and :meth:`CategoricalIndex.searchsorted` now work on unordered categoricals also (:issue:`21667`)
@@ -290,6 +325,9 @@ Indexing
 - Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
+- :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
+- :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
+-
 
 Missing
 ^^^^^^^
