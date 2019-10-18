@@ -575,9 +575,9 @@ class TestDataFrameConvertTo(TestData):
                 ),
             ),
             (
-                defaultdict(list),
+                defaultdict(dict),
                 defaultdict(
-                    list,
+                    dict,
                     {
                         0: {"int_col": 1, "float_col": 1.0},
                         1: {"int_col": 2, "float_col": 2.0},
