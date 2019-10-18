@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -189,6 +190,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _is_copy = None
     _data = None  # type: BlockManager
 
+    if TYPE_CHECKING:
+        _attrs = {}  # type: Dict[Hashable, Any]
+
     # ----------------------------------------------------------------------
     # Constructors
 
@@ -198,7 +202,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
-        attrs: Mapping[Hashable, Any] = None,
+        attrs: Optional[Mapping[Hashable, Any]] = None,
         fastpath: bool = False,
     ):
 
@@ -241,7 +245,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
 
     @property
-    def attrs(self):
+    def attrs(self) -> Dict[Hashable, Any]:
         """
         Dictionary of global attributes on this object.
         """

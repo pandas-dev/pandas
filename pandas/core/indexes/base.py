@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, FrozenSet, Hashable, Mapping, Union
+from typing import FrozenSet, Union
 import warnings
 
 import numpy as np
@@ -266,7 +266,6 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        attrs: Mapping[Hashable, Any] = None,
         **kwargs
     ) -> "Index":
 

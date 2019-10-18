@@ -5,7 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
 )
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -172,7 +173,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = []
+    _metadata = []  # type: List[str]
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -469,6 +470,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
+
+    @property
+    def name(self) -> Optional[Hashable]:
+        return self.attrs.get("name", None)
+
+    @name.setter
+    def name(self, value: Hashable) -> None:
+        if not is_hashable(value):
+            raise TypeError("Series.name must be a hashable type")
+        self.attrs["name"] = value
 
     @property
     def ftype(self):
