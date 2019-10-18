@@ -1287,8 +1287,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
             if isinstance(key, tuple):
-                # TODO: apparently no test cases that get here
-                self._set_values(key, value)
+                try:
+                    self._set_values(key, value)
+                except Exception:
+                    pass
 
             if is_scalar(key):
                 key = [key]

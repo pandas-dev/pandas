@@ -891,26 +891,7 @@ class DataFrameGroupBy(GroupBy):
                     )
                 except AssertionError:
                     raise
-                except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        raise
-                    result = self._aggregate_frame(func)
-                except NotImplementedError as err:
-                    if "axis other than 0 is not supported" in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        pass
-                    elif "decimal does not support skipna=True" in str(err):
-                        # FIXME: kludge for DecimalArray tests
-                        pass
-                    else:
-                        raise
-                    # FIXME: this is raised in a bunch of
-                    #  test_whitelist.test_regression_whitelist_methods tests,
-                    #  can be avoided
-                    result = self._aggregate_frame(func)
                 except Exception:
-                    raise
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
@@ -1079,7 +1060,6 @@ class DataFrameGroupBy(GroupBy):
             except AssertionError:
                 raise
             except Exception:
-                raise
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
             for name in self.indices:
@@ -1446,7 +1426,6 @@ class DataFrameGroupBy(GroupBy):
         except AssertionError:
             raise
         except Exception:
-            raise
             # Hard to know ex-ante what exceptions `fast_path` might raise
             return path, res
 
@@ -1473,7 +1452,6 @@ class DataFrameGroupBy(GroupBy):
             except AssertionError:
                 raise
             except Exception:
-                #raise
                 pass
             else:
                 inds.append(i)
