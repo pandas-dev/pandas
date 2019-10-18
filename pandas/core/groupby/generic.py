@@ -987,9 +987,12 @@ class DataFrameGroupBy(GroupBy):
                     continue
 
                 # unwrap DataFrame to get array
-                assert len(result._data.blocks) == 1
-                result = result._data.blocks[0].values
-                if result.ndim == 1 and isinstance(result, np.ndarray):
+                # error: "object" has no attribute "_data"  [attr-defined]
+                assert len(result._data.blocks) == 1  # type: ignore
+                # error: "object" has no attribute "_data"  [attr-defined]
+                result = result._data.blocks[0].values  # type: ignore
+                # error: "object" has no attribute "ndim"  [attr-defined]
+                if result.ndim == 1 and isinstance(result, np.ndarray):  # type: ignore
                     result = result.reshape(1, -1)
 
             finally:
