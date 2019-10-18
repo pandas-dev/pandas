@@ -1727,6 +1727,7 @@ def take_2d_multi(arr, indexer, fill_value=np.nan):
     row_idx = ensure_int64(row_idx)
     col_idx = ensure_int64(col_idx)
     indexer = row_idx, col_idx
+    mask_info = None
 
     # check for promotion based on types only (do this first because
     # it's faster than computing a mask)
