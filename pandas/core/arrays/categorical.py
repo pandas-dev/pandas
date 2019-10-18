@@ -333,7 +333,9 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist", "get_values"])
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["tolist", "itemsize", "get_values"]
+    )
     _typ = "categorical"
 
     def __init__(
@@ -916,24 +918,26 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         new_categories : list-like, dict-like or callable
 
-           * list-like: all items must be unique and the number of items in
-             the new categories must match the existing number of categories.
+            New categories which will replace old categories.
 
-           * dict-like: specifies a mapping from
-             old categories to new. Categories not contained in the mapping
-             are passed through and extra categories in the mapping are
-             ignored.
+            * list-like: all items must be unique and the number of items in
+              the new categories must match the existing number of categories.
 
-             .. versionadded:: 0.21.0
+            * dict-like: specifies a mapping from
+              old categories to new. Categories not contained in the mapping
+              are passed through and extra categories in the mapping are
+              ignored.
 
-           * callable : a callable that is called on all items in the old
-             categories and whose return values comprise the new categories.
+            .. versionadded:: 0.21.0.
 
-             .. versionadded:: 0.23.0
+            * callable : a callable that is called on all items in the old
+              categories and whose return values comprise the new categories.
+
+            .. versionadded:: 0.23.0.
 
         inplace : bool, default False
-           Whether or not to rename the categories inplace or return a copy of
-           this categorical with renamed categories.
+            Whether or not to rename the categories inplace or return a copy of
+            this categorical with renamed categories.
 
         Returns
         -------

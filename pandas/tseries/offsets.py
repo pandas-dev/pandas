@@ -229,7 +229,7 @@ class DateOffset(BaseOffset):
         - minute
         - second
         - microsecond
-        - nanosecond
+        - nanosecond.
 
     See Also
     --------
@@ -1685,7 +1685,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
     """
 
     _prefix = "WOM"
@@ -1761,7 +1761,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
     """
 
     _prefix = "LWOM"
@@ -2081,7 +2081,7 @@ class FY5253(DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
 
     startingMonth : int {1, 2, ... 12}, default 1
         The month in which the fiscal year ends.
@@ -2299,7 +2299,7 @@ class FY5253Quarter(DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
 
     startingMonth : int {1, 2, ..., 12}, default 1
         The month in which fiscal years end.

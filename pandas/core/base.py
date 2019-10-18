@@ -4,7 +4,17 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -270,7 +280,7 @@ class SelectionMixin:
 
     agg = aggregate
 
-    def _try_aggregate_string_function(self, arg, *args, **kwargs):
+    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
         - try to find a function (or attribute) on ourselves
@@ -295,11 +305,9 @@ class SelectionMixin:
 
         f = getattr(np, arg, None)
         if f is not None:
-            try:
+            if hasattr(self, "__array__"):
+                # in particular exclude Window
                 return f(self, *args, **kwargs)
-
-            except (AttributeError, TypeError):
-                pass
 
         raise AttributeError(
             "'{arg}' is not a valid function for "
@@ -658,7 +666,17 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations = frozenset(["item"])
+    _deprecations = frozenset(
+        [
+            "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+            "base",
+            "data",
+            "item",
+            "itemsize",
+            "flags",
+            "strides",
+        ]
+    )  # type: FrozenSet[str]
 
     def transpose(self, *args, **kwargs):
         """
@@ -911,7 +929,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is a not a view on
             another array. Note that ``copy=False`` does not *ensure* that
