@@ -29,11 +29,10 @@ def get_file_and_filesystem(
     # Support customised S3 servers endpoint URL via environment variable
     # The S3_ENDPOINT should be the complete URL to S3 service following
     # the format: http(s)://{host}:{port}
-    s3_endpoint = os.environ.get('S3_ENDPOINT')
-    if s3_endpoint:
-        client_kwargs = {'endpoint_url': s3_endpoint}
-    else:
-        client_kwargs = None
+    s3_endpoint = os.environ.get("S3_ENDPOINT")
+    client_kwargs: Optional[Dict[str, str]] = {
+        "endpoint_url": s3_endpoint
+    } if s3_endpoint else None
     fs = s3fs.S3FileSystem(anon=False, client_kwargs=client_kwargs)
     try:
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
