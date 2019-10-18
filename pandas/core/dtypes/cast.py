@@ -1052,7 +1052,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
                 pass
 
         except Exception:
-            pass
+            raise  # no test failures
 
         return v.reshape(shape)
 
