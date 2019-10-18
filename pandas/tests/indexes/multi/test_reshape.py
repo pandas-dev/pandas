@@ -15,11 +15,11 @@ def test_insert(idx):
     # key not contained in all levels
     new_index = idx.insert(0, ("abc", "three"))
 
-    exp0 = Index(list(idx.levels[0]) + ["abc"])
+    exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
     assert new_index.names == ["first", "second"]
 
-    exp1 = Index(list(idx.levels[1]) + ["three"])
+    exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)
     assert new_index[0] == ("abc", "three")
 
