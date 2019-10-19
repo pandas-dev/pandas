@@ -900,13 +900,17 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
             count += 1.0
 
             if rank_t is object:
-                condition = (i == n - 1 or
+                condition = (
+                    i == n - 1 or
                     are_diff(sorted_data[i + 1], val) or
-                    i == non_na_idx)
+                    i == non_na_idx
+                )
             else:
-                condition = (i == n - 1 or
+                condition = (
+                    i == n - 1 or
                     sorted_data[i + 1] != val or
-                    i == non_na_idx)
+                    i == non_na_idx
+                )
 
             if condition:
 
@@ -953,13 +957,17 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                 count += 1.0
 
                 if rank_t is object:
-                    condition = (i == n - 1 or
+                    condition = (
+                        i == n - 1 or
                         are_diff(sorted_data[i + 1], val) or
-                        i == non_na_idx)
+                        i == non_na_idx
+                    )
                 else:
-                    condition = (i == n - 1 or
+                    condition = (
+                        i == n - 1 or
                         sorted_data[i + 1] != val or
-                        i == non_na_idx)
+                        i == non_na_idx
+                    )
 
                 if condition:
 
