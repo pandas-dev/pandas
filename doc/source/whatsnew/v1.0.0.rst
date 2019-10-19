@@ -195,6 +195,7 @@ Documentation Improvements
 
 - Added new section on :ref:`scale` (:issue:`28315`).
 - Added sub-section Query MultiIndex in IO tools user guide (:issue:`28791`)
+- Added hints how setup a dev environment under Windows when using pip only (:issue:`29112`)
 
 .. _whatsnew_1000.deprecations:
 

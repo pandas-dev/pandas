@@ -245,6 +245,10 @@ You'll need to have at least python3.5 installed on your system.
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
    # Activate the virtualenv
+   #    If you are using Windows and Powershell you need to run:
+   #        ~/virtualenvs/pandas-dev/Scripts/Activate.ps1
+   #    or if you are using Windows and command prompt (cmd.exe):
+   #        ~/virtualenvs/pandas-dev/Scripts/activate.bat
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
