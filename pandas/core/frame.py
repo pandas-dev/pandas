@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     infer_dtype_from_object,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
