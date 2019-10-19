@@ -2031,7 +2031,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        how :  {'any', 'all'}, default 'any'
+        how : {'any', 'all'}, default 'any'
             If the Index is a MultiIndex, drop the value when any or all levels
             are NaN.
 
@@ -5016,12 +5016,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        label :  object
+        label : object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
-
         """
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
