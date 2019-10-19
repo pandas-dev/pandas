@@ -1,3 +1,4 @@
+from copy import copy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -551,7 +552,10 @@ def apply_frame_axis0(object frame, object f, object names,
                 pass
 
             if not is_scalar(piece):
-                piece = piece.copy(deep="all")
+                if hasattr(piece, "copy"):
+                    piece = piece.copy(deep="all")
+                else:
+                    piece = copy(piece)
 
             results.append(piece)
 
