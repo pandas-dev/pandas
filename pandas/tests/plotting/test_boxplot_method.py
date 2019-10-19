@@ -488,7 +488,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         "col, expected_xticklabel",
         [
             ([("bar", "one"), ("bar", "two")], ["(bar, one)", "(bar, two)"]),
-            ("bar", ["(bar, one)", "(bar, two)"]),
+            ("bar", ["bar", None]),
             (["two"], ["(bar, two)", "(baz, two)", "(foo, two)", "(qux, two)"]),
         ],
     )
