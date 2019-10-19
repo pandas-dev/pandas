@@ -334,7 +334,8 @@ cdef class SeriesGrouper:
         self.f = f
 
         values = series.values
-        if not values.flags.c_contiguous:
+        if util.is_array(values) and not values.flags.c_contiguous:
+            # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
         self.typ = series._constructor
