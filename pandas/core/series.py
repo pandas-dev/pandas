@@ -1288,6 +1288,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             if isinstance(key, tuple):
                 try:
+                    # TODO: no test cases that get here
                     self._set_values(key, value)
                 except Exception:
                     pass
