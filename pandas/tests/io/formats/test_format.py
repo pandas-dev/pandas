@@ -3241,12 +3241,12 @@ def test_repr_html_ipython_config(ip):
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_arg(
-    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals
+    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals, encoding
 ):
     df = float_frame
     expected = getattr(df, method)()
 
-    getattr(df, method)(buf=filepath_or_buffer)
+    getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     assert_filepath_or_buffer_equals(expected)
 
 
