@@ -70,7 +70,7 @@ class _Window(PandasObject, SelectionMixin):
         center: Optional[bool] = False,
         win_type: Optional[str] = None,
         axis: Axis = 0,
-        on: Optional[str] = None,
+        on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
         **kwargs
     ):
@@ -637,10 +637,10 @@ class Window(_Window):
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
     on : str, optional
-        For a DataFrame, a datetime-like column on which to calculate the rolling
-        window, rather than the DataFrame's index. Provided integer column is
-        ignored and excluded from result since an integer index is not used to
-        calculate the rolling window.
+        For a DataFrame, a datetime-like column or MultiIndex level on which
+        to calculate the rolling window, rather than the DataFrame's index.
+        Provided integer column is ignored and excluded from result since
+        an integer index is not used to calculate the rolling window.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
