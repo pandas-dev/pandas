@@ -261,7 +261,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (AssertionError, TypeError):
+            except (AssertionError, TypeError, AttributeError):
                 raise
             except IndexError:
                 raise
