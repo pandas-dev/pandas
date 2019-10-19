@@ -339,25 +339,23 @@ def boxplot(
                 ax = plt.gca()
         data = data._get_numeric_data()
 
-        # if columns is None, use all numeric columns of data, so directly pass
-        # if the given 'column' are subset of column index, no matter if data column
-        # is multiindex or index, get the subset of data directly
-        # if columns is None:
-        #     pass
-        # elif isinstance(data.columns, pd.MultiIndex):
-        #
-        #     # if multiindex columns are passed, then the inner level columns will be
-        #     # called for subset
-        #     data = data.loc[:, pd.IndexSlice[:, columns]]
-        # elif isinstance(data.columns, pd.Index):
-        #
-        #     # if a normal column is passed, then select specified columns for subset
-        #     data = data.loc[:, columns]
-        if columns is None:
-            columns = data.columns
-        else:
-            data = data[columns]
-#        columns = data.columns
+        if columns:
+
+            # this is to align the current behavior of boxplot on columns, so if users
+            # explicitly specify column names and it is in df columns, then take the
+            # subset; Or if it is columns is in the first level, this is set mainly to
+            # avoid API change
+            if set(columns).issubset(data.columns) or set(columns).issubset(
+                data.columns.levels[0]
+            ):
+                data = data[columns]
+            else:
+
+                # this loop is set for groupby situation, because user specified column
+                # will go to the second level of column index
+                data = data.loc[:, pd.IndexSlice[:, columns]]
+                columns = data.columns
+
         result = plot_group(columns, data.values.T, ax)
         ax.grid(grid)
 
