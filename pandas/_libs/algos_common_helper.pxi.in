@@ -17,12 +17,11 @@ dtypes = [('float64', 'float64_t', 'float64_t'),
 def get_dispatch(dtypes):
 
     for name, c_type, dest_type, in dtypes:
-        dest_name = dest_type[:-2]  # i.e. strip "_t"
-        yield name, c_type, dest_type, dest_name
+        yield name, c_type, dest_type
 
 }}
 
-{{for name, c_type, dest_type, dest_name
+{{for name, c_type, dest_type
       in get_dispatch(dtypes)}}
 
 

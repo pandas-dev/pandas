@@ -1067,14 +1067,9 @@ class DataFrameGroupBy(GroupBy):
 
         result = OrderedDict()
         if axis != obj._info_axis_number:
-            try:
-                for name, data in self:
-                    fres = func(data, *args, **kwargs)
-                    result[name] = self._try_cast(fres, data)
-            except AssertionError:
-                raise
-            except Exception:
-                return self._aggregate_item_by_item(func, *args, **kwargs)
+            for name, data in self:
+                fres = func(data, *args, **kwargs)
+                result[name] = self._try_cast(fres, data)
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
@@ -1441,6 +1436,7 @@ class DataFrameGroupBy(GroupBy):
             raise
         except Exception:
             # Hard to know ex-ante what exceptions `fast_path` might raise
+            # TODO: no test cases get here
             return path, res
 
         # verify fast path does not change columns (and names), otherwise
