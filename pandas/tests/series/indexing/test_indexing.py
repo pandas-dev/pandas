@@ -909,11 +909,10 @@ def test_head_tail(test_data):
     assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
 
 
-@pytest.mark.parametrize("type_", ["uint8", "uint16", "uint32", "uint64"])
-def test_uint_drop(type_):
+def test_uint_drop(any_int_dtype):
     # see GH18311
-    # assigning series.loc[0] = 4 changes series.dtype to int
-    series = pd.Series([1, 2, 3], dtype=type_)
+    # assigning series.loc[0] = 4 changed series.dtype to int
+    series = pd.Series([1, 2, 3], dtype=any_int_dtype)
     series.loc[0] = 4
-    expected = pd.Series([4, 2, 3], dtype=type_)
+    expected = pd.Series([4, 2, 3], dtype=any_int_dtype)
     tm.assert_series_equal(series, expected)
