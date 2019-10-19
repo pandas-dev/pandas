@@ -3253,8 +3253,7 @@ def test_filepath_or_buffer_arg(
 
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
-            ValueError,
-            match="buf is not a file name and encoding is specified.",
+            ValueError, match="buf is not a file name and encoding is specified."
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
