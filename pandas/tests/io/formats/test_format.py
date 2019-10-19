@@ -3240,6 +3240,7 @@ def test_repr_html_ipython_config(ip):
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+@pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
 def test_filepath_or_buffer_arg(
     float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals, encoding
 ):
@@ -3249,8 +3250,8 @@ def test_filepath_or_buffer_arg(
     getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     assert_filepath_or_buffer_equals(expected)
 
+
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
-@pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
