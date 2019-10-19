@@ -3358,11 +3358,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 try:
                     ref._maybe_cache_changed(cacher[0], self)
                 except AssertionError:
-                    # ref._data.setitem will raise
+                    # ref._data.setitem can raise
                     #  AssertionError because of shape mismatch
-                    assert ref.ndim != self.ndim
-                else:
-                    assert ref.ndim == self.ndim
+                    pass
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
