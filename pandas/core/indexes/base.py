@@ -2493,8 +2493,12 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
-            indexer, = (indexer == -1).nonzero()
+            # find indexes of things in "other" that are not in "self"
+            if self.is_unique:
+                indexer = self.get_indexer(other)
+                indexer = (indexer == -1).nonzero()[0]
+            else:
+                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
@@ -4531,7 +4535,7 @@ class Index(IndexOpsMixin, PandasObject):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
             Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
