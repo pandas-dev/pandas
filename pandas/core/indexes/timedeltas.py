@@ -528,7 +528,7 @@ class TimedeltaIndex(
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
-        if _is_convertible_to_td(key):
+        if _is_convertible_to_td(key) or key is NaT:
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
@@ -550,7 +550,6 @@ class TimedeltaIndex(
         """
         If label is a string, cast it to timedelta according to resolution.
 
-
         Parameters
         ----------
         label : object
@@ -559,8 +558,7 @@ class TimedeltaIndex(
 
         Returns
         -------
-        label :  object
-
+        label : object
         """
         assert kind in ["ix", "loc", "getitem", None]
 
@@ -576,7 +574,7 @@ class TimedeltaIndex(
 
         return label
 
-    def _get_string_slice(self, key):
+    def _get_string_slice(self, key: str):
         if is_integer(key) or is_float(key) or key is NaT:
             self._invalid_indexer("slice", key)
         loc = self._partial_td_slice(key)
