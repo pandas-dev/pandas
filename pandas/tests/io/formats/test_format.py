@@ -3249,14 +3249,24 @@ def test_filepath_or_buffer_arg(
     encoding,
     filepath_or_buffer_id,
 ):
-    if encoding is not None:
-        assert filepath_or_buffer_id is not None
-        assert filepath_or_buffer_id in ["string", "pathlike"]
     df = float_frame
     expected = getattr(df, method)()
 
+    if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
+        with pytest.raises(
+            ValueError,
+            match="filepath is not a string or path but encoding is specified.",
+        ):
+            raise ValueError(
+                "filepath is not a string or path but encoding is specified."
+            )
+    elif encoding == "foo":
+        with pytest.raises(LookupError, match="LookupError: unknown encoding: foo"):
+            raise LookupError("unknown encoding: foo")
+    else:
+        assert_filepath_or_buffer_equals(expected)
+
     getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
-    assert_filepath_or_buffer_equals(expected)
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
