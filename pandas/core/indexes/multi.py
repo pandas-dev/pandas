@@ -738,16 +738,16 @@ class MultiIndex(Index):
         """
         Set levels on MultiIndex. Defaults to returning new index.
 
-        ``set_levels`` passes a new value for each index in the level, 
-        where the new values to be passed in each level are defined in a list. 
+        ``set_levels`` passes a new value for each index in the level,
+        where the new values to be passed in each level are defined in a list.
         It is assumed that a new value is provided for each code describing
-        values in the level. 
-        
-        If the number of values passed is more than the number of index 
-        values in the level, ``set_levels`` will still pass the values 
-        to the level. The passed values are stored in the FrozenList 
-        representing the levels attribute of the MultiIndex, even 
-        though the index values may be truncated in the MultiIndex 
+        values in the level.
+
+        If the number of values passed is more than the number of index
+        values in the level, ``set_levels`` will still pass the values
+        to the level. The passed values are stored in the FrozenList
+        representing the levels attribute of the MultiIndex, even
+        though the index values may be truncated in the MultiIndex
         output from set_levels.
 
         Parameters
@@ -804,10 +804,10 @@ class MultiIndex(Index):
                     (3, 'b')],
                    names=['foo', 'bar'])
 
-        ``set_levels()`` passes values into the levels attribute that is 
-        represented by a FrozenList containing list of values for each 
-        level in the MultiIndex, even when the number of values passed 
-        for a level is more than the number of indexes available in the 
+        ``set_levels()`` passes values into the levels attribute that is
+        represented by a FrozenList containing list of values for each
+        level in the MultiIndex, even when the number of values passed
+        for a level is more than the number of indexes available in the
         MultiIndex itself.
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]], level=[0, 1])
