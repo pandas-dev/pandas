@@ -3240,10 +3240,18 @@ def test_repr_html_ipython_config(ip):
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
-@pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
+@pytest.mark.parametrize("encoding", [None, "utf-8", "gbk", "foo"])
 def test_filepath_or_buffer_arg(
-    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals, encoding
+    float_frame,
+    method,
+    filepath_or_buffer,
+    assert_filepath_or_buffer_equals,
+    encoding,
+    filepath_or_buffer_id,
 ):
+    if encoding is not None:
+        assert filepath_or_buffer_id is not None
+        assert filepath_or_buffer_id in ["string", "pathlike"]
     df = float_frame
     expected = getattr(df, method)()
 
