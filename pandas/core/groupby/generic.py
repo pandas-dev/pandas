@@ -251,14 +251,6 @@ class SeriesGroupBy(GroupBy):
             ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
             if relabeling:
                 ret.columns = columns
-        # elif isinstance(func, list) and len(func) > len(set(func)):
-        #
-        #     # GH 28426 will raise error if duplicated function names are used and
-        #     # there is no reassigned name
-        #     raise SpecificationError(
-        #         "Function names must be unique if there is no new column "
-        #         "names assigned"
-        #     )
         else:
             cyfunc = self._get_cython_func(func)
             if cyfunc and not args and not kwargs:
@@ -868,6 +860,14 @@ class DataFrameGroupBy(GroupBy):
             func, columns, order = _normalize_keyword_aggregation(kwargs)
 
             kwargs = {}
+        elif isinstance(func, abc.Iterable) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
         elif func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
