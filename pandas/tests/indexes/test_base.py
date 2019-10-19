@@ -7,6 +7,7 @@ import re
 
 import numpy as np
 import pytest
+import asyncio
 
 import pandas._config.config as cf
 
@@ -2413,13 +2414,14 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with tm.assert_produces_warning(FutureWarning):
             index.get_duplicates()
 
-    def test_tab_complete_warning(self, ip):
+    @pytest.mark.asyncio
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))

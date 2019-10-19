@@ -4,6 +4,7 @@ import pydoc
 
 import numpy as np
 import pytest
+import asyncio
 
 import pandas as pd
 from pandas import (
@@ -566,13 +567,14 @@ class TestDataFrameMisc(SharedWithSparse):
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    def test_tab_complete_warning(self, ip):
+    @pytest.mark.asyncio
+    async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; df = pd.DataFrame()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
