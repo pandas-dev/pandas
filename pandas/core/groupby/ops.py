@@ -526,7 +526,13 @@ class BaseGrouper:
             func = self._get_cython_function(kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = ensure_float64(values)
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values, skipna=False) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
                 func = self._get_cython_function(kind, how, values, is_numeric)
             else:
                 raise
@@ -647,6 +653,8 @@ class BaseGrouper:
     def agg_series(self, obj, func):
         try:
             return self._aggregate_series_fast(obj, func)
+        except AssertionError:
+            raise
         except Exception:
             return self._aggregate_series_pure_python(obj, func)
 
@@ -824,6 +832,14 @@ class BinGrouper(BaseGrouper):
     @property
     def names(self):
         return [self.binlabels.name]
+
+    @property
+    def recons_labels(self):
+        comp_ids, obs_ids, _ = self.group_info
+        if len(self.binlabels) != len(self.indices):
+            return [np.unique(comp_ids)]
+        labels = (ping.labels for ping in self.groupings)
+        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels, xnull=True)
 
     @property
     def groupings(self):

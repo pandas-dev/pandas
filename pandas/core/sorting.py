@@ -162,7 +162,6 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     xnull: boolean,
         if nulls are excluded; i.e. -1 labels are passed through
     """
-
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
         shape = np.asarray(shape, dtype="i8") + lift
@@ -303,8 +302,8 @@ def get_flattened_iterator(comp_ids, ngroups, levels, labels):
 
 
 def get_indexer_dict(label_list, keys):
-    """ return a diction of {labels} -> {indexers} """
-    shape = list(map(len, keys))
+    """ return a dict of {labels} -> {indexers} """
+    shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     ngroups = (
