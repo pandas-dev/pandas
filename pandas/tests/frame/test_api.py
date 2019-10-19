@@ -4,7 +4,6 @@ import pydoc
 
 import numpy as np
 import pytest
-import asyncio
 
 import pandas as pd
 from pandas import (

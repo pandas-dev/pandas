@@ -7,7 +7,6 @@ import re
 
 import numpy as np
 import pytest
-import asyncio
 
 import pandas._config.config as cf
 

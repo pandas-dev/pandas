@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 
 import pandas as pd
 import pandas.util.testing as tm
