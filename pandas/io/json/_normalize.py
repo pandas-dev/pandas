@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 import copy
-from typing import Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Callable, DefaultDict, Dict, Generator, List, Optional, Union
 
 import numpy as np
 
@@ -128,15 +128,17 @@ def nested_to_record(
 
         raise TypeError("`use_keys` must be a str, list or a callable")
 
-    def lookup_deeper(_dict, level, prev_keys=[]):
-        nonlocal max_level
+    def flatten_deeper(
+        _dict: dict, level: int, prev_keys: Optional[List] = None
+    ) -> Generator:
+        prev_keys = prev_keys if prev_keys else []
         for key, val in _dict.items():
             if isinstance(val, dict) and (max_level is None or level < max_level):
-                yield from lookup_deeper(
+                yield from flatten_deeper(
                     _dict=val, prev_keys=prev_keys + [key], level=level + 1
                 )
             else:
-                yield prev_keys + [key, val]
+                yield prev_keys + [key], val
 
     singleton = False
     if isinstance(ds, dict):
@@ -157,15 +159,18 @@ def nested_to_record(
 
             # flatten if
             # current dict level <= maximum level provided and
+            # current keypath matches the config in use_keys
             # only dicts gets recurse-flatten
             if (
                 is_key_match(newkey, use_keys)
                 and (max_level is None or level < max_level)
                 and isinstance(v, dict)
             ):
+                # pop the current key
                 new_d.pop(k)
-                for *j, val in lookup_deeper(v, level=level + 1):
-                    new_d[sep.join([k, *j])] = val
+                # Flatten the value and update it at the current level
+                for inner_keys, val in flatten_deeper(v, level=level + 1):
+                    new_d[sep.join([k, *inner_keys])] = val
 
             else:
                 if isinstance(v, dict) and (max_level is None or level < max_level):
