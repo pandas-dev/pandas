@@ -138,7 +138,7 @@ def to_offset(freq):
                         delta = offset
                     else:
                         delta = delta + offset
-        except Exception:
+        except ValueError:
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     else:
@@ -170,7 +170,7 @@ def to_offset(freq):
                     delta = offset
                 else:
                     delta = delta + offset
-        except Exception:
+        except (ValueError, TypeError):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     if delta is None:
@@ -223,7 +223,7 @@ def infer_freq(index, warn=True):
     ----------
     index : DatetimeIndex or TimedeltaIndex
       if passed a Series will use the values of the series (NOT THE INDEX)
-    warn : boolean, default True
+    warn : bool, default True
 
     Returns
     -------

@@ -245,6 +245,10 @@ typedef struct __JSONObjectEncoder {
   int encodeHTMLChars;
 
   /*
+  Configuration for spaces of indent */
+  int indent;
+
+  /*
   Set to an error message if error occurred */
   const char *errorMsg;
   JSOBJ errorObj;

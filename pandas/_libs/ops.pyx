@@ -1,7 +1,7 @@
 import operator
 
-from cpython cimport (PyObject_RichCompareBool,
-                      Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
+from cpython.object cimport (PyObject_RichCompareBool,
+                             Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
 
 import cython
 from cython import Py_ssize_t

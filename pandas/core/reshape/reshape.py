@@ -57,7 +57,7 @@ class _Unstacker:
         float and missing values will be set to NaN.
     constructor : object
         Pandas ``DataFrame`` or subclass used to create unstacked
-        response.  If None, DataFrame or SparseDataFrame will be used.
+        response.  If None, DataFrame will be used.
 
     Examples
     --------
@@ -259,10 +259,10 @@ class _Unstacker:
     def get_new_columns(self):
         if self.value_columns is None:
             if self.lift == 0:
-                return self.removed_level
+                return self.removed_level._shallow_copy(name=self.removed_name)
 
-            lev = self.removed_level
-            return lev.insert(0, lev._na_value)
+            lev = self.removed_level.insert(0, item=self.removed_level._na_value)
+            return lev.rename(self.removed_name)
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -298,10 +298,10 @@ class _Unstacker:
 
         # construct the new index
         if len(self.new_index_levels) == 1:
-            lev, lab = self.new_index_levels[0], result_codes[0]
-            if (lab == -1).any():
-                lev = lev.insert(len(lev), lev._na_value)
-            return lev.take(lab)
+            level, level_codes = self.new_index_levels[0], result_codes[0]
+            if (level_codes == -1).any():
+                level = level.insert(len(level), level._na_value)
+            return level.take(level_codes).rename(self.new_index_names[0])
 
         return MultiIndex(
             levels=self.new_index_levels,
@@ -661,7 +661,8 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
     else:
-        new_columns = unique_groups = this.columns.levels[0]
+        new_columns = this.columns.levels[0]._shallow_copy(name=this.columns.names[0])
+        unique_groups = new_columns
 
     # time to ravel the values
     new_data = {}
@@ -725,8 +726,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = list(this.index.names)
         new_codes = [lab.repeat(levsize) for lab in this.index.codes]
     else:
-        new_levels = [this.index]
-        new_codes = [np.arange(N).repeat(levsize)]
+        old_codes, old_levels = _factorize_from_iterable(this.index)
+        new_levels = [old_levels]
+        new_codes = [old_codes.repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
     new_levels.append(level_vals)

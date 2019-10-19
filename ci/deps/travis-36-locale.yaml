@@ -6,7 +6,7 @@ dependencies:
   - beautifulsoup4
   - blosc=1.14.3
   - python-blosc
-  - cython>=0.28.2
+  - cython>=0.29.13
   - fastparquet=0.2.1
   - gcsfs=0.2.2
   - html5lib

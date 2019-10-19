@@ -775,11 +775,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = (
-        r'\("unsupported operand type\(s\) for \+: '
-        "'Timestamp' and 'float'\""
-        r", 'occurred at index 0'\)"
-    )
+    msg = r'\("unsupported operand type\(s\) for \+: ' "'Timestamp' and 'float'\", 0"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1882,3 +1878,79 @@ def test_groupby_axis_1(group_name):
     results = df.groupby(group_name, axis=1).sum()
     expected = df.T.groupby(group_name).sum().T
     assert_frame_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (
+            "shift",
+            {
+                "time": [
+                    None,
+                    None,
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    None,
+                    None,
+                ]
+            },
+        ),
+        (
+            "bfill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+        (
+            "ffill",
+            {
+                "time": [
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 12:00:00"),
+                    Timestamp("2019-01-01 12:30:00"),
+                    Timestamp("2019-01-01 14:00:00"),
+                    Timestamp("2019-01-01 14:30:00"),
+                ]
+            },
+        ),
+    ],
+)
+def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
+    # GH19995, GH27992: Check that timezone does not drop in shift, bfill, and ffill
+    tz = tz_naive_fixture
+    data = {
+        "id": ["A", "B", "A", "B", "A", "B"],
+        "time": [
+            Timestamp("2019-01-01 12:00:00"),
+            Timestamp("2019-01-01 12:30:00"),
+            None,
+            None,
+            Timestamp("2019-01-01 14:00:00"),
+            Timestamp("2019-01-01 14:30:00"),
+        ],
+    }
+    df = DataFrame(data).assign(time=lambda x: x.time.dt.tz_localize(tz))
+
+    grouped = df.groupby("id")
+    result = getattr(grouped, op)()
+    expected = DataFrame(expected).assign(time=lambda x: x.time.dt.tz_localize(tz))
+    assert_frame_equal(result, expected)
+
+
+def test_groupby_only_none_group():
+    # see GH21624
+    # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
+    df = pd.DataFrame({"g": [None], "x": 1})
+    actual = df.groupby("g")["x"].transform("sum")
+    expected = pd.Series([np.nan], name="x")
+
+    assert_series_equal(actual, expected)

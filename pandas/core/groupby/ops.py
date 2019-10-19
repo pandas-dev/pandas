@@ -212,9 +212,12 @@ class BaseGrouper:
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 pass
-            except TypeError:
-                # occurs if we have any EAs
-                pass
+            except TypeError as err:
+                if "Cannot convert" in str(err):
+                    # via apply_frame_axis0 if we pass a non-ndarray
+                    pass
+                else:
+                    raise
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
@@ -463,9 +466,7 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError(
-                "{} are not support in cython ops".format(values.dtype)
-            )
+            raise NotImplementedError("{} dtype not supported".format(values.dtype))
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
@@ -525,7 +526,13 @@ class BaseGrouper:
             func = self._get_cython_function(kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = ensure_float64(values)
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values, skipna=False) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
                 func = self._get_cython_function(kind, how, values, is_numeric)
             else:
                 raise
@@ -646,6 +653,8 @@ class BaseGrouper:
     def agg_series(self, obj, func):
         try:
             return self._aggregate_series_fast(obj, func)
+        except AssertionError:
+            raise
         except Exception:
             return self._aggregate_series_pure_python(obj, func)
 

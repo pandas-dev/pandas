@@ -353,7 +353,7 @@ display.max_colwidth                    50           The maximum width in charac
                                                      a column in the repr of a pandas
                                                      data structure. When the column overflows,
                                                      a "..." placeholder is embedded in
-                                                     the output.
+                                                     the output. 'None' value means unlimited.
 display.max_info_columns                100          max_info_columns is used in DataFrame.info
                                                      method to decide if per column information
                                                      will be printed.

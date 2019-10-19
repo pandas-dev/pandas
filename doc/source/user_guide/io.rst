@@ -3811,6 +3811,8 @@ storing/selecting from homogeneous index ``DataFrames``.
         # the levels are automatically included as data columns
         store.select('df_mi', 'foo=bar')
 
+.. note::
+   The ``index`` keyword is reserved and cannot be use as a level name.
 
 .. _io.hdf5-query:
 
@@ -3829,6 +3831,7 @@ A query is specified using the ``Term`` class under the hood, as a boolean expre
 
 * ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
+* level name in a MultiIndex, with default name  ``level_0``, ``level_1``, … if not provided.
 
 Valid comparison operators are:
 
@@ -3947,7 +3950,7 @@ space. These are in terms of the total number of rows in a table.
 
 .. _io.hdf5-timedelta:
 
-Using timedelta64[ns]
+Query timedelta64[ns]
 +++++++++++++++++++++
 
 You can store and query using the ``timedelta64[ns]`` type. Terms can be
@@ -3965,6 +3968,35 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+Query MultiIndex
+++++++++++++++++
+
+Selecting from a ``MultiIndex`` can be achieved by using the name of the level.
+
+.. ipython:: python
+
+   df_mi.index.names
+   store.select('df_mi', "foo=baz and bar=two")
+
+If the ``MultiIndex`` levels names are ``None``, the levels are automatically made available via
+the ``level_n`` keyword with ``n`` the level of the ``MultiIndex`` you want to select from.
+
+.. ipython:: python
+
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
+   df_mi_2
+
+   store.append("df_mi_2", df_mi_2)
+
+   # the levels are automatically included as data columns with keyword level_n
+   store.select("df_mi_2", "level_0=foo and level_1=two")
+
 
 Indexing
 ++++++++
@@ -4642,6 +4674,14 @@ Several caveats.
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
+
+.. ipython:: python
 
    df = pd.DataFrame({'a': list('abc'),
                       'b': list(range(1, 4)),
@@ -4702,7 +4742,8 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4726,7 +4767,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
@@ -4845,7 +4888,7 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
 
 .. _io.sql:

@@ -32,6 +32,8 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.13.3"
+min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
+
 setuptools_kwargs = {
     "install_requires": [
         "python-dateutil >= 2.6.1",
@@ -43,7 +45,6 @@ setuptools_kwargs = {
 }
 
 
-min_cython_ver = "0.28.2"
 try:
     import Cython
 
@@ -78,7 +79,7 @@ else:
         except ImportError:
             import tempita
     except ImportError:
-        raise ImportError("Building pandas requires Tempita: " "pip install Tempita")
+        raise ImportError("Building pandas requires Tempita: pip install Tempita")
 
 
 _pxi_dep_template = {
@@ -87,7 +88,6 @@ _pxi_dep_template = {
         "_libs/algos_take_helper.pxi.in",
         "_libs/algos_rank_helper.pxi.in",
     ],
-    "groupby": ["_libs/groupby_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
@@ -141,9 +141,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = (
-    "Powerful data structures for data analysis, time series, " "and statistics"
-)
+DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with structured (tabular, multidimensional,
@@ -229,6 +227,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
@@ -277,6 +276,7 @@ class CleanCommand(Command):
                     ".pyo",
                     ".pyd",
                     ".c",
+                    ".cpp",
                     ".orig",
                 ):
                     self._clean_me.append(filepath)
@@ -300,12 +300,12 @@ class CleanCommand(Command):
         for clean_me in self._clean_me:
             try:
                 os.unlink(clean_me)
-            except Exception:
+            except OSError:
                 pass
         for clean_tree in self._clean_trees:
             try:
                 shutil.rmtree(clean_tree)
-            except Exception:
+            except OSError:
                 pass
 
 
@@ -520,16 +520,13 @@ macros.append(("NPY_NO_DEPRECATED_API", "0"))
 # re-compile.
 def maybe_cythonize(extensions, *args, **kwargs):
     """
-    Render tempita templates before calling cythonize
+    Render tempita templates before calling cythonize. This is skipped for
+
+    * clean
+    * sdist
     """
-    if len(sys.argv) > 1 and "clean" in sys.argv:
-        # Avoid running cythonize on `python setup.py clean`
+    if "clean" in sys.argv or "sdist" in sys.argv:
         # See https://github.com/cython/cython/issues/1495
-        return extensions
-    if not cython:
-        # Avoid trying to look up numpy when installing from sdist
-        # https://github.com/pandas-dev/pandas/issues/25193
-        # TODO: See if this can be removed after pyproject.toml added.
         return extensions
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
@@ -566,7 +563,7 @@ tseries_depends = np_datetime_headers
 
 ext_data = {
     "_libs.algos": {"pyxfile": "_libs/algos", "depends": _pxi_dep["algos"]},
-    "_libs.groupby": {"pyxfile": "_libs/groupby", "depends": _pxi_dep["groupby"]},
+    "_libs.groupby": {"pyxfile": "_libs/groupby"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "include": [], "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
