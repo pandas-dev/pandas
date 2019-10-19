@@ -4606,7 +4606,7 @@ class NDFrame(PandasObject, SelectionMixin):
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
-        return NotImplemented
+        raise AbstractMethodError(self)
 
     def _reindex_with_indexers(
         self, reindexers, fill_value=None, copy=False, allow_dups=False
