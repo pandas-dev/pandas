@@ -719,16 +719,19 @@ class MultiIndex(Index):
 
     def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
         """
-        Set levels on MultiIndex by passing a new value for each
-        index in the level. Defaults to returning new
-        index.
+        Set levels on MultiIndex. Defaults to returning new index.
 
+        ``set_levels`` passes a new value for each index in the level,
+        where the new values to be passed in each level are defined in a list.
         It is assumed that a new value is provided for each code describing
-        values in the level. If the number of values passed is more than
-        the number of index values in the level, ``set_levels`` will still
-        pass the values to the level. The passed values are stored in the
-        MultiIndex FrozenList even though the index values may be truncated
-        in the MultiIndex output from set_levels.
+        values in the level.
+
+        If the number of values passed is more than the number of index
+        values in the level, ``set_levels`` will still pass the values
+        to the level. The passed values are stored in the FrozenList
+        representing the levels attribute of the MultiIndex, even
+        though the index values may be truncated in the MultiIndex
+        output from ``set_levels``.
 
         Parameters
         ----------
@@ -751,6 +754,14 @@ class MultiIndex(Index):
                                             (2, 'one'), (2, 'two'),
                                             (3, 'one'), (3, 'two')],
                                             names=['foo', 'bar'])
+        >>> idx
+        MultiIndex([('1', one),
+                    ('1', two),
+                    ('2', one),
+                    ('2', two),
+                    ('3', one),
+                    ('3', two)],
+                   names=['foo', 'bar'])
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
                     ('a', 2),
@@ -775,6 +786,20 @@ class MultiIndex(Index):
                     (3, 'a'),
                     (3, 'b')],
                    names=['foo', 'bar'])
+
+<<<<<<< HEAD
+        ``set_levels()`` passes values into the levels attribute that is
+        represented by a FrozenList containing list of values for each
+        level in the MultiIndex, even when the number of values passed
+        for a level is more than the number of indexes available in the
+=======
+        ``set_levels()`` passes values into the levels attribute that is 
+        represented by a FrozenList containing list of values for each 
+        level in the MultiIndex, even when the number of values passed 
+        for a level is more than the number of indexes available in the 
+>>>>>>> 09fc1b4b8... explain set_levels().levels examples + formatting
+        MultiIndex itself.
+
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]], level=[0, 1])
         MultiIndex([('a', 1),
                     ('a', 2),
