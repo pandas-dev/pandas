@@ -25,7 +25,7 @@ def _get_standard_colors(
     elif color is not None:
         if colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used " "simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
             )
         colors = list(color) if is_list_like(color) else color
     else:

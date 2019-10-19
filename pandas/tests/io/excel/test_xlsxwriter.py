@@ -50,7 +50,7 @@ def test_column_format(ext):
 
         try:
             read_num_format = cell.number_format
-        except Exception:
+        except AttributeError:
             read_num_format = cell.style.number_format._format_code
 
         assert read_num_format == num_format

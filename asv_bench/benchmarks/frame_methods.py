@@ -609,4 +609,15 @@ class Describe:
         self.df.describe()
 
 
+class SelectDtypes:
+    params = [100, 1000]
+    param_names = ["n"]
+
+    def setup(self, n):
+        self.df = DataFrame(np.random.randn(10, n))
+
+    def time_select_dtypes(self, n):
+        self.df.select_dtypes(include="int")
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

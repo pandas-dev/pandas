@@ -21,6 +21,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -90,7 +91,7 @@ common_docstring = """
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
-        header : bool, optional
+        header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
             Whether to print index (row) labels.
@@ -530,9 +531,9 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        columns: Optional[List[str]] = None,
+        columns: Optional[Sequence[str]] = None,
         col_space: Optional[Union[str, int]] = None,
-        header: Union[bool, List[str]] = True,
+        header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: Optional[formatters_type] = None,
@@ -560,7 +561,17 @@ class DataFrameFormatter(TableFormatter):
         self.sparsify = sparsify
 
         self.float_format = float_format
-        self.formatters = formatters if formatters is not None else {}
+        if formatters is None:
+            self.formatters = {}
+        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
+            self.formatters = formatters
+        else:
+            raise ValueError(
+                (
+                    "Formatters length({flen}) should match"
+                    " DataFrame number of columns({dlen})"
+                ).format(flen=len(formatters), dlen=len(frame.columns))
+            )
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = col_space
@@ -657,6 +668,13 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
+                # truncate formatter
+                if isinstance(self.formatters, (list, tuple)):
+                    truncate_fmt = self.formatters
+                    self.formatters = [
+                        *truncate_fmt[:col_num],
+                        *truncate_fmt[-col_num:],
+                    ]
             self.tr_col_num = col_num
         if truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None
@@ -850,6 +868,8 @@ class DataFrameFormatter(TableFormatter):
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
             for col in strcols
         ]
+
+        assert lwidth is not None
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
@@ -922,6 +942,7 @@ class DataFrameFormatter(TableFormatter):
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
@@ -943,7 +964,9 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(buf=buf)
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
@@ -1872,7 +1895,7 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _binify(cols: List[np.int32], line_width: Union[np.int32, int]) -> List[int]:
+def _binify(cols: List[int], line_width: int) -> List[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

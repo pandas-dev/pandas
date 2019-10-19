@@ -252,9 +252,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    if not isinstance(arg, (str, unicode)):
-        # Note: cython recognizes `unicode` in both py2/py3, optimizes
-        # this check into a C call.
+    if not isinstance(arg, str):
         return arg
 
     if getattr(freq, "_typ", None) == "dateoffset":
@@ -309,9 +307,9 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
                                       ignoretz=False, tzinfos=None)
-    except Exception as e:
+    except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
-        raise DateParseError(e)
+        raise DateParseError(err)
     if parsed is None:
         raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso
@@ -370,7 +368,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         int year, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    assert isinstance(date_string, (str, unicode))
+    assert isinstance(date_string, str)
 
     # len(date_string) == 0
     # should be NaT???
@@ -517,7 +515,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
                 tzdata = tzinfos.get(res.tzname)
             if isinstance(tzdata, datetime.tzinfo):
                 tzinfo = tzdata
-            elif isinstance(tzdata, (str, unicode)):
+            elif isinstance(tzdata, str):
                 tzinfo = _dateutil_tzstr(tzdata)
             elif isinstance(tzdata, int):
                 tzinfo = tzoffset(res.tzname, tzdata)
@@ -583,7 +581,7 @@ def try_parse_dates(object[:] values, parser=None,
                 else:
                     result[i] = parse_date(values[i])
         except Exception:
-            # failed
+            # Since parser is user-defined, we can't guess what it migh raise
             return values
     else:
         parse_date = parser

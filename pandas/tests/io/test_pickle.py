@@ -49,8 +49,8 @@ def compare_element(result, expected, typ, version=None):
         return
 
     if typ.startswith("sp_"):
-        comparator = getattr(tm, "assert_{typ}_equal".format(typ=typ))
-        comparator(result, expected, exact_indices=False)
+        comparator = tm.assert_equal
+        comparator(result, expected)
     elif typ == "timestamp":
         if expected is pd.NaT:
             assert result is pd.NaT
@@ -80,10 +80,6 @@ def compare(data, vf, version):
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
     return data
-
-
-def compare_sp_series_ts(res, exp, typ, version):
-    tm.assert_sp_series_equal(res, exp)
 
 
 def compare_series_ts(result, expected, typ, version):
@@ -134,10 +130,6 @@ def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
-def compare_sp_frame_float(result, expected, typ, version):
-    tm.assert_sp_frame_equal(result, expected)
-
-
 files = glob.glob(
     os.path.join(os.path.dirname(__file__), "data", "legacy_pickle", "*", "*.pickle")
 )
@@ -151,7 +143,6 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_pickles(current_pickle_data, legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
@@ -162,7 +153,6 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_round_trip_current(current_pickle_data):
     def python_pickler(obj, path):
         with open(path, "wb") as fh:
@@ -194,38 +184,6 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-def test_pickle_v0_14_1(datapath):
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_14_1.pickle")
-    # This code was executed once on v0.14.1 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
-def test_pickle_v0_15_2(datapath):
-    # ordered -> _ordered
-    # GH 9347
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_15_2.pickle")
-    # This code was executed once on v0.15.2 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
     result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
@@ -236,6 +194,32 @@ def test_pickle_path_localpath():
     df = tm.makeDataFrame()
     result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
     tm.assert_frame_equal(df, result)
+
+
+def test_legacy_sparse_warning(datapath):
+    """
+
+    Generated with
+
+    >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
+    >>> df.to_pickle("pandas/tests/io/data/sparseframe-0.20.3.pickle.gz",
+    ...              compression="gzip")
+
+    >>> s = df['B']
+    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    ...             compression="gzip")
+    """
+    with tm.assert_produces_warning(FutureWarning):
+        simplefilter("ignore", DeprecationWarning)  # from boto
+        pd.read_pickle(
+            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+        )
+
+    with tm.assert_produces_warning(FutureWarning):
+        simplefilter("ignore", DeprecationWarning)  # from boto
+        pd.read_pickle(
+            datapath("io", "data", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+        )
 
 
 # ---------------------
