@@ -630,7 +630,8 @@ class TimedeltaIndex(
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
-            except Exception:
+            except ValueError:
+                # e.g. str that can't be parsed to timedelta
                 pass
         elif is_scalar(item) and isna(item):
             # GH 18295

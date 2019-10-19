@@ -457,7 +457,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 self.get_loc(key)
                 return True
-            except Exception:
+            except (ValueError, TypeError, KeyError):
+                # TypeError can be reached if we pass a tuple that is not hashable
+                # ValueError can be reached if pass a 2-tuple and parse_time_string
+                #  raises with the wrong number of return values
+                #  TODO: the latter is a bug in parse_time_string
                 return False
 
     @cache_readonly
@@ -765,7 +769,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 _, parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
-            except Exception:
+            except ValueError:
+                # string cannot be parsed as datetime-like
+                # TODO: we need tests for this case
                 raise KeyError(label)
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
