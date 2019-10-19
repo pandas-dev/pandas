@@ -860,7 +860,7 @@ class DataFrameGroupBy(GroupBy):
             func, columns, order = _normalize_keyword_aggregation(kwargs)
 
             kwargs = {}
-        elif isinstance(func, abc.Iterable) and len(func) > len(set(func)):
+        elif isinstance(func, list) and len(func) > len(set(func)):
 
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
