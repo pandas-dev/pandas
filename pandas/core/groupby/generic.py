@@ -11,7 +11,17 @@ import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Hashable,
+    Iterable,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -132,7 +142,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self):
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
         yield self._selection_name, self._selected_obj
 
     @property
@@ -251,6 +261,8 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
+            except AssertionError:
+                raise
             except Exception:
                 result = self._aggregate_named(func, *args, **kwargs)
 
@@ -877,7 +889,23 @@ class DataFrameGroupBy(GroupBy):
                     result = self._aggregate_multiple_funcs(
                         [func], _level=_level, _axis=self.axis
                     )
-                except Exception:
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                except NotImplementedError as err:
+                    if "axis other than 0 is not supported" in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        pass
+                    elif "decimal does not support skipna=True" in str(err):
+                        # FIXME: kludge for DecimalArray tests
+                        pass
+                    else:
+                        raise
+                    # FIXME: this is raised in a bunch of
+                    #  test_whitelist.test_regression_whitelist_methods tests,
+                    #  can be avoided
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
@@ -898,22 +926,20 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self):
-        if self.axis == 0:
-            # kludge
-            if self._selection is None:
-                slice_axis = self.obj.columns
-            else:
-                slice_axis = self._selection_list
-            slicer = lambda x: self.obj[x]
-        else:
-            slice_axis = self.obj.index
-            slicer = self.obj.xs
+    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+        obj = self._selected_obj
+        if self.axis == 1:
+            obj = obj.T
 
-        for val in slice_axis:
-            if val in self.exclusions:
-                continue
-            yield val, slicer(val)
+        if isinstance(obj, Series) and obj.name not in self.exclusions:
+            # Occurs when doing DataFrameGroupBy(...)["X"]
+            yield obj.name, obj
+        else:
+            for label, values in obj.items():
+                if label in self.exclusions:
+                    continue
+
+                yield label, values
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
         new_items, new_blocks = self._cython_agg_blocks(
@@ -952,11 +978,17 @@ class DataFrameGroupBy(GroupBy):
                 if alt is None:
                     # we cannot perform the operation
                     # in an alternate way, exclude the block
+                    assert how == "ohlc"
                     deleted_items.append(locs)
                     continue
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
+                if obj.shape[1] == 1:
+                    # Avoid call to self.values that can occur in DataFrame
+                    #  reductions; see GH#28949
+                    obj = obj.iloc[:, 0]
+
                 s = groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
@@ -965,17 +997,29 @@ class DataFrameGroupBy(GroupBy):
                     # continue and exclude the block
                     deleted_items.append(locs)
                     continue
+
+                # unwrap DataFrame to get array
+                assert len(result._data.blocks) == 1
+                result = result._data.blocks[0].values
+                if result.ndim == 1 and isinstance(result, np.ndarray):
+                    result = result.reshape(1, -1)
+
             finally:
+                assert not isinstance(result, DataFrame)
+
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
                     result = maybe_downcast_numeric(result, block.dtype)
 
-                    if result.ndim == 1 and isinstance(result, np.ndarray):
+                    if block.is_extension and isinstance(result, np.ndarray):
                         # e.g. block.values was an IntegerArray
+                        # (1, N) case can occur if block.values was Categorical
+                        #  and result is ndarray[object]
+                        assert result.ndim == 1 or result.shape[0] == 1
                         try:
                             # Cast back if feasible
                             result = type(block.values)._from_sequence(
-                                result, dtype=block.values.dtype
+                                result.ravel(), dtype=block.values.dtype
                             )
                         except ValueError:
                             # reshape to be valid for non-Extension Block
@@ -1025,17 +1069,24 @@ class DataFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                    fres = func(data, *args, **kwargs)
+                    result[name] = self._try_cast(fres, data)
+            except AssertionError:
+                raise
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
             for name in self.indices:
+                data = self.get_group(name, obj=obj)
                 try:
-                    data = self.get_group(name, obj=obj)
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                    fres = func(data, *args, **kwargs)
+                except AssertionError:
+                    raise
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
+                else:
+                    result[name] = self._try_cast(fres, data)
 
         return self._wrap_frame_output(result, obj)
 
@@ -1386,6 +1437,8 @@ class DataFrameGroupBy(GroupBy):
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
+        except AssertionError:
+            raise
         except Exception:
             # Hard to know ex-ante what exceptions `fast_path` might raise
             return path, res
@@ -1410,9 +1463,12 @@ class DataFrameGroupBy(GroupBy):
         for i, col in enumerate(obj):
             try:
                 output[col] = self[col].transform(wrapper)
-                inds.append(i)
+            except AssertionError:
+                raise
             except Exception:
                 pass
+            else:
+                inds.append(i)
 
         if len(output) == 0:
             raise TypeError("Transform function invalid for data types")
