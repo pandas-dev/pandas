@@ -550,7 +550,6 @@ class TimedeltaIndex(
         """
         If label is a string, cast it to timedelta according to resolution.
 
-
         Parameters
         ----------
         label : object
@@ -559,8 +558,7 @@ class TimedeltaIndex(
 
         Returns
         -------
-        label :  object
-
+        label : object
         """
         assert kind in ["ix", "loc", "getitem", None]
 
@@ -630,7 +628,8 @@ class TimedeltaIndex(
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
-            except Exception:
+            except ValueError:
+                # e.g. str that can't be parsed to timedelta
                 pass
         elif is_scalar(item) and isna(item):
             # GH 18295

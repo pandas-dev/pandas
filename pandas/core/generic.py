@@ -2481,7 +2481,7 @@ class NDFrame(PandasObject, SelectionMixin):
               like searching / selecting subsets of the data.
         append : bool, default False
             For Table formats, append the input data to the existing.
-        data_columns :  list of columns or True, optional
+        data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See :ref:`io.hdf5-query-data-columns`.

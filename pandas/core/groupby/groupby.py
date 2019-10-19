@@ -2080,7 +2080,7 @@ class GroupBy(_GroupBy):
             * dense: like 'min', but rank always increases by 1 between groups
         ascending : bool, default True
             False for ranks by high (1) to low (N).
-        na_option :  {'keep', 'top', 'bottom'}, default 'keep'
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending

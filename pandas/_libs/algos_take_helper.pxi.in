@@ -10,28 +10,28 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dest, c_type_in, c_type_out, preval, postval, can_copy, nogil
+# c_type_in, c_type_out, preval, postval
 dtypes = [
-    ('bool', 'bool', 'uint8_t', 'uint8_t', '', '', True),
-    ('bool', 'object', 'uint8_t', 'object',
-     'True if ', ' > 0 else False', False),
-    ('int8', 'int8', 'int8_t', 'int8_t', '', '', True),
-    ('int8', 'int32', 'int8_t', 'int32_t', '', '', False),
-    ('int8', 'int64', 'int8_t', 'int64_t', '', '', False),
-    ('int8', 'float64', 'int8_t', 'float64_t', '', '', False),
-    ('int16', 'int16', 'int16_t', 'int16_t', '', '', True),
-    ('int16', 'int32', 'int16_t', 'int32_t', '', '', False),
-    ('int16', 'int64', 'int16_t', 'int64_t', '', '', False),
-    ('int16', 'float64', 'int16_t', 'float64_t', '', '', False),
-    ('int32', 'int32', 'int32_t', 'int32_t', '', '', True),
-    ('int32', 'int64', 'int32_t', 'int64_t', '', '', False),
-    ('int32', 'float64', 'int32_t', 'float64_t', '', '', False),
-    ('int64', 'int64', 'int64_t', 'int64_t', '', '', True),
-    ('int64', 'float64', 'int64_t', 'float64_t', '', '', False),
-    ('float32', 'float32', 'float32_t', 'float32_t', '', '', True),
-    ('float32', 'float64', 'float32_t', 'float64_t', '', '', False),
-    ('float64', 'float64', 'float64_t', 'float64_t', '', '', True),
-    ('object', 'object', 'object', 'object', '', '', False)]
+    ('uint8_t', 'uint8_t', '', ''),
+    ('uint8_t', 'object', 'True if ', ' > 0 else False'),
+    ('int8_t', 'int8_t', '', ''),
+    ('int8_t', 'int32_t', '', ''),
+    ('int8_t', 'int64_t', '', ''),
+    ('int8_t', 'float64_t', '', ''),
+    ('int16_t', 'int16_t', '', ''),
+    ('int16_t', 'int32_t', '', ''),
+    ('int16_t', 'int64_t', '', ''),
+    ('int16_t', 'float64_t', '', ''),
+    ('int32_t', 'int32_t', '', ''),
+    ('int32_t', 'int64_t', '', ''),
+    ('int32_t', 'float64_t', '', ''),
+    ('int64_t', 'int64_t', '', ''),
+    ('int64_t', 'float64_t', '', ''),
+    ('float32_t', 'float32_t', '', ''),
+    ('float32_t', 'float64_t', '', ''),
+    ('float64_t', 'float64_t', '', ''),
+    ('object', 'object', '', ''),
+]
 
 
 def get_dispatch(dtypes):
@@ -117,9 +117,9 @@ def get_dispatch(dtypes):
                 out[i, j] = %(preval)svalues[i, idx]%(postval)s
 """
 
-    for (name, dest, c_type_in, c_type_out, preval, postval,
-         can_copy) in dtypes:
+    for (c_type_in, c_type_out, preval, postval) in dtypes:
 
+        can_copy = c_type_in == c_type_out != "object"
         nogil = c_type_out != "object"
         if nogil:
             nogil_str = "with nogil:"
@@ -127,6 +127,16 @@ def get_dispatch(dtypes):
         else:
             nogil_str = ''
             tab = ''
+
+        def get_name(dtype_name):
+            if dtype_name == "object":
+                return "object"
+            if dtype_name == "uint8_t":
+                return "bool"
+            return dtype_name[:-2]
+
+        name = get_name(c_type_in)
+        dest = get_name(c_type_out)
 
         args = dict(name=name, dest=dest, c_type_in=c_type_in,
                     c_type_out=c_type_out, preval=preval, postval=postval,
@@ -291,9 +301,3 @@ cdef _take_2d(ndarray[take_t, ndim=2] values, object idx):
         for j in range(K):
             result[i, j] = values[i, indexer[i, j]]
     return result
-
-
-_take_2d_object = _take_2d[object]
-_take_2d_float64 = _take_2d[float64_t]
-_take_2d_int64 = _take_2d[int64_t]
-_take_2d_uint64 = _take_2d[uint64_t]
