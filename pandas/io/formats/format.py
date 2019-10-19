@@ -482,6 +482,8 @@ class TableFormatter:
             buf = _stringify_path(buf)
         else:
             buf = StringIO()
+            if encoding is not None:
+                raise ValueError("buf is not a file name and encoding is specified.")
 
         if encoding is None:
             encoding = "utf-8"
