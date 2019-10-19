@@ -86,7 +86,6 @@ _pxi_dep_template = {
     "algos": [
         "_libs/algos_common_helper.pxi.in",
         "_libs/algos_take_helper.pxi.in",
-        "_libs/algos_rank_helper.pxi.in",
     ],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
