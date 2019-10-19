@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     infer_dtype_from_object,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -7784,20 +7783,9 @@ class DataFrame(NDFrame):
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
-        # exclude timedelta/datetime unless we are uniform types
-        if (
-            axis == 1
-            and self._is_datelike_mixed_type
-            and (
-                not self._is_homogeneous_type
-                and not is_datetime64tz_dtype(self.dtypes[0])
-            )
-        ):
-            numeric_only = True
-
         if numeric_only is None:
+            values = self.values
             try:
-                values = self.values
                 result = f(values)
 
                 if filter_type == "bool" and is_object_dtype(values) and axis is None:
@@ -7809,27 +7797,23 @@ class DataFrame(NDFrame):
 
                 # try by-column first
                 if filter_type is None and axis == 0:
-                    try:
+                    # this can end up with a non-reduction
+                    # but not always. if the types are mixed
+                    # with datelike then need to make sure a series
 
-                        # this can end up with a non-reduction
-                        # but not always. if the types are mixed
-                        # with datelike then need to make sure a series
+                    # we only end up here if we have not specified
+                    # numeric_only and yet we have tried a
+                    # column-by-column reduction, where we have mixed type.
+                    # So let's just do what we can
+                    from pandas.core.apply import frame_apply
 
-                        # we only end up here if we have not specified
-                        # numeric_only and yet we have tried a
-                        # column-by-column reduction, where we have mixed type.
-                        # So let's just do what we can
-                        from pandas.core.apply import frame_apply
-
-                        opa = frame_apply(
-                            self, func=f, result_type="expand", ignore_failures=True
-                        )
-                        result = opa.get_result()
-                        if result.ndim == self.ndim:
-                            result = result.iloc[0]
-                        return result
-                    except Exception:
-                        pass
+                    opa = frame_apply(
+                        self, func=f, result_type="expand", ignore_failures=True
+                    )
+                    result = opa.get_result()
+                    if result.ndim == self.ndim:
+                        result = result.iloc[0]
+                    return result
 
                 if filter_type is None or filter_type == "numeric":
                     data = self._get_numeric_data()
