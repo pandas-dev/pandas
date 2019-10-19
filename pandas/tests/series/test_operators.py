@@ -16,8 +16,6 @@ from pandas.util.testing import (
     assert_series_equal,
 )
 
-from .common import TestData
-
 
 class TestSeriesLogicalOps:
     @pytest.mark.parametrize("bool_op", [operator.and_, operator.or_, operator.xor])
@@ -746,7 +744,7 @@ class TestSeriesFlexComparisonOps:
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
 
-class TestSeriesOperators(TestData):
+class TestSeriesOperators:
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({"x": 0.0})
@@ -768,12 +766,10 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
-    def test_operators_corner(self):
-        series = self.ts
-
+    def test_operators_corner(self, datetime_series):
         empty = Series([], index=Index([]))
 
-        result = series + empty
+        result = datetime_series + empty
         assert np.isnan(result).all()
 
         result = empty + Series([], index=Index([]))
@@ -786,10 +782,12 @@ class TestSeriesOperators(TestData):
         # deltas = deltas + sub_deltas
 
         # float + int
-        int_ts = self.ts.astype(int)[:-5]
-        added = self.ts + int_ts
+        int_ts = datetime_series.astype(int)[:-5]
+        added = datetime_series + int_ts
         expected = Series(
-            self.ts.values[:-5] + int_ts.values, index=self.ts.index[:-5], name="ts"
+            datetime_series.values[:-5] + int_ts.values,
+            index=datetime_series.index[:-5],
+            name="ts",
         )
         tm.assert_series_equal(added[:-5], expected)
 
