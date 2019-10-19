@@ -1,4 +1,3 @@
-from copy import copy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -545,18 +544,16 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is chunk.index:
-                    piece = piece.copy(deep='all')
-                else:
+                if piece.index is not chunk.index:
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
                 pass
 
-            if is_scalar(piece):
-                results.append(piece)
-            else:
-                results.append(copy(piece))
+            if not is_scalar(piece):
+                piece = piece.copy(deep="all")
+
+            results.append(piece)
 
             # If the data was modified inplace we need to
             # take the slow path to not risk segfaults
