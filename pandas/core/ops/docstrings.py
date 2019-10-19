@@ -387,7 +387,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}
+axis : {{0 or 'index', 1 or 'columns'}}
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns'). For Series input, axis to match Series index on.
 level : int or label
@@ -541,7 +541,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
+axis : {{0 or 'index', 1 or 'columns'}}, default 'columns'
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns').
 level : int or label

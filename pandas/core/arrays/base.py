@@ -1104,7 +1104,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         ----------
         op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype :  bool, default True
+        coerce_to_dtype : bool, default True
             boolean indicating whether to attempt to convert
             the result to the underlying ExtensionArray dtype.
             If it's not possible to create a new ExtensionArray with the

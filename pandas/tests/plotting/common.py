@@ -311,7 +311,7 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
         xaxis : {'linear', 'log'}
             expected xaxis scale
-        yaxis :  {'linear', 'log'}
+        yaxis : {'linear', 'log'}
             expected yaxis scale
         """
         axes = self._flatten_visible(axes)
@@ -329,7 +329,7 @@ class TestPlotBase:
         axes_num : number
             expected number of axes. Unnecessary axes should be set to
             invisible.
-        layout :  tuple
+        layout : tuple
             expected layout, (expected number of rows , columns)
         figsize : tuple
             expected figsize. default is matplotlib default
