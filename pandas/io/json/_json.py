@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from errno import ENOENT
 from io import StringIO
 from itertools import islice
 import os
@@ -708,6 +709,14 @@ class JsonReader(BaseIterator):
             )
             self.should_close = True
             self.open_stream = data
+        else:
+            raise FileNotFoundError(
+                ENOENT,
+                "File {filepath_or_buffer} does not exist".format(
+                    filepath_or_buffer=filepath_or_buffer
+                ),
+                filepath_or_buffer,
+            )
 
         return data
 
