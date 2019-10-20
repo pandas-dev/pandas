@@ -538,6 +538,7 @@ cdef class {{name}}HashTable(HashTable):
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
+            kh_{{dtype}}_t *table = self.table
 
         labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
@@ -553,13 +554,13 @@ cdef class {{name}}HashTable(HashTable):
                     continue
                 {{endif}}
 
-                k = kh_get_{{dtype}}(self.table, val)
-                if k != self.table.n_buckets:
-                    idx = self.table.vals[k]
+                k = kh_get(table, val)
+                if k != table.n_buckets:
+                    idx = table.vals[k]
                     labels[i] = idx
                 else:
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
-                    self.table.vals[k] = count
+                    k = kh_put(table, val, &ret)
+                    table.vals[k] = count
 
                     if needs_resize(ud):
                         with gil:

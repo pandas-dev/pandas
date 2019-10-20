@@ -203,12 +203,8 @@ cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-
-
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-
-
 def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 {{endif}}
     cdef:
@@ -288,12 +284,8 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-
-
 def ismember_{{dtype}}(ndarray[{{scalar}}] arr, ndarray[{{scalar}}] values):
 {{else}}
-
-
 def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 {{endif}}
 
@@ -371,14 +363,9 @@ dtypes = [('float64', 'float64_t', 'float64', 'float64'),
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-
 {{if dtype == 'object'}}
-
-
 def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
-
-
 def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
 {{endif}}
     cdef:
