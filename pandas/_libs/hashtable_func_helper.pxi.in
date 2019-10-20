@@ -33,7 +33,7 @@ cdef inline kh_destroy(table_t *table):
         kh_destroy_pymap(table)
 
 
-cdef inline bint kh_exist(table_t *table, int k):
+cdef inline bint kh_exist(table_t *table, int k) nogil:
     if table_t is kh_float64_t:
         return kh_exist_float64(table, k)
     if table_t is kh_uint64_t:
@@ -41,7 +41,43 @@ cdef inline bint kh_exist(table_t *table, int k):
     if table_t is kh_int64_t:
         return kh_exist_int64(table, k)
     if table_t is kh_pymap_t:
-        return kh_exist_pymap(table, k)
+        with gil:
+            return kh_exist_pymap(table, k)
+
+
+ctypedef fused scalar_t:
+    float64_t
+    uint64_t
+    object
+    int64_t
+
+
+cdef inline khiter_t kh_put(table_t *table, scalar_t val, int* ret) nogil:
+    if table_t is kh_float64_t and scalar_t is float64_t:
+        return kh_put_float64(table, val, ret)
+    if table_t is kh_uint64_t and scalar_t is uint64_t:
+        return kh_put_uint64(table, val, ret)
+    if table_t is kh_int64_t and scalar_t is int64_t:
+        return kh_put_int64(table, val, ret)
+    if table_t is kh_pymap_t and scalar_t is object:
+        with gil:
+            return kh_put_pymap(table, <PyObject*>val, ret)
+    # This should never be reached, but let's make it explicit
+    raise TypeError
+
+
+cdef inline khiter_t kh_get(table_t *table, scalar_t val) nogil:
+    if table_t is kh_float64_t and scalar_t is float64_t:
+        return kh_get_float64(table, val)
+    if table_t is kh_uint64_t and scalar_t is uint64_t:
+        return kh_get_uint64(table, val)
+    if table_t is kh_int64_t and scalar_t is int64_t:
+        return kh_get_int64(table, val)
+    if table_t is kh_pymap_t and scalar_t is object:
+        with gil:
+            return kh_get_pymap(table, <PyObject*>val)
+    # This should never be reached, but let's make it explicit
+    raise TypeError
 
 
 # ----------------------------------------------------------------------
@@ -85,11 +121,11 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         val = values[i]
 
         if not checknull(val) or not dropna:
-            k = kh_get_{{ttype}}(table, <PyObject*>val)
+            k = kh_get(table, val)
             if k != table.n_buckets:
                 table.vals[k] += 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
+                k = kh_put(table, val, &ret)
                 table.vals[k] = 1
     {{else}}
     kh_resize(table, n)
@@ -103,11 +139,11 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
             {{else}}
             if True:
             {{endif}}
-                k = kh_get_{{ttype}}(table, val)
+                k = kh_get(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
                 else:
-                    k = kh_put_{{ttype}}(table, val, &ret)
+                    k = kh_put(table, val, &ret)
                     table.vals[k] = 1
     {{endif}}
 
@@ -149,7 +185,7 @@ cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
     {{else}}
     with nogil:
         for k in range(table.n_buckets):
-            if kh_exist_{{ttype}}(table, k):
+            if kh_exist(table, k):
                 result_keys[i] = table.keys[k]
                 result_counts[i] = table.vals[k]
                 i += 1
@@ -193,36 +229,36 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{if dtype == 'object'}}
         for i in range(n - 1, -1, -1):
             # equivalent: range(n)[::-1], which cython doesnt like in nogil
-            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
+            kh_put(table, values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
             for i in range(n - 1, -1, -1):
                 # equivalent: range(n)[::-1], which cython doesnt like in nogil
-                kh_put_{{ttype}}(table, values[i], &ret)
+                kh_put(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
     elif keep == 'first':
         {{if dtype == 'object'}}
         for i in range(n):
-            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
+            kh_put(table, values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
             for i in range(n):
-                kh_put_{{ttype}}(table, values[i], &ret)
+                kh_put(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
         {{if dtype == 'object'}}
         for i in range(n):
             value = values[i]
-            k = kh_get_{{ttype}}(table, <PyObject*>value)
+            k = kh_get(table, value)
             if k != table.n_buckets:
                 out[table.vals[k]] = 1
                 out[i] = 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
+                k = kh_put(table, value, &ret)
                 table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
@@ -230,12 +266,12 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         with nogil:
             for i in range(n):
                 value = values[i]
-                k = kh_get_{{ttype}}(table, value)
+                k = kh_get(table, value)
                 if k != table.n_buckets:
                     out[table.vals[k]] = 1
                     out[i] = 1
                 else:
-                    k = kh_put_{{ttype}}(table, value, &ret)
+                    k = kh_put(table, value, &ret)
                     table.keys[k] = value
                     table.vals[k] = i
                     out[i] = 0
@@ -287,11 +323,11 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 
     {{if dtype == 'object'}}
     for i in range(n):
-        kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
+        kh_put(table, values[i], &ret)
     {{else}}
     with nogil:
         for i in range(n):
-            kh_put_{{ttype}}(table, values[i], &ret)
+            kh_put(table, values[i], &ret)
     {{endif}}
 
     # test membership
@@ -301,13 +337,13 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
     {{if dtype == 'object'}}
     for i in range(n):
         val = arr[i]
-        k = kh_get_{{ttype}}(table, <PyObject*>val)
+        k = kh_get(table, val)
         result[i] = (k != table.n_buckets)
     {{else}}
     with nogil:
         for i in range(n):
             val = arr[i]
-            k = kh_get_{{ttype}}(table, val)
+            k = kh_get(table, val)
             result[i] = (k != table.n_buckets)
     {{endif}}
 
@@ -360,7 +396,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
     {{if dtype != 'object'}}
     with nogil:
         for k in range(table.n_buckets):
-            if kh_exist_{{table_type}}(table, k):
+            if kh_exist(table, k):
                 count = table.vals[k]
                 if count == max_count:
                     j += 1
