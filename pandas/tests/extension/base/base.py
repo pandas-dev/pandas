@@ -1,10 +1,7 @@
-from typing import Any
-
 import pandas.util.testing as tm
 
 
 class BaseExtensionTests:
-
     @staticmethod
     def assert_equal(left, right, **kwargs):
         return tm.assert_equal(left, right, **kwargs)
