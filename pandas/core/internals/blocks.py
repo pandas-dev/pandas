@@ -12,7 +12,6 @@ import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
-from pandas.core.dtypes.common import is_hashable
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -3019,7 +3018,7 @@ class CategoricalBlock(ExtensionBlock):
         to_replace,
         value,
         inplace: bool = False,
-        filter: bool = None,
+        filter=None,
         regex: bool = False,
         convert: bool = True,
     ):
