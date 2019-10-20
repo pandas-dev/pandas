@@ -930,6 +930,25 @@ class Styler:
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def format_null(self, na_rep="-"):
+        """
+        Format the text displayed for missing values.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        na_rep : str
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.format(
+            lambda x: na_rep if pd.isna(x) else self._display_funcs.default_factory()(x)
+        )
+        return self
+
     @staticmethod
     def _highlight_null(v, null_color):
         return (

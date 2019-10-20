@@ -990,6 +990,14 @@ class TestStyler:
         with pytest.raises(ValueError):
             df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
+    def test_format_null(self, na_rep="-"):
+        # GH 28358
+        df = pd.DataFrame({"A": [0, np.nan]})
+        ctx = df.style.format_null()._translate()
+        result = ctx["body"][1][1]["display_value"]
+        expected = "-"
+        assert result == expected
+
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
