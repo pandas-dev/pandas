@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import datetime
+import functools
 from itertools import chain
 import operator
 import warnings
@@ -1346,3 +1347,94 @@ class TestDataFrameAggregate:
         df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq
+
+
+class TestDataFrameNamedAggregate:
+
+    # GH 26513
+    def test_agg_relabel(self):
+        df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
+
+        # simplest case with one column, one func
+        result = df.agg(foo=("B", "sum"))
+        expected = pd.DataFrame({"B": [10]}, index=pd.Index(["foo"]))
+        tm.assert_frame_equal(result, expected)
+
+        # test on same column with different methods
+        result = df.agg(foo=("B", "sum"), bar=("B", "min"))
+        expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
+        tm.assert_frame_equal(result, expected)
+
+        # test on multiple columns with multiple methods
+        result = df.agg(
+            foo=("A", "sum"),
+            bar=("B", "mean"),
+            cat=("A", "min"),
+            dat=("B", "max"),
+            f=("A", "max"),
+            g=("C", "min"),
+        )
+        expected = pd.DataFrame(
+            {
+                "A": [6.0, np.nan, 1.0, np.nan, 2.0, np.nan],
+                "B": [np.nan, 2.5, np.nan, 4.0, np.nan, np.nan],
+                "C": [np.nan, np.nan, np.nan, np.nan, np.nan, 3.0],
+            },
+            index=pd.Index(["foo", "bar", "cat", "dat", "f", "g"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # test on partial, functools or more complex cases
+        result = df.agg(foo=("A", np.mean), bar=("A", "mean"), cat=("A", min))
+        expected = pd.DataFrame(
+            {"A": [1.5, 1.5, 1.0]}, index=pd.Index(["foo", "bar", "cat"])
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.agg(
+            foo=("A", min),
+            bar=("A", np.min),
+            cat=("B", max),
+            dat=("C", "min"),
+            f=("B", np.sum),
+        )
+        expected = pd.DataFrame(
+            {
+                "A": [1.0, 1.0, np.nan, np.nan, np.nan],
+                "B": [np.nan, np.nan, 10.0, np.nan, 4.0],
+                "C": [np.nan, np.nan, np.nan, 3.0, np.nan],
+            },
+            index=pd.Index(["foo", "bar", "cat", "dat", "f"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_namedtuple(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        result = df.agg(
+            foo=pd.NamedAgg("B", "sum"),
+            bar=pd.NamedAgg("B", min),
+            cat=pd.NamedAgg(column="B", aggfunc="count"),
+            fft=pd.NamedAgg("B", aggfunc="max"),
+        )
+        expected = pd.DataFrame(
+            {"B": [10, 1, 4, 4]}, index=pd.Index(["foo", "bar", "cat", "fft"])
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.agg(
+            foo=pd.NamedAgg("A", "min"),
+            bar=pd.NamedAgg(column="B", aggfunc="max"),
+            cat=pd.NamedAgg(column="A", aggfunc="max"),
+        )
+        expected = pd.DataFrame(
+            {"A": [1.0, np.nan, 2.0], "B": [np.nan, 4.0, np.nan]},
+            index=pd.Index(["foo", "bar", "cat"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_raises(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        msg = "Must provide"
+
+        with pytest.raises(TypeError, match=msg):
+            df.agg()

@@ -100,6 +100,11 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby.helper import (
+    _is_multi_agg_with_relabel,
+    _maybe_mangle_lambdas,
+    _normalize_keyword_aggregation,
+)
 from pandas.core.index import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -6616,8 +6621,21 @@ class DataFrame(NDFrame):
         **_shared_doc_kwargs
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, indexes, order = _normalize_keyword_aggregation(kwargs)
+            reordered_indexes = [
+                pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
+            ]
+            kwargs = {}
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+        func = _maybe_mangle_lambdas(func)
 
         result = None
         try:
@@ -6626,6 +6644,30 @@ class DataFrame(NDFrame):
             pass
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
+
+        if relabeling:
+
+            # create a function name and index mapping dictionary for each column
+            func_index_dict = OrderedDict()
+            idx = 0
+            for func_name, funcs in func.items():
+                func_index_dict[func_name] = reordered_indexes[idx : idx + len(funcs)]
+                idx = idx + len(funcs)
+
+            # restructure the result
+            reordered_result = DataFrame(index=reordered_indexes)
+
+            # when there are more than one column being used in aggregate, the order
+            # of result will be reversed, and in case the func is not used by other
+            # columns, there might be NaN values, so separate these two cases
+            if len(func) > 1:
+                for k, v in func_index_dict.items():
+                    reordered_result.loc[v, k] = result[k][::-1].dropna().values
+            else:
+                result.index = reordered_indexes
+                reordered_result = result
+
+            result = reordered_result.reindex(indexes)
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
