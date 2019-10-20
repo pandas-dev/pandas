@@ -75,7 +75,7 @@ ll_params = [
     (iter([1, 2]), True, "iterator"),  # noqa: E241
     (iter([]), True, "iterator-empty"),  # noqa: E241
     ((x for x in [1, 2]), True, "generator"),  # noqa: E241
-    ((x for x in []), True, "generator-empty"),  # noqa: E241
+    ((_ for _ in []), True, "generator-empty"),  # noqa: E241
     (Series([1]), True, "Series"),  # noqa: E241
     (Series([]), True, "Series-empty"),  # noqa: E241
     (Series(["a"]).str, True, "StringMethods"),  # noqa: E241
@@ -288,7 +288,10 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-@pytest.mark.parametrize("ll", [collections.namedtuple("Test", list("abc"))(1, 2, 3)])
+test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+
+
+@pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
 def test_is_names_tuple_passes(ll):
     assert inference.is_named_tuple(ll)
 
