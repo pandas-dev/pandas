@@ -5,7 +5,18 @@ import pandas.util.testing as tm
 
 class BaseExtensionTests:
 
-    assert_equal = staticmethod(tm.assert_equal)
-    assert_series_equal = staticmethod(tm.assert_series_equal)  # type: Any
-    assert_frame_equal = staticmethod(tm.assert_frame_equal)  # type: Any
-    assert_extension_array_equal = staticmethod(tm.assert_extension_array_equal)
+    @staticmethod
+    def assert_equal(left, right, **kwargs):
+        return tm.assert_equal(left, right, **kwargs)
+
+    @staticmethod
+    def assert_series_equal(left, right, **kwargs):
+        return tm.assert_series_equal(left, right, **kwargs)
+
+    @staticmethod
+    def assert_frame_equal(left, right, **kwargs):
+        return tm.assert_frame_equal(left, right, **kwargs)
+
+    @staticmethod
+    def assert_extension_array_equal(left, right, **kwargs):
+        return tm.assert_extension_array_equal(left, right, **kwargs)

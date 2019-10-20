@@ -94,7 +94,7 @@ class BaseJSON:
             )
         tm.assert_series_equal(left, right, **kwargs)
 
-    def assert_frame_equal(self, left, right, *args, **kwargs):
+    def assert_frame_equal(self, left, right, **kwargs):
         tm.assert_index_equal(
             left.columns,
             right.columns,
@@ -108,11 +108,11 @@ class BaseJSON:
         jsons = (left.dtypes == "json").index
 
         for col in jsons:
-            self.assert_series_equal(left[col], right[col], *args, **kwargs)
+            self.assert_series_equal(left[col], right[col], **kwargs)
 
         left = left.drop(columns=jsons)
         right = right.drop(columns=jsons)
-        tm.assert_frame_equal(left, right, *args, **kwargs)
+        tm.assert_frame_equal(left, right, **kwargs)
 
 
 class TestDtype(BaseJSON, base.BaseDtypeTests):
