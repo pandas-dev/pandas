@@ -1860,12 +1860,12 @@ def searchsorted(arr, value, side="left", sorter=None):
 # ---- #
 
 _diff_special = {
-    "float64": algos.diff_2d_float64,
-    "float32": algos.diff_2d_float32,
-    "int64": algos.diff_2d_int64,
-    "int32": algos.diff_2d_int32,
-    "int16": algos.diff_2d_int16,
-    "int8": algos.diff_2d_int8,
+    "float64",
+    "float32",
+    "int64",
+    "int32",
+    "int16",
+    "int8",
 }
 
 
@@ -1914,7 +1914,7 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = _diff_special[arr.dtype.name]
+        f = algos.diff_2d
         f(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
