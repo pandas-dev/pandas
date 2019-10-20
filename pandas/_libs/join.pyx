@@ -13,6 +13,7 @@ from pandas._libs.algos import (
 )
 
 
+@cython.boundscheck(False)
 def inner_join(const int64_t[:] left, const int64_t[:] right,
                Py_ssize_t max_groups):
     cdef:
@@ -20,6 +21,8 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t offset
 
     # NA group in location 0
 
@@ -33,11 +36,6 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
         if rc > 0 and lc > 0:
             count += lc * rc
-
-    # group 0 is the NA group
-    cdef:
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
-        Py_ssize_t offset
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -64,6 +62,7 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
+@cython.boundscheck(False)
 def left_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
@@ -72,6 +71,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
         ndarray rev
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t offset
 
     # NA group in location 0
 
@@ -84,11 +85,6 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             count += left_count[i] * right_count[i]
         else:
             count += left_count[i]
-
-    # group 0 is the NA group
-    cdef:
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
-        Py_ssize_t offset
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -137,6 +133,7 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     return left_indexer, right_indexer
 
 
+@cython.boundscheck(False)
 def full_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
@@ -144,6 +141,8 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        int64_t left_pos = 0, right_pos = 0
+        Py_ssize_t offset, position = 0
 
     # NA group in location 0
 
@@ -159,11 +158,6 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             count += lc * rc
         else:
             count += lc + rc
-
-    # group 0 is the NA group
-    cdef:
-        int64_t left_pos = 0, right_pos = 0
-        Py_ssize_t offset, position = 0
 
     # exclude the NA group
     left_pos = left_count[0]
