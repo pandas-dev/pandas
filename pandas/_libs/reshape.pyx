@@ -83,19 +83,6 @@ def unstack(reshape_t[:, :] values, uint8_t[:] mask,
                         nulls += 1
 
 
-unstack_uint8 = unstack["uint8_t"]
-unstack_uint16 = unstack["uint16_t"]
-unstack_uint32 = unstack["uint32_t"]
-unstack_uint64 = unstack["uint64_t"]
-unstack_int8 = unstack["int8_t"]
-unstack_int16 = unstack["int16_t"]
-unstack_int32 = unstack["int32_t"]
-unstack_int64 = unstack["int64_t"]
-unstack_float32 = unstack["float32_t"]
-unstack_float64 = unstack["float64_t"]
-unstack_object = unstack["object"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def explode(ndarray[object] values):
