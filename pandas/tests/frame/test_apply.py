@@ -1347,6 +1347,20 @@ class TestDataFrameAggregate:
         df.apply(lambda x: x)
         assert index.freq == original.freq
 
+    def test_apply_datetime_tz_issue(self):
+        # GH 29052
+
+        timestamps = [
+            pd.Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
+            pd.Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
+            pd.Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
+        ]
+        df = DataFrame(data=[0, 1, 2], index=timestamps)
+        result = df.apply(lambda x: x.name, axis=1)
+        expected = pd.Series(index=timestamps, data=timestamps)
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestDataFrameNamedAggregate:
 
@@ -1426,7 +1440,7 @@ class TestDataFrameNamedAggregate:
             cat=pd.NamedAgg(column="A", aggfunc="max"),
         )
         expected = pd.DataFrame(
-            {"A": [1.0, np.nan, 2.0], "B": [np.nan, 4.0, np.nan]},
+            {"A": [0.0, np.nan, 1.0], "B": [np.nan, 2.0, np.nan]},
             index=pd.Index(["foo", "bar", "cat"]),
         )
         tm.assert_frame_equal(result, expected)
@@ -1437,17 +1451,3 @@ class TestDataFrameNamedAggregate:
 
         with pytest.raises(TypeError, match=msg):
             df.agg()
-
-    def test_apply_datetime_tz_issue(self):
-        # GH 29052
-
-        timestamps = [
-            pd.Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
-        ]
-        df = DataFrame(data=[0, 1, 2], index=timestamps)
-        result = df.apply(lambda x: x.name, axis=1)
-        expected = pd.Series(index=timestamps, data=timestamps)
-
-        tm.assert_series_equal(result, expected)

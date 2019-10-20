@@ -3812,9 +3812,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         **_shared_doc_kwargs
     )
     @Appender(generic._shared_docs["aggregate"])
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        if func is None:
+            func = kwargs
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
