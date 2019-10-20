@@ -667,7 +667,7 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if isinstance(val, (str, unicode)):
+            if isinstance(val, str):
                 v = get_c_string(val)
             else:
                 v = get_c_string(self.na_string_sentinel)
@@ -700,7 +700,7 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if isinstance(val, (str, unicode)):
+            if isinstance(val, str):
                 v = get_c_string(val)
             else:
                 v = get_c_string(self.na_string_sentinel)
@@ -774,7 +774,7 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if (ignore_na
-                and (not isinstance(val, (str, unicode))
+                and (not isinstance(val, str)
                      or (use_na_value and val == na_value))):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), we can skip the actual value, and

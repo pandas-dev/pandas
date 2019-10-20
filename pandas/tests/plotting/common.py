@@ -103,6 +103,28 @@ class TestPlotBase:
             else:
                 assert ax.get_legend() is None
 
+    def _check_legend_marker(self, ax, expected_markers=None, visible=True):
+        """
+        Check ax has expected legend markers
+
+        Parameters
+        ----------
+        ax : matplotlib Axes object
+        expected_markers : list-like
+            expected legend markers
+        visible : bool
+            expected legend visibility. labels are checked only when visible is
+            True
+        """
+        if visible and (expected_markers is None):
+            raise ValueError("Markers must be specified when visible is True")
+        if visible:
+            handles, _ = ax.get_legend_handles_labels()
+            markers = [handle.get_marker() for handle in handles]
+            assert markers == expected_markers
+        else:
+            assert ax.get_legend() is None
+
     def _check_data(self, xp, rs):
         """
         Check each axes has identical lines
@@ -289,7 +311,7 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
         xaxis : {'linear', 'log'}
             expected xaxis scale
-        yaxis :  {'linear', 'log'}
+        yaxis : {'linear', 'log'}
             expected yaxis scale
         """
         axes = self._flatten_visible(axes)
@@ -307,7 +329,7 @@ class TestPlotBase:
         axes_num : number
             expected number of axes. Unnecessary axes should be set to
             invisible.
-        layout :  tuple
+        layout : tuple
             expected layout, (expected number of rows , columns)
         figsize : tuple
             expected figsize. default is matplotlib default
@@ -514,7 +536,7 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
             plt.clf()
 
-            ax = kwargs.get("ax", fig.add_subplot(211))  # noqa
+            kwargs.get("ax", fig.add_subplot(211))
             ret = f(**kwargs)
 
             assert_is_valid_plot_return_object(ret)

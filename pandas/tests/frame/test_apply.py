@@ -116,12 +116,26 @@ class TestDataFrameApply:
         # Ensure that x.append hasn't been called
         assert x == []
 
-    def test_apply_deprecate_reduce(self):
-        empty_frame = DataFrame()
+    @pytest.mark.parametrize("func", ["sum", "prod", "any", "all"])
+    def test_apply_funcs_over_empty(self, func):
+        # GH 28213
+        df = DataFrame(columns=["a", "b", "c"])
 
-        x = []
-        with tm.assert_produces_warning(FutureWarning):
-            empty_frame.apply(x.append, axis=1, reduce=True)
+        result = df.apply(getattr(np, func))
+        expected = getattr(df, func)()
+        assert_series_equal(result, expected)
+
+    def test_nunique_empty(self):
+        # GH 28213
+        df = DataFrame(columns=["a", "b", "c"])
+
+        result = df.nunique()
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
+
+        result = df.T.nunique()
+        expected = Series([], index=pd.Index([]))
+        assert_series_equal(result, expected)
 
     def test_apply_standard_nonunique(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
@@ -148,10 +162,6 @@ class TestDataFrameApply:
         result = float_frame.apply(func, *args, **kwds)
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
-
-    def test_apply_broadcast_deprecated(self, float_frame):
-        with tm.assert_produces_warning(FutureWarning):
-            float_frame.apply(np.mean, broadcast=True)
 
     def test_apply_broadcast(self, float_frame, int_frame_const_col):
 

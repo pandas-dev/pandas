@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import operator
 
 import numpy as np
 import pytest
@@ -6,6 +7,8 @@ import pytz
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
+
+from pandas.core.dtypes.common import is_datetime64_any_dtype
 
 from pandas import (
     DatetimeIndex,
@@ -18,7 +21,8 @@ from pandas import (
     Timestamp,
     isna,
 )
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.ops import roperator
 from pandas.util import testing as tm
 
 
@@ -248,6 +252,7 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
                 "day_name",
                 "dst",
                 "floor",
+                "fromisocalendar",
                 "fromisoformat",
                 "fromordinal",
                 "fromtimestamp",
@@ -292,6 +297,8 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+    if klass is Timestamp and not compat.PY38:
+        expected.remove("fromisocalendar")
 
     assert _get_overlap_public_nat_methods(klass) == expected
 
@@ -331,8 +338,9 @@ _ops = {
     "value,val_type",
     [
         (2, "scalar"),
-        (1.5, "scalar"),
-        (np.nan, "scalar"),
+        (1.5, "floating"),
+        (np.nan, "floating"),
+        ("foo", "str"),
         (timedelta(3600), "timedelta"),
         (Timedelta("5s"), "timedelta"),
         (datetime(2014, 1, 1), "timestamp"),
@@ -346,6 +354,14 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
     # see gh-6873
     invalid_ops = {
         "scalar": {"right_div_left"},
+        "floating": {
+            "right_div_left",
+            "left_minus_right",
+            "right_minus_left",
+            "left_plus_right",
+            "right_plus_left",
+        },
+        "str": set(_ops.keys()),
         "timedelta": {"left_times_right", "right_times_left"},
         "timestamp": {
             "left_times_right",
@@ -364,6 +380,16 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
             and isinstance(value, Timedelta)
         ):
             msg = "Cannot multiply"
+        elif val_type == "str":
+            # un-specific check here because the message comes from str
+            #  and varies by method
+            msg = (
+                "can only concatenate str|"
+                "unsupported operand type|"
+                "can't multiply sequence|"
+                "Can't convert 'NaTType'|"
+                "must be str, not NaTType"
+            )
         else:
             msg = "unsupported operand type"
 
@@ -397,7 +423,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
     "value",
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
-        DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
+        DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -406,24 +434,51 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if isinstance(value, DatetimeIndex) and "plus" in op_name:
-        expected = DatetimeIndex(exp_data, name=exp_name, tz=value.tz)
+    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+        expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
 
-    tm.assert_index_equal(_ops[op_name](NaT, value), expected)
+    if not isinstance(value, Index):
+        expected = expected.array
+
+    op = _ops[op_name]
+    result = op(NaT, value)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "op_name",
     ["left_plus_right", "right_plus_left", "left_minus_right", "right_minus_left"],
 )
-@pytest.mark.parametrize("box", [TimedeltaIndex, Series])
+@pytest.mark.parametrize("box", [TimedeltaIndex, Series, TimedeltaArray._from_sequence])
 def test_nat_arithmetic_td64_vector(op_name, box):
     # see gh-19124
     vec = box(["1 day", "2 day"], dtype="timedelta64[ns]")
     box_nat = box([NaT, NaT], dtype="timedelta64[ns]")
     tm.assert_equal(_ops[op_name](vec, NaT), box_nat)
+
+
+@pytest.mark.parametrize(
+    "dtype,op,out_dtype",
+    [
+        ("datetime64[ns]", operator.add, "datetime64[ns]"),
+        ("datetime64[ns]", roperator.radd, "datetime64[ns]"),
+        ("datetime64[ns]", operator.sub, "timedelta64[ns]"),
+        ("datetime64[ns]", roperator.rsub, "timedelta64[ns]"),
+        ("timedelta64[ns]", operator.add, "datetime64[ns]"),
+        ("timedelta64[ns]", roperator.radd, "datetime64[ns]"),
+        ("timedelta64[ns]", operator.sub, "datetime64[ns]"),
+        ("timedelta64[ns]", roperator.rsub, "timedelta64[ns]"),
+    ],
+)
+def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
+    other = np.arange(10).astype(dtype)
+    result = op(NaT, other)
+
+    expected = np.empty(other.shape, dtype=out_dtype)
+    expected.fill("NaT")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_nat_pinned_docstrings():

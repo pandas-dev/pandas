@@ -34,7 +34,6 @@ objects.
 
       api.extensions.ExtensionArray._concat_same_type
       api.extensions.ExtensionArray._formatter
-      api.extensions.ExtensionArray._formatting_values
       api.extensions.ExtensionArray._from_factorized
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
@@ -45,6 +44,7 @@ objects.
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype
       api.extensions.ExtensionArray.copy
+      api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
       api.extensions.ExtensionArray.factorize
       api.extensions.ExtensionArray.fillna

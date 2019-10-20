@@ -5,6 +5,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import Appender, cache_readonly
 
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
@@ -129,7 +129,8 @@ class NumericIndex(Index):
         pass
 
     def _concat_same_dtype(self, indexes, name):
-        return _concat._concat_index_same_dtype(indexes).rename(name)
+        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
+        return result.rename(name)
 
     @property
     def is_all_dates(self):
@@ -367,12 +368,11 @@ class Float64Index(NumericIndex):
                 "values are required for conversion"
             ).format(dtype=dtype)
             raise TypeError(msg)
-        elif (
-            is_integer_dtype(dtype) and not is_extension_array_dtype(dtype)
-        ) and self.hasnans:
+        elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            raise ValueError("Cannot convert NA to integer")
+            arr = astype_nansafe(self.values, dtype=dtype)
+            return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])

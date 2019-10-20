@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical
+from pandas import Categorical, CategoricalIndex, Timestamp
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -197,7 +197,31 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
+    @pytest.mark.parametrize("values", [[1, np.nan], [Timestamp("2000"), pd.NaT]])
+    def test_cast_nan_to_int(self, cls, values):
+        # GH 28406
+        s = cls(values)
+
+        msg = "Cannot (cast|convert)"
+        with pytest.raises((ValueError, TypeError), match=msg):
+            s.astype(int)
+
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+            pd.Series([0, 0], dtype="timedelta64[ns]"),
+            pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
+            pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
+            pd.Series([1, np.nan], dtype="Int64"),
+        ],
+    )
+    def test_cast_category_to_extension_dtype(self, expected):
+        # GH 28668
+        result = expected.astype("category").astype(expected.dtype)
+
+        tm.assert_series_equal(result, expected)
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -211,7 +235,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform"):
+        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
             ser + data
 
     def test_divmod_series_array(self):

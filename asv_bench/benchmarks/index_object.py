@@ -1,14 +1,17 @@
+import gc
+
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    Index,
+    IntervalIndex,
+    RangeIndex,
     Series,
     date_range,
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Float64Index,
-    IntervalIndex,
 )
+import pandas.util.testing as tm
 
 
 class SetOperations:
@@ -225,4 +228,21 @@ class IntervalIndexMethod:
         self.intv.intersection(self.intv2)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+class GC:
+    params = [1, 2, 5]
+
+    def create_use_drop(self):
+        idx = Index(list(range(1000 * 1000)))
+        idx._engine
+
+    def peakmem_gc_instances(self, N):
+        try:
+            gc.disable()
+
+            for _ in range(N):
+                self.create_use_drop()
+        finally:
+            gc.enable()
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

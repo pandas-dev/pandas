@@ -611,7 +611,7 @@ class ExcelFormatter:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
-            if com._any_not_none(*index_labels) and self.header is not False:
+            if com.any_not_none(*index_labels) and self.header is not False:
 
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)

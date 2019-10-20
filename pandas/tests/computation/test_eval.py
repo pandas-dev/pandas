@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
+from typing import Dict, Type
 import warnings
 
 import numpy as np
@@ -14,12 +15,16 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series, compat, date_range
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
 import pandas.core.computation.expr as expr
-from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
+from pandas.core.computation.expr import (
+    BaseExprVisitor,
+    PandasExprVisitor,
+    PythonExprVisitor,
+)
 from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 from pandas.core.computation.ops import (
     _arith_ops_syms,
@@ -1267,7 +1272,10 @@ class TestOperationsNumExprPandas:
         msg = "left hand side of an assignment must be a single name"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
-        msg = "can't assign to function call"
+        if compat.PY38:
+            msg = "cannot assign to function call"
+        else:
+            msg = "can't assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
@@ -1789,9 +1797,10 @@ class TestMathPythonPython:
         self.check_result_type(np.float32, np.float32)
         self.check_result_type(np.float64, np.float64)
 
-    def test_result_types2(self):
+    @td.skip_if_windows
+    def test_result_complex128(self):
         # xref https://github.com/pandas-dev/pandas/issues/12293
-        pytest.skip("unreliable tests on complex128")
+        #  this fails on Windows, apparently a floating point precision issue
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
@@ -1880,7 +1889,7 @@ _parsers = {
     "python": PythonExprVisitor,
     "pytables": pytables.ExprVisitor,
     "pandas": PandasExprVisitor,
-}
+}  # type: Dict[str, Type[BaseExprVisitor]]
 
 
 @pytest.mark.parametrize("engine", _engines)
@@ -1964,6 +1973,26 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     for ex in (ex1, ex2, ex3):
         with pytest.raises(NotImplementedError):
             pd.eval(ex, engine=engine, parser=parser)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        "'x'",
+        pytest.param(
+            "...", marks=pytest.mark.xfail(not compat.PY38, reason="GH-28116")
+        ),
+    ],
+)
+def test_equals_various(other):
+    df = DataFrame({"A": ["a", "b", "c"]})
+    result = df.eval("A == {}".format(other))
+    expected = Series([False, False, False], name="A")
+    if _USE_NUMEXPR:
+        # https://github.com/pandas-dev/pandas/issues/10239
+        # lose name with numexpr engine. Remove when that's fixed.
+        expected.name = None
+    tm.assert_series_equal(result, expected)
 
 
 def test_inf(engine, parser):

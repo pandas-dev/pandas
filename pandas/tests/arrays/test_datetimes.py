@@ -15,6 +15,11 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor:
+    def test_from_sequence_invalid_type(self):
+        mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
+        with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
+            DatetimeArray._from_sequence(mi)
+
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
 
@@ -178,6 +183,22 @@ class TestDatetimeArray:
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
+
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            pd.Timestamp.now(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp.now().to_pydatetime(),
+        ],
+    )
+    def test_setitem_objects(self, obj):
+        # make sure we accept datetime64 and datetime in addition to Timestamp
+        dti = pd.date_range("2000", periods=2, freq="D")
+        arr = dti._data
+
+        arr[0] = obj
+        assert arr[0] == obj
 
     def test_repeat_preserves_tz(self):
         dti = pd.date_range("2000", periods=2, freq="D", tz="US/Central")

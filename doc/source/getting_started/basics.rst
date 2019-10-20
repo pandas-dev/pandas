@@ -926,7 +926,7 @@ Single aggregations on a ``Series`` this will return a scalar value:
 
 .. ipython:: python
 
-   tsdf.A.agg('sum')
+   tsdf['A'].agg('sum')
 
 
 Aggregating with multiple functions
@@ -950,13 +950,13 @@ On a ``Series``, multiple functions return a ``Series``, indexed by the function
 
 .. ipython:: python
 
-   tsdf.A.agg(['sum', 'mean'])
+   tsdf['A'].agg(['sum', 'mean'])
 
 Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 
 .. ipython:: python
 
-   tsdf.A.agg(['sum', lambda x: x.mean()])
+   tsdf['A'].agg(['sum', lambda x: x.mean()])
 
 Passing a named function will yield that name for the row:
 
@@ -965,7 +965,7 @@ Passing a named function will yield that name for the row:
    def mymean(x):
        return x.mean()
 
-   tsdf.A.agg(['sum', mymean])
+   tsdf['A'].agg(['sum', mymean])
 
 Aggregating with a dict
 +++++++++++++++++++++++
@@ -986,7 +986,7 @@ not noted for a particular column will be ``NaN``:
 
    tsdf.agg({'A': ['mean', 'min'], 'B': 'sum'})
 
-.. _basics.aggregation.mixed_dtypes:
+.. _basics.aggregation.mixed_string:
 
 Mixed dtypes
 ++++++++++++
@@ -1065,7 +1065,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 
 .. ipython:: python
 
-   tsdf.A.transform(np.abs)
+   tsdf['A'].transform(np.abs)
 
 
 Transform with multiple functions
@@ -1084,7 +1084,7 @@ resulting column names will be the transforming functions.
 
 .. ipython:: python
 
-   tsdf.A.transform([np.abs, lambda x: x + 1])
+   tsdf['A'].transform([np.abs, lambda x: x + 1])
 
 
 Transforming with a dict
@@ -1704,13 +1704,20 @@ built-in string methods. For example:
 
  .. ipython:: python
 
-  s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+  s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
+                dtype="string")
   s.str.lower()
 
 Powerful pattern-matching methods are provided as well, but note that
 pattern-matching generally uses `regular expressions
 <https://docs.python.org/3/library/re.html>`__ by default (and in some cases
 always uses them).
+
+.. note::
+
+   Prior to pandas 1.0, string methods were only available on ``object`` -dtype
+   ``Series``. Pandas 1.0 added the :class:`StringDtype` which is dedicated
+   to strings. See :ref:`text.types` for more.
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
 description.
@@ -1925,9 +1932,15 @@ period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.
 sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
 nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+Strings             :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
 =================== ========================= ================== ============================= =============================
 
-Pandas uses the ``object`` dtype for storing strings.
+Pandas has two ways to store strings.
+
+1. ``object`` dtype, which can hold any Python object, including strings.
+2. :class:`StringDtype`, which is dedicated to strings.
+
+Generally, we recommend using :class:`StringDtype`. See :ref:`text.types` fore more.
 
 Finally, arbitrary objects may be stored using the ``object`` dtype, but should
 be avoided to the extent possible (for performance and interoperability with

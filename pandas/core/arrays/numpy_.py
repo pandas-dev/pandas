@@ -10,7 +10,7 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like, is_list_like
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
@@ -125,7 +125,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
-            raise ValueError("'values' must be a NumPy array.")
+            raise ValueError(
+                "'values' must be a NumPy array, not {typ}".format(
+                    typ=type(values).__name__
+                )
+            )
 
         if values.ndim != 1:
             raise ValueError("PandasArray must be 1-dimensional.")
@@ -225,27 +229,22 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
 
-        if not lib.is_scalar(key) and is_list_like(key):
+        scalar_key = lib.is_scalar(key)
+        scalar_value = lib.is_scalar(value)
+
+        if not scalar_key and scalar_value:
             key = np.asarray(key)
 
-        if not lib.is_scalar(value):
-            value = np.asarray(value)
+        if not scalar_value:
+            value = np.asarray(value, dtype=self._ndarray.dtype)
 
-        values = self._ndarray
-        t = np.result_type(value, values)
-        if t != self._ndarray.dtype:
-            values = values.astype(t, casting="safe")
-            values[key] = value
-            self._dtype = PandasDtype(t)
-            self._ndarray = values
-        else:
-            self._ndarray[key] = value
+        self._ndarray[key] = value
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._ndarray)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._ndarray.nbytes
 
     def isna(self):

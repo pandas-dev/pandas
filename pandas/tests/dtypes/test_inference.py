@@ -379,9 +379,12 @@ class TestInference:
         assert not libmissing.isneginf_scalar(1)
         assert not libmissing.isneginf_scalar("a")
 
-    def test_maybe_convert_numeric_infinities(self):
+    @pytest.mark.parametrize("maybe_int", [True, False])
+    @pytest.mark.parametrize(
+        "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
+    )
+    def test_maybe_convert_numeric_infinities(self, infinity, maybe_int):
         # see gh-13274
-        infinities = ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
         na_values = {"", "NULL", "nan"}
 
         pos = np.array(["inf"], dtype=np.float64)
@@ -389,35 +392,31 @@ class TestInference:
 
         msg = "Unable to parse string"
 
-        for infinity in infinities:
-            for maybe_int in (True, False):
-                out = lib.maybe_convert_numeric(
-                    np.array([infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array([infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                out = lib.maybe_convert_numeric(
-                    np.array(["-" + infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, neg)
+        out = lib.maybe_convert_numeric(
+            np.array(["-" + infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, neg)
 
-                out = lib.maybe_convert_numeric(
-                    np.array([infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array([infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                out = lib.maybe_convert_numeric(
-                    np.array(["+" + infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array(["+" + infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                # too many characters
-                with pytest.raises(ValueError, match=msg):
-                    lib.maybe_convert_numeric(
-                        np.array(["foo_" + infinity], dtype=object),
-                        na_values,
-                        maybe_int,
-                    )
+        # too many characters
+        with pytest.raises(ValueError, match=msg):
+            lib.maybe_convert_numeric(
+                np.array(["foo_" + infinity], dtype=object), na_values, maybe_int
+            )
 
     def test_maybe_convert_numeric_post_floatify_nan(self, coerce):
         # see gh-13314
@@ -595,6 +594,21 @@ class TestTypeInference:
         arr = np.array([1, 2, 3, 4, 5], dtype="i4")
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "integer"
+
+    @pytest.mark.parametrize(
+        "arr, skipna",
+        [
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), False),
+            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), True),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), False),
+            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), True),
+        ],
+    )
+    def test_integer_na(self, arr, skipna):
+        # GH 27392
+        result = lib.infer_dtype(arr, skipna=skipna)
+        expected = "integer" if skipna else "integer-na"
+        assert result == expected
 
     def test_deprecation(self):
         # GH 24050
@@ -1152,6 +1166,17 @@ class TestTypeInference:
 
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
+
+    def test_interval(self):
+        idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        inferred = lib.infer_dtype(idx, skipna=False)
+        assert inferred == "interval"
+
+        inferred = lib.infer_dtype(idx._data, skipna=False)
+        assert inferred == "interval"
+
+        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        assert inferred == "interval"
 
 
 class TestNumberScalar:

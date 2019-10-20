@@ -392,17 +392,6 @@ def test_ufunc_fallback(data):
     tm.assert_series_equal(result, expected)
 
 
-def test_formatting_values_deprecated():
-    class DecimalArray2(DecimalArray):
-        def _formatting_values(self):
-            return np.array(self)
-
-    ser = pd.Series(DecimalArray2([decimal.Decimal("1.0")]))
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        repr(ser)
-
-
 def test_array_ufunc():
     a = to_decimal([1, 2, 3])
     result = np.exp(a)

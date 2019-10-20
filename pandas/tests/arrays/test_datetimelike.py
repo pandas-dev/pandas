@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import OutOfBoundsDatetime
+
 import pandas as pd
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
@@ -462,6 +464,13 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_datetime_array_equal(result, expected)
 
+    def test_strftime(self, datetime_index):
+        arr = DatetimeArray(datetime_index)
+
+        result = arr.strftime("%Y %b")
+        expected = np.array(datetime_index.strftime("%Y %b"))
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
@@ -608,6 +617,15 @@ class TestPeriodArray(SharedTests):
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
+    def test_to_timestamp_out_of_bounds(self):
+        # GH#19643 previously overflowed silently
+        pi = pd.period_range("1500", freq="Y", periods=3)
+        with pytest.raises(OutOfBoundsDatetime):
+            pi.to_timestamp()
+
+        with pytest.raises(OutOfBoundsDatetime):
+            pi._data.to_timestamp()
+
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
     def test_bool_properties(self, period_index, propname):
         # in this case _bool_ops is just `is_leap_year`
@@ -652,6 +670,13 @@ class TestPeriodArray(SharedTests):
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_strftime(self, period_index):
+        arr = PeriodArray(period_index)
+
+        result = arr.strftime("%Y")
+        expected = np.array(period_index.strftime("%Y"))
+        tm.assert_numpy_array_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "array,casting_nats",
@@ -682,15 +707,15 @@ def test_casting_nat_setitem_array(array, casting_nats):
     [
         (
             pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"),),
+            (np.datetime64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"),),
+            (np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), pd.NaT.value),
         ),
     ],
     ids=lambda x: type(x).__name__,

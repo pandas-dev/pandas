@@ -420,7 +420,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     ----------
     xi : array_like
         A sorted list of x-coordinates, of length N.
-    yi :  array_like
+    yi : array_like
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
@@ -463,6 +463,7 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
+    orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
@@ -489,6 +490,10 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         values = values[0]
+
+    if orig_values.dtype.kind == "M":
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
 
     return values
 

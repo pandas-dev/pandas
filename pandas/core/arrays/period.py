@@ -70,7 +70,7 @@ def _period_array_cmp(cls, op):
     nat_result = opname == "__ne__"
 
     def wrapper(self, other):
-        op = getattr(self.asi8, opname)
+        ordinal_op = getattr(self.asi8, opname)
 
         other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -82,11 +82,11 @@ def _period_array_cmp(cls, op):
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            result = op(other.asi8)
+            result = ordinal_op(other.asi8)
 
             mask = self._isnan | other._isnan
             if mask.any():
@@ -98,7 +98,7 @@ def _period_array_cmp(cls, op):
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -161,7 +161,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
-    _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
 
@@ -342,32 +341,92 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
 
-    year = _field_accessor("year", 0, "The year of the period")
-    month = _field_accessor("month", 3, "The month as January=1, December=12")
-    day = _field_accessor("day", 4, "The days of the period")
-    hour = _field_accessor("hour", 5, "The hour of the period")
-    minute = _field_accessor("minute", 6, "The minute of the period")
-    second = _field_accessor("second", 7, "The second of the period")
-    weekofyear = _field_accessor("week", 8, "The week ordinal of the year")
+    year = _field_accessor(
+        "year",
+        0,
+        """
+        The year of the period.
+        """,
+    )
+    month = _field_accessor(
+        "month",
+        3,
+        """
+        The month as January=1, December=12.
+        """,
+    )
+    day = _field_accessor(
+        "day",
+        4,
+        """
+        The days of the period.
+        """,
+    )
+    hour = _field_accessor(
+        "hour",
+        5,
+        """
+        The hour of the period.
+        """,
+    )
+    minute = _field_accessor(
+        "minute",
+        6,
+        """
+        The minute of the period.
+        """,
+    )
+    second = _field_accessor(
+        "second",
+        7,
+        """
+        The second of the period.
+        """,
+    )
+    weekofyear = _field_accessor(
+        "week",
+        8,
+        """
+        The week ordinal of the year.
+        """,
+    )
     week = weekofyear
     dayofweek = _field_accessor(
-        "dayofweek", 10, "The day of the week with Monday=0, Sunday=6"
+        "dayofweek",
+        10,
+        """
+        The day of the week with Monday=0, Sunday=6.
+        """,
     )
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
-        "dayofyear", 9, "The ordinal day of the year"
+        "dayofyear",
+        9,
+        """
+        The ordinal day of the year.
+        """,
     )
-    quarter = _field_accessor("quarter", 2, "The quarter of the date")
+    quarter = _field_accessor(
+        "quarter",
+        2,
+        """
+        The quarter of the date.
+        """,
+    )
     qyear = _field_accessor("qyear", 1)
     days_in_month = _field_accessor(
-        "days_in_month", 11, "The number of days in the month"
+        "days_in_month",
+        11,
+        """
+        The number of days in the month.
+        """,
     )
     daysinmonth = days_in_month
 
     @property
     def is_leap_year(self):
         """
-        Logical indicating if the date belongs to a leap year
+        Logical indicating if the date belongs to a leap year.
         """
         return isleapyear_arr(np.asarray(self.year))
 
@@ -385,7 +444,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         Parameters
         ----------
-        freq : string or DateOffset, optional
+        freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             'S' otherwise
         how : {'s', 'e', 'start', 'end'}
@@ -456,7 +515,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         periods : int
             Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
+        freq : pandas.DateOffset, pandas.Timedelta, or str
             Frequency increment to shift by.
         """
         if freq is not None:
@@ -654,7 +713,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if not np.all(isna(other)):
+            delta = self._check_timedeltalike_freq_compat(other)
+        else:
+            # all-NaT TimedeltaIndex is equivalent to a single scalar td64 NaT
+            return self + np.timedelta64("NaT")
+
         return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):

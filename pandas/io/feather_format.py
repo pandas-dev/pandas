@@ -39,7 +39,7 @@ def to_feather(df, path):
     if not isinstance(df.index, Int64Index):
         raise ValueError(
             "feather does not support serializing {} "
-            "for the index; you can .reset_index()"
+            "for the index; you can .reset_index() "
             "to make the index into column(s)".format(type(df.index))
         )
 
@@ -53,7 +53,7 @@ def to_feather(df, path):
 
     if df.index.name is not None:
         raise ValueError(
-            "feather does not serialize index meta-data on a " "default index"
+            "feather does not serialize index meta-data on a default index"
         )
 
     # validate columns

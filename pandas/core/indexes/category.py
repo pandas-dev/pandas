@@ -10,7 +10,7 @@ from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -27,6 +27,7 @@ from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
+from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -76,7 +77,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Whether or not this categorical is treated as an ordered
         categorical. If not given here or in `dtype`, the resulting
         categorical will be unordered.
-    dtype : CategoricalDtype or the string "category", optional
+    dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
 
@@ -194,7 +195,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             # if data is None, then categories must be provided
             if is_scalar(data):
                 if data is not None or categories is None:
-                    cls._scalar_data_error(data)
+                    raise cls._scalar_data_error(data)
                 data = []
 
         data = cls._create_categorical(data, dtype=dtype)
@@ -446,9 +447,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @cache_readonly
     def _engine(self):
-
-        # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes, len(self))
+        # we are going to look things up with the codes themselves.
+        # To avoid a reference cycle, bind `codes` to a local variable, so
+        # `self` is not passed into the lambda.
+        codes = self.codes
+        return self._engine_type(lambda: codes, len(self))
 
     # introspection
     @cache_readonly
@@ -549,9 +552,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    def _can_reindex(self, indexer):
-        """ always allow reindexing """
-        pass
+    @Substitution(klass="CategoricalIndex")
+    @Appender(_shared_docs["searchsorted"])
+    def searchsorted(self, value, side="left", sorter=None):
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @Appender(_index_shared_docs["where"])
     def where(self, cond, other=None):
@@ -577,7 +581,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             Indices of output values in original index
 
         """
-
         if method is not None:
             raise NotImplementedError(
                 "argument method is not implemented for CategoricalIndex.reindex"
@@ -597,9 +600,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             indexer = None
             missing = []
         else:
-            if not target.is_unique:
-                raise ValueError("cannot reindex with a non-unique indexer")
-
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
         if len(self.codes) and indexer is not None:
@@ -899,31 +899,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             opname = "__{op}__".format(op=op.__name__)
 
             def _evaluate_compare(self, other):
-
-                # if we have a Categorical type, then must have the same
-                # categories
-                if isinstance(other, CategoricalIndex):
-                    other = other._values
-                elif isinstance(other, Index):
-                    other = self._create_categorical(other._values, dtype=self.dtype)
-
-                if isinstance(other, (ABCCategorical, np.ndarray, ABCSeries)):
-                    if len(self.values) != len(other):
-                        raise ValueError("Lengths must match to compare")
-
-                if isinstance(other, ABCCategorical):
-                    if not self.values.is_dtype_equal(other):
-                        raise TypeError(
-                            "categorical index comparisons must "
-                            "have the same categories and ordered "
-                            "attributes"
-                        )
-
-                result = op(self.values, other)
+                with np.errstate(all="ignore"):
+                    result = op(self.array, other)
                 if isinstance(result, ABCSeries):
                     # Dispatch to pd.Categorical returned NotImplemented
                     # and we got a Series back; down-cast to ndarray
-                    result = result.values
+                    result = result._values
                 return result
 
             return compat.set_function_name(_evaluate_compare, opname, cls)

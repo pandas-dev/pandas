@@ -8,7 +8,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.core.window as rwindow
+from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
@@ -101,7 +101,7 @@ class TestRolling(Base):
     @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
-        r = rwindow.Rolling(Series([2, 4, 6]), window=2)
+        r = Rolling(Series([2, 4, 6]), window=2)
 
         msg = "numpy operations are not valid with window objects"
 
@@ -325,4 +325,39 @@ class TestRolling(Base):
             expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
         result = df.rolling(2, axis=axis_frame).count()
+        tm.assert_frame_equal(result, expected)
+
+    def test_readonly_array(self):
+        # GH-27766
+        arr = np.array([1, 3, np.nan, 3, 5])
+        arr.setflags(write=False)
+        result = pd.Series(arr).rolling(2).mean()
+        expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])
+        tm.assert_series_equal(result, expected)
+
+    def test_rolling_datetime(self, axis_frame, tz_naive_fixture):
+        # GH-28192
+        tz = tz_naive_fixture
+        df = pd.DataFrame(
+            {
+                i: [1] * 2
+                for i in pd.date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)
+            }
+        )
+        if axis_frame in [0, "index"]:
+            result = df.T.rolling("2D", axis=axis_frame).sum().T
+        else:
+            result = df.rolling("2D", axis=axis_frame).sum()
+        expected = pd.DataFrame(
+            {
+                **{
+                    i: [1.0] * 2
+                    for i in pd.date_range("2019-8-01", periods=1, freq="D", tz=tz)
+                },
+                **{
+                    i: [2.0] * 2
+                    for i in pd.date_range("2019-8-02", "2019-8-03", freq="D", tz=tz)
+                },
+            }
+        )
         tm.assert_frame_equal(result, expected)

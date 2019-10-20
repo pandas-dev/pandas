@@ -60,6 +60,8 @@ _index_doc_kwargs.update(
     dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
 )
 
+_no_default_names = object()
+
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """
@@ -227,6 +229,10 @@ class MultiIndex(Index):
     of the mentioned helper methods.
     """
 
+    _deprecations = Index._deprecations | frozenset(
+        ["labels", "set_labels", "to_hierarchical"]
+    )
+
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
     _names = FrozenList()
@@ -268,6 +274,7 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
+        result._names = [None] * len(levels)
         if names is not None:
             # handles name validation
             result._set_names(names)
@@ -363,6 +370,15 @@ class MultiIndex(Index):
                     "Level values must be unique: {values} on "
                     "level {level}".format(values=[value for value in level], level=i)
                 )
+        if self.sortorder is not None:
+            if self.sortorder > self._lexsort_depth():
+                raise ValueError(
+                    "Value for sortorder must be inferior or equal "
+                    "to actual lexsort_depth: "
+                    "sortorder {sortorder} with lexsort_depth {lexsort_depth}".format(
+                        sortorder=self.sortorder, lexsort_depth=self._lexsort_depth()
+                    )
+                )
 
         codes = [
             self._validate_codes(level, code) for level, code in zip(levels, codes)
@@ -371,7 +387,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
+    def from_arrays(cls, arrays, sortorder=None, names=_no_default_names):
         """
         Convert arrays to MultiIndex.
 
@@ -425,7 +441,7 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = _factorize_from_iterables(arrays)
-        if names is None:
+        if names is _no_default_names:
             names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(
@@ -496,7 +512,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
+    def from_product(cls, iterables, sortorder=None, names=_no_default_names):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
@@ -509,6 +525,11 @@ class MultiIndex(Index):
             level).
         names : list / sequence of str, optional
             Names for the levels in the index.
+
+            .. versionchanged:: 1.0.0
+
+               If not explicitly provided, names will be inferred from the
+               elements of iterables if an element has a name attribute
 
         Returns
         -------
@@ -542,6 +563,9 @@ class MultiIndex(Index):
             iterables = list(iterables)
 
         codes, levels = _factorize_from_iterables(iterables)
+        if names is _no_default_names:
+            names = [getattr(it, "name", None) for it in iterables]
+
         codes = cartesian_product(codes)
         return MultiIndex(levels, codes, sortorder=sortorder, names=names)
 
@@ -615,12 +639,24 @@ class MultiIndex(Index):
 
     @property
     def levels(self):
-        return self._levels
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        return FrozenList(result)
 
     @property
     def _values(self):
-        # We override here, since our parent uses _data, which we dont' use.
+        # We override here, since our parent uses _data, which we don't use.
         return self.values
+
+    @property
+    def shape(self):
+        """
+        Return a tuple of the shape of the underlying data.
+        """
+        # overriding the base Index.shape definition to avoid materializing
+        # the values (GH-27384, GH-27775)
+        return (len(self),)
 
     @property
     def array(self):
@@ -646,8 +682,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Index._is_homogeneous_type
-        DataFrame._is_homogeneous_type
+        Index._is_homogeneous_type : Whether the object has a single
+            dtype.
+        DataFrame._is_homogeneous_type : Whether all the columns in a
+            DataFrame have the same dtype.
 
         Examples
         --------
@@ -795,7 +833,7 @@ class MultiIndex(Index):
         if level is None:
             new_codes = FrozenList(
                 _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
-                for lev, level_codes in zip(self.levels, codes)
+                for lev, level_codes in zip(self._levels, codes)
             )
         else:
             level = [self._get_level_number(l) for l in level]
@@ -1182,7 +1220,7 @@ class MultiIndex(Index):
         return len(self.codes[0])
 
     def _get_names(self):
-        return FrozenList(level.name for level in self.levels)
+        return FrozenList(self._names)
 
     def _set_names(self, names, level=None, validate=True):
         """
@@ -1228,7 +1266,7 @@ class MultiIndex(Index):
             level = [self._get_level_number(l) for l in level]
 
         # set the name
-        for l, name in zip(level, names):
+        for lev, name in zip(level, names):
             if name is not None:
                 # GH 20527
                 # All items in 'names' need to be hashable:
@@ -1238,10 +1276,10 @@ class MultiIndex(Index):
                             self.__class__.__name__
                         )
                     )
-            self.levels[l].rename(name, inplace=True)
+            self._names[lev] = name
 
     names = property(
-        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex\n"""
+        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
 
     @Appender(_index_shared_docs["_get_grouper_for_level"])
@@ -1548,13 +1586,13 @@ class MultiIndex(Index):
         values : ndarray
         """
 
-        values = self.levels[level]
+        lev = self.levels[level]
         level_codes = self.codes[level]
+        name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_1d(values._values, level_codes, fill_value=values._na_value)
-        values = values._shallow_copy(filled)
-        return values
+        filled = algos.take_1d(lev._values, level_codes, fill_value=lev._na_value)
+        return lev._shallow_copy(filled, name=name)
 
     def get_level_values(self, level):
         """
@@ -1616,7 +1654,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
         name : list / sequence of strings, optional
@@ -1753,7 +1791,7 @@ class MultiIndex(Index):
 
     def is_lexsorted(self):
         """
-        Return True if the codes are lexicographically sorted
+        Return True if the codes are lexicographically sorted.
 
         Returns
         -------
@@ -1764,16 +1802,23 @@ class MultiIndex(Index):
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
-            if self.sortorder == 0:
-                return self.nlevels
-            else:
-                return 0
+            return self.sortorder
 
+        return self._lexsort_depth()
+
+    def _lexsort_depth(self) -> int:
+        """
+        Compute and return the lexsort_depth, the number of levels of the
+        MultiIndex that are sorted lexically
+
+        Returns
+        ------
+        int
+        """
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
                 return k
-
         return 0
 
     def _sort_levels_monotonic(self):
@@ -2237,7 +2282,7 @@ class MultiIndex(Index):
 
     def reorder_levels(self, order):
         """
-        Rearrange levels using input order. May not drop or duplicate levels
+        Rearrange levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -2293,7 +2338,7 @@ class MultiIndex(Index):
         level : list-like, int or str, default 0
             If a string is given, must be a name of the level
             If list-like must be names or ints of levels.
-        ascending : boolean, default True
+        ascending : bool, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
         sort_remaining : sort by the remaining levels after level

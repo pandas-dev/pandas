@@ -5,7 +5,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, Index, isna
+from pandas import Categorical, Index, Series, isna
 import pandas.util.testing as tm
 
 
@@ -59,11 +59,13 @@ class TestCategoricalMissing:
             ),
             (dict(), "Must specify a fill 'value' or 'method'."),
             (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
+            (dict(value=Series([1, 2, 3, 4, "a"])), "fill value must be in categories"),
         ],
     )
     def test_fillna_raises(self, fillna_kwargs, msg):
         # https://github.com/pandas-dev/pandas/issues/19682
-        cat = Categorical([1, 2, 3])
+        # https://github.com/pandas-dev/pandas/issues/13628
+        cat = Categorical([1, 2, 3, None, None])
 
         with pytest.raises(ValueError, match=msg):
             cat.fillna(**fillna_kwargs)

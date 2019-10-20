@@ -28,6 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
@@ -1372,6 +1373,7 @@ should pass the ``escapechar`` option:
    print(data)
    pd.read_csv(StringIO(data), escapechar='\\')
 
+.. _io.fwf_reader:
 .. _io.fwf:
 
 Files with fixed width columns
@@ -3204,7 +3206,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options                                     # noqa: E402
+   from pandas import options  # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
@@ -3572,7 +3574,7 @@ Closing a Store and using a context manager:
 Read/write API
 ''''''''''''''
 
-``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
+``HDFStore`` supports a top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
 similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
@@ -3687,7 +3689,7 @@ Hierarchical keys
 Keys to a store can be specified as a string. These can be in a
 hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
 generate a hierarchy of sub-stores (or ``Groups`` in PyTables
-parlance). Keys can be specified with out the leading '/' and are **always**
+parlance). Keys can be specified without the leading '/' and are **always**
 absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
 everything in the sub-store and **below**, so be *careful*.
 
@@ -3809,6 +3811,8 @@ storing/selecting from homogeneous index ``DataFrames``.
         # the levels are automatically included as data columns
         store.select('df_mi', 'foo=bar')
 
+.. note::
+   The ``index`` keyword is reserved and cannot be use as a level name.
 
 .. _io.hdf5-query:
 
@@ -3825,8 +3829,9 @@ data.
 
 A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
-* ``index`` and ``columns`` are supported indexers of a ``DataFrames``.
+* ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
+* level name in a MultiIndex, with default name  ``level_0``, ``level_1``, … if not provided.
 
 Valid comparison operators are:
 
@@ -3917,7 +3922,7 @@ Use boolean expressions, with in-line function evaluation.
 
     store.select('dfq', "index>pd.Timestamp('20130104') & columns=['A', 'B']")
 
-Use and inline column reference
+Use inline column reference.
 
 .. ipython:: python
 
@@ -3945,7 +3950,7 @@ space. These are in terms of the total number of rows in a table.
 
 .. _io.hdf5-timedelta:
 
-Using timedelta64[ns]
+Query timedelta64[ns]
 +++++++++++++++++++++
 
 You can store and query using the ``timedelta64[ns]`` type. Terms can be
@@ -3963,6 +3968,35 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+Query MultiIndex
+++++++++++++++++
+
+Selecting from a ``MultiIndex`` can be achieved by using the name of the level.
+
+.. ipython:: python
+
+   df_mi.index.names
+   store.select('df_mi', "foo=baz and bar=two")
+
+If the ``MultiIndex`` levels names are ``None``, the levels are automatically made available via
+the ``level_n`` keyword with ``n`` the level of the ``MultiIndex`` you want to select from.
+
+.. ipython:: python
+
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
+   df_mi_2
+
+   store.append("df_mi_2", df_mi_2)
+
+   # the levels are automatically included as data columns with keyword level_n
+   store.select("df_mi_2", "level_0=foo and level_1=two")
+
 
 Indexing
 ++++++++
@@ -4593,8 +4627,8 @@ Performance
   write chunksize (default is 50000). This will significantly lower
   your memory usage on writing.
 * You can pass ``expectedrows=<int>`` to the first ``append``,
-  to set the TOTAL number of expected rows that ``PyTables`` will
-  expected. This will optimize read/write performance.
+  to set the TOTAL number of rows that ``PyTables`` will expect.
+  This will optimize read/write performance.
 * Duplicate rows can be written to tables, but are filtered out in
   selection (with the last items being selected; thus a table is
   unique on major, minor pairs)
@@ -4638,6 +4672,14 @@ Several caveats.
   on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
+
+.. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
 
 .. ipython:: python
 
@@ -4700,7 +4742,8 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4724,7 +4767,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
@@ -4843,7 +4888,7 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
 
 .. _io.sql:
@@ -5045,6 +5090,17 @@ Example of a callable using PostgreSQL `COPY clause
   from io import StringIO
 
   def psql_insert_copy(table, conn, keys, data_iter):
+      """
+      Execute SQL statement inserting data
+
+      Parameters
+      ----------
+      table : pandas.io.sql.SQLTable
+      conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+      keys : list of str
+          Column names
+      data_iter : Iterable that iterates the values to be inserted
+      """
       # gets a DBAPI connection that can provide a cursor
       dbapi_conn = conn.connection
       with dbapi_conn.cursor() as cur:
@@ -5077,6 +5133,18 @@ table name and optionally a subset of columns to read.
 .. ipython:: python
 
    pd.read_sql_table('data', engine)
+
+.. note::
+
+  Note that pandas infers column dtypes from query outputs, and not by looking
+  up data types in the physical database schema. For example, assume ``userid``
+  is an integer column in a table. Then, intuitively, ``select userid ...`` will
+  return integer-valued series, while ``select cast(userid as text) ...`` will
+  return object-valued (str) series. Accordingly, if the query output is empty,
+  then all resulting columns will be returned as object-valued (since they are
+  most general). If you foresee that your query will sometimes generate an empty
+  result, you may want to explicitly typecast afterwards to ensure dtype
+  integrity.
 
 You can also specify the name of the column as the ``DataFrame`` index,
 and specify a subset of columns to be read.
@@ -5491,30 +5559,29 @@ The top-level function :func:`read_spss` can read (but not write) SPSS
 `sav` (.sav) and  `zsav` (.zsav) format files.
 
 SPSS files contain column names. By default the
-whole file is read, categorical columns are converted into ``pd.Categorical``
+whole file is read, categorical columns are converted into ``pd.Categorical``,
 and a ``DataFrame`` with all columns is returned.
 
-Specify a ``usecols`` to obtain a subset of columns. Specify ``convert_categoricals=False``
+Specify the ``usecols`` parameter to obtain a subset of columns. Specify ``convert_categoricals=False``
 to avoid converting categorical columns into ``pd.Categorical``.
 
-Read a spss file:
+Read an SPSS file:
 
 .. code-block:: python
 
-    df = pd.read_spss('spss_data.zsav')
+    df = pd.read_spss('spss_data.sav')
 
-Extract a subset of columns ``usecols`` from SPSS file and
+Extract a subset of columns contained in ``usecols`` from an SPSS file and
 avoid converting categorical columns into ``pd.Categorical``:
 
 .. code-block:: python
 
-    df = pd.read_spss('spss_data.zsav', usecols=['foo', 'bar'],
+    df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
                       convert_categoricals=False)
 
-More info_ about the sav and zsav file format is available from the IBM
-web site.
+More information about the `sav` and `zsav` file format is available here_.
 
-.. _info: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
+.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
 .. _io.other:
 

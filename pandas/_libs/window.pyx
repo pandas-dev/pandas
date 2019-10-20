@@ -1296,7 +1296,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
         # The original impl didn't deal with variable window sizes
         # So the code was optimized for that
 
-        for i from starti[0] <= i < endi[0]:
+        for i in range(starti[0], endi[0]):
             ai = init_mm(values[i], &nobs, is_max)
 
             # Discard previous entries if we find new min or max
@@ -1644,7 +1644,7 @@ def roll_generic(object obj,
     else:
 
         # truncated windows at the beginning, through first full-length window
-        for i from 0 <= i < (int_min(win, N) - offset):
+        for i in range((int_min(win, N) - offset)):
             if counts[i] >= minp:
                 output[i] = func(arr[0: (i + offset + 1)], *args, **kwargs)
             else:
@@ -1654,7 +1654,7 @@ def roll_generic(object obj,
         buf = <float64_t *>arr.data
         bufarr = np.empty(win, dtype=float)
         oldbuf = <float64_t *>bufarr.data
-        for i from (win - offset) <= i < (N - offset):
+        for i in range((win - offset), (N - offset)):
             buf = buf + 1
             bufarr.data = <char *>buf
             if counts[i] >= minp:
@@ -1664,7 +1664,7 @@ def roll_generic(object obj,
         bufarr.data = <char *>oldbuf
 
         # truncated windows at the end
-        for i from int_max(N - offset, 0) <= i < N:
+        for i in range(int_max(N - offset, 0), N):
             if counts[i] >= minp:
                 output[i] = func(arr[int_max(i + offset - win + 1, 0): N],
                                  *args,
@@ -1675,9 +1675,22 @@ def roll_generic(object obj,
     return output
 
 
-def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
-                ndarray[float64_t, ndim=1, cast=True] weights,
-                int minp, bint avg=True):
+# ----------------------------------------------------------------------
+# Rolling sum and mean for weighted window
+
+
+def roll_weighted_sum(float64_t[:] values, float64_t[:] weights,
+                      int minp):
+    return _roll_weighted_sum_mean(values, weights, minp, avg=0)
+
+
+def roll_weighted_mean(float64_t[:] values, float64_t[:] weights,
+                       int minp):
+    return _roll_weighted_sum_mean(values, weights, minp, avg=1)
+
+
+def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
+                            int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
@@ -1688,6 +1701,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
 
     in_n = len(values)
     win_n = len(weights)
+
     output = np.zeros(in_n, dtype=float)
     counts = np.zeros(in_n, dtype=float)
     if avg:
@@ -1738,6 +1752,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
                 output[in_i] = NaN
 
     return output
+
 
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average

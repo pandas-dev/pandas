@@ -8,6 +8,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
+from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm
 
@@ -283,7 +284,7 @@ class TestiLoc(Base):
             [0, 1, 1, 3],
             "ix",
             {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-            objs=["series", "frame"],
+            kinds=["series", "frame"],
             typs=["ints", "uints"],
         )
 
@@ -722,7 +723,7 @@ class TestiLoc(Base):
                         else:
                             accessor = df
                         ans = str(bin(accessor[mask]["nums"].sum()))
-                    except Exception as e:
+                    except (ValueError, IndexingError, NotImplementedError) as e:
                         ans = str(e)
 
                     key = tuple([idx, method])

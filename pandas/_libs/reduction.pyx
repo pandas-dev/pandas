@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
-from cpython cimport Py_INCREF
+from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
@@ -15,7 +15,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects, values_from_object
+from pandas._libs.lib import maybe_convert_objects
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -23,7 +23,7 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
-        raise ValueError('function does not reduce')
+        raise ValueError('Function does not reduce')
 
     return np.empty(size, dtype='O')
 
@@ -103,7 +103,7 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            bint has_labels
+            bint has_labels, has_ndarray_labels
             object res, name, labels, index
             object cached_typ=None
 
@@ -113,14 +113,18 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
+        has_ndarray_labels = util.is_array(labels)
         has_index = self.index is not None
         incr = self.increment
 
         try:
             for i in range(self.nresults):
 
-                if has_labels:
-                    name = util.get_value_at(labels, i)
+                if has_ndarray_labels:
+                    name = labels[i]
+                elif has_labels:
+                    # labels is an ExtensionArray
+                    name = labels[i]
                 else:
                     name = None
 
@@ -166,9 +170,9 @@ cdef class Reducer:
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
-        except Exception, e:
-            if hasattr(e, 'args'):
-                e.args = e.args + (i,)
+        except Exception as err:
+            if hasattr(err, 'args'):
+                err.args = err.args + (i,)
             raise
         finally:
             # so we don't free the wrong memory
@@ -296,8 +300,6 @@ cdef class SeriesBinGrouper:
                 islider.advance(group_size)
                 vslider.advance(group_size)
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
@@ -364,7 +366,8 @@ cdef class SeriesGrouper:
 
     def get_result(self):
         cdef:
-            ndarray arr, result
+            # Define result to avoid UnboundLocalError
+            ndarray arr, result = None
             ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res
@@ -425,12 +428,13 @@ cdef class SeriesGrouper:
 
                     group_size = 0
 
-        except:
-            raise
         finally:
             # so we don't free the wrong memory
             islider.reset()
             vslider.reset()
+
+        if result is None:
+            raise ValueError("No result.")
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
@@ -532,7 +536,8 @@ def apply_frame_axis0(object frame, object f, object names,
 
             try:
                 piece = f(chunk)
-            except:
+            except Exception:
+                # We can't be more specific without knowing something about `f`
                 raise InvalidApply('Let this error raise above us')
 
             # Need to infer if low level index slider will cause segfaults
@@ -543,6 +548,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 else:
                     mutated = True
             except AttributeError:
+                # `piece` might not have an index, could be e.g. an int
                 pass
 
             results.append(piece)
@@ -628,7 +634,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def reduce(arr, f, axis=0, dummy=None, labels=None):
+def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
     """
 
     Parameters
@@ -641,11 +647,11 @@ def reduce(arr, f, axis=0, dummy=None, labels=None):
     """
 
     if labels is not None:
-        if labels._has_complex_internals:
-            raise Exception('Cannot use shortcut')
+        # Caller is responsible for ensuring we don't have MultiIndex
+        assert not labels._has_complex_internals
 
-        # pass as an ndarray
-        labels = values_from_object(labels)
+        # pass as an ndarray/ExtensionArray
+        labels = labels._values
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

@@ -821,6 +821,14 @@ class TestDataFrameIndexing(TestData):
         df[df > df2] = 47
         assert_frame_equal(df, df2)
 
+    def test_setitem_with_empty_listlike(self):
+        # GH #17101
+        index = pd.Index([], name="idx")
+        result = pd.DataFrame(columns=["A"], index=index)
+        result["A"] = []
+        expected = pd.DataFrame(columns=["A"], index=index)
+        tm.assert_index_equal(result.index, expected.index)
+
     def test_setitem_scalars_no_index(self):
         # GH16823 / 17894
         df = DataFrame()
@@ -2137,13 +2145,6 @@ class TestDataFrameIndexing(TestData):
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.core.sparse.api import SparseDataFrame
-
-        df = SparseDataFrame({"A": [999, 1]}, default_fill_value=999)
-        assert len(df["A"].sp_values) == len(df.iloc[:, 0].sp_values)
-
     def test_iat(self, float_frame):
 
         for i, row in enumerate(float_frame.index):
@@ -2151,23 +2152,6 @@ class TestDataFrameIndexing(TestData):
                 result = float_frame.iat[i, j]
                 expected = float_frame.at[row, col]
                 assert result == expected
-
-    def test_nested_exception(self):
-        # Ignore the strange way of triggering the problem
-        # (which may get fixed), it's just a way to trigger
-        # the issue or reraising an outer exception without
-        # a named argument
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
-            ["a", "b"]
-        )
-        index = list(df.index)
-        index[0] = ["a", "b"]
-        df.index = index
-
-        try:
-            repr(df)
-        except Exception as e:
-            assert type(e) != UnboundLocalError
 
     @pytest.mark.parametrize(
         "method,expected_values",
@@ -2232,6 +2216,22 @@ class TestDataFrameIndexing(TestData):
         mask = com.isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
+
+    def test_reindex_limit(self):
+        # GH 28631
+        data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]
+        exp_data = [
+            ["A", "A", "A"],
+            ["B", "B", "B"],
+            ["C", "C", "C"],
+            ["D", "D", "D"],
+            ["D", "D", "D"],
+            [np.nan, np.nan, np.nan],
+        ]
+        df = DataFrame(data)
+        result = df.reindex([0, 1, 2, 3, 4, 5], method="ffill", limit=1)
+        expected = DataFrame(exp_data)
+        tm.assert_frame_equal(result, expected)
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])

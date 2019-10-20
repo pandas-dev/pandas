@@ -40,6 +40,21 @@ def test_initial_warning():
     assert "Using an implicitly" in out
 
 
+def test_registry_mpl_resets():
+    # Check that Matplotlib converters are properly reset (see issue #27481)
+    code = (
+        "import matplotlib.units as units; "
+        "import matplotlib.dates as mdates; "
+        "n_conv = len(units.registry); "
+        "import pandas as pd; "
+        "pd.plotting.register_matplotlib_converters(); "
+        "pd.plotting.deregister_matplotlib_converters(); "
+        "assert len(units.registry) == n_conv"
+    )
+    call = [sys.executable, "-c", code]
+    subprocess.check_output(call)
+
+
 def test_timtetonum_accepts_unicode():
     assert converter.time2num("00:01") == converter.time2num("00:01")
 
@@ -373,3 +388,21 @@ class TestPeriodConverter:
         r1 = self.pc.convert([data, data], None, self.axis)
         r2 = [self.pc.convert(data, None, self.axis) for _ in range(2)]
         assert r1 == r2
+
+
+class TestTimeDeltaConverter:
+    """Test timedelta converter"""
+
+    @pytest.mark.parametrize(
+        "x, decimal, format_expected",
+        [
+            (0.0, 0, "00:00:00"),
+            (3972320000000, 1, "01:06:12.3"),
+            (713233432000000, 2, "8 days 06:07:13.43"),
+            (32423432000000, 4, "09:00:23.4320"),
+        ],
+    )
+    def test_format_timedelta_ticks(self, x, decimal, format_expected):
+        tdc = converter.TimeSeries_TimedeltaFormatter
+        result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
+        assert result == format_expected

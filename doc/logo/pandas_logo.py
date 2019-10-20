@@ -1,7 +1,6 @@
 # script to generate the pandas logo
 
-from matplotlib import pyplot as plt
-from matplotlib import rcParams
+from matplotlib import pyplot as plt, rcParams
 import numpy as np
 
 rcParams["mathtext.fontset"] = "cm"

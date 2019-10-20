@@ -13,7 +13,6 @@ import numpy as np
 
 import pandas as pd
 from pandas.core import common as com
-from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
     _remove_spaces_column_name,
@@ -42,7 +41,8 @@ import pandas.io.formats.printing as printing
 
 
 def tokenize_string(source):
-    """Tokenize a Python source code string.
+    """
+    Tokenize a Python source code string.
 
     Parameters
     ----------
@@ -367,8 +367,8 @@ def add_ops(op_classes):
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
-
-    """Custom ast walker. Parsers of other engines should subclass this class
+    """
+    Custom ast walker. Parsers of other engines should subclass this class
     if necessary.
 
     Parameters
@@ -580,6 +580,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.const_type(node.value, self.env)
 
     def visit_Num(self, node, **kwargs):
+        return self.const_type(node.n, self.env)
+
+    def visit_Constant(self, node, **kwargs):
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
@@ -799,9 +802,9 @@ class PythonExprVisitor(BaseExprVisitor):
         super().__init__(env, engine, parser, preparser=preparser)
 
 
-class Expr(StringMixin):
-
-    """Object encapsulating an expression.
+class Expr:
+    """
+    Object encapsulating an expression.
 
     Parameters
     ----------
@@ -831,7 +834,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __str__(self):
+    def __repr__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):

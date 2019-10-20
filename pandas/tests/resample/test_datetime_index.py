@@ -885,7 +885,7 @@ def test_resample_dtype_preservation():
     assert result.val.dtype == np.int32
 
 
-def test_resample_dtype_coerceion():
+def test_resample_dtype_coercion():
 
     pytest.importorskip("scipy.interpolate")
 

@@ -64,9 +64,9 @@ class ExtensionArray:
     shift
     take
     unique
+    view
     _concat_same_type
     _formatter
-    _formatting_values
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
@@ -147,7 +147,7 @@ class ExtensionArray:
     If implementing NumPy's ``__array_ufunc__`` interface, pandas expects
     that
 
-    1. You defer by raising ``NotImplemented`` when any Series are present
+    1. You defer by returning ``NotImplemented`` when any Series are present
        in `inputs`. Pandas will extract the arrays and call the ufunc again.
     2. You define a ``_HANDLED_TYPES`` tuple as an attribute on the class.
        Pandas inspect this to determine whether the ufunc is valid for the
@@ -177,7 +177,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -200,7 +200,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -474,7 +474,7 @@ class ExtensionArray:
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use NEXT valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -485,7 +485,8 @@ class ExtensionArray:
 
         Returns
         -------
-        filled : ExtensionArray with NA/NaN filled
+        ExtensionArray
+            With NA/NaN filled.
         """
         value, method = validate_fillna_kwargs(value, method)
 
@@ -514,7 +515,7 @@ class ExtensionArray:
 
     def dropna(self):
         """
-        Return ExtensionArray without NA values
+        Return ExtensionArray without NA values.
 
         Returns
         -------
@@ -539,13 +540,14 @@ class ExtensionArray:
 
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
-            The default is ``self.dtype.na_value``
+            The default is ``self.dtype.na_value``.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        shifted : ExtensionArray
+        ExtensionArray
+            Shifted.
 
         Notes
         -----
@@ -769,7 +771,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of integers
+        indices : sequence of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
@@ -862,6 +864,28 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+        """
+        Return a view on the array.
+
+        Parameters
+        ----------
+        dtype : str, np.dtype, or ExtensionDtype, optional
+            Default None.
+
+        Returns
+        -------
+        ExtensionArray
+            A view of the :class:`ExtensionArray`.
+        """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
+        if dtype is not None:
+            raise NotImplementedError(dtype)
+        return self[:]
+
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
@@ -908,21 +932,6 @@ class ExtensionArray:
             return str
         return repr
 
-    def _formatting_values(self) -> np.ndarray:
-        # At the moment, this has to be an array since we use result.dtype
-        """
-        An array of values to be printed in, e.g. the Series repr
-
-        .. deprecated:: 0.24.0
-
-           Use :meth:`ExtensionArray._formatter` instead.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
-
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
@@ -951,7 +960,7 @@ class ExtensionArray:
         cls, to_concat: Sequence[ABCExtensionArray]
     ) -> ABCExtensionArray:
         """
-        Concatenate multiple array
+        Concatenate multiple array.
 
         Parameters
         ----------
@@ -1095,7 +1104,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         ----------
         op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype :  bool, default True
+        coerce_to_dtype : bool, default True
             boolean indicating whether to attempt to convert
             the result to the underlying ExtensionArray dtype.
             If it's not possible to create a new ExtensionArray with the
