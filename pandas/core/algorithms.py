@@ -1859,14 +1859,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 # diff #
 # ---- #
 
-_diff_special = {
-    "float64",
-    "float32",
-    "int64",
-    "int32",
-    "int16",
-    "int8",
-}
+_diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
 def diff(arr, n: int, axis: int = 0):
