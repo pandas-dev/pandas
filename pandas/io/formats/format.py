@@ -480,15 +480,17 @@ class TableFormatter:
         """
         if buf is not None:
             buf = _stringify_path(buf)
-            if (hasattr(buf, "write")) & (encoding is not None):
-                raise ValueError("buf is not a file name and encoding is specified.")
+            # if (hasattr(buf, "write")) & (encoding is not None):
+            #     raise ValueError("buf is not a file name and encoding is specified.")
         else:
             buf = StringIO()
-            if encoding is not None:
-                raise ValueError("buf is not a file name and encoding is specified.")
+            # if encoding is not None:
+            #     raise ValueError("buf is not a file name and encoding is specified.")
 
         if encoding is None:
             encoding = "utf-8"
+        elif not isinstance(buf, str):
+            raise ValueError("buf is not a file name and encoding is specified.")
 
         if hasattr(buf, "write"):
             yield buf
