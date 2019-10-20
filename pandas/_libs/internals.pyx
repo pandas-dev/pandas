@@ -441,24 +441,21 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, blk_count, group=True):
+def get_blkno_placements(blknos, group=True):
     """
 
     Parameters
     ----------
     blknos : array of int64
-    blk_count : int
     group : bool
 
     Returns
     -------
     iterator
         yield (BlockPlacement, blkno)
-
     """
 
     blknos = ensure_int64(blknos)
 
-    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)

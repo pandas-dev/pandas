@@ -146,13 +146,13 @@ def get_dispatch(dtypes):
         inner_take_2d_axis0 = inner_take_2d_axis0_template % args
         inner_take_2d_axis1 = inner_take_2d_axis1_template % args
 
-        yield (name, dest, c_type_in, c_type_out, preval, postval, can_copy,
+        yield (name, dest, c_type_in, c_type_out, preval, postval,
                inner_take_1d, inner_take_2d_axis0, inner_take_2d_axis1)
 
 }}
 
 
-{{for name, dest, c_type_in, c_type_out, preval, postval, can_copy,
+{{for name, dest, c_type_in, c_type_out, preval, postval,
       inner_take_1d, inner_take_2d_axis0, inner_take_2d_axis1
       in get_dispatch(dtypes)}}
 
