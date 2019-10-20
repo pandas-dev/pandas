@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from datetime import datetime
-import functools
 from itertools import chain
 import operator
 import warnings
