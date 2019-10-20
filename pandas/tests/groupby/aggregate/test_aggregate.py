@@ -10,7 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
-from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
+from pandas.core.groupby.helper import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
