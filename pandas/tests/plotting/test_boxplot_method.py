@@ -488,7 +488,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         "col, expected_xticklabel",
         [
             ([("bar", "one"), ("bar", "two")], ["(bar, one)", "(bar, two)"]),
-            ("bar", ["bar", None]),
+            ("bar", ["bar", ""]),
             (["two"], ["(bar, two)", "(baz, two)", "(foo, two)", "(qux, two)"]),
         ],
     )
@@ -503,14 +503,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df = DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
 
         # check if df.boxplot works
-        if col != "bar":
-            axes = _check_plot_works(df.boxplot, column=col, return_type="axes")
+        axes = _check_plot_works(df.boxplot, column=col, return_type="axes")
 
-            # check if xticks labels are plotted correctly
-            result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
-            assert expected_xticklabel == result_xticklabel
-
-        else:
-            msg = "['bar'] not in index"
-            with pytest.raises(KeyError, match=msg):
-                _check_plot_works(df.boxplot, column=col, return_type="axes")
+        # check if xticks labels are plotted correctly
+        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
+        assert expected_xticklabel == result_xticklabel

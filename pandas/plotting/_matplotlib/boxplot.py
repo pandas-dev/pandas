@@ -355,6 +355,8 @@ def boxplot(
                 # will go to the second level of column index
                 data = data.loc[:, pd.IndexSlice[:, columns]]
                 columns = data.columns
+        else:
+            columns = data.columns
 
         result = plot_group(columns, data.values.T, ax)
         ax.grid(grid)
