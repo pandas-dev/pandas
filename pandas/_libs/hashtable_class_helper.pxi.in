@@ -279,7 +279,8 @@ cdef class {{name}}HashTable(HashTable):
             self.table = NULL
 
     def __contains__(self, object key):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
         k = kh_get_{{dtype}}(self.table, key)
         return k != self.table.n_buckets
 
@@ -290,10 +291,13 @@ cdef class {{name}}HashTable(HashTable):
                                        sizeof(uint32_t))  # flags
 
     cpdef get_item(self, {{dtype}}_t val):
-        cdef khiter_t k
-        k = kh_get_{{dtype}}(self.table, val)
-        if k != self.table.n_buckets:
-            return self.table.vals[k]
+        cdef:
+            khiter_t k
+            kh_{{dtype}}_t *table = self.table
+
+        k = kh_get(table, val)
+        if k != table.n_buckets:
+            return table.vals[k]
         else:
             raise KeyError(val)
 
@@ -301,11 +305,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
+            kh_{{dtype}}_t *table = self.table
 
-        k = kh_put_{{dtype}}(self.table, key, &ret)
-        self.table.keys[k] = key
-        if kh_exist_{{dtype}}(self.table, k):
-            self.table.vals[k] = val
+        k = kh_put(table, key, &ret)
+        table.keys[k] = key
+        if kh_exist(table, k):
+            table.vals[k] = val
         else:
             raise KeyError(key)
 
@@ -316,12 +321,13 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{dtype}}_t key
             khiter_t k
+            kh_{{dtype}}_t *table = self.table
 
         with nogil:
             for i in range(n):
                 key = keys[i]
-                k = kh_put_{{dtype}}(self.table, key, &ret)
-                self.table.vals[k] = <Py_ssize_t>values[i]
+                k = kh_put(table, key, &ret)
+                table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
     def map_locations(self, const {{dtype}}_t[:] values):
@@ -330,12 +336,13 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{dtype}}_t val
             khiter_t k
+            kh_{{dtype}}_t *table = self.table
 
         with nogil:
             for i in range(n):
                 val = values[i]
-                k = kh_put_{{dtype}}(self.table, val, &ret)
-                self.table.vals[k] = i
+                k = kh_put(table, val, &ret)
+                table.vals[k] = i
 
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values):
@@ -345,13 +352,14 @@ cdef class {{name}}HashTable(HashTable):
             {{dtype}}_t val
             khiter_t k
             int64_t[:] locs = np.empty(n, dtype=np.int64)
+            kh_{{dtype}}_t *table = self.table
 
         with nogil:
             for i in range(n):
                 val = values[i]
-                k = kh_get_{{dtype}}(self.table, val)
-                if k != self.table.n_buckets:
-                    locs[i] = self.table.vals[k]
+                k = kh_get(table, val)
+                if k != table.n_buckets:
+                    locs[i] = table.vals[k]
                 else:
                     locs[i] = -1
 
@@ -404,6 +412,7 @@ cdef class {{name}}HashTable(HashTable):
             khiter_t k
             {{name}}VectorData *ud
             bint use_na_value
+            kh_{{dtype}}_t *table = self.table
 
         if return_inverse:
             labels = np.empty(n, dtype=np.int64)
@@ -436,11 +445,11 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = na_sentinel
                     continue
 
-                k = kh_get_{{dtype}}(self.table, val)
+                k = kh_get(table, val)
 
-                if k == self.table.n_buckets:
+                if k == table.n_buckets:
                     # k hasn't been seen yet
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    k = kh_put(table, val, &ret)
 
                     if needs_resize(ud):
                         with gil:
@@ -451,13 +460,13 @@ cdef class {{name}}HashTable(HashTable):
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
                     if return_inverse:
-                        self.table.vals[k] = count
+                        table.vals[k] = count
                         labels[i] = count
                         count += 1
                 elif return_inverse:
                     # k falls into a previous bucket
                     # only relevant in case we need to construct the inverse
-                    idx = self.table.vals[k]
+                    idx = table.vals[k]
                     labels[i] = idx
 
         if return_inverse:
