@@ -233,7 +233,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
     return dt
 
 
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -253,7 +253,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime, datetime/dateutil.parser._result, str
     """
     if not isinstance(arg, str):
-        return arg
+        raise TypeError("parse_time_string argument must be str")
 
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
@@ -581,7 +581,7 @@ def try_parse_dates(object[:] values, parser=None,
                 else:
                     result[i] = parse_date(values[i])
         except Exception:
-            # failed
+            # Since parser is user-defined, we can't guess what it migh raise
             return values
     else:
         parse_date = parser
