@@ -50,13 +50,13 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((x for x in [])),
+            lambda: DataFrame((_ for _ in [])),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
-            lambda: DataFrame(data=(x for x in [])),
+            lambda: DataFrame(data=(_ for _ in [])),
             lambda: DataFrame(data=range(0)),
         ],
     )
@@ -72,7 +72,7 @@ class TestDataFrameConstructors:
         [
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
-            ([(x for x in [])], RangeIndex(1), RangeIndex(0)),
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
         ],
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
