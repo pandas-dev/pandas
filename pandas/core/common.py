@@ -445,15 +445,15 @@ def pipe(obj, func, *args, **kwargs):
 
     Parameters
     ----------
-    func : callable or tuple of (callable, string)
+    func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
         string indicating the keyword of `callable`` that expects the
         object.
-    args : iterable, optional
-        positional arguments passed into ``func``.
-    kwargs : dict, optional
-        a dictionary of keyword arguments passed into ``func``.
+    *args : iterable, optional
+        Positional arguments passed into ``func``.
+    **kwargs : dict, optional
+        A dictionary of keyword arguments passed into ``func``.
 
     Returns
     -------

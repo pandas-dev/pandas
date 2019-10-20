@@ -7,11 +7,12 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, lib, tslib
+from pandas._libs import NaT, Timestamp, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
+from pandas.core.dtypes.common import is_hashable
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -574,18 +575,6 @@ class Block(PandasObject):
         # may need to convert to categorical
         if self.is_categorical_astype(dtype):
 
-            # deprecated 17636
-            for deprecated_arg in ("categories", "ordered"):
-                if deprecated_arg in kwargs:
-                    raise ValueError(
-                        "Got an unexpected argument: {}".format(deprecated_arg)
-                    )
-
-            categories = kwargs.get("categories", None)
-            ordered = kwargs.get("ordered", None)
-            if com.any_not_none(categories, ordered):
-                dtype = CategoricalDtype(categories, ordered)
-
             if is_categorical_dtype(self.values):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
@@ -600,41 +589,42 @@ class Block(PandasObject):
                 return self.copy()
             return self
 
-        try:
-            # force the copy here
-            if self.is_extension:
-                values = self.values.astype(dtype)
-            else:
-                if issubclass(dtype.type, str):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
-                else:
-                    values = self.get_values(dtype=dtype)
-
-                # _astype_nansafe works fine with 1-d only
-                vals1d = values.ravel()
-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
-
-            # TODO(extension)
-            # should we make this attribute?
-            if isinstance(values, np.ndarray):
-                values = values.reshape(self.shape)
-
-        except Exception:
-            # e.g. astype_nansafe can fail on object-dtype of strings
-            #  trying to convert to float
-            if errors == "raise":
-                raise
-            newb = self.copy() if copy else self
+        # force the copy here
+        if self.is_extension:
+            # TODO: Should we try/except this astype?
+            values = self.values.astype(dtype)
         else:
-            newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+            if issubclass(dtype.type, str):
+
+                # use native type formatting for datetime/tz/timedelta
+                if self.is_datelike:
+                    values = self.to_native_types()
+
+                # astype formatting
+                else:
+                    values = self.get_values()
+
+            else:
+                values = self.get_values(dtype=dtype)
+
+            # _astype_nansafe works fine with 1-d only
+            vals1d = values.ravel()
+            try:
+                values = astype_nansafe(vals1d, dtype, copy=True)
+            except (ValueError, TypeError):
+                # e.g. astype_nansafe can fail on object-dtype of strings
+                #  trying to convert to float
+                if errors == "raise":
+                    raise
+                newb = self.copy() if copy else self
+                return newb
+
+        # TODO(extension)
+        # should we make this attribute?
+        if isinstance(values, np.ndarray):
+            values = values.reshape(self.shape)
+
+        newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -698,7 +688,6 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-
         values = self.get_values()
 
         if slicer is not None:
@@ -706,7 +695,8 @@ class Block(PandasObject):
         mask = isna(values)
 
         if not self.is_object and not quoting:
-            values = values.astype(str)
+            itemsize = writers.word_len(na_rep)
+            values = values.astype("<U{size}".format(size=itemsize))
         else:
             values = np.array(values, dtype="object")
 
@@ -1793,6 +1783,23 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def to_dense(self):
         return np.asarray(self.values)
 
+    def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
+        """override to use ExtensionArray astype for the conversion"""
+        values = self.values
+        if slicer is not None:
+            values = values[slicer]
+        mask = isna(values)
+
+        try:
+            values = values.astype(str)
+            values[mask] = na_rep
+        except Exception:
+            # eg SparseArray does not support setitem, needs to be converted to ndarray
+            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+
+        # we are expected to return a 2-d ndarray
+        return values.reshape(1, len(values))
+
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
         Take values according to indexer and return them as a block.
@@ -2126,7 +2133,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return True
 
     def _maybe_coerce_values(self, values):
-        """Input validation for values passed to __init__. Ensure that
+        """
+        Input validation for values passed to __init__. Ensure that
         we have datetime64ns, coercing if necessary.
 
         Parameters
@@ -2274,6 +2282,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     _can_hold_element = DatetimeBlock._can_hold_element
+    to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
 
     @property
@@ -3006,7 +3015,13 @@ class CategoricalBlock(ExtensionBlock):
         return result
 
     def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter: bool = None,
+        regex: bool = False,
+        convert: bool = True,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()

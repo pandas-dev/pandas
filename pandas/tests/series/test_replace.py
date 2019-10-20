@@ -314,6 +314,10 @@ class TestSeriesReplace(TestData):
         c.replace(c[2], "foo", inplace=True)
         tm.assert_series_equal(expected, c)
 
+        first_value = c[0]
+        c.replace(c[1], c[0], inplace=True)
+        assert c[0] == c[1] == first_value  # test replacing with existing value
+
     def test_replace_with_no_overflowerror(self):
         # GH 25616
         # casts to object without Exception from OverflowError

@@ -14,8 +14,8 @@ shadows the python class, where we do any heavy lifting.
 
 import warnings
 
-from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                      Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
+from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
+                             Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
 import numpy as np
 cimport numpy as cnp
@@ -140,7 +140,8 @@ cdef class _Timestamp(datetime):
 
         try:
             stamp += zone.strftime(' %%Z')
-        except:
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
             pass
 
         tz = ", tz='{0}'".format(zone) if zone is not None else ""
