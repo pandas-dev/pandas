@@ -725,7 +725,6 @@ class MultiIndex(Index):
         where the new values to be passed in each level are defined in a list.
         It is assumed that a new value is provided for each code describing
         values in the level.
-
         If the number of values passed is more than the number of index
         values in the level, ``set_levels`` will still pass the values
         to the level. The passed values are stored in the FrozenList
