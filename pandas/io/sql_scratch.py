@@ -10,3 +10,5 @@ def get_pkey_values(table: Table, conn: Connection):
     pkeys = get_pkey(table)
     statement = select([table.c[name] for name in pkeys])
     return [row for row in conn.execute(statement)]
+    # for row in conn.execute(statement):
+    #   yield row
