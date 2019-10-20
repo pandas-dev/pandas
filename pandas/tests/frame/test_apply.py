@@ -1416,7 +1416,7 @@ class TestDataFrameNamedAggregate:
             fft=pd.NamedAgg("B", aggfunc="max"),
         )
         expected = pd.DataFrame(
-            {"B": [10, 1, 4, 4]}, index=pd.Index(["foo", "bar", "cat", "fft"])
+            {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
         )
         tm.assert_frame_equal(result, expected)
 
