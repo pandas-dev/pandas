@@ -862,7 +862,7 @@ class DataFrameGroupBy(GroupBy):
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
         func = _maybe_mangle_lambdas(func)
-        print("here")
+
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
