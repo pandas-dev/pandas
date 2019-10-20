@@ -787,17 +787,10 @@ class MultiIndex(Index):
                     (3, 'b')],
                    names=['foo', 'bar'])
 
-<<<<<<< HEAD
         ``set_levels()`` passes values into the levels attribute that is
         represented by a FrozenList containing list of values for each
         level in the MultiIndex, even when the number of values passed
         for a level is more than the number of indexes available in the
-=======
-        ``set_levels()`` passes values into the levels attribute that is 
-        represented by a FrozenList containing list of values for each 
-        level in the MultiIndex, even when the number of values passed 
-        for a level is more than the number of indexes available in the 
->>>>>>> 09fc1b4b8... explain set_levels().levels examples + formatting
         MultiIndex itself.
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]], level=[0, 1])
