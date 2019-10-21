@@ -236,9 +236,9 @@ dtype: float64
 _ne_example_SERIES = """
 Examples
 --------
-s1 = pd.Series([1, 2, 3, 4, 5])
-s2 = pd.Series([1, 2, 5, 9, 2])
-s1.ne(s2)
+>>> s1 = pd.Series([1, 2, 3, 4, 5])
+>>> s2 = pd.Series([1, 2, 5, 9, 2])
+>>> s1.ne(s2)
 Out:
 0    False
 1    False
@@ -246,9 +246,9 @@ Out:
 3     True
 4     True
 dtype: bool
-s1 = pd.Series([1, 2, 3, 4, 5])
-s2 = pd.Series([1, 2, 3])
-s1.ne(s2)
+>>> s1 = pd.Series([1, 2, 3, 4, 5])
+>>> s2 = pd.Series([1, 2, 3])
+>>> s1.ne(s2)
 Out:
 0    False
 1    False
@@ -257,9 +257,9 @@ Out:
 4     True
 dtype: bool
 
-s1 = pd.Series([1, 2])
-s2 = pd.Series([1, 2, 3, 1, 7, 2])
-s1.ne(s2)
+>>> s1 = pd.Series([1, 2])
+>>> s2 = pd.Series([1, 2, 3, 1, 7, 2])
+>>> s1.ne(s2)
 Out:
 0    False
 1    False
@@ -267,19 +267,6 @@ Out:
 3     True
 4     True
 5     True
-dtype: bool
-
-s1 = pd.Series([1, 2])
-s2 = pd.Series([1, 2, 3, 1, 9, 9, 9])
-s1.ne(s2, fill_value=9)
-Out:
-0    False
-1    False
-2     True
-3     True
-4    False
-5    False
-6    False
 dtype: bool
 """
 
@@ -346,7 +333,7 @@ _op_descriptions = {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": "eq",
-        "series_examples": _ne_example_SERIES
+        "series_examples": _ne_example_SERIES,
     },
     "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
     "le": {
