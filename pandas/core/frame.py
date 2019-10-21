@@ -6627,9 +6627,12 @@ class DataFrame(NDFrame):
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
             func, indexes, order = _normalize_keyword_aggregation(kwargs)
-            reordered_indexes = [
-                pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
-            ]
+            if len(func) > 1:
+                reordered_indexes = [
+                    pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
+                ]
+            else:
+                reordered_indexes = list(kwargs.keys())
             kwargs = {}
         elif func is None:
             # nicer error message
