@@ -2128,7 +2128,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return True
 
     def _maybe_coerce_values(self, values):
-        """Input validation for values passed to __init__. Ensure that
+        """
+        Input validation for values passed to __init__. Ensure that
         we have datetime64ns, coercing if necessary.
 
         Parameters

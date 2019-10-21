@@ -10,12 +10,11 @@ labeling information
 """
 import collections
 from collections import OrderedDict, abc
-import functools
 from io import StringIO
 import itertools
 import sys
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Tuple, Type, Union
+from typing import FrozenSet, List, Optional, Sequence, Set, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -80,7 +79,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype
+from pandas._typing import Axes, Dtype, FilePathOrBuffer
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -559,14 +558,14 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def _repr_fits_vertical_(self):
+    def _repr_fits_vertical_(self) -> bool:
         """
         Check length against max_rows.
         """
         max_rows = get_option("display.max_rows")
         return len(self) <= max_rows
 
-    def _repr_fits_horizontal_(self, ignore_width=False):
+    def _repr_fits_horizontal_(self, ignore_width: bool = False) -> bool:
         """
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
@@ -620,7 +619,7 @@ class DataFrame(NDFrame):
 
         return repr_width < width
 
-    def _info_repr(self):
+    def _info_repr(self) -> bool:
         """
         True if the repr should show the info view.
         """
@@ -629,7 +628,7 @@ class DataFrame(NDFrame):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular DataFrame.
         """
@@ -659,7 +658,7 @@ class DataFrame(NDFrame):
 
         return buf.getvalue()
 
-    def _repr_html_(self):
+    def _repr_html_(self) -> Optional[str]:
         """
         Return a html representation for a particular DataFrame.
 
@@ -706,6 +705,7 @@ class DataFrame(NDFrame):
             return None
 
     @Substitution(
+        header_type="bool or sequence",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
@@ -715,25 +715,25 @@ class DataFrame(NDFrame):
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
         self,
-        buf=None,
-        columns=None,
-        col_space=None,
-        header=True,
-        index=True,
-        na_rep="NaN",
-        formatters=None,
-        float_format=None,
-        sparsify=None,
-        index_names=True,
-        justify=None,
-        max_rows=None,
-        min_rows=None,
-        max_cols=None,
-        show_dimensions=False,
-        decimal=".",
-        line_width=None,
-        max_colwidth=None,
-    ):
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        columns: Optional[Sequence[str]] = None,
+        col_space: Optional[int] = None,
+        header: Union[bool, Sequence[str]] = True,
+        index: bool = True,
+        na_rep: str = "NaN",
+        formatters: Optional[fmt.formatters_type] = None,
+        float_format: Optional[fmt.float_format_type] = None,
+        sparsify: Optional[bool] = None,
+        index_names: bool = True,
+        justify: Optional[str] = None,
+        max_rows: Optional[int] = None,
+        min_rows: Optional[int] = None,
+        max_cols: Optional[int] = None,
+        show_dimensions: bool = False,
+        decimal: str = ".",
+        line_width: Optional[int] = None,
+        max_colwidth: Optional[int] = None,
+    ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
         %(shared_params)s
@@ -2163,6 +2163,7 @@ class DataFrame(NDFrame):
         )
 
     @Substitution(
+        header_type="bool",
         header="Whether to print column labels, default True",
         col_space_type="str or int",
         col_space="The minimum width of each column in CSS length "
@@ -3395,15 +3396,6 @@ class DataFrame(NDFrame):
         5  False  2.0
         """
 
-        def _get_info_slice(obj, indexer):
-            """Slice the info axis of `obj` with `indexer`."""
-            if not hasattr(obj, "_info_axis_number"):
-                msg = "object of type {typ!r} has no info axis"
-                raise TypeError(msg.format(typ=type(obj).__name__))
-            slices = [slice(None)] * obj.ndim
-            slices[obj._info_axis_number] = indexer
-            return tuple(slices)
-
         if not is_list_like(include):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
@@ -3428,33 +3420,35 @@ class DataFrame(NDFrame):
                 )
             )
 
-        # empty include/exclude -> defaults to True
-        # three cases (we've already raised if both are empty)
-        # case 1: empty include, nonempty exclude
-        # we have True, True, ... True for include, same for exclude
-        # in the loop below we get the excluded
-        # and when we call '&' below we get only the excluded
-        # case 2: nonempty include, empty exclude
-        # same as case 1, but with include
-        # case 3: both nonempty
-        # the "union" of the logic of case 1 and case 2:
-        # we get the included and excluded, and return their logical and
-        include_these = Series(not bool(include), index=self.columns)
-        exclude_these = Series(not bool(exclude), index=self.columns)
+        # We raise when both include and exclude are empty
+        # Hence, we can just shrink the columns we want to keep
+        keep_these = np.full(self.shape[1], True)
 
-        def is_dtype_instance_mapper(idx, dtype):
-            return idx, functools.partial(issubclass, dtype.type)
+        def extract_unique_dtypes_from_dtypes_set(
+            dtypes_set: FrozenSet[Dtype], unique_dtypes: np.ndarray
+        ) -> List[Dtype]:
+            extracted_dtypes = [
+                unique_dtype
+                for unique_dtype in unique_dtypes
+                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+            ]
+            return extracted_dtypes
 
-        for idx, f in itertools.starmap(
-            is_dtype_instance_mapper, enumerate(self.dtypes)
-        ):
-            if include:  # checks for the case of empty include or exclude
-                include_these.iloc[idx] = any(map(f, include))
-            if exclude:
-                exclude_these.iloc[idx] = not any(map(f, exclude))
+        unique_dtypes = self.dtypes.unique()
 
-        dtype_indexer = include_these & exclude_these
-        return self.loc[_get_info_slice(self, dtype_indexer)]
+        if include:
+            included_dtypes = extract_unique_dtypes_from_dtypes_set(
+                include, unique_dtypes
+            )
+            keep_these &= self.dtypes.isin(included_dtypes)
+
+        if exclude:
+            excluded_dtypes = extract_unique_dtypes_from_dtypes_set(
+                exclude, unique_dtypes
+            )
+            keep_these &= ~self.dtypes.isin(excluded_dtypes)
+
+        return self.iloc[:, keep_these.values]
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
