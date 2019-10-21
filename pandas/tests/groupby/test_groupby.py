@@ -1969,12 +1969,20 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 def test_dup_labels_output_shape(groupby_func):
     # TODO: see if these can be fixed as well
-    if groupby_func in {"size", "quantile", "nunique", "nth", "ngroup"}:
-        pytest.xfail("Inconsistent output shape")
 
     df = pd.DataFrame([[1, 1]], columns=["a", "a"])
     grp_by = df.groupby([0])
-    result = getattr(grp_by, groupby_func)()
+
+    # TODO: move this to a helper function
+    args = []
+    if groupby_func in {"fillna", "nth"}:
+        args.append(0)
+    elif groupby_func == "corrwith":
+        args.append(pd.Series([1, 1]))
+    elif groupby_func == "tshift":
+        pytest.skip("Need to add DTI")
+    
+    result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, pd.Index(["a", "a"]))
