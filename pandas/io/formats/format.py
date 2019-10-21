@@ -70,6 +70,7 @@ import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.reshape.concat import concat
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -259,8 +260,6 @@ class SeriesFormatter:
         self._chk_truncate()
 
     def _chk_truncate(self) -> None:
-        from pandas.core.reshape.concat import concat
-
         min_rows = self.min_rows
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
@@ -608,8 +607,6 @@ class DataFrameFormatter(TableFormatter):
         Checks whether the frame should be truncated. If so, slices
         the frame up.
         """
-        from pandas.core.reshape.concat import concat
-
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
