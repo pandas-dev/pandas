@@ -15,10 +15,12 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    Callable,
     FrozenSet,
     Hashable,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -93,7 +95,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas._typing import Axis, Axes, Dtype, FilePathOrBuffer, Level
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -4031,7 +4033,24 @@ class DataFrame(NDFrame):
         "mapper",
         [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
     )
-    def rename(self, *args, **kwargs):
+    def rename(
+        self,
+        mapper: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        index: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        columns: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        axis: Optional[Axis] = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Optional[Level] = None,
+        errors: str = "ignore",
+    ) -> "DataFrame":
+
         """
         Alter axes labels.
 
@@ -4140,12 +4159,8 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = validate_axis_style_args(self, args, kwargs, "mapper", "rename")
-        kwargs.update(axes)
-        # Pop these, since the values are in `kwargs` under different names
-        kwargs.pop("axis", None)
-        kwargs.pop("mapper", None)
-        return super().rename(**kwargs)
+        return super().rename(mapper=mapper, index=index, columns=columns, axis=axis, copy=copy,
+                              inplace=inplace, level=level, errors=errors)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)

@@ -14,6 +14,7 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -65,7 +66,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer, Scalar
+from pandas._typing import Axis, Dtype, FilePathOrBuffer, Level, Scalar
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -1013,7 +1014,23 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    def rename(self, *args, **kwargs):
+    def rename(
+        self,
+        mapper: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        index: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        columns: Optional[
+            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        axis: Optional[Axis] = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Optional[Level] = None,
+        errors: str = "ignore",
+    ):
         """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
@@ -1126,44 +1143,40 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See the :ref:`user guide <basics.rename>` for more.
         """
-        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        copy = kwargs.pop("copy", True)
-        inplace = kwargs.pop("inplace", False)
-        level = kwargs.pop("level", None)
-        axis = kwargs.pop("axis", None)
-        errors = kwargs.pop("errors", "ignore")
-        if axis is not None:
-            # Validate the axis
-            self._get_axis_number(axis)
-
-        if kwargs:
-            raise TypeError(
-                "rename() got an unexpected keyword "
-                'argument "{0}"'.format(list(kwargs.keys())[0])
-            )
-
-        if com.count_not_none(*axes.values()) == 0:
+        if not (mapper or index or columns):
             raise TypeError("must pass an index to rename")
 
-        self._consolidate_inplace()
+        if (index or columns):
+            if axis is not None:
+                raise TypeError("Cannot specify both 'axis' and any of 'index' or 'columns'")
+            elif mapper:
+                raise TypeError("Cannot specify both 'mapper' and any of 'index' or 'columns'")
+        else:
+            # use the mapper argument
+            if axis in {1, "columns"}:
+                columns = mapper
+            else:
+                index = mapper
+
         result = self if inplace else self.copy(deep=copy)
 
-        # start in the axis order to eliminate too many copies
-        for axis in range(self._AXIS_LEN):
-            v = axes.get(self._AXIS_NAMES[axis])
-            if v is None:
+        for axis_no, replacements in enumerate((index, columns)):
+            if replacements is None:
                 continue
-            f = com.get_rename_function(v)
-            baxis = self._get_block_manager_axis(axis)
+
+            axis = self._get_axis(axis_no)
+            baxis = self._get_block_manager_axis(axis_no)            
+            f = com.get_rename_function(replacements)
+
             if level is not None:
-                level = self.axes[axis]._get_level_number(level)
+                level = axis._get_level_number(level)
 
             # GH 13473
-            if not callable(v):
-                indexer = self.axes[axis].get_indexer_for(v)
+            if not callable(replacements):
+                indexer = axis.get_indexer_for(replacements)
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [
-                        label for index, label in enumerate(v) if indexer[index] == -1
+                        label for index, label in enumerate(replacements) if indexer[index] == -1
                     ]
                     raise KeyError("{} not found in axis".format(missing_labels))
 

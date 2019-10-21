@@ -5,7 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, Hashable, Mapping, Optional, Union
 import warnings
 
 import numpy as np
@@ -78,6 +78,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
+from pandas._typing import Level
 import pandas.io.formats.format as fmt
 import pandas.plotting
 
@@ -4079,7 +4080,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             broadcast_axis=broadcast_axis,
         )
 
-    def rename(self, index=None, **kwargs):
+    def rename(
+        self,
+        index: Optional[
+            Union[Hashable, Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+        ] = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Optional[Level] = None,
+    ) -> "Series":
         """
         Alter Series index labels or name.
 

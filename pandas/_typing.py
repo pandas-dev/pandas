@@ -24,6 +24,7 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float, bool]
 Axis = Union[str, int]
+Level = Union[str, int]
 Ordered = Optional[bool]
 
 # use Collection after we drop support for py35
