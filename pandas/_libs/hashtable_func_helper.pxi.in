@@ -151,12 +151,14 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 
     if keep == 'last':
         {{if dtype == 'object'}}
-        for i from n > i >= 0:
+        for i in range(n - 1, -1, -1):
+            # equivalent: range(n)[::-1], which cython doesnt like in nogil
             kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
-            for i from n > i >= 0:
+            for i in range(n - 1, -1, -1):
+                # equivalent: range(n)[::-1], which cython doesnt like in nogil
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
