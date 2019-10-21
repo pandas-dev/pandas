@@ -13,7 +13,7 @@ from pandas._libs.tslibs.util cimport get_c_string
 
 {{py:
 
-# name, dtype, arg
+# name, dtype, c_type
 # the generated StringVector is not actually used
 # but is included for completeness (rather ObjectVector is used
 # for uniques in hashtables)
@@ -24,13 +24,13 @@ dtypes = [('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t')]
 }}
 
-{{for name, dtype, arg in dtypes}}
+{{for name, dtype, c_type in dtypes}}
 
 
 {{if dtype != 'int64'}}
 
 ctypedef struct {{name}}VectorData:
-    {{arg}} *data
+    {{c_type}} *data
     Py_ssize_t n, m
 
 {{endif}}
@@ -39,7 +39,7 @@ ctypedef struct {{name}}VectorData:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
-                                       {{arg}} x) nogil:
+                                       {{c_type}} x) nogil:
 
     data.data[data.n] = x
     data.n += 1
@@ -55,20 +55,36 @@ ctypedef fused vector_data:
 cdef inline bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
+
+ctypedef fused vector_t:
+    # char*  # TODO: include this?
+    float64_t
+    int64_t
+    uint64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void append_data(vector_t *data, Py_ssize_t *n, vector_t x) nogil:
+    # With fused types it is easier to separately pass data.data and data.n
+    #  than it is to just pass the VectorData data.
+    data[n[0]] = x
+    n[0] += 1
+
 # ----------------------------------------------------------------------
 # Vector
 # ----------------------------------------------------------------------
 
 {{py:
 
-# name, dtype, arg, idtype
-dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
-          ('UInt64', 'uint64', 'uint64_t', 'np.uint64'),
-          ('Int64', 'int64', 'int64_t', 'np.int64')]
+# name, dtype, c_type
+dtypes = [('Float64', 'float64', 'float64_t'),
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('Int64', 'int64', 'int64_t')]
 
 }}
 
-{{for name, dtype, arg, idtype in dtypes}}
+{{for name, dtype, c_type in dtypes}}
 
 cdef class {{name}}Vector:
 
@@ -87,13 +103,13 @@ cdef class {{name}}Vector:
         self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*>self.ao.data
+        self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
+        self.data.data = <{{c_type}}*>self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
-        self.data.data = <{{arg}}*>self.ao.data
+        self.data.data = <{{c_type}}*>self.ao.data
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -113,7 +129,7 @@ cdef class {{name}}Vector:
         self.external_view_exists = True
         return self.ao
 
-    cdef inline void append(self, {{arg}} x):
+    cdef inline void append(self, {{c_type}} x):
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -121,9 +137,9 @@ cdef class {{name}}Vector:
                                  "Vector.resize() needed")
             self.resize()
 
-        append_data_{{dtype}}(self.data, x)
+        append_data(self.data.data, &self.data.n, x)
 
-    cdef extend(self, const {{arg}}[:] x):
+    cdef extend(self, const {{c_type}}[:] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -458,7 +474,7 @@ cdef class {{name}}HashTable(HashTable):
                                                  "uniques held, but "
                                                  "Vector.resize() needed")
                             uniques.resize()
-                    append_data_{{dtype}}(ud, val)
+                    append_data(ud.data, &ud.n, val)
                     if return_inverse:
                         table.vals[k] = count
                         labels[i] = count
@@ -574,7 +590,7 @@ cdef class {{name}}HashTable(HashTable):
                     if needs_resize(ud):
                         with gil:
                             uniques.resize()
-                    append_data_{{dtype}}(ud, val)
+                    append_data(ud.data, &ud.n, val)
                     labels[i] = count
                     count += 1
 

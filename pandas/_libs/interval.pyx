@@ -18,7 +18,7 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
 
 from pandas._libs.tslibs import Timestamp

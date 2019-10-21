@@ -80,10 +80,6 @@ cdef inline khiter_t kh_get(table_t *table, scalar_t val) nogil:
     raise TypeError
 
 
-# ----------------------------------------------------------------------
-# VectorData
-# ----------------------------------------------------------------------
-
 {{py:
 
 # dtype, ttype
