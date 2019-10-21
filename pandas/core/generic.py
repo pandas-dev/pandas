@@ -1019,7 +1019,7 @@ class NDFrame(PandasObject, SelectionMixin):
         mapper: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
-            *,
+        *,
         index: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
@@ -1147,11 +1147,15 @@ class NDFrame(PandasObject, SelectionMixin):
         if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")
 
-        if (index is not None or columns is not None):
+        if index is not None or columns is not None:
             if axis is not None:
-                raise TypeError("Cannot specify both 'axis' and any of 'index' or 'columns'")
+                raise TypeError(
+                    "Cannot specify both 'axis' and any of 'index' or 'columns'"
+                )
             elif mapper is not None:
-                raise TypeError("Cannot specify both 'mapper' and any of 'index' or 'columns'")
+                raise TypeError(
+                    "Cannot specify both 'mapper' and any of 'index' or 'columns'"
+                )
         else:
             # use the mapper argument
             if axis in {1, "columns"}:
@@ -1166,7 +1170,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 continue
 
             axis = self._get_axis(axis_no)
-            baxis = self._get_block_manager_axis(axis_no)            
+            baxis = self._get_block_manager_axis(axis_no)
             f = com.get_rename_function(replacements)
 
             if level is not None:
@@ -1177,7 +1181,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 indexer = axis.get_indexer_for(replacements)
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [
-                        label for index, label in enumerate(replacements) if indexer[index] == -1
+                        label
+                        for index, label in enumerate(replacements)
+                        if indexer[index] == -1
                     ]
                     raise KeyError("{} not found in axis".format(missing_labels))
 
@@ -7030,7 +7036,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -7103,7 +7109,7 @@ class NDFrame(PandasObject, SelectionMixin):
             limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
         if inplace:
@@ -7803,7 +7809,7 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7929,7 +7935,7 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            **kwargs
+            **kwargs,
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):
@@ -11570,7 +11576,7 @@ def _make_min_count_stat_function(
         level=None,
         numeric_only=None,
         min_count=0,
-        **kwargs
+        **kwargs,
     ):
         if name == "sum":
             nv.validate_sum(tuple(), kwargs)

@@ -53,6 +53,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
+from pandas._typing import Axis, Level
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
@@ -78,7 +79,6 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
-from pandas._typing import Axis, Level
 import pandas.io.formats.format as fmt
 import pandas.plotting
 
@@ -4085,12 +4085,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         index: Optional[
             Union[Hashable, Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
-            *,
-            axis: Optional[Axis] = None,
+        *,
+        axis: Optional[Axis] = None,
         copy: bool = True,
         inplace: bool = False,
         level: Optional[Level] = None,
-            errors: str = "ignore"
+        errors: str = "ignore"
     ) -> "Series":
         """
         Alter Series index labels or name.
@@ -4156,7 +4156,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
         """
         if callable(index) or is_dict_like(index):
-            return super().rename(index, copy=copy, inplace=inplace, level=level, errors=errors)
+            return super().rename(
+                index, copy=copy, inplace=inplace, level=level, errors=errors
+            )
         else:
             return self._set_name(index, inplace=inplace)
 

@@ -1379,7 +1379,7 @@ class TestDataFrameAlterAxes:
             df.rename(None, columns=None)
 
         with pytest.raises(TypeError, match=msg):
-            df.rename(None, columns=None, index=None)            
+            df.rename(None, columns=None, index=None)
 
     def test_rename_mapper_and_positional_arguments_raises(self):
         # GH 29136

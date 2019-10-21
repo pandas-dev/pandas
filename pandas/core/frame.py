@@ -95,7 +95,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axis, Axes, Dtype, FilePathOrBuffer, Level
+from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -2076,7 +2076,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
-            **kwargs
+            **kwargs,
         )
         writer.write_file()
 
@@ -2102,7 +2102,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Write a DataFrame to the binary parquet format.
@@ -2182,7 +2182,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(
@@ -4038,7 +4038,7 @@ class DataFrame(NDFrame):
         mapper: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
-            *,
+        *,
         index: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
@@ -4160,8 +4160,16 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        return super().rename(mapper=mapper, index=index, columns=columns, axis=axis, copy=copy,
-                              inplace=inplace, level=level, errors=errors)
+        return super().rename(
+            mapper=mapper,
+            index=index,
+            columns=columns,
+            axis=axis,
+            copy=copy,
+            inplace=inplace,
+            level=level,
+            errors=errors,
+        )
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
@@ -4173,7 +4181,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         return super().fillna(
             value=value,
@@ -4182,7 +4190,7 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -6629,7 +6637,7 @@ class DataFrame(NDFrame):
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs
+        **_shared_doc_kwargs,
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
