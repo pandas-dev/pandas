@@ -51,6 +51,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
@@ -922,8 +923,6 @@ b  2""",
         return self._wrap_aggregated_output(output)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
-        from pandas.core.reshape.concat import concat
-
         def reset_identity(values):
             # reset the identities of the components
             # of the values to prevent aliasing
@@ -1852,8 +1851,6 @@ class GroupBy(_GroupBy):
         a    2.0
         b    3.0
         """
-        from pandas import concat
-
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError(

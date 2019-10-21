@@ -66,6 +66,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
@@ -274,8 +275,6 @@ class SeriesGroupBy(GroupBy):
 
         # _level handled at higher
         if not _level and isinstance(ret, dict):
-            from pandas import concat
-
             ret = concat(ret, axis=1)
         return ret
 
@@ -442,8 +441,6 @@ class SeriesGroupBy(GroupBy):
 
         # check for empty "results" to avoid concat ValueError
         if results:
-            from pandas.core.reshape.concat import concat
-
             result = concat(results).sort_index()
         else:
             result = Series()
@@ -1223,8 +1220,6 @@ class DataFrameGroupBy(GroupBy):
                         # still a series
                         # path added as of GH 5545
                         elif all_indexed_same:
-                            from pandas.core.reshape.concat import concat
-
                             return concat(values)
 
                     if not all_indexed_same:
@@ -1259,8 +1254,6 @@ class DataFrameGroupBy(GroupBy):
                         else:
                             # GH5788 instead of stacking; concat gets the
                             # dtypes correct
-                            from pandas.core.reshape.concat import concat
-
                             result = concat(
                                 values,
                                 keys=key_index,
@@ -1305,8 +1298,6 @@ class DataFrameGroupBy(GroupBy):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
     def _transform_general(self, func, *args, **kwargs):
-        from pandas.core.reshape.concat import concat
-
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
@@ -1655,8 +1646,6 @@ class DataFrameGroupBy(GroupBy):
             )
 
     def _apply_to_column_groupbys(self, func):
-        from pandas.core.reshape.concat import concat
-
         return concat(
             (func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns,
@@ -1745,8 +1734,6 @@ class DataFrameGroupBy(GroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
-            from pandas.core.reshape.concat import concat
-
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
             results.columns.names = obj.columns.names

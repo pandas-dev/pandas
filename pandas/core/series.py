@@ -75,6 +75,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.reshape.concat import concat
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -2709,8 +2710,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
-        from pandas.core.reshape.concat import concat
-
         if isinstance(to_append, (list, tuple)):
             to_concat = [self]
             to_concat.extend(to_append)
