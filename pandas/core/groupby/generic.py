@@ -1608,8 +1608,12 @@ class DataFrameGroupBy(GroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
-        return DataFrame(output, index=self.obj.index)
+    def _wrap_transformed_output(self, output: List[Series], names=None) -> DataFrame:
+        from pandas.core.reshape.concat import concat
+        df = concat(output, axis=1)
+        df.index = self.obj.index
+
+        return df
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:

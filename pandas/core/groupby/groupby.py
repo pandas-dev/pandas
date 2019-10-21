@@ -846,7 +846,7 @@ b  2""",
         )
 
     def _cython_transform(self, how, numeric_only=True, **kwargs):
-        output = collections.OrderedDict()
+        output = []  # type: List[Series]
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -856,10 +856,12 @@ b  2""",
                 result, names = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
+
+            result = Series(result, name=name)
             if self._transform_should_cast(how):
-                output[name] = self._try_cast(result, obj)
+                output.append(self._try_cast(result, obj))
             else:
-                output[name] = result
+                output.append(result)
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
