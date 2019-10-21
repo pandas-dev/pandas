@@ -6663,11 +6663,10 @@ class DataFrame(NDFrame):
             if len(func) > 1:
                 for k, v in func_index_dict.items():
                     reordered_result.loc[v, k] = result[k][::-1].dropna().values
+                result = reordered_result.reindex(indexes)
             else:
                 result.index = reordered_indexes
-                reordered_result = result
 
-            result = reordered_result.reindex(indexes)
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):

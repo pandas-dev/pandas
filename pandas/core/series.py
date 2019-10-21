@@ -3817,7 +3817,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._get_axis_number(axis)
 
         if func is None:
-            func = kwargs
+            # This is due to order issue of dictionary in PY35, e.g. if {"foo"
+            # : "sum", "bar": "min"}, then it will take "bar" first because it
+            # b is before f
+            func = OrderedDict()
+            for k, v in kwargs.items():
+                func[k] = v
 
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
