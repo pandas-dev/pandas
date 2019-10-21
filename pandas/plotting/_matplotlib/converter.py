@@ -56,7 +56,7 @@ def get_pairs():
     return pairs
 
 
-def pandas_converters_deco(func):
+def register_pandas_matplotlib_converters(func):
     """
     Decorator applying pandas_converters.
     """
@@ -76,7 +76,7 @@ def pandas_converters():
 
     See Also
     --------
-    pandas_converters_deco : Decorator that applies this.
+    register_pandas_matplotlib_converters : Decorator that applies this.
     """
     value = get_option("plotting.matplotlib.register_converters")
 

@@ -27,7 +27,7 @@ import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
-from pandas.plotting._matplotlib.converter import pandas_converters_deco
+from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
@@ -642,7 +642,7 @@ class MPLPlot:
         return x
 
     @classmethod
-    @pandas_converters_deco
+    @register_pandas_matplotlib_converters
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
         mask = isna(y)
         if mask.any():

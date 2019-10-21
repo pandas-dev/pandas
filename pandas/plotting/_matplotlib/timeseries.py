@@ -25,7 +25,7 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
-    pandas_converters_deco,
+    register_pandas_matplotlib_converters,
 )
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset
 # Plotting functions and monkey patches
 
 
-@pandas_converters_deco
+@register_pandas_matplotlib_converters
 def tsplot(series, plotf, ax=None, **kwargs):
     """
     Plots a Series on the given Matplotlib axes or the current axes

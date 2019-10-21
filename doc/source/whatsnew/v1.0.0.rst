@@ -177,7 +177,7 @@ Backwards incompatible API changes
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
   Now, pandas custom formatters will only be applied to plots created by pandas, through :meth:`~DataFrame.plot`.
   Previously, pandas' formatters would be applied to all plots created *after* a :meth:`~DataFrame.plot`.
-
+  See :ref:`plotting.formatters` for more.
 
 .. _whatsnew_1000.api.other:
 
