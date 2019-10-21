@@ -44,6 +44,7 @@ from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
+from pandas.core.reshape.concat import concat
 import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
 
@@ -156,8 +157,6 @@ def _groupby_and_merge(by, on, left, right, _merge_pieces, check_duplicates=True
 
     # preserve the original order
     # if we have a missing piece this can be reset
-    from pandas.core.reshape.concat import concat
-
     result = concat(pieces, ignore_index=True)
     result = result.reindex(columns=pieces[0].columns, copy=False)
     return result, lby
