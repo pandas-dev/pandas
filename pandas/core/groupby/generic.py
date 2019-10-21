@@ -1733,9 +1733,11 @@ class DataFrameGroupBy(GroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
+            # TODO: this is duplicative of how GroupBy naturally works
+            # Try to consolidate with normal wrapping functions
             from pandas.core.reshape.concat import concat
 
-            results = [groupby_series(obj[col], col) for col in obj.columns]
+            results = [groupby_series(content, label) for label, content in obj.items()]
             results = concat(results, axis=1)
             results.columns.names = obj.columns.names
 

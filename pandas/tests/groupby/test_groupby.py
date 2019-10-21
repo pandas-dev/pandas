@@ -1968,7 +1968,8 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 
 def test_dup_labels_output_shape(groupby_func):
-    # TODO: see if these can be fixed as well
+    if groupby_func in {"size", "ngroup", "cumcount"}:
+        pytest.skip("Not applicable")
 
     df = pd.DataFrame([[1, 1]], columns=["a", "a"])
     grp_by = df.groupby([0])
