@@ -3820,9 +3820,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # This is due to order issue of dictionary in PY35, e.g. if {"foo"
             # : "sum", "bar": "min"}, then it will take "bar" first because it
             # b is before f
-            func = OrderedDict()
-            for k, v in kwargs.items():
-                func[k] = v
+            func = OrderedDict(kwargs.items())
 
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
