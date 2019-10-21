@@ -5596,76 +5596,76 @@ Given the next test set:
 
     import numpy as np
 
-    sz = 1000000
-    np.random.seed(42)
-    df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
+   sz = 1000000
+   np.random.seed(42)
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
-    def test_sql_write(df):
-        if os.path.exists('test.sql'):
-            os.remove('test.sql')
-        sql_db = sqlite3.connect('test.sql')
-        df.to_sql(name='test_table', con=sql_db)
-        sql_db.close()
+   def test_sql_write(df):
+       if os.path.exists('test.sql'):
+           os.remove('test.sql')
+       sql_db = sqlite3.connect('test.sql')
+       df.to_sql(name='test_table', con=sql_db)
+       sql_db.close()
 
-    def test_sql_read():
-        sql_db = sqlite3.connect('test.sql')
-        pd.read_sql_query("select * from test_table", sql_db)
-        sql_db.close()
+   def test_sql_read():
+       sql_db = sqlite3.connect('test.sql')
+       pd.read_sql_query("select * from test_table", sql_db)
+       sql_db.close()
 
-    def test_hdf_fixed_write(df):
-        df.to_hdf('test_fixed.hdf', 'test', mode='w')
+   def test_hdf_fixed_write(df):
+       df.to_hdf('test_fixed.hdf', 'test', mode='w')
 
-    def test_hdf_fixed_read():
-        pd.read_hdf('test_fixed.hdf', 'test')
+   def test_hdf_fixed_read():
+       pd.read_hdf('test_fixed.hdf', 'test')
 
-    def test_hdf_fixed_write_compress(df):
-        df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
+   def test_hdf_fixed_write_compress(df):
+       df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
 
-    def test_hdf_fixed_read_compress():
-        pd.read_hdf('test_fixed_compress.hdf', 'test')
+   def test_hdf_fixed_read_compress():
+       pd.read_hdf('test_fixed_compress.hdf', 'test')
 
-    def test_hdf_table_write(df):
-        df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
+   def test_hdf_table_write(df):
+       df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
 
-    def test_hdf_table_read():
-        pd.read_hdf('test_table.hdf', 'test')
+   def test_hdf_table_read():
+       pd.read_hdf('test_table.hdf', 'test')
 
-    def test_hdf_table_write_compress(df):
-        df.to_hdf('test_table_compress.hdf', 'test', mode='w',
-                  complib='blosc', format='table')
+   def test_hdf_table_write_compress(df):
+       df.to_hdf('test_table_compress.hdf', 'test', mode='w',
+                 complib='blosc', format='table')
 
-    def test_hdf_table_read_compress():
-        pd.read_hdf('test_table_compress.hdf', 'test')
+   def test_hdf_table_read_compress():
+       pd.read_hdf('test_table_compress.hdf', 'test')
 
-    def test_csv_write(df):
-        df.to_csv('test.csv', mode='w')
+   def test_csv_write(df):
+       df.to_csv('test.csv', mode='w')
 
-    def test_csv_read():
-        pd.read_csv('test.csv', index_col=0)
+   def test_csv_read():
+       pd.read_csv('test.csv', index_col=0)
 
-    def test_feather_write(df):
-        df.to_feather('test.feather')
+   def test_feather_write(df):
+       df.to_feather('test.feather')
 
-    def test_feather_read():
-        pd.read_feather('test.feather')
+   def test_feather_read():
+       pd.read_feather('test.feather')
 
-    def test_pickle_write(df):
-        df.to_pickle('test.pkl')
+   def test_pickle_write(df):
+       df.to_pickle('test.pkl')
 
-    def test_pickle_read():
-        pd.read_pickle('test.pkl')
+   def test_pickle_read():
+       pd.read_pickle('test.pkl')
 
-    def test_pickle_write_compress(df):
-        df.to_pickle('test.pkl.compress', compression='xz')
+   def test_pickle_write_compress(df):
+       df.to_pickle('test.pkl.compress', compression='xz')
 
-    def test_pickle_read_compress():
-        pd.read_pickle('test.pkl.compress', compression='xz')
+   def test_pickle_read_compress():
+       pd.read_pickle('test.pkl.compress', compression='xz')
 
-    def test_parquet_write(df):
-        df.to_parquet('test.parquet')
+   def test_parquet_write(df):
+       df.to_parquet('test.parquet')
 
-    def test_parquet_read():
-        pd.read_parquet('test.parquet')
+   def test_parquet_read():
+       pd.read_parquet('test.parquet')
 
 When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
