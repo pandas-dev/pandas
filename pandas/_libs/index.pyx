@@ -18,6 +18,7 @@ cnp.import_array()
 cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 
 from pandas._libs.hashtable cimport HashTable
 
