@@ -7023,6 +7023,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        axis = self._get_axis_number(axis)
+
         if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
@@ -7030,6 +7032,7 @@ class NDFrame(PandasObject, SelectionMixin):
             _maybe_transposed_self = self.T
             ax = 1
         else:
+            ax = axis
             _maybe_transposed_self = self
         ax = _maybe_transposed_self._get_axis_number(ax)
 
