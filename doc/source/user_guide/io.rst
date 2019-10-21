@@ -5594,7 +5594,7 @@ Given the next test set:
 .. code-block:: python
 
 
-    import numpy as np
+   import numpy as np
 
    sz = 1000000
    np.random.seed(42)
