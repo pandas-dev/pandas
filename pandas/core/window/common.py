@@ -13,7 +13,6 @@ from pandas.core.groupby.base import GroupByMixin
 from pandas.core.index import MultiIndex
 from pandas.core.reshape.concat import concat
 
-
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
         Returns

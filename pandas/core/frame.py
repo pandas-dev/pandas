@@ -7293,6 +7293,7 @@ class DataFrame(NDFrame):
         2   0.7   0.0
         3   0.2   0.0
         """
+
         def _dict_round(df, decimals):
             for col, vals in df.items():
                 try:

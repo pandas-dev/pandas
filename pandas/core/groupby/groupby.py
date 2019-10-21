@@ -1851,6 +1851,7 @@ class GroupBy(_GroupBy):
         a    2.0
         b    3.0
         """
+
         def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError(

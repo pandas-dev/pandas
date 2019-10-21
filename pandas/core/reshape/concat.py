@@ -14,12 +14,12 @@ from pandas.core.arrays.categorical import (
     _factorize_from_iterables,
 )
 from pandas.core.index import (
+    Index,
+    MultiIndex,
     _all_indexes_same,
     _get_consensus_names,
     _get_objs_combined_axis,
     ensure_index,
-    Index,
-    MultiIndex,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
