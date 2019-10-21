@@ -1981,7 +1981,8 @@ def test_dup_labels_output_shape(groupby_func):
     elif groupby_func == "corrwith":
         args.append(pd.Series([1, 1]))
     elif groupby_func == "tshift":
-        pytest.skip("Need to add DTI")
+        df.index = [pd.Timestamp("today")]
+        args.extend([1, "D"])
     
     result = getattr(grp_by, groupby_func)(*args)
 
