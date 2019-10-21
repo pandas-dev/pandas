@@ -45,12 +45,12 @@ class TestSeriesConstructors:
             (lambda: Series({}), True),
             (lambda: Series(()), False),  # creates a RangeIndex
             (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series((x for x in [])), False),  # creates a RangeIndex
+            (lambda: Series((_ for _ in [])), False),  # creates a RangeIndex
             (lambda: Series(data=None), True),
             (lambda: Series(data={}), True),
             (lambda: Series(data=()), False),  # creates a RangeIndex
             (lambda: Series(data=[]), False),  # creates a RangeIndex
-            (lambda: Series(data=(x for x in [])), False),  # creates a RangeIndex
+            (lambda: Series(data=(_ for _ in [])), False),  # creates a RangeIndex
         ],
     )
     def test_empty_constructor(self, constructor, check_index_type):
