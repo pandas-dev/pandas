@@ -250,7 +250,7 @@ def _get_values_for_rank(values):
         values = values._values_for_rank()
 
     values, dtype, ndtype = _ensure_data(values)
-    return values , dtype, ndtype
+    return values, dtype, ndtype
 
 
 def _get_data_algo(values, func_map):
