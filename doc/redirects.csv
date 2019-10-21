@@ -6,6 +6,7 @@ whatsnew,whatsnew/index
 release,whatsnew/index
 
 # getting started
+install,getting_started/install
 10min,getting_started/10min
 basics,getting_started/basics
 comparison_with_r,getting_started/comparison/comparison_with_r
@@ -1577,3 +1578,6 @@ generated/pandas.unique,../reference/api/pandas.unique
 generated/pandas.util.hash_array,../reference/api/pandas.util.hash_array
 generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_pandas_object
 generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
+
+# Cached searches
+reference/api/pandas.DataFrame.from_csv,pandas.read_csv

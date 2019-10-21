@@ -127,7 +127,8 @@ class TestDataFrameLogicalOperators:
         dfa = DataFrame(index=[1], columns=["A"])
 
         result = dfa & dfa
-        assert_frame_equal(result, dfa)
+        expected = DataFrame(False, index=[1], columns=["A"])
+        assert_frame_equal(result, expected)
 
     def test_logical_ops_bool_frame(self):
         # GH#5808
@@ -145,7 +146,11 @@ class TestDataFrameLogicalOperators:
         df1a_bool = DataFrame(True, index=[1], columns=["A"])
 
         result = df1a_int | df1a_bool
-        assert_frame_equal(result, df1a_int)
+        assert_frame_equal(result, df1a_bool)
+
+        # Check that this matches Series behavior
+        res_ser = df1a_int["A"] | df1a_bool["A"]
+        assert_series_equal(res_ser, df1a_bool["A"])
 
     def test_logical_ops_invalid(self):
         # GH#5808
@@ -395,7 +400,7 @@ class TestDataFrameOperators:
         added = float_frame + mixed_int_frame
         _check_mixed_float(added, dtype="float64")
 
-    def test_combineSeries(
+    def test_combine_series(
         self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
     ):
 
@@ -427,6 +432,7 @@ class TestDataFrameOperators:
         added = mixed_float_frame + series.astype("float16")
         _check_mixed_float(added, dtype=dict(C=None))
 
+        # FIXME: don't leave commented-out
         # these raise with numexpr.....as we are adding an int64 to an
         # uint64....weird vs int
 

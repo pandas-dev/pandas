@@ -331,9 +331,7 @@ def boxplot(
         if return_type is None:
             return_type = "axes"
         if layout is not None:
-            raise ValueError(
-                "The 'layout' keyword is not supported when " "'by' is None"
-            )
+            raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}

@@ -108,9 +108,7 @@ def test_gcs_get_filepath_or_buffer(monkeypatch):
     assert_frame_equal(df1, df2)
 
 
-@pytest.mark.skipif(
-    td.safe_import("gcsfs"), reason="Only check when gcsfs not installed"
-)
+@td.skip_if_installed("gcsfs")
 def test_gcs_not_present_exception():
     with pytest.raises(ImportError) as e:
         read_csv("gs://test/test.csv")

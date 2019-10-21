@@ -192,10 +192,10 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     ----------
     to_union : list-like of Categorical, CategoricalIndex,
                or Series with dtype='category'
-    sort_categories : boolean, default False
+    sort_categories : bool, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order : boolean, default False
+    ignore_order : bool, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
