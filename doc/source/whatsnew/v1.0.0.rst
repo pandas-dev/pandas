@@ -242,6 +242,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 - Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 - Performance improvement in :meth:`Categorical.searchsorted` and  :meth:`CategoricalIndex.searchsorted` (:issue:`28795`)
+- Performance improvement in :meth:`Index.equals` and  :meth:`MultiIndex.equals` (:issue:`29134`)
 
 .. _whatsnew_1000.bug_fixes:
 
