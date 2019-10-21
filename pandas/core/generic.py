@@ -191,6 +191,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _data = None  # type: BlockManager
 
     if TYPE_CHECKING:
+        # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
+        # We need the TYPE_CHECKING, because _attrs is not a class attribute
+        # and Py35 doesn't support the new syntax.
         _attrs = {}  # type: Dict[Hashable, Any]
 
     # ----------------------------------------------------------------------
