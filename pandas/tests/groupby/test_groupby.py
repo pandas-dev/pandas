@@ -1959,7 +1959,7 @@ def test_groupby_only_none_group():
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_bool_aggs_dup_column_labels(bool_agg_func):
     # 21668
-    df = pd.DataFrame([[True, True]], columns=['a', 'a'])
+    df = pd.DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
     result = getattr(grp_by, bool_agg_func)()
 
@@ -1983,7 +1983,7 @@ def test_dup_labels_output_shape(groupby_func):
     elif groupby_func == "tshift":
         df.index = [pd.Timestamp("today")]
         args.extend([1, "D"])
-    
+
     result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)

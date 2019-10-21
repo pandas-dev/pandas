@@ -7,7 +7,6 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionailty.
 """
 
-import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
@@ -892,6 +891,7 @@ b  2""",
 
                 # TODO: de-dup with DataFrame._wrap_aggregated_output
                 from pandas.core.reshape.concat import concat
+
                 df = concat(output, axis=1)
                 df.columns = ["open", "high", "low", "close"]
                 df.index = self.grouper.result_index
@@ -917,7 +917,9 @@ b  2""",
             except TypeError:
                 continue
             else:
-                output.append(Series(self._try_cast(result, obj, numeric_only=True), name=name))
+                output.append(
+                    Series(self._try_cast(result, obj, numeric_only=True), name=name)
+                )
 
         if len(output) == 0:
             return self._python_apply_general(f)

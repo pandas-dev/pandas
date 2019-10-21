@@ -1589,11 +1589,8 @@ class DataFrameGroupBy(GroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(self, output: List[Series], names=None):
-        agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-
-
         from pandas.core.reshape.concat import concat
+
         result = concat(output, axis=1)
 
         if not self.as_index:
@@ -1610,6 +1607,7 @@ class DataFrameGroupBy(GroupBy):
 
     def _wrap_transformed_output(self, output: List[Series], names=None) -> DataFrame:
         from pandas.core.reshape.concat import concat
+
         df = concat(output, axis=1)
         df.index = self.obj.index
 
