@@ -4085,9 +4085,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         index: Optional[
             Union[Hashable, Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
+            *,
         copy: bool = True,
         inplace: bool = False,
         level: Optional[Level] = None,
+            errors: str = "ignore"
     ) -> "Series":
         """
         Alter Series index labels or name.
@@ -4149,12 +4151,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    3
         dtype: int64
         """
-        kwargs["inplace"] = validate_bool_kwarg(kwargs.get("inplace", False), "inplace")
-
         if callable(index) or is_dict_like(index):
-            return super().rename(index=index, **kwargs)
+            return super().rename(index=index, copy=copy, inplace=inplace, level=level, errors=errors)
         else:
-            return self._set_name(index, inplace=kwargs.get("inplace"))
+            return self._set_name(index, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)

@@ -4038,6 +4038,7 @@ class DataFrame(NDFrame):
         mapper: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
+            *,
         index: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,

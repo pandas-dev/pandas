@@ -1019,6 +1019,7 @@ class NDFrame(PandasObject, SelectionMixin):
         mapper: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
+            *,
         index: Optional[
             Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
@@ -1143,7 +1144,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See the :ref:`user guide <basics.rename>` for more.
         """
-        if not (mapper or index or columns):
+        if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")
 
         if (index or columns):
