@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas import Index, MultiIndex
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     _factorize_from_iterable,
@@ -19,6 +18,8 @@ from pandas.core.index import (
     _get_consensus_names,
     _get_objs_combined_axis,
     ensure_index,
+    Index,
+    MultiIndex,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers

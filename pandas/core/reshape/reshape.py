@@ -26,6 +26,7 @@ from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -470,8 +471,6 @@ def _unstack_extension_series(series, level, fill_value):
     # 2. Followup with a columnwise take.
     # We use the dummy take to discover newly-created missing values
     # introduced by the reshape.
-    from pandas.core.reshape.concat import concat
-
     dummy_arr = np.arange(len(series))
     # fill_value=-1, since we will do a series.values.take later
     result = _Unstacker(
@@ -856,8 +855,6 @@ def get_dummies(
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
     """
-    from pandas.core.reshape.concat import concat
-
     dtypes_to_encode = ["object", "category"]
 
     if isinstance(data, DataFrame):
@@ -945,8 +942,6 @@ def _get_dummies_1d(
     drop_first=False,
     dtype=None,
 ):
-    from pandas.core.reshape.concat import concat
-
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
