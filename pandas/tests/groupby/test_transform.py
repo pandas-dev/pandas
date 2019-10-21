@@ -455,7 +455,8 @@ def test_groupby_transform_with_nan_group():
     assert_series_equal(result, expected)
 
 
-def test_transform_mixed_type():
+@pytest.mark.parametrize("as_index", [True, False])
+def test_transform_mixed_type(as_index):
     index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]])
     df = DataFrame(
         {
@@ -470,16 +471,23 @@ def test_transform_mixed_type():
         group["g"] = group["d"] * 2
         return group[:1]
 
-    grouped = df.groupby("c")
+    grouped = df.groupby("c", as_index=as_index)
     result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
     # this is by definition a mutating operation!
     with pd.option_context("mode.chained_assignment", None):
-        for key, group in grouped:
+        for index, (key, group) in enumerate(grouped):
             res = f(group)
-            assert_frame_equal(res, result.loc[key])
+            # GH 28549
+            # if as_index need to drop column from res
+            if as_index:
+                res = res.drop("c", 1)
+
+            k = key if as_index else index
+
+            assert_frame_equal(res, result.loc[k])
 
 
 def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):

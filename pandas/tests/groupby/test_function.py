@@ -87,10 +87,6 @@ def test_intercept_builtin_sum():
     tm.assert_series_equal(result2, expected)
 
 
-# @pytest.mark.parametrize("f", [max, min, sum])
-# def test_builtins_apply(f):
-
-
 @pytest.mark.parametrize("f", [max, min, sum])
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
@@ -102,10 +98,17 @@ def test_builtins_apply(keys, f):
     result = df.groupby(keys).apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
-    assert_msg = "invalid frame shape: {} (expected ({}, 3))".format(
-        result.shape, ngroups
+    # GH 28549
+    # grouping keys should not be included in output
+    if isinstance(keys, list):
+        result_shape = len(df.columns) - len(keys)
+    else:
+        result_shape = len(df.columns) - 1
+
+    assert_msg = "invalid frame shape: {} (expected ({}, {}))".format(
+        result.shape, ngroups, result_shape
     )
-    assert result.shape == (ngroups, 3), assert_msg
+    assert result.shape == (ngroups, result_shape), assert_msg
 
     tm.assert_frame_equal(
         result,  # numpy's equivalent function
@@ -113,9 +116,14 @@ def test_builtins_apply(keys, f):
     )
 
     if f != sum:
-        expected = df.groupby(keys).agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
+        # GH 28549
+        # No longer need to reset/set index here
+        expected = df.groupby(keys).agg(fname)
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    # GH 28549
+    # grouping keys should not be in output
+    df = df.drop(keys, 1)
 
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
 
@@ -341,10 +349,13 @@ def test_cython_api2():
     tm.assert_frame_equal(result, expected)
 
     # GH 13994
-    result = df.groupby("A").cumsum(axis=1)
+    # GH 28549
+    # Good represention of when as_index=False is now behaving
+    # as expected
+    result = df.groupby("A", as_index=False).cumsum(axis=1)
     expected = df.cumsum(axis=1)
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").cumprod(axis=1)
+    result = df.groupby("A", as_index=False).cumprod(axis=1)
     expected = df.cumprod(axis=1)
     tm.assert_frame_equal(result, expected)
 
@@ -1107,7 +1118,10 @@ def test_count():
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-        right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+
+        # GH 28549
+        # don't need to drop key here anymore
+        right = df.groupby(key).apply(DataFrame.count)
         tm.assert_frame_equal(left, right)
 
 

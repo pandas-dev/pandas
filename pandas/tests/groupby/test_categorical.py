@@ -95,9 +95,16 @@ def test_basic():
         return x.drop_duplicates("person_name").iloc[0]
 
     result = g.apply(f)
-    expected = x.iloc[[0, 1]].copy()
+
+    # GH 28549
+    # grouper key should not be present after apply
+    # with as_index=True.
+    # TODO split this into multiple tests
+    dropped = x.drop("person_id", 1)
+
+    expected = dropped.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
-    expected["person_name"] = expected["person_name"].astype("object")
+    expected["person_name"] = expected["person_name"]
     tm.assert_frame_equal(result, expected)
 
     # GH 9921
@@ -1218,7 +1225,10 @@ def test_get_nonexistent_category():
     # Accessing a Category that is not in the dataframe
     df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
     with pytest.raises(KeyError, match="'vau'"):
-        df.groupby("var").apply(
+        # GH2849 This needs to use as_index=False so that
+        # var is still present when grouping or else another key error
+        # will raise about var.
+        df.groupby("var", as_index=False).apply(
             lambda rows: pd.DataFrame(
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )

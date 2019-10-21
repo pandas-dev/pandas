@@ -241,9 +241,9 @@ def test_resample_groupby_with_label():
         ),
     ]
     mindex = pd.MultiIndex.from_arrays(mi, names=["col0", None])
-    expected = DataFrame(
-        data={"col0": [0, 0, 2, 2], "col1": [1, 1, 2, 1]}, index=mindex
-    )
+    # GH 28549 col0 should not be included in the output since
+    # it is a grouper key
+    expected = DataFrame(data={"col1": [1, 1, 2, 1]}, index=mindex)
 
     assert_frame_equal(result, expected)
 

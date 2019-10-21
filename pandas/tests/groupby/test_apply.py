@@ -363,11 +363,19 @@ def test_apply_multikey_corner(tsframe):
         tm.assert_frame_equal(result.loc[key], f(group))
 
 
-def test_apply_chunk_view():
+@pytest.mark.parametrize("as_index", [False, True])
+def test_apply_chunk_view(as_index):
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    result = df.groupby("key", group_keys=False).apply(lambda x: x[:2])
+    result = df.groupby("key", group_keys=False, as_index=as_index).apply(
+        lambda x: x[:2]
+    )
+    # GH 28549
+    # key no longer included in reduction output
+    if as_index:
+        df.pop("key")
+
     expected = df.take([0, 1, 3, 4, 6, 7])
     tm.assert_frame_equal(result, expected)
 
@@ -386,7 +394,8 @@ def test_apply_no_name_column_conflict():
     grouped.apply(lambda x: x.sort_values("value", inplace=True))
 
 
-def test_apply_typecast_fail():
+@pytest.mark.parametrize("as_index", [True, False])
+def test_apply_typecast_fail(as_index):
     df = DataFrame(
         {
             "d": [1.0, 1.0, 1.0, 2.0, 2.0, 2.0],
@@ -400,7 +409,12 @@ def test_apply_typecast_fail():
         group["v2"] = (v - v.min()) / (v.max() - v.min())
         return group
 
-    result = df.groupby("d").apply(f)
+    result = df.groupby("d", as_index=as_index).apply(f)
+
+    # GH 28549
+    # key no longer included in reduction output
+    if as_index:
+        df.pop("d")
 
     expected = df.copy()
     expected["v2"] = np.tile([0.0, 0.5, 1], 2)
@@ -425,6 +439,10 @@ def test_apply_multiindex_fail():
         return group
 
     result = df.groupby("d").apply(f)
+
+    # GH 28549
+    # key no longer included in reduction output
+    df.pop("d")
 
     expected = df.copy()
     expected["v2"] = np.tile([0.0, 0.5, 1], 2)
@@ -638,24 +656,37 @@ def test_groupby_apply_all_none():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_apply_none_first():
+@pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.parametrize(
+    "groups, vars_, expected_vars, expected_groups",
+    [
+        ([1, 1, 1, 2], [0, 1, 2, 3], [0, 2], [1, 1]),
+        ([1, 2, 2, 2], [0, 1, 2, 3], [1, 3], [2, 2]),
+    ],
+)
+def test_groupby_apply_none_first(
+    groups, vars_, expected_vars, expected_groups, as_index
+):
     # GH 12824. Tests if apply returns None first.
-    test_df1 = DataFrame({"groups": [1, 1, 1, 2], "vars": [0, 1, 2, 3]})
-    test_df2 = DataFrame({"groups": [1, 2, 2, 2], "vars": [0, 1, 2, 3]})
+    test_df = DataFrame({"groups": groups, "vars": vars_})
 
     def test_func(x):
         if x.shape[0] < 2:
             return None
         return x.iloc[[0, -1]]
 
-    result1 = test_df1.groupby("groups").apply(test_func)
-    result2 = test_df2.groupby("groups").apply(test_func)
-    index1 = MultiIndex.from_arrays([[1, 1], [0, 2]], names=["groups", None])
-    index2 = MultiIndex.from_arrays([[2, 2], [1, 3]], names=["groups", None])
-    expected1 = DataFrame({"groups": [1, 1], "vars": [0, 2]}, index=index1)
-    expected2 = DataFrame({"groups": [2, 2], "vars": [1, 3]}, index=index2)
-    tm.assert_frame_equal(result1, expected1)
-    tm.assert_frame_equal(result2, expected2)
+    result = test_df.groupby("groups", as_index=as_index).apply(test_func)
+
+    # GH 28549 "groups" should not be in output of apply
+    # unless as_index=True
+    if not as_index:
+        expected = DataFrame(
+            {"groups": expected_groups, "vars": expected_vars}, index=result.index
+        )
+    else:
+        expected = DataFrame({"vars": expected_vars}, index=result.index)
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_apply_return_empty_chunk():

@@ -721,7 +721,9 @@ b  2""",
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
-        with option_context("mode.chained_assignment", None):
+        with option_context(
+            "mode.chained_assignment", None
+        ) as _, _group_selection_context(self) as _:
             try:
                 result = self._python_apply_general(f)
             except TypeError:
@@ -732,9 +734,7 @@ b  2""",
                 # except if the udf is trying an operation that
                 # fails on *some* columns, e.g. a numeric operation
                 # on a string grouper column
-
-                with _group_selection_context(self):
-                    return self._python_apply_general(f)
+                return self._python_apply_general(f)
 
         return result
 
