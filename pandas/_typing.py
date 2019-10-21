@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union
+from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union, Type
 
 import numpy as np
 
