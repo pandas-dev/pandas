@@ -6,13 +6,14 @@ import warnings
 
 import numpy as np
 
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas import Index, MultiIndex
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     _factorize_from_iterable,
     _factorize_from_iterables,
 )
-from pandas.core.generic import NDFrame
 from pandas.core.index import (
     _all_indexes_same,
     _get_consensus_names,
@@ -275,7 +276,7 @@ class _Concatenator:
         copy=True,
         sort=False,
     ):
-        if isinstance(objs, (NDFrame, str)):
+        if isinstance(objs, (ABCDataFrame, ABCSeries, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
                 "objects, you passed an object of type "
@@ -322,7 +323,7 @@ class _Concatenator:
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, (Series, DataFrame)):
+            if not isinstance(obj, (ABCSeries, ABCDataFrame)):
                 msg = (
                     "cannot concatenate object of type '{}';"
                     " only Series and DataFrame objs are valid".format(type(obj))
@@ -348,7 +349,7 @@ class _Concatenator:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
             non_empties = [
-                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, Series)
+                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)
             ]
 
             if len(non_empties) and (
@@ -362,17 +363,22 @@ class _Concatenator:
         self.objs = objs
 
         # Standardize axis parameter to int
-        if isinstance(sample, Series):
+        # TODO: Should this really require a class import?
+        """
+        if isinstance(sample, ABCSeries):
             axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
+        """
+        if not isinstance(axis, int):
+            axis = {"index": 0, "columns": 1}[axis]
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
                 "axis must be between 0 and {ndim}, input was"
@@ -545,7 +551,7 @@ class _Concatenator:
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, Series):
+                    if not isinstance(x, ABCSeries):
                         raise TypeError(
                             "Cannot concatenate type 'Series' "
                             "with object of type {type!r}".format(type=type(x).__name__)
