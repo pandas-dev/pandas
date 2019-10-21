@@ -884,6 +884,20 @@ b  2""",
                 continue
 
             result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            if how == "ohlc":
+                assert result.shape[1] == 4
+                for index in range(4):
+                    values = result[:, index]
+                    output.append(Series(self._try_cast(values, obj)))
+
+                # TODO: de-dup with DataFrame._wrap_aggregated_output
+                from pandas.core.reshape.concat import concat
+                df = concat(output, axis=1)
+                df.columns = ["open", "high", "low", "close"]
+                df.index = self.grouper.result_index
+
+                return df
+
             output.append(Series(self._try_cast(result, obj), name=name))
 
         if len(output) == 0:
