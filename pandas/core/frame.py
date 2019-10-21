@@ -6668,7 +6668,7 @@ class DataFrame(NDFrame):
                     reordered_result.loc[v, k] = result[k][::-1].dropna().values
                 result = reordered_result.reindex(indexes)
             else:
-                result.index = indexes
+                result.index = reordered_indexes
 
         return result
 
