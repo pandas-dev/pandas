@@ -701,7 +701,8 @@ b  2""",
         # resolve functions to their callable functions prior, this
         # wouldn't be needed
         if args or kwargs:
-            if callable(func):
+            # TODO: Why do we need to special case quantile now?
+            if callable(func) or func == "quantile":
 
                 @wraps(func)
                 def f(g):
