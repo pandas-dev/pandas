@@ -73,17 +73,19 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
 
 
 @pytest.fixture
-def assert_filepath_or_buffer_equals(filepath_or_buffer, filepath_or_buffer_id):
+def assert_filepath_or_buffer_equals(
+    filepath_or_buffer, filepath_or_buffer_id, encoding
+):
     """
     Assertion helper for checking filepath_or_buffer.
     """
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
-            with open(filepath_or_buffer) as f:
+            with open(filepath_or_buffer, encoding=encoding) as f:
                 result = f.read()
         elif filepath_or_buffer_id == "pathlike":
-            result = filepath_or_buffer.read_text()
+            result = filepath_or_buffer.read_text(encoding=encoding)
         elif filepath_or_buffer_id == "buffer":
             result = filepath_or_buffer.getvalue()
         assert result == expected
@@ -3250,7 +3252,8 @@ def test_filepath_or_buffer_arg(
     filepath_or_buffer_id,
 ):
     df = float_frame
-
+    if encoding == "gbk":
+        float_frame.iloc[0, 0] = "造成输出中文显示乱码"
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
             ValueError, match="buf is not a file name and encoding is specified."
