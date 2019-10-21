@@ -647,8 +647,6 @@ def to_datetime(
           at noon on January 1, 4713 BC.
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
-
-        .. versionadded:: 0.20.0
     cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
