@@ -455,7 +455,6 @@ def test_groupby_transform_with_nan_group():
     assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_transform_mixed_type(as_index):
     index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]])
     df = DataFrame(

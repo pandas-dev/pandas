@@ -721,9 +721,9 @@ b  2""",
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
-        with option_context(
-            "mode.chained_assignment", None
-        ) as _, _group_selection_context(self) as _:
+        with option_context("mode.chained_assignment", None), _group_selection_context(
+            self
+        ):
             try:
                 result = self._python_apply_general(f)
             except TypeError:

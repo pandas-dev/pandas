@@ -947,7 +947,6 @@ def test_mutate_groups():
     assert_series_equal(grpby_copy, grpby_no_copy)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_no_mutate_but_looks_like(as_index):
 
     # GH 8467
@@ -1092,7 +1091,6 @@ def test_consistency_name():
     assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_name_propagation(df, as_index):
     # GH 6124
     def summarize(df, name=None):
@@ -1360,7 +1358,6 @@ def test_groupby_sort_multi():
     _check_groupby(df, result, ["a", "b"], "d")
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_dont_clobber_name_column(as_index):
     df = DataFrame(
         {"key": ["a", "a", "a", "b", "b", "b"], "name": ["foo", "bar", "baz"] * 2}

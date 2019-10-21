@@ -363,7 +363,6 @@ def test_apply_multikey_corner(tsframe):
         tm.assert_frame_equal(result.loc[key], f(group))
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 def test_apply_chunk_view(as_index):
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
@@ -394,7 +393,6 @@ def test_apply_no_name_column_conflict():
     grouped.apply(lambda x: x.sort_values("value", inplace=True))
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_apply_typecast_fail(as_index):
     df = DataFrame(
         {
@@ -656,7 +654,6 @@ def test_groupby_apply_all_none():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "groups, vars_, expected_vars, expected_groups",
     [
