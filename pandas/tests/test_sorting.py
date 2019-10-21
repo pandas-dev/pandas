@@ -3,7 +3,6 @@ from datetime import datetime
 from itertools import product
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series, array, concat, merge
@@ -103,7 +102,7 @@ class TestSorting:
         assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_lexsort_indexer(self):
-        keys = [[nan] * 5 + list(range(100)) + [nan] * 5]
+        keys = [[np.nan] * 5 + list(range(100)) + [np.nan] * 5]
         # orders=True, na_position='last'
         result = lexsort_indexer(keys, orders=True, na_position="last")
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
@@ -126,7 +125,7 @@ class TestSorting:
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last
-        items = [nan] * 5 + list(range(100)) + [nan] * 5
+        items = [np.nan] * 5 + list(range(100)) + [np.nan] * 5
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype="O")
 

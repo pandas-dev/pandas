@@ -121,7 +121,7 @@ cdef class Reducer:
             for i in range(self.nresults):
 
                 if has_ndarray_labels:
-                    name = util.get_value_at(labels, i)
+                    name = labels[i]
                 elif has_labels:
                     # labels is an ExtensionArray
                     name = labels[i]
@@ -170,9 +170,9 @@ cdef class Reducer:
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
-        except Exception, e:
-            if hasattr(e, 'args'):
-                e.args = e.args + (i,)
+        except Exception as err:
+            if hasattr(err, 'args'):
+                err.args = err.args + (i,)
             raise
         finally:
             # so we don't free the wrong memory

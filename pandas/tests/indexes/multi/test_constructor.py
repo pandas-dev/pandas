@@ -294,6 +294,7 @@ def test_from_arrays_empty():
     assert isinstance(result, MultiIndex)
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
     # N levels
     for N in [2, 3]:
@@ -441,6 +442,7 @@ def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
     expected = pd.Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
 
 @pytest.mark.parametrize(
