@@ -857,11 +857,10 @@ b  2""",
             except NotImplementedError:
                 continue
 
-            result = Series(result, name=name)
             if self._transform_should_cast(how):
-                output.append(self._try_cast(result, obj))
-            else:
-                output.append(result)
+                result = self._try_cast(result, obj)
+
+            output.append(Series(result, name=name))
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
