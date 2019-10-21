@@ -118,6 +118,7 @@ from pandas.core.internals.construction import (
     to_arrays,
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 
 from pandas.io.formats import console, format as fmt
@@ -6995,8 +6996,6 @@ class DataFrame(NDFrame):
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.reindex(columns=self.columns)
 
-        from pandas.core.reshape.concat import concat
-
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
@@ -7134,7 +7133,6 @@ class DataFrame(NDFrame):
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
         from pandas.core.reshape.merge import merge
-        from pandas.core.reshape.concat import concat
 
         if isinstance(other, Series):
             if other.name is None:
@@ -7295,8 +7293,6 @@ class DataFrame(NDFrame):
         2   0.7   0.0
         3   0.2   0.0
         """
-        from pandas.core.reshape.concat import concat
-
         def _dict_round(df, decimals):
             for col, vals in df.items():
                 try:
@@ -8303,8 +8299,6 @@ class DataFrame(NDFrame):
         dog        False      False
         """
         if isinstance(values, dict):
-            from pandas.core.reshape.concat import concat
-
             values = collections.defaultdict(list, values)
             return concat(
                 (
