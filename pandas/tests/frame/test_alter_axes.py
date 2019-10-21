@@ -1358,10 +1358,41 @@ class TestDataFrameAlterAxes:
             tm.assert_frame_equal(res1, res)
 
     def test_rename_positional_raises(self):
+        # GH 29136
         df = DataFrame(columns=["A", "B"])
         msg = r"rename\(\) takes from 1 to 2 positional arguments"
+
         with pytest.raises(TypeError, match=msg):
             df.rename(None, str.lower)
+
+    def test_rename_no_mappings_raises(self):
+        # GH 29136
+        df = DataFrame([[1]])
+        msg = "must pass an index to rename"
+        with pytest.raises(TypeError, match=msg):
+            df.rename()
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, index=None)
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, columns=None)
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, columns=None, index=None)            
+
+    def test_rename_mapper_and_positional_arguments_raises(self):
+        # GH 29136
+        df = DataFrame([[1]])
+        msg = "Cannot specify both 'mapper' and any of 'index' or 'columns'"
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, index={})
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, columns={})
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, columns={}, index={})
 
     def test_assign_columns(self, float_frame):
         float_frame["hi"] = "there"

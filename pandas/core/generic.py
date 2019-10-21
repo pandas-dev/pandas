@@ -1147,10 +1147,10 @@ class NDFrame(PandasObject, SelectionMixin):
         if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")
 
-        if (index or columns):
+        if (index is not None or columns is not None):
             if axis is not None:
                 raise TypeError("Cannot specify both 'axis' and any of 'index' or 'columns'")
-            elif mapper:
+            elif mapper is not None:
                 raise TypeError("Cannot specify both 'mapper' and any of 'index' or 'columns'")
         else:
             # use the mapper argument
