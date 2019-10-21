@@ -78,7 +78,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
-from pandas._typing import Level
+from pandas._typing import Axis, Level
 import pandas.io.formats.format as fmt
 import pandas.plotting
 
@@ -4086,6 +4086,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Union[Hashable, Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
         ] = None,
             *,
+            axis: Optional[Axis] = None,
         copy: bool = True,
         inplace: bool = False,
         level: Optional[Level] = None,
@@ -4104,6 +4105,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
+        axis : int or str
+            Unused. Accepted for compatability with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -4125,6 +4128,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
+        DataFrame.rename : Corresponding DataFrame method.
         Series.rename_axis : Set the name of the axis.
 
         Examples
@@ -4152,7 +4156,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
         """
         if callable(index) or is_dict_like(index):
-            return super().rename(index=index, copy=copy, inplace=inplace, level=level, errors=errors)
+            return super().rename(index, copy=copy, inplace=inplace, level=level, errors=errors)
         else:
             return self._set_name(index, inplace=inplace)
 
