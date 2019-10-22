@@ -831,7 +831,9 @@ def _raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Optional[Period]], freq: Optional[Tick] = None, copy: bool = False
+    data: Sequence[Optional[Period]],
+    freq: Optional[Union[str, Tick]] = None,
+    copy: bool = False,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.
