@@ -1952,8 +1952,6 @@ class GroupBy(_GroupBy):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
-        .. versionadded:: 0.20.2
-
         Parameters
         ----------
         ascending : bool, default True

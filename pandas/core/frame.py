@@ -2098,8 +2098,6 @@ class DataFrame(NDFrame):
         """
         Write out the binary feather-format for DataFrames.
 
-        .. versionadded:: 0.20.0
-
         Parameters
         ----------
         fname : str
@@ -7847,8 +7845,6 @@ class DataFrame(NDFrame):
 
         Return Series with number of distinct observations. Can ignore NaN
         values.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------

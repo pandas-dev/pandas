@@ -1697,8 +1697,6 @@ class DataFrameGroupBy(GroupBy):
         Return DataFrame with number of distinct observations per group for
         each column.
 
-        .. versionadded:: 0.20.0
-
         Parameters
         ----------
         dropna : bool, default True

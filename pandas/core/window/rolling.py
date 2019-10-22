@@ -653,8 +653,6 @@ class Window(_Window):
         For fixed windows, defaults to 'both'. Remaining cases not implemented
         for fixed windows.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     a Window or Rolling sub-classed for the particular operation
