@@ -531,6 +531,19 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.to_coo
 
 
+.. _api.series.metadata:
+
+Metadata
+~~~~~~~~
+
+:attr:`Series.attrs` is a dictionary for storing global metadata for this Series.
+
+.. autosummary::
+   :toctree: api/
+
+   Series.attrs
+
+
 Plotting
 --------
 ``Series.plot`` is both a callable method and a namespace attribute for
