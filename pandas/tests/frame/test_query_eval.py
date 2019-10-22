@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal,
     assert_series_equal,
@@ -82,7 +82,7 @@ class TestCompat:
                 df.eval("A+1", engine="numexpr")
 
 
-class TestDataFrameEval(TestData):
+class TestDataFrameEval:
     def test_ops(self):
 
         # tst ops and reversed ops in evaluation
@@ -704,7 +704,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         super().setup_class()
         cls.engine = "numexpr"
         cls.parser = "python"
-        cls.frame = TestData().frame
+        cls.frame = tm.makeDataFrame()
 
     def test_date_query_no_attribute_access(self):
         engine, parser = self.engine, self.parser
@@ -808,7 +808,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         super().setup_class()
         cls.engine = "python"
         cls.parser = "pandas"
-        cls.frame = TestData().frame
+        cls.frame = tm.makeDataFrame()
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
@@ -827,7 +827,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
     def setup_class(cls):
         super().setup_class()
         cls.engine = cls.parser = "python"
-        cls.frame = TestData().frame
+        cls.frame = tm.makeDataFrame()
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
