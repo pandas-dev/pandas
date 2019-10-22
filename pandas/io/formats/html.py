@@ -4,7 +4,7 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import IO, Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -394,7 +394,7 @@ class HTMLFormatter(TableFormatter):
         self.write("</tbody>", indent)
 
     def _write_regular_rows(
-        self, fmt_values: Dict[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
@@ -440,7 +440,7 @@ class HTMLFormatter(TableFormatter):
             )
 
     def _write_hierarchical_rows(
-        self, fmt_values: Dict[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 

@@ -3,7 +3,7 @@ Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
 import operator
-from typing import Any, Dict, Union
+from typing import Any, Mapping, Union
 
 import numpy as np
 
@@ -161,7 +161,7 @@ def arithmetic_op(
     right: Any,
     op,
     str_rep: str,
-    eval_kwargs: Dict[str, bool],
+    eval_kwargs: Mapping[str, bool],
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
