@@ -1778,7 +1778,7 @@ cdef class _Period:
         """
         Return the Timestamp representation of the Period.
 
-        Uses the target frequency specified at the part of the period specified 
+        Uses the target frequency specified at the part of the period specified
         by `how`, which is either `Start` or `Finish`.
 
         Parameters
