@@ -368,6 +368,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         result.name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = dtarr._data
+        result._eadata = dtarr
+
         result._reset_identity()
         return result
 

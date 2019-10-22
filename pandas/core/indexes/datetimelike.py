@@ -731,7 +731,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Ensure that self.astype(self.dtype) is self
             return self
 
-        new_values = self._data.astype(dtype, copy=copy)
+        # use _eadata since _data links to _index_data which can be
+        #  overwritten in groupby-reduction
+        new_values = self._eadata.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
