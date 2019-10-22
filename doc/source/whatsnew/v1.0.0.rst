@@ -249,7 +249,7 @@ Bug fixes
 ~~~~~~~~~
 
 - Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
-- Bug in :func:`pandas.core.generic.NDFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29132`)
+- Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29132`)
 
 Categorical
 ^^^^^^^^^^^
