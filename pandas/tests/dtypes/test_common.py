@@ -329,8 +329,8 @@ def test_is_datetimelike():
         *ALL_INT_DTYPES,
         *to_numpy_dtypes(ALL_INT_DTYPES),
         *ALL_EA_INT_DTYPES,
-        *to_ea_dtypes(ALL_EA_INT_DTYPES)
-    ]
+        *to_ea_dtypes(ALL_EA_INT_DTYPES),
+    ],
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -359,8 +359,8 @@ def test_is_not_integer_dtype(dtype):
         *SIGNED_INT_DTYPES,
         *to_numpy_dtypes(SIGNED_INT_DTYPES),
         *SIGNED_EA_INT_DTYPES,
-        *to_ea_dtypes(SIGNED_EA_INT_DTYPES)
-    ]
+        *to_ea_dtypes(SIGNED_EA_INT_DTYPES),
+    ],
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -393,8 +393,8 @@ def test_is_not_signed_integer_dtype(dtype):
         *UNSIGNED_INT_DTYPES,
         *to_numpy_dtypes(UNSIGNED_INT_DTYPES),
         *UNSIGNED_EA_INT_DTYPES,
-        *to_ea_dtypes(UNSIGNED_EA_INT_DTYPES)
-    ]
+        *to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
+    ],
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
