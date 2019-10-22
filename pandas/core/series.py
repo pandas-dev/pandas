@@ -476,7 +476,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.attrs.get("name", None)
 
     @name.setter
-    def name(self, value: Hashable) -> None:
+    def name(self, value: Optional[Hashable]) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
         self.attrs["name"] = value
