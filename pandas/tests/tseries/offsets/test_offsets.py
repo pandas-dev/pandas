@@ -1,4 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
+from typing import Type
 
 import numpy as np
 import pytest
@@ -92,7 +93,7 @@ def test_to_M8():
 
 
 class Base:
-    _offset = None
+    _offset = None  # type: Type[DateOffset]
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
