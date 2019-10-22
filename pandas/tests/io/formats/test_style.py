@@ -1157,20 +1157,43 @@ class TestStyler:
         with pytest.raises(TypeError):
             df.style.format(True)
 
+    def test_display_set_precision(self):
+        # Issue #13257
+        df = pd.DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
+        s = Styler(df)
+
+        ctx = s.set_precision(1)._translate()
+
+        assert s.precision == 1
+        assert ctx["body"][0][1]["display_value"] == "1.0"
+        assert ctx["body"][0][2]["display_value"] == "2.0"
+        assert ctx["body"][1][1]["display_value"] == "3.2"
+        assert ctx["body"][1][2]["display_value"] == "4.6"
+
+        ctx = s.set_precision(2)._translate()
+        assert s.precision == 2
+        assert ctx["body"][0][1]["display_value"] == "1.00"
+        assert ctx["body"][0][2]["display_value"] == "2.01"
+        assert ctx["body"][1][1]["display_value"] == "3.21"
+        assert ctx["body"][1][2]["display_value"] == "4.57"
+
+        ctx = s.set_precision(3)._translate()
+        assert s.precision == 3
+        assert ctx["body"][0][1]["display_value"] == "1.000"
+        assert ctx["body"][0][2]["display_value"] == "2.009"
+        assert ctx["body"][1][1]["display_value"] == "3.212"
+        assert ctx["body"][1][2]["display_value"] == "4.566"
+
     def test_display_subset(self):
         df = pd.DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format(
             {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
         )._translate()
         expected = "0.1"
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == "1.1234"
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-
-        raw_11 = "1.1234"
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
+        raw_11 = "1.123400"
         assert ctx["body"][0][1]["display_value"] == expected
         assert ctx["body"][1][1]["display_value"] == raw_11
+        assert ctx["body"][0][2]["display_value"] == "12.34%"
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
@@ -1178,7 +1201,7 @@ class TestStyler:
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][0][2]["display_value"] == "0.1234"
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
@@ -1189,8 +1212,8 @@ class TestStyler:
         )._translate()
         assert ctx["body"][0][1]["display_value"] == expected
         assert ctx["body"][1][1]["display_value"] == "1.1"
-        assert ctx["body"][0][2]["display_value"] == "0.1234"
-        assert ctx["body"][1][2]["display_value"] == "1.1234"
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
+        assert ctx["body"][1][2]["display_value"] == raw_11
 
     def test_display_dict(self):
         df = pd.DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
