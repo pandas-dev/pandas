@@ -1389,8 +1389,8 @@ def test_quantile_missing_group_values_correct_results():
     data = np.array([1., np.nan, 3., np.nan])
     df = pd.DataFrame(dict(key=data, val=range(4)))
 
-    result = df.groupby("key")
-    expected = pd.DataFrame([1., 3.], index=pd.Index([1., 3.], name="key"))
+    result = df.groupby("key").quantile()
+    expected = pd.DataFrame([1., 3.], index=pd.Index([1., 3.], name="key"), columns=["val"])
     tm.assert_frame_equal(result, expected)
 
 
