@@ -53,6 +53,7 @@ dependencies:
   - hypothesis>=3.82
   - moto  # mock S3
   - pytest>=4.0.2
+  - pytest-asyncio
   - pytest-cov
   - pytest-mock
   - pytest-xdist

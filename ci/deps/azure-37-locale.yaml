@@ -30,6 +30,7 @@ dependencies:
   - pytest-xdist>=1.29.0
   - pytest-mock
   - pytest-azurepipelines
+  - pytest-asyncio
   - pip
   - pip:
     - hypothesis>=3.58.0

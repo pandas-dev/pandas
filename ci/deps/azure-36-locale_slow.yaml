@@ -30,6 +30,7 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - pytest-azurepipelines
+  - pytest-asyncio
   - moto
   - pip
   - pip:
