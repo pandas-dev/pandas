@@ -156,7 +156,8 @@ class Styler:
 
         def default_display_func(x):
             if is_float(x):
-                return "{:>.{precision}g}".format(x, precision=self.precision)
+                display_format = "{0:.{precision}f}".format(x, precision=self.precision)
+                return display_format
             else:
                 return x
 
