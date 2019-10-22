@@ -1897,8 +1897,6 @@ class Index(IndexOpsMixin, PandasObject):
         empty strings `''` or :attr:`numpy.inf` are not considered NA values
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
-        .. versionadded:: 0.20.0
-
         Returns
         -------
         numpy.ndarray
@@ -1955,8 +1953,6 @@ class Index(IndexOpsMixin, PandasObject):
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -3419,8 +3415,6 @@ class Index(IndexOpsMixin, PandasObject):
         sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword)
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------

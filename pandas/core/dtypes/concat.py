@@ -199,8 +199,6 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     result : Categorical

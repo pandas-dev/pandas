@@ -46,9 +46,6 @@ def nested_to_record(
     sep : str, default '.'
         Nested records will generate names separated by sep,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
-
-        .. versionadded:: 0.20.0
-
     level: int, optional, default: 0
         The number of levels in the json string.
 
@@ -146,15 +143,9 @@ def json_normalize(
           always present.
         * 'raise' : will raise KeyError if keys listed in meta are not
           always present.
-
-        .. versionadded:: 0.20.0
-
     sep : str, default '.'
         Nested records will generate names separated by sep.
         e.g., for sep='.', {'foo': {'bar': 0}} -> foo.bar.
-
-        .. versionadded:: 0.20.0
-
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.

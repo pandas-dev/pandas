@@ -491,8 +491,6 @@ class Styler:
             This is useful when you need to provide
             additional variables for a custom template.
 
-            .. versionadded:: 0.20
-
         Returns
         -------
         rendered : str
@@ -1200,9 +1198,6 @@ class Styler:
             - 'mid' : the center of the cell is at (max-min)/2, or
               if values are all negative (positive) the zero is aligned
               at the right (left) of the cell.
-
-              .. versionadded:: 0.20.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.

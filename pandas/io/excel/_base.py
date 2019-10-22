@@ -107,9 +107,6 @@ dtype : Type name or dict of column -> type, default None
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-
-    .. versionadded:: 0.20.0
-
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Acceptable values are None, "xlrd", "openpyxl" or "odf".

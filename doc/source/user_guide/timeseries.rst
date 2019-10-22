@@ -376,8 +376,6 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 Using the ``origin`` Parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.20.0
-
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
 of a ``DatetimeIndex``. For example, to use 1960-01-01 as the starting date:
 

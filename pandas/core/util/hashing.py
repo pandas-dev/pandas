@@ -76,8 +76,6 @@ def hash_pandas_object(
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     Series of uint64, same length as the object
@@ -145,8 +143,6 @@ def hash_pandas_object(
 def hash_tuples(vals, encoding="utf8", hash_key=None):
     """
     Hash an MultiIndex / list-of-tuples efficiently
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -261,8 +257,6 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------

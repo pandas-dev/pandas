@@ -162,8 +162,6 @@ def is_file_like(obj):
     Note: file-like objects must be iterable, but
     iterable objects need not be file-like.
 
-    .. versionadded:: 0.20.0
-
     Parameters
     ----------
     obj : The object to check
@@ -280,8 +278,6 @@ def is_nested_list_like(obj):
     """
     Check if the object is list-like, and that all of its elements
     are also list-like.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------

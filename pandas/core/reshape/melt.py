@@ -220,9 +220,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
         can strip the hyphen by specifying `sep='-'`
-
-        .. versionadded:: 0.20.0
-
     suffix : str, default '\\d+'
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
@@ -230,8 +227,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         suffixes, for example, if your wide variables are of the form
         A-one, B-two,.., and you have an unrelated column A-rating, you can
         ignore the last one by specifying `suffix='(!?one|two)'`
-
-        .. versionadded:: 0.20.0
 
         .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.

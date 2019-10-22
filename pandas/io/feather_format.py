@@ -71,8 +71,6 @@ def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path.
 
-    .. versionadded:: 0.20.0
-
     Parameters
     ----------
     path : str, path object or file-like object

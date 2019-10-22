@@ -491,18 +491,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     ----------
     pat : str or compiled regex
         String can be a character sequence or regular expression.
-
-        .. versionadded:: 0.20.0
-            `pat` also accepts a compiled regex.
-
     repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
-
-        .. versionadded:: 0.20.0
-            `repl` also accepts a callable.
-
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None

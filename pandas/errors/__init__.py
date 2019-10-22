@@ -25,8 +25,6 @@ class UnsortedIndexError(KeyError):
     """
     Error raised when attempting to get a slice of a MultiIndex,
     and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
     """
 
 

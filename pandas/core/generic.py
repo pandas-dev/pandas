@@ -897,8 +897,6 @@ class NDFrame(PandasObject, SelectionMixin):
             A specific axis to squeeze. By default, all length-1 axes are
             squeezed.
 
-            .. versionadded:: 0.20.0
-
         Returns
         -------
         DataFrame, Series, or scalar
@@ -2163,8 +2161,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
-        .. versionadded:: 0.20.0.
-
     See Also
     --------
     to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2756,8 +2752,6 @@ class NDFrame(PandasObject, SelectionMixin):
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
-
-            .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -3032,22 +3026,15 @@ class NDFrame(PandasObject, SelectionMixin):
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{multirow} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-
-            .. versionadded:: 0.20.0
-
         caption : str, optional
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
 
@@ -5133,8 +5120,6 @@ class NDFrame(PandasObject, SelectionMixin):
     Call ``func`` on self producing a %(klass)s with transformed values
     and that has the same axis length as self.
 
-    .. versionadded:: 0.20.0
-
     Parameters
     ----------
     func : function, str, list or dict
@@ -5804,8 +5789,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -7945,8 +7928,6 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
