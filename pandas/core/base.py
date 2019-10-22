@@ -275,7 +275,7 @@ class SelectionMixin:
         """
         raise AbstractMethodError(self)
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func, **kwargs):
         raise AbstractMethodError(self)
 
     agg = aggregate

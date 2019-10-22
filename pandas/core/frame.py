@@ -6584,26 +6584,26 @@ class DataFrame(NDFrame):
         **_shared_doc_kwargs
     )
     @Appender(_shared_docs["aggregate"])
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func, axis=0, **kwargs):
         axis = self._get_axis_number(axis)
 
         result = None
         try:
-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+            result, how = self._aggregate(func, axis=axis, **kwargs)
         except TypeError:
             pass
         if result is None:
-            return self.apply(func, axis=axis, args=args, **kwargs)
+            return self.apply(func, axis=axis, **kwargs)
         return result
 
-    def _aggregate(self, arg, axis=0, *args, **kwargs):
+    def _aggregate(self, arg, axis=0, **kwargs):
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = self.T._aggregate(arg, *args, **kwargs)
+            result, how = self.T._aggregate(arg, **kwargs)
             result = result.T if result is not None else result
             return result, how
-        return super()._aggregate(arg, *args, **kwargs)
+        return super()._aggregate(arg, **kwargs)
 
     agg = aggregate
 
