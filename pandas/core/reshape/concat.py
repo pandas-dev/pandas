@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import List, Union
+from typing import Hashable, List
 import warnings
 
 import numpy as np
@@ -542,7 +542,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Union[int, str]] = []
+                names: List[Hashable] = []
                 num = 0
                 has_names = False
                 for obj in self.objs:
