@@ -1974,12 +1974,11 @@ def test_dup_labels_output_shape(groupby_func):
     df = pd.DataFrame([[1, 1]], columns=["a", "a"])
     grp_by = df.groupby([0])
 
-    # TODO: move this to a helper function
     args = []
     if groupby_func in {"fillna", "nth"}:
         args.append(0)
     elif groupby_func == "corrwith":
-        args.append(pd.Series([1, 0]))
+        args.append(df)
     elif groupby_func == "tshift":
         df.index = [pd.Timestamp("today")]
         args.extend([1, "D"])
