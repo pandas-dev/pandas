@@ -7,13 +7,14 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionailty.
 """
 
+import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
+from typing import Dict, FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -846,60 +847,58 @@ b  2""",
         )
 
     def _cython_transform(self, how, numeric_only=True, **kwargs):
-        output = []  # type: List[Series]
-        for name, obj in self._iterate_slices():
+        output = collections.OrderedDict()
+        names = []  # type: List[Hashable]
+        for index, (name, obj) in enumerate(self._iterate_slices()):
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
             try:
-                result, names = self.grouper.transform(obj.values, how, **kwargs)
+                result, _ = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
 
             if self._transform_should_cast(how):
                 result = self._try_cast(result, obj)
 
-            output.append(Series(result, name=name))
+            output[index] = result
+            names.append(name)
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output, names)
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(self, output, names=None):
+    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
         raise AbstractMethodError(self)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         raise AbstractMethodError(self)
 
     def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
-        output = []  # type: List[Series]
-        for name, obj in self._iterate_slices():
+        output = collections.OrderedDict()
+        names = []  # type: List[Hashable]
+
+        for index, (name, obj) in enumerate(self._iterate_slices()):
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            result, _ = self.grouper.aggregate(obj.values, how, min_count=min_count)
+
+            # TODO: ohlc needs a new home
             if how == "ohlc":
                 assert result.shape[1] == 4
-                for index in range(4):
-                    values = result[:, index]
-                    output.append(Series(self._try_cast(values, obj)))
-
-                # TODO: de-dup with DataFrame._wrap_aggregated_output
-                from pandas.core.reshape.concat import concat
-
-                df = concat(output, axis=1)
-                df.columns = ["open", "high", "low", "close"]
-                df.index = self.grouper.result_index
-
+                result = self._try_cast(result, obj)
+                df = DataFrame(result, index=self.grouper.result_index, columns=["open", "high", "low", "close"])
                 return df
 
-            output.append(Series(self._try_cast(result, obj), name=name))
+            output[index] = self._try_cast(result, obj)
+            names.append(name)
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
@@ -911,16 +910,17 @@ b  2""",
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output = []  # type: List[Series]
-        for name, obj in self._iterate_slices():
+        output = collections.OrderedDict()
+        names = []  # type: List[Hashable]
+
+        for index, (name, obj) in enumerate(self._iterate_slices()):
             try:
                 result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
             else:
-                output.append(
-                    Series(self._try_cast(result, obj, numeric_only=True), name=name)
-                )
+                output[index] = self._try_cast(result, obj, numeric_only=True)
+                names.append(name)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -928,7 +928,7 @@ b  2""",
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for index, result in enumerate(output):
+            for index, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result
@@ -937,7 +937,7 @@ b  2""",
 
                 output[index] = self._try_cast(values[mask], result)
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, names)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
@@ -2256,10 +2256,11 @@ class GroupBy(_GroupBy):
                 )
 
         labels, _, ngroups = grouper.group_info
-        output = []  # type: List[Series]
+        output = collections.OrderedDict()
+        names = []  # List[Hashable]
         base_func = getattr(libgroupby, how)
 
-        for name, obj in self._iterate_slices():
+        for index, (name, obj) in enumerate(self._iterate_slices()):
             values = obj._data._values
 
             if aggregate:
@@ -2295,12 +2296,13 @@ class GroupBy(_GroupBy):
             if post_processing:
                 result = post_processing(result, inferences)
 
-            output.append(Series(result, name=name))
+            output[index] = result
+            names.append(name)
 
         if aggregate:
-            return self._wrap_aggregated_output(output)
+            return self._wrap_aggregated_output(output, names)
         else:
-            return self._wrap_transformed_output(output)
+            return self._wrap_transformed_output(output, names)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)

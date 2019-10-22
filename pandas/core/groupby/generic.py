@@ -14,6 +14,7 @@ import typing
 from typing import (
     Any,
     Callable,
+    Dict,
     FrozenSet,
     Hashable,
     Iterable,
@@ -339,22 +340,25 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_series_output(self, output, index, names=None):
+    def _wrap_series_output(self, output: Dict[int, np.ndarray], index, names: List[Hashable]):
         """ common agg/transform wrapping logic """
-        if names is not None:
-            return DataFrame(output, index=index, columns=names)
+        if len(names) > 1:
+            result = DataFrame(output, index=index)
+            result.columns = names
+            return result
         else:
-            result = output[0]
+            result = Series(output[0])
             result.index = index
+            result.name = names[0]
             return result
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
         )
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
+    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
         return self._wrap_series_output(
             output=output, index=self.obj.index, names=names
         )
@@ -1588,10 +1592,9 @@ class DataFrameGroupBy(GroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output: List[Series], names=None):
-        from pandas.core.reshape.concat import concat
-
-        result = concat(output, axis=1)
+    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+        result = DataFrame(output)
+        result.columns = names
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1605,13 +1608,12 @@ class DataFrameGroupBy(GroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output: List[Series], names=None) -> DataFrame:
-        from pandas.core.reshape.concat import concat
+    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+        result = DataFrame(output)
+        result.columns = names
+        result.index = self.obj.index
 
-        df = concat(output, axis=1)
-        df.index = self.obj.index
-
-        return df
+        return result
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
