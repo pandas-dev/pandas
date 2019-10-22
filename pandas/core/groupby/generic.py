@@ -341,7 +341,27 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(self, output: Dict[int, np.ndarray], index, names: List[Hashable]):
-        """ common agg/transform wrapping logic """
+        """ 
+        Wraps the output of a SeriesGroupBy operation into the expected result.
+
+        Parameters
+        ----------
+        output : dict[int, np.ndarray]
+            Dict with a sole key of 0 and a value of the result values.
+        index : pd.Index
+            Index to apply to the output.
+        names : List[Hashable]
+            List containing one label (the Series name).
+
+        Returns
+        -------
+        Series
+
+        Notes
+        -----
+        output and names should only contain one element. These are containers for generic
+        compatability with the DataFrameGroupBy class.
+        """
         assert len(names) == 1
         result = Series(output[0])
         result.index = index
@@ -350,12 +370,54 @@ class SeriesGroupBy(GroupBy):
         return result
 
     def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
+        """ 
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : dict[int, np.ndarray]
+            Dict with a sole key of 0 and a value of the result values.
+        index : pd.Index
+            Index to apply to the output.
+        names : List[Hashable]
+            List containing one label (the Series name).
+
+        Returns
+        -------
+        Series
+
+        Notes
+        -----
+        output and names should only contain one element. These are containers for generic
+        compatability with the DataFrameGroupBy class.
+        """
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
         )
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
+        """ 
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : dict[int, np.ndarray]
+            Dict with a sole key of 0 and a value of the result values.
+        index : pd.Index
+            Index to apply to the output.
+        names : List[Hashable]
+            List containing one label (the Series name).
+
+        Returns
+        -------
+        Series
+
+        Notes
+        -----
+        output and names should only contain one element. These are containers for generic
+        compatability with the DataFrameGroupBy class.
+        """        
         return self._wrap_series_output(
             output=output, index=self.obj.index, names=names
         )
@@ -1590,6 +1652,22 @@ class DataFrameGroupBy(GroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy aggregations into the expected result.
+
+        Parameters
+        ----------
+        output : dict[int, np.ndarray]
+            Dict where the key represents the columnar-index and the values are
+            the actual results.
+        names : List[Hashable]
+            List containing the column names to apply. The position of each
+            item in the list corresponds with the key in output.
+
+        Returns
+        -------
+        DataFrame
+        """
         result = DataFrame(output)
         result.columns = names
 
@@ -1606,6 +1684,23 @@ class DataFrameGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy transformations into the expected result.
+
+        Parameters
+        ----------
+        output : dict[int, np.ndarray]
+            Dict where the key represents the columnar-index and the values are
+            the actual results.
+        names : List[Hashable]
+            List containing the column names to apply. The position of each
+            item in the list corresponds with the key in output.
+
+        Returns
+        -------
+        DataFrame
+        """
+        
         result = DataFrame(output)
         result.columns = names
         result.index = self.obj.index
