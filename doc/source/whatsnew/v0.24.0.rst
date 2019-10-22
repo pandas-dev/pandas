@@ -1933,4 +1933,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.23.4..HEAD
+.. contributors:: v0.23.4..v0.24.0
