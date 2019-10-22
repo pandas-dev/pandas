@@ -1776,17 +1776,19 @@ cdef class _Period:
 
     def to_timestamp(self, freq=None, how='start', tz=None):
         """
-        Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period.
+        Return the Timestamp representation of the Period.
+
+        Uses the target frequency specified at the part of the period specified 
+        by `how`, which is either `Start` or `Finish`.
 
         Parameters
         ----------
-        freq : string or DateOffset
+        freq : str or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
-            longer and 'S' otherwise
+            longer and 'S' otherwise.
         how : str, default 'S' (start)
-            'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'
+            One of 'S', 'E'. Can be aliased as case insensitive
+            'Start', 'Finish', 'Begin', 'End'.
 
         Returns
         -------
