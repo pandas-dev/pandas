@@ -608,11 +608,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:
