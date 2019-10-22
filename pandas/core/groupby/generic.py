@@ -342,15 +342,12 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_series_output(self, output: Dict[int, np.ndarray], index, names: List[Hashable]):
         """ common agg/transform wrapping logic """
-        if len(names) > 1:
-            result = DataFrame(output, index=index)
-            result.columns = names
-            return result
-        else:
-            result = Series(output[0])
-            result.index = index
-            result.name = names[0]
-            return result
+        assert len(names) == 1
+        result = Series(output[0])
+        result.index = index
+        result.name = names[0]
+
+        return result
 
     def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
         result = self._wrap_series_output(
