@@ -61,9 +61,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
         blklocs = mgr._blklocs
 
     plan = []
-    for blkno, placements in libinternals.get_blkno_placements(
-        blknos, mgr.nblocks, group=False
-    ):
+    for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
 
         assert placements.is_slice_like
 

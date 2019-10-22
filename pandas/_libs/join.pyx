@@ -290,14 +290,6 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
     return indexer
 
 
-left_join_indexer_unique_float64 = left_join_indexer_unique["float64_t"]
-left_join_indexer_unique_float32 = left_join_indexer_unique["float32_t"]
-left_join_indexer_unique_object = left_join_indexer_unique["object"]
-left_join_indexer_unique_int32 = left_join_indexer_unique["int32_t"]
-left_join_indexer_unique_int64 = left_join_indexer_unique["int64_t"]
-left_join_indexer_unique_uint64 = left_join_indexer_unique["uint64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
@@ -401,14 +393,6 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     return result, lindexer, rindexer
 
 
-left_join_indexer_float64 = left_join_indexer["float64_t"]
-left_join_indexer_float32 = left_join_indexer["float32_t"]
-left_join_indexer_object = left_join_indexer["object"]
-left_join_indexer_int32 = left_join_indexer["int32_t"]
-left_join_indexer_int64 = left_join_indexer["int64_t"]
-left_join_indexer_uint64 = left_join_indexer["uint64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
@@ -500,14 +484,6 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-inner_join_indexer_float64 = inner_join_indexer["float64_t"]
-inner_join_indexer_float32 = inner_join_indexer["float32_t"]
-inner_join_indexer_object = inner_join_indexer["object"]
-inner_join_indexer_int32 = inner_join_indexer["int32_t"]
-inner_join_indexer_int64 = inner_join_indexer["int64_t"]
-inner_join_indexer_uint64 = inner_join_indexer["uint64_t"]
 
 
 @cython.wraparound(False)
@@ -637,14 +613,6 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-outer_join_indexer_float64 = outer_join_indexer["float64_t"]
-outer_join_indexer_float32 = outer_join_indexer["float32_t"]
-outer_join_indexer_object = outer_join_indexer["object"]
-outer_join_indexer_int32 = outer_join_indexer["int32_t"]
-outer_join_indexer_int64 = outer_join_indexer["int64_t"]
-outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
 
 
 # ----------------------------------------------------------------------

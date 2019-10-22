@@ -245,11 +245,17 @@ def _get_hashtable_algo(values):
     return (htable, table, values, dtype, ndtype)
 
 
-def _get_data_algo(values, func_map):
+def _get_values_for_rank(values):
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
     values, dtype, ndtype = _ensure_data(values)
+    return values, dtype, ndtype
+
+
+def _get_data_algo(values, func_map):
+    values, dtype, ndtype = _get_values_for_rank(values)
+
     if ndtype == "object":
 
         # it's cheaper to use a String Hash Table than Object; we infer
@@ -900,8 +906,8 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if values.ndim == 1:
-        f, values = _get_data_algo(values, _rank1d_functions)
-        ranks = f(
+        values, _, _ = _get_values_for_rank(values)
+        ranks = algos.rank_1d(
             values,
             ties_method=method,
             ascending=ascending,
@@ -909,8 +915,8 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
             pct=pct,
         )
     elif values.ndim == 2:
-        f, values = _get_data_algo(values, _rank2d_functions)
-        ranks = f(
+        values, _, _ = _get_values_for_rank(values)
+        ranks = algos.rank_2d(
             values,
             axis=axis,
             ties_method=method,
@@ -998,21 +1004,6 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
     return arr + b
-
-
-_rank1d_functions = {
-    "float64": algos.rank_1d_float64,
-    "int64": algos.rank_1d_int64,
-    "uint64": algos.rank_1d_uint64,
-    "object": algos.rank_1d_object,
-}
-
-_rank2d_functions = {
-    "float64": algos.rank_2d_float64,
-    "int64": algos.rank_2d_int64,
-    "uint64": algos.rank_2d_uint64,
-    "object": algos.rank_2d_object,
-}
 
 
 def quantile(x, q, interpolation_method="fraction"):
@@ -1859,14 +1850,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 # diff #
 # ---- #
 
-_diff_special = {
-    "float64": algos.diff_2d_float64,
-    "float32": algos.diff_2d_float32,
-    "int64": algos.diff_2d_int64,
-    "int32": algos.diff_2d_int32,
-    "int16": algos.diff_2d_int16,
-    "int8": algos.diff_2d_int8,
-}
+_diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
 def diff(arr, n: int, axis: int = 0):
@@ -1914,7 +1898,7 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = _diff_special[arr.dtype.name]
+        f = algos.diff_2d
         f(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is

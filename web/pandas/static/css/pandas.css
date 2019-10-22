@@ -31,7 +31,7 @@ code {
     color: #130654;
 }
 a.navbar-brand img {
-    max-height: 2em;
+    height: 3rem;
 }
 div.card {
     margin: 0 0 .2em .2em !important;
@@ -51,4 +51,10 @@ div.card .card-title {
 }
 .navbar-dark .navbar-nav .nav-link:hover {
     color: white;
+}
+table.logo td {
+    text-align: center;
+}
+table.logo img {
+    height: 4rem;
 }
