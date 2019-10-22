@@ -17,6 +17,7 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -926,7 +927,7 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
