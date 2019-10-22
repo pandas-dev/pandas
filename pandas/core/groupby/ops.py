@@ -655,7 +655,7 @@ class BaseGrouper:
             return self._aggregate_series_fast(obj, func)
         except AssertionError:
             raise
-        except (ValueError, AttributeError, TypeError) as err:
+        except (ValueError, TypeError) as err:
             if "No result." in str(err):
                 # raised in libreduction
                 pass
