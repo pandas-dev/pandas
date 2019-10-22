@@ -3242,18 +3242,20 @@ def test_repr_html_ipython_config(ip):
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
-@pytest.mark.parametrize("encoding", [None, "utf-8", "gbk", "foo"])
+@pytest.mark.parametrize(
+    "encoding, data",
+    [(None, "abc"), ("utf-8", "abc"), ("gbk", "造成输出中文显示乱码"), ("foo", "abc")],
+)
 def test_filepath_or_buffer_arg(
-    float_frame,
     method,
     filepath_or_buffer,
     assert_filepath_or_buffer_equals,
     encoding,
+    data,
     filepath_or_buffer_id,
 ):
-    df = float_frame
-    if encoding == "gbk":
-        float_frame.iloc[0, 0] = "造成输出中文显示乱码"
+    df = DataFrame([data])
+
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
             ValueError, match="buf is not a file name and encoding is specified."
