@@ -640,7 +640,10 @@ class MultiIndex(Index):
 
     @property
     def levels(self):
-        return self._levels
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        return FrozenList(result)
 
     @property
     def _values(self):
@@ -833,7 +836,7 @@ class MultiIndex(Index):
         if level is None:
             new_codes = FrozenList(
                 _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
-                for lev, level_codes in zip(self.levels, codes)
+                for lev, level_codes in zip(self._levels, codes)
             )
         else:
             level = [self._get_level_number(l) for l in level]

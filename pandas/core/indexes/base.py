@@ -2043,7 +2043,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        how :  {'any', 'all'}, default 'any'
+        how : {'any', 'all'}, default 'any'
             If the Index is a MultiIndex, drop the value when any or all levels
             are NaN.
 
@@ -3154,16 +3154,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_positional:
             indexer = key
         else:
-            try:
-                indexer = self.slice_indexer(start, stop, step, kind=kind)
-            except Exception:
-                if is_index_slice:
-                    if self.is_integer():
-                        raise
-                    else:
-                        indexer = key
-                else:
-                    raise
+            indexer = self.slice_indexer(start, stop, step, kind=kind)
 
         return indexer
 
@@ -4688,11 +4679,11 @@ class Index(IndexOpsMixin, PandasObject):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
-            except Exception:  # pragma: no cover
+            except Exception:
                 raise e1
         except TypeError:
-            # python 3
-            if is_scalar(key):  # pragma: no cover
+            # e.g. "[False] is an invalid key"
+            if is_scalar(key):
                 raise IndexError(key)
             raise InvalidIndexError(key)
 
@@ -5037,12 +5028,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        label :  object
+        label : object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
-
         """
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
