@@ -601,9 +601,6 @@ def to_datetime(
 
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil behavior).
-
-        .. versionadded:: 0.16.1
-
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
