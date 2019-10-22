@@ -340,8 +340,10 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_series_output(self, output: Dict[int, np.ndarray], index, names: List[Hashable]):
-        """ 
+    def _wrap_series_output(
+        self, output: Dict[int, np.ndarray], index: Index, names: List[Hashable]
+    ) -> Series:
+        """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
         Parameters
@@ -359,8 +361,8 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        output and names should only contain one element. These are containers for generic
-        compatability with the DataFrameGroupBy class.
+        output and names should only contain one element. These are containers
+        for generic compatability with the DataFrameGroupBy class.
         """
         assert len(names) == 1
         result = Series(output[0])
@@ -369,8 +371,10 @@ class SeriesGroupBy(GroupBy):
 
         return result
 
-    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
-        """ 
+    def _wrap_aggregated_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ) -> Series:
+        """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
@@ -388,16 +392,18 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        output and names should only contain one element. These are containers for generic
-        compatability with the DataFrameGroupBy class.
+        output and names should only contain one element. These are containers
+        for generic compatability with the DataFrameGroupBy class.
         """
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
         )
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
-        """ 
+    def _wrap_transformed_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ) -> Series:
+        """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
@@ -415,9 +421,9 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        output and names should only contain one element. These are containers for generic
-        compatability with the DataFrameGroupBy class.
-        """        
+        output and names should only contain one element. These are containers
+        for generic compatability with the DataFrameGroupBy class.
+        """
         return self._wrap_series_output(
             output=output, index=self.obj.index, names=names
         )
@@ -1651,7 +1657,9 @@ class DataFrameGroupBy(GroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+    def _wrap_aggregated_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
 
@@ -1683,7 +1691,9 @@ class DataFrameGroupBy(GroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]) -> DataFrame:
+    def _wrap_transformed_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
 
@@ -1700,7 +1710,7 @@ class DataFrameGroupBy(GroupBy):
         -------
         DataFrame
         """
-        
+
         result = DataFrame(output)
         result.columns = names
         result.index = self.obj.index

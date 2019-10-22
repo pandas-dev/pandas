@@ -14,7 +14,17 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import Dict, FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
+from typing import (
+    Dict,
+    FrozenSet,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -869,10 +879,14 @@ b  2""",
 
         return self._wrap_transformed_output(output, names)
 
-    def _wrap_aggregated_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
+    def _wrap_aggregated_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(self, output: Dict[int, np.ndarray], names: List[Hashable]):
+    def _wrap_transformed_output(
+        self, output: Dict[int, np.ndarray], names: List[Hashable]
+    ):
         raise AbstractMethodError(self)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
@@ -893,7 +907,11 @@ b  2""",
             if how == "ohlc":
                 assert result.shape[1] == 4
                 result = self._try_cast(result, obj)
-                df = DataFrame(result, index=self.grouper.result_index, columns=["open", "high", "low", "close"])
+                df = DataFrame(
+                    result,
+                    index=self.grouper.result_index,
+                    columns=["open", "high", "low", "close"],
+                )
                 return df
 
             output[index] = self._try_cast(result, obj)
