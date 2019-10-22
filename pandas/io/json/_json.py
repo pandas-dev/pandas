@@ -2,7 +2,7 @@ from collections import OrderedDict
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
-from pandas._typing import Scalar
+from pandas._typing import Serializable
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -33,8 +33,6 @@ loads = json.loads
 dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = "0.20.0"
-
-Serializable = Union[Scalar, List, Dict]
 
 
 # interface to/from

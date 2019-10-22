@@ -4,8 +4,8 @@ from textwrap import dedent
 from typing import (
     Any,
     Callable,
-    Dict,
     List,
+    Mapping,
     Optional,
     Tuple,
     Type,
@@ -104,7 +104,7 @@ def deprecate(
 def deprecate_kwarg(
     old_arg_name: str,
     new_arg_name: Optional[str],
-    mapping: Optional[Union[Dict[Any, Any], Callable[[Any], Any]]] = None,
+    mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
     stacklevel: int = 2,
 ) -> Callable[..., Any]:
     """

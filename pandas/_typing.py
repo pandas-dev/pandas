@@ -1,5 +1,15 @@
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Iterable, Optional, TypeVar, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    AnyStr,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -25,6 +35,7 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float, bool]
 Axis = Union[str, int]
 Ordered = Optional[bool]
+Serializable = Union[Scalar, Sequence, Mapping]
 
 # use Collection after we drop support for py35
 Axes = Iterable

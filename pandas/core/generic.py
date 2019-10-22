@@ -14,6 +14,7 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -65,7 +66,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer, Scalar
+from pandas._typing import Dtype, FilePathOrBuffer, Serializable
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -2268,7 +2269,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision: int = 10,
         force_ascii: bool_t = True,
         date_unit: str = "ms",
-        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
+        default_handler: Optional[Callable[[Any], Serializable]] = None,
         lines: bool_t = False,
         compression: Optional[str] = "infer",
         index: bool_t = True,
@@ -3133,7 +3134,7 @@ class NDFrame(PandasObject, SelectionMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Dict[str, str]]] = "infer",
+        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
