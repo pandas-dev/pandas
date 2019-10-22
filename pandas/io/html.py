@@ -9,7 +9,6 @@ import numbers
 import os
 import re
 
-from pandas.compat import raise_with_traceback
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
 
@@ -889,8 +888,6 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    # hack around python 3 deleting the exception variable
-    retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
         p = parser(io, compiled_match, attrs, encoding, displayed_only)
@@ -912,11 +909,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "different flavor.".format(flav)
                 )
 
-            retained = caught
+            raise
         else:
             break
-    else:
-        raise_with_traceback(retained)
 
     ret = []
     for table in tables:

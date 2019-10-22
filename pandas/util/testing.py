@@ -23,7 +23,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -2533,7 +2533,7 @@ class _AssertRaisesContextmanager:
                         pat=self.regexp.pattern, val=val
                     )
                     e = AssertionError(msg)
-                    raise_with_traceback(e, trace_back)
+                    raise e.with_traceback(trace_back)
 
             return True
         else:
