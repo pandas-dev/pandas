@@ -1,4 +1,5 @@
 import numbers
+from typing import Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -121,7 +122,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -137,7 +138,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if copy:
             values = values.copy()
 
-        self._ndarray = values
+        self._ndarray: np.ndarray = values
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
