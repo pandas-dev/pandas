@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, Optional
+from typing import Dict, FrozenSet, Optional
 import warnings
 
 import numpy as np
@@ -16,6 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
@@ -266,7 +267,7 @@ class SelectionMixin:
 
     agg = aggregate
 
-    def _try_aggregate_string_function(self, arg, *args, **kwargs):
+    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
         - try to find a function (or attribute) on ourselves
@@ -291,11 +292,9 @@ class SelectionMixin:
 
         f = getattr(np, arg, None)
         if f is not None:
-            try:
+            if hasattr(self, "__array__"):
+                # in particular exclude Window
                 return f(self, *args, **kwargs)
-
-            except (AttributeError, TypeError):
-                pass
 
         raise AttributeError(
             "'{arg}' is not a valid function for "
@@ -566,25 +565,27 @@ class SelectionMixin:
         # degenerate case
         if obj.ndim == 1:
             for a in arg:
+                colg = self._gotitem(obj.name, ndim=1, subset=obj)
                 try:
-                    colg = self._gotitem(obj.name, ndim=1, subset=obj)
-                    results.append(colg.aggregate(a))
+                    new_res = colg.aggregate(a)
 
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
                 except (TypeError, DataError):
                     pass
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
 
         # multiples
         else:
             for index, col in enumerate(obj):
+                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
-                    results.append(colg.aggregate(arg))
-                    keys.append(col)
+                    new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
                 except ValueError:
@@ -592,6 +593,9 @@ class SelectionMixin:
                     continue
                 except SpecificationError:
                     raise
+                else:
+                    results.append(new_res)
+                    keys.append(col)
 
         # if we are empty
         if not len(results):
@@ -604,7 +608,6 @@ class SelectionMixin:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
 
-            from pandas.core.dtypes.cast import is_nested_object
             from pandas import Series
 
             result = Series(results, index=keys, name=self.name)
@@ -648,6 +651,17 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
+    _deprecations = frozenset(
+        [
+            "tolist",  # tolist is not deprecated, just suppressed in the __dir__
+            "base",
+            "data",
+            "item",
+            "itemsize",
+            "flags",
+            "strides",
+        ]
+    )  # type: FrozenSet[str]
 
     def transpose(self, *args, **kwargs):
         """
@@ -900,7 +914,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`
+            The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is a not a view on
             another array. Note that ``copy=False`` does not *ensure* that

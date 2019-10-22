@@ -172,7 +172,7 @@ installed (or you wish to install a newer version) you can install a compiler
     yum groupinstall "Development Tools"
 
 For other Linux distributions, consult your favourite search engine for
-commpiler installation instructions.
+compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -949,6 +949,9 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+Please remember to add the Github Issue Number as a comment to a new test.
+E.g. "# brief comment, see GH#28907"
+
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1193,8 +1196,6 @@ This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
 For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
-
-    .. versionadded:: 0.20.0
 
 Furthermore one can run
 

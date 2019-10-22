@@ -120,6 +120,9 @@ plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
 import pandas as pd"""
 
+# nbsphinx do not use requirejs (breaks bootstrap)
+nbsphinx_requirejs_path = ""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
 
@@ -605,11 +608,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:
@@ -628,11 +627,11 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/{}{}".format(
             fn, linespec
         )
     else:
-        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/v{}/pandas/{}{}".format(
             pandas.__version__, fn, linespec
         )
 

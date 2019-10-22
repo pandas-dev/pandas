@@ -1156,7 +1156,9 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal(
+                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
+            )
 
     if check_exact:
         assert_numpy_array_equal(
@@ -1175,7 +1177,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -1315,8 +1317,9 @@ def assert_frame_equal(
 
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
-    AssertionError: Attributes are different
     ...
+    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
@@ -1431,6 +1434,9 @@ def assert_equal(left, right, **kwargs):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
+    elif isinstance(left, str):
+        assert kwargs == {}
+        return left == right
     else:
         raise NotImplementedError(type(left))
 
@@ -1597,7 +1603,9 @@ def makeUnicodeIndex(k=10, name=None):
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x, k), name=name, **kwargs)
+    return CategoricalIndex(
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
+    )
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
@@ -2360,26 +2368,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2387,7 +2395,7 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper

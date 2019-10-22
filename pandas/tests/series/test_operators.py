@@ -7,7 +7,6 @@ import pytest
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, bdate_range, date_range, isna
 from pandas.core import ops
-from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -16,8 +15,6 @@ from pandas.util.testing import (
     assert_index_equal,
     assert_series_equal,
 )
-
-from .common import TestData
 
 
 class TestSeriesLogicalOps:
@@ -250,12 +247,20 @@ class TestSeriesLogicalOps:
 
         with pytest.raises(TypeError):
             d.__and__(s, axis="columns")
+        with pytest.raises(TypeError):
+            d.__and__(s, axis=1)
 
         with pytest.raises(TypeError):
             s & d
+        with pytest.raises(TypeError):
+            d & s
 
-        # this is wrong as its not a boolean result
-        # result = d.__and__(s,axis='index')
+        expected = (s & s).to_frame("A")
+        result = d.__and__(s, axis="index")
+        tm.assert_frame_equal(result, expected)
+
+        result = d.__and__(s, axis=0)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
     def test_logical_ops_with_index(self, op):
@@ -274,13 +279,27 @@ class TestSeriesLogicalOps:
         result = op(ser, idx2)
         assert_series_equal(result, expected)
 
+    def test_reversed_xor_with_index_returns_index(self):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Index.symmetric_difference(idx1, ser)
+        result = idx1 ^ ser
+        assert_index_equal(result, expected)
+
+        expected = Index.symmetric_difference(idx2, ser)
+        result = idx2 ^ ser
+        assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "op",
         [
             pytest.param(
                 ops.rand_,
                 marks=pytest.mark.xfail(
-                    reason="GH#22092 Index implementation returns Index",
+                    reason="GH#22092 Index __and__ returns Index intersection",
                     raises=AssertionError,
                     strict=True,
                 ),
@@ -288,30 +307,26 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.ror_,
                 marks=pytest.mark.xfail(
-                    reason="Index.get_indexer with non unique index",
-                    raises=InvalidIndexError,
+                    reason="GH#22092 Index __or__ returns Index union",
+                    raises=AssertionError,
                     strict=True,
                 ),
             ),
-            ops.rxor,
         ],
     )
-    def test_reversed_logical_ops_with_index(self, op):
+    def test_reversed_logical_op_with_index_returns_series(self, op):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
-        # symmetric_difference is only for rxor, but other 2 should fail
-        expected = idx1.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx1.values, ser.values))
         result = op(ser, idx1)
-        assert_index_equal(result, expected)
+        assert_series_equal(result, expected)
 
-        expected = idx2.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx2.values, ser.values))
         result = op(ser, idx2)
-        assert_index_equal(result, expected)
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "op, expected",
@@ -436,20 +451,19 @@ class TestSeriesLogicalOps:
         assert_series_equal(s2 & s1, exp)
 
         # True | np.nan => True
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s1 | s2, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        assert_series_equal(s1 | s2, exp_or1)
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
-        assert_series_equal(s2 | s1, exp)
+        exp_or = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
+        assert_series_equal(s2 | s1, exp_or)
 
         # DataFrame doesn't fill nan with False
-        exp = pd.DataFrame({"x": [True, False, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
+        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
+        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
 
         exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
+        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
+        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 
         # different length
         s3 = pd.Series([True, False, True], index=list("ABC"), name="x")
@@ -460,19 +474,17 @@ class TestSeriesLogicalOps:
         assert_series_equal(s4 & s3, exp)
 
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s3 | s4, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        assert_series_equal(s3 | s4, exp_or1)
         # True | np.nan => True
-        exp = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
-        assert_series_equal(s4 | s3, exp)
+        exp_or = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
+        assert_series_equal(s4 | s3, exp_or)
 
-        exp = pd.DataFrame({"x": [True, False, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
+        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp.to_frame())
+        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp.to_frame())
 
-        exp = pd.DataFrame({"x": [True, True, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
+        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
+        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
 
 class TestSeriesComparisons:
@@ -732,7 +744,7 @@ class TestSeriesFlexComparisonOps:
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
 
-class TestSeriesOperators(TestData):
+class TestSeriesOperators:
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({"x": 0.0})
@@ -754,12 +766,10 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
-    def test_operators_corner(self):
-        series = self.ts
-
+    def test_operators_corner(self, datetime_series):
         empty = Series([], index=Index([]))
 
-        result = series + empty
+        result = datetime_series + empty
         assert np.isnan(result).all()
 
         result = empty + Series([], index=Index([]))
@@ -772,10 +782,12 @@ class TestSeriesOperators(TestData):
         # deltas = deltas + sub_deltas
 
         # float + int
-        int_ts = self.ts.astype(int)[:-5]
-        added = self.ts + int_ts
+        int_ts = datetime_series.astype(int)[:-5]
+        added = datetime_series + int_ts
         expected = Series(
-            self.ts.values[:-5] + int_ts.values, index=self.ts.index[:-5], name="ts"
+            datetime_series.values[:-5] + int_ts.values,
+            index=datetime_series.index[:-5],
+            name="ts",
         )
         tm.assert_series_equal(added[:-5], expected)
 

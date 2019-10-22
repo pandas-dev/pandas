@@ -419,13 +419,21 @@ class BaseGrouper:
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, "object"]:
-                f = getattr(
+                f2 = getattr(
                     libgroupby,
                     "{fname}_{dtype_str}".format(fname=fname, dtype_str=dt),
                     None,
                 )
-                if f is not None:
-                    return f
+                if f2 is not None:
+                    return f2
+
+            if hasattr(f, "__signatures__"):
+                # inspect what fused types are implemented
+                if dtype_str == "object" and "object" not in f.__signatures__:
+                    # return None so we get a NotImplementedError below
+                    #  instead of a TypeError at runtime
+                    return None
+            return f
 
         ftype = self._cython_functions[kind][how]
 
@@ -526,7 +534,13 @@ class BaseGrouper:
             func = self._get_cython_function(kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = ensure_float64(values)
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values, skipna=False) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
                 func = self._get_cython_function(kind, how, values, is_numeric)
             else:
                 raise
@@ -647,7 +661,17 @@ class BaseGrouper:
     def agg_series(self, obj, func):
         try:
             return self._aggregate_series_fast(obj, func)
-        except Exception:
+        except AssertionError:
+            raise
+        except ValueError as err:
+            if "No result." in str(err):
+                # raised in libreduction
+                pass
+            elif "Function does not reduce" in str(err):
+                # raised in libreduction
+                pass
+            else:
+                raise
             return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
