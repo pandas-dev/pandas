@@ -118,7 +118,7 @@ def transformation_func(request):
     return request.param
 
 
-@pytest.fixture(params=set(reduction_kernels) | set(transformation_kernels))
+@pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
 def groupby_func(request):
     """yields both aggregation and transformation functions."""
     return request.param
