@@ -990,10 +990,18 @@ class TestStyler:
         with pytest.raises(ValueError):
             df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
-    def test_format_null(self, na_rep="-"):
+    def test_set_na_rep(self):
         # GH 28358
         df = pd.DataFrame({"A": [0, np.nan]})
-        ctx = df.style.format_null()._translate()
+        ctx = df.style.set_na_rep("-")._translate()
+        result = ctx["body"][1][1]["display_value"]
+        expected = "-"
+        assert result == expected
+
+    def test_format_with_na_rep(self):
+        # GH 28358
+        df = pd.DataFrame({"A": [0, np.nan]})
+        ctx = df.style.format(na_rep="-")._translate()
         result = ctx["body"][1][1]["display_value"]
         expected = "-"
         assert result == expected

@@ -71,6 +71,9 @@ class Styler:
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
         where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
         number and ``<num_col>`` is the column number.
+    na_rep : str or None, default None
+        Representation for missing values.
+        If ``na_rep`` is None, no special formatting is applied
 
     Attributes
     ----------
@@ -126,6 +129,7 @@ class Styler:
         caption=None,
         table_attributes=None,
         cell_ids=True,
+        na_rep=None,
     ):
         self.ctx = defaultdict(list)
         self._todo = []
@@ -151,11 +155,14 @@ class Styler:
         self.hidden_index = False
         self.hidden_columns = []
         self.cell_ids = cell_ids
+        self.na_rep = na_rep
 
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
-            if is_float(x):
+            if self.na_rep is not None and pd.isna(x):
+                return self.na_rep
+            elif is_float(x):
                 return "{:>.{precision}g}".format(x, precision=self.precision)
             else:
                 return x
@@ -415,16 +422,20 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter, subset=None):
+    def format(self, formatter=None, subset=None, na_rep=None):
         """
         Format the text display value of cells.
 
         Parameters
         ----------
-        formatter : str, callable, or dict
+        formatter : str, callable, dict or None
+            If ``formatter`` is None, the default formatter is used
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
+        na_rep : str or None, default None
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied
 
         Returns
         -------
@@ -450,6 +461,9 @@ class Styler:
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'c': str.upper})
         """
+        if formatter is None:
+            formatter = self._display_funcs.default_factory()
+
         if subset is None:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
@@ -466,15 +480,17 @@ class Styler:
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
                 col_formatter = _maybe_wrap_formatter(col_formatter)
+                col_formatter = _maybe_wrap_na_formatter(col_formatter, na_rep)
                 col_num = self.data.columns.get_indexer_for([col])[0]
 
                 for row_num in row_locs:
                     self._display_funcs[(row_num, col_num)] = col_formatter
         else:
             # single scalar to format all cells with
+            formatter = _maybe_wrap_formatter(formatter)
+            formatter = _maybe_wrap_na_formatter(formatter, na_rep)
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
-                formatter = _maybe_wrap_formatter(formatter)
                 self._display_funcs[(i, j)] = formatter
         return self
 
@@ -554,6 +570,7 @@ class Styler:
             caption=self.caption,
             uuid=self.uuid,
             table_styles=self.table_styles,
+            na_rep=self.na_rep,
         )
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -892,6 +909,23 @@ class Styler:
         self.table_styles = table_styles
         return self
 
+    def set_na_rep(self, na_rep):
+        """
+        Set the missing data representation on a Styler.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        na_rep : str
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.na_rep = na_rep
+        return self
+
     def hide_index(self):
         """
         Hide any indices from rendering.
@@ -930,44 +964,27 @@ class Styler:
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
-    def format_null(self, na_rep="-"):
-        """
-        Format the text displayed for missing values.
-
-        .. versionadded:: 1.0.0
-
-        Parameters
-        ----------
-        na_rep : str
-
-        Returns
-        -------
-        self : Styler
-        """
-        self.format(
-            lambda x: na_rep if pd.isna(x) else self._display_funcs.default_factory()(x)
-        )
-        return self
-
     @staticmethod
     def _highlight_null(v, null_color):
         return (
             "background-color: {color}".format(color=null_color) if pd.isna(v) else ""
         )
 
-    def highlight_null(self, null_color="red"):
+    def highlight_null(self, null_color="red", subset=None):
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
         null_color : str
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color)
+        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
         return self
 
     def background_gradient(
@@ -1497,4 +1514,14 @@ def _maybe_wrap_formatter(formatter):
             "Expected a template string or callable, got {formatter} "
             "instead".format(formatter=formatter)
         )
+        raise TypeError(msg)
+
+
+def _maybe_wrap_na_formatter(formatter, na_rep):
+    if na_rep is None:
+        return formatter
+    elif is_string_like(na_rep):
+        return lambda x: na_rep if pd.isna(x) else formatter(x)
+    else:
+        msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)
         raise TypeError(msg)

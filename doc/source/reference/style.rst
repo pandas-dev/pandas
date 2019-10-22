@@ -41,6 +41,7 @@ Style application
    Styler.set_caption
    Styler.set_properties
    Styler.set_uuid
+   Styler.set_na_rep
    Styler.clear
    Styler.pipe
 
@@ -52,7 +53,6 @@ Builtin styles
    Styler.highlight_max
    Styler.highlight_min
    Styler.highlight_null
-   Styler.format_null
    Styler.background_gradient
    Styler.bar
 
