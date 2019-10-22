@@ -1709,14 +1709,14 @@ cdef class _Period:
 
     def asfreq(self, freq, how='E'):
         """
-        Convert Period to desired frequency, either at the start or end of the
-        interval.
+        Convert Period to desired frequency, at the start or end of the interval.
 
         Parameters
         ----------
-        freq : string
+        freq : str
+            The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan
+            Start or end of the timespan.
 
         Returns
         -------
