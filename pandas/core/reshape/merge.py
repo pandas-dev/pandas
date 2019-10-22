@@ -364,8 +364,6 @@ def merge_asof(
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     merged : DataFrame

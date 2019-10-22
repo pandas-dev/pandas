@@ -17,6 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
+from pandas.core.base import DataError
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
@@ -362,7 +363,23 @@ class Resampler(_GroupBy):
                 result = grouped.aggregate(how, *args, **kwargs)
         except AssertionError:
             raise
-        except Exception:
+        except DataError:
+            # we have a non-reducing function; try to evaluate
+            result = grouped.apply(how, *args, **kwargs)
+        except ValueError as err:
+            if "Must produce aggregated value" in str(err):
+                # raised in _aggregate_named
+                pass
+            elif "len(index) != len(labels)" in str(err):
+                # raised in libgroupby validation
+                pass
+            elif "No objects to concatenate" in str(err):
+                # raised in concat call
+                #  In tests this is reached via either
+                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
+                pass
+            else:
+                raise
 
             # we have a non-reducing function
             # try to evaluate
@@ -804,8 +821,6 @@ class Resampler(_GroupBy):
         fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------

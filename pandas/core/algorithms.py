@@ -245,11 +245,17 @@ def _get_hashtable_algo(values):
     return (htable, table, values, dtype, ndtype)
 
 
-def _get_data_algo(values, func_map):
+def _get_values_for_rank(values):
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
     values, dtype, ndtype = _ensure_data(values)
+    return values, dtype, ndtype
+
+
+def _get_data_algo(values, func_map):
+    values, dtype, ndtype = _get_values_for_rank(values)
+
     if ndtype == "object":
 
         # it's cheaper to use a String Hash Table than Object; we infer
@@ -900,8 +906,8 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if values.ndim == 1:
-        f, values = _get_data_algo(values, _rank1d_functions)
-        ranks = f(
+        values, _, _ = _get_values_for_rank(values)
+        ranks = algos.rank_1d(
             values,
             ties_method=method,
             ascending=ascending,
@@ -909,8 +915,8 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
             pct=pct,
         )
     elif values.ndim == 2:
-        f, values = _get_data_algo(values, _rank2d_functions)
-        ranks = f(
+        values, _, _ = _get_values_for_rank(values)
+        ranks = algos.rank_2d(
             values,
             axis=axis,
             ties_method=method,
@@ -998,21 +1004,6 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
     return arr + b
-
-
-_rank1d_functions = {
-    "float64": algos.rank_1d_float64,
-    "int64": algos.rank_1d_int64,
-    "uint64": algos.rank_1d_uint64,
-    "object": algos.rank_1d_object,
-}
-
-_rank2d_functions = {
-    "float64": algos.rank_2d_float64,
-    "int64": algos.rank_2d_int64,
-    "uint64": algos.rank_2d_uint64,
-    "object": algos.rank_2d_object,
-}
 
 
 def quantile(x, q, interpolation_method="fraction"):
@@ -1304,7 +1295,7 @@ class SelectNFrame(SelectN):
         return frame.sort_values(columns, ascending=ascending, kind="mergesort")
 
 
-# ------- ## ---- #
+# ---- #
 # take #
 # ---- #
 
@@ -1712,59 +1703,44 @@ def take_nd(
 take_1d = take_nd
 
 
-def take_2d_multi(
-    arr, indexer, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
-):
+def take_2d_multi(arr, indexer, fill_value=np.nan):
     """
     Specialized Cython take which sets NaN values in one pass
     """
-    if indexer is None or (indexer[0] is None and indexer[1] is None):
-        row_idx = np.arange(arr.shape[0], dtype=np.int64)
-        col_idx = np.arange(arr.shape[1], dtype=np.int64)
-        indexer = row_idx, col_idx
-        dtype, fill_value = arr.dtype, arr.dtype.type()
-    else:
-        row_idx, col_idx = indexer
-        if row_idx is None:
-            row_idx = np.arange(arr.shape[0], dtype=np.int64)
-        else:
-            row_idx = ensure_int64(row_idx)
-        if col_idx is None:
-            col_idx = np.arange(arr.shape[1], dtype=np.int64)
-        else:
-            col_idx = ensure_int64(col_idx)
-        indexer = row_idx, col_idx
-        if not allow_fill:
+    # This is only called from one place in DataFrame._reindex_multi,
+    #  so we know indexer is well-behaved.
+    assert indexer is not None
+    assert indexer[0] is not None
+    assert indexer[1] is not None
+
+    row_idx, col_idx = indexer
+
+    row_idx = ensure_int64(row_idx)
+    col_idx = ensure_int64(col_idx)
+    indexer = row_idx, col_idx
+    mask_info = None
+
+    # check for promotion based on types only (do this first because
+    # it's faster than computing a mask)
+    dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+    if dtype != arr.dtype:
+        # check if promotion is actually required based on indexer
+        row_mask = row_idx == -1
+        col_mask = col_idx == -1
+        row_needs = row_mask.any()
+        col_needs = col_mask.any()
+        mask_info = (row_mask, col_mask), (row_needs, col_needs)
+
+        if not (row_needs or col_needs):
+            # if not, then depromote, set fill_value to dummy
+            # (it won't be used but we don't want the cython code
+            # to crash when trying to cast it to dtype)
             dtype, fill_value = arr.dtype, arr.dtype.type()
-            mask_info = None, False
-        else:
-            # check for promotion based on types only (do this first because
-            # it's faster than computing a mask)
-            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-            if dtype != arr.dtype and (out is None or out.dtype != dtype):
-                # check if promotion is actually required based on indexer
-                if mask_info is not None:
-                    (row_mask, col_mask), (row_needs, col_needs) = mask_info
-                else:
-                    row_mask = row_idx == -1
-                    col_mask = col_idx == -1
-                    row_needs = row_mask.any()
-                    col_needs = col_mask.any()
-                    mask_info = (row_mask, col_mask), (row_needs, col_needs)
-                if row_needs or col_needs:
-                    if out is not None and out.dtype != dtype:
-                        raise TypeError("Incompatible type for fill_value")
-                else:
-                    # if not, then depromote, set fill_value to dummy
-                    # (it won't be used but we don't want the cython code
-                    # to crash when trying to cast it to dtype)
-                    dtype, fill_value = arr.dtype, arr.dtype.type()
 
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
-    if out is None:
-        out_shape = len(row_idx), len(col_idx)
-        out = np.empty(out_shape, dtype=dtype)
+    out_shape = len(row_idx), len(col_idx)
+    out = np.empty(out_shape, dtype=dtype)
 
     func = _take_2d_multi_dict.get((arr.dtype.name, out.dtype.name), None)
     if func is None and arr.dtype != out.dtype:
@@ -1874,14 +1850,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 # diff #
 # ---- #
 
-_diff_special = {
-    "float64": algos.diff_2d_float64,
-    "float32": algos.diff_2d_float32,
-    "int64": algos.diff_2d_int64,
-    "int32": algos.diff_2d_int32,
-    "int16": algos.diff_2d_int16,
-    "int8": algos.diff_2d_int8,
-}
+_diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
 def diff(arr, n: int, axis: int = 0):
@@ -1929,7 +1898,7 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = _diff_special[arr.dtype.name]
+        f = algos.diff_2d
         f(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
