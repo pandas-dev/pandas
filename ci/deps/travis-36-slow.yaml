@@ -28,5 +28,6 @@ dependencies:
   - pytest>=5.0.0
   - pytest-xdist>=1.29.0
   - pytest-mock
+  - pytest-asyncio
   - moto
   - hypothesis>=3.58.0

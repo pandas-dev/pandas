@@ -43,6 +43,7 @@ dependencies:
   - pytest-xdist>=1.29.0
   - pytest-cov
   - pytest-mock
+  - pytest-asyncio
   - hypothesis>=3.58.0
   - pip
   - pip:
