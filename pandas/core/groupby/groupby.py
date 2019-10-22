@@ -745,7 +745,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -1941,8 +1941,6 @@ class GroupBy(_GroupBy):
         numbers given to the groups match the order in which the groups
         would be seen when iterating over the groupby object, not the
         order they are first observed.
-
-        .. versionadded:: 0.20.2
 
         Parameters
         ----------

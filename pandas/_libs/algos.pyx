@@ -311,7 +311,7 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     ranked_mat = np.empty((N, K), dtype=np.float64)
 
     for i in range(K):
-        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
+        ranked_mat[:, i] = rank_1d(mat[:, i])
 
     for xi in range(K):
         for yi in range(xi + 1):
@@ -337,8 +337,8 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                         j += 1
 
                 if not all_ranks:
-                    maskedx = rank_1d_float64(maskedx)
-                    maskedy = rank_1d_float64(maskedy)
+                    maskedx = rank_1d(maskedx)
+                    maskedy = rank_1d(maskedy)
 
                 mean = (nobs + 1) / 2.
 
@@ -1005,12 +1005,6 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
         return ranks
 
 
-rank_1d_object = rank_1d["object"]
-rank_1d_float64 = rank_1d["float64_t"]
-rank_1d_uint64 = rank_1d["uint64_t"]
-rank_1d_int64 = rank_1d["int64_t"]
-
-
 def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
             ascending=True, na_option='keep', pct=False):
     """
@@ -1083,8 +1077,8 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         except TypeError:
             values = in_arr
             for i in range(len(values)):
-                ranks[i] = rank_1d_object(in_arr[i], ties_method=ties_method,
-                                          ascending=ascending, pct=pct)
+                ranks[i] = rank_1d(in_arr[i], ties_method=ties_method,
+                                   ascending=ascending, pct=pct)
             if axis == 0:
                 return ranks.T
             else:
@@ -1177,12 +1171,6 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         return ranks.T
     else:
         return ranks
-
-
-rank_2d_object = rank_2d["object"]
-rank_2d_float64 = rank_2d["float64_t"]
-rank_2d_uint64 = rank_2d["uint64_t"]
-rank_2d_int64 = rank_2d["int64_t"]
 
 
 # generated from template

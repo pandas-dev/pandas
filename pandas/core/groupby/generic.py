@@ -10,7 +10,18 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Hashable, Iterable, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Hashable,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -134,7 +145,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         yield self._selection_name, self._selected_obj
 
     @property
@@ -918,7 +929,7 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
@@ -1683,8 +1694,6 @@ class DataFrameGroupBy(GroupBy):
         """
         Return DataFrame with number of distinct observations per group for
         each column.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------

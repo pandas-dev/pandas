@@ -300,8 +300,6 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     out : Categorical or Series or array of integers if labels is False
