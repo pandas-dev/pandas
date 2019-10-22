@@ -2082,8 +2082,6 @@ class DataFrame(NDFrame):
         """
         Write out the binary feather-format for DataFrames.
 
-        .. versionadded:: 0.20.0
-
         Parameters
         ----------
         fname : str
@@ -6446,8 +6444,6 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Take difference over rows (0) or columns (1).
 
-            .. versionadded:: 0.16.1.
-
         Returns
         -------
         DataFrame
@@ -7869,8 +7865,6 @@ class DataFrame(NDFrame):
 
         Return Series with number of distinct observations. Can ignore NaN
         values.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------
