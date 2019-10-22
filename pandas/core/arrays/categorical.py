@@ -1123,7 +1123,7 @@ class Categorical(ExtensionArray, PandasObject):
             removals = [removals]
 
         removal_set = set(list(removals))
-        not_included = list(removal_set - set(self.dtype.categories))
+        not_included = removal_set - set(self.dtype.categories)
         new_categories = [c for c in self.dtype.categories if c not in removal_set]
 
         # GH 10156
