@@ -874,8 +874,6 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    Out[3]:
    TypeError: to union ordered Categoricals, all categories must be the same
 
-.. versionadded:: 0.20.0
-
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.
 
