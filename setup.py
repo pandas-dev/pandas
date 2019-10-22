@@ -39,6 +39,7 @@ setuptools_kwargs = {
         "python-dateutil >= 2.6.1",
         "pytz >= 2017.2",
         "numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver),
+        "jinja2"
     ],
     "setup_requires": ["numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver)],
     "zip_safe": False,
