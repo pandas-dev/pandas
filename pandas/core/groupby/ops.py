@@ -7,6 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -453,7 +454,15 @@ class BaseGrouper:
 
         return func
 
-    def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
+    def _cython_operation(
+        self, kind, values, how, axis, min_count=-1, **kwargs
+    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+        """
+        Returns the values of a cython operation as a Tuple of [data, names].
+
+        Names is only useful when dealing with 2D results, like ohlc
+        (see self._name_functions).
+        """
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -589,7 +598,7 @@ class BaseGrouper:
 
         if how in self._name_functions:
             # TODO
-            names = self._name_functions[how]()
+            names = self._name_functions[how]()  # type: Optional[List[str]]
         else:
             names = None
 

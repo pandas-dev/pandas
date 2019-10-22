@@ -896,26 +896,31 @@ b  2""",
         output = collections.OrderedDict()
         names = []  # type: List[Hashable]
 
-        for index, (name, obj) in enumerate(self._iterate_slices()):
+        # Ideally we would be able to enumerate self._iterate_slices and use
+        # the index from enumeration as the key of output, but ohlc in particular
+        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
+        # need to slice that up into 1D arrays
+        index = 0
+        for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
-            result, _ = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            result, agg_names = self.grouper.aggregate(
+                obj.values, how, min_count=min_count
+            )
 
-            # TODO: ohlc needs a new home
-            if how == "ohlc":
-                assert result.shape[1] == 4
-                result = self._try_cast(result, obj)
-                df = DataFrame(
-                    result,
-                    index=self.grouper.result_index,
-                    columns=["open", "high", "low", "close"],
-                )
-                return df
+            if agg_names:
+                assert len(agg_names) == result.shape[1]
+            else:
+                assert result.ndim == 1
+                result = result.reshape(-1, 1)
+                agg_names = [name]
 
-            output[index] = self._try_cast(result, obj)
-            names.append(name)
+            for result_column, result_name in zip(result.T, agg_names):
+                output[index] = self._try_cast(result_column, obj)
+                names.append(result_name)
+                index += 1
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")

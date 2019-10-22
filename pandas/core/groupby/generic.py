@@ -23,6 +23,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -342,18 +343,20 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_series_output(
         self, output: Dict[int, np.ndarray], index: Index, names: List[Hashable]
-    ) -> Series:
+    ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
         Parameters
         ----------
         output : dict[int, np.ndarray]
-            Dict with a sole key of 0 and a value of the result values.
+            Dict where the key represents the columnar-index and the values are
+            the actual results.
         index : pd.Index
             Index to apply to the output.
         names : List[Hashable]
-            List containing one label (the Series name).
+            List containing the column names to apply. The position of each
+            item in the list corresponds with the key in output.
 
         Returns
         -------
@@ -361,19 +364,21 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        output and names should only contain one element. These are containers
-        for generic compatability with the DataFrameGroupBy class.
+        In the vast majority of cases output and names will only contain one
+        element. The exception is operations that expand dimensions, like ohlc.
         """
-        assert len(names) == 1
-        result = Series(output[0])
-        result.index = index
-        result.name = names[0]
+        assert len(output) == len(names)
+        if len(output) > 1:
+            result = DataFrame(output, index=index)  # type: Union[Series, DataFrame]
+            result.columns = names
+        else:
+            result = Series(output[0], index=index, name=names[0])
 
         return result
 
     def _wrap_aggregated_output(
         self, output: Dict[int, np.ndarray], names: List[Hashable]
-    ) -> Series:
+    ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
@@ -424,9 +429,14 @@ class SeriesGroupBy(GroupBy):
         output and names should only contain one element. These are containers
         for generic compatability with the DataFrameGroupBy class.
         """
-        return self._wrap_series_output(
+        result = self._wrap_series_output(
             output=output, index=self.obj.index, names=names
         )
+
+        # No transformations increase the ndim of the result
+        # Unfortunately need to cast for mypy to know this
+        result = cast(Series, result)
+        return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
