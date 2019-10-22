@@ -7031,9 +7031,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
-        else:
-            ax = axis
-            _maybe_transposed_self = self
+
         ax = _maybe_transposed_self._get_axis_number(ax)
 
         if _maybe_transposed_self.ndim == 2:
