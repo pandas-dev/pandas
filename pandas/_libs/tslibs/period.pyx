@@ -2385,16 +2385,25 @@ class Period(_Period):
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005')
+        The time period represented (e.g., '4Q2005').
     freq : str, default None
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
+    ordinal : int, default None
+        The period offset from the gregorian proleptic epoch.
     year : int, default None
+        Year value of the period.
     month : int, default 1
+        Month value of the period.
     quarter : int, default None
+        Quarter value of the period.
     day : int, default 1
+        Day value of the period.
     hour : int, default 0
+        Hour value of the period.
     minute : int, default 0
+        Minute value of the period.
     second : int, default 0
+        Second value of the period.
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
