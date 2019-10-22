@@ -239,8 +239,7 @@ class _Unstacker:
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(libreshape, "unstack_{name}".format(name=name))
-        f(
+        libreshape.unstack(
             sorted_values,
             mask.view("u1"),
             stride,

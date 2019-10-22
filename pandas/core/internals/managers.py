@@ -1079,9 +1079,7 @@ class BlockManager(PandasObject):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
@@ -1323,9 +1321,7 @@ class BlockManager(PandasObject):
         # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
         # pytables serialization will break otherwise.
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
                 # If we've got here, fill_tuple was not None.
                 fill_value = fill_tuple[0]
