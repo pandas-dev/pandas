@@ -14,11 +14,11 @@ import typing
 from typing import (
     Any,
     Callable,
-    Dict,
     FrozenSet,
     Hashable,
     Iterable,
     List,
+    Mapping,
     Sequence,
     Tuple,
     Type,
@@ -342,7 +342,7 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Dict[int, np.ndarray], index: Index, names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], index: Index, names: List[Hashable]
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -377,7 +377,7 @@ class SeriesGroupBy(GroupBy):
         return result
 
     def _wrap_aggregated_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -406,7 +406,7 @@ class SeriesGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -1668,7 +1668,7 @@ class DataFrameGroupBy(GroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1702,7 +1702,7 @@ class DataFrameGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
@@ -1887,7 +1887,7 @@ def _normalize_keyword_aggregation(kwargs):
     """
     Normalize user-provided "named aggregation" kwargs.
 
-    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
+    Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
     to the old OrderedDict[str, List[scalar]]].
 
     Parameters
@@ -1911,7 +1911,7 @@ def _normalize_keyword_aggregation(kwargs):
     if not PY36:
         kwargs = OrderedDict(sorted(kwargs.items()))
 
-    # Normalize the aggregation functions as Dict[column, List[func]],
+    # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)

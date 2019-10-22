@@ -15,11 +15,11 @@ import inspect
 import re
 import types
 from typing import (
-    Dict,
     FrozenSet,
     Hashable,
     Iterable,
     List,
+    Mapping,
     Optional,
     Tuple,
     Type,
@@ -880,12 +880,12 @@ b  2""",
         return self._wrap_transformed_output(output, names)
 
     def _wrap_aggregated_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(
-        self, output: Dict[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], names: List[Hashable]
     ):
         raise AbstractMethodError(self)
 
