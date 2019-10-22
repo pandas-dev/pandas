@@ -6,6 +6,23 @@ import pandas.util.testing as tm
 
 
 @pytest.fixture
+def empty_frame():
+    """
+    Fixture for DataFrame that is empty
+    """
+    return DataFrame()
+
+
+@pytest.fixture
+def float_frame():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+    """
+    df = DataFrame(tm.getSeriesData())
+    return df
+
+
+@pytest.fixture
 def float_frame_with_na():
     """
     Fixture for DataFrame of floats with index of unique strings
