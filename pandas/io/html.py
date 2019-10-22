@@ -889,6 +889,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
+    if attrs is None:
+        attrs = {}
+
     # hack around python 3 deleting the exception variable
     retained = None
     for flav in flavor:
