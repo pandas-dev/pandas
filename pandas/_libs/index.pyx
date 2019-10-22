@@ -561,7 +561,7 @@ cpdef convert_scalar(ndarray arr, object value):
         if util.is_array(value):
             pass
         elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            values = Timedelta(value)
+            value = Timedelta(value)
             if value is NaT:
                 return np.timedelta64("NaT", "ns")
             return value.to_timedelta64()
