@@ -194,13 +194,10 @@ class Timestamp(_Timestamp):
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
     year, month, day : int
-        .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
-        .. versionadded:: 0.19.0
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
-        .. versionadded:: 0.19.0
 
     Notes
     -----
