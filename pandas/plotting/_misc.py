@@ -353,8 +353,6 @@ def parallel_coordinates(
         Options to be passed to axvline method for vertical lines.
     sort_labels : bool, default False
         Sort class_column labels, useful when assigning colors.
-
-        .. versionadded:: 0.20.0
     **kwargs
         Options to pass to matplotlib plotting method.
 
