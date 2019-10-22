@@ -22,6 +22,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -80,7 +81,7 @@ if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
-    List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 float_format_type = Union[str, Callable, "EngFormatter"]
 

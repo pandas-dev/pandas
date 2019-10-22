@@ -3,13 +3,23 @@ printing tools
 """
 
 import sys
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
-EscapeChars = Union[Dict[str, str], Iterable[str]]
+EscapeChars = Union[Mapping[str, str], Iterable[str]]
 
 
 def adjoin(space: int, *lists: List[str], **kwargs) -> str:
@@ -119,7 +129,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Dict, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+    seq: Mapping, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
