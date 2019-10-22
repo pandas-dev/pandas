@@ -360,7 +360,7 @@ class SeriesGroupBy(GroupBy):
 
         Returns
         -------
-        Series
+        Series or DataFrame
 
         Notes
         -----
@@ -385,20 +385,22 @@ class SeriesGroupBy(GroupBy):
         Parameters
         ----------
         output : dict[int, np.ndarray]
-            Dict with a sole key of 0 and a value of the result values.
+            Dict where the key represents the columnar-index and the values are
+            the actual results.
         index : pd.Index
             Index to apply to the output.
         names : List[Hashable]
-            List containing one label (the Series name).
+            List containing the column names to apply. The position of each
+            item in the list corresponds with the key in output.
 
         Returns
         -------
-        Series
+        Series or DataFrame
 
         Notes
         -----
-        output and names should only contain one element. These are containers
-        for generic compatability with the DataFrameGroupBy class.
+        In the vast majority of cases output and names will only contain one
+        element. The exception is operations that expand dimensions, like ohlc.
         """
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
