@@ -6632,6 +6632,8 @@ class DataFrame(NDFrame):
                     pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
                 ]
             else:
+                # if drop support to PY35, this could remove
+                kwargs = OrderedDict(kwargs.items())
                 reordered_indexes = list(kwargs.keys())
             kwargs = {}
         elif func is None:
@@ -6649,7 +6651,6 @@ class DataFrame(NDFrame):
             return self.apply(func, axis=axis, args=args, **kwargs)
 
         if relabeling:
-
             # create a function name and index mapping dictionary for each column
             func_index_dict = OrderedDict()
             idx = 0
