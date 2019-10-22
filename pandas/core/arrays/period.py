@@ -657,7 +657,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _addsub_int_array(
         self,
         other: Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex, np.ndarray],
-        op: Callable[[Any], Any],
+        op: Callable[[Any, Any], Any],
     ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
