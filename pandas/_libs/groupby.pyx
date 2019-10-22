@@ -455,7 +455,7 @@ def _group_add(complexfloating_t[:, :] out,
     if len(values) != len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros((len(out), out.shape[1]), dtype=np.int64)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -507,12 +507,13 @@ def _group_prod(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        floating[:, :] prodx, nobs
+        floating[:, :] prodx
+        int64_t[:, :] nobs
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     prodx = np.ones_like(out)
 
     N, K = (<object>values).shape
@@ -555,14 +556,15 @@ def _group_var(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
-        floating[:, :] nobs, mean
+        floating[:, :] mean
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     mean = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -610,14 +612,15 @@ def _group_mean(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        floating[:, :] sumx, nobs
+        floating[:, :] sumx
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -1243,15 +1246,16 @@ def group_max(groupby_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] maxx, nobs
+        ndarray[groupby_t, ndim=2] maxx
         bint runtime_error = False
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     maxx = np.empty_like(out)
     if groupby_t is int64_t:
@@ -1314,15 +1318,16 @@ def group_min(groupby_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] minx, nobs
+        ndarray[groupby_t, ndim=2] minx
         bint runtime_error = False
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     minx = np.empty_like(out)
     if groupby_t is int64_t:
