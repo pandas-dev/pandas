@@ -1267,4 +1267,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.x..v0.25.0
+.. contributors:: v0.24.2..v0.25.0
