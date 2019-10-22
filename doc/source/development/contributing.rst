@@ -1197,8 +1197,6 @@ submitting a pull request.
 
 For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
-    .. versionadded:: 0.20.0
-
 Furthermore one can run
 
 .. code-block:: python
