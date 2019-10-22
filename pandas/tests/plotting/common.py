@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
 
+import pandas as pd
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
 from pandas.util.testing import assert_is_valid_plot_return_object, ensure_clean
@@ -541,13 +542,13 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
             assert_is_valid_plot_return_object(ret)
 
-            try:
-                kwargs["ax"] = fig.add_subplot(212)
-                ret = f(**kwargs)
-            except Exception:
-                pass
+            if f is pd.plotting.bootstrap_plot:
+                assert "ax" not in kwargs
             else:
-                assert_is_valid_plot_return_object(ret)
+                kwargs["ax"] = fig.add_subplot(212)
+
+            ret = f(**kwargs)
+            assert_is_valid_plot_return_object(ret)
 
             with ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
