@@ -3,10 +3,10 @@ from typing import (
     IO,
     TYPE_CHECKING,
     AnyStr,
+    Dict,
     Iterable,
-    Mapping,
+    List,
     Optional,
-    Sequence,
     TypeVar,
     Union,
 )
@@ -35,7 +35,7 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 Scalar = Union[str, int, float, bool]
 Axis = Union[str, int]
 Ordered = Optional[bool]
-Serializable = Union[Scalar, Sequence, Mapping]
+JSONSerializable = Union[Scalar, List, Dict]
 
 # use Collection after we drop support for py35
 Axes = Iterable
