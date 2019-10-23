@@ -167,7 +167,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
                 raise ValueError(
                     "failed to cast to '{dtype}' (Exception "
                     "was: {orig})".format(dtype=dtype, orig=orig)
-                ) from e
+                ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
     values = values.T
