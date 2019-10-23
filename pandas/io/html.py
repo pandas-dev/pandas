@@ -888,6 +888,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
+    retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
         p = parser(io, compiled_match, attrs, encoding, displayed_only)
@@ -909,9 +910,11 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "different flavor.".format(flav)
                 )
 
-            raise
+            retained = caught
         else:
             break
+    else:
+        raise retained
 
     ret = []
     for table in tables:
