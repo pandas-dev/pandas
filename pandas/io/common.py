@@ -551,6 +551,9 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
 
     def write(self, data):
         archive_name = self.filename
+        # maybe a typeshed error
+        # https://github.com/python/typeshed/pull/3104#pullrequestreview-305942850
+        assert archive_name is not None
         if self.archive_name is not None:
             archive_name = self.archive_name
         super().writestr(archive_name, data)
