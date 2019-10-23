@@ -6647,7 +6647,7 @@ class DataFrame(NDFrame):
             # of result will be reversed, and in case the func is not used by other
             # columns, there might be NaN values, so separate these two cases
 
-            reordered_result = DataFrame(index=indexes)
+            reordered_result = DataFrame(index=reordered_indexes)
             idx = 0
             for col, funcs in func.items():
                 v = reordered_indexes[idx: idx + len(funcs)]
@@ -6656,7 +6656,7 @@ class DataFrame(NDFrame):
                 else:
                     reordered_result.loc[v, col] = result[col].values
                 idx = idx + len(funcs)
-            result = reordered_result
+            result = reordered_result.reindex(indexes)
 
         return result
 
