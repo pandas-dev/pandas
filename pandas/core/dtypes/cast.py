@@ -202,7 +202,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
         r = result.ravel()
         arr = np.array([r[0]])
 
-        if isna(arr).any() or not np.allclose(arr, trans(arr).astype(dtype), rtol=0):
+        if isna(arr).any():
             # if we have any nulls, then we are done
             return result
 
