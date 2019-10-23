@@ -239,8 +239,7 @@ class _Unstacker:
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(libreshape, "unstack_{name}".format(name=name))
-        f(
+        libreshape.unstack(
             sorted_values,
             mask.view("u1"),
             stride,
@@ -864,6 +863,8 @@ def get_dummies(
         # determine columns being encoded
         if columns is None:
             data_to_encode = data.select_dtypes(include=dtypes_to_encode)
+        elif not is_list_like(columns):
+            raise TypeError("Input must be a list-like for parameter `columns`")
         else:
             data_to_encode = data[columns]
 

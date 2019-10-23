@@ -871,7 +871,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Hashable, Series]]:
+    def items(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -2081,8 +2081,6 @@ class DataFrame(NDFrame):
     def to_feather(self, fname):
         """
         Write out the binary feather-format for DataFrames.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------
@@ -6446,8 +6444,6 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Take difference over rows (0) or columns (1).
 
-            .. versionadded:: 0.16.1.
-
         Returns
         -------
         DataFrame
@@ -7869,8 +7865,6 @@ class DataFrame(NDFrame):
 
         Return Series with number of distinct observations. Can ignore NaN
         values.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------

@@ -17,6 +17,7 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -142,7 +143,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         yield self._selection_name, self._selected_obj
 
     @property
@@ -261,7 +262,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except AssertionError:
+            except (AssertionError, TypeError):
                 raise
             except Exception:
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -926,7 +927,7 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
@@ -1691,8 +1692,6 @@ class DataFrameGroupBy(GroupBy):
         """
         Return DataFrame with number of distinct observations per group for
         each column.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------
