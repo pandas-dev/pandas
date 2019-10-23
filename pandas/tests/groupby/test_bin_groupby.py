@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas._libs import groupby, lib, reduction as libreduction
 
@@ -6,7 +7,7 @@ from pandas.core.dtypes.common import ensure_int64
 
 from pandas import Index, Series, isna
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import assert_almost_equal, assert_numpy_array_equal
 
 
 def test_series_grouper():
@@ -41,21 +42,15 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-def test_generate_bins():
-    values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
-    binner = np.array([0, 3, 6, 9], dtype=np.int64)
-
-    bins = lib.generate_bins_dt64(values, binner, closed="left")
-    assert (bins == np.array([2, 5, 6])).all()
-
-    bins = lib.generate_bins_dt64(values, binner, closed="right")
-    assert (bins == np.array([3, 6, 6])).all()
-
-    values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
-    binner = np.array([0, 3, 6], dtype=np.int64)
-
-    bins = lib.generate_bins_dt64(values, binner, closed="right")
-    assert (bins == np.array([3, 6])).all()
+@pytest.mark.parametrize("binner,closed,expected", [
+    (np.array([0, 3, 6, 9]), "left", np.array([2, 5, 6])),
+    (np.array([0, 3, 6, 9]), "right", np.array([3, 6, 6])),
+    (np.array([0, 3, 6]), "left", np.array([2, 5])),
+    (np.array([0, 3, 6]), "right", np.array([3, 6]))])
+def test_generate_bins(binner, closed, expected):
+    values = np.array([1, 2, 3, 4, 5, 6])
+    result = lib.generate_bins_dt64(values, binner, closed=closed)
+    assert_numpy_array_equal(result, expected)
 
 
 def test_group_ohlc():
