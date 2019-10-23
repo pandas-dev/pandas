@@ -923,12 +923,6 @@ def group_last(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
-group_last_float64 = group_last["float64_t"]
-group_last_float32 = group_last["float32_t"]
-group_last_int64 = group_last["int64_t"]
-group_last_object = group_last["object"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(rank_t[:, :] out,
@@ -1018,12 +1012,6 @@ def group_nth(rank_t[:, :] out,
         # We cannot raise directly above because that is within a nogil
         #  block.
         raise RuntimeError("empty group with uint64_t")
-
-
-group_nth_float64 = group_nth["float64_t"]
-group_nth_float32 = group_nth["float32_t"]
-group_nth_int64 = group_nth["int64_t"]
-group_nth_object = group_nth["object"]
 
 
 @cython.boundscheck(False)
@@ -1211,14 +1199,6 @@ def group_rank(float64_t[:, :] out,
                     out[i, 0] = NAN
                 elif grp_sizes[i, 0] != 0:
                     out[i, 0] = out[i, 0] / grp_sizes[i, 0]
-
-
-group_rank_float64 = group_rank["float64_t"]
-group_rank_float32 = group_rank["float32_t"]
-group_rank_int64 = group_rank["int64_t"]
-group_rank_uint64 = group_rank["uint64_t"]
-# Note: we do not have a group_rank_object because that would require a
-#  not-nogil implementation, see GH#19560
 
 
 # ----------------------------------------------------------------------
