@@ -2995,6 +2995,7 @@ class MultiIndex(Index):
                 return indexer
             return idxr & indexer
 
+        need_sort = False
         for i, k in enumerate(reversed(seq)):
             i = len(seq) - 1 - i  # Counting in reverse
 
@@ -3007,14 +3008,19 @@ class MultiIndex(Index):
                 # a collection of labels to include from this level (these
                 # are or'd)
                 indexers = None
+                # Find out if the list_like label are sorted as the levels or not
+                k_codes = np.array(
+                    [self.levels[i].get_loc(e) for e in k if e in self.levels[i]]
+                )
+                need_sort = not (k_codes[:-1] < k_codes[1:]).all()
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
-                        # We intersect with indexer to make idxrs
-                        # ordered as previously seen indexes
-                        if indexer is not None:
+                        if need_sort and indexer is not None:
+                            # We intersect with indexer to make idxrs
+                            # ordered as previously seen indexes
                             idxrs = indexer.intersection(idxrs)
 
                         indexers = (
@@ -3027,8 +3033,10 @@ class MultiIndex(Index):
                         continue
 
                 if indexers is not None:
-                    # No need to update anymore, as we intersect in main loop
-                    indexer = indexers
+                    if need_sort:
+                        indexer = indexers
+                    else:
+                        indexer = _update_indexer(indexers, indexer=indexer)
                 else:
                     # no matches we are done
                     return Int64Index([])._ndarray_values
