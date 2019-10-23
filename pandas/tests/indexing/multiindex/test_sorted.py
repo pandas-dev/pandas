@@ -95,3 +95,12 @@ class TestMultiIndexSorted:
         expected.index = expected.index.droplevel(0)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
+
+    def test_not_contained_item_tuple_multiIndex(self):
+        # issue #21094
+        i = MultiIndex(levels=[[1], [(2, 3, 2)]],
+           codes=[[0, 0], [0, 0]],
+           names=[u'bar', u'foo'])
+
+        assert (1, (2, 3, 2)) in i == True
+        assert (1, (2, 3, 3)) in i == False
