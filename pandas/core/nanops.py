@@ -189,7 +189,7 @@ def _maybe_get_mask(
     values: np.ndarray, skipna: bool, mask: Optional[np.ndarray]
 ) -> Optional[np.ndarray]:
     """
-    Compute a mask iff necessary.
+    Compute a mask if and only if necessary.
 
     This function will compute a mask iff it is necessary. Otherwise,
     return the provided mask (potentially None) when a mask does not need to be
