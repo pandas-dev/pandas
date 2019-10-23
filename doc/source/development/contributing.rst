@@ -243,12 +243,16 @@ You'll need to have at least python3.5 installed on your system.
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
+   # If you are using Windows and command prompt, replace ~ (the tilde sign)
+   # with %userprofile%
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
-   #    If you are using Windows and Powershell you need to run:
-   #        ~/virtualenvs/pandas-dev/Scripts/Activate.ps1
-   #    or if you are using Windows and command prompt (cmd.exe):
-   #        ~/virtualenvs/pandas-dev/Scripts/activate.bat
+   # If you are using Windows, you can find the activation scripts under
+   #     ~\virtualenvs\pandas-dev\scripts
+   # Please refer to the official user guide at
+   # https://virtualenv.pypa.io/en/stable/userguide/#activate-script
+   # about how to activate your virtual environment under Windows
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
