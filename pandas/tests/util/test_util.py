@@ -51,16 +51,6 @@ def test_create_temp_directory():
     assert not os.path.exists(path)
 
 
-def test_assert_raises_regex_deprecated():
-    # see gh-23592
-
-    with tm.assert_produces_warning(FutureWarning):
-        msg = "Not equal!"
-
-        with tm.assert_raises_regex(AssertionError, msg):
-            assert 1 == 2, msg
-
-
 @pytest.mark.parametrize("strict_data_files", [True, False])
 def test_datapath_missing(datapath):
     with pytest.raises(ValueError, match="Could not find file"):
