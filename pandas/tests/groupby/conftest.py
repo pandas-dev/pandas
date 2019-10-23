@@ -114,4 +114,6 @@ def reduction_func(request):
 
 @pytest.fixture
 def as_index():
+    """yields all possible options for the `as_index` parameter, one at a time.
+    """
     return [True, False]

@@ -212,6 +212,34 @@ Backwards incompatible API changes
     2   7
     3  11
 
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
+
+    In [2]: df.groupby("a").apply(lambda x: x.iloc[0])
+    Out[2]:
+       a  b
+    a
+    1  1  1
+    2  2  3
+    3  3  5
+
+*pandas 1.0.0*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
+
+    In [2]: df.groupby("a").apply(lambda x: x.iloc[0])
+    Out[2]:
+       b
+    a
+    1  1
+    2  3
+    3  5
+
 .. _whatsnew_1000.api.other:
 
 Other API changes
