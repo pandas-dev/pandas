@@ -6622,15 +6622,12 @@ class DataFrame(NDFrame):
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
+            if not PY36:
+                kwargs = OrderedDict(sorted(kwargs.items()))
             func, indexes, order = _normalize_keyword_aggregation(kwargs)
-            if len(func) > 1:
-                reordered_indexes = [
-                    pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
-                ]
-            else:
-                # if drop support to PY35, this could remove
-                kwargs = OrderedDict(kwargs.items())
-                reordered_indexes = list(kwargs.keys())
+            reordered_indexes = [
+                pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
+            ]
             kwargs = {}
         elif func is None:
             # nicer error message
@@ -6665,7 +6662,7 @@ class DataFrame(NDFrame):
                     reordered_result.loc[v, k] = result[k][::-1].dropna().values
                 result = reordered_result.reindex(indexes)
             else:
-                result.index = reordered_indexes
+                result.index = indexes
 
         return result
 
