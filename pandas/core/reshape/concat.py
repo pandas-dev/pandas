@@ -371,9 +371,12 @@ class _Concatenator:
         else:
             axis = sample._get_axis_number(axis)
         """
-        # TODO: implement universal axis validation
+        # TODO: implement universal axis validation; align with core.generic
         if not isinstance(axis, int):
-            axis = {"index": 0, "rows": 0, "columns": 1}[axis]
+            try:
+                axis = {"index": 0, "rows": 0, "columns": 1}[axis]
+            except KeyError:
+                raise ValueError("No axis named {}".format(axis))
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, ABCDataFrame)
