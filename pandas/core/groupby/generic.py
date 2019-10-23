@@ -1099,10 +1099,7 @@ class DataFrameGroupBy(GroupBy):
 
             cast = self._transform_should_cast(func)
             try:
-
                 result[item] = colg.aggregate(func, *args, **kwargs)
-                if cast:
-                    result[item] = self._try_cast(result[item], data)
 
             except ValueError as err:
                 if "Must produce aggregated value" in str(err):
@@ -1111,10 +1108,10 @@ class DataFrameGroupBy(GroupBy):
                     raise
                 cannot_agg.append(item)
                 continue
-            except TypeError as e:
-                cannot_agg.append(item)
-                errors = e
-                continue
+
+            else:
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
