@@ -365,7 +365,7 @@ def _infer_compression(
 
 
 def _get_handle(
-    path_or_buf: FilePathOrBuffer,
+    path_or_buf,
     mode: str,
     encoding: Optional[str] = None,
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
