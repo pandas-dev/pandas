@@ -847,10 +847,12 @@ class Block(PandasObject):
                     return b.setitem(indexer, value)
 
         # value must be storeable at this moment
-        if not is_extension_array_dtype(value):
-            arr_value = np.array(value)
-        else:
+        if is_extension_array_dtype(getattr(value, "dtype", None)):
+            # We need to be careful not to allow through strings that
+            #  can be parsed to EADtypes
             arr_value = value
+        else:
+            arr_value = np.array(value)
 
         # cast the values to a type that can hold nan (if necessary)
         if not self._can_hold_element(value):
