@@ -7,6 +7,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -1375,7 +1377,10 @@ class TestDataFrameNamedAggregate:
 
         # test on same column with different methods
         result = df.agg(foo=("B", "sum"), bar=("B", "min"))
-        expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
+        if not PY36:
+            expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
+        else:
+            expected = pd.DataFrame({"B": [1, 10]}, index=pd.Index(["bar", "foo"]))
         tm.assert_frame_equal(result, expected)
 
         # test on multiple columns with multiple methods
@@ -1429,9 +1434,14 @@ class TestDataFrameNamedAggregate:
             cat=pd.NamedAgg(column="B", aggfunc="count"),
             fft=pd.NamedAgg("B", aggfunc="max"),
         )
-        expected = pd.DataFrame(
-            {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
-        )
+        if not PY36:
+            expected = pd.DataFrame(
+                {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
+            )
+        else:
+            expected = pd.DataFrame(
+                {"B": [1, 2, 2, 3]}, index=pd.Index(["bar", "cat", "fft", "foo"])
+            )
         tm.assert_frame_equal(result, expected)
 
         result = df.agg(
