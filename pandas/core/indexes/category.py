@@ -552,10 +552,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    def _can_reindex(self, indexer):
-        """ always allow reindexing """
-        pass
-
     @Substitution(klass="CategoricalIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
@@ -585,7 +581,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             Indices of output values in original index
 
         """
-
         if method is not None:
             raise NotImplementedError(
                 "argument method is not implemented for CategoricalIndex.reindex"
@@ -605,9 +600,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             indexer = None
             missing = []
         else:
-            if not target.is_unique:
-                raise ValueError("cannot reindex with a non-unique indexer")
-
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
         if len(self.codes) and indexer is not None:

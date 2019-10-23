@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -78,7 +79,7 @@ if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
-    List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 float_format_type = Union[str, Callable, "EngFormatter"]
 
@@ -942,6 +943,7 @@ class DataFrameFormatter(TableFormatter):
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
@@ -963,7 +965,9 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(buf=buf)
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
