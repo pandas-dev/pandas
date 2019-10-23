@@ -3740,7 +3740,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
+    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy, allow_dups):
         frame = self
 
         columns = axes["columns"]
@@ -3752,7 +3752,7 @@ class DataFrame(NDFrame):
         index = axes["index"]
         if index is not None:
             frame = frame._reindex_index(
-                index, method, copy, level, fill_value, limit, tolerance
+                index, method, copy, level, fill_value, limit, tolerance, allow_dups
             )
 
         return frame
@@ -3766,6 +3766,7 @@ class DataFrame(NDFrame):
         fill_value=np.nan,
         limit=None,
         tolerance=None,
+        allow_dups=False
     ):
         new_index, indexer = self.index.reindex(
             new_index, method=method, level=level, limit=limit, tolerance=tolerance
@@ -3774,7 +3775,7 @@ class DataFrame(NDFrame):
             {0: [new_index, indexer]},
             copy=copy,
             fill_value=fill_value,
-            allow_dups=False,
+            allow_dups=allow_dups
         )
 
     def _reindex_columns(

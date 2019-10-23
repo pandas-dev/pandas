@@ -3829,7 +3829,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Return boolean indicating if self is view of another array """
         return self._data.is_view
 
-    def reindex_like(self, other, method=None, copy=True, limit=None, tolerance=None):
+    def reindex_like(self, other, method=None, copy=True, limit=None, tolerance=None, allow_dups=False):
         """
         Return an object with matching indices as other object.
 
@@ -3930,6 +3930,7 @@ class NDFrame(PandasObject, SelectionMixin):
             copy=copy,
             limit=limit,
             tolerance=tolerance,
+            allow_dups=allow_dups
         )
 
         return self.reindex(**d)
@@ -4528,6 +4529,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit = kwargs.pop("limit", None)
         tolerance = kwargs.pop("tolerance", None)
         fill_value = kwargs.pop("fill_value", None)
+        allow_dups = kwargs.pop("allow_dups", False)
 
         # Series.reindex doesn't use / need the axis kwarg
         # We pop and ignore it here, to make writing Series/Frame generic code
@@ -4562,7 +4564,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # perform the reindex on the axes
         return self._reindex_axes(
-            axes, level, limit, tolerance, method, fill_value, copy
+            axes, level, limit, tolerance, method, fill_value, copy, allow_dups
         ).__finalize__(self)
 
     def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
@@ -4583,7 +4585,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 {axis: [new_index, indexer]},
                 fill_value=fill_value,
                 copy=copy,
-                allow_dups=False,
+                allow_dups=allow_dups,
             )
 
         return obj

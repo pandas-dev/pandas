@@ -1233,6 +1233,7 @@ def assert_frame_equal(
     check_datetimelike_compat=False,
     check_categorical=True,
     check_like=False,
+    check_dups_index=False,
     obj="DataFrame",
 ):
     """
@@ -1344,7 +1345,7 @@ def assert_frame_equal(
         )
 
     if check_like:
-        left, right = left.reindex_like(right), right
+        left, right = left.reindex_like(right,allow_dups=check_dups_index), right
 
     # index comparison
     assert_index_equal(
