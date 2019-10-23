@@ -67,7 +67,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer, Scalar
+from pandas._typing import Dtype, FilePathOrBuffer, JSONSerializable
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -194,7 +194,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
         # We need the TYPE_CHECKING, because _attrs is not a class attribute
         # and Py35 doesn't support the new syntax.
-        _attrs = {}  # type: Dict[Hashable, Any]
+        _attrs = {}  # type: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -205,7 +205,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
-        attrs: Optional[Mapping[Hashable, Any]] = None,
+        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
         fastpath: bool = False,
     ):
 
@@ -248,7 +248,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
 
     @property
-    def attrs(self) -> Dict[Hashable, Any]:
+    def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
         Dictionary of global attributes on this object.
         """
@@ -257,7 +257,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
     @property
@@ -2299,7 +2299,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision: int = 10,
         force_ascii: bool_t = True,
         date_unit: str = "ms",
-        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
         compression: Optional[str] = "infer",
         index: bool_t = True,
@@ -3149,13 +3149,13 @@ class NDFrame(PandasObject, SelectionMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
+        columns: Optional[Sequence[Optional[Hashable]]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        index_label: Optional[Union[bool_t, str, Sequence[Optional[Hashable]]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Dict[str, str]]] = "infer",
+        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
