@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY35
+from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
