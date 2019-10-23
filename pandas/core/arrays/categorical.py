@@ -295,7 +295,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
+    CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
 
     Notes
@@ -331,7 +331,9 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist", "get_values"])
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["tolist", "itemsize", "get_values"]
+    )
     _typ = "categorical"
 
     def __init__(
@@ -1122,7 +1124,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # GH 10156
         if any(isna(removals)):
-            not_included = [x for x in not_included if notna(x)]
+            not_included = {x for x in not_included if notna(x)}
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:

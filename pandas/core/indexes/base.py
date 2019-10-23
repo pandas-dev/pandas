@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Union
+from typing import FrozenSet, Union
 import warnings
 
 import numpy as np
@@ -63,7 +63,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -206,10 +206,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = (
-        IndexOpsMixin._deprecations
-        | DirNamesMixin._deprecations
-        | frozenset(["tolist", "contains", "dtype_str", "get_values", "set_value"])
-    )
+        PandasObject._deprecations
+        | IndexOpsMixin._deprecations
+        | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
+    )  # type: FrozenSet[str]
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -1897,8 +1897,6 @@ class Index(IndexOpsMixin, PandasObject):
         empty strings `''` or :attr:`numpy.inf` are not considered NA values
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
-        .. versionadded:: 0.20.0
-
         Returns
         -------
         numpy.ndarray
@@ -1955,8 +1953,6 @@ class Index(IndexOpsMixin, PandasObject):
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -2031,7 +2027,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        how :  {'any', 'all'}, default 'any'
+        how : {'any', 'all'}, default 'any'
             If the Index is a MultiIndex, drop the value when any or all levels
             are NaN.
 
@@ -2493,8 +2489,12 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
-            indexer, = (indexer == -1).nonzero()
+            # find indexes of things in "other" that are not in "self"
+            if self.is_unique:
+                indexer = self.get_indexer(other)
+                indexer = (indexer == -1).nonzero()[0]
+            else:
+                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(indexer) > 0:
                 other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
@@ -3138,16 +3138,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_positional:
             indexer = key
         else:
-            try:
-                indexer = self.slice_indexer(start, stop, step, kind=kind)
-            except Exception:
-                if is_index_slice:
-                    if self.is_integer():
-                        raise
-                    else:
-                        indexer = key
-                else:
-                    raise
+            indexer = self.slice_indexer(start, stop, step, kind=kind)
 
         return indexer
 
@@ -3424,8 +3415,6 @@ class Index(IndexOpsMixin, PandasObject):
         sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword)
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -4672,11 +4661,11 @@ class Index(IndexOpsMixin, PandasObject):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
-            except Exception:  # pragma: no cover
+            except Exception:
                 raise e1
         except TypeError:
-            # python 3
-            if is_scalar(key):  # pragma: no cover
+            # e.g. "[False] is an invalid key"
+            if is_scalar(key):
                 raise IndexError(key)
             raise InvalidIndexError(key)
 
@@ -5021,12 +5010,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        label :  object
+        label : object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
-
         """
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])

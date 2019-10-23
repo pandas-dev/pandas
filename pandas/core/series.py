@@ -5,7 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_extension_type,
-    is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
@@ -45,6 +44,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
 )
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
+from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -173,15 +173,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = ["name"]
+    _metadata = []  # type: List[str]
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | DirNamesMixin._deprecations
         | frozenset(
             [
-                "tolist",  # tolist is not deprecated, just suppressed in the __dir__
                 "asobject",
                 "compress",
                 "valid",
@@ -326,7 +324,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data = SingleBlockManager(data, index, fastpath=True)
 
         generic.NDFrame.__init__(self, data, fastpath=True)
-
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -459,19 +456,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # we want to call the generic version and not the IndexOpsMixin
         return generic.NDFrame._update_inplace(self, result, **kwargs)
 
-    @property
-    def name(self):
-        """
-        Return name of the Series.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        if value is not None and not is_hashable(value):
-            raise TypeError("Series.name must be a hashable type")
-        object.__setattr__(self, "_name", value)
-
     # ndarray compatibility
     @property
     def dtype(self):
@@ -486,6 +470,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
+
+    @property
+    def name(self) -> Optional[Hashable]:
+        return self.attrs.get("name", None)
+
+    @name.setter
+    def name(self, value: Optional[Hashable]) -> None:
+        if not is_hashable(value):
+            raise TypeError("Series.name must be a hashable type")
+        self.attrs["name"] = value
 
     @property
     def ftype(self):
@@ -1290,6 +1284,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             if isinstance(key, tuple):
                 try:
+                    # TODO: no test cases that get here
                     self._set_values(key, value)
                 except Exception:
                     pass
