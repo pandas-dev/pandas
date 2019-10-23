@@ -948,10 +948,3 @@ class TestNDFrame:
         df = DataFrame([1])
         with tm.assert_produces_warning(FutureWarning):
             df.get_dtype_counts()
-
-    @pytest.mark.parametrize("axis", [0, 1, "index", "columns", "rows"])
-    def test_interpolate_axis_argument(self, axis):
-        # GH 29142
-        df = pd.DataFrame([0])
-        result = df.interpolate(axis=axis)
-        tm.assert_frame_equal(result, df)

@@ -398,6 +398,7 @@ class TestDataFrameMissingData:
 
         result = df.cats.fillna(np.nan)
         tm.assert_series_equal(result, df.cats)
+
         result = df.vals.fillna(np.nan)
         tm.assert_series_equal(result, df.vals)
 
@@ -872,8 +873,20 @@ class TestDataFrameInterpolate:
         result = df.interpolate(axis=1, method="values")
         assert_frame_equal(result, expected)
 
+        # GH 29142: test axis names
+        result = df.interpolate(axis="columns", method="values")
+        assert_frame_equal(result, expected)
+
         result = df.interpolate(axis=0)
         expected = df.interpolate()
+        assert_frame_equal(result, expected)
+
+        # GH 29142: test axis names
+        result = df.interpolate(axis="rows", method="values")
+        assert_frame_equal(result, expected)
+
+        # GH 29142: test axis names
+        result = df.interpolate(axis="index", method="values")
         assert_frame_equal(result, expected)
 
     def test_rowwise_alt(self):
