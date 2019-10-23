@@ -698,7 +698,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-):
+) -> "Series":
     """
     Compute a histogram of the counts of non-null values.
 
