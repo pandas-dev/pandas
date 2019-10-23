@@ -3039,21 +3039,19 @@ class MultiIndex(Index):
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
                 # are or'd)
+                # Find out if the list_like label are sorted as the levels or not
+                if not need_sort:
+                    k_codes = np.array(
+                        [self.levels[i].get_loc(e) for e in k if e in self.levels[i]]
+                    )
+                    need_sort = not (k_codes[:-1] < k_codes[1:]).all()
                 indexers = None
-                start_pos = 0
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = idxrs if indexers is None else indexers | idxrs
-
-                        if not need_sort:
-                            next_key_pos = self.levels[i].get_loc(x)
-                            if next_key_pos < start_pos:
-                                need_sort = True
-                            else:
-                                start_pos = next_key_pos
 
                     except KeyError:
 
@@ -3108,7 +3106,6 @@ class MultiIndex(Index):
                         if e in self.levels[i]:
                             key_order_map[self.levels[i].get_loc(e)] = p
                     new_order = key_order_map[self.codes[i][indexer]]
-                    # Testing if the sort order of the result shoud be modified
                 else:
                     # For all other case, use the same order as the level
                     new_order = np.arange(n)[indexer]
