@@ -508,7 +508,7 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("value", [[], iter([]), (_ for _ in [])])
     @pytest.mark.parametrize(
         "klass",
         [
@@ -531,7 +531,7 @@ class TestIndex(Base):
         [
             (PeriodIndex([], freq="B"), PeriodIndex),
             (PeriodIndex(iter([]), freq="B"), PeriodIndex),
-            (PeriodIndex((x for x in []), freq="B"), PeriodIndex),
+            (PeriodIndex((_ for _ in []), freq="B"), PeriodIndex),
             (RangeIndex(step=1), pd.RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
