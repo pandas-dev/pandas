@@ -6661,7 +6661,10 @@ class DataFrame(NDFrame):
                     reordered_result.loc[v, k] = result[k][::-1].dropna().values
                 result = reordered_result
             else:
-                result.index = ids
+                if not PY36:
+                    result.index = ids
+                else:
+                    result.index = indexes
 
         return result
 
