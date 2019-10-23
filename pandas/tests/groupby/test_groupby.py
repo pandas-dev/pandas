@@ -964,7 +964,7 @@ def test_no_mutate_but_looks_like(as_index):
         return result1, result2
 
     if as_index:
-        with pytest.raises(AttributeError):
+        with pytest.raises(AttributeError, match="'key'$"):
             run_test(df, as_index)
     else:
         result1, result2 = run_test(df, as_index)
