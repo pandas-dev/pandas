@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
+from pandas.compat import PY35
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -1377,7 +1377,7 @@ class TestDataFrameNamedAggregate:
 
         # test on same column with different methods
         result = df.agg(foo=("B", "sum"), bar=("B", "min"))
-        if not PY36:
+        if PY36:
             expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
         else:
             expected = pd.DataFrame({"B": [1, 10]}, index=pd.Index(["bar", "foo"]))
@@ -1434,7 +1434,7 @@ class TestDataFrameNamedAggregate:
             cat=pd.NamedAgg(column="B", aggfunc="count"),
             fft=pd.NamedAgg("B", aggfunc="max"),
         )
-        if not PY36:
+        if PY36:
             expected = pd.DataFrame(
                 {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
             )
