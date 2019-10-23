@@ -42,13 +42,29 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-@pytest.mark.parametrize("binner,closed,expected", [
-    (np.array([0, 3, 6, 9]), "left", np.array([2, 5, 6])),
-    (np.array([0, 3, 6, 9]), "right", np.array([3, 6, 6])),
-    (np.array([0, 3, 6]), "left", np.array([2, 5])),
-    (np.array([0, 3, 6]), "right", np.array([3, 6]))])
+@pytest.mark.parametrize(
+    "binner,closed,expected",
+    [
+        (
+            np.array([0, 3, 6, 9], dtype=np.int64),
+            "left",
+            np.array([2, 5, 6], dtype=np.int64),
+        ),
+        (
+            np.array([0, 3, 6, 9], dtype=np.int64),
+            "right",
+            np.array([3, 6, 6], dtype=np.int64),
+        ),
+        (np.array([0, 3, 6], dtype=np.int64), "left", np.array([2, 5], dtype=np.int64)),
+        (
+            np.array([0, 3, 6], dtype=np.int64),
+            "right",
+            np.array([3, 6], dtype=np.int64),
+        ),
+    ],
+)
 def test_generate_bins(binner, closed, expected):
-    values = np.array([1, 2, 3, 4, 5, 6])
+    values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
     result = lib.generate_bins_dt64(values, binner, closed=closed)
     assert_numpy_array_equal(result, expected)
 
