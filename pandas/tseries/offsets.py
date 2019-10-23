@@ -980,8 +980,6 @@ class BusinessHourMixin(BusinessMixin):
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business hours.
-
-    .. versionadded:: 0.16.1
     """
 
     _prefix = "BH"

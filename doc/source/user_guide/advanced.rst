@@ -206,8 +206,6 @@ highly performant. If you want to see only the used levels, you can use the
 To reconstruct the ``MultiIndex`` with only the used levels, the
 :meth:`~MultiIndex.remove_unused_levels` method may be used.
 
-.. versionadded:: 0.20.0
-
 .. ipython:: python
 
    new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
@@ -927,8 +925,6 @@ If you need integer based selection, you should use ``iloc``:
 
 IntervalIndex
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.20.0
 
 :class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
 as well as the :class:`Interval` scalar type,  allow first-class support in pandas
