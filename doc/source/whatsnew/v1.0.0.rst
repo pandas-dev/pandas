@@ -102,10 +102,12 @@ Other enhancements
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
-- The :ref:`integer dtype <integer_na>` with support for missing values can now be converted to
-  ``pyarrow`` (>= 0.15.0), which means that it is supported in writing to the Parquet file format
-  when using the ``pyarrow`` engine. It is currently not yet supported when converting back to
-  pandas (so it will become an integer or float dtype depending on the presence of missing data).
+- The :ref:`integer dtype <integer_na>` with support for missing values and the
+  new :ref:`string dtype <text.types>` can now be converted to ``pyarrow`` (>=
+  0.15.0), which means that it is supported in writing to the Parquet file
+  format when using the ``pyarrow`` engine. It is currently not yet supported
+  when converting back to pandas (so it will become an integer or float
+  (depending on the presence of missing data) or object dtype column).
   (:issue:`28368`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
