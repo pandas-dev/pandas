@@ -1,12 +1,10 @@
 import numpy as np
-import pytest
 
 from pandas._libs import groupby, lib, reduction as libreduction
 
 from pandas.core.dtypes.common import ensure_int64
 
 from pandas import Index, Series, isna
-from pandas.core.groupby.ops import generate_bins_generic
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
@@ -43,42 +41,21 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-class TestBinGroupers:
-    def setup_method(self, method):
-        self.obj = np.random.randn(10, 1)
-        self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
-        self.bins = np.array([3, 6], dtype=np.int64)
+def test_generate_bins():
+    values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
+    binner = np.array([0, 3, 6, 9], dtype=np.int64)
 
-    def test_generate_bins(self):
-        values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
-        binner = np.array([0, 3, 6, 9], dtype=np.int64)
+    bins = lib.generate_bins_dt64(values, binner, closed="left")
+    assert (bins == np.array([2, 5, 6])).all()
 
-        for func in [lib.generate_bins_dt64, generate_bins_generic]:
-            bins = func(values, binner, closed="left")
-            assert (bins == np.array([2, 5, 6])).all()
+    bins = lib.generate_bins_dt64(values, binner, closed="right")
+    assert (bins == np.array([3, 6, 6])).all()
 
-            bins = func(values, binner, closed="right")
-            assert (bins == np.array([3, 6, 6])).all()
+    values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
+    binner = np.array([0, 3, 6], dtype=np.int64)
 
-        for func in [lib.generate_bins_dt64, generate_bins_generic]:
-            values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
-            binner = np.array([0, 3, 6], dtype=np.int64)
-
-            bins = func(values, binner, closed="right")
-            assert (bins == np.array([3, 6])).all()
-
-        msg = "Invalid length for values or for binner"
-        with pytest.raises(ValueError, match=msg):
-            generate_bins_generic(values, [], "right")
-        with pytest.raises(ValueError, match=msg):
-            generate_bins_generic(values[:0], binner, "right")
-
-        msg = "Values falls before first bin"
-        with pytest.raises(ValueError, match=msg):
-            generate_bins_generic(values, [4], "right")
-        msg = "Values falls after last bin"
-        with pytest.raises(ValueError, match=msg):
-            generate_bins_generic(values, [-3, -1], "right")
+    bins = lib.generate_bins_dt64(values, binner, closed="right")
+    assert (bins == np.array([3, 6])).all()
 
 
 def test_group_ohlc():
