@@ -1967,11 +1967,14 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dup_labels_output_shape(groupby_func):
+@pytest.mark.parametrize(
+    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+)
+def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
 
-    df = pd.DataFrame([[1, 1]], columns=["a", "a"])
+    df = pd.DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
     args = []
@@ -1986,4 +1989,4 @@ def test_dup_labels_output_shape(groupby_func):
     result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
-    tm.assert_index_equal(result.columns, pd.Index(["a", "a"]))
+    tm.assert_index_equal(result.columns, idx)
