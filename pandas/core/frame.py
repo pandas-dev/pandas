@@ -6643,20 +6643,22 @@ class DataFrame(NDFrame):
 
         if relabeling:
 
-            # restructure the result
-            reordered_result = DataFrame(index=indexes)
             # when there are more than one column being used in aggregate, the order
             # of result will be reversed, and in case the func is not used by other
             # columns, there might be NaN values, so separate these two cases
             if len(func) > 1:
+
+                # restructure the result
+                reordered_result = DataFrame(index=indexes)
                 idx = 0
-                for col, funcs in OrderedDict(func.items()):
-                    v = reordered_indexes[idx:, idx + len(funcs)]
+                for col, funcs in func.items():
+                    v = reordered_indexes[idx: idx + len(funcs)]
                     reordered_result.loc[v, col] = result[col][::-1].dropna().values
                     idx = idx + len(funcs)
+                result = reordered_result
             else:
-                reordered_result.iloc[:, 0] = result.values
-            result = reordered_result
+                result.index = indexes
+
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
