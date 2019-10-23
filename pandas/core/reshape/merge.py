@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import Any, List, Tuple, cast
+from typing import Any, List, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -571,6 +571,7 @@ class _MergeOperation:
 
         self.indicator = indicator
 
+        self.indicator_name: Optional[str]
         if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
