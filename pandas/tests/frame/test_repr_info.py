@@ -27,9 +27,9 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
-    def test_repr_empty(self, empty_frame):
+    def test_repr_empty(self):
         # empty
-        foo = repr(empty_frame)  # noqa
+        foo = repr(DataFrame())  # noqa
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
@@ -53,7 +53,7 @@ class TestDataFrameReprInfoEtc:
 
         foo = repr(biggie)  # noqa
 
-    def test_repr(self, float_frame, empty_frame):
+    def test_repr(self, float_frame):
         buf = StringIO()
 
         # small one
@@ -71,7 +71,7 @@ class TestDataFrameReprInfoEtc:
         foo = repr(no_index)  # noqa
 
         # no columns or index
-        empty_frame.info(buf=buf)
+        DataFrame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
