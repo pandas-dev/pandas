@@ -3819,6 +3819,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if not PY36:
                 kwargs = OrderedDict(sorted(kwargs.items()))
             func = kwargs
+            kwargs = {}
 
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
