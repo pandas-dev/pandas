@@ -605,7 +605,6 @@ class BaseGrouper:
             result = result[:, 0]
 
         if how in self._name_functions:
-            # TODO
             names = self._name_functions[how]()  # type: Optional[List[str]]
         else:
             names = None
