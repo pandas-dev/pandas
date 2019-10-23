@@ -618,7 +618,8 @@ from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
 each time you commit changes. You can skip these checks with
 ``git commit --no-verify``.
 
-This command will catch any stylistic errors in your changes specifically, but
+One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
