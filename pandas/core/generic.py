@@ -8,12 +8,14 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     FrozenSet,
     Hashable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -65,7 +67,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas._typing import Dtype, FilePathOrBuffer, Scalar
+from pandas._typing import Dtype, FilePathOrBuffer, JSONSerializable
 from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
@@ -188,6 +190,12 @@ class NDFrame(PandasObject, SelectionMixin):
     _is_copy = None
     _data = None  # type: BlockManager
 
+    if TYPE_CHECKING:
+        # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
+        # We need the TYPE_CHECKING, because _attrs is not a class attribute
+        # and Py35 doesn't support the new syntax.
+        _attrs = {}  # type: Dict[Optional[Hashable], Any]
+
     # ----------------------------------------------------------------------
     # Constructors
 
@@ -197,6 +205,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
+        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
         fastpath: bool = False,
     ):
 
@@ -213,6 +222,11 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_data", data)
         object.__setattr__(self, "_item_cache", {})
+        if attrs is None:
+            attrs = {}
+        else:
+            attrs = dict(attrs)
+        object.__setattr__(self, "_attrs", attrs)
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
@@ -232,6 +246,19 @@ class NDFrame(PandasObject, SelectionMixin):
         return mgr
 
     # ----------------------------------------------------------------------
+
+    @property
+    def attrs(self) -> Dict[Optional[Hashable], Any]:
+        """
+        Dictionary of global attributes on this object.
+        """
+        if self._attrs is None:
+            self._attrs = {}
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
+        self._attrs = dict(value)
 
     @property
     def is_copy(self):
@@ -896,8 +923,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
             squeezed.
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -2029,7 +2054,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __getstate__(self):
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(_data=self._data, _typ=self._typ, _metadata=self._metadata, **meta)
+        return dict(
+            _data=self._data,
+            _typ=self._typ,
+            _metadata=self._metadata,
+            attrs=self.attrs,
+            **meta
+        )
 
     def __setstate__(self, state):
 
@@ -2038,6 +2069,8 @@ class NDFrame(PandasObject, SelectionMixin):
         elif isinstance(state, dict):
             typ = state.get("_typ")
             if typ is not None:
+                attrs = state.get("_attrs", {})
+                object.__setattr__(self, "_attrs", attrs)
 
                 # set in the order of internal names
                 # to avoid definitional recursion
@@ -2163,8 +2196,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
-        .. versionadded:: 0.20.0.
-
     See Also
     --------
     to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2268,7 +2299,7 @@ class NDFrame(PandasObject, SelectionMixin):
         double_precision: int = 10,
         force_ascii: bool_t = True,
         date_unit: str = "ms",
-        default_handler: Optional[Callable[[Any], Union[Scalar, List, Dict]]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
         compression: Optional[str] = "infer",
         index: bool_t = True,
@@ -2756,8 +2787,6 @@ class NDFrame(PandasObject, SelectionMixin):
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
-
-            .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -3032,22 +3061,15 @@ class NDFrame(PandasObject, SelectionMixin):
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{multirow} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-
-            .. versionadded:: 0.20.0
-
         caption : str, optional
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
 
@@ -3127,13 +3149,13 @@ class NDFrame(PandasObject, SelectionMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
+        columns: Optional[Sequence[Optional[Hashable]]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        index_label: Optional[Union[bool_t, str, Sequence[Optional[Hashable]]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Dict[str, str]]] = "infer",
+        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
@@ -3353,9 +3375,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if ref is None:
                 del self._cacher
             else:
+                # Note: we need to call ref._maybe_cache_changed even in the
+                #  case where it will raise.  (Uh, not clear why)
                 try:
                     ref._maybe_cache_changed(cacher[0], self)
-                except Exception:
+                except AssertionError:
+                    # ref._data.setitem can raise
+                    #  AssertionError because of shape mismatch
                     pass
 
         if verify_is_copy:
@@ -5133,8 +5159,6 @@ class NDFrame(PandasObject, SelectionMixin):
     Call ``func`` on self producing a %(klass)s with transformed values
     and that has the same axis length as self.
 
-    .. versionadded:: 0.20.0
-
     Parameters
     ----------
     func : function, str, list or dict
@@ -5213,6 +5237,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
         if isinstance(other, NDFrame):
+            for name in other.attrs:
+                self.attrs[name] = other.attrs[name]
+            # For subclasses using _metadata.
             for name in self._metadata:
                 object.__setattr__(self, name, getattr(other, name, None))
         return self
@@ -5804,8 +5831,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -7945,8 +7970,6 @@ class NDFrame(PandasObject, SelectionMixin):
         fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------

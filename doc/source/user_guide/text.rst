@@ -228,8 +228,6 @@ and ``repl`` must be strings:
     dollars.str.replace(r'-\$', '-')
     dollars.str.replace('-$', '-', regex=False)
 
-.. versionadded:: 0.20.0
-
 The ``replace`` method can also take a callable as replacement. It is called
 on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
@@ -253,8 +251,6 @@ positional argument (a regex object) and return a string.
 
    pd.Series(['Foo Bar Baz', np.nan],
              dtype="string").str.replace(pat, repl)
-
-.. versionadded:: 0.20.0
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
