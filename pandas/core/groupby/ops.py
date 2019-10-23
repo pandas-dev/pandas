@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import numpy as np
 
@@ -598,6 +598,7 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
+        names: Optional[List[str]]
         if how in self._name_functions:
             # TODO
             names = self._name_functions[how]()
