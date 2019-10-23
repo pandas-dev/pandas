@@ -952,4 +952,6 @@ class TestNDFrame:
     @pytest.mark.parametrize("axis", [0, 1, "index", "columns", "rows"])
     def test_interpolate_axis_argument(self, axis):
         # GH 29142
-        assert DataFrame([0]).interpolate(axis=axis)
+        df = pd.DataFrame([0])
+        result = df.interpolate(axis=axis)
+        tm.assert_frame_equal(result, df)
