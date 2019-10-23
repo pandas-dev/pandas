@@ -858,7 +858,7 @@ b  2""",
     def _cython_transform(self, how, numeric_only=True, **kwargs):
         output = collections.OrderedDict()
         names = []  # type: List[Hashable]
-        for index, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, (name, obj) in enumerate(self._iterate_slices()):
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -871,7 +871,7 @@ b  2""",
             if self._transform_should_cast(how):
                 result = self._try_cast(result, obj)
 
-            output[index] = result
+            output[idx] = result
             names.append(name)
 
         if len(output) == 0:
@@ -900,7 +900,7 @@ b  2""",
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
         # need to slice that up into 1D arrays
-        index = 0
+        idx = 0
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -918,9 +918,9 @@ b  2""",
                 agg_names = [name]
 
             for result_column, result_name in zip(result.T, agg_names):
-                output[index] = self._try_cast(result_column, obj)
+                output[idx] = self._try_cast(result_column, obj)
                 names.append(result_name)
-                index += 1
+                idx += 1
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
@@ -935,13 +935,13 @@ b  2""",
         output = collections.OrderedDict()
         names = []  # type: List[Hashable]
 
-        for index, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, (name, obj) in enumerate(self._iterate_slices()):
             try:
                 result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
             else:
-                output[index] = self._try_cast(result, obj, numeric_only=True)
+                output[idx] = self._try_cast(result, obj, numeric_only=True)
                 names.append(name)
 
         if len(output) == 0:
@@ -950,14 +950,14 @@ b  2""",
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for index, result in output.items():
+            for idx, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[index] = self._try_cast(values[mask], result)
+                output[idx] = self._try_cast(values[mask], result)
 
         return self._wrap_aggregated_output(output, names)
 
@@ -2280,7 +2280,7 @@ class GroupBy(_GroupBy):
         names = []  # List[Hashable]
         base_func = getattr(libgroupby, how)
 
-        for index, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, (name, obj) in enumerate(self._iterate_slices()):
             values = obj._data._values
 
             if aggregate:
@@ -2316,7 +2316,7 @@ class GroupBy(_GroupBy):
             if post_processing:
                 result = post_processing(result, inferences)
 
-            output[index] = result
+            output[idx] = result
             names.append(name)
 
         if aggregate:
