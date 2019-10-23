@@ -877,15 +877,14 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_transformed_output(output, names)
+        columns = Index(names)
+        return self._wrap_transformed_output(output, columns)
 
-    def _wrap_aggregated_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
-    ):
+    def _wrap_aggregated_output(self, output: Mapping[int, np.ndarray], columns: Index):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], columns: Index
     ):
         raise AbstractMethodError(self)
 
@@ -959,7 +958,8 @@ b  2""",
 
                 output[idx] = self._try_cast(values[mask], result)
 
-        return self._wrap_aggregated_output(output, names)
+        columns = Index(names)
+        return self._wrap_aggregated_output(output, columns)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
@@ -2319,10 +2319,11 @@ class GroupBy(_GroupBy):
             output[idx] = result
             names.append(name)
 
+        columns = Index(names)
         if aggregate:
-            return self._wrap_aggregated_output(output, names)
+            return self._wrap_aggregated_output(output, columns)
         else:
-            return self._wrap_transformed_output(output, names)
+            return self._wrap_transformed_output(output, columns)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)

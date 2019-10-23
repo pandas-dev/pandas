@@ -17,7 +17,6 @@ from typing import (
     FrozenSet,
     Hashable,
     Iterable,
-    List,
     Mapping,
     Optional,
     Sequence,
@@ -343,7 +342,7 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[int, np.ndarray], index: Index, names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], index: Index, columns: Index
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -352,12 +351,11 @@ class SeriesGroupBy(GroupBy):
         ----------
         output : dict[int, np.ndarray]
             Dict where the key represents the columnar-index and the values are
-            the actual results.
+            the actual results. Must be ordered from 0..n
         index : pd.Index
             Index to apply to the output.
-        names : List[Hashable]
-            List containing the column names to apply. The position of each
-            item in the list corresponds with the key in output.
+        columns : pd.Index
+            Columns to apply to the output.
 
         Returns
         -------
@@ -365,20 +363,20 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        In the vast majority of cases output and names will only contain one
+        In the vast majority of cases output and columns will only contain one
         element. The exception is operations that expand dimensions, like ohlc.
         """
-        assert len(output) == len(names)
+        assert len(output) == len(columns)
         if len(output) > 1:
             result = DataFrame(output, index=index)  # type: Union[Series, DataFrame]
-            result.columns = names
+            result.columns = columns
         else:
-            result = Series(output[0], index=index, name=names[0])
+            result = Series(output[0], index=index, name=columns[0])
 
         return result
 
     def _wrap_aggregated_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], columns: Index
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -388,11 +386,8 @@ class SeriesGroupBy(GroupBy):
         output : dict[int, np.ndarray]
             Dict where the key represents the columnar-index and the values are
             the actual results.
-        index : pd.Index
-            Index to apply to the output.
-        names : List[Hashable]
-            List containing the column names to apply. The position of each
-            item in the list corresponds with the key in output.
+        columns : pd.Index
+            Columns to apply to the output.
 
         Returns
         -------
@@ -400,16 +395,16 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        In the vast majority of cases output and names will only contain one
+        In the vast majority of cases output and columns will only contain one
         element. The exception is operations that expand dimensions, like ohlc.
         """
         result = self._wrap_series_output(
-            output=output, index=self.grouper.result_index, names=names
+            output=output, index=self.grouper.result_index, columns=columns
         )
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], columns: Index
     ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -418,10 +413,8 @@ class SeriesGroupBy(GroupBy):
         ----------
         output : dict[int, np.ndarray]
             Dict with a sole key of 0 and a value of the result values.
-        index : pd.Index
-            Index to apply to the output.
-        names : List[Hashable]
-            List containing one label (the Series name).
+        columns : pd.Index
+            Columns to apply to the output.
 
         Returns
         -------
@@ -429,11 +422,11 @@ class SeriesGroupBy(GroupBy):
 
         Notes
         -----
-        output and names should only contain one element. These are containers
+        output and columns should only contain one element. These are containers
         for generic compatability with the DataFrameGroupBy class.
         """
         result = self._wrap_series_output(
-            output=output, index=self.obj.index, names=names
+            output=output, index=self.obj.index, columns=columns
         )
 
         # No transformations increase the ndim of the result
@@ -1668,7 +1661,7 @@ class DataFrameGroupBy(GroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], columns: Index
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1678,16 +1671,15 @@ class DataFrameGroupBy(GroupBy):
         output : dict[int, np.ndarray]
             Dict where the key represents the columnar-index and the values are
             the actual results.
-        names : List[Hashable]
-            List containing the column names to apply. The position of each
-            item in the list corresponds with the key in output.
+        columns : pd.Index
+            Column names to apply
 
         Returns
         -------
         DataFrame
         """
         result = DataFrame(output)
-        result.columns = names
+        result.columns = columns
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1702,7 +1694,7 @@ class DataFrameGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Mapping[int, np.ndarray], names: List[Hashable]
+        self, output: Mapping[int, np.ndarray], columns: Index
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
@@ -1712,9 +1704,8 @@ class DataFrameGroupBy(GroupBy):
         output : dict[int, np.ndarray]
             Dict where the key represents the columnar-index and the values are
             the actual results.
-        names : List[Hashable]
-            List containing the column names to apply. The position of each
-            item in the list corresponds with the key in output.
+        columns : pd.Index
+            Column names to apply.
 
         Returns
         -------
@@ -1722,7 +1713,7 @@ class DataFrameGroupBy(GroupBy):
         """
 
         result = DataFrame(output)
-        result.columns = names
+        result.columns = columns
         result.index = self.obj.index
 
         return result
