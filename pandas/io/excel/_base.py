@@ -133,8 +133,24 @@ na_values : scalar, str, list-like, or dict, default None
     + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
+na_filter : bool, default True
+    Detect missing value markers (empty strings and the value of na_values). In
+    data without any NAs, passing na_filter=False can improve the performance
+    of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
