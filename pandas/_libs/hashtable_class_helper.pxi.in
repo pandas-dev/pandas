@@ -13,7 +13,7 @@ from pandas._libs.tslibs.util cimport get_c_string
 
 {{py:
 
-# name, dtype, arg
+# name, dtype, c_type
 # the generated StringVector is not actually used
 # but is included for completeness (rather ObjectVector is used
 # for uniques in hashtables)
@@ -24,13 +24,13 @@ dtypes = [('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t')]
 }}
 
-{{for name, dtype, arg in dtypes}}
+{{for name, dtype, c_type in dtypes}}
 
 
 {{if dtype != 'int64'}}
 
 ctypedef struct {{name}}VectorData:
-    {{arg}} *data
+    {{c_type}} *data
     Py_ssize_t n, m
 
 {{endif}}
@@ -39,7 +39,7 @@ ctypedef struct {{name}}VectorData:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
-                                       {{arg}} x) nogil:
+                                       {{c_type}} x) nogil:
 
     data.data[data.n] = x
     data.n += 1
@@ -61,14 +61,14 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 
 {{py:
 
-# name, dtype, arg, idtype
-dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
-          ('UInt64', 'uint64', 'uint64_t', 'np.uint64'),
-          ('Int64', 'int64', 'int64_t', 'np.int64')]
+# name, dtype, c_type
+dtypes = [('Float64', 'float64', 'float64_t'),
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('Int64', 'int64', 'int64_t')]
 
 }}
 
-{{for name, dtype, arg, idtype in dtypes}}
+{{for name, dtype, c_type in dtypes}}
 
 cdef class {{name}}Vector:
 
@@ -87,13 +87,13 @@ cdef class {{name}}Vector:
         self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*>self.ao.data
+        self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
+        self.data.data = <{{c_type}}*>self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
-        self.data.data = <{{arg}}*>self.ao.data
+        self.data.data = <{{c_type}}*>self.ao.data
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -113,7 +113,7 @@ cdef class {{name}}Vector:
         self.external_view_exists = True
         return self.ao
 
-    cdef inline void append(self, {{arg}} x):
+    cdef inline void append(self, {{c_type}} x):
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -123,7 +123,7 @@ cdef class {{name}}Vector:
 
         append_data_{{dtype}}(self.data, x)
 
-    cdef extend(self, const {{arg}}[:] x):
+    cdef extend(self, const {{c_type}}[:] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -279,7 +279,8 @@ cdef class {{name}}HashTable(HashTable):
             self.table = NULL
 
     def __contains__(self, object key):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
         k = kh_get_{{dtype}}(self.table, key)
         return k != self.table.n_buckets
 
@@ -290,7 +291,8 @@ cdef class {{name}}HashTable(HashTable):
                                        sizeof(uint32_t))  # flags
 
     cpdef get_item(self, {{dtype}}_t val):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
         k = kh_get_{{dtype}}(self.table, val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
@@ -899,7 +901,8 @@ cdef class PyObjectHashTable(HashTable):
         return self.table.size
 
     def __contains__(self, object key):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
         hash(key)
 
         k = kh_get_pymap(self.table, <PyObject*>key)
@@ -912,7 +915,8 @@ cdef class PyObjectHashTable(HashTable):
                                        sizeof(uint32_t))  # flags
 
     cpdef get_item(self, object val):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
 
         k = kh_get_pymap(self.table, <PyObject*>val)
         if k != self.table.n_buckets:

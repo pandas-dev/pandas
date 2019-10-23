@@ -5,8 +5,8 @@ import itertools
 
 import numpy as np
 
+from pandas._libs import Timestamp
 import pandas._libs.hashing as hashing
-import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -337,8 +337,8 @@ def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslibs.Timestamp):
-            val = tslibs.Timestamp(val)
+        if not isinstance(val, Timestamp):
+            val = Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)
