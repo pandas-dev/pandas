@@ -794,7 +794,8 @@ class Block(PandasObject):
         return self if kwargs["inplace"] else self.copy()
 
     def setitem(self, indexer, value):
-        """Set the value inplace, returning a a maybe different typed block.
+        """
+        Set the value inplace, returning a a maybe different typed block.
 
         Parameters
         ----------
@@ -846,7 +847,10 @@ class Block(PandasObject):
                     return b.setitem(indexer, value)
 
         # value must be storeable at this moment
-        arr_value = np.array(value)
+        if not is_extension_array_dtype(value):
+            arr_value = np.array(value)
+        else:
+            arr_value = value
 
         # cast the values to a type that can hold nan (if necessary)
         if not self._can_hold_element(value):
