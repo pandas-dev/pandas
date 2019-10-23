@@ -262,9 +262,14 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (AssertionError, TypeError, IndexError):
+            except (AssertionError, TypeError):
                 raise
-            except Exception:
+            except (ValueError, KeyError, AttributeError, IndexError):
+                # TODO: IndexError can be removed here following GH#29106
+                # TODO: AttributeError is caused by _index_data hijinx in
+                #  libreduction, can be removed after GH#29160
+                # TODO: KeyError is raised in _python_agg_general,
+                #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])

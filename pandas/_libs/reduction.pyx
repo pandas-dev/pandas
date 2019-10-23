@@ -248,11 +248,11 @@ cdef class SeriesBinGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ = None, cached_ityp = None
+            object name, cached_typ=None, cached_ityp=None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        if len(self.bins) > 0:
+        if self.ngroups > 0:
             counts[0] = self.bins[0]
             for i in range(1, self.ngroups):
                 if i == self.ngroups - 1:
