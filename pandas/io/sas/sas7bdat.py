@@ -15,7 +15,7 @@ Reference for binary data compression:
 """
 from datetime import datetime
 import struct
-from typing import Any, List, Union
+from typing import Any, List
 
 import numpy as np
 
@@ -95,7 +95,7 @@ class SAS7BDATReader(BaseIterator):
         self.convert_header_text = convert_header_text
 
         self.default_encoding = "latin-1"
-        self.compression = ""
+        self.compression = b""
         self.column_names_strings: List = []
         self.column_names: List = []
         self.column_formats: List = []
@@ -368,7 +368,7 @@ class SAS7BDATReader(BaseIterator):
         if index is None:
             f1 = (compression == const.compressed_subheader_id) or (compression == 0)
             f2 = ptype == const.compressed_subheader_type
-            if (self.compression != "") and f1 and f2:
+            if (self.compression != b"") and f1 and f2:
                 index = const.SASIndex.data_subheader_index
             else:
                 self.close()
@@ -491,7 +491,7 @@ class SAS7BDATReader(BaseIterator):
         self.column_names_strings.append(cname)
 
         if len(self.column_names_strings) == 1:
-            compression_literal: Union[str, bytes] = ""
+            compression_literal = b""
             for cl in const.compression_literals:
                 if cl in cname_raw:
                     compression_literal = cl
@@ -504,7 +504,7 @@ class SAS7BDATReader(BaseIterator):
 
             buf = self._read_bytes(offset1, self._lcp)
             compression_literal = buf.rstrip(b"\x00")
-            if compression_literal == "":
+            if compression_literal == b"":
                 self._lcs = 0
                 offset1 = offset + 32
                 if self.U64:
