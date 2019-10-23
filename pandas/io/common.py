@@ -629,6 +629,6 @@ def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
 
 
 def UnicodeWriter(
-    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwds
+    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwargs
 ):
-    return csv.writer(f, dialect=dialect, **kwds)
+    return csv.writer(f, dialect=dialect, **kwargs)
