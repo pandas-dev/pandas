@@ -1432,7 +1432,6 @@ class TestDataFrameNamedAggregate:
         expected = pd.DataFrame(
             {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
         )
-        assert all(result['B'] == [3, 1, 2, 2])
         tm.assert_frame_equal(result, expected)
 
         result = df.agg(
