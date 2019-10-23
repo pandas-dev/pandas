@@ -6623,7 +6623,7 @@ class DataFrame(NDFrame):
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
             if not PY36:
-                kwargs = OrderedDict(sorted(kwargs.items()))
+                ids = list(sorted(list(kwargs)))
             func, indexes, order = _normalize_keyword_aggregation(kwargs)
             reordered_indexes = [
                 pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
@@ -6652,17 +6652,16 @@ class DataFrame(NDFrame):
                 idx = idx + len(funcs)
 
             # restructure the result
-            reordered_result = DataFrame(index=reordered_indexes)
-
+            reordered_result = DataFrame(index=indexes)
             # when there are more than one column being used in aggregate, the order
             # of result will be reversed, and in case the func is not used by other
             # columns, there might be NaN values, so separate these two cases
             if len(func) > 1:
                 for k, v in func_index_dict.items():
                     reordered_result.loc[v, k] = result[k][::-1].dropna().values
-                result = reordered_result.reindex(indexes)
+                result = reordered_result
             else:
-                result.index = reordered_indexes
+                result.index = ids
 
         return result
 

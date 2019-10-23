@@ -1433,6 +1433,7 @@ class TestDataFrameNamedAggregate:
             {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
         )
         tm.assert_frame_equal(result, expected)
+        assert all(result['B'] == [3, 1, 2, 2])
 
         result = df.agg(
             foo=pd.NamedAgg("A", "min"),
