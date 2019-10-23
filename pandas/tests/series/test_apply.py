@@ -766,15 +766,15 @@ class TestNamedAggregation:
         result = df.A.agg(foo="sum", bar="sum")
         expected = pd.Series([6, 6], index=["foo", "bar"], name="A")
         if PY36:
-            tm.assert_frame_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         else:
             with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+                tm.assert_series_equal(result, expected)
 
         result = df.B.agg(foo=min, bar="min")
         expected = pd.Series([1, 1], index=["foo", "bar"], name="B")
         if PY36:
-            tm.assert_frame_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         else:
             with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+                tm.assert_series_equal(result, expected)
