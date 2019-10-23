@@ -4,6 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.compat import PY36
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
@@ -763,8 +765,16 @@ class TestNamedAggregation:
 
         result = df.A.agg(foo="sum", bar="sum")
         expected = pd.Series([6, 6], index=pd.Index(["foo", "bar"]), name="A")
-        tm.assert_series_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
 
         result = df.B.agg(foo=min, bar="min")
         expected = pd.Series([1, 1], index=pd.Index(["foo", "bar"]), name="B")
-        tm.assert_series_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
