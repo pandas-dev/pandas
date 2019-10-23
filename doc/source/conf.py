@@ -378,7 +378,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        r"Wes McKinney\n\& PyData Development Team",
+        "Wes McKinney and the Pandas Development Team",
         "manual",
     )
 ]
