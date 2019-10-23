@@ -65,7 +65,7 @@ class TestSeriesRepr:
         s = Series(index=date_range("20010101", "20020101"), name="test")
         assert "Name: test" in repr(s)
 
-    def test_repr(self, datetime_series, string_series, object_series, empty_series):
+    def test_repr(self, datetime_series, string_series, object_series):
         str(datetime_series)
         str(string_series)
         str(string_series.astype(int))
@@ -75,7 +75,7 @@ class TestSeriesRepr:
         str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
-        str(empty_series)
+        str(Series())
 
         # with NaNs
         string_series[5:7] = np.NaN
