@@ -262,9 +262,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (AssertionError, TypeError):
-                raise
-            except IndexError:
+            except (AssertionError, TypeError, IndexError):
                 raise
             except Exception:
                 result = self._aggregate_named(func, *args, **kwargs)
