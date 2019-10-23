@@ -6659,7 +6659,7 @@ class DataFrame(NDFrame):
                 else:
                     reordered_result.loc[v, col] = result[col].values
                 idx = idx + len(funcs)
-
+            result = reordered_result
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
