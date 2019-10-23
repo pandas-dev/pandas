@@ -925,7 +925,8 @@ cdef class PyObjectHashTable(HashTable):
         return self.table.size
 
     def __contains__(self, object key):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
         hash(key)
 
         k = kh_get_pymap(self.table, <PyObject*>key)
@@ -938,7 +939,8 @@ cdef class PyObjectHashTable(HashTable):
                                        sizeof(uint32_t))  # flags
 
     cpdef get_item(self, object val):
-        cdef khiter_t k
+        cdef:
+            khiter_t k
 
         k = kh_get_pymap(self.table, <PyObject*>val)
         if k != self.table.n_buckets:

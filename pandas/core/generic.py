@@ -10852,7 +10852,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Also returns None for empty %(klass)s.
         """
 
-    def _find_valid_index(self, how):
+    def _find_valid_index(self, how: str):
         """
         Retrieves the index of the first valid value.
 
