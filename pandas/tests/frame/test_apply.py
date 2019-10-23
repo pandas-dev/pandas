@@ -1400,14 +1400,22 @@ class TestDataFrameNamedAggregate:
             },
             index=pd.Index(["foo", "bar", "cat", "dat", "f", "g"]),
         )
-        tm.assert_frame_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
 
         # test on partial, functools or more complex cases
         result = df.agg(foo=("A", np.mean), bar=("A", "mean"), cat=("A", min))
         expected = pd.DataFrame(
             {"A": [1.5, 1.5, 1.0]}, index=pd.Index(["foo", "bar", "cat"])
         )
-        tm.assert_frame_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
 
         result = df.agg(
             foo=("A", min),
@@ -1424,7 +1432,11 @@ class TestDataFrameNamedAggregate:
             },
             index=pd.Index(["foo", "bar", "cat", "dat", "f"]),
         )
-        tm.assert_frame_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
 
     def test_agg_namedtuple(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -1453,7 +1465,11 @@ class TestDataFrameNamedAggregate:
             {"A": [0.0, np.nan, 1.0], "B": [np.nan, 2.0, np.nan]},
             index=pd.Index(["foo", "bar", "cat"]),
         )
-        tm.assert_frame_equal(result, expected)
+        if PY36:
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.xfail(reason="PY35"):
+                tm.assert_frame_equal(result, expected)
 
     def test_agg_raises(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
