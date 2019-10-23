@@ -6622,8 +6622,6 @@ class DataFrame(NDFrame):
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
-            if not PY36:
-                ids = list(sorted(list(kwargs)))
             func, indexes, order = _normalize_keyword_aggregation(kwargs)
             reordered_indexes = [
                 pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
@@ -6644,12 +6642,6 @@ class DataFrame(NDFrame):
             return self.apply(func, axis=axis, args=args, **kwargs)
 
         if relabeling:
-            # create a function name and index mapping dictionary for each column
-            func_index_dict = OrderedDict()
-            idx = 0
-            for func_name, funcs in func.items():
-                func_index_dict[func_name] = reordered_indexes[idx : idx + len(funcs)]
-                idx = idx + len(funcs)
 
             # restructure the result
             reordered_result = DataFrame(index=indexes)
@@ -6657,15 +6649,14 @@ class DataFrame(NDFrame):
             # of result will be reversed, and in case the func is not used by other
             # columns, there might be NaN values, so separate these two cases
             if len(func) > 1:
-                for k, v in func_index_dict.items():
-                    reordered_result.loc[v, k] = result[k][::-1].dropna().values
-                result = reordered_result
+                idx = 0
+                for col, funcs in OrderedDict(func.items()):
+                    v = reordered_indexes[idx:, idx + len(funcs)]
+                    reordered_result.loc[v, col] = result[col][::-1].dropna().values
+                    idx = idx + len(funcs)
             else:
-                if not PY36:
-                    result.index = ids
-                else:
-                    result.index = indexes
-
+                reordered_result.iloc[:, 0] = result.values
+            result = reordered_result
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
