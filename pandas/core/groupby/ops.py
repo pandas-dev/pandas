@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -419,13 +420,21 @@ class BaseGrouper:
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, "object"]:
-                f = getattr(
+                f2 = getattr(
                     libgroupby,
                     "{fname}_{dtype_str}".format(fname=fname, dtype_str=dt),
                     None,
                 )
-                if f is not None:
-                    return f
+                if f2 is not None:
+                    return f2
+
+            if hasattr(f, "__signatures__"):
+                # inspect what fused types are implemented
+                if dtype_str == "object" and "object" not in f.__signatures__:
+                    # return None so we get a NotImplementedError below
+                    #  instead of a TypeError at runtime
+                    return None
+            return f
 
         ftype = self._cython_functions[kind][how]
 
@@ -651,16 +660,38 @@ class BaseGrouper:
         return result
 
     def agg_series(self, obj, func):
+        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+            # _aggregate_series_fast would raise TypeError when
+            #  calling libreduction.Slider
+            # TODO: is the datetime64tz case supposed to go through here?
+            return self._aggregate_series_pure_python(obj, func)
+
         try:
             return self._aggregate_series_fast(obj, func)
         except AssertionError:
             raise
-        except Exception:
-            return self._aggregate_series_pure_python(obj, func)
+        except ValueError as err:
+            if "No result." in str(err):
+                # raised in libreduction
+                pass
+            elif "Function does not reduce" in str(err):
+                # raised in libreduction
+                pass
+            else:
+                raise
+        except TypeError as err:
+            if "ndarray" in str(err):
+                # raised in libreduction if obj's values is no ndarray
+                pass
+            else:
+                raise
+        return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
         func = self._is_builtin_func(func)
 
+        # TODO: pre-empt this, also pre-empt get_result raising TypError if we pass a EA
+        #   for EAs backed by ndarray we may have a performant workaround
         if obj.index._has_complex_internals:
             raise TypeError("Incompatible index for Cython grouper")
 
@@ -695,6 +726,7 @@ class BaseGrouper:
             result[label] = res
 
         result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
         return result, counts
 
 

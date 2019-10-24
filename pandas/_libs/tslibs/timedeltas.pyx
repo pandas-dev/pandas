@@ -1157,8 +1157,6 @@ cdef class _Timedelta(timedelta):
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
         values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
-        .. versionadded:: 0.20.0
-
         Returns
         -------
         formatted : str

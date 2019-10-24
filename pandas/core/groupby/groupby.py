@@ -745,7 +745,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -1942,8 +1942,6 @@ class GroupBy(_GroupBy):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
-        .. versionadded:: 0.20.2
-
         Parameters
         ----------
         ascending : bool, default True
@@ -2080,7 +2078,7 @@ class GroupBy(_GroupBy):
             * dense: like 'min', but rank always increases by 1 between groups
         ascending : bool, default True
             False for ranks by high (1) to low (N).
-        na_option :  {'keep', 'top', 'bottom'}, default 'keep'
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending

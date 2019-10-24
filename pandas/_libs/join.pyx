@@ -13,6 +13,7 @@ from pandas._libs.algos import (
 )
 
 
+@cython.boundscheck(False)
 def inner_join(const int64_t[:] left, const int64_t[:] right,
                Py_ssize_t max_groups):
     cdef:
@@ -20,6 +21,8 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t offset
 
     # NA group in location 0
 
@@ -33,11 +36,6 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
         if rc > 0 and lc > 0:
             count += lc * rc
-
-    # group 0 is the NA group
-    cdef:
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
-        Py_ssize_t offset
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -64,6 +62,7 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
+@cython.boundscheck(False)
 def left_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
@@ -72,6 +71,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
         ndarray rev
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t offset
 
     # NA group in location 0
 
@@ -84,11 +85,6 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             count += left_count[i] * right_count[i]
         else:
             count += left_count[i]
-
-    # group 0 is the NA group
-    cdef:
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
-        Py_ssize_t offset
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -137,6 +133,7 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     return left_indexer, right_indexer
 
 
+@cython.boundscheck(False)
 def full_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
@@ -144,6 +141,8 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
+        int64_t left_pos = 0, right_pos = 0
+        Py_ssize_t offset, position = 0
 
     # NA group in location 0
 
@@ -159,11 +158,6 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             count += lc * rc
         else:
             count += lc + rc
-
-    # group 0 is the NA group
-    cdef:
-        int64_t left_pos = 0, right_pos = 0
-        Py_ssize_t offset, position = 0
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -296,14 +290,6 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
     return indexer
 
 
-left_join_indexer_unique_float64 = left_join_indexer_unique["float64_t"]
-left_join_indexer_unique_float32 = left_join_indexer_unique["float32_t"]
-left_join_indexer_unique_object = left_join_indexer_unique["object"]
-left_join_indexer_unique_int32 = left_join_indexer_unique["int32_t"]
-left_join_indexer_unique_int64 = left_join_indexer_unique["int64_t"]
-left_join_indexer_unique_uint64 = left_join_indexer_unique["uint64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
@@ -407,14 +393,6 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     return result, lindexer, rindexer
 
 
-left_join_indexer_float64 = left_join_indexer["float64_t"]
-left_join_indexer_float32 = left_join_indexer["float32_t"]
-left_join_indexer_object = left_join_indexer["object"]
-left_join_indexer_int32 = left_join_indexer["int32_t"]
-left_join_indexer_int64 = left_join_indexer["int64_t"]
-left_join_indexer_uint64 = left_join_indexer["uint64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
@@ -506,14 +484,6 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-inner_join_indexer_float64 = inner_join_indexer["float64_t"]
-inner_join_indexer_float32 = inner_join_indexer["float32_t"]
-inner_join_indexer_object = inner_join_indexer["object"]
-inner_join_indexer_int32 = inner_join_indexer["int32_t"]
-inner_join_indexer_int64 = inner_join_indexer["int64_t"]
-inner_join_indexer_uint64 = inner_join_indexer["uint64_t"]
 
 
 @cython.wraparound(False)
@@ -643,14 +613,6 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-outer_join_indexer_float64 = outer_join_indexer["float64_t"]
-outer_join_indexer_float32 = outer_join_indexer["float32_t"]
-outer_join_indexer_object = outer_join_indexer["object"]
-outer_join_indexer_int32 = outer_join_indexer["int32_t"]
-outer_join_indexer_int64 = outer_join_indexer["int64_t"]
-outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
 
 
 # ----------------------------------------------------------------------

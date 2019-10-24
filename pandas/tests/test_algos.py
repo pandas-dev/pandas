@@ -1619,7 +1619,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d_float64(arr)
+            result = libalgos.rank_1d(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
