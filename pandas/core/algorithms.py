@@ -1103,6 +1103,9 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
+    def compute(self, method):
+        raise NotImplementedError
+
     def nlargest(self):
         return self.compute("nlargest")
 
