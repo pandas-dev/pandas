@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.base import IndexOpsMixin  # noqa: F401
 
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
@@ -32,6 +33,7 @@ Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+IndexOrSeries = TypeVar("IndexOrSeries", bound="IndexOpsMixin")
 Scalar = Union[str, int, float, bool]
 Axis = Union[str, int]
 Ordered = Optional[bool]

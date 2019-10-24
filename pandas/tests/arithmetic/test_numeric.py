@@ -5,6 +5,7 @@ from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
+from typing import List, Type, Union
 
 import numpy as np
 import pytest
@@ -74,6 +75,14 @@ class TestNumericComparisons:
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
+index_or_series_params = [
+    pd.Series,
+    pd.Index,
+]  # type: List[Union[Type[pd.Index], Type[pd.RangeIndex], Type[pd.Series]]]
+left = [pd.RangeIndex(10, 40, 10)]  # type: List[Union[Index, Series]]
+for cls in index_or_series_params:
+    for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]:
+        left.append(cls([10, 20, 30], dtype=dtype))
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
@@ -81,26 +90,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left",
-        [pd.RangeIndex(10, 40, 10)]
-        + [
-            cls([10, 20, 30], dtype=dtype)
-            for dtype in [
-                "i1",
-                "i2",
-                "i4",
-                "i8",
-                "u1",
-                "u2",
-                "u4",
-                "u8",
-                "f2",
-                "f4",
-                "f8",
-            ]
-            for cls in [pd.Series, pd.Index]
-        ],
-        ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", left, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -120,26 +110,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left",
-        [pd.RangeIndex(10, 40, 10)]
-        + [
-            cls([10, 20, 30], dtype=dtype)
-            for dtype in [
-                "i1",
-                "i2",
-                "i4",
-                "i8",
-                "u1",
-                "u2",
-                "u4",
-                "u8",
-                "f2",
-                "f4",
-                "f8",
-            ]
-            for cls in [pd.Series, pd.Index]
-        ],
-        ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", left, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390

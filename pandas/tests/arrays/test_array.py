@@ -272,9 +272,8 @@ class DecimalArray2(DecimalArray):
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
 
-@pytest.mark.parametrize("box", [pd.Series, pd.Index])
-def test_array_unboxes(box):
-    data = box([decimal.Decimal("1"), decimal.Decimal("2")])
+def test_array_unboxes(index_or_series):
+    data = index_or_series([decimal.Decimal("1"), decimal.Decimal("2")])
     # make sure it works
     with pytest.raises(TypeError):
         DecimalArray2._from_sequence(data)

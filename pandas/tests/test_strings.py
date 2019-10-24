@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+from typing import List, Type
 
 import numpy as np
 from numpy.random import randint
@@ -8,9 +9,12 @@ import pytest
 from pandas._libs import lib
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
+from pandas.core.base import PandasObject
 import pandas.core.strings as strings
 import pandas.util.testing as tm
 from pandas.util.testing import assert_index_equal, assert_series_equal
+
+index_or_series_params = [Index, Series]  # type: List[Type[PandasObject]]
 
 
 def assert_series_or_index_equal(left, right):
@@ -203,12 +207,11 @@ class TestStringMethods:
         assert not hasattr(mi, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
+    def test_api_per_dtype(self, index_or_series, dtype, any_skipna_inferred_dtype):
         # one instance of parametrized fixture
         inferred_dtype, values = any_skipna_inferred_dtype
 
-        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+        t = index_or_series(values, dtype=dtype)  # explicit dtype to avoid casting
 
         # TODO: get rid of these xfails
         if dtype == "category" and inferred_dtype in ["period", "interval"]:
@@ -237,9 +240,12 @@ class TestStringMethods:
             assert not hasattr(t, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
     def test_api_per_method(
-        self, box, dtype, any_allowed_skipna_inferred_dtype, any_string_method
+        self,
+        index_or_series,
+        dtype,
+        any_allowed_skipna_inferred_dtype,
+        any_string_method,
     ):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
@@ -252,26 +258,26 @@ class TestStringMethods:
         # TODO: get rid of these xfails
         if (
             method_name in ["partition", "rpartition"]
-            and box == Index
+            and index_or_series == Index
             and inferred_dtype == "empty"
         ):
             pytest.xfail(reason="Method cannot deal with empty Index")
         if (
             method_name == "split"
-            and box == Index
+            and index_or_series == Index
             and values.size == 0
             and kwargs.get("expand", None) is not None
         ):
             pytest.xfail(reason="Split fails on empty Series when expand=True")
         if (
             method_name == "get_dummies"
-            and box == Index
+            and index_or_series == Index
             and inferred_dtype == "empty"
             and (dtype == object or values.size == 0)
         ):
             pytest.xfail(reason="Need to fortify get_dummies corner cases")
 
-        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+        t = index_or_series(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
 
         bytes_allowed = method_name in ["decode", "get", "len", "slice"]
@@ -376,23 +382,21 @@ class TestStringMethods:
         assert i == 100
         assert s == "h"
 
-    @pytest.mark.parametrize("box", [Series, Index])
     @pytest.mark.parametrize("other", [None, Series, Index])
-    def test_str_cat_name(self, box, other):
+    def test_str_cat_name(self, index_or_series, other):
         # GH 21053
         values = ["a", "b"]
         if other:
             other = other(values)
         else:
             other = values
-        result = box(values, name="name").str.cat(other, sep=",")
+        result = index_or_series(values, name="name").str.cat(other, sep=",")
         assert result.name == "name"
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat(self, box):
+    def test_str_cat(self, index_or_series):
         # test_cat above tests "str_cat" from ndarray;
         # here testing "str.cat" from Series/Indext to ndarray/list
-        s = box(["a", "a", "b", "b", "c", np.nan])
+        s = index_or_series(["a", "a", "b", "b", "c", np.nan])
 
         # single array
         result = s.str.cat()
@@ -408,7 +412,7 @@ class TestStringMethods:
         assert result == expected
 
         t = np.array(["a", np.nan, "b", "d", "foo", np.nan], dtype=object)
-        expected = box(["aa", "a-", "bb", "bd", "cfoo", "--"])
+        expected = index_or_series(["aa", "a-", "bb", "bd", "cfoo", "--"])
 
         # Series/Index with array
         result = s.str.cat(t, na_rep="-")
@@ -428,10 +432,9 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat(list(z))
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_raises_intuitive_error(self, box):
+    def test_str_cat_raises_intuitive_error(self, index_or_series):
         # GH 11334
-        s = box(["a", "b", "c", "d"])
+        s = index_or_series(["a", "b", "c", "d"])
         message = "Did you mean to supply a `sep` keyword?"
         with pytest.raises(ValueError, match=message):
             s.str.cat("|")
@@ -441,14 +444,15 @@ class TestStringMethods:
     @pytest.mark.parametrize("sep", ["", None])
     @pytest.mark.parametrize("dtype_target", ["object", "category"])
     @pytest.mark.parametrize("dtype_caller", ["object", "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_categorical(self, box, dtype_caller, dtype_target, sep):
+    def test_str_cat_categorical(
+        self, index_or_series, dtype_caller, dtype_target, sep
+    ):
         s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
-        s = s if box == Index else Series(s, index=s)
+        s = s if index_or_series == Index else Series(s, index=s)
         t = Index(["b", "a", "b", "c"], dtype=dtype_target)
 
         expected = Index(["ab", "aa", "bb", "ac"])
-        expected = expected if box == Index else Series(expected, index=s)
+        expected = expected if index_or_series == Index else Series(expected, index=s)
 
         # Series/Index with unaligned Index -> t.values
         result = s.str.cat(t.values, sep=sep)
@@ -467,7 +471,9 @@ class TestStringMethods:
         t = Series(t.values, index=t.values)
         expected = Index(["aa", "aa", "aa", "bb", "bb"])
         expected = (
-            expected if box == Index else Series(expected, index=expected.str[:1])
+            expected
+            if index_or_series == Index
+            else Series(expected, index=expected.str[:1])
         )
 
         result = s.str.cat(t, sep=sep)
@@ -495,16 +501,19 @@ class TestStringMethods:
             # need to use outer and na_rep, as otherwise Index would not raise
             s.str.cat(t, join="outer", na_rep="-")
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_mixed_inputs(self, box):
+    def test_str_cat_mixed_inputs(self, index_or_series):
         s = Index(["a", "b", "c", "d"])
-        s = s if box == Index else Series(s, index=s)
+        s = s if index_or_series == Index else Series(s, index=s)
 
         t = Series(["A", "B", "C", "D"], index=s.values)
         d = concat([t, Series(s, index=s)], axis=1)
 
         expected = Index(["aAa", "bBb", "cCc", "dDd"])
-        expected = expected if box == Index else Series(expected.values, index=s.values)
+        expected = (
+            expected
+            if index_or_series == Index
+            else Series(expected.values, index=s.values)
+        )
 
         # Series/Index with DataFrame
         result = s.str.cat(d)
@@ -524,8 +533,12 @@ class TestStringMethods:
 
         # Series/Index with list of Series; different indexes
         t.index = ["b", "c", "d", "a"]
-        expected = box(["aDa", "bAb", "cBc", "dCd"])
-        expected = expected if box == Index else Series(expected.values, index=s.values)
+        expected = index_or_series(["aDa", "bAb", "cBc", "dCd"])
+        expected = (
+            expected
+            if index_or_series == Index
+            else Series(expected.values, index=s.values)
+        )
         result = s.str.cat([t, s])
         assert_series_or_index_equal(result, expected)
 
@@ -535,8 +548,12 @@ class TestStringMethods:
 
         # Series/Index with DataFrame; different indexes
         d.index = ["b", "c", "d", "a"]
-        expected = box(["aDd", "bAa", "cBb", "dCc"])
-        expected = expected if box == Index else Series(expected.values, index=s.values)
+        expected = index_or_series(["aDd", "bAa", "cBb", "dCc"])
+        expected = (
+            expected
+            if index_or_series == Index
+            else Series(expected.values, index=s.values)
+        )
         result = s.str.cat(d)
         assert_series_or_index_equal(result, expected)
 
@@ -597,8 +614,7 @@ class TestStringMethods:
             s.str.cat(iter([t.values, list(s)]))
 
     @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_align_indexed(self, box, join):
+    def test_str_cat_align_indexed(self, index_or_series, join):
         # https://github.com/pandas-dev/pandas/issues/18657
         s = Series(["a", "b", "c", "d"], index=["a", "b", "c", "d"])
         t = Series(["D", "A", "E", "B"], index=["d", "a", "e", "b"])
@@ -606,7 +622,7 @@ class TestStringMethods:
         # result after manual alignment of inputs
         expected = sa.str.cat(ta, na_rep="-")
 
-        if box == Index:
+        if index_or_series == Index:
             s = Index(s)
             sa = Index(sa)
             expected = Index(expected)
@@ -657,22 +673,20 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    @pytest.mark.parametrize("other", [Series, Index])
-    def test_str_cat_all_na(self, box, other):
+    @pytest.mark.parametrize("other", index_or_series_params)
+    def test_str_cat_all_na(self, index_or_series, other):
         # GH 24044
-
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])
-        s = s if box == Index else Series(s, index=s)
+        s = s if index_or_series == Index else Series(s, index=s)
         t = other([np.nan] * 4, dtype=object)
         # add index of s for alignment
         t = t if other == Index else Series(t, index=s)
 
         # all-NA target
-        if box == Series:
+        if index_or_series == Series:
             expected = Series([np.nan] * 4, index=s.index, dtype=object)
-        else:  # box == Index
+        else:  # index_or_series == Index
             expected = Index([np.nan] * 4, dtype=object)
         result = s.str.cat(t, join="left")
         assert_series_or_index_equal(result, expected)

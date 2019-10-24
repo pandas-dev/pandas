@@ -515,55 +515,52 @@ class TestWhereCoercion(CoercionBase):
         res = target.where(cond, values)
         self._assert(res, expected, expected_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
         [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.object)],
     )
-    def test_where_object(self, klass, fill_val, exp_dtype):
-        obj = klass(list("abcd"))
+    def test_where_object(self, index_or_series, fill_val, exp_dtype):
+        obj = index_or_series(list("abcd"))
         assert obj.dtype == np.object
-        cond = klass([True, False, True, False])
+        cond = index_or_series([True, False, True, False])
 
-        if fill_val is True and klass is pd.Series:
+        if fill_val is True and index_or_series is pd.Series:
             ret_val = 1
         else:
             ret_val = fill_val
 
-        exp = klass(["a", ret_val, "c", ret_val])
+        exp = index_or_series(["a", ret_val, "c", ret_val])
         self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
         if fill_val is True:
-            values = klass([True, False, True, True])
+            values = index_or_series([True, False, True, True])
         else:
-            values = klass(fill_val * x for x in [5, 6, 7, 8])
+            values = index_or_series(fill_val * x for x in [5, 6, 7, 8])
 
-        exp = klass(["a", values[1], "c", values[3]])
+        exp = index_or_series(["a", values[1], "c", values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
         [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, np.object)],
     )
-    def test_where_int64(self, klass, fill_val, exp_dtype):
-        if klass is pd.Index and exp_dtype is np.complex128:
+    def test_where_int64(self, index_or_series, fill_val, exp_dtype):
+        if index_or_series is pd.Index and exp_dtype is np.complex128:
             pytest.skip("Complex Index not supported")
-        obj = klass([1, 2, 3, 4])
+        obj = index_or_series([1, 2, 3, 4])
         assert obj.dtype == np.int64
-        cond = klass([True, False, True, False])
+        cond = index_or_series([True, False, True, False])
 
-        exp = klass([1, fill_val, 3, fill_val])
+        exp = index_or_series([1, fill_val, 3, fill_val])
         self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
         if fill_val is True:
-            values = klass([True, False, True, True])
+            values = index_or_series([True, False, True, True])
         else:
-            values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1, values[1], 3, values[3]])
+            values = index_or_series(x * fill_val for x in [5, 6, 7, 8])
+        exp = index_or_series([1, values[1], 3, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val, exp_dtype",
         [
@@ -573,21 +570,21 @@ class TestWhereCoercion(CoercionBase):
             (True, np.object),
         ],
     )
-    def test_where_float64(self, klass, fill_val, exp_dtype):
-        if klass is pd.Index and exp_dtype is np.complex128:
+    def test_where_float64(self, index_or_series, fill_val, exp_dtype):
+        if index_or_series is pd.Index and exp_dtype is np.complex128:
             pytest.skip("Complex Index not supported")
-        obj = klass([1.1, 2.2, 3.3, 4.4])
+        obj = index_or_series([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
-        cond = klass([True, False, True, False])
+        cond = index_or_series([True, False, True, False])
 
-        exp = klass([1.1, fill_val, 3.3, fill_val])
+        exp = index_or_series([1.1, fill_val, 3.3, fill_val])
         self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
         if fill_val is True:
-            values = klass([True, False, True, True])
+            values = index_or_series([True, False, True, True])
         else:
-            values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1.1, values[1], 3.3, values[3]])
+            values = index_or_series(x * fill_val for x in [5, 6, 7, 8])
+        exp = index_or_series([1.1, values[1], 3.3, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -783,19 +780,17 @@ class TestFillnaSeriesCoercion(CoercionBase):
         res = target.fillna(value)
         self._assert(res, expected, expected_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val, fill_dtype",
         [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.object)],
     )
-    def test_fillna_object(self, klass, fill_val, fill_dtype):
-        obj = klass(["a", np.nan, "c", "d"])
+    def test_fillna_object(self, index_or_series, fill_val, fill_dtype):
+        obj = index_or_series(["a", np.nan, "c", "d"])
         assert obj.dtype == np.object
 
-        exp = klass(["a", fill_val, "c", "d"])
+        exp = index_or_series(["a", fill_val, "c", "d"])
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
@@ -805,15 +800,15 @@ class TestFillnaSeriesCoercion(CoercionBase):
             (True, np.object),
         ],
     )
-    def test_fillna_float64(self, klass, fill_val, fill_dtype):
-        obj = klass([1.1, np.nan, 3.3, 4.4])
+    def test_fillna_float64(self, index_or_series, fill_val, fill_dtype):
+        obj = index_or_series([1.1, np.nan, 3.3, 4.4])
         assert obj.dtype == np.float64
 
-        exp = klass([1.1, fill_val, 3.3, 4.4])
+        exp = index_or_series([1.1, fill_val, 3.3, 4.4])
         # float + complex -> we don't support a complex Index
         # complex for Series,
         # object for Index
-        if fill_dtype == np.complex128 and klass == pd.Index:
+        if fill_dtype == np.complex128 and index_or_series == pd.Index:
             fill_dtype = np.object
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
@@ -833,7 +828,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         exp = pd.Series([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
@@ -844,8 +838,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
         ],
         ids=["datetime64", "datetime64tz", "object", "object"],
     )
-    def test_fillna_datetime(self, klass, fill_val, fill_dtype):
-        obj = klass(
+    def test_fillna_datetime(self, index_or_series, fill_val, fill_dtype):
+        obj = index_or_series(
             [
                 pd.Timestamp("2011-01-01"),
                 pd.NaT,
@@ -855,7 +849,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         assert obj.dtype == "datetime64[ns]"
 
-        exp = klass(
+        exp = index_or_series(
             [
                 pd.Timestamp("2011-01-01"),
                 fill_val,
@@ -865,7 +859,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
@@ -876,10 +869,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
             ("x", np.object),
         ],
     )
-    def test_fillna_datetime64tz(self, klass, fill_val, fill_dtype):
+    def test_fillna_datetime64tz(self, index_or_series, fill_val, fill_dtype):
         tz = "US/Eastern"
 
-        obj = klass(
+        obj = index_or_series(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 pd.NaT,
@@ -889,7 +882,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         assert obj.dtype == "datetime64[ns, US/Eastern]"
 
-        exp = klass(
+        exp = index_or_series(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 fill_val,

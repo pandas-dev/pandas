@@ -14,6 +14,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
+from pandas._typing import IndexOrSeries
 from pandas.core import ops
 import pandas.util.testing as tm
 
@@ -786,6 +787,17 @@ def any_skipna_inferred_dtype(request):
 def tick_classes(request):
     """
     Fixture for Tick based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+index_or_series_params = [pd.Index, pd.Series]  # type: IndexOrSeries
+
+
+@pytest.fixture(params=index_or_series_params, ids=["series", "index"])
+def index_or_series(request) -> IndexOrSeries:
+    """
+    Parametrized fixture providing the Index or Series class.
     """
     return request.param
 
