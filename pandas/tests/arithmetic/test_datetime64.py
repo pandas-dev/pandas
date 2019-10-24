@@ -887,7 +887,7 @@ class TestDatetime64Arithmetic:
 
         result = dtarr - tdarr
         tm.assert_equal(result, expected)
-        msg = "cannot subtract|bad operand type for unary -"
+        msg = "cannot subtract|(bad|unsupported) operand type for unary"
         with pytest.raises(TypeError, match=msg):
             tdarr - dtarr
 
@@ -1127,7 +1127,7 @@ class TestDatetime64DateOffsetArithmetic:
 
         result2 = -pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
-        msg = "bad operand type for unary"
+        msg = "(bad|unsupported) operand type for unary"
         with pytest.raises(TypeError, match=msg):
             pd.offsets.Second(5) - ser
 
@@ -1221,7 +1221,7 @@ class TestDatetime64DateOffsetArithmetic:
             expected = DatetimeIndex([x - off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
-            msg = "bad operand type for unary"
+            msg = "(bad|unsupported) operand type for unary"
             with pytest.raises(TypeError, match=msg):
                 off - vec
 
@@ -1337,7 +1337,7 @@ class TestDatetime64DateOffsetArithmetic:
             expected = DatetimeIndex([offset + x for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, offset + vec)
-            msg = "bad operand type for unary"
+            msg = "(bad|unsupported) operand type for unary"
             with pytest.raises(TypeError, match=msg):
                 offset - vec
 
@@ -1921,7 +1921,7 @@ class TestTimestampSeriesArithmetic:
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = "bad operand type for unary"
+        msg = "(bad|unsupported) operand type for unary"
         with pytest.raises(TypeError, match=msg):
             td1[0] - dt1
 

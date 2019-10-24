@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37, is_platform_windows
+from pandas.compat import PY37
 
 import pandas as pd
 from pandas import (
@@ -209,10 +209,9 @@ def test_level_get_group(observed):
     assert_frame_equal(result, expected)
 
 
-# GH#21636 previously flaky on py37
-@pytest.mark.xfail(
-    is_platform_windows() and PY37, reason="Flaky, GH-27902", strict=False
-)
+# GH#21636 flaky on py37; may be related to older numpy, see discussion
+#  https://github.com/MacPython/pandas-wheels/pull/64
+@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -229,6 +228,9 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = DataFrame([0, 1, 2.0], index=idx, columns=["values"])
 
+    # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
+    #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
+    #  when we expect Series(0., index=["values"])
     result = grouped.apply(lambda x: np.mean(x))
     assert_frame_equal(result, expected)
 
@@ -782,7 +784,8 @@ def test_categorical_no_compress():
 
 def test_sort():
 
-    # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby  # noqa: E501
+    # http://stackoverflow.com/questions/23814368/sorting-pandas-
+    #        categorical-labels-after-groupby
     # This should result in a properly sorted Series so that the plot
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
@@ -1195,9 +1198,12 @@ def test_groupby_categorical_axis_1(code):
     assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed):
+def test_groupby_cat_preserves_structure(observed, ordered_fixture):
     # GH 28787
-    df = DataFrame([("Bob", 1), ("Greg", 2)], columns=["Name", "Item"])
+    df = DataFrame(
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        columns=["Name", "Item"],
+    )
     expected = df.copy()
 
     result = (
@@ -1207,3 +1213,14 @@ def test_groupby_cat_preserves_structure(observed):
     )
 
     assert_frame_equal(result, expected)
+
+
+def test_get_nonexistent_category():
+    # Accessing a Category that is not in the dataframe
+    df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
+    with pytest.raises(KeyError, match="'vau'"):
+        df.groupby("var").apply(
+            lambda rows: pd.DataFrame(
+                {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
+            )
+        )

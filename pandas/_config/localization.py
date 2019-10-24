@@ -145,7 +145,15 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
         raw_locales = raw_locales.split(b"\n")
         out_locales = []
         for x in raw_locales:
-            out_locales.append(str(x, encoding=options.display.encoding))
+            try:
+                out_locales.append(str(x, encoding=options.display.encoding))
+            except UnicodeError:
+                # 'locale -a' is used to populated 'raw_locales' and on
+                # Redhat 7 Linux (and maybe others) prints locale names
+                # using windows-1252 encoding.  Bug only triggered by
+                # a few special characters and when there is an
+                # extensive list of installed locales.
+                out_locales.append(str(x, encoding="windows-1252"))
 
     except TypeError:
         pass
