@@ -16,7 +16,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
           </span>
           <h4 class="service-heading mt-3 font-weight-bold blue">Corporate support</h4>
           <p class="text-muted">
-            pandas depends on companies using the software to support its development. Hiring
+            pandas depends on companies and institutions using the software to support its development. Hiring
             people to work on pandas, or letting existing employees to contribute to the
             software. Or sponsoring pandas with funds, so the project can hire people to
             progress on the <a href="about/roadmap.html">pandas roadmap</a>.
