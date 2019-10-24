@@ -19,7 +19,7 @@ from pandas import (
     date_range,
     period_range,
 )
-from pandas.core.groupby.groupby import SpecificationError
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing

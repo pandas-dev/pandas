@@ -86,7 +86,7 @@ def get_op(tup):
                 'and': '{0} & {1}',     # logical op
                 'or': '{0} | {1}'}
 
-    return ops_dict[opname].format(lval, rval, dtype)
+    return ops_dict[opname].format(lval, rval)
 
 
 def get_dispatch(dtypes):

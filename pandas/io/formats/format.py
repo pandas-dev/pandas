@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -78,7 +79,7 @@ if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
-    List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 float_format_type = Union[str, Callable, "EngFormatter"]
 
@@ -485,6 +486,8 @@ class TableFormatter:
 
         if encoding is None:
             encoding = "utf-8"
+        elif not isinstance(buf, str):
+            raise ValueError("buf is not a file name and encoding is specified.")
 
         if hasattr(buf, "write"):
             yield buf
@@ -868,6 +871,8 @@ class DataFrameFormatter(TableFormatter):
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
             for col in strcols
         ]
+
+        assert lwidth is not None
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
@@ -893,8 +898,12 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
-    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
-        return self.get_result(buf=buf)
+    def to_string(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        return self.get_result(buf=buf, encoding=encoding)
 
     def to_latex(
         self,
@@ -940,6 +949,7 @@ class DataFrameFormatter(TableFormatter):
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
@@ -961,7 +971,9 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(buf=buf)
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.index import _sparsify
@@ -1890,7 +1902,7 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _binify(cols: List[np.int32], line_width: Union[np.int32, int]) -> List[int]:
+def _binify(cols: List[int], line_width: int) -> List[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

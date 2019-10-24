@@ -18,7 +18,7 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
 
 from pandas._libs.tslibs import Timestamp
@@ -190,8 +190,6 @@ cdef _interval_like(other):
 cdef class Interval(IntervalMixin):
     """
     Immutable object implementing an Interval, a bounded slice-like interval.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
