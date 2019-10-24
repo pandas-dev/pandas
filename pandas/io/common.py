@@ -550,9 +550,10 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
 
     def write(self, data):
+        # TODO: fixme, self.filename could be None
+        # error: Argument 1 to "writestr" of "ZipFile" has incompatible type
+        #  "Optional[str]"; expected "Union[str, ZipInfo]"  [arg-type]
         archive_name = self.filename
-        # maybe a typeshed error
-        # https://github.com/python/typeshed/pull/3104#pullrequestreview-305942850
         assert archive_name is not None
         if self.archive_name is not None:
             archive_name = self.archive_name
