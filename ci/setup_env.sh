@@ -41,7 +41,7 @@ else
   exit 1
 fi
 
-wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
+wget "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
 chmod +x miniconda.sh
 ./miniconda.sh -b
 
