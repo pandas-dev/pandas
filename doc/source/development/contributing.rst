@@ -238,22 +238,40 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least python3.5 installed on your system.
 
+**Unix**/**Mac OS**
+
 .. code-block:: none
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
-   # If you are using Windows and command prompt, replace ~ (the tilde sign)
-   # with %userprofile%
    python3 -m venv ~/virtualenvs/pandas-dev
 
    # Activate the virtualenv
-   # If you are using Windows, you can find the activation scripts under
-   #     ~\virtualenvs\pandas-dev\scripts
-   # Please refer to the official user guide at
-   # https://virtualenv.pypa.io/en/stable/userguide/#activate-script
-   # about how to activate your virtual environment under Windows
    . ~/virtualenvs/pandas-dev/bin/activate
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e . --no-build-isolation
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the \
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+.. code-block:: none
+
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev
+   # Any parent directories should already exist
+   python -m venv ~\virtualenvs\pandas-dev
+
+   # Activate the virtualenv
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
 
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
