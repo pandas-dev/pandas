@@ -262,9 +262,14 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except AssertionError:
+            except (AssertionError, TypeError):
                 raise
-            except Exception:
+            except (ValueError, KeyError, AttributeError, IndexError):
+                # TODO: IndexError can be removed here following GH#29106
+                # TODO: AttributeError is caused by _index_data hijinx in
+                #  libreduction, can be removed after GH#29160
+                # TODO: KeyError is raised in _python_agg_general,
+                #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
@@ -1074,15 +1079,8 @@ class DataFrameGroupBy(GroupBy):
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
-                try:
-                    fres = func(data, *args, **kwargs)
-                except AssertionError:
-                    raise
-                except Exception:
-                    wrapper = lambda x: func(x, *args, **kwargs)
-                    result[name] = data.apply(wrapper, axis=axis)
-                else:
-                    result[name] = self._try_cast(fres, data)
+                fres = func(data, *args, **kwargs)
+                result[name] = self._try_cast(fres, data)
 
         return self._wrap_frame_output(result, obj)
 
@@ -1099,10 +1097,7 @@ class DataFrameGroupBy(GroupBy):
 
             cast = self._transform_should_cast(func)
             try:
-
                 result[item] = colg.aggregate(func, *args, **kwargs)
-                if cast:
-                    result[item] = self._try_cast(result[item], data)
 
             except ValueError as err:
                 if "Must produce aggregated value" in str(err):
@@ -1111,10 +1106,10 @@ class DataFrameGroupBy(GroupBy):
                     raise
                 cannot_agg.append(item)
                 continue
-            except TypeError as e:
-                cannot_agg.append(item)
-                errors = e
-                continue
+
+            else:
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:

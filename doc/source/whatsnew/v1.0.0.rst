@@ -109,6 +109,7 @@ Other enhancements
   (:issue:`28368`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
+- Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 
 Build Changes
@@ -412,6 +413,9 @@ Other
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Fix :class:`AbstractHolidayCalendar` to return correct results for
+  years after 2030 (now goes up to 2200) (:issue:`27790`)
+
 
 .. _whatsnew_1000.contributors:
 
