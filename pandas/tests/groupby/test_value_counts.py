@@ -85,8 +85,7 @@ def test_series_groupby_value_counts(
 @pytest.mark.parametrize("size", [100, 1000])
 @pytest.mark.parametrize("frac", [0.1, 0.5, 1])
 def test_series_groupby_value_counts_with_grouper(freq, size, frac):
-    np.random.seed(42)
-
+    # GH28479
     df = DataFrame.from_dict(
         {
             "date": date_range("2019-09-25", periods=size),
@@ -99,8 +98,6 @@ def test_series_groupby_value_counts_with_grouper(freq, size, frac):
     # have to sort on index because of unstable sort on values xref GH9212
     result = gr.value_counts().sort_index()
     expected = gr.apply(Series.value_counts).sort_index()
-    expected.index.names = (
-        result.index.names
-    )  # .apply(Series.value_counts) can't create all names
+    expected.index.names = result.index.names
 
     tm.assert_series_equal(result, expected)
