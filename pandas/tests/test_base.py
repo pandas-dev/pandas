@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from io import StringIO
 import re
 import sys
-from typing import List, Type
 
 import numpy as np
 import pytest
@@ -36,11 +35,9 @@ from pandas import (
 )
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
-from pandas.core.base import IndexOpsMixin, NoNewAttributesMixin, PandasObject
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
-
-index_or_series = [Index, Series]  # type: List[Type[IndexOpsMixin]]
 
 
 class CheckStringMixin:
@@ -519,10 +516,9 @@ class TestIndexOps(Ops):
             assert o.nunique() == 8
             assert o.nunique(dropna=False) == 9
 
-    @pytest.mark.parametrize("klass", index_or_series)
-    def test_value_counts_inferred(self, klass):
+    def test_value_counts_inferred(self, index_or_series):
         s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
-        s = klass(s_values)
+        s = index_or_series(s_values)
         expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"])
         tm.assert_series_equal(s.value_counts(), expected)
 
@@ -550,10 +546,9 @@ class TestIndexOps(Ops):
         expected = Series([0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"])
         tm.assert_series_equal(hist, expected)
 
-    @pytest.mark.parametrize("klass", index_or_series)
-    def test_value_counts_bins(self, klass):
+    def test_value_counts_bins(self, index_or_series):
         s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
-        s = klass(s_values)
+        s = index_or_series(s_values)
 
         # bins
         with pytest.raises(TypeError):
@@ -592,7 +587,7 @@ class TestIndexOps(Ops):
 
         # handle NA's properly
         s_values = ["a", "b", "b", "b", np.nan, np.nan, "d", "d", "a", "a", "b"]
-        s = klass(s_values)
+        s = index_or_series(s_values)
         expected = Series([4, 3, 2], index=["b", "a", "d"])
         tm.assert_series_equal(s.value_counts(), expected)
 
@@ -604,7 +599,7 @@ class TestIndexOps(Ops):
             tm.assert_numpy_array_equal(s.unique(), exp)
         assert s.nunique() == 3
 
-        s = klass({})
+        s = index_or_series({})
         expected = Series([], dtype=np.int64)
         tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
         # returned dtype differs depending on original
@@ -615,8 +610,7 @@ class TestIndexOps(Ops):
 
         assert s.nunique() == 0
 
-    @pytest.mark.parametrize("klass", index_or_series)
-    def test_value_counts_datetime64(self, klass):
+    def test_value_counts_datetime64(self, index_or_series):
 
         # GH 3002, datetime64[ns]
         # don't test names though
@@ -635,7 +629,7 @@ class TestIndexOps(Ops):
             f, widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
         )
 
-        s = klass(df["dt"].copy())
+        s = index_or_series(df["dt"].copy())
         s.name = None
         idx = pd.to_datetime(
             ["2010-01-01 00:00:00", "2008-09-09 00:00:00", "2009-01-01 00:00:00"]
@@ -656,7 +650,7 @@ class TestIndexOps(Ops):
 
         # with NaT
         s = df["dt"].copy()
-        s = klass([v for v in s.values] + [pd.NaT])
+        s = index_or_series([v for v in s.values] + [pd.NaT])
 
         result = s.value_counts()
         assert result.index.dtype == "datetime64[ns]"
@@ -682,7 +676,7 @@ class TestIndexOps(Ops):
 
         # timedelta64[ns]
         td = df.dt - df.dt + timedelta(1)
-        td = klass(td, name="dt")
+        td = index_or_series(td, name="dt")
 
         result = td.value_counts()
         expected_s = Series([6], index=[Timedelta("1day")], name="dt")
@@ -695,7 +689,7 @@ class TestIndexOps(Ops):
             tm.assert_numpy_array_equal(td.unique(), expected.values)
 
         td2 = timedelta(1) + (df.dt - df.dt)
-        td2 = klass(td2, name="dt")
+        td2 = index_or_series(td2, name="dt")
         result2 = td2.value_counts()
         tm.assert_series_equal(result2, expected_s)
 
@@ -1093,14 +1087,13 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.parametrize("typ", index_or_series)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings
-    def test_iterable(self, typ, method, dtype, rdtype):
+    def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
         # gh-13258
         # coerce iteration to underlying python / pandas types
-        s = typ([1], dtype=dtype)
+        s = index_or_series([1], dtype=dtype)
         result = method(s)[0]
         assert isinstance(result, rdtype)
 
@@ -1123,12 +1116,13 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.parametrize("typ", index_or_series)
-    def test_iterable_object_and_category(self, typ, method, dtype, rdtype, obj):
+    def test_iterable_object_and_category(
+        self, index_or_series, method, dtype, rdtype, obj
+    ):
         # gh-10904
         # gh-13258
         # coerce iteration to underlying python / pandas types
-        s = typ([obj], dtype=dtype)
+        s = index_or_series([obj], dtype=dtype)
         result = method(s)[0]
         assert isinstance(result, rdtype)
 
@@ -1147,13 +1141,12 @@ class TestToIterable:
     @pytest.mark.parametrize(
         "dtype, rdtype", dtypes + [("object", int), ("category", int)]
     )
-    @pytest.mark.parametrize("typ", index_or_series)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings
-    def test_iterable_map(self, typ, dtype, rdtype):
+    def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
-        s = typ([1], dtype=dtype)
+        s = index_or_series([1], dtype=dtype)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
             rdtype = tuple([rdtype])
@@ -1335,11 +1328,13 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-@pytest.mark.parametrize("box", index_or_series)
-def test_array(array, attr, box):
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+def test_array(array, attr, index_or_series):
+    if (
+        array.dtype.name in ("Int64", "Sparse[int64, 0]")
+        and index_or_series is pd.Index
+    ):
         pytest.skip("No index type for {}".format(array.dtype))
-    result = box(array, copy=False).array
+    result = index_or_series(array, copy=False).array
 
     if attr:
         array = getattr(array, attr)
@@ -1399,11 +1394,13 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-@pytest.mark.parametrize("box", index_or_series)
-def test_to_numpy(array, expected, box):
-    thing = box(array)
+def test_to_numpy(array, expected, index_or_series):
+    thing = index_or_series(array)
 
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+    if (
+        array.dtype.name in ("Int64", "Sparse[int64, 0]")
+        and index_or_series is pd.Index
+    ):
         pytest.skip("No index type for {}".format(array.dtype))
 
     result = thing.to_numpy()

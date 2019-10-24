@@ -5,13 +5,14 @@ from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import List, Type, Union
+from typing import List, Sequence, Type, Union
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas.conftest import ALL_REAL_DTYPES
 from pandas.core import ops
 import pandas.util.testing as tm
 
@@ -78,10 +79,10 @@ class TestNumericComparisons:
 index_or_series_params = [
     pd.Series,
     pd.Index,
-]  # type: List[Union[Type[pd.Index], Type[pd.RangeIndex], Type[pd.Series]]]
+]  # type: Sequence[Type[Union[pd.Index, pd.Series]]]
 left = [pd.RangeIndex(10, 40, 10)]  # type: List[Union[Index, Series]]
 for cls in index_or_series_params:
-    for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]:
+    for dtype in ALL_REAL_DTYPES:
         left.append(cls([10, 20, 30], dtype=dtype))
 
 
