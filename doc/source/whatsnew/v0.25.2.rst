@@ -46,4 +46,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.1..HEAD
+.. contributors:: v0.25.1..v0.25.2

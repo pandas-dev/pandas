@@ -9,12 +9,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython.list cimport PyList_New
-from cpython.object cimport (PyObject_Str, PyObject_RichCompareBool, Py_EQ,
-                             Py_SIZE)
+from cpython.object cimport PyObject_RichCompareBool, Py_EQ
 from cpython.ref cimport Py_INCREF
 from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
-from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
