@@ -43,6 +43,7 @@ class NumericIndex(Index):
     """
 
     _is_numeric_dtype = True
+    _default_dtype: np.number
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
 
