@@ -679,12 +679,6 @@ class BaseGrouper:
                 pass
             else:
                 raise
-        except TypeError as err:
-            if "ndarray" in str(err):
-                # raised in libreduction if obj's values is no ndarray
-                pass
-            else:
-                raise
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
