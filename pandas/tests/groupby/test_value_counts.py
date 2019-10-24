@@ -4,7 +4,7 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from itertools import product
+from itertools import cycle, islice, product
 
 import numpy as np
 import pytest
@@ -89,7 +89,7 @@ def test_series_groupby_value_counts_with_grouper(freq, size, frac):
     df = DataFrame.from_dict(
         {
             "date": date_range("2019-09-25", periods=size),
-            "name": np.random.choice(list("abcd"), size),
+            "name": islice(cycle("abc"), size),
         }
     ).sample(frac=frac)
 
