@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
+from typing import Dict, Type
 import warnings
 
 import numpy as np
@@ -19,7 +20,11 @@ from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
 import pandas.core.computation.expr as expr
-from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
+from pandas.core.computation.expr import (
+    BaseExprVisitor,
+    PandasExprVisitor,
+    PythonExprVisitor,
+)
 from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 from pandas.core.computation.ops import (
     _arith_ops_syms,
@@ -1884,7 +1889,7 @@ _parsers = {
     "python": PythonExprVisitor,
     "pytables": pytables.ExprVisitor,
     "pandas": PandasExprVisitor,
-}
+}  # type: Dict[str, Type[BaseExprVisitor]]
 
 
 @pytest.mark.parametrize("engine", _engines)

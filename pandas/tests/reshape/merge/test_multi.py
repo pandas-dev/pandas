@@ -1,7 +1,6 @@
 from collections import OrderedDict
 
 import numpy as np
-from numpy import nan
 from numpy.random import randn
 import pytest
 
@@ -311,11 +310,11 @@ class TestMergeMulti:
             [
                 ["X", "Y", "C", "a", 6],
                 ["X", "Y", "C", "a", 9],
-                ["W", "Y", "C", "e", nan],
+                ["W", "Y", "C", "e", np.nan],
                 ["V", "Q", "A", "h", -3],
                 ["V", "R", "D", "i", 2],
                 ["V", "R", "D", "i", -1],
-                ["X", "Y", "D", "b", nan],
+                ["X", "Y", "D", "b", np.nan],
                 ["X", "Y", "A", "c", 1],
                 ["X", "Y", "A", "c", 4],
                 ["W", "Q", "B", "f", 3],
@@ -365,10 +364,10 @@ class TestMergeMulti:
                 ["c", 0, "x"],
                 ["c", 0, "r"],
                 ["c", 0, "s"],
-                ["b", 1, nan],
+                ["b", 1, np.nan],
                 ["a", 2, "v"],
                 ["a", 2, "z"],
-                ["b", 3, nan],
+                ["b", 3, np.nan],
             ],
             columns=["tag", "val", "char"],
             index=[2, 2, 2, 2, 0, 1, 1, 3],
