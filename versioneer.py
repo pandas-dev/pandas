@@ -8,7 +8,7 @@ The Versioneer
 * https://github.com/warner/python-versioneer
 * Brian Warner
 * License: Public Domain
-* Compatible With: python2.6, 2.7, 3.2, 3.3, 3.4, and pypy
+* Compatible With: python3.5+, and pypy
 * [![Latest Version]
 (https://pypip.in/version/versioneer/badge.svg?style=flat)
 ](https://pypi.org/project/versioneer/)
@@ -464,9 +464,10 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %s" % (commands,))
         return None
+
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
-        stdout = stdout.decode()
+    stdout = stdout.decode()
+
     if p.returncode != 0:
         if verbose:
             print("unable to run %s (error)" % dispcmd)
@@ -561,9 +562,10 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %%s" %% (commands,))
         return None
+
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
-        stdout = stdout.decode()
+    stdout = stdout.decode()
+
     if p.returncode != 0:
         if verbose:
             print("unable to run %%s (error)" %% dispcmd)
