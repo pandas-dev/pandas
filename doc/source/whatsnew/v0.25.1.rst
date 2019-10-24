@@ -116,4 +116,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.0..HEAD
+.. contributors:: v0.25.0..v0.25.1

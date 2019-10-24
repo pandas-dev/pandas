@@ -152,11 +152,11 @@ class TimedeltaIndex(
     def _join_i8_wrapper(joinf, **kwargs):
         return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="m8[ns]", **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
+    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
+    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
     _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique_int64, with_indexers=False
+        libjoin.left_join_indexer_unique, with_indexers=False
     )
 
     _engine_type = libindex.TimedeltaEngine
@@ -528,7 +528,7 @@ class TimedeltaIndex(
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
-        if _is_convertible_to_td(key):
+        if _is_convertible_to_td(key) or key is NaT:
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
@@ -550,7 +550,6 @@ class TimedeltaIndex(
         """
         If label is a string, cast it to timedelta according to resolution.
 
-
         Parameters
         ----------
         label : object
@@ -559,8 +558,7 @@ class TimedeltaIndex(
 
         Returns
         -------
-        label :  object
-
+        label : object
         """
         assert kind in ["ix", "loc", "getitem", None]
 
@@ -619,7 +617,7 @@ class TimedeltaIndex(
         ----------
         loc : int
         item : object
-            if not either a Python datetime or a numpy integer-like, returned
+            If not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
 
         Returns
@@ -630,7 +628,8 @@ class TimedeltaIndex(
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
-            except Exception:
+            except ValueError:
+                # e.g. str that can't be parsed to timedelta
                 pass
         elif is_scalar(item) and isna(item):
             # GH 18295
@@ -722,18 +721,18 @@ def timedelta_range(
     Parameters
     ----------
     start : str or timedelta-like, default None
-        Left bound for generating timedeltas
+        Left bound for generating timedeltas.
     end : str or timedelta-like, default None
-        Right bound for generating timedeltas
+        Right bound for generating timedeltas.
     periods : int, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : str or DateOffset, default 'D'
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     name : str, default None
-        Name of the resulting TimedeltaIndex
+        Name of the resulting TimedeltaIndex.
     closed : str, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
     Returns
     -------
