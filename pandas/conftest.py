@@ -641,7 +641,7 @@ def any_int_dtype(request):
 
 
 @pytest.fixture(params=ALL_EA_INT_DTYPES)
-def Int_dtype(request):
+def any_nullable_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
