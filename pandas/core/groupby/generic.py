@@ -265,7 +265,6 @@ class SeriesGroupBy(GroupBy):
             except (AssertionError, TypeError, IndexError):
                 raise
             except (ValueError, KeyError, AttributeError):
-                # TODO: IndexError can be removed here following GH#29106
                 # TODO: AttributeError is caused by _index_data hijinx in
                 #  libreduction, can be removed after GH#29160
                 # TODO: KeyError is raised in _python_agg_general,
