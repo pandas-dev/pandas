@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import platform
 
 import numpy as np
 import pytest
@@ -1547,6 +1548,13 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
+@pytest.mark.xfail(
+    # xpassing on MacPython with strict=False
+    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
+    platform.system == 'Darwin',
+    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
+    strict=False,
+)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
