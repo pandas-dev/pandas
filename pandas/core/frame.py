@@ -4851,7 +4851,7 @@ class DataFrame(NDFrame):
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
-            return Series(dtype=bool)
+            return Series(data=[i for i in range(0, self.index.size)], dtype=bool)
 
         def f(vals):
             labels, shape = algorithms.factorize(
