@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import ensure_int64
 
 from pandas import Index, Series, isna
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_numpy_array_equal
 
 
 def test_series_grouper():
@@ -20,10 +19,10 @@ def test_series_grouper():
     result, counts = grouper.get_result()
 
     expected = np.array([obj[3:6].mean(), obj[6:].mean()])
-    assert_almost_equal(result, expected)
+    tm.assert_almost_equal(result, expected)
 
     exp_counts = np.array([3, 4], dtype=np.int64)
-    assert_almost_equal(counts, exp_counts)
+    tm.assert_almost_equal(counts, exp_counts)
 
 
 def test_series_bin_grouper():
@@ -36,10 +35,10 @@ def test_series_bin_grouper():
     result, counts = grouper.get_result()
 
     expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
-    assert_almost_equal(result, expected)
+    tm.assert_almost_equal(result, expected)
 
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
-    assert_almost_equal(counts, exp_counts)
+    tm.assert_almost_equal(counts, exp_counts)
 
 
 @pytest.mark.parametrize(
@@ -66,7 +65,7 @@ def test_series_bin_grouper():
 def test_generate_bins(binner, closed, expected):
     values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
     result = lib.generate_bins_dt64(values, binner, closed=closed)
-    assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_group_ohlc():
@@ -88,13 +87,13 @@ def test_group_ohlc():
 
         expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
 
-        assert_almost_equal(out, expected)
+        tm.assert_almost_equal(out, expected)
         tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
 
         obj[:6] = np.nan
         func(out, counts, obj[:, None], labels)
         expected[0] = np.nan
-        assert_almost_equal(out, expected)
+        tm.assert_almost_equal(out, expected)
 
     _check("float32")
     _check("float64")
@@ -109,29 +108,29 @@ class TestReducer:
         arr = np.random.randn(100, 4)
         result = libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         result = libreduction.compute_reduction(
             arr, np.sum, axis=1, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(100))
         result = libreduction.compute_reduction(
             arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
         )
         expected = arr.sum(0)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
         result = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         result = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
