@@ -21,46 +21,46 @@ def assert_series_or_index_equal(left, right):
 
 
 _any_string_method = [
-    ("cat", (), {"sep": ","}),  # noqa: E241
-    ("cat", (Series(list("zyx")),), {"sep": ",", "join": "left"}),  # noqa: E241
-    ("center", (10,), {}),  # noqa: E241
-    ("contains", ("a",), {}),  # noqa: E241
-    ("count", ("a",), {}),  # noqa: E241
-    ("decode", ("UTF-8",), {}),  # noqa: E241
-    ("encode", ("UTF-8",), {}),  # noqa: E241
-    ("endswith", ("a",), {}),  # noqa: E241
-    ("extract", ("([a-z]*)",), {"expand": False}),  # noqa: E241
-    ("extract", ("([a-z]*)",), {"expand": True}),  # noqa: E241
-    ("extractall", ("([a-z]*)",), {}),  # noqa: E241
-    ("find", ("a",), {}),  # noqa: E241
-    ("findall", ("a",), {}),  # noqa: E241
-    ("get", (0,), {}),  # noqa: E241
+    ("cat", (), {"sep": ","}),
+    ("cat", (Series(list("zyx")),), {"sep": ",", "join": "left"}),
+    ("center", (10,), {}),
+    ("contains", ("a",), {}),
+    ("count", ("a",), {}),
+    ("decode", ("UTF-8",), {}),
+    ("encode", ("UTF-8",), {}),
+    ("endswith", ("a",), {}),
+    ("extract", ("([a-z]*)",), {"expand": False}),
+    ("extract", ("([a-z]*)",), {"expand": True}),
+    ("extractall", ("([a-z]*)",), {}),
+    ("find", ("a",), {}),
+    ("findall", ("a",), {}),
+    ("get", (0,), {}),
     # because "index" (and "rindex") fail intentionally
     # if the string is not found, search only for empty string
-    ("index", ("",), {}),  # noqa: E241
-    ("join", (",",), {}),  # noqa: E241
-    ("ljust", (10,), {}),  # noqa: E241
-    ("match", ("a",), {}),  # noqa: E241
-    ("normalize", ("NFC",), {}),  # noqa: E241
-    ("pad", (10,), {}),  # noqa: E241
-    ("partition", (" ",), {"expand": False}),  # noqa: E241
-    ("partition", (" ",), {"expand": True}),  # noqa: E241
-    ("repeat", (3,), {}),  # noqa: E241
-    ("replace", ("a", "z"), {}),  # noqa: E241
-    ("rfind", ("a",), {}),  # noqa: E241
-    ("rindex", ("",), {}),  # noqa: E241
-    ("rjust", (10,), {}),  # noqa: E241
-    ("rpartition", (" ",), {"expand": False}),  # noqa: E241
-    ("rpartition", (" ",), {"expand": True}),  # noqa: E241
-    ("slice", (0, 1), {}),  # noqa: E241
-    ("slice_replace", (0, 1, "z"), {}),  # noqa: E241
-    ("split", (" ",), {"expand": False}),  # noqa: E241
-    ("split", (" ",), {"expand": True}),  # noqa: E241
-    ("startswith", ("a",), {}),  # noqa: E241
+    ("index", ("",), {}),
+    ("join", (",",), {}),
+    ("ljust", (10,), {}),
+    ("match", ("a",), {}),
+    ("normalize", ("NFC",), {}),
+    ("pad", (10,), {}),
+    ("partition", (" ",), {"expand": False}),
+    ("partition", (" ",), {"expand": True}),
+    ("repeat", (3,), {}),
+    ("replace", ("a", "z"), {}),
+    ("rfind", ("a",), {}),
+    ("rindex", ("",), {}),
+    ("rjust", (10,), {}),
+    ("rpartition", (" ",), {"expand": False}),
+    ("rpartition", (" ",), {"expand": True}),
+    ("slice", (0, 1), {}),
+    ("slice_replace", (0, 1, "z"), {}),
+    ("split", (" ",), {"expand": False}),
+    ("split", (" ",), {"expand": True}),
+    ("startswith", ("a",), {}),
     # translating unicode points of "a" to "d"
-    ("translate", ({97: 100},), {}),  # noqa: E241
-    ("wrap", (2,), {}),  # noqa: E241
-    ("zfill", (10,), {}),  # noqa: E241
+    ("translate", ({97: 100},), {}),
+    ("wrap", (2,), {}),
+    ("zfill", (10,), {}),
 ] + list(
     zip(
         [
