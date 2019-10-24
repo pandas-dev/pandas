@@ -10,7 +10,6 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat import PY35
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
@@ -1548,13 +1547,6 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(
-    # xpassing on MacPython with strict=False
-    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
-    PY35,
-    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
-    strict=False,
-)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
