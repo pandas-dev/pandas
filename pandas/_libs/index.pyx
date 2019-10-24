@@ -18,6 +18,7 @@ cnp.import_array()
 cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -547,30 +548,31 @@ cpdef convert_scalar(ndarray arr, object value):
         if util.is_array(value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
-            return Timestamp(value).value
+            return Timestamp(value).to_datetime64()
         elif util.is_timedelta64_object(value):
             # exclude np.timedelta64("NaT") from value != value below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timestamp(value).value
-        raise ValueError("cannot set a Timestamp with a non-timestamp")
+            return np.datetime64("NaT", "ns")
+        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
+                         .format(typ=type(value).__name__))
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
         elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            return Timedelta(value).value
+            value = Timedelta(value)
+            if value is NaT:
+                return np.timedelta64("NaT", "ns")
+            return value.to_timedelta64()
         elif util.is_datetime64_object(value):
             # exclude np.datetime64("NaT") which would otherwise be picked up
             #  by the `value != value check below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timedelta(value).value
-        raise ValueError("cannot set a Timedelta with a non-timedelta")
+            return np.timedelta64("NaT", "ns")
+        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
+                         .format(typ=type(value).__name__))
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
