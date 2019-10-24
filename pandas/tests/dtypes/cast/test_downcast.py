@@ -1,3 +1,5 @@
+import decimal
+
 import numpy as np
 import pytest
 
@@ -24,6 +26,13 @@ from pandas.util import testing as tm
             np.array([8.0, 8.0, 8.0, 8.0, 9.0000000000005]),
             "infer",
             np.array([8, 8, 8, 8, 9], dtype=np.int64),
+        ),
+        (
+            # This is a judgement call, but we do _not_ downcast Decimal
+            #  objects
+            np.array([decimal.Decimal(0.0)]),
+            "int64",
+            np.array([decimal.Decimal(0.0)]),
         ),
     ],
 )
