@@ -1079,15 +1079,8 @@ class DataFrameGroupBy(GroupBy):
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
-                try:
-                    fres = func(data, *args, **kwargs)
-                except AssertionError:
-                    raise
-                except Exception:
-                    wrapper = lambda x: func(x, *args, **kwargs)
-                    result[name] = data.apply(wrapper, axis=axis)
-                else:
-                    result[name] = self._try_cast(fres, data)
+                fres = func(data, *args, **kwargs)
+                result[name] = self._try_cast(fres, data)
 
         return self._wrap_frame_output(result, obj)
 
