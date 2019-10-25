@@ -628,6 +628,24 @@ class TestGrouping:
         # check name
         assert s.groupby(s).grouper.names == ["name"]
 
+    def test_groupby_level_index_value_all_na(self):
+        # issue 20519
+        df = DataFrame(
+            [["x", np.nan, 10], [None, np.nan, 20]], columns=["A", "B", "C"]
+        ).set_index(["A", "B"])
+        result = df.groupby(level=["A", "B"]).sum()
+        expected = DataFrame(
+            data=[],
+            index=MultiIndex(
+                levels=[Index(["x"], dtype="object"), Index([], dtype="float64")],
+                codes=[[], []],
+                names=["A", "B"],
+            ),
+            columns=["C"],
+            dtype="int64",
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 # get_group
 # --------------------------------
