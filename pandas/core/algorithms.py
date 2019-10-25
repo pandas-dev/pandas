@@ -692,7 +692,12 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
 
 def value_counts(
-    values, sort=True, ascending=False, normalize=False, bins=None, dropna=True
+    values,
+    sort: bool = True,
+    ascending: bool = False,
+    normalize: bool = False,
+    bins=None,
+    dropna: bool = True,
 ):
     """
     Compute a histogram of the counts of non-null values.
@@ -700,22 +705,21 @@ def value_counts(
     Parameters
     ----------
     values : ndarray (1-d)
-    sort : boolean, default True
+    sort : bool, default True
         Sort by values
-    ascending : boolean, default False
+    ascending : bool, default False
         Sort in ascending order
-    normalize: boolean, default False
+    normalize: bool, default False
         If True then compute a relative histogram
     bins : integer, optional
         Rather than count values, group them into half-open bins,
         convenience for pd.cut, only works with numeric data
-    dropna : boolean, default True
+    dropna : bool, default True
         Don't include counts of NaN
 
     Returns
     -------
-    value_counts : Series
-
+    Series
     """
     from pandas.core.series import Series, Index
 

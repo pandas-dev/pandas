@@ -182,6 +182,16 @@ class StringArray(PandasArray):
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        if type is None:
+            type = pa.string()
+        return pa.array(self._ndarray, type=type, from_pandas=True)
+
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
