@@ -47,14 +47,7 @@ from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import (
-    _get_data_algo,
-    _hashtables,
-    factorize,
-    take,
-    take_1d,
-    unique1d,
-)
+from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -295,7 +288,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
+    CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
 
     Notes
@@ -331,7 +324,9 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = frozenset(["labels", "tolist"])
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["tolist", "itemsize", "get_values"]
+    )
     _typ = "categorical"
 
     def __init__(
@@ -636,7 +631,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        codes : array-like, integers
+        codes : array-like of int
             An integer array, where each integer points to a category in
             categories or dtype.categories, or else is -1 for NaN.
         categories : index-like, optional
@@ -647,7 +642,7 @@ class Categorical(ExtensionArray, PandasObject):
             Whether or not this categorical is treated as an ordered
             categorical. If not given here or in `dtype`, the resulting
             categorical will be unordered.
-        dtype : CategoricalDtype or the string "category", optional
+        dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
 
@@ -912,24 +907,26 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         new_categories : list-like, dict-like or callable
 
-           * list-like: all items must be unique and the number of items in
-             the new categories must match the existing number of categories.
+            New categories which will replace old categories.
 
-           * dict-like: specifies a mapping from
-             old categories to new. Categories not contained in the mapping
-             are passed through and extra categories in the mapping are
-             ignored.
+            * list-like: all items must be unique and the number of items in
+              the new categories must match the existing number of categories.
 
-             .. versionadded:: 0.21.0
+            * dict-like: specifies a mapping from
+              old categories to new. Categories not contained in the mapping
+              are passed through and extra categories in the mapping are
+              ignored.
 
-           * callable : a callable that is called on all items in the old
-             categories and whose return values comprise the new categories.
+            .. versionadded:: 0.21.0.
 
-             .. versionadded:: 0.23.0
+            * callable : a callable that is called on all items in the old
+              categories and whose return values comprise the new categories.
+
+            .. versionadded:: 0.23.0.
 
         inplace : bool, default False
-           Whether or not to rename the categories inplace or return a copy of
-           this categorical with renamed categories.
+            Whether or not to rename the categories inplace or return a copy of
+            this categorical with renamed categories.
 
         Returns
         -------
@@ -1120,7 +1117,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # GH 10156
         if any(isna(removals)):
-            not_included = [x for x in not_included if notna(x)]
+            not_included = {x for x in not_included if notna(x)}
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
@@ -2093,7 +2090,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Item assignment.
 
-
         Raises
         ------
         ValueError
@@ -2522,6 +2518,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_unordered()
     """
 
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["categorical", "index", "name"]
+    )
+
     def __init__(self, data):
         self._validate(data)
         self._parent = data.values
@@ -2623,8 +2623,8 @@ def _get_codes_for_values(values, categories):
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    (_, _), cats = _get_data_algo(categories, _hashtables)
+    hash_klass, vals = _get_data_algo(values)
+    _, cats = _get_data_algo(categories)
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

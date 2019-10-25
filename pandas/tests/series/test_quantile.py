@@ -8,24 +8,22 @@ from pandas import Index, Series
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm
 
-from .common import TestData
 
+class TestSeriesQuantile:
+    def test_quantile(self, datetime_series):
 
-class TestSeriesQuantile(TestData):
-    def test_quantile(self):
+        q = datetime_series.quantile(0.1)
+        assert q == np.percentile(datetime_series.dropna(), 10)
 
-        q = self.ts.quantile(0.1)
-        assert q == np.percentile(self.ts.dropna(), 10)
-
-        q = self.ts.quantile(0.9)
-        assert q == np.percentile(self.ts.dropna(), 90)
+        q = datetime_series.quantile(0.9)
+        assert q == np.percentile(datetime_series.dropna(), 90)
 
         # object dtype
-        q = Series(self.ts, dtype=object).quantile(0.9)
-        assert q == np.percentile(self.ts.dropna(), 90)
+        q = Series(datetime_series, dtype=object).quantile(0.9)
+        assert q == np.percentile(datetime_series.dropna(), 90)
 
         # datetime64[ns] dtype
-        dts = self.ts.index.to_series()
+        dts = datetime_series.index.to_series()
         q = dts.quantile(0.2)
         assert q == Timestamp("2000-01-10 19:12:00")
 
@@ -41,20 +39,23 @@ class TestSeriesQuantile(TestData):
         msg = "percentiles should all be in the interval \\[0, 1\\]"
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
             with pytest.raises(ValueError, match=msg):
-                self.ts.quantile(invalid)
+                datetime_series.quantile(invalid)
 
-    def test_quantile_multi(self):
+    def test_quantile_multi(self, datetime_series):
 
         qs = [0.1, 0.9]
-        result = self.ts.quantile(qs)
+        result = datetime_series.quantile(qs)
         expected = pd.Series(
-            [np.percentile(self.ts.dropna(), 10), np.percentile(self.ts.dropna(), 90)],
+            [
+                np.percentile(datetime_series.dropna(), 10),
+                np.percentile(datetime_series.dropna(), 90),
+            ],
             index=qs,
-            name=self.ts.name,
+            name=datetime_series.name,
         )
         tm.assert_series_equal(result, expected)
 
-        dts = self.ts.index.to_series()
+        dts = datetime_series.index.to_series()
         dts.name = "xxx"
         result = dts.quantile((0.2, 0.2))
         expected = Series(
@@ -64,18 +65,20 @@ class TestSeriesQuantile(TestData):
         )
         tm.assert_series_equal(result, expected)
 
-        result = self.ts.quantile([])
-        expected = pd.Series([], name=self.ts.name, index=Index([], dtype=float))
+        result = datetime_series.quantile([])
+        expected = pd.Series(
+            [], name=datetime_series.name, index=Index([], dtype=float)
+        )
         tm.assert_series_equal(result, expected)
 
-    def test_quantile_interpolation(self):
+    def test_quantile_interpolation(self, datetime_series):
         # see gh-10174
 
         # interpolation = linear (default case)
-        q = self.ts.quantile(0.1, interpolation="linear")
-        assert q == np.percentile(self.ts.dropna(), 10)
-        q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.dropna(), 10)
+        q = datetime_series.quantile(0.1, interpolation="linear")
+        assert q == np.percentile(datetime_series.dropna(), 10)
+        q1 = datetime_series.quantile(0.1)
+        assert q1 == np.percentile(datetime_series.dropna(), 10)
 
         # test with and without interpolation keyword
         assert q == q1

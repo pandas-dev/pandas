@@ -4,7 +4,6 @@ from datetime import datetime
 from io import StringIO
 
 import numpy as np
-from numpy import nan
 import pytest
 import pytz
 
@@ -699,13 +698,13 @@ class TestGroupBy:
         df_test = DataFrame(
             {
                 "dt": [
-                    nan,
+                    np.nan,
                     "2015-07-24 10:10",
                     "2015-07-25 11:11",
                     "2015-07-23 12:12",
-                    nan,
+                    np.nan,
                 ],
-                "td": [nan, td(days=1), td(days=2), td(days=3), nan],
+                "td": [np.nan, td(days=1), td(days=2), td(days=3), np.nan],
             }
         )
         df_test.dt = pd.to_datetime(df_test.dt)

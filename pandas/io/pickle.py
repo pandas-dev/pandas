@@ -23,8 +23,6 @@ def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
         default, infers from the file extension in specified path.
-
-        .. versionadded:: 0.20.0
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -98,8 +96,6 @@ def read_pickle(path, compression="infer"):
         gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
         or '.zip' respectively, and no decompression otherwise.
         Set to None for no decompression.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------

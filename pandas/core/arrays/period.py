@@ -70,7 +70,7 @@ def _period_array_cmp(cls, op):
     nat_result = opname == "__ne__"
 
     def wrapper(self, other):
-        op = getattr(self.asi8, opname)
+        ordinal_op = getattr(self.asi8, opname)
 
         other = lib.item_from_zerodim(other)
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -82,11 +82,11 @@ def _period_array_cmp(cls, op):
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            result = op(other.asi8)
+            result = ordinal_op(other.asi8)
 
             mask = self._isnan | other._isnan
             if mask.any():
@@ -98,7 +98,7 @@ def _period_array_cmp(cls, op):
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -444,7 +444,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         Parameters
         ----------
-        freq : string or DateOffset, optional
+        freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             'S' otherwise
         how : {'s', 'e', 'start', 'end'}
@@ -515,7 +515,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         periods : int
             Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
+        freq : pandas.DateOffset, pandas.Timedelta, or str
             Frequency increment to shift by.
         """
         if freq is not None:
@@ -831,7 +831,9 @@ def _raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Optional[Period]], freq: Optional[Tick] = None, copy: bool = False
+    data: Sequence[Optional[Period]],
+    freq: Optional[Union[str, Tick]] = None,
+    copy: bool = False,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.

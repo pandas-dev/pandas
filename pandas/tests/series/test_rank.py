@@ -1,7 +1,6 @@
 from itertools import chain, product
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas._libs.algos import Infinity, NegInfinity
@@ -10,36 +9,35 @@ import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
 from pandas.api.types import CategoricalDtype
-from pandas.tests.series.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesRank(TestData):
-    s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
+class TestSeriesRank:
+    s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
 
     results = {
-        "average": np.array([1.5, 5.5, 7.0, 3.5, nan, 3.5, 1.5, 8.0, nan, 5.5]),
-        "min": np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
-        "max": np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
-        "first": np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6]),
-        "dense": np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
+        "average": np.array([1.5, 5.5, 7.0, 3.5, np.nan, 3.5, 1.5, 8.0, np.nan, 5.5]),
+        "min": np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5]),
+        "max": np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6]),
+        "first": np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6]),
+        "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
-    def test_rank(self):
+    def test_rank(self, datetime_series):
         pytest.importorskip("scipy.stats.special")
         rankdata = pytest.importorskip("scipy.stats.rankdata")
 
-        self.ts[::2] = np.nan
-        self.ts[:10][::3] = 4.0
+        datetime_series[::2] = np.nan
+        datetime_series[:10][::3] = 4.0
 
-        ranks = self.ts.rank()
-        oranks = self.ts.astype("O").rank()
+        ranks = datetime_series.rank()
+        oranks = datetime_series.astype("O").rank()
 
         assert_series_equal(ranks, oranks)
 
-        mask = np.isnan(self.ts)
-        filled = self.ts.fillna(np.inf)
+        mask = np.isnan(datetime_series)
+        filled = datetime_series.fillna(np.inf)
 
         # rankdata returns a ndarray
         exp = Series(rankdata(filled), index=filled.index, name="ts")

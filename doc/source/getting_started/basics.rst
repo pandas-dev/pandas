@@ -172,8 +172,6 @@ You are highly encouraged to install both libraries. See the section
 
 These are both enabled to be used by default, you can control this by setting the options:
 
-.. versionadded:: 0.20.0
-
 .. code-block:: python
 
    pd.set_option('compute.use_bottleneck', False)
@@ -891,8 +889,6 @@ functionality.
 Aggregation API
 ~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.20.0
-
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
 :ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
@@ -1029,8 +1025,6 @@ to the built in :ref:`describe function <basics.describe>`.
 
 Transform API
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.20.0
 
 The :meth:`~DataFrame.transform` method returns an object that is indexed the same (same size)
 as the original. This API allows you to provide *multiple* operations at the same
