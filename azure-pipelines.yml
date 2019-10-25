@@ -33,6 +33,7 @@ jobs:
     condition: true
 
   - script: |
+      sudo apt-get update
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
