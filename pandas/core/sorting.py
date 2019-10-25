@@ -484,9 +484,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
 
     if sorter is None:
         # mixed types
-        (hash_klass, _), values = algorithms._get_data_algo(
-            values, algorithms._hashtables
-        )
+        hash_klass, values = algorithms._get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
