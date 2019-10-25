@@ -866,14 +866,6 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels.name]
 
     @property
-    def recons_labels(self):
-        comp_ids, obs_ids, _ = self.group_info
-        if len(self.binlabels) != len(self.indices):
-            return [np.unique(comp_ids)]
-        labels = (ping.labels for ping in self.groupings)
-        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels, xnull=True)
-
-    @property
     def groupings(self):
         from pandas.core.groupby.grouper import Grouping
 
