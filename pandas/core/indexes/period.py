@@ -79,7 +79,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
     Holds ordinal time values.
 
-    An immutable ndarray. Indicates regular periods in time such as particular years, 
+    An immutable ndarray. Indicates regular periods in time such as particular years,
     quarters, months, etc. Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
 
@@ -174,11 +174,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Creating a PeriodIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`period_range`.
     """
-   # Example not currently passing tests
-   # Examples
-   # --------
-   # >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
-   # """
+    # Example not currently passing tests
+    # Examples
+    # --------
+    # >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
+    # """
 
     _typ = "periodindex"
     _attributes = ["name", "freq"]
