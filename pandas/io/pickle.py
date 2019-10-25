@@ -157,6 +157,9 @@ def read_pickle(path, compression="infer"):
         #  "No module named 'pandas.core.sparse.series'"
         #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
         return pc.load(f, encoding=None)
+    except UnicodeDecodeError:
+        # e.g. can occur for files written in py27; see GH#28645
+        return pc.load(f, encoding="latin-1")
     finally:
         f.close()
         for _f in fh:
