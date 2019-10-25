@@ -1400,7 +1400,7 @@ def assert_frame_equal(
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj="{obj}.loc[:, {col!r}]".format(obj=obj, col=col),
+                obj="{obj}.iloc[:, {idx}] (column name=\"{col}\")".format(obj=obj, idx=i, col=col),
             )
 
 
