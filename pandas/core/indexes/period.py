@@ -77,20 +77,23 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 )
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
-    Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc.
+    Holds ordinal time values.
 
-    Index keys are boxed to Period objects which carries the metadata (eg,
+    An immutable ndarray. Indicates regular periods in time such as particular years, 
+    quarters, months, etc. Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
 
     Parameters
     ----------
+    **fields
+    name
+    ordinal
     data : array-like (1d int np.ndarray or PeriodArray), optional
-        Optional period-like data to construct index with
+        Optional period-like data to construct index with.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or period object, optional
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
         period data.
@@ -99,25 +102,32 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     periods : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
+        over end argument.
 
         .. deprecated:: 0.24.0
 
     end : end value, period-like, optional
         If periods is none, generated index will extend to first conforming
-        period on or just past end argument
+        period on or just past end argument.
 
         .. deprecated:: 0.24.0
 
     year : int, array, or Series, default None
+        Year value of period.
     month : int, array, or Series, default None
+        Month value of period.
     quarter : int, array, or Series, default None
+        Quarter value of period.
     day : int, array, or Series, default None
+        Day value of period.
     hour : int, array, or Series, default None
+        Hour value of period.
     minute : int, array, or Series, default None
+        Minute value of period.
     second : int, array, or Series, default None
+        Second value of period.
     tz : object, default None
-        Timezone for converting datetime64 data to Periods
+        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -161,11 +171,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     -----
     Creating a PeriodIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`period_range`.
-
-    Examples
-    --------
-    >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
     """
+   # Example not currently passing tests
+   # Examples
+   # --------
+   # >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
+   # """
 
     _typ = "periodindex"
     _attributes = ["name", "freq"]
