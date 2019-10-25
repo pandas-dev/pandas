@@ -539,17 +539,22 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Parameters
         ----------
         freq : str
-            a frequency
+            A frequency.
         how : str {'E', 'S'}
-            'E', 'END', or 'FINISH' for end,
-            'S', 'START', or 'BEGIN' for start.
+            Use 'E', 'END', or 'FINISH' for end,
+            Use 'S', 'START', or 'BEGIN' for start.
             Whether the elements should be aligned to the end
             or start within pa period. January 31st ('END') vs.
             January 1st ('START') for example.
+        *args
+            Positional arguments passed.
+        **kwargs
+            Keyword arguments passed.
 
         Returns
         -------
-        new : Period Array/Index with the new frequency
+        PeriodArray or PeriodIndex
+            Wwith the new frequency.
 
         Examples
         --------
