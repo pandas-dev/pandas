@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Type, Union
 
 import numpy as np
 import pytest
@@ -93,7 +93,7 @@ def test_to_M8():
 
 
 class Base:
-    _offset = None  # type: Union[BusinessHour, CustomBusinessHour, Callable]
+    _offset = None  # type: Type[DateOffset]
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -660,7 +660,7 @@ class TestDateOffset(Base):
 
 
 class TestBusinessDay(Base):
-    _offset = BDay  # type: Callable
+    _offset = BDay
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
@@ -741,7 +741,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: List[Tuple[int, Dict[datetime, datetime]]]
+    apply_cases = []  # type: List
     apply_cases.append(
         (
             BDay(),
@@ -2629,10 +2629,10 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: List
     apply_cases.append(
         (
-            1 * CDay(),
+            CDay(),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 2),
                 datetime(2008, 1, 4): datetime(2008, 1, 7),
@@ -2876,10 +2876,10 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: List
     apply_cases.append(
         (
-            1 * CBMonthEnd(),
+            CBMonthEnd(),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 2, 7): datetime(2008, 2, 29),
@@ -3025,10 +3025,10 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: List
     apply_cases.append(
         (
-            1 * CBMonthBegin(),
+            CBMonthBegin(),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 1),
                 datetime(2008, 2, 7): datetime(2008, 3, 3),
@@ -3121,7 +3121,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 
 class TestWeek(Base):
-    _offset = Week  # type: Callable
+    _offset = Week
     d = Timestamp(datetime(2008, 1, 2))
     offset1 = _offset()
     offset2 = _offset(2)
@@ -3220,7 +3220,7 @@ class TestWeek(Base):
 
 
 class TestWeekOfMonth(Base):
-    _offset = WeekOfMonth  # type: Callable
+    _offset = WeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3320,7 +3320,7 @@ class TestWeekOfMonth(Base):
 
 
 class TestLastWeekOfMonth(Base):
-    _offset = LastWeekOfMonth  # type: Callable
+    _offset = LastWeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3397,7 +3397,7 @@ class TestLastWeekOfMonth(Base):
 
 
 class TestSemiMonthEnd(Base):
-    _offset = SemiMonthEnd  # type: Callable
+    _offset = SemiMonthEnd
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -3656,7 +3656,7 @@ class TestSemiMonthEnd(Base):
 
 
 class TestSemiMonthBegin(Base):
-    _offset = SemiMonthBegin  # type: Callable
+    _offset = SemiMonthBegin
     offset1 = _offset()
     offset2 = _offset(2)
 
