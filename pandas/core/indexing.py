@@ -2171,6 +2171,8 @@ class _iLocIndexer(_LocationIndexer):
 class _ScalarAccessIndexer(_NDFrameIndexerBase):
     """ access scalars quickly """
 
+    _takeable: bool
+
     def _convert_key(self, key, is_setter: bool = False):
         raise AbstractMethodError(self)
 
