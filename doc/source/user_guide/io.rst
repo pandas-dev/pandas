@@ -163,9 +163,6 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use `str` or `object` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-
-  .. versionadded:: 0.20.0 support for the Python parser.
-
 engine : {``'c'``, ``'python'``}
   Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
@@ -417,10 +414,6 @@ However, if you wanted for all the data to be coerced, no matter the type, then
 using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
-  .. versionadded:: 0.20.0 support for the Python parser.
-
-     The ``dtype`` option is supported by the 'python' engine.
-
 .. note::
    In some cases, reading in abnormal data with columns containing mixed dtypes
    will result in an inconsistent dataset. If you rely on pandas to infer the
@@ -615,8 +608,6 @@ Filtering columns (``usecols``)
 
 The ``usecols`` argument allows you to select any subset of the columns in a
 file, either using the column names, position numbers or a callable:
-
-.. versionadded:: 0.20.0 support for callable `usecols` arguments
 
 .. ipython:: python
 
@@ -1447,8 +1438,6 @@ is whitespace).
    df = pd.read_fwf('bar.csv', header=None, index_col=0)
    df
 
-.. versionadded:: 0.20.0
-
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
 parsed columns to be different from the inferred type.
 
@@ -2220,8 +2209,6 @@ For line-delimited json files, pandas can also return an iterator which reads in
 
 Table schema
 ''''''''''''
-
-.. versionadded:: 0.20.0
 
 `Table Schema`_ is a spec for describing tabular datasets as a JSON
 object. The JSON includes information on the field names, types, and
@@ -3071,8 +3058,6 @@ missing data to recover integer dtype:
 Dtype specifications
 ++++++++++++++++++++
 
-.. versionadded:: 0.20
-
 As an alternative to converters, the type for an entire column can
 be specified using the `dtype` keyword, which takes a dictionary
 mapping column names to types.  To interpret data with
@@ -3206,7 +3191,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options                                     # noqa: E402
+   from pandas import options  # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
@@ -3344,8 +3329,6 @@ any pickled pandas object (or any other pickled object) from file:
 
 Compressed pickle files
 '''''''''''''''''''''''
-
-.. versionadded:: 0.20.0
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
@@ -3811,6 +3794,8 @@ storing/selecting from homogeneous index ``DataFrames``.
         # the levels are automatically included as data columns
         store.select('df_mi', 'foo=bar')
 
+.. note::
+   The ``index`` keyword is reserved and cannot be use as a level name.
 
 .. _io.hdf5-query:
 
@@ -3829,6 +3814,7 @@ A query is specified using the ``Term`` class under the hood, as a boolean expre
 
 * ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
+* level name in a MultiIndex, with default name  ``level_0``, ``level_1``, … if not provided.
 
 Valid comparison operators are:
 
@@ -3947,7 +3933,7 @@ space. These are in terms of the total number of rows in a table.
 
 .. _io.hdf5-timedelta:
 
-Using timedelta64[ns]
+Query timedelta64[ns]
 +++++++++++++++++++++
 
 You can store and query using the ``timedelta64[ns]`` type. Terms can be
@@ -3965,6 +3951,35 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+Query MultiIndex
+++++++++++++++++
+
+Selecting from a ``MultiIndex`` can be achieved by using the name of the level.
+
+.. ipython:: python
+
+   df_mi.index.names
+   store.select('df_mi', "foo=baz and bar=two")
+
+If the ``MultiIndex`` levels names are ``None``, the levels are automatically made available via
+the ``level_n`` keyword with ``n`` the level of the ``MultiIndex`` you want to select from.
+
+.. ipython:: python
+
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
+   df_mi_2
+
+   store.append("df_mi_2", df_mi_2)
+
+   # the levels are automatically included as data columns with keyword level_n
+   store.select("df_mi_2", "level_0=foo and level_1=two")
+
 
 Indexing
 ++++++++
@@ -4290,8 +4305,6 @@ control compression: ``complevel`` and ``complib``.
              - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
              - `bzip2 <http://bzip.org/>`_: Good compression rates.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
-
-             .. versionadded:: 0.20.2
 
                 Support for alternative blosc compressors:
 
@@ -4619,8 +4632,6 @@ Performance
 Feather
 -------
 
-.. versionadded:: 0.20.0
-
 Feather provides binary columnar serialization for data frames. It is designed to make reading and writing data
 frames efficient, and to make sharing data across data analysis languages easy.
 
@@ -4640,6 +4651,14 @@ Several caveats.
   on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
+
+.. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
 
 .. ipython:: python
 
@@ -4702,7 +4721,8 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4726,7 +4746,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
@@ -4845,7 +4867,7 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
 
 .. _io.sql:
@@ -5047,6 +5069,17 @@ Example of a callable using PostgreSQL `COPY clause
   from io import StringIO
 
   def psql_insert_copy(table, conn, keys, data_iter):
+      """
+      Execute SQL statement inserting data
+
+      Parameters
+      ----------
+      table : pandas.io.sql.SQLTable
+      conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+      keys : list of str
+          Column names
+      data_iter : Iterable that iterates the values to be inserted
+      """
       # gets a DBAPI connection that can provide a cursor
       dbapi_conn = conn.connection
       with dbapi_conn.cursor() as cur:
@@ -5079,6 +5112,18 @@ table name and optionally a subset of columns to read.
 .. ipython:: python
 
    pd.read_sql_table('data', engine)
+
+.. note::
+
+  Note that pandas infers column dtypes from query outputs, and not by looking
+  up data types in the physical database schema. For example, assume ``userid``
+  is an integer column in a table. Then, intuitively, ``select userid ...`` will
+  return integer-valued series, while ``select cast(userid as text) ...`` will
+  return object-valued (str) series. Accordingly, if the query output is empty,
+  then all resulting columns will be returned as object-valued (since they are
+  most general). If you foresee that your query will sometimes generate an empty
+  result, you may want to explicitly typecast afterwards to ensure dtype
+  integrity.
 
 You can also specify the name of the column as the ``DataFrame`` index,
 and specify a subset of columns to be read.

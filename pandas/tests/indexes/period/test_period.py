@@ -25,12 +25,15 @@ from ..datetimelike import DatetimeLike
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
 
-    def setup_method(self, method):
-        self.indices = dict(
-            index=tm.makePeriodIndex(10),
-            index_dec=period_range("20130101", periods=10, freq="D")[::-1],
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[
+            tm.makePeriodIndex(10),
+            period_range("20130101", periods=10, freq="D")[::-1],
+        ],
+        ids=["index_inc", "index_dec"],
+    )
+    def indices(self, request):
+        return request.param
 
     def create_index(self):
         return period_range("20130101", periods=5, freq="D")
@@ -353,6 +356,35 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(df.index, idx1)
         df = df.set_index(idx2)
         tm.assert_index_equal(df.index, idx2)
+
+    @pytest.mark.parametrize(
+        "p_values, o_values, values, expected_values",
+        [
+            (
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC"), "All"],
+                [1.0, 1.0],
+                [1.0, 1.0, np.nan],
+            ),
+            (
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+                [1.0, 1.0],
+                [1.0, 1.0],
+            ),
+        ],
+    )
+    def test_period_reindex_with_object(
+        self, p_values, o_values, values, expected_values
+    ):
+        # GH 28337
+        period_index = PeriodIndex(p_values)
+        object_index = Index(o_values)
+
+        s = pd.Series(values, index=period_index)
+        result = s.reindex(object_index)
+        expected = pd.Series(expected_values, index=object_index)
+        tm.assert_series_equal(result, expected)
 
     def test_factorize(self):
         idx1 = PeriodIndex(

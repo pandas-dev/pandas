@@ -28,7 +28,10 @@ def detect_console_encoding():
     if not encoding or "ascii" in encoding.lower():
         try:
             encoding = locale.getpreferredencoding()
-        except Exception:
+        except locale.Error:
+            # can be raised by locale.setlocale(), which is
+            #  called by getpreferredencoding
+            #  (on some systems, see stdlib locale docs)
             pass
 
     # when all else fails. this will usually be "ascii"

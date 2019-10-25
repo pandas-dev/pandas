@@ -22,6 +22,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.io.common import (
     UnicodeWriter,
+    _get_compression_method,
     _get_handle,
     _infer_compression,
     get_filepath_or_buffer,
@@ -57,6 +58,9 @@ class CSVFormatter:
 
         if path_or_buf is None:
             path_or_buf = StringIO()
+
+        # Extract compression mode as given, if dict
+        compression, self.compression_args = _get_compression_method(compression)
 
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
             path_or_buf, encoding=encoding, compression=compression, mode=mode
@@ -178,7 +182,7 @@ class CSVFormatter:
                 self.path_or_buf,
                 self.mode,
                 encoding=self.encoding,
-                compression=self.compression,
+                compression=dict(self.compression_args, method=self.compression),
             )
             close = True
 
@@ -206,11 +210,13 @@ class CSVFormatter:
                 if hasattr(self.path_or_buf, "write"):
                     self.path_or_buf.write(buf)
                 else:
+                    compression = dict(self.compression_args, method=self.compression)
+
                     f, handles = _get_handle(
                         self.path_or_buf,
                         self.mode,
                         encoding=self.encoding,
-                        compression=self.compression,
+                        compression=compression,
                     )
                     f.write(buf)
                     close = True

@@ -329,7 +329,7 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
 
 class PandasAutoDateLocator(dates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
-        "Pick the best locator based on a distance."
+        """Pick the best locator based on a distance."""
         _check_implicitly_registered()
         delta = relativedelta(dmax, dmin)
 
@@ -382,6 +382,7 @@ class MilliSecondLocator(dates.DateLocator):
             dmax, dmin = dmin, dmax
         # We need to cap at the endpoints of valid datetime
 
+        # FIXME: dont leave commented-out
         # TODO(wesm) unused?
         # delta = relativedelta(dmax, dmin)
         # try:
@@ -448,6 +449,7 @@ class MilliSecondLocator(dates.DateLocator):
 
         # We need to cap at the endpoints of valid datetime
 
+        # FIXME: dont leave commented-out
         # TODO(wesm): unused?
 
         # delta = relativedelta(dmax, dmin)

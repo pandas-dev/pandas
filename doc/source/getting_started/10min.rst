@@ -278,7 +278,7 @@ Using a single column's values to select data.
 
 .. ipython:: python
 
-   df[df.A > 0]
+   df[df['A'] > 0]
 
 Selecting values from a DataFrame where a boolean condition is met.
 

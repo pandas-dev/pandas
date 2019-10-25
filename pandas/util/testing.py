@@ -4,13 +4,11 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
-import http.client
 import os
 import re
 from shutil import rmtree
 import string
 import tempfile
-import traceback
 from typing import Union, cast
 import warnings
 import zipfile
@@ -296,7 +294,7 @@ def assert_almost_equal(
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default 'equiv'
+    check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -512,7 +510,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception:
+            except OSError:
                 print(
                     "Couldn't close file descriptor: {fdesc} (file: {fname})".format(
                         fdesc=fd, fname=filename
@@ -521,7 +519,7 @@ def ensure_clean(filename=None, return_filelike=False):
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
-            except Exception as e:
+            except OSError as e:
                 print("Exception on removing file: {error}".format(error=e))
 
 
@@ -540,7 +538,7 @@ def ensure_clean_dir():
     finally:
         try:
             rmtree(directory_name)
-        except Exception:
+        except OSError:
             pass
 
 
@@ -580,13 +578,14 @@ def assert_index_equal(
     check_categorical: bool = True,
     obj: str = "Index",
 ) -> None:
-    """Check that left and right Index are equal.
+    """
+    Check that left and right Index are equal.
 
     Parameters
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -861,7 +860,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1081,7 +1080,8 @@ def assert_series_equal(
     check_categorical=True,
     obj="Series",
 ):
-    """Check that left and right Series are equal.
+    """
+    Check that left and right Series are equal.
 
     Parameters
     ----------
@@ -1089,7 +1089,7 @@ def assert_series_equal(
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
     check_series_type : bool, default True
@@ -1156,7 +1156,9 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal(
+                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
+            )
 
     if check_exact:
         assert_numpy_array_equal(
@@ -1175,7 +1177,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -1251,10 +1253,10 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : bool or {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
@@ -1315,8 +1317,9 @@ def assert_frame_equal(
 
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
-    AssertionError: Attributes are different
     ...
+    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
@@ -1331,8 +1334,6 @@ def assert_frame_equal(
     _check_isinstance(left, right, DataFrame)
 
     if check_frame_type:
-        # ToDo: There are some tests using rhs is SparseDataFrame
-        # lhs is DataFrame. Should use assert_class_equal in future
         assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
@@ -1433,6 +1434,9 @@ def assert_equal(left, right, **kwargs):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
+    elif isinstance(left, str):
+        assert kwargs == {}
+        return left == right
     else:
         raise NotImplementedError(type(left))
 
@@ -1556,142 +1560,6 @@ def assert_sp_array_equal(
     assert_numpy_array_equal(left.to_dense(), right.to_dense(), check_dtype=check_dtype)
 
 
-def assert_sp_series_equal(
-    left,
-    right,
-    check_dtype=True,
-    exact_indices=True,
-    check_series_type=True,
-    check_names=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-    obj="SparseSeries",
-):
-    """Check that the left and right SparseSeries are equal.
-
-    Parameters
-    ----------
-    left : SparseSeries
-    right : SparseSeries
-    check_dtype : bool, default True
-        Whether to check the Series dtype is identical.
-    exact_indices : bool, default True
-    check_series_type : bool, default True
-        Whether to check the SparseSeries class is identical.
-    check_names : bool, default True
-        Whether to check the SparseSeries name attribute.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
-    obj : str, default 'SparseSeries'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-    _check_isinstance(left, right, pd.SparseSeries)
-
-    if check_series_type:
-        assert_class_equal(left, right, obj=obj)
-
-    assert_index_equal(left.index, right.index, obj="{obj}.index".format(obj=obj))
-
-    assert_sp_array_equal(
-        left.values,
-        right.values,
-        check_kind=check_kind,
-        check_fill_value=check_fill_value,
-        consolidate_block_indices=consolidate_block_indices,
-    )
-
-    if check_names:
-        assert_attr_equal("name", left, right)
-    if check_dtype:
-        assert_attr_equal("dtype", left, right)
-
-    assert_numpy_array_equal(np.asarray(left.values), np.asarray(right.values))
-
-
-def assert_sp_frame_equal(
-    left,
-    right,
-    check_dtype=True,
-    exact_indices=True,
-    check_frame_type=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-    obj="SparseDataFrame",
-):
-    """Check that the left and right SparseDataFrame are equal.
-
-    Parameters
-    ----------
-    left : SparseDataFrame
-    right : SparseDataFrame
-    check_dtype : bool, default True
-        Whether to check the Series dtype is identical.
-    exact_indices : bool, default True
-        SparseSeries SparseIndex objects must be exactly the same,
-        otherwise just compare dense representations.
-    check_frame_type : bool, default True
-        Whether to check the SparseDataFrame class is identical.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
-    obj : str, default 'SparseDataFrame'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-    _check_isinstance(left, right, pd.SparseDataFrame)
-
-    if check_frame_type:
-        assert_class_equal(left, right, obj=obj)
-
-    assert_index_equal(left.index, right.index, obj="{obj}.index".format(obj=obj))
-    assert_index_equal(left.columns, right.columns, obj="{obj}.columns".format(obj=obj))
-
-    if check_fill_value:
-        assert_attr_equal("default_fill_value", left, right, obj=obj)
-
-    for col, series in left.items():
-        assert col in right
-        # trade-off?
-
-        if exact_indices:
-            assert_sp_series_equal(
-                series,
-                right[col],
-                check_dtype=check_dtype,
-                check_kind=check_kind,
-                check_fill_value=check_fill_value,
-                consolidate_block_indices=consolidate_block_indices,
-            )
-        else:
-            assert_series_equal(
-                series.to_dense(), right[col].to_dense(), check_dtype=check_dtype
-            )
-
-    # do I care?
-    # assert(left.default_kind == right.default_kind)
-
-    for col in right:
-        assert col in left
-
-
 # -----------------------------------------------------------------------------
 # Others
 
@@ -1735,7 +1603,9 @@ def makeUnicodeIndex(k=10, name=None):
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x, k), name=name, **kwargs)
+    return CategoricalIndex(
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
+    )
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
@@ -1787,6 +1657,87 @@ def makePeriodIndex(k=10, name=None, **kwargs):
 
 def makeMultiIndex(k=10, names=None, **kwargs):
     return MultiIndex.from_product((("foo", "bar"), (1, 2)), names=names, **kwargs)
+
+
+_names = [
+    "Alice",
+    "Bob",
+    "Charlie",
+    "Dan",
+    "Edith",
+    "Frank",
+    "George",
+    "Hannah",
+    "Ingrid",
+    "Jerry",
+    "Kevin",
+    "Laura",
+    "Michael",
+    "Norbert",
+    "Oliver",
+    "Patricia",
+    "Quinn",
+    "Ray",
+    "Sarah",
+    "Tim",
+    "Ursula",
+    "Victor",
+    "Wendy",
+    "Xavier",
+    "Yvonne",
+    "Zelda",
+]
+
+
+def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
+    """
+    Make a DataFrame with a DatetimeIndex
+
+    Parameters
+    ----------
+    start : str or Timestamp, default "2000-01-01"
+        The start of the index. Passed to date_range with `freq`.
+    end : str or Timestamp, default "2000-12-31"
+        The end of the index. Passed to date_range with `freq`.
+    freq : str or Freq
+        The frequency to use for the DatetimeIndex
+    seed : int, optional
+        The random state seed.
+
+        * name : object dtype with string names
+        * id : int dtype with
+        * x, y : float dtype
+
+    Examples
+    --------
+    >>> _make_timeseries()
+                  id    name         x         y
+    timestamp
+    2000-01-01   982   Frank  0.031261  0.986727
+    2000-01-02  1025   Edith -0.086358 -0.032920
+    2000-01-03   982   Edith  0.473177  0.298654
+    2000-01-04  1009   Sarah  0.534344 -0.750377
+    2000-01-05   963   Zelda -0.271573  0.054424
+    ...          ...     ...       ...       ...
+    2000-12-27   980  Ingrid -0.132333 -0.422195
+    2000-12-28   972   Frank -0.376007 -0.298687
+    2000-12-29  1009  Ursula -0.865047 -0.503133
+    2000-12-30  1000  Hannah -0.063757 -0.507336
+    2000-12-31   972     Tim -0.869120  0.531685
+    """
+    index = pd.date_range(start=start, end=end, freq=freq, name="timestamp")
+    n = len(index)
+    state = np.random.RandomState(seed)
+    columns = {
+        "name": state.choice(_names, size=n),
+        "id": state.poisson(1000, size=n),
+        "x": state.rand(n) * 2 - 1,
+        "y": state.rand(n) * 2 - 1,
+    }
+    df = pd.DataFrame(columns, index=index, columns=sorted(columns))
+    if df.index[-1] == end:
+        df = df.iloc[:-1]
+    return df
 
 
 def all_index_generator(k=10):
@@ -1853,10 +1804,10 @@ def makeStringSeries(name=None):
 
 
 def makeObjectSeries(name=None):
-    dateIndex = makeDateIndex(N)
-    dateIndex = Index(dateIndex, dtype=object)
+    data = makeStringIndex(N)
+    data = Index(data, dtype=object)
     index = makeStringIndex(N)
-    return Series(dateIndex, index=index, name=name)
+    return Series(data, index=index, name=name)
 
 
 def getSeriesData():
@@ -2273,11 +2224,17 @@ _network_errno_vals = (
 # But some tests (test_data yahoo) contact incredibly flakey
 # servers.
 
-# and conditionally raise on these exception types
-_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
+# and conditionally raise on exception types in _get_default_network_errors
 
 
-def can_connect(url, error_classes=_network_error_classes):
+def _get_default_network_errors():
+    # Lazy import for http.client because it imports many things from the stdlib
+    import http.client
+
+    return (IOError, http.client.HTTPException, TimeoutError)
+
+
+def can_connect(url, error_classes=None):
     """Try to connect to the given url. True if succeeds, False if IOError
     raised
 
@@ -2292,6 +2249,10 @@ def can_connect(url, error_classes=_network_error_classes):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
+
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
+
     try:
         with urlopen(url):
             pass
@@ -2307,7 +2268,7 @@ def network(
     url="http://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
-    error_classes=_network_error_classes,
+    error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,
 ):
@@ -2395,6 +2356,9 @@ def network(
     """
     from pytest import skip
 
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
+
     t.network = True
 
     @wraps(t)
@@ -2404,29 +2368,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            try:
-                e_str = traceback.format_exc(e)
-            except Exception:
-                e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2434,7 +2395,7 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper
@@ -2661,7 +2622,8 @@ def assert_produces_warning(
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except Exception:
+                except AttributeError:
+                    # module may not have __warningregistry__
                     pass
 
         saw_warning = False
@@ -2859,30 +2821,6 @@ class SubclassedDataFrame(DataFrame):
     @property
     def _constructor_sliced(self):
         return SubclassedSeries
-
-
-class SubclassedSparseSeries(pd.SparseSeries):
-    _metadata = ["testattr"]
-
-    @property
-    def _constructor(self):
-        return SubclassedSparseSeries
-
-    @property
-    def _constructor_expanddim(self):
-        return SubclassedSparseDataFrame
-
-
-class SubclassedSparseDataFrame(pd.SparseDataFrame):
-    _metadata = ["testattr"]
-
-    @property
-    def _constructor(self):
-        return SubclassedSparseDataFrame
-
-    @property
-    def _constructor_sliced(self):
-        return SubclassedSparseSeries
 
 
 class SubclassedCategorical(Categorical):

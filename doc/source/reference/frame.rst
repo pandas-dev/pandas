@@ -274,6 +274,19 @@ Time series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
+.. _api.frame.metadata:
+
+Metadata
+~~~~~~~~
+
+:attr:`DataFrame.attrs` is a dictionary for storing global metadata for this DataFrame.
+
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.attrs
+
+
 .. _api.dataframe.plotting:
 
 Plotting
@@ -356,15 +369,7 @@ Serialization / IO / conversion
    DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
-   DataFrame.to_sparse
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
    DataFrame.style
-
-Sparse
-~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   SparseDataFrame.to_coo

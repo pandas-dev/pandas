@@ -25,9 +25,9 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from distutils.version import LooseVersion
 import locale
-from typing import Optional
+from typing import Callable, Optional
 
-from _pytest.mark.structures import MarkDecorator
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
@@ -74,6 +74,21 @@ def safe_import(mod_name, min_version=None):
     return False
 
 
+# TODO:
+# remove when gh-24839 is fixed; this affects numpy 1.16
+# and pytables 3.4.4
+tables = safe_import("tables")
+xfail_non_writeable = pytest.mark.xfail(
+    tables
+    and LooseVersion(np.__version__) >= LooseVersion("1.16")
+    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
+    reason=(
+        "gh-25511, gh-24839. pytables needs a "
+        "release beyong 3.4.4 to support numpy 1.16x"
+    ),
+)
+
+
 def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
@@ -103,7 +118,7 @@ def _skip_if_no_scipy():
     )
 
 
-def skip_if_installed(package: str,) -> MarkDecorator:
+def skip_if_installed(package: str) -> Callable:
     """
     Skip a test if a package is installed.
 
@@ -117,7 +132,7 @@ def skip_if_installed(package: str,) -> MarkDecorator:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> MarkDecorator:
+def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -170,7 +185,7 @@ skip_if_has_locale = pytest.mark.skipif(
 )
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(),
-    reason="Specific locale is set " "{lang}".format(lang=locale.getlocale()[0]),
+    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
