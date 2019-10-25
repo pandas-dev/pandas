@@ -1318,7 +1318,7 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     ...
-    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+    AssertionError: Attributes of DataFrame.loc[:, 'b'] are different
 
     Attribute "dtype" are different
     [left]:  int64
@@ -1400,7 +1400,7 @@ def assert_frame_equal(
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj="{obj}.iloc[:, {idx}]".format(obj=obj, idx=i),
+                obj="{obj}.loc[:, {col!r}]".format(obj=obj, col=col),
             )
 
 

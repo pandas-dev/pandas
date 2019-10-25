@@ -181,9 +181,9 @@ def test_frame_equal_columns_mismatch(obj_fixture):
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
-    msg = """{obj}\\.iloc\\[:, 1\\] are different
+    msg = """{obj}\\.loc\\[:, 'B'\\] are different
 
-{obj}\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+{obj}\\.loc\\[:, 'B'\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
 \\[right\\]: \\[4, 5, 7\\]""".format(
         obj=obj_fixture
@@ -202,18 +202,18 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
         (
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
-            """{obj}\\.iloc\\[:, 1\\] are different
+            """{obj}\\.loc\\[:, 'E'\\] are different
 
-{obj}\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+{obj}\\.loc\\[:, 'E'\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]""",
         ),
         (
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
             DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
-            """{obj}\\.iloc\\[:, 0\\] are different
+            """{obj}\\.loc\\[:, 'A'\\] are different
 
-{obj}\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
+{obj}\\.loc\\[:, 'A'\\] values are different \\(100\\.0 %\\)
 \\[left\\]:  \\[á, à, ä\\]
 \\[right\\]: \\[a, a, a\\]""",
         ),
