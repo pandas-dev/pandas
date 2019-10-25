@@ -262,22 +262,22 @@ def test_setitem_float_labels():
     assert_series_equal(s, tmp)
 
 
-def test_slice_float_get_set(test_data):
+def test_slice_float_get_set(datetime_series):
     msg = (
         r"cannot do slice indexing on <class 'pandas\.core\.indexes"
         r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
         r" of <class 'float'>"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        test_data.ts[4.0:10.0]
+        datetime_series[4.0:10.0]
 
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        test_data.ts[4.0:10.0] = 0
+        datetime_series[4.0:10.0] = 0
 
     with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        test_data.ts[4.5:10.0]
+        datetime_series[4.5:10.0]
     with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        test_data.ts[4.5:10.0] = 0
+        datetime_series[4.5:10.0] = 0
 
 
 def test_slice_floats2():
@@ -312,6 +312,6 @@ def test_int_indexing():
         s["c"]
 
 
-def test_getitem_int64(test_data):
+def test_getitem_int64(datetime_series):
     idx = np.int64(5)
-    assert test_data.ts[idx] == test_data.ts[5]
+    assert datetime_series[idx] == datetime_series[5]
