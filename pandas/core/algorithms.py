@@ -77,27 +77,28 @@ def _ensure_data(values, dtype=None):
 
     Returns
     -------
-    (ndarray, pandas_dtype, algo dtype as a string)
+    values : ndarray
+    pandas_dtype : str or dtype
 
     """
 
     # we check some simple dtypes first
     if is_object_dtype(dtype):
-        return ensure_object(np.asarray(values)), "object", "object"
+        return ensure_object(np.asarray(values)), "object"
     elif is_object_dtype(values) and dtype is None:
-        return ensure_object(np.asarray(values)), "object", "object"
+        return ensure_object(np.asarray(values)), "object"
 
     try:
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
-            return np.asarray(values).astype("uint64"), "bool", "uint64"
+            return np.asarray(values).astype("uint64"), "bool"
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return ensure_int64(values), "int64", "int64"
+            return ensure_int64(values), "int64"
         elif is_unsigned_integer_dtype(values) or is_unsigned_integer_dtype(dtype):
-            return ensure_uint64(values), "uint64", "uint64"
+            return ensure_uint64(values), "uint64"
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return ensure_float64(values), "float64", "float64"
+            return ensure_float64(values), "float64"
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
@@ -105,12 +106,12 @@ def _ensure_data(values, dtype=None):
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            return values, "float64", "float64"
+            return values, "float64"
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
-        return ensure_object(values), "object", "object"
+        return ensure_object(values), "object"
 
     # datetimelike
     if (
@@ -136,14 +137,14 @@ def _ensure_data(values, dtype=None):
                 # Note: this is reached by DataFrame.rank calls GH#27027
                 asi8 = values.view("i8")
                 dtype = values.dtype
-                return asi8, dtype, "int64"
+                return asi8, dtype
 
             from pandas import DatetimeIndex
 
             values = DatetimeIndex(values)
             dtype = values.dtype
 
-        return values.asi8, dtype, "int64"
+        return values.asi8, dtype
 
     elif is_categorical_dtype(values) and (
         is_categorical_dtype(dtype) or dtype is None
@@ -156,11 +157,11 @@ def _ensure_data(values, dtype=None):
         # until our algos support int* directly (not all do)
         values = ensure_int64(values)
 
-        return values, dtype, "int64"
+        return values, dtype
 
     # we have failed, return object
     values = np.asarray(values, dtype=np.object)
-    return ensure_object(values), "object", "object"
+    return ensure_object(values), "object"
 
 
 def _reconstruct_data(values, dtype, original):
@@ -228,7 +229,8 @@ def _get_hashtable_algo(values):
     values : ndarray
     dtype : str or dtype
     """
-    values, dtype, ndtype = _ensure_data(values)
+    values, dtype = _ensure_data(values)
+    ndtype = values.dtype.name
 
     if ndtype == "object":
 
@@ -246,12 +248,13 @@ def _get_values_for_rank(values):
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
-    values, _, ndtype = _ensure_data(values)
-    return values, ndtype
+    values, _ = _ensure_data(values)
+    return values
 
 
 def _get_data_algo(values):
-    values, ndtype = _get_values_for_rank(values)
+    values = _get_values_for_rank(values)
+    ndtype = values.dtype.name
 
     if ndtype == "object":
 
@@ -284,16 +287,13 @@ def match(to_match, values, na_sentinel=-1):
     na_sentinel : int, default -1
         Value to mark "not found"
 
-    Examples
-    --------
-
     Returns
     -------
     match : ndarray of integers
     """
     values = com.asarray_tuplesafe(values)
     htable, values, dtype = _get_hashtable_algo(values)
-    to_match, _, _ = _ensure_data(to_match, dtype)
+    to_match, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
     table.map_locations(values)
     result = table.lookup(to_match)
@@ -445,11 +445,11 @@ def isin(comps, values):
 
     comps = com.values_from_object(comps)
 
-    comps, dtype, _ = _ensure_data(comps)
-    values, _, _ = _ensure_data(values, dtype=dtype)
+    comps, dtype = _ensure_data(comps)
+    values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d
-    f = lambda x, y: htable.ismember_object(x, values)
+    f = lambda x, y: htable.ismember_object(x, y)
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
@@ -655,7 +655,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         labels, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
-        values, dtype, _ = _ensure_data(values)
+        values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
             na_value = na_value_for_dtype(original.dtype)
@@ -716,15 +716,14 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series, Index
+    from pandas.core.series import Series
 
     name = getattr(values, "name", None)
 
     if bins is not None:
+        from pandas.core.reshape.tile import cut
+        values = Series(values)
         try:
-            from pandas.core.reshape.tile import cut
-
-            values = Series(values)
             ii = cut(values, bins, include_lowest=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
@@ -754,8 +753,6 @@ def value_counts(
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
 
-            if not isinstance(keys, Index):
-                keys = Index(keys)
             result = Series(counts, index=keys, name=name)
 
     if sort:
@@ -781,9 +778,10 @@ def _value_counts_arraylike(values, dropna):
     """
     values = _ensure_arraylike(values)
     original = values
-    values, dtype, ndtype = _ensure_data(values)
+    values, dtype = _ensure_data(values)
+    ndtype = values.dtype.name
 
-    if needs_i8_conversion(dtype):
+    if needs_i8_conversion(original.dtype):
         # i8
 
         keys, counts = htable.value_count_int64(values, dropna)
@@ -830,7 +828,8 @@ def duplicated(values, keep="first"):
     duplicated : ndarray
     """
 
-    values, _, ndtype = _ensure_data(values)
+    values, _ = _ensure_data(values)
+    ndtype = values.dtype.name
     f = getattr(htable, "duplicated_{dtype}".format(dtype=ndtype))
     return f(values, keep=keep)
 
@@ -867,7 +866,8 @@ def mode(values, dropna: bool = True):
         mask = values.isnull()
         values = values[~mask]
 
-    values, _, ndtype = _ensure_data(values)
+    values, _ = _ensure_data(values)
+    ndtype = values.dtype.name
 
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
     result = f(values, dropna=dropna)
@@ -905,7 +905,7 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if values.ndim == 1:
-        values, _ = _get_values_for_rank(values)
+        values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
             ties_method=method,
@@ -914,7 +914,7 @@ def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct
             pct=pct,
         )
     elif values.ndim == 2:
-        values, _ = _get_values_for_rank(values)
+        values = _get_values_for_rank(values)
         ranks = algos.rank_2d(
             values,
             axis=axis,
@@ -1157,7 +1157,7 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, pandas_dtype, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype = _ensure_data(dropped.values)
         if method == "nlargest":
             arr = -arr
             if is_integer_dtype(pandas_dtype):
