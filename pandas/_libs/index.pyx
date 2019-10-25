@@ -171,17 +171,17 @@ cdef class IndexEngine:
 
         raise KeyError(val)
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
         if not self.is_mapping_populated:
             return 0
         return self.mapping.sizeof(deep=deep)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         return self.sizeof()
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -193,14 +193,14 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
         return self.monotonic_inc == 1
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
@@ -243,7 +243,7 @@ cdef class IndexEngine:
         hash(val)
 
     @property
-    def is_mapping_populated(self):
+    def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
