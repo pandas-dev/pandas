@@ -274,7 +274,6 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
-- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 
 Categorical
 ^^^^^^^^^^^
@@ -322,6 +321,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 - :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
+- Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
 -
 
 Conversion
@@ -382,6 +382,7 @@ I/O
 - Bug in :meth:`DataFrame.read_json` where using ``orient="index"`` would not maintain the order (:issue:`28557`)
 - Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
 - Bug in :meth:`pandas.io.formats.style.Styler` formatting for floating values not displaying decimals correctly (:issue:`13257`)
+- Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 
 Plotting
 ^^^^^^^^
