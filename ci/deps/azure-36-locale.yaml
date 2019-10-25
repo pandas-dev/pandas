@@ -5,7 +5,7 @@ channels:
 dependencies:
   - beautifulsoup4==4.6.0
   - bottleneck=1.2.*
-  - cython=0.28.2
+  - cython=0.29.13
   - lxml
   - matplotlib=2.2.2
   - numpy=1.14.*

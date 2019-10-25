@@ -1,0 +1,130 @@
+main:
+  templates_path: _templates
+  base_template: "layout.html"
+  ignore:
+  - _templates/layout.html
+  - config.yml
+  - try.md  # the binder page will be added later
+  github_repo_url: pandas-dev/pandas
+  context_preprocessors:
+  - pandas_web.Preprocessors.navbar_add_info
+  - pandas_web.Preprocessors.blog_add_posts
+  - pandas_web.Preprocessors.maintainers_add_info
+  - pandas_web.Preprocessors.home_add_releases
+  markdown_extensions:
+  - toc
+  - tables
+  - fenced_code
+static:
+  logo: /static/img/pandas_white.svg
+  css:
+  - /static/css/pandas.css
+navbar:
+  - name: "About us"
+    target:
+    - name: "About pandas"
+      target: /about/index.html
+    - name: "Project roadmap"
+      target: /about/roadmap.html
+    - name: "Team"
+      target: /about/team.html
+    - name: "Sponsors"
+      target: /about/sponsors.html
+    - name: "Citing and logo"
+      target: /about/citing.html
+  - name: "Getting started"
+    target: /getting_started.html
+  - name: "Documentation"
+    target:
+    - name: "User guide"
+      target: /docs/user_guide/index.html
+    - name: "API reference"
+      target: /docs/reference/index.html
+    - name: "Release notes"
+      target: /docs/whatsnew/index.html
+    - name: "Older versions"
+      target: https://pandas.pydata.org/pandas-docs/version/
+  - name: "Community"
+    target:
+    - name: "Blog"
+      target: /community/blog.html
+    - name: "Ask a question (StackOverflow)"
+      target: https://stackoverflow.com/questions/tagged/pandas
+    - name: "Discuss"
+      target: https://pandas.discourse.group
+    - name: "Code of conduct"
+      target: /community/coc.html
+    - name: "Ecosystem"
+      target: /community/ecosystem.html
+  - name: "Contribute"
+    target: /contribute.html
+blog:
+  num_posts: 8
+  feed:
+  - https://wesmckinney.com/feeds/pandas.atom.xml
+  - https://tomaugspurger.github.io/feed
+  - https://jorisvandenbossche.github.io/feeds/all.atom.xml
+  - https://datapythonista.github.io/blog/feeds/pandas.atom.xml
+  - https://numfocus.org/tag/pandas/feed/
+maintainers:
+  active:
+  - wesm
+  - jorisvandenbossche
+  - TomAugspurger
+  - shoyer
+  - jreback
+  - chris-b1
+  - sinhrks
+  - cpcloud
+  - gfyoung
+  - toobaz
+  - WillAyd
+  - mroeschke
+  - jschendel
+  - jbrockmendel
+  - datapythonista
+  - simonjayhawkins
+  - topper-123
+  emeritus:
+  - Wouter Overmeire
+  - Skipper Seabold
+  - Jeff Tratner
+  coc:
+  - Safia Abdalla
+  - Tom Augspurger
+  - Joris Van den Bossche
+  - Camille Scott
+  - Nathaniel Smith
+  numfocus:
+  - Phillip Cloud
+  - Stephan Hoyer
+  - Wes McKinney
+  - Jeff Reback
+  - Joris Van den Bossche
+partners:
+  active:
+  - name: "NumFOCUS"
+    url: https://numfocus.org/
+    logo: /static/img/partners/numfocus.svg
+  - name: "Anaconda"
+    url: https://www.anaconda.com/
+    logo: /static/img/partners/anaconda.svg
+    employs: "Tom Augspurger, Brock Mendel"
+  - name: "Two Sigma"
+    url: https://www.twosigma.com/
+    logo: /static/img/partners/two_sigma.svg
+    employs: "Phillip Cloud, Jeff Reback"
+  - name: "RStudio"
+    url: https://www.rstudio.com/
+    logo: /static/img/partners/r_studio.svg
+    employs: "Wes McKinney"
+  - name: "Ursa Labs"
+    url: https://ursalabs.org/
+    logo: /static/img/partners/ursa_labs.svg
+    employs: "Wes McKinney, Joris Van den Bossche"
+  - name: "Tidelift"
+    url: https://tidelift.com
+    logo: /static/img/partners/tidelift.svg
+  past:
+  - name: "Paris-Saclay Center for Data Science"
+    url: https://www.datascience-paris-saclay.fr/

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import warnings
 
 import cython
 
@@ -17,6 +18,7 @@ cnp.import_array()
 cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -40,11 +42,13 @@ cdef inline bint is_definitely_invalid_key(object val):
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
+    obj = util.get_value_at(arr, loc)
+
     if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_at(arr, loc), tz=tz)
+        return Timestamp(obj, tz=tz)
     elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_at(arr, loc))
-    return util.get_value_at(arr, loc)
+        return Timedelta(obj)
+    return obj
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -101,6 +105,9 @@ cdef class IndexEngine:
         arr[loc] = value
 
     cpdef get_loc(self, object val):
+        cdef:
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError("'{val}' is an invalid key".format(val=val))
 
@@ -113,7 +120,7 @@ cdef class IndexEngine:
             loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
-            if util.get_value_at(values, loc) != val:
+            if values[loc] != val:
                 raise KeyError(val)
             return loc
 
@@ -280,7 +287,7 @@ cdef class IndexEngine:
         cdef:
             ndarray values, x
             ndarray[int64_t] result, missing
-            set stargets
+            set stargets, remaining_stargets
             dict d = {}
             object val
             int count = 0, count_missing = 0
@@ -303,12 +310,20 @@ cdef class IndexEngine:
         if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
+            remaining_stargets = set()
             for starget in stargets:
-                start = values.searchsorted(starget, side='left')
-                end = values.searchsorted(starget, side='right')
-                if start != end:
-                    d[starget] = list(range(start, end))
-        else:
+                try:
+                    start = values.searchsorted(starget, side='left')
+                    end = values.searchsorted(starget, side='right')
+                except TypeError:  # e.g. if we tried to search for string in int array
+                    remaining_stargets.add(starget)
+                else:
+                    if start != end:
+                        d[starget] = list(range(start, end))
+
+            stargets = remaining_stargets
+
+        if stargets:
             # otherwise, map by iterating through all items in the index
             for i in range(n):
                 val = values[i]
@@ -351,22 +366,22 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi == 0 or (hi > 0 and val > util.get_value_at(values, hi)):
+    if hi == 0 or (hi > 0 and val > values[hi]):
         return len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = util.get_value_at(values, mid)
+        pval = values[mid]
         if val < pval:
             hi = mid
         elif val > pval:
             lo = mid + 1
         else:
-            while mid > 0 and val == util.get_value_at(values, mid - 1):
+            while mid > 0 and val == values[mid - 1]:
                 mid -= 1
             return mid
 
-    if val <= util.get_value_at(values, mid):
+    if val <= values[mid]:
         return mid
     else:
         return mid + 1
@@ -386,13 +401,16 @@ cdef class DatetimeEngine(Int64Engine):
         return 'M8[ns]'
 
     def __contains__(self, object val):
+        cdef:
+            int64_t loc
+
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
             conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
-            return util.get_value_at(values, loc) == conv
+            return values[loc] == conv
 
         self._ensure_mapping_populated()
         return maybe_datetimelike_to_i8(val) in self.mapping
@@ -404,6 +422,8 @@ cdef class DatetimeEngine(Int64Engine):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
+        cdef:
+            int64_t loc
         if is_definitely_invalid_key(val):
             raise TypeError
 
@@ -421,7 +441,7 @@ cdef class DatetimeEngine(Int64Engine):
                 self._date_check_type(val)
                 raise KeyError(val)
 
-            if loc == len(values) or util.get_value_at(values, loc) != conv:
+            if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
             return loc
 
@@ -528,30 +548,31 @@ cpdef convert_scalar(ndarray arr, object value):
         if util.is_array(value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
-            return Timestamp(value).value
+            return Timestamp(value).to_datetime64()
         elif util.is_timedelta64_object(value):
             # exclude np.timedelta64("NaT") from value != value below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timestamp(value).value
-        raise ValueError("cannot set a Timestamp with a non-timestamp")
+            return np.datetime64("NaT", "ns")
+        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
+                         .format(typ=type(value).__name__))
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
         elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            return Timedelta(value).value
+            value = Timedelta(value)
+            if value is NaT:
+                return np.timedelta64("NaT", "ns")
+            return value.to_timedelta64()
         elif util.is_datetime64_object(value):
             # exclude np.datetime64("NaT") which would otherwise be picked up
             #  by the `value != value check below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timedelta(value).value
-        raise ValueError("cannot set a Timedelta with a non-timedelta")
+            return np.timedelta64("NaT", "ns")
+        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
+                         .format(typ=type(value).__name__))
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):

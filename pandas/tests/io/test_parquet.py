@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -166,6 +167,7 @@ def check_round_trip(
             df.to_parquet(path, **write_kwargs)
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
+
             tm.assert_frame_equal(expected, actual, check_names=check_names)
 
     if path is None:
@@ -237,6 +239,15 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
+
+    if (
+        LooseVersion(pyarrow.__version__) < "0.15"
+        and LooseVersion(pyarrow.__version__) >= "0.13"
+    ):
+        pytest.xfail(
+            "Reading fastparquet with pyarrow in 0.14 fails: "
+            "https://issues.apache.org/jira/browse/ARROW-6492"
+        )
 
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -451,11 +462,26 @@ class TestParquetPyArrow(Base):
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
-        df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
+        df = pd.DataFrame()
+        df["a"] = pd.Categorical(list("abcdef"))
 
-        # de-serialized as object
-        expected = df.assign(a=df.a.astype(object))
-        check_round_trip(df, pa, expected=expected)
+        # test for null, out-of-order values, and unobserved category
+        df["b"] = pd.Categorical(
+            ["bar", "foo", "foo", "bar", None, "bar"],
+            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+        )
+
+        # test for ordered flag
+        df["c"] = pd.Categorical(
+            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
+        )
+
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+            check_round_trip(df, pa)
+        else:
+            # de-serialized as object for pyarrow < 0.15
+            expected = df.astype(object)
+            check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
@@ -477,6 +503,18 @@ class TestParquetPyArrow(Base):
         # GH #27339
         df = pd.DataFrame()
         check_round_trip(df, pa)
+
+    @td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+    def test_nullable_integer(self, pa):
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3], dtype="Int64")})
+        # currently de-serialized as plain int
+        expected = df.assign(a=df.a.astype("int64"))
+        check_round_trip(df, pa, expected=expected)
+
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
+        # if missing values currently de-serialized as float
+        expected = df.assign(a=df.a.astype("float64"))
+        check_round_trip(df, pa, expected=expected)
 
 
 class TestParquetFastParquet(Base):

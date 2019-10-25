@@ -1,7 +1,7 @@
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyObject
+from cpython.object cimport PyObject
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -284,7 +284,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     return start, stop, step, length
 
 
-def slice_getitem(slice slc not None, ind):
+cdef slice_getitem(slice slc, ind):
     cdef:
         Py_ssize_t s_start, s_stop, s_step, s_len
         Py_ssize_t ind_start, ind_stop, ind_step, ind_len
@@ -441,24 +441,21 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, blk_count, group=True):
+def get_blkno_placements(blknos, group=True):
     """
 
     Parameters
     ----------
     blknos : array of int64
-    blk_count : int
     group : bool
 
     Returns
     -------
     iterator
         yield (BlockPlacement, blkno)
-
     """
 
     blknos = ensure_int64(blknos)
 
-    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)

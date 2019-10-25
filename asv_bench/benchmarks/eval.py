@@ -1,4 +1,5 @@
 import numpy as np
+
 import pandas as pd
 
 try:
@@ -26,7 +27,7 @@ class Eval:
 
     def time_and(self, engine, threads):
         pd.eval(
-            "(self.df > 0) & (self.df2 > 0) & " "(self.df3 > 0) & (self.df4 > 0)",
+            "(self.df > 0) & (self.df2 > 0) & (self.df3 > 0) & (self.df4 > 0)",
             engine=engine,
         )
 
@@ -62,4 +63,4 @@ class Query:
         self.df.query("(a >= @self.min_val) & (a <= @self.max_val)")
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

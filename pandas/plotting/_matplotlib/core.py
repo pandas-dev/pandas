@@ -1,10 +1,8 @@
 import re
-from typing import Optional  # noqa
+from typing import Optional
 import warnings
 
 import numpy as np
-
-from pandas._config import get_option
 
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -28,8 +26,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
@@ -40,9 +38,6 @@ from pandas.plotting._matplotlib.tools import (
     format_date_labels,
     table,
 )
-
-if get_option("plotting.matplotlib.register_converters"):
-    converter.register(explicit=False)
 
 
 class MPLPlot:
@@ -112,7 +107,6 @@ class MPLPlot:
 
         import matplotlib.pyplot as plt
 
-        converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
 
@@ -230,7 +224,7 @@ class MPLPlot:
             "color" in self.kwds or "colors" in self.kwds
         ) and self.colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used " "simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -418,7 +412,7 @@ class MPLPlot:
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
         try:
-            is_empty = numeric_data.empty
+            is_empty = numeric_data.columns.empty
         except AttributeError:
             is_empty = not len(numeric_data)
 
@@ -648,6 +642,7 @@ class MPLPlot:
         return x
 
     @classmethod
+    @register_pandas_matplotlib_converters
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
         mask = isna(y)
         if mask.any():
@@ -1435,8 +1430,13 @@ class BarPlot(MPLPlot):
 
     def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
-        ax.set_xticks(self.tick_pos)
-        ax.set_xticklabels(ticklabels)
+
+        if self.xticks is not None:
+            ax.set_xticks(np.array(self.xticks))
+        else:
+            ax.set_xticks(self.tick_pos)
+            ax.set_xticklabels(ticklabels)
+
         if name is not None and self.use_index:
             ax.set_xlabel(name)
 

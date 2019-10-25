@@ -4,7 +4,6 @@ import bz2
 import codecs
 import csv
 import gzip
-from http.client import HTTPException  # noqa
 from io import BufferedIOBase, BytesIO
 import mmap
 import os
@@ -16,13 +15,13 @@ from typing import (
     BinaryIO,
     Dict,
     List,
+    Mapping,
     Optional,
     TextIO,
     Tuple,
     Type,
     Union,
 )
-from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -31,7 +30,6 @@ from urllib.parse import (  # noqa
     uses_params,
     uses_relative,
 )
-from urllib.request import pathname2url, urlopen
 import zipfile
 
 from pandas.compat import _get_lzma_file, _import_lzma
@@ -93,7 +91,8 @@ class BaseIterator:
 
 
 def _is_url(url) -> bool:
-    """Check to see if a URL has a valid protocol.
+    """
+    Check to see if a URL has a valid protocol.
 
     Parameters
     ----------
@@ -104,10 +103,9 @@ def _is_url(url) -> bool:
     isurl : bool
         If `url` has a valid protocol return True otherwise False.
     """
-    try:
-        return parse_url(url).scheme in _VALID_URLS
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in _VALID_URLS
 
 
 def _expand_user(
@@ -174,18 +172,26 @@ def _stringify_path(
 
 def is_s3_url(url) -> bool:
     """Check for an s3, s3n, or s3a url"""
-    try:
-        return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
 
 
 def is_gcs_url(url) -> bool:
     """Check for a gcs url"""
-    try:
-        return parse_url(url).scheme in ["gcs", "gs"]
-    except Exception:
+    if not isinstance(url, str):
         return False
+    return parse_url(url).scheme in ["gcs", "gs"]
+
+
+def urlopen(*args, **kwargs):
+    """
+    Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
+    the stdlib.
+    """
+    import urllib.request
+
+    return urllib.request.urlopen(*args, **kwargs)
 
 
 def get_filepath_or_buffer(
@@ -261,6 +267,9 @@ def file_path_to_url(path: str) -> str:
     -------
     a valid FILE URL
     """
+    # lazify expensive import (~30ms)
+    from urllib.request import pathname2url
+
     return urljoin("file:", pathname2url(path))
 
 
@@ -268,16 +277,16 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def _get_compression_method(
-    compression: Optional[Union[str, Dict[str, str]]]
+    compression: Optional[Union[str, Mapping[str, str]]]
 ) -> Tuple[Optional[str], Dict[str, str]]:
     """
     Simplifies a compression argument to a compression method string and
-    a dict containing additional arguments.
+    a mapping containing additional arguments.
 
     Parameters
     ----------
-    compression : str or dict
-        If string, specifies the compression method. If dict, value at key
+    compression : str or mapping
+        If string, specifies the compression method. If mapping, value at key
         'method' specifies compression method.
 
     Returns
@@ -287,15 +296,14 @@ def _get_compression_method(
 
     Raises
     ------
-    ValueError on dict missing 'method' key
+    ValueError on mapping missing 'method' key
     """
-    # Handle dict
-    if isinstance(compression, dict):
-        compression_args = compression.copy()
+    if isinstance(compression, Mapping):
+        compression_args = dict(compression)
         try:
             compression = compression_args.pop("method")
         except KeyError:
-            raise ValueError("If dict, compression must have key 'method'")
+            raise ValueError("If mapping, compression must have key 'method'")
     else:
         compression_args = {}
     return compression, compression_args
@@ -360,7 +368,7 @@ def _get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
-    compression: Optional[Union[str, Dict[str, Any]]] = None,
+    compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
 ):
@@ -576,7 +584,6 @@ class MMapWrapper(BaseIterator):
 
 
 class UTF8Recoder(BaseIterator):
-
     """
     Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """
@@ -592,6 +599,9 @@ class UTF8Recoder(BaseIterator):
 
     def next(self) -> bytes:
         return next(self.reader).encode("utf-8")
+
+    def close(self):
+        self.reader.close()
 
 
 # Keeping these class for now because it provides a necessary convenience

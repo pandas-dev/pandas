@@ -9,9 +9,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
-                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
-                      PyUnicode_Join, PyList_New)
+from cpython.object cimport PyObject_RichCompareBool, Py_EQ
+from cpython.ref cimport Py_INCREF
+from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -52,8 +52,7 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -135,8 +134,8 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
-    >>> dt = pd.datetime.datetime(2018, 10, 3)
-    >>> pd.is_scalar(dt)
+    >>> dt = datetime.datetime(2018, 10, 3)
+    >>> pd.api.types.is_scalar(dt)
     True
 
     >>> pd.api.types.is_scalar([2, 3])
@@ -235,7 +234,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
     if sort is None:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             # TODO: RuntimeWarning?
             pass
 
@@ -264,7 +263,7 @@ def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -304,7 +303,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -522,9 +521,18 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                (x is None or is_nan(x)) and (y is None or is_nan(y))):
-            return False
+        try:
+            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+                return False
+        except TypeError as err:
+            # Avoid raising TypeError on tzawareness mismatch
+            # TODO: This try/except can be removed if/when Timestamp
+            #  comparisons are change dto match datetime, see GH#28507
+            if "tz-naive and tz-aware" in str(err):
+                return False
+            raise
+
     return True
 
 
@@ -771,8 +779,16 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray index, const int64_t[:] labels, list keys,
                  list sorted_labels):
+    """
+    Parameters
+    ----------
+    index : ndarray
+    labels : ndarray[int64]
+    keys : list
+    sorted_labels : list[ndarray[int64]]
+    """
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
         dict result = {}
@@ -792,8 +808,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
             if lab != -1:
                 tup = PyTuple_New(k)
                 for j in range(k):
-                    val = util.get_value_at(keys[j],
-                                            sorted_labels[j][i - 1])
+                    val = keys[j][sorted_labels[j][i - 1]]
                     PyTuple_SET_ITEM(tup, j, val)
                     Py_INCREF(val)
 
@@ -803,8 +818,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
 
     tup = PyTuple_New(k)
     for j in range(k):
-        val = util.get_value_at(keys[j],
-                                sorted_labels[j][n - 1])
+        val = keys[j][sorted_labels[j][n - 1]]
         PyTuple_SET_ITEM(tup, j, val)
         Py_INCREF(val)
     result[tup] = index[start:]
@@ -1410,7 +1424,7 @@ def infer_datetimelike_array(arr: object) -> object:
         try:
             array_to_datetime(objs, errors='raise')
             return 'datetime'
-        except:
+        except (ValueError, TypeError):
             pass
 
         # we are *not* going to infer from strings
@@ -2055,7 +2069,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 floats[i] = float(val)
                 complexes[i] = complex(val)
                 seen.float_ = 1
-            except Exception:
+            except (ValueError, TypeError):
                 seen.object_ = 1
                 break
         else:
@@ -2335,7 +2349,8 @@ def to_object_array_tuples(rows: object):
             row = rows[i]
             for j in range(len(row)):
                 result[i, j] = row[j]
-    except Exception:
+    except TypeError:
+        # e.g. "Expected tuple, got list"
         # upcast any subclasses to tuple
         for i in range(n):
             row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])

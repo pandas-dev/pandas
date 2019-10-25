@@ -1,7 +1,8 @@
-import os
 from importlib import import_module
+import os
 
 import numpy as np
+
 import pandas as pd
 
 # Compatibility import for lib
