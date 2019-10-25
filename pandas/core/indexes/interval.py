@@ -1340,7 +1340,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         return self[mask]
 
-    def _setop(op_name, sort=None):
+    def _setop(op_name: str, sort=None):
         @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
