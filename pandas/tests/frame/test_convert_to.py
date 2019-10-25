@@ -13,11 +13,10 @@ from pandas import (
     Timestamp,
     date_range,
 )
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
 
-class TestDataFrameConvertTo(TestData):
+class TestDataFrameConvertTo:
     def test_to_dict_timestamp(self):
 
         # GH11247
