@@ -689,6 +689,39 @@ class SAS7BDATReader(BaseIterator):
 
         return False
 
+    @staticmethod
+    def _convert_dates(sas_dates):
+        try:
+            return pd.to_datetime(sas_dates, unit="d", origin="1960-01-01")
+        except OutOfBoundsDatetime:
+            # convert to datetime.datetime rather than np.datetime64
+            # NB generally better support in pandas for datetime than date
+            warn(
+                "SAS date > pandas.Timestamp.max, returning "
+                "datetime.datetime objects instead"
+            )
+            return sas_dates.apply(
+                lambda sas_date_float: datetime(1960, 1, 1)
+                + timedelta(days=sas_date_float)
+            )
+
+    @staticmethod
+    def _convert_datetimes(sas_datetimes):
+        try:
+            return pd.to_datetime(sas_datetimes, unit="s", origin="1960-01-01")
+        except OutOfBoundsDatetime:
+            # convert to datetime.datetime rather than np.datetime64
+            # SAS float64 lacks precision for more than ms resolution so the
+            # fit to datetime.datetime is ok
+            warn(
+                "SAS datetime > pandas.Timestamp.max, returning "
+                "datetime.datetime objects instead"
+            )
+            return sas_datetimes.apply(
+                lambda sas_dt_float: datetime(1960, 1, 1)
+                + timedelta(seconds=sas_dt_float)
+            )
+
     def _chunk_to_dataframe(self):
 
         n = self._current_row_in_chunk_index
@@ -705,38 +738,10 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
-                    warn_msg = (
-                        "date > pandas.Timestamp.max, returning "
-                        "datetime.datetime objects instead"
-                    )
                     if self.column_formats[j] in const.sas_date_formats:
-                        try:
-                            rslt[name] = pd.to_datetime(
-                                rslt[name], unit="d", origin="1960-01-01"
-                            )
-                        except OutOfBoundsDatetime:
-                            # convert to datetime.datetime rather than np.datetime64
-                            # nb generally better support in pandas for datetime than
-                            # date
-                            warn(warn_msg)
-                            rslt[name] = rslt[name].apply(
-                                lambda sas_date_float: datetime(1960, 1, 1)
-                                + timedelta(days=sas_date_float)
-                            )
+                        rslt[name] = self._convert_dates(rslt[name])
                     elif self.column_formats[j] in const.sas_datetime_formats:
-                        try:
-                            rslt[name] = pd.to_datetime(
-                                rslt[name], unit="s", origin="1960-01-01"
-                            )
-                        except OutOfBoundsDatetime:
-                            # convert to datetime.date rather than np.datetime64
-                            # SAS float64 lacks precision for more than ms
-                            # resolution so the fit to datetime.datetime is ok
-                            warn(warn_msg)
-                            rslt[name] = rslt[name].apply(
-                                lambda sas_date_float: datetime(1960, 1, 1)
-                                + timedelta(seconds=sas_date_float)
-                            )
+                        rslt[name] = self._convert_datetimes(rslt[name])
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = self._string_chunk[js, :]
