@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, Union
 
 from pandas._config import config
 
@@ -654,7 +654,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def supported_extensions(self):
+    def supported_extensions(self) -> Tuple[str, ...]:
         """Extensions that writer engine supports."""
         pass
 
@@ -729,6 +729,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
+        assert self.path is not None
         return _stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name: Optional[str]):
@@ -771,15 +772,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         return val, fmt
 
-    @classmethod
-    def check_extension(cls, ext):
+    def check_extension(self, ext):
         """checks that path's extension against the Writer's supported
         extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
         if ext.startswith("."):
             ext = ext[1:]
-        if not any(ext in extension for extension in cls.supported_extensions):
+        if not any(ext in extension for extension in self.supported_extensions):
             msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
+                engine=pprint_thing(self.engine), ext=pprint_thing(ext)
             )
             raise ValueError(msg)
         else:
@@ -817,7 +817,11 @@ class ExcelFile:
     from pandas.io.excel._openpyxl import _OpenpyxlReader
     from pandas.io.excel._xlrd import _XlrdReader
 
-    _engines = {"xlrd": _XlrdReader, "openpyxl": _OpenpyxlReader, "odf": _ODFReader}
+    _engines: Dict[str, Type[Union[_XlrdReader, _OpenpyxlReader, _ODFReader]]] = {
+        "xlrd": _XlrdReader,
+        "openpyxl": _OpenpyxlReader,
+        "odf": _ODFReader,
+    }
 
     def __init__(self, io, engine=None):
         if engine is None:

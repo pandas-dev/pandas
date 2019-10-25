@@ -1236,7 +1236,7 @@ class TestExcelWriterEngineTests:
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
-            supported_extensions = ["xlsx", "xls"]
+            supported_extensions = ("xlsx", "xls")
             engine = "dummy"
 
             def save(self):
