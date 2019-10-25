@@ -1551,7 +1551,7 @@ def test_period_immutable():
 @pytest.mark.xfail(
     # xpassing on MacPython with strict=False
     # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
-    platform.system() == 'Darwin',
+    platform.system() == "Darwin",
     reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
     strict=False,
 )
