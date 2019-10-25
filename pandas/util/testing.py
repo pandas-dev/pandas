@@ -1318,7 +1318,7 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     ...
-    AssertionError: Attributes of DataFrame.loc[:, 'b'] are different
+    AssertionError: Attributes of DataFrame.iloc[:, 1] (column name="b") are different
 
     Attribute "dtype" are different
     [left]:  int64
