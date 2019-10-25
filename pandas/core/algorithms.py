@@ -261,9 +261,9 @@ def _get_data_algo(values):
         if lib.infer_dtype(values, skipna=False) in ["string"]:
             ndtype = "string"
 
-    f = _hashtables.get(ndtype, _hashtables["object"])
+    htable = _hashtables.get(ndtype, _hashtables["object"])
 
-    return f, values
+    return htable, values
 
 
 # --------------- #
