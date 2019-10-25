@@ -446,12 +446,18 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
+            'S' otherwise.
         how : {'s', 'e', 'start', 'end'}
+            Convert to timestamp using start or end of period.
+        *args
+            Positional arguments passed.
+        **kwargs
+            Keyword arguments passed.
 
         Returns
         -------
         DatetimeArray/Index
+            As a timestamp.
         """
         from pandas.core.arrays import DatetimeArray
 
