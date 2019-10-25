@@ -15,12 +15,11 @@ from pandas import (
     date_range,
 )
 from pandas.api.types import CategoricalDtype
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameSorting(TestData):
+class TestDataFrameSorting:
     def test_sort_values(self):
         frame = DataFrame(
             [[1, 1, 2], [3, 1, 0], [4, 5, 6]], index=[1, 2, 3], columns=list("ABC")
@@ -295,8 +294,8 @@ class TestDataFrameSorting(TestData):
         df2 = df.sort_values(by=["C", "B"])
         assert_frame_equal(df1, df2)
 
-    def test_frame_column_inplace_sort_exception(self):
-        s = self.frame["A"]
+    def test_frame_column_inplace_sort_exception(self, float_frame):
+        s = float_frame["A"]
         with pytest.raises(ValueError, match="This Series is a view"):
             s.sort_values(inplace=True)
 
@@ -379,7 +378,7 @@ class TestDataFrameSorting(TestData):
         tm.assert_frame_equal(sorted_df, expected)
 
 
-class TestDataFrameSortIndexKinds(TestData):
+class TestDataFrameSortIndexKinds:
     def test_sort_index_multicolumn(self):
         A = np.arange(5).repeat(20)
         B = np.tile(np.arange(5), 20)

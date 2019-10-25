@@ -6,12 +6,11 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameReshape(TestData):
+class TestDataFrameReshape:
     def test_pivot(self):
         data = {
             "index": ["A", "B", "C", "C", "B", "A"],
@@ -101,8 +100,8 @@ class TestDataFrameReshape(TestData):
         expected.columns.name = "columns"
         tm.assert_frame_equal(result, expected)
 
-    def test_stack_unstack(self):
-        df = self.frame.copy()
+    def test_stack_unstack(self, float_frame):
+        df = float_frame.copy()
         df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
@@ -515,13 +514,13 @@ class TestDataFrameReshape(TestData):
 
         assert_frame_equal(result, expected)
 
-    def test_unstack_to_series(self):
+    def test_unstack_to_series(self, float_frame):
         # check reversibility
-        data = self.frame.unstack()
+        data = float_frame.unstack()
 
         assert isinstance(data, Series)
         undo = data.unstack().T
-        assert_frame_equal(undo, self.frame)
+        assert_frame_equal(undo, float_frame)
 
         # check NA handling
         data = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})

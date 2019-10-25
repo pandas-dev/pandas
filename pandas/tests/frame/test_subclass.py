@@ -3,11 +3,10 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
 
-class TestDataFrameSubclassing(TestData):
+class TestDataFrameSubclassing:
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632

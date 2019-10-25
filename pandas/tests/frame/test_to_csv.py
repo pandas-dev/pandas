@@ -19,7 +19,6 @@ from pandas import (
     to_datetime,
 )
 import pandas.core.common as com
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -44,37 +43,37 @@ MIXED_INT_DTYPES = [
 ]
 
 
-class TestDataFrameToCSV(TestData):
+class TestDataFrameToCSV:
     def read_csv(self, path, **kwargs):
         params = dict(index_col=0, parse_dates=True)
         params.update(**kwargs)
 
         return pd.read_csv(path, **params)
 
-    def test_to_csv_from_csv1(self):
+    def test_to_csv_from_csv1(self, float_frame, datetime_frame):
 
         with ensure_clean("__tmp_to_csv_from_csv1__") as path:
-            self.frame["A"][:5] = np.nan
+            float_frame["A"][:5] = np.nan
 
-            self.frame.to_csv(path)
-            self.frame.to_csv(path, columns=["A", "B"])
-            self.frame.to_csv(path, header=False)
-            self.frame.to_csv(path, index=False)
+            float_frame.to_csv(path)
+            float_frame.to_csv(path, columns=["A", "B"])
+            float_frame.to_csv(path, header=False)
+            float_frame.to_csv(path, index=False)
 
             # test roundtrip
-            self.tsframe.to_csv(path)
+            datetime_frame.to_csv(path)
             recons = self.read_csv(path)
-            assert_frame_equal(self.tsframe, recons)
+            assert_frame_equal(datetime_frame, recons)
 
-            self.tsframe.to_csv(path, index_label="index")
+            datetime_frame.to_csv(path, index_label="index")
             recons = self.read_csv(path, index_col=None)
 
-            assert len(recons.columns) == len(self.tsframe.columns) + 1
+            assert len(recons.columns) == len(datetime_frame.columns) + 1
 
             # no index
-            self.tsframe.to_csv(path, index=False)
+            datetime_frame.to_csv(path, index=False)
             recons = self.read_csv(path, index_col=None)
-            assert_almost_equal(self.tsframe.values, recons.values)
+            assert_almost_equal(datetime_frame.values, recons.values)
 
             # corner case
             dm = DataFrame(
@@ -88,7 +87,7 @@ class TestDataFrameToCSV(TestData):
             recons = self.read_csv(path)
             assert_frame_equal(dm, recons)
 
-    def test_to_csv_from_csv2(self):
+    def test_to_csv_from_csv2(self, float_frame):
 
         with ensure_clean("__tmp_to_csv_from_csv2__") as path:
 
@@ -109,16 +108,16 @@ class TestDataFrameToCSV(TestData):
 
             # column aliases
             col_aliases = Index(["AA", "X", "Y", "Z"])
-            self.frame2.to_csv(path, header=col_aliases)
+            float_frame.to_csv(path, header=col_aliases)
 
             rs = self.read_csv(path)
-            xp = self.frame2.copy()
+            xp = float_frame.copy()
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
 
             msg = "Writing 4 cols but got 2 aliases"
             with pytest.raises(ValueError, match=msg):
-                self.frame2.to_csv(path, header=["AA", "X"])
+                float_frame.to_csv(path, header=["AA", "X"])
 
     def test_to_csv_from_csv3(self):
 
@@ -153,22 +152,22 @@ class TestDataFrameToCSV(TestData):
 
             assert_frame_equal(df, result, check_index_type=True)
 
-    def test_to_csv_from_csv5(self):
+    def test_to_csv_from_csv5(self, timezone_frame):
 
         # tz, 8260
         with ensure_clean("__tmp_to_csv_from_csv5__") as path:
 
-            self.tzframe.to_csv(path)
+            timezone_frame.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=["A"])
 
             converter = (
                 lambda c: to_datetime(result[c])
                 .dt.tz_convert("UTC")
-                .dt.tz_convert(self.tzframe[c].dt.tz)
+                .dt.tz_convert(timezone_frame[c].dt.tz)
             )
             result["B"] = converter("B")
             result["C"] = converter("C")
-            assert_frame_equal(result, self.tzframe)
+            assert_frame_equal(result, timezone_frame)
 
     def test_to_csv_cols_reordering(self):
         # GH3454
@@ -493,37 +492,37 @@ class TestDataFrameToCSV(TestData):
                     cnlvl=2,
                 )
 
-    def test_to_csv_from_csv_w_some_infs(self):
+    def test_to_csv_from_csv_w_some_infs(self, float_frame):
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
-        self.frame["G"] = np.nan
+        float_frame["G"] = np.nan
         f = lambda x: [np.inf, np.nan][np.random.rand() < 0.5]
-        self.frame["H"] = self.frame.index.map(f)
+        float_frame["H"] = float_frame.index.map(f)
 
         with ensure_clean() as path:
-            self.frame.to_csv(path)
+            float_frame.to_csv(path)
             recons = self.read_csv(path)
 
             # TODO to_csv drops column name
-            assert_frame_equal(self.frame, recons, check_names=False)
+            assert_frame_equal(float_frame, recons, check_names=False)
             assert_frame_equal(
-                np.isinf(self.frame), np.isinf(recons), check_names=False
+                np.isinf(float_frame), np.isinf(recons), check_names=False
             )
 
-    def test_to_csv_from_csv_w_all_infs(self):
+    def test_to_csv_from_csv_w_all_infs(self, float_frame):
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
-        self.frame["E"] = np.inf
-        self.frame["F"] = -np.inf
+        float_frame["E"] = np.inf
+        float_frame["F"] = -np.inf
 
         with ensure_clean() as path:
-            self.frame.to_csv(path)
+            float_frame.to_csv(path)
             recons = self.read_csv(path)
 
             # TODO to_csv drops column name
-            assert_frame_equal(self.frame, recons, check_names=False)
+            assert_frame_equal(float_frame, recons, check_names=False)
             assert_frame_equal(
-                np.isinf(self.frame), np.isinf(recons), check_names=False
+                np.isinf(float_frame), np.isinf(recons), check_names=False
             )
 
     def test_to_csv_no_index(self):
@@ -563,9 +562,9 @@ class TestDataFrameToCSV(TestData):
             recons.reset_index(inplace=True)
             assert_frame_equal(to_df, recons)
 
-    def test_to_csv_multiindex(self):
+    def test_to_csv_multiindex(self, float_frame, datetime_frame):
 
-        frame = self.frame
+        frame = float_frame
         old_index = frame.index
         arrays = np.arange(len(old_index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
@@ -586,10 +585,10 @@ class TestDataFrameToCSV(TestData):
             assert frame.index.names == df.index.names
 
             # needed if setUp becomes a class method
-            self.frame.index = old_index
+            float_frame.index = old_index
 
             # try multiindex with dates
-            tsframe = self.tsframe
+            tsframe = datetime_frame
             old_index = tsframe.index
             new_index = [old_index, np.arange(len(old_index))]
             tsframe.index = MultiIndex.from_arrays(new_index)
@@ -608,10 +607,10 @@ class TestDataFrameToCSV(TestData):
             # no index
             tsframe.to_csv(path, index=False)
             recons = self.read_csv(path, index_col=None)
-            assert_almost_equal(recons.values, self.tsframe.values)
+            assert_almost_equal(recons.values, datetime_frame.values)
 
             # needed if setUp becomes class method
-            self.tsframe.index = old_index
+            datetime_frame.index = old_index
 
         with ensure_clean("__tmp_to_csv_multiindex__") as path:
             # GH3571, GH1651, GH3141
@@ -889,13 +888,13 @@ class TestDataFrameToCSV(TestData):
         df2 = read_csv(buf, index_col=0, encoding="UTF-8")
         assert_frame_equal(df, df2)
 
-    def test_to_csv_stringio(self):
+    def test_to_csv_stringio(self, float_frame):
         buf = StringIO()
-        self.frame.to_csv(buf)
+        float_frame.to_csv(buf)
         buf.seek(0)
         recons = read_csv(buf, index_col=0)
         # TODO to_csv drops column name
-        assert_frame_equal(recons, self.frame, check_names=False)
+        assert_frame_equal(recons, float_frame, check_names=False)
 
     def test_to_csv_float_format(self):
 
@@ -1013,14 +1012,14 @@ class TestDataFrameToCSV(TestData):
 
         assert res.getvalue() == exp.getvalue()
 
-    def test_to_csv_path_is_none(self):
+    def test_to_csv_path_is_none(self, float_frame):
         # GH 8215
         # Make sure we return string for consistency with
         # Series.to_csv()
-        csv_str = self.frame.to_csv(path_or_buf=None)
+        csv_str = float_frame.to_csv(path_or_buf=None)
         assert isinstance(csv_str, str)
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
-        assert_frame_equal(self.frame, recons)
+        assert_frame_equal(float_frame, recons)
 
     @pytest.mark.parametrize(
         "df,encoding",
@@ -1077,9 +1076,9 @@ class TestDataFrameToCSV(TestData):
             with tm.decompress_file(filename, compression) as fh:
                 assert_frame_equal(df, read_csv(fh, index_col=0, encoding=encoding))
 
-    def test_to_csv_date_format(self):
+    def test_to_csv_date_format(self, datetime_frame):
         with ensure_clean("__tmp_to_csv_date_format__") as path:
-            dt_index = self.tsframe.index
+            dt_index = datetime_frame.index
             datetime_frame = DataFrame(
                 {"A": dt_index, "B": dt_index.shift(1)}, index=dt_index
             )

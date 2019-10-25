@@ -17,7 +17,6 @@ from pandas import (
     period_range,
     to_datetime,
 )
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal,
@@ -33,12 +32,12 @@ def close_open_fixture(request):
     return request.param
 
 
-class TestDataFrameTimeSeriesMethods(TestData):
-    def test_diff(self):
-        the_diff = self.tsframe.diff(1)
+class TestDataFrameTimeSeriesMethods:
+    def test_diff(self, datetime_frame):
+        the_diff = datetime_frame.diff(1)
 
         assert_series_equal(
-            the_diff["A"], self.tsframe["A"] - self.tsframe["A"].shift(1)
+            the_diff["A"], datetime_frame["A"] - datetime_frame["A"].shift(1)
         )
 
         # int dtype
@@ -50,7 +49,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert rs.s[1] == 1
 
         # mixed numeric
-        tf = self.tsframe.astype("float32")
+        tf = datetime_frame.astype("float32")
         the_diff = tf.diff(1)
         assert_series_equal(the_diff["A"], tf["A"] - tf["A"].shift(1))
 
@@ -126,14 +125,14 @@ class TestDataFrameTimeSeriesMethods(TestData):
         result = df.diff()
         assert result[0].dtype == np.float64
 
-    def test_diff_neg_n(self):
-        rs = self.tsframe.diff(-1)
-        xp = self.tsframe - self.tsframe.shift(-1)
+    def test_diff_neg_n(self, datetime_frame):
+        rs = datetime_frame.diff(-1)
+        xp = datetime_frame - datetime_frame.shift(-1)
         assert_frame_equal(rs, xp)
 
-    def test_diff_float_n(self):
-        rs = self.tsframe.diff(1.0)
-        xp = self.tsframe.diff(1)
+    def test_diff_float_n(self, datetime_frame):
+        rs = datetime_frame.diff(1.0)
+        xp = datetime_frame.diff(1)
         assert_frame_equal(rs, xp)
 
     def test_diff_axis(self):
@@ -142,20 +141,20 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(df.diff(axis=1), DataFrame([[np.nan, 1.0], [np.nan, 1.0]]))
         assert_frame_equal(df.diff(axis=0), DataFrame([[np.nan, np.nan], [2.0, 2.0]]))
 
-    def test_pct_change(self):
-        rs = self.tsframe.pct_change(fill_method=None)
-        assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
+    def test_pct_change(self, datetime_frame):
+        rs = datetime_frame.pct_change(fill_method=None)
+        assert_frame_equal(rs, datetime_frame / datetime_frame.shift(1) - 1)
 
-        rs = self.tsframe.pct_change(2)
-        filled = self.tsframe.fillna(method="pad")
+        rs = datetime_frame.pct_change(2)
+        filled = datetime_frame.fillna(method="pad")
         assert_frame_equal(rs, filled / filled.shift(2) - 1)
 
-        rs = self.tsframe.pct_change(fill_method="bfill", limit=1)
-        filled = self.tsframe.fillna(method="bfill", limit=1)
+        rs = datetime_frame.pct_change(fill_method="bfill", limit=1)
+        filled = datetime_frame.fillna(method="bfill", limit=1)
         assert_frame_equal(rs, filled / filled.shift(1) - 1)
 
-        rs = self.tsframe.pct_change(freq="5D")
-        filled = self.tsframe.fillna(method="pad")
+        rs = datetime_frame.pct_change(freq="5D")
+        filled = datetime_frame.fillna(method="pad")
         assert_frame_equal(
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
@@ -181,17 +180,19 @@ class TestDataFrameTimeSeriesMethods(TestData):
             ("14B", 14, None, None),
         ],
     )
-    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
+    def test_pct_change_periods_freq(
+        self, datetime_frame, freq, periods, fill_method, limit
+    ):
         # GH 7292
-        rs_freq = self.tsframe.pct_change(
+        rs_freq = datetime_frame.pct_change(
             freq=freq, fill_method=fill_method, limit=limit
         )
-        rs_periods = self.tsframe.pct_change(
+        rs_periods = datetime_frame.pct_change(
             periods, fill_method=fill_method, limit=limit
         )
         assert_frame_equal(rs_freq, rs_periods)
 
-        empty_ts = DataFrame(index=self.tsframe.index, columns=self.tsframe.columns)
+        empty_ts = DataFrame(index=datetime_frame.index, columns=datetime_frame.columns)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
         rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
         assert_frame_equal(rs_freq, rs_periods)
@@ -249,39 +250,39 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
             assert (tmp["dates"].values == ex_vals).all()
 
-    def test_shift(self):
+    def test_shift(self, datetime_frame, int_frame):
         # naive shift
-        shiftedFrame = self.tsframe.shift(5)
-        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        shiftedFrame = datetime_frame.shift(5)
+        tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
 
-        shiftedSeries = self.tsframe["A"].shift(5)
+        shiftedSeries = datetime_frame["A"].shift(5)
         assert_series_equal(shiftedFrame["A"], shiftedSeries)
 
-        shiftedFrame = self.tsframe.shift(-5)
-        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        shiftedFrame = datetime_frame.shift(-5)
+        tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
 
-        shiftedSeries = self.tsframe["A"].shift(-5)
+        shiftedSeries = datetime_frame["A"].shift(-5)
         assert_series_equal(shiftedFrame["A"], shiftedSeries)
 
         # shift by 0
-        unshifted = self.tsframe.shift(0)
-        assert_frame_equal(unshifted, self.tsframe)
+        unshifted = datetime_frame.shift(0)
+        assert_frame_equal(unshifted, datetime_frame)
 
         # shift by DateOffset
-        shiftedFrame = self.tsframe.shift(5, freq=offsets.BDay())
-        assert len(shiftedFrame) == len(self.tsframe)
+        shiftedFrame = datetime_frame.shift(5, freq=offsets.BDay())
+        assert len(shiftedFrame) == len(datetime_frame)
 
-        shiftedFrame2 = self.tsframe.shift(5, freq="B")
+        shiftedFrame2 = datetime_frame.shift(5, freq="B")
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
-        d = self.tsframe.index[0]
+        d = datetime_frame.index[0]
         shifted_d = d + offsets.BDay(5)
         assert_series_equal(
-            self.tsframe.xs(d), shiftedFrame.xs(shifted_d), check_names=False
+            datetime_frame.xs(d), shiftedFrame.xs(shifted_d), check_names=False
         )
 
         # shift int frame
-        int_shifted = self.intframe.shift(1)  # noqa
+        int_shifted = int_frame.shift(1)  # noqa
 
         # Shifting with PeriodIndex
         ps = tm.makePeriodFrame()
@@ -387,7 +388,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(shifted[0], shifted[1])
         assert_frame_equal(shifted[0], shifted[2])
 
-    def test_tshift(self):
+    def test_tshift(self, datetime_frame):
         # PeriodIndex
         ps = tm.makePeriodFrame()
         shifted = ps.tshift(1)
@@ -405,36 +406,36 @@ class TestDataFrameTimeSeriesMethods(TestData):
             ps.tshift(freq="M")
 
         # DatetimeIndex
-        shifted = self.tsframe.tshift(1)
+        shifted = datetime_frame.tshift(1)
         unshifted = shifted.tshift(-1)
 
-        assert_frame_equal(self.tsframe, unshifted)
+        assert_frame_equal(datetime_frame, unshifted)
 
-        shifted2 = self.tsframe.tshift(freq=self.tsframe.index.freq)
+        shifted2 = datetime_frame.tshift(freq=datetime_frame.index.freq)
         assert_frame_equal(shifted, shifted2)
 
         inferred_ts = DataFrame(
-            self.tsframe.values,
-            Index(np.asarray(self.tsframe.index)),
-            columns=self.tsframe.columns,
+            datetime_frame.values,
+            Index(np.asarray(datetime_frame.index)),
+            columns=datetime_frame.columns,
         )
         shifted = inferred_ts.tshift(1)
         unshifted = shifted.tshift(-1)
-        assert_frame_equal(shifted, self.tsframe.tshift(1))
+        assert_frame_equal(shifted, datetime_frame.tshift(1))
         assert_frame_equal(unshifted, inferred_ts)
 
-        no_freq = self.tsframe.iloc[[0, 5, 7], :]
+        no_freq = datetime_frame.iloc[[0, 5, 7], :]
         msg = "Freq was not given and was not set in the index"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
 
-    def test_truncate(self):
-        ts = self.tsframe[::3]
+    def test_truncate(self, datetime_frame):
+        ts = datetime_frame[::3]
 
-        start, end = self.tsframe.index[3], self.tsframe.index[6]
+        start, end = datetime_frame.index[3], datetime_frame.index[6]
 
-        start_missing = self.tsframe.index[2]
-        end_missing = self.tsframe.index[7]
+        start_missing = datetime_frame.index[2]
+        end_missing = datetime_frame.index[7]
 
         # neither specified
         truncated = ts.truncate()
@@ -473,11 +474,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
                 before=ts.index[-1] - ts.index.freq, after=ts.index[0] + ts.index.freq
             )
 
-    def test_truncate_copy(self):
-        index = self.tsframe.index
-        truncated = self.tsframe.truncate(index[5], index[10])
+    def test_truncate_copy(self, datetime_frame):
+        index = datetime_frame.index
+        truncated = datetime_frame.truncate(index[5], index[10])
         truncated.values[:] = 5.0
-        assert not (self.tsframe.values[5:11] == 5).any()
+        assert not (datetime_frame.values[5:11] == 5).any()
 
     def test_truncate_nonsortedindex(self):
         # GH 17935
@@ -510,9 +511,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(ValueError, match=msg):
             df.truncate(before=2, after=20, axis=1)
 
-    def test_asfreq(self):
-        offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
-        rule_monthly = self.tsframe.asfreq("BM")
+    def test_asfreq(self, datetime_frame):
+        offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
+        rule_monthly = datetime_frame.asfreq("BM")
 
         tm.assert_almost_equal(offset_monthly["A"], rule_monthly["A"])
 
@@ -523,7 +524,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         filled_dep = rule_monthly.asfreq("B", method="pad")  # noqa
 
         # test does not blow up on length-0 DataFrame
-        zero_length = self.tsframe.reindex([])
+        zero_length = datetime_frame.reindex([])
         result = zero_length.asfreq("BM")
         assert result is not zero_length
 
@@ -569,13 +570,15 @@ class TestDataFrameTimeSeriesMethods(TestData):
             ({"A": [1, np.nan, 3]}, [1, 2, 2], 1, 2),
         ],
     )
-    def test_first_last_valid(self, data, idx, expected_first, expected_last):
-        N = len(self.frame.index)
+    def test_first_last_valid(
+        self, float_frame, data, idx, expected_first, expected_last
+    ):
+        N = len(float_frame.index)
         mat = np.random.randn(N)
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
-        frame = DataFrame({"foo": mat}, index=self.frame.index)
+        frame = DataFrame({"foo": mat}, index=float_frame.index)
         index = frame.first_valid_index()
 
         assert index == frame.index[5]
