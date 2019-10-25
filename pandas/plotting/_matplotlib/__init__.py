@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Dict, Type
 
-from pandas._config import get_option
-
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot,
     boxplot,
@@ -46,9 +44,6 @@ PLOT_CLASSES: Dict[str, Type["MPLPlot"]] = {
     "scatter": ScatterPlot,
     "hexbin": HexBinPlot,
 }
-
-if get_option("plotting.matplotlib.register_converters"):
-    register(explicit=False)
 
 
 def plot(data, kind, **kwargs):
