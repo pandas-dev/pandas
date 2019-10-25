@@ -15,6 +15,10 @@ jobs:
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
+        py36_minimum_versions:
+          ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
+          CONDA_PY: "36"
+          PATTERN: "not slow and not network"
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
