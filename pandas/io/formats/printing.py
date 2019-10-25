@@ -4,6 +4,7 @@ printing tools
 
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Iterable,
@@ -18,6 +19,9 @@ from typing import (
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
+
+if TYPE_CHECKING:
+    from pandas import MultiIndex  # noqa: F401
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 
@@ -495,7 +499,7 @@ def _justify(
 
 
 def format_object_attrs(
-    obj: Sequence, include_dtype: bool = True
+    obj: Union[Sequence, "MultiIndex"], include_dtype: bool = True
 ) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)

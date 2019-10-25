@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
-from typing import Dict, List, Sequence, Tuple, Union
+from typing import Dict, Hashable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -236,7 +236,7 @@ class MultiIndex(Index):
 
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
-    _names = FrozenList()
+    _names: List[Optional[Hashable]] = FrozenList()
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
@@ -832,7 +832,6 @@ class MultiIndex(Index):
         if validate and level is not None and len(codes) != len(level):
             raise ValueError("Length of codes must match length of levels.")
 
-        new_codes: Sequence
         if level is None:
             new_codes = FrozenList(
                 _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
@@ -840,13 +839,13 @@ class MultiIndex(Index):
             )
         else:
             level = [self._get_level_number(l) for l in level]
-            new_codes = list(self._codes)
+            new_codes_ = list(self._codes)
             for lev_idx, level_codes in zip(level, codes):
                 lev = self.levels[lev_idx]
-                new_codes[lev_idx] = _ensure_frozen(
+                new_codes_[lev_idx] = _ensure_frozen(
                     level_codes, lev, copy=copy
                 )._shallow_copy()
-            new_codes = FrozenList(new_codes)
+            new_codes = FrozenList(new_codes_)
 
         if verify_integrity:
             new_codes = self._verify_integrity(codes=new_codes)
