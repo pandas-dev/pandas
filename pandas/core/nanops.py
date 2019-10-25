@@ -705,13 +705,9 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     1.0
     """
     orig_dtype = values.dtype
-    if is_timedelta64_dtype(values.dtype):
-        # std is well-behaved, but var is not
-        if mask is None:
-            mask = isna(values)
-        else:
-            mask = mask | isna(values)
-        values = values.view("i8")
+    values, mask, dtype, dtype_max, fill_value = _get_values(
+        values, skipna, mask=mask
+    )
 
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
     return _wrap_results(result, orig_dtype)
