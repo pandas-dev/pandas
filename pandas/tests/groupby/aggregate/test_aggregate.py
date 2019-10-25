@@ -571,7 +571,6 @@ class TestLambdaMangling:
             }
         )
 
-        # sort for 35 and earlier
         columns = ["height_sqr_min", "height_max", "weight_max"]
         expected = pd.DataFrame(
             {
