@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np
 import pytest
 
 from pandas.compat import PY36
@@ -21,7 +21,7 @@ def import_module(name):
     if PY36:
         try:
             return importlib.import_module(name)
-        except ModuleNotFoundError:  # noqa
+        except ModuleNotFoundError:
             pytest.skip("skipping as {} not available".format(name))
 
     else:
@@ -40,8 +40,8 @@ def df():
 
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa
-    dask = import_module("dask")  # noqa
+    toolz = import_module("toolz")
+    dask = import_module("dask")
 
     import dask.dataframe as dd
 
@@ -53,7 +53,7 @@ def test_dask(df):
 @pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
-    xarray = import_module("xarray")  # noqa
+    xarray = import_module("xarray")
 
     assert df.to_xarray() is not None
 
@@ -68,7 +68,7 @@ def test_oo_optimizable():
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
@@ -80,7 +80,7 @@ def test_statsmodels():
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
-    sklearn = import_module("sklearn")  # noqa
+    sklearn = import_module("sklearn")
     from sklearn import svm, datasets
 
     digits = datasets.load_digits()
@@ -101,14 +101,14 @@ def test_seaborn():
 
 def test_pandas_gbq(df):
 
-    pandas_gbq = import_module("pandas_gbq")  # noqa
+    pandas_gbq = import_module("pandas_gbq")
 
 
 @pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 
-    pandas_datareader = import_module("pandas_datareader")  # noqa
+    pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
@@ -119,7 +119,7 @@ def test_pandas_datareader():
 @pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
-    geopandas = import_module("geopandas")  # noqa
+    geopandas = import_module("geopandas")
     fp = geopandas.datasets.get_path("naturalearth_lowres")
     assert geopandas.read_file(fp) is not None
 
@@ -149,7 +149,7 @@ def test_geopandas_coordinate_indexer():
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
-    pyarrow = import_module("pyarrow")  # noqa
+    pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)

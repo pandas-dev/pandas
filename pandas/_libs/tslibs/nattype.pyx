@@ -389,7 +389,7 @@ class NaTType(_NaT):
     # nan methods
     weekday = _make_nan_func('weekday', datetime.weekday.__doc__)
     isoweekday = _make_nan_func('isoweekday', datetime.isoweekday.__doc__)
-    month_name = _make_nan_func('month_name',  # noqa:E128
+    month_name = _make_nan_func('month_name',
         """
         Return the month name of the Timestamp with specified locale.
 
@@ -404,7 +404,7 @@ class NaTType(_NaT):
 
         .. versionadded:: 0.23.0
         """)
-    day_name = _make_nan_func('day_name',  # noqa:E128
+    day_name = _make_nan_func('day_name',
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -438,7 +438,7 @@ class NaTType(_NaT):
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
 
-    strptime = _make_error_func('strptime',  # noqa:E128
+    strptime = _make_error_func('strptime',
         """
         Timestamp.strptime(string, format)
 
@@ -446,28 +446,28 @@ class NaTType(_NaT):
         """
     )
 
-    utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
+    utcfromtimestamp = _make_error_func('utcfromtimestamp',
         """
         Timestamp.utcfromtimestamp(ts)
 
         Construct a naive UTC datetime from a POSIX timestamp.
         """
     )
-    fromtimestamp = _make_error_func('fromtimestamp',  # noqa:E128
+    fromtimestamp = _make_error_func('fromtimestamp',
         """
         Timestamp.fromtimestamp(ts)
 
         timestamp[, tz] -> tz's local time from POSIX timestamp.
         """
     )
-    combine = _make_error_func('combine',  # noqa:E128
+    combine = _make_error_func('combine',
         """
         Timestamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
     )
-    utcnow = _make_error_func('utcnow',  # noqa:E128
+    utcnow = _make_error_func('utcnow',
         """
         Timestamp.utcnow()
 
@@ -475,12 +475,12 @@ class NaTType(_NaT):
         """
     )
 
-    timestamp = _make_error_func('timestamp',  # noqa:E128
+    timestamp = _make_error_func('timestamp',
         """Return POSIX timestamp as float.""")
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
-    astimezone = _make_error_func('astimezone',  # noqa:E128
+    astimezone = _make_error_func('astimezone',
         """
         Convert tz-aware Timestamp to another time zone.
 
@@ -499,7 +499,7 @@ class NaTType(_NaT):
         TypeError
             If Timestamp is tz-naive.
         """)
-    fromordinal = _make_error_func('fromordinal',  # noqa:E128
+    fromordinal = _make_error_func('fromordinal',
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
@@ -517,14 +517,14 @@ class NaTType(_NaT):
         """)
 
     # _nat_methods
-    to_pydatetime = _make_nat_func('to_pydatetime',  # noqa:E128
+    to_pydatetime = _make_nat_func('to_pydatetime',
         """
         Convert a Timestamp object to a native Python datetime object.
 
         If warn=True, issue a warning if nanoseconds is nonzero.
         """)
 
-    now = _make_nat_func('now',  # noqa:E128
+    now = _make_nat_func('now',
         """
         Timestamp.now(tz=None)
 
@@ -536,7 +536,7 @@ class NaTType(_NaT):
         tz : str or timezone object, default None
             Timezone to localize to.
         """)
-    today = _make_nat_func('today',  # noqa:E128
+    today = _make_nat_func('today',
         """
         Timestamp.today(cls, tz=None)
 
@@ -549,7 +549,7 @@ class NaTType(_NaT):
         tz : str or timezone object, default None
             Timezone to localize to.
         """)
-    round = _make_nat_func('round',  # noqa:E128
+    round = _make_nat_func('round',
         """
         Round the Timestamp to the specified resolution.
 
@@ -590,7 +590,7 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
         """)
-    floor = _make_nat_func('floor',  # noqa:E128
+    floor = _make_nat_func('floor',
         """
         return a new Timestamp floored to this resolution.
 
@@ -627,7 +627,7 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
         """)
-    ceil = _make_nat_func('ceil',  # noqa:E128
+    ceil = _make_nat_func('ceil',
         """
         return a new Timestamp ceiled to this resolution.
 
@@ -665,7 +665,7 @@ timedelta}, default 'raise'
         ValueError if the freq cannot be converted.
         """)
 
-    tz_convert = _make_nat_func('tz_convert',  # noqa:E128
+    tz_convert = _make_nat_func('tz_convert',
         """
         Convert tz-aware Timestamp to another time zone.
 
@@ -684,7 +684,7 @@ timedelta}, default 'raise'
         TypeError
             If Timestamp is tz-naive.
         """)
-    tz_localize = _make_nat_func('tz_localize',  # noqa:E128
+    tz_localize = _make_nat_func('tz_localize',
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -749,7 +749,7 @@ default 'raise'
         TypeError
             If the Timestamp is tz-aware and tz is not None.
         """)
-    replace = _make_nat_func('replace',  # noqa:E128
+    replace = _make_nat_func('replace',
         """
         implements datetime.replace, handles nanoseconds.
 

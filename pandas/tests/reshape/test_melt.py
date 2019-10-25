@@ -569,7 +569,7 @@ class TestWideToLong:
         stubs = ["inc", "edu"]
 
         # TODO: unused?
-        df_long = pd.wide_to_long(df, stubs, i="id", j="age")  # noqa
+        df_long = pd.wide_to_long(df, stubs, i="id", j="age")
 
         assert stubs == ["inc", "edu"]
 

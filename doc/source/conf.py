@@ -144,7 +144,7 @@ copyright = "2008-2014, the pandas development team"
 # built documents.
 #
 # The short X.Y version.
-import pandas  # noqa: E402 isort:skip
+import pandas
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
@@ -435,14 +435,14 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx  # noqa: E402 isort:skip
-from sphinx.util import rpartition  # noqa: E402 isort:skip
-from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+import sphinx
+from sphinx.util import rpartition
+from sphinx.ext.autodoc import (
     AttributeDocumenter,
     Documenter,
     MethodDocumenter,
 )
-from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
+from sphinx.ext.autosummary import Autosummary
 
 
 class AccessorDocumenter(MethodDocumenter):

@@ -307,7 +307,7 @@ Enhancements
       Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
       Minor_axis axis: A to D
 
-      In [37]: result['ItemA']                           # noqa E999
+      In [37]: result['ItemA']
       Out[37]:
                         A         B         C         D
       2000-01-03 -0.535778  1.500802 -1.506416 -0.681456

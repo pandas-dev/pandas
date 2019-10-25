@@ -1115,7 +1115,7 @@ class TestStata:
 
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)
@@ -1201,7 +1201,7 @@ class TestStata:
         )
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)

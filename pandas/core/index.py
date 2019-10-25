@@ -1,4 +1,4 @@
-from pandas.core.indexes.api import (  # noqa:F401
+from pandas.core.indexes.api import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -22,4 +22,4 @@ from pandas.core.indexes.api import (  # noqa:F401
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.multi import _sparsify  # noqa:F401
+from pandas.core.indexes.multi import _sparsify

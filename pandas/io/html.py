@@ -843,7 +843,7 @@ def _parser_dispatch(flavor):
         if not _HAS_BS4:
             raise ImportError("BeautifulSoup4 (bs4) not found, please install it")
         # Although we call this above, we want to raise here right before use.
-        bs4 = import_optional_dependency("bs4")  # noqa:F841
+        bs4 = import_optional_dependency("bs4")
 
     else:
         if not _HAS_LXML:

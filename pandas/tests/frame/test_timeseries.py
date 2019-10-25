@@ -281,7 +281,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         )
 
         # shift int frame
-        int_shifted = self.intframe.shift(1)  # noqa
+        int_shifted = self.intframe.shift(1)
 
         # Shifting with PeriodIndex
         ps = tm.makePeriodFrame()
@@ -516,11 +516,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         tm.assert_almost_equal(offset_monthly["A"], rule_monthly["A"])
 
-        filled = rule_monthly.asfreq("B", method="pad")  # noqa
+        filled = rule_monthly.asfreq("B", method="pad")
         # TODO: actually check that this worked.
 
         # don't forget!
-        filled_dep = rule_monthly.asfreq("B", method="pad")  # noqa
+        filled_dep = rule_monthly.asfreq("B", method="pad")
 
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
@@ -944,7 +944,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
             df4 = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
 
             # TODO: untested
-            df5 = getattr(df4, fn)("US/Pacific", level=1)  # noqa
+            df5 = getattr(df4, fn)("US/Pacific", level=1)
 
             assert_index_equal(df3.index.levels[0], l0)
             assert not df3.index.levels[0].equals(l0_expected)

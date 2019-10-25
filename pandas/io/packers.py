@@ -61,7 +61,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas import (  # noqa:F401
+from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -132,7 +132,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         "It is recommended to use pyarrow for on-the-wire "
         "transmission of pandas objects.\n"
         "For a full example, check\n"
-        "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_msgpack.html",  # noqa: E501
+        "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_msgpack.html",
         FutureWarning,
         stacklevel=3,
     )

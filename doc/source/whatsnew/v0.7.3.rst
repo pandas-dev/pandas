@@ -23,7 +23,7 @@ New features
 .. code-block:: python
 
    from pandas.tools.plotting import scatter_matrix
-   scatter_matrix(df, alpha=0.2)        # noqa F821
+   scatter_matrix(df, alpha=0.2)
 
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
@@ -31,12 +31,12 @@ New features
 
 .. code-block:: python
 
-   df.plot(kind='bar', stacked=True)    # noqa F821
+   df.plot(kind='bar', stacked=True)
 
 
 .. code-block:: python
 
-   df.plot(kind='barh', stacked=True)   # noqa F821
+   df.plot(kind='barh', stacked=True)
 
 
 - Add log x and y :ref:`scaling options <visualization.basic>` to

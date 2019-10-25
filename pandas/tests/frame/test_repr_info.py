@@ -30,17 +30,17 @@ import pandas.io.formats.format as fmt
 class TestDataFrameReprInfoEtc(TestData):
     def test_repr_empty(self):
         # empty
-        foo = repr(self.empty)  # noqa
+        foo = repr(self.empty)
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
-        foo = repr(frame)  # noqa
+        foo = repr(frame)
 
     def test_repr_mixed(self):
         buf = StringIO()
 
         # mixed
-        foo = repr(self.mixed_frame)  # noqa
+        foo = repr(self.mixed_frame)
         self.mixed_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
@@ -52,7 +52,7 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie.loc[:20, "A"] = np.nan
         biggie.loc[:20, "B"] = np.nan
 
-        foo = repr(biggie)  # noqa
+        foo = repr(biggie)
 
     def test_repr(self):
         buf = StringIO()
@@ -69,7 +69,7 @@ class TestDataFrameReprInfoEtc(TestData):
 
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
-        foo = repr(no_index)  # noqa
+        foo = repr(no_index)
 
         # no columns or index
         self.empty.info(buf=buf)
@@ -131,7 +131,7 @@ class TestDataFrameReprInfoEtc(TestData):
         uval = "\u03c3\u03c3\u03c3\u03c3"
 
         # TODO(wesm): is this supposed to be used?
-        bval = uval.encode("utf-8")  # noqa
+        bval = uval.encode("utf-8")
 
         df = DataFrame({"A": [uval, uval]})
 

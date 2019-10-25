@@ -237,7 +237,7 @@ class TestDataFrameAlterAxes:
         # cannot drop the same column twice;
         # use "is" because == would give ambiguous Boolean error for containers
         first_drop = (
-            False if (keys[0] is "A" and keys[1] is "A") else drop  # noqa: F632
+            False if (keys[0] is "A" and keys[1] is "A") else drop
         )
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise

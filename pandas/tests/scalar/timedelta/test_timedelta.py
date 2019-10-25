@@ -781,8 +781,8 @@ class TestTimedeltas:
         list_of_strings = ["00:00:01", np.nan, pd.NaT, timedelta_NaT]
 
         # TODO: unused?
-        a = pd.to_timedelta(list_of_strings)  # noqa
-        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+        a = pd.to_timedelta(list_of_strings)
+        b = Series(list_of_strings).apply(pd.to_timedelta)
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
 

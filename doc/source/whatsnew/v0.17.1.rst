@@ -80,7 +80,7 @@ Enhancements
 
   .. ipython:: python
 
-     df = pd.DataFrame({'A': ['foo'] * 1000})  # noqa: F821
+     df = pd.DataFrame({'A': ['foo'] * 1000})
      df['B'] = df['A'].astype('category')
 
      # shows the '+' as we have object dtypes

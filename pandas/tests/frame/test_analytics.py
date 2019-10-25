@@ -883,7 +883,7 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("median", float_frame, float_string_frame)
 
         try:
-            from scipy.stats import skew, kurtosis  # noqa:F401
+            from scipy.stats import skew, kurtosis
 
             assert_stat_op_api("skew", float_frame, float_string_frame)
             assert_stat_op_api("kurt", float_frame, float_string_frame)
@@ -910,14 +910,14 @@ class TestDataFrameAnalytics:
             return np.std(x, ddof=1) / np.sqrt(len(x))
 
         def skewness(x):
-            from scipy.stats import skew  # noqa:F811
+            from scipy.stats import skew
 
             if len(x) < 3:
                 return np.nan
             return skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis  # noqa:F811
+            from scipy.stats import kurtosis
 
             if len(x) < 4:
                 return np.nan
@@ -962,7 +962,7 @@ class TestDataFrameAnalytics:
         )
 
         try:
-            from scipy import skew, kurtosis  # noqa:F401
+            from scipy import skew, kurtosis
 
             assert_stat_op_calc("skew", skewness, float_frame_with_na)
             assert_stat_op_calc("kurt", kurt, float_frame_with_na)
@@ -1477,7 +1477,7 @@ class TestDataFrameAnalytics:
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5), index=range(4), columns=range(5))
         # ?(wesm)
-        result = dm.cumsum()  # noqa
+        result = dm.cumsum()
 
     def test_cumsum(self, datetime_frame):
         datetime_frame.loc[5:10, 0] = np.nan
@@ -1496,7 +1496,7 @@ class TestDataFrameAnalytics:
 
         # works
         df = DataFrame({"A": np.arange(20)}, index=np.arange(20))
-        result = df.cumsum()  # noqa
+        result = df.cumsum()
 
         # fix issue
         cumsum_xs = datetime_frame.cumsum(axis=1)
@@ -1548,7 +1548,7 @@ class TestDataFrameAnalytics:
 
         # it works
         df = DataFrame({"A": np.arange(20)}, index=np.arange(20))
-        result = df.cummin()  # noqa
+        result = df.cummin()
 
         # fix issue
         cummin_xs = datetime_frame.cummin(axis=1)
@@ -1571,7 +1571,7 @@ class TestDataFrameAnalytics:
 
         # it works
         df = DataFrame({"A": np.arange(20)}, index=np.arange(20))
-        result = df.cummax()  # noqa
+        result = df.cummax()
 
         # fix issue
         cummax_xs = datetime_frame.cummax(axis=1)
@@ -2140,7 +2140,7 @@ class TestDataFrameAnalytics:
         nan_round_Series = Series({"col1": np.nan, "col2": 1})
 
         # TODO(wesm): unused?
-        expected_nan_round = DataFrame(  # noqa
+        expected_nan_round = DataFrame(
             {"col1": [1.123, 2.123, 3.123], "col2": [1.2, 2.2, 3.2]}
         )
 
@@ -2462,7 +2462,7 @@ class TestDataFrameAnalytics:
         A = DataFrame(a)
 
         # TODO(wesm): unused
-        B = DataFrame(b)  # noqa
+        B = DataFrame(b)
 
         # it works
         result = A.dot(b)

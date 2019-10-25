@@ -596,7 +596,7 @@ class TestDataFrameSelectReindex:
         diff_a_vals = af.reindex(diff_a).values
 
         # TODO(wesm): unused?
-        diff_b_vals = bf.reindex(diff_b).values  # noqa
+        diff_b_vals = bf.reindex(diff_b).values
 
         assert (diff_a_vals == -1).all()
 

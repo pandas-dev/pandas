@@ -385,7 +385,7 @@ def is_uniform_join_units(join_units):
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)
-        and  # noqa
+        and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
         all(not ju.is_na or ju.block.is_extension for ju in join_units)

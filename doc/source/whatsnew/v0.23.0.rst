@@ -8,7 +8,7 @@ What's new in 0.23.0 (May 15, 2018)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *
 
 
 This is a major release from 0.22.0 and includes a number of API changes,

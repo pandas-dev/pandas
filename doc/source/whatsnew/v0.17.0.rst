@@ -170,7 +170,7 @@ As a result of this change, these methods are now all discoverable via tab-compl
 .. ipython::
     :verbatim:
 
-    In [15]: df.plot.<TAB>  # noqa: E225, E999
+    In [15]: df.plot.<TAB>
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 

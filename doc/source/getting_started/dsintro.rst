@@ -882,5 +882,5 @@ completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
 
-    In [5]: df.fo<TAB>  # noqa: E225, E999
+    In [5]: df.fo<TAB>
     df.foo1  df.foo2

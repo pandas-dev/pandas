@@ -407,4 +407,4 @@ class ParseDateComparison(StringIORewind):
         to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
 
 
-from ..pandas_vb_common import setup  # noqa: F401 isort:skip
+from ..pandas_vb_common import setup

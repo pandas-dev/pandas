@@ -1112,7 +1112,7 @@ class TestTypeInference:
             record = namedtuple("record", "x y")
             r = record(5, 6)
             values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
+            result = lib.to_object_array_tuples(values)
         except ImportError:
             pass
 
@@ -1416,7 +1416,7 @@ def test_nan_to_nat_conversions():
 
 @td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-def test_is_scipy_sparse(spmatrix):  # noqa: F811
+def test_is_scipy_sparse(spmatrix):
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

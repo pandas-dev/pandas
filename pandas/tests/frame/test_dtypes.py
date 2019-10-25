@@ -575,14 +575,14 @@ class TestDataFrameDataTypes:
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        casted = tf.astype(np.int64, copy=False)  # noqa
+        casted = tf.astype(np.int64, copy=False)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
 
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
 
         casted = tf.astype(np.int64)
-        casted = tf.astype(np.float32)  # noqa
+        casted = tf.astype(np.float32)
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])

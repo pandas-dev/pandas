@@ -58,7 +58,7 @@ from pandas.util.testing import (
         )
         for engine in _engines
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
@@ -687,7 +687,7 @@ class TestEvalNumexprPandas:
         exprs += ("2 * x > 2 or 1 and 2",)
         exprs += ("2 * df > 3 and 1 or a",)
 
-        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))  # noqa
+        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))
         for ex in exprs:
             with pytest.raises(NotImplementedError):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -720,7 +720,7 @@ class TestEvalNumexprPandas:
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         assert result.shape == (1,)
 
-        x = np.array([False])  # noqa
+        x = np.array([False])
         result = pd.eval("x", engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         assert result.shape == (1,)
@@ -1204,7 +1204,7 @@ class TestOperationsNumExprPandas:
     def test_truediv(self):
         s = np.array([1])
         ex = "s / 1"
-        d = {"s": s}  # noqa
+        d = {"s": s}
 
         res = self.eval(ex, truediv=False)
         tm.assert_numpy_array_equal(res, np.array([1.0]))
@@ -1229,7 +1229,7 @@ class TestOperationsNumExprPandas:
         assert res == expec
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))
         with pytest.raises(NameError):
             self.eval("df[x > 2] > 2")
 
@@ -1296,7 +1296,7 @@ class TestOperationsNumExprPandas:
         # with a local name overlap
         def f():
             df = orig_df.copy()
-            a = 1  # noqa
+            a = 1
             df.eval("a = 1 + b", inplace=True)
             return df
 
@@ -1308,7 +1308,7 @@ class TestOperationsNumExprPandas:
         df = orig_df.copy()
 
         def f():
-            a = 1  # noqa
+            a = 1
             old_a = df.a.copy()
             df.eval("a = a + b", inplace=True)
             result = old_a + df.b
@@ -1620,7 +1620,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         cls.arith_ops = filter(lambda x: x not in ("in", "not in"), cls.arith_ops)
 
     def test_check_many_exprs(self):
-        a = 1  # noqa
+        a = 1
         expr = " * ".join("a" * 33)
         expected = 1
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -1660,13 +1660,13 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
             )
 
     def test_fails_ampersand(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))
         ex = "(df + 2)[df > 1] > 0 & (df > 0)"
         with pytest.raises(NotImplementedError):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))
         ex = "(df + 2)[df > 1] > 0 | (df > 0)"
         with pytest.raises(NotImplementedError):
             pd.eval(ex, parser=self.parser, engine=self.engine)
@@ -1856,7 +1856,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1864,7 +1864,7 @@ class TestScope:
         assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         gbls = globals().copy()
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1917,7 +1917,7 @@ def test_name_error_exprs(engine, parser):
 
 
 def test_invalid_local_variable_reference(engine, parser):
-    a, b = 1, 2  # noqa
+    a, b = 1, 2
     exprs = "a + @b", "@a + b", "@a + @b"
 
     for _expr in exprs:
@@ -1963,9 +1963,9 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    mid = gen[lhs]()
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = "lhs {0} mid {1} rhs".format(cmp, cmp)
     ex2 = "lhs {0} mid and mid {1} rhs".format(cmp, cmp)

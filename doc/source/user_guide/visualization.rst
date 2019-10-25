@@ -129,7 +129,7 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
 
     In [14]: df = pd.DataFrame()
 
-    In [15]: df.plot.<TAB>  # noqa: E225, E999
+    In [15]: df.plot.<TAB>
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 

@@ -188,7 +188,7 @@ class TestFactorize:
         na_sentinel = -1
 
         # TODO(wesm): unused?
-        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)  # noqa
+        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)
 
         expected = np.array([2, -1, 0], dtype="int32")
         assert len(set(key)) == len(set(expected))
@@ -1585,7 +1585,7 @@ class TestHashTable:
     def test_hashtable_large_sizehint(self, hashtable):
         # GH 22729
         size_hint = np.iinfo(np.uint32).max + 1
-        tbl = hashtable(size_hint=size_hint)  # noqa
+        tbl = hashtable(size_hint=size_hint)
 
 
 def test_quantile():

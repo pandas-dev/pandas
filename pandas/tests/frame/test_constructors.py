@@ -84,8 +84,8 @@ class TestDataFrameConstructors:
         index, data = tm.getMixedTypeDict()
 
         # TODO(wesm), incomplete test?
-        indexed_frame = DataFrame(data, index=index)  # noqa
-        unindexed_frame = DataFrame(data)  # noqa
+        indexed_frame = DataFrame(data, index=index)
+        unindexed_frame = DataFrame(data)
 
         assert float_string_frame["foo"].dtype == np.object_
 
@@ -2035,7 +2035,7 @@ class TestDataFrameConstructors:
         arr[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
         # TODO(wesm): unused
-        frame = DataFrame.from_records(arr)  # noqa
+        frame = DataFrame.from_records(arr)
 
         index = pd.Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
@@ -2132,7 +2132,7 @@ class TestDataFrameConstructors:
         columns = ["a", "b", "c"]
         original_columns = list(columns)
 
-        df = DataFrame.from_records(tuples, columns=columns, index="a")  # noqa
+        df = DataFrame.from_records(tuples, columns=columns, index="a")
 
         assert columns == original_columns
 

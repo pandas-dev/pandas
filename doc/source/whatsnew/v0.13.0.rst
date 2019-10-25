@@ -776,12 +776,12 @@ Experimental
      :suppress:
 
      try:
-         del a  # noqa: F821
+         del a
      except NameError:
          pass
 
      try:
-         del b  # noqa: F821
+         del b
      except NameError:
          pass
 
@@ -798,17 +798,17 @@ Experimental
      :suppress:
 
      try:
-         del a  # noqa: F821
+         del a
      except NameError:
          pass
 
      try:
-         del b  # noqa: F821
+         del b
      except NameError:
          pass
 
      try:
-         del c  # noqa: F821
+         del c
      except NameError:
          pass
 

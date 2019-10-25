@@ -27,7 +27,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 def _skip_if_no_pchip():
     try:
-        from scipy.interpolate import pchip_interpolate  # noqa
+        from scipy.interpolate import pchip_interpolate
     except ImportError:
         import pytest
 
@@ -36,7 +36,7 @@ def _skip_if_no_pchip():
 
 def _skip_if_no_akima():
     try:
-        from scipy.interpolate import Akima1DInterpolator  # noqa
+        from scipy.interpolate import Akima1DInterpolator
     except ImportError:
         import pytest
 

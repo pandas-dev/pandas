@@ -52,8 +52,8 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+from pandas.io import pytables as pytables
+from pandas.io.pytables import TableIterator
 
 
 _default_compressor = "blosc"
@@ -410,7 +410,7 @@ class TestHDFStore:
                 # context
                 if mode in ["r", "r+"]:
                     with pytest.raises(IOError):
-                        with HDFStore(path, mode=mode) as store:  # noqa
+                        with HDFStore(path, mode=mode) as store:
                             pass
                 else:
                     with HDFStore(path, mode=mode) as store:
@@ -2225,12 +2225,12 @@ class TestHDFStore:
             store.put("df", df, format="table")
             expected = df[df.index > pd.Timestamp("20130105")]
 
-            import datetime  # noqa
+            import datetime
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
             assert_frame_equal(result, expected)
 
-            from datetime import datetime  # noqa
+            from datetime import datetime
 
             # technically an error, but allow it
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
@@ -2656,14 +2656,14 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.append("df", df, data_columns=True)
 
-            expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
+            expected = df[df.boolv == True].reindex(columns=["A", "boolv"])
             for v in [True, "true", 1]:
                 result = store.select(
                     "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
                 )
                 tm.assert_frame_equal(expected, result)
 
-            expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
+            expected = df[df.boolv == False].reindex(columns=["A", "boolv"])
             for v in [False, "false", 0]:
                 result = store.select(
                     "df", "boolv == {v!s}".format(v=v), columns=["A", "boolv"]
@@ -2737,7 +2737,7 @@ class TestHDFStore:
             expected = df[df["A"] > 0]
 
             store.append("df", df, data_columns=True)
-            np_zero = np.float64(0)  # noqa
+            np_zero = np.float64(0)
             result = store.select("df", where=["A>np_zero"])
             tm.assert_frame_equal(expected, result)
 
@@ -3266,7 +3266,7 @@ class TestHDFStore:
             expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
             # scope with list like
-            l = selection.index.tolist()  # noqa
+            l = selection.index.tolist()
             store = HDFStore(hh)
             result = store.select("df", where="l1=l")
             assert_frame_equal(result, expected)
@@ -3276,7 +3276,7 @@ class TestHDFStore:
             assert_frame_equal(result, expected)
 
             # index
-            index = selection.index  # noqa
+            index = selection.index
             result = read_hdf(hh, "df", where="l1=index")
             assert_frame_equal(result, expected)
 
@@ -4465,7 +4465,7 @@ class TestHDFStore:
             )
             cols2load = list("BCD")
             cols2load_original = list(cols2load)
-            df_loaded = read_hdf(path, "df", columns=cols2load)  # noqa
+            df_loaded = read_hdf(path, "df", columns=cols2load)
             assert cols2load_original == cols2load
 
     @ignore_natural_naming_warning
@@ -4666,7 +4666,7 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
-            ts = pd.Timestamp("2014-01-01")  # noqa
+            ts = pd.Timestamp("2014-01-01")
             result = store.select("test", where="real_date > ts")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)

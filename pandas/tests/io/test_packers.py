@@ -39,14 +39,14 @@ from pandas.io.packers import read_msgpack, to_msgpack
 nan = np.nan
 
 try:
-    import blosc  # NOQA
+    import blosc
 except ImportError:
     _BLOSC_INSTALLED = False
 else:
     _BLOSC_INSTALLED = True
 
 try:
-    import zlib  # NOQA
+    import zlib
 except ImportError:
     _ZLIB_INSTALLED = False
 else:

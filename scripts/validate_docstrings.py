@@ -41,20 +41,20 @@ except ImportError:
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ["MPLBACKEND"] = "Template"
-import matplotlib  # noqa: E402 isort:skip
+import matplotlib
 
 matplotlib.rc("figure", max_open_warning=10000)
 
-import numpy  # noqa: E402 isort:skip
+import numpy
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas  # noqa: E402 isort:skip
+import pandas
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.docscrape import NumpyDocString  # noqa: E402 isort:skip
-from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
+from numpydoc.docscrape import NumpyDocString
+from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -611,8 +611,8 @@ class Docstring:
         # that do not user numpy or pandas
         content = "".join(
             (
-                "import numpy as np  # noqa: F401\n",
-                "import pandas as pd  # noqa: F401\n",
+                "import numpy as np \n",
+                "import pandas as pd \n",
                 *self.examples_source_code,
             )
         )

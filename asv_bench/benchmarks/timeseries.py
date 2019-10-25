@@ -428,4 +428,4 @@ class DatetimeAccessor:
         self.series.dt.year
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from .pandas_vb_common import setup

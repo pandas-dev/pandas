@@ -250,7 +250,7 @@ These object provide tab-completion of the available methods and properties.
 
 .. code-block:: ipython
 
-   In [14]: r.<TAB>                                          # noqa: E225, E999
+   In [14]: r.<TAB>
    r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
    r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
 

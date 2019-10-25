@@ -631,7 +631,7 @@ def test_indexing_unordered():
 
     for t in ts.index:
         # TODO: unused?
-        s = str(t)  # noqa
+        s = str(t)
 
         expected = ts[t]
         result = ts2[t]

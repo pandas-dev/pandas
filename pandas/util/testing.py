@@ -16,7 +16,7 @@ import zipfile
 import numpy as np
 from numpy.random import rand, randn
 
-from pandas._config.localization import (  # noqa:F401
+from pandas._config.localization import (
     can_set_locale,
     get_locales,
     set_locale,

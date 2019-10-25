@@ -292,20 +292,20 @@ class TestIndexOps(Ops):
                 o[0] = np.nan
 
                 # noinspection PyComparisonWithNone
-                result = o == None  # noqa
+                result = o == None
                 assert not result.iat[0]
                 assert not result.iat[1]
 
                 # noinspection PyComparisonWithNone
-                result = o != None  # noqa
+                result = o != None
                 assert result.iat[0]
                 assert result.iat[1]
 
-                result = None == o  # noqa
+                result = None == o
                 assert not result.iat[0]
                 assert not result.iat[1]
 
-                result = None != o  # noqa
+                result = None != o
                 assert result.iat[0]
                 assert result.iat[1]
 

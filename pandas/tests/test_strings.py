@@ -1884,7 +1884,7 @@ class TestStringMethods:
         digit_e = [False, False, False, True, False, False, False, True, False, False]
 
         # TODO: unused
-        num_e = [  # noqa
+        num_e = [
             False,
             False,
             False,

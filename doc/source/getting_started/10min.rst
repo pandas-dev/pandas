@@ -65,7 +65,7 @@ will be completed:
 .. ipython::
 
    @verbatim
-   In [1]: df2.<TAB>  # noqa: E225, E999
+   In [1]: df2.<TAB>
    df2.A                  df2.bool
    df2.abs                df2.boxplot
    df2.add                df2.C

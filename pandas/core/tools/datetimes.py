@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import tslib, tslibs
 from pandas._libs.tslibs import Timestamp, conversion, parsing
-from pandas._libs.tslibs.parsing import (  # noqa
+from pandas._libs.tslibs.parsing import (
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,

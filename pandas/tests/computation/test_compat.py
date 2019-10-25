@@ -30,7 +30,7 @@ def test_compat():
 @pytest.mark.parametrize("parser", expr._parsers)
 def test_invalid_numexpr_version(engine, parser):
     def testit():
-        a, b = 1, 2  # noqa
+        a, b = 1, 2
         res = pd.eval("a + b", engine=engine, parser=parser)
         assert res == 3
 

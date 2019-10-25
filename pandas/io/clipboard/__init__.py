@@ -72,14 +72,14 @@ def determine_clipboard():
             # qtpy is a small abstraction layer that lets you write
             # applications using a single api call to either PyQt or PySide
             # https://pypi.org/project/QtPy
-            import qtpy  # noqa
+            import qtpy
         except ImportError:
             # If qtpy isn't installed, fall back on importing PyQt5, or PyQt5
             try:
-                import PyQt5  # noqa
+                import PyQt5
             except ImportError:
                 try:
-                    import PyQt4  # noqa
+                    import PyQt4
                 except ImportError:
                     pass  # fail fast for all non-ImportError exceptions.
                 else:

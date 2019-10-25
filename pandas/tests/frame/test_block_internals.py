@@ -73,7 +73,7 @@ class TestDataFrameBlockInternals:
         assert len(float_frame._data.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
-        frame = float_frame.copy()  # noqa
+        frame = float_frame.copy()
 
         # triggers in-place consolidation
         for letter in range(ord("A"), ord("Z")):
@@ -82,7 +82,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._data.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._data.is_consolidated()
 
     def test_modify_values(self, float_frame):
@@ -409,8 +409,8 @@ starting,ending,measure
 
     def test_get_numeric_data(self):
         # TODO(wesm): unused?
-        intname = np.dtype(np.int_).name  # noqa
-        floatname = np.dtype(np.float_).name  # noqa
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
 
         datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
@@ -572,8 +572,8 @@ starting,ending,measure
             Y["e"] = Y["e"].astype("object")
             Y["g"]["c"] = np.NaN
             repr(Y)
-            result = Y.sum()  # noqa
-            exp = Y["g"].sum()  # noqa
+            result = Y.sum()
+            exp = Y["g"].sum()
             assert pd.isna(Y["g"]["c"])
 
     def test_get_X_columns(self):

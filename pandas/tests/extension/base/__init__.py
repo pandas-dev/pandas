@@ -40,21 +40,21 @@ by defining the staticmethods ``assert_frame_equal`` and
 ``assert_series_equal`` on your base test class.
 
 """
-from .casting import BaseCastingTests  # noqa
-from .constructors import BaseConstructorsTests  # noqa
-from .dtype import BaseDtypeTests  # noqa
-from .getitem import BaseGetitemTests  # noqa
-from .groupby import BaseGroupbyTests  # noqa
-from .interface import BaseInterfaceTests  # noqa
-from .io import BaseParsingTests  # noqa
-from .methods import BaseMethodsTests  # noqa
-from .missing import BaseMissingTests  # noqa
-from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil  # noqa
-from .printing import BasePrintingTests  # noqa
-from .reduce import (  # noqa
+from .casting import BaseCastingTests
+from .constructors import BaseConstructorsTests
+from .dtype import BaseDtypeTests
+from .getitem import BaseGetitemTests
+from .groupby import BaseGroupbyTests
+from .interface import BaseInterfaceTests
+from .io import BaseParsingTests
+from .methods import BaseMethodsTests
+from .missing import BaseMissingTests
+from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil
+from .printing import BasePrintingTests
+from .reduce import (
     BaseBooleanReduceTests,
     BaseNoReduceTests,
     BaseNumericReduceTests,
 )
-from .reshaping import BaseReshapingTests  # noqa
-from .setitem import BaseSetitemTests  # noqa
+from .reshaping import BaseReshapingTests
+from .setitem import BaseSetitemTests

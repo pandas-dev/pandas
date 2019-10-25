@@ -124,7 +124,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values  # noqa
+                ).values
                 for _ in [None]
             )
             num_items += 1

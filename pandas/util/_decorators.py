@@ -15,7 +15,7 @@ from typing import (
 )
 import warnings
 
-from pandas._libs.properties import cache_readonly  # noqa
+from pandas._libs.properties import cache_readonly
 
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)

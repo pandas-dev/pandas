@@ -89,7 +89,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
-        import matplotlib as mpl  # noqa
+        import matplotlib as mpl
 
         df = DataFrame(
             np.random.randn(6, 4),
@@ -386,7 +386,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 4))
 
-        box = df.groupby("classroom").boxplot(  # noqa
+        box = df.groupby("classroom").boxplot(
             column=["height", "weight", "category"], layout=(1, -1), return_type="dict"
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 3))

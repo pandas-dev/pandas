@@ -10,19 +10,19 @@ from pandas.core.indexes.base import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.base import InvalidIndexError  # noqa:F401
-from pandas.core.indexes.category import CategoricalIndex  # noqa:F401
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.interval import IntervalIndex  # noqa:F401
-from pandas.core.indexes.multi import MultiIndex  # noqa:F401
-from pandas.core.indexes.numeric import (  # noqa:F401
+from pandas.core.indexes.interval import IntervalIndex
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
     NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.range import RangeIndex  # noqa:F401
+from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 _sort_msg = textwrap.dedent(

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List
 import warnings
 
-from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE
 import numpy as np
 
 from pandas.errors import PerformanceWarning

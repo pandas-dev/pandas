@@ -128,20 +128,20 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     Examples
     --------
     >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
 
     >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
     >>> pd.CategoricalIndex(c)
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')
 
     Ordered ``CategoricalIndex`` can have a min and max value.
 
     >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
     ...                          categories=['c', 'b', 'a'])
     >>> ci
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')
     >>> ci.min()
     'c'
     """

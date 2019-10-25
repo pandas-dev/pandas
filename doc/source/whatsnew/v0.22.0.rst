@@ -8,7 +8,7 @@ v0.22.0 (December 29, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *
 
 
 This is a major release from 0.21.1 and includes a single, API-breaking change.

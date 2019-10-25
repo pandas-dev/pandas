@@ -929,7 +929,7 @@ class TestValidator:
     )
     def test_bad_generic_functions(self, capsys, func):
         errors = validate_one(
-            self._import_path(klass="BadGenericDocStrings", func=func)  # noqa:F821
+            self._import_path(klass="BadGenericDocStrings", func=func)
         )["errors"]
         assert isinstance(errors, list)
         assert errors

@@ -1071,7 +1071,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # in sqlalchemy.create_engine -> test passing of this error to user
         try:
             # the rest of this test depends on pg8000's being absent
-            import pg8000  # noqa
+            import pg8000
 
             pytest.skip("pg8000 is installed")
         except ImportError:
@@ -1733,7 +1733,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         tbl = "notna_dtype_test"
         df.to_sql(tbl, self.conn)
-        returned_df = sql.read_sql_table(tbl, self.conn)  # noqa
+        returned_df = sql.read_sql_table(tbl, self.conn)
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
         meta.reflect()
         if self.flavor == "mysql":
@@ -1935,7 +1935,7 @@ class _TestMySQLAlchemy:
         connection = self.conn.connect()
         trans = connection.begin()
         try:
-            r1 = connection.execute(proc)  # noqa
+            r1 = connection.execute(proc)
             trans.commit()
         except pymysql.Error:
             trans.rollback()

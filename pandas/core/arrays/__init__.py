@@ -1,14 +1,14 @@
-from .base import (  # noqa: F401
+from .base import (
     ExtensionArray,
     ExtensionOpsMixin,
     ExtensionScalarOpsMixin,
 )
-from .categorical import Categorical  # noqa: F401
-from .datetimes import DatetimeArray  # noqa: F401
-from .integer import IntegerArray, integer_array  # noqa: F401
-from .interval import IntervalArray  # noqa: F401
-from .numpy_ import PandasArray, PandasDtype  # noqa: F401
-from .period import PeriodArray, period_array  # noqa: F401
-from .sparse import SparseArray  # noqa: F401
-from .string_ import StringArray  # noqa: F401
-from .timedeltas import TimedeltaArray  # noqa: F401
+from .categorical import Categorical
+from .datetimes import DatetimeArray
+from .integer import IntegerArray, integer_array
+from .interval import IntervalArray
+from .numpy_ import PandasArray, PandasDtype
+from .period import PeriodArray, period_array
+from .sparse import SparseArray
+from .string_ import StringArray
+from .timedeltas import TimedeltaArray

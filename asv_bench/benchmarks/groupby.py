@@ -625,4 +625,4 @@ class TransformNaN:
         self.df_nans.groupby("key").transform("first")
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from .pandas_vb_common import setup

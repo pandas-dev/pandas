@@ -480,7 +480,7 @@ class SeriesGroupBy(GroupBy):
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.

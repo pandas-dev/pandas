@@ -41,16 +41,16 @@ The goal is to avoid confusing nested function calls like
 
    # df is a DataFrame
    # f, g, and h are functions that take and return DataFrames
-   f(g(h(df), arg1=1), arg2=2, arg3=3)  # noqa F821
+   f(g(h(df), arg1=1), arg2=2, arg3=3)
 
 The logic flows from inside out, and function names are separated from their keyword arguments.
 This can be rewritten as
 
 .. code-block:: python
 
-   (df.pipe(h)                   # noqa F821
-      .pipe(g, arg1=1)           # noqa F821
-      .pipe(f, arg2=2, arg3=3)   # noqa F821
+   (df.pipe(h)
+      .pipe(g, arg1=1)
+      .pipe(f, arg2=2, arg3=3)
    )
 
 Now both the code and the logic flow from top to bottom. Keyword arguments are next to

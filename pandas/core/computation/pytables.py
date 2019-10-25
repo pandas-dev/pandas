@@ -529,7 +529,7 @@ class Expr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            where = " & ".join(map("({})".format, com.flatten(where)))  # noqa
+            where = " & ".join(map("({})".format, com.flatten(where)))
 
         self.expr = where
         self.env = Scope(scope_level + 1, local_dict=local_dict)

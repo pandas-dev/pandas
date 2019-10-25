@@ -149,7 +149,7 @@ Other enhancements:
   .. code-block:: python
 
      from sqlalchemy.types import String
-     data.to_sql('data_dtype', engine, dtype={'Col_1': String})  # noqa F821
+     data.to_sql('data_dtype', engine, dtype={'Col_1': String})
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 

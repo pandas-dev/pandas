@@ -15,7 +15,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 def _skip_if_no_pchip():
     try:
-        from scipy.interpolate import pchip_interpolate  # noqa
+        from scipy.interpolate import pchip_interpolate
     except ImportError:
         import pytest
 
@@ -710,7 +710,7 @@ class TestDataFrameMissingData:
         empty_float = float_frame.reindex(columns=[])
 
         # TODO(wesm): unused?
-        result = empty_float.fillna(value=0)  # noqa
+        result = empty_float.fillna(value=0)
 
     def test_fill_value_when_combine_const(self):
         # GH12723

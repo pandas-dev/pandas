@@ -3254,7 +3254,7 @@ class TestDataFramePlots(TestPlotBase):
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    import matplotlib.gridspec  # noqa
+    import matplotlib.gridspec
 
     gs = mpl.gridspec.GridSpec(2, 2)
     ax_tl = plt.subplot(gs[0, 0])

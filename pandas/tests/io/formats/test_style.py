@@ -12,7 +12,7 @@ from pandas import DataFrame
 import pandas.util.testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
+from pandas.io.formats.style import Styler, _get_level_lengths
 
 
 class TestStyler:

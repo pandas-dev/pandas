@@ -280,8 +280,8 @@ class TestFancy(Base):
         result.columns = list("aaaaaaa")
 
         # TODO(wesm): unused?
-        df_v = df.iloc[:, 4]  # noqa
-        res_v = result.iloc[:, 4]  # noqa
+        df_v = df.iloc[:, 4]
+        res_v = result.iloc[:, 4]
 
         tm.assert_frame_equal(df, result)
 

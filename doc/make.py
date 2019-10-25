@@ -80,7 +80,7 @@ class DocBuilder:
 
         elif single_doc.startswith("pandas."):
             try:
-                obj = pandas  # noqa: F821
+                obj = pandas
                 for name in single_doc.split("."):
                     obj = getattr(obj, name)
             except AttributeError:

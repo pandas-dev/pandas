@@ -102,7 +102,7 @@ class TestDataFrameEval(TestData):
                 ("/", "__truediv__", "__rtruediv__"),
             ]:
 
-                base = DataFrame(  # noqa
+                base = DataFrame(
                     np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
                 )
 
@@ -472,7 +472,7 @@ class TestDataFrameQueryNumExprPandas:
 
         df = DataFrame(np.random.randn(20, 2), columns=list("ab"))
 
-        a, b = 1, 2  # noqa
+        a, b = 1, 2
         res = df.query("a > b", engine=engine, parser=parser)
         expected = df[df.a > df.b]
         assert_frame_equal(res, expected)
@@ -618,7 +618,7 @@ class TestDataFrameQueryNumExprPandas:
         )
         ind = (
             (df.a < df.b) & (df.b < df.c) & ~df.b.isin(df.a) & ~df.c.isin(df.b)
-        )  # noqa
+        )
         expec = df[ind]
         assert_frame_equal(res, expec)
 
@@ -641,7 +641,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_at_inside_string(self):
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
-        c = 1  # noqa
+        c = 1
         df = DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
         result = df.query('a == "@c"', engine=engine, parser=parser)
         expected = df[df.a == "@c"]
@@ -660,7 +660,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("a == @c", engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
-        n = 1  # noqa
+        n = 1
         a = np.r_[20:101:20]
 
         df = DataFrame({"index": a, "b": np.random.randn(a.size)})
@@ -777,7 +777,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         engine = self.engine
         parser = self.parser
         # smoke test
-        x = 1  # noqa
+        x = 1
         result = pd.eval("x + 1", engine=engine, parser=parser)
         assert result == 2
 
@@ -1019,7 +1019,7 @@ class TestDataFrameQueryStrings:
             }
         )
         e = df[df.Symbol == "BUD US"]
-        symb = "BUD US"  # noqa
+        symb = "BUD US"
         r = df.query("Symbol == @symb", parser=parser, engine=engine)
         assert_frame_equal(e, r)
 

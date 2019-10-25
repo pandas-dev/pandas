@@ -22,7 +22,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import (  # noqa
+from urllib.parse import (
     urlencode,
     urljoin,
     urlparse as parse_url,
@@ -33,7 +33,7 @@ from urllib.parse import (  # noqa
 import zipfile
 
 from pandas.compat import _get_lzma_file, _import_lzma
-from pandas.errors import (  # noqa
+from pandas.errors import (
     AbstractMethodError,
     DtypeWarning,
     EmptyDataError,

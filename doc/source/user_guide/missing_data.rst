@@ -65,7 +65,7 @@ Series and DataFrame objects:
 
    .. ipython:: python
 
-      None == None                                                 # noqa: E711
+      None == None
       np.nan == np.nan
 
    So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.

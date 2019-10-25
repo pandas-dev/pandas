@@ -221,7 +221,7 @@ the user is interacting with. So the signature must be
 
 .. code-block:: python
 
-    def __init__(self, pandas_object):  # noqa: E999
+    def __init__(self, pandas_object):
         ...
 
 For consistency with pandas methods, you should raise an ``AttributeError``

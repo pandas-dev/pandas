@@ -73,7 +73,7 @@ four calls) using the `prun ipython magic function <http://ipython.org/ipython-d
 
 .. ipython:: python
 
-   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)  # noqa E999
+   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
@@ -387,13 +387,13 @@ Consider the following toy example of doubling each observation:
 
 
    @numba.vectorize
-   def double_every_value_withnumba(x):  # noqa E501
+   def double_every_value_withnumba(x):
        return x * 2
 
 .. code-block:: ipython
 
    # Custom function without numba
-   In [5]: %timeit df['col1_doubled'] = df['a'].apply(double_every_value_nonumba)  # noqa E501
+   In [5]: %timeit df['col1_doubled'] = df['a'].apply(double_every_value_nonumba)
    1000 loops, best of 3: 797 us per loop
 
    # Standard implementation (faster than a custom function)

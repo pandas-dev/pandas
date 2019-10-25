@@ -20,7 +20,7 @@ def load_reduce(self):
     func = stack[-1]
 
     if len(args) and type(args[0]) is type:
-        n = args[0].__name__  # noqa
+        n = args[0].__name__
 
     try:
         stack[-1] = func(*args)

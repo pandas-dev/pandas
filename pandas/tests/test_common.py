@@ -17,13 +17,13 @@ def test_get_callable_name():
     def fn(x):
         return x
 
-    lambda_ = lambda x: x  # noqa: E731
+    lambda_ = lambda x: x
     part1 = partial(fn)
     part2 = partial(part1)
 
     class somecall:
         def __call__(self):
-            return x  # noqa
+            return x
 
     assert getname(fn) == "fn"
     assert getname(lambda_)

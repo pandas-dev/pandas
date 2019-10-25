@@ -1,1 +1,1 @@
-from .sasreader import read_sas  # noqa
+from .sasreader import read_sas

@@ -34,7 +34,7 @@ def test_agg_must_agg(df):
 
 def test_agg_ser_multi_key(df):
     # TODO(wesm): unused
-    ser = df.C  # noqa
+    ser = df.C
 
     f = lambda x: x.sum()
     results = df.C.groupby([df.A, df.B]).aggregate(f)

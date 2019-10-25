@@ -612,8 +612,8 @@ Improvements in the sql io module
 
   .. code-block:: python
 
-         df.to_sql('table', engine, schema='other_schema')  # noqa F821
-         pd.read_sql_table('table', engine, schema='other_schema')  # noqa F821
+         df.to_sql('table', engine, schema='other_schema')
+         pd.read_sql_table('table', engine, schema='other_schema')
 
 - Added support for writing ``NaN`` values with ``to_sql`` (:issue:`2754`).
 - Added support for writing datetime64 columns with ``to_sql`` for all database flavors (:issue:`7103`).

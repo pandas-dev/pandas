@@ -214,19 +214,19 @@ class TestCategoricalConstructors:
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])  # noqa
+            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])  # noqa
+            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])
 
         # the next one are from the old docs
         with tm.assert_produces_warning(None):
-            c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
+            c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1, 2], categories=[1, 2, 3])
 
         # this is a legitimate constructor
         with tm.assert_produces_warning(None):
-            c = Categorical(  # noqa
+            c = Categorical(
                 np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True
             )
 

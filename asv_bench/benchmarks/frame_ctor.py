@@ -7,7 +7,7 @@ try:
     from pandas.tseries.offsets import Nano, Hour
 except ImportError:
     # For compatibility with older versions
-    from pandas.core.datetools import *  # noqa
+    from pandas.core.datetools import *
 
 
 class FromDicts:
@@ -105,4 +105,4 @@ class FromLists:
         self.df = DataFrame(self.data)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from .pandas_vb_common import setup

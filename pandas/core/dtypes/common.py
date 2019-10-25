@@ -25,7 +25,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import (  # noqa:F401
+from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
     is_complex,

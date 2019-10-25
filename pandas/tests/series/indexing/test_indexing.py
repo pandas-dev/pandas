@@ -761,7 +761,7 @@ def test_underlying_data_conversion():
     df["bb"].iloc[0] = 0.13
 
     # TODO: unused
-    df_tmp = df.iloc[ck]  # noqa
+    df_tmp = df.iloc[ck]
 
     df["bb"].iloc[0] = 0.15
     assert df["bb"].iloc[0] == 0.15

@@ -710,7 +710,7 @@ cdef class TextReader:
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
+            Py_ssize_t i, start, field_count, passed_count, unnamed_count
             char *word
             object name, old_name
             int status

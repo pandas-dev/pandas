@@ -51,4 +51,4 @@ class StataMissing(Stata):
         self.df.to_stata(self.fname, self.convert_dates)
 
 
-from ..pandas_vb_common import setup  # noqa: F401 isort:skip
+from ..pandas_vb_common import setup

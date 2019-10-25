@@ -53,7 +53,7 @@ class TestObj:
         msg = r"can't serialize \(1\+2j\)"
         with pytest.raises(TypeError, match=msg):
             packed = packb([3, 1 + 2j], default=lambda o: o)
-            unpacked = unpackb(packed, use_list=1)  # noqa
+            unpacked = unpackb(packed, use_list=1)
 
     def test_array_hook(self):
         packed = packb([1, 2, 3])

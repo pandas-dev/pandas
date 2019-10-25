@@ -1,4 +1,4 @@
-from .blocks import (  # noqa: F401
+from .blocks import (
     Block,
     BoolBlock,
     CategoricalBlock,
@@ -11,18 +11,18 @@ from .blocks import (  # noqa: F401
     ObjectBlock,
     TimeDeltaBlock,
 )
-from .managers import (  # noqa: F401
+from .managers import (
     BlockManager,
     SingleBlockManager,
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
 
-from .blocks import _safe_reshape  # noqa: F401; io.packers
-from .blocks import make_block  # noqa: F401; io.pytables, io.packers
-from .managers import (  # noqa: F401; reshape.concat, reshape.merge
+from .blocks import _safe_reshape  # io.packers
+from .blocks import make_block  # io.pytables, io.packers
+from .managers import (  # reshape.concat, reshape.merge
     _transform_index,
     concatenate_block_managers,
 )
 
-from .blocks import _block_shape  # noqa:F401; io.pytables
+from .blocks import _block_shape  # io.pytables

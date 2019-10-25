@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import isna, isnull, notnull
 
 
 class SettingWithCopyError(ValueError):
