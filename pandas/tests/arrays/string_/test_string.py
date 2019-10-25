@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
 
@@ -158,3 +160,14 @@ def test_reduce_missing(skipna):
         assert result == "abc"
     else:
         assert pd.isna(result)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array():
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", "c"], dtype="string")
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    assert arr.equals(expected)
