@@ -19,9 +19,9 @@ from pandas.util.testing import assert_series_equal
     ],
 )
 @pytest.mark.parametrize("fill", [None, -1])
-def test_align(test_data, first_slice, second_slice, join_type, fill):
-    a = test_data.ts[slice(*first_slice)]
-    b = test_data.ts[slice(*second_slice)]
+def test_align(datetime_series, first_slice, second_slice, join_type, fill):
+    a = datetime_series[slice(*first_slice)]
+    b = datetime_series[slice(*second_slice)]
 
     aa, ab = a.align(b, join=join_type, fill_value=fill)
 
@@ -61,10 +61,10 @@ def test_align(test_data, first_slice, second_slice, join_type, fill):
 @pytest.mark.parametrize("method", ["pad", "bfill"])
 @pytest.mark.parametrize("limit", [None, 1])
 def test_align_fill_method(
-    test_data, first_slice, second_slice, join_type, method, limit
+    datetime_series, first_slice, second_slice, join_type, method, limit
 ):
-    a = test_data.ts[slice(*first_slice)]
-    b = test_data.ts[slice(*second_slice)]
+    a = datetime_series[slice(*first_slice)]
+    b = datetime_series[slice(*second_slice)]
 
     aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
@@ -79,44 +79,44 @@ def test_align_fill_method(
     assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(test_data):
-    b = test_data.ts[:5].copy()
+def test_align_nocopy(datetime_series):
+    b = datetime_series[:5].copy()
 
     # do copy
-    a = test_data.ts.copy()
+    a = datetime_series.copy()
     ra, _ = a.align(b, join="left")
     ra[:5] = 5
     assert not (a[:5] == 5).any()
 
     # do not copy
-    a = test_data.ts.copy()
+    a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
     assert (a[:5] == 5).all()
 
     # do copy
-    a = test_data.ts.copy()
-    b = test_data.ts[:5].copy()
+    a = datetime_series.copy()
+    b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right")
     rb[:3] = 5
     assert not (b[:3] == 5).any()
 
     # do not copy
-    a = test_data.ts.copy()
-    b = test_data.ts[:5].copy()
+    a = datetime_series.copy()
+    b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
     assert (b[:2] == 5).all()
 
 
-def test_align_same_index(test_data):
-    a, b = test_data.ts.align(test_data.ts, copy=False)
-    assert a.index is test_data.ts.index
-    assert b.index is test_data.ts.index
+def test_align_same_index(datetime_series):
+    a, b = datetime_series.align(datetime_series, copy=False)
+    assert a.index is datetime_series.index
+    assert b.index is datetime_series.index
 
-    a, b = test_data.ts.align(test_data.ts, copy=True)
-    assert a.index is not test_data.ts.index
-    assert b.index is not test_data.ts.index
+    a, b = datetime_series.align(datetime_series, copy=True)
+    assert a.index is not datetime_series.index
+    assert b.index is not datetime_series.index
 
 
 def test_align_multiindex():
@@ -154,43 +154,43 @@ def test_align_multiindex():
     tm.assert_series_equal(expr, res2l)
 
 
-def test_reindex(test_data):
-    identity = test_data.series.reindex(test_data.series.index)
+def test_reindex(datetime_series, string_series):
+    identity = string_series.reindex(string_series.index)
 
     # __array_interface__ is not defined for older numpies
     # and on some pythons
     try:
-        assert np.may_share_memory(test_data.series.index, identity.index)
+        assert np.may_share_memory(string_series.index, identity.index)
     except AttributeError:
         pass
 
-    assert identity.index.is_(test_data.series.index)
-    assert identity.index.identical(test_data.series.index)
+    assert identity.index.is_(string_series.index)
+    assert identity.index.identical(string_series.index)
 
-    subIndex = test_data.series.index[10:20]
-    subSeries = test_data.series.reindex(subIndex)
+    subIndex = string_series.index[10:20]
+    subSeries = string_series.reindex(subIndex)
 
     for idx, val in subSeries.items():
-        assert val == test_data.series[idx]
+        assert val == string_series[idx]
 
-    subIndex2 = test_data.ts.index[10:20]
-    subTS = test_data.ts.reindex(subIndex2)
+    subIndex2 = datetime_series.index[10:20]
+    subTS = datetime_series.reindex(subIndex2)
 
     for idx, val in subTS.items():
-        assert val == test_data.ts[idx]
-    stuffSeries = test_data.ts.reindex(subIndex)
+        assert val == datetime_series[idx]
+    stuffSeries = datetime_series.reindex(subIndex)
 
     assert np.isnan(stuffSeries).all()
 
     # This is extremely important for the Cython code to not screw up
-    nonContigIndex = test_data.ts.index[::2]
-    subNonContig = test_data.ts.reindex(nonContigIndex)
+    nonContigIndex = datetime_series.index[::2]
+    subNonContig = datetime_series.reindex(nonContigIndex)
     for idx, val in subNonContig.items():
-        assert val == test_data.ts[idx]
+        assert val == datetime_series[idx]
 
     # return a copy the same index here
-    result = test_data.ts.reindex()
-    assert not (result is test_data.ts)
+    result = datetime_series.reindex()
+    assert not (result is datetime_series)
 
 
 def test_reindex_nan():
@@ -229,25 +229,26 @@ def test_reindex_with_datetimes():
     tm.assert_series_equal(result, expected)
 
 
-def test_reindex_corner(test_data):
+def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    test_data.empty.reindex(test_data.ts.index, method="pad")  # it works
+    empty = Series()
+    empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series
-    reindexed = test_data.empty.reindex(test_data.ts.index, method="pad")
+    reindexed = empty.reindex(datetime_series.index, method="pad")
 
     # pass non-Index
-    reindexed = test_data.ts.reindex(list(test_data.ts.index))
-    assert_series_equal(test_data.ts, reindexed)
+    reindexed = datetime_series.reindex(list(datetime_series.index))
+    assert_series_equal(datetime_series, reindexed)
 
     # bad fill method
-    ts = test_data.ts[::2]
+    ts = datetime_series[::2]
     msg = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill"
         r" \(bfill\) or nearest\. Got foo"
     )
     with pytest.raises(ValueError, match=msg):
-        ts.reindex(test_data.ts.index, method="foo")
+        ts.reindex(datetime_series.index, method="foo")
 
 
 def test_reindex_pad():
@@ -319,12 +320,12 @@ def test_reindex_backfill():
     pass
 
 
-def test_reindex_int(test_data):
-    ts = test_data.ts[::2]
+def test_reindex_int(datetime_series):
+    ts = datetime_series[::2]
     int_ts = Series(np.zeros(len(ts), dtype=int), index=ts.index)
 
     # this should work fine
-    reindexed_int = int_ts.reindex(test_data.ts.index)
+    reindexed_int = int_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
     assert reindexed_int.dtype == np.float_
@@ -334,13 +335,13 @@ def test_reindex_int(test_data):
     assert reindexed_int.dtype == np.int_
 
 
-def test_reindex_bool(test_data):
+def test_reindex_bool(datetime_series):
     # A series other than float, int, string, or object
-    ts = test_data.ts[::2]
+    ts = datetime_series[::2]
     bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
 
     # this should work fine
-    reindexed_bool = bool_ts.reindex(test_data.ts.index)
+    reindexed_bool = bool_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
     assert reindexed_bool.dtype == np.object_
@@ -350,11 +351,11 @@ def test_reindex_bool(test_data):
     assert reindexed_bool.dtype == np.bool_
 
 
-def test_reindex_bool_pad(test_data):
+def test_reindex_bool_pad(datetime_series):
     # fail
-    ts = test_data.ts[5:]
+    ts = datetime_series[5:]
     bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
-    filled_bool = bool_ts.reindex(test_data.ts.index, method="pad")
+    filled_bool = bool_ts.reindex(datetime_series.index, method="pad")
     assert isna(filled_bool[:5]).all()
 
 
@@ -382,10 +383,10 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
 
-def test_reindex_like(test_data):
-    other = test_data.ts[::2]
+def test_reindex_like(datetime_series):
+    other = datetime_series[::2]
     assert_series_equal(
-        test_data.ts.reindex(other.index), test_data.ts.reindex_like(other)
+        datetime_series.reindex(other.index), datetime_series.reindex_like(other)
     )
 
     # GH 7179
