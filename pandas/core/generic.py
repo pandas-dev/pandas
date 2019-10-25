@@ -194,7 +194,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
         # We need the TYPE_CHECKING, because _attrs is not a class attribute
         # and Py35 doesn't support the new syntax.
-        _attrs = {}  # type: Dict[Hashable, Any]
+        _attrs = {}  # type: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -205,7 +205,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
-        attrs: Optional[Mapping[Hashable, Any]] = None,
+        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
         fastpath: bool = False,
     ):
 
@@ -248,7 +248,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
 
     @property
-    def attrs(self) -> Dict[Hashable, Any]:
+    def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
         Dictionary of global attributes on this object.
         """
@@ -257,7 +257,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
     @property
@@ -3149,10 +3149,10 @@ class NDFrame(PandasObject, SelectionMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
+        columns: Optional[Sequence[Optional[Hashable]]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Hashable]]] = None,
+        index_label: Optional[Union[bool_t, str, Sequence[Optional[Hashable]]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
@@ -7048,14 +7048,15 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        axis = self._get_axis_number(axis)
+
         if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
         elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
-        else:
-            _maybe_transposed_self = self
+
         ax = _maybe_transposed_self._get_axis_number(ax)
 
         if _maybe_transposed_self.ndim == 2:
@@ -10852,7 +10853,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Also returns None for empty %(klass)s.
         """
 
-    def _find_valid_index(self, how):
+    def _find_valid_index(self, how: str):
         """
         Retrieves the index of the first valid value.
 
