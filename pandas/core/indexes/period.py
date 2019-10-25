@@ -80,8 +80,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Holds ordinal time values.
 
     An immutable ndarray. Indicates regular periods in time such as particular years,
-    quarters, months, etc. Index keys are boxed to Period objects which carries the metadata (eg,
-    frequency information).
+    quarters, months, etc. Index keys are boxed to Period objects which carries the 
+    metadata (eg, frequency information).
 
     Parameters
     ----------
