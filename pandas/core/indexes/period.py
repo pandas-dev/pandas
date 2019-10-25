@@ -86,8 +86,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Parameters
     ----------
     **fields
-    name
-    ordinal
+        Dictionary of the keyword arguments.
+    name : default None
+        A name for the data.
+    ordinal : default None
     data : array-like (1d int np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with.
     copy : bool
