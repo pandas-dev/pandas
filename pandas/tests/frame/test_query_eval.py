@@ -82,7 +82,7 @@ class TestCompat:
                 df.eval("A+1", engine="numexpr")
 
 
-class TestDataFrameEval(TestData):
+class TestDataFrameEval:
     def test_ops(self):
 
         # tst ops and reversed ops in evaluation

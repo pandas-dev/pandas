@@ -3,12 +3,11 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameNonuniqueIndexes(TestData):
+class TestDataFrameNonuniqueIndexes:
     def test_column_dups_operations(self):
         def check(result, expected=None):
             if expected is not None:
