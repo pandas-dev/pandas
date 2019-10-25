@@ -464,8 +464,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
             print("unable to find command, tried %s" % (commands,))
         return None
 
-    stdout = p.communicate()[0].strip()
-    stdout = stdout.decode()
+    stdout = p.communicate()[0].strip().decode()
 
     if p.returncode != 0:
         if verbose:
@@ -562,8 +561,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
             print("unable to find command, tried %%s" %% (commands,))
         return None
 
-    stdout = p.communicate()[0].strip()
-    stdout = stdout.decode()
+    stdout = p.communicate()[0].strip().decode()
 
     if p.returncode != 0:
         if verbose:
