@@ -599,7 +599,7 @@ with cf.config_prefix("plotting"):
 
 
 register_converter_doc = """
-: bool
+: bool or 'auto'.
     Whether to register converters with matplotlib's units registry for
     dates, times, datetimes, and Periods. Toggling to False will remove
     the converters, restoring any converters that pandas overwrote.
@@ -619,8 +619,8 @@ def register_converter_cb(key):
 with cf.config_prefix("plotting.matplotlib"):
     cf.register_option(
         "register_converters",
-        True,
+        "auto",
         register_converter_doc,
-        validator=bool,
+        validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
     )
