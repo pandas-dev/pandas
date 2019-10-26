@@ -1,8 +1,8 @@
 import contextlib
 import datetime as pydt
 from datetime import datetime, timedelta
-from typing import List
 import functools
+from typing import List
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
