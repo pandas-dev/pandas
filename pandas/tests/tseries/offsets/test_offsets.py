@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Dict, List, Tuple, Type, Union
+from typing import Dict, List, Type
 
 import numpy as np
 import pytest
@@ -1698,7 +1698,7 @@ class TestBusinessHour(Base):
                 assert offset._next_opening_time(dt) == exp_next
                 assert offset._prev_opening_time(dt) == exp_prev
 
-    apply_cases = []  # type: List[Tuple[int, Dict[datetime, datetime]]]
+    apply_cases = []  # type: List
     apply_cases.append(
         (
             BusinessHour(),
