@@ -5,8 +5,8 @@ import itertools
 
 import numpy as np
 
+from pandas._libs import Timestamp
 import pandas._libs.hashing as hashing
-import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -76,8 +76,6 @@ def hash_pandas_object(
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     Series of uint64, same length as the object
@@ -145,8 +143,6 @@ def hash_pandas_object(
 def hash_tuples(vals, encoding="utf8", hash_key=None):
     """
     Hash an MultiIndex / list-of-tuples efficiently
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -262,8 +258,6 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     1d uint64 numpy array of hash values, same length as the vals
@@ -343,8 +337,8 @@ def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslibs.Timestamp):
-            val = tslibs.Timestamp(val)
+        if not isinstance(val, Timestamp):
+            val = Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)

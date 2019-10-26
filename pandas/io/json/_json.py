@@ -2,7 +2,7 @@ from collections import OrderedDict
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
-from pandas._typing import Scalar
+from pandas._typing import JSONSerializable
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -34,8 +34,6 @@ dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = "0.20.0"
 
-Serializable = Union[Scalar, List, Dict]
-
 
 # interface to/from
 def to_json(
@@ -46,7 +44,7 @@ def to_json(
     double_precision: int = 10,
     force_ascii: bool = True,
     date_unit: str = "ms",
-    default_handler: Optional[Callable[[Any], Serializable]] = None,
+    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
     lines: bool = False,
     compression: Optional[str] = "infer",
     index: bool = True,
@@ -110,7 +108,7 @@ class Writer:
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         indent: int = 0,
     ):
         self.obj = obj
@@ -153,7 +151,7 @@ class Writer:
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         return dumps(
@@ -186,7 +184,7 @@ class SeriesWriter(Writer):
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         if not self.index and orient == "split":
@@ -233,7 +231,7 @@ class FrameWriter(Writer):
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         if not self.index and orient == "split":
@@ -263,7 +261,7 @@ class JSONTableWriter(FrameWriter):
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         indent: int = 0,
     ):
         """
