@@ -200,11 +200,10 @@ cdef class Unpacker:
     :param callable object_hook:
         When specified, it should be callable.
         Unpacker calls it with a dict argument after unpacking msgpack map.
-        (See also simplejson)
 
     :param callable object_pairs_hook:
         When specified, it should be callable. Unpacker calls it with a list
-        of key-value pairs after unpacking msgpack map. (See also simplejson)
+        of key-value pairs after unpacking msgpack map.
 
     :param str encoding:
         Encoding used for decoding msgpack raw.
