@@ -276,7 +276,6 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 - :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
-- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
 
 *pandas 0.25.x*
 
@@ -294,6 +293,32 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 .. ipython:: python
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+
+- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
+
+.. ipython:: python
+
+    left_df = pd.DataFrame({"colors": ["blue", "red"]}, index = pd.Index([0, 1]))
+    right_df = pd.DataFrame({"hats": ["small", "big"]}, index = pd.Index([1, 0]))
+
+*pandas 0.25.x*
+
+.. ipython:: python
+    left_df.merge(right_df, left_index=True, right_index=True, how="right")
+       colors   hats
+    0    blue    big
+    1     red  small
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+    left_df.merge(right_df, left_index=True, right_index=True, how="right")
+      colors   hats
+    1    red  small
+    0   blue    big
+
 
 
 All :class:`SeriesGroupBy` aggregation methods now respect the ``observed`` keyword
