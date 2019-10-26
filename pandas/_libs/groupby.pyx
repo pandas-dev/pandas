@@ -1019,8 +1019,8 @@ def group_nth(rank_t[:, :] out,
 def group_rank(float64_t[:, :] out,
                rank_t[:, :] values,
                const int64_t[:] labels,
-               bint is_datetimelike, object ties_method,
-               bint ascending, bint pct, object na_option):
+               bint is_datetimelike, object ties_method="average",
+               bint ascending=True, bint pct=False, object na_option="keep"):
     """
     Provides the rank of values within each group.
 

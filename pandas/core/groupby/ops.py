@@ -372,7 +372,7 @@ class BaseGrouper:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": {"name": "group_median"},
+            "median": "group_median",
             "var": "group_var",
             "first": {
                 "name": "group_nth",
@@ -386,19 +386,7 @@ class BaseGrouper:
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
-            "rank": {
-                "name": "group_rank",
-                "f": lambda func, a, b, c, d, e, **kwargs: func(
-                    a,
-                    b,
-                    c,
-                    e,
-                    kwargs.get("ties_method", "average"),
-                    kwargs.get("ascending", True),
-                    kwargs.get("pct", False),
-                    kwargs.get("na_option", "keep"),
-                ),
-            },
+            "rank": "group_rank",
         },
     }
 
@@ -445,6 +433,7 @@ class BaseGrouper:
         ftype = self._cython_functions[kind][how]
 
         if isinstance(ftype, dict):
+            # we only get here with (kind, how) == ("aggregate", "first")
             func = afunc = get_func(ftype["name"])
 
             # a sub-function
@@ -575,7 +564,6 @@ class BaseGrouper:
                 values,
                 labels,
                 func,
-                is_numeric,
                 is_datetimelike,
                 min_count,
             )
@@ -586,7 +574,7 @@ class BaseGrouper:
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_numeric, is_datetimelike, **kwargs
+                result, values, labels, func, is_datetimelike, **kwargs
             )
 
         if is_integer_dtype(result) and not is_datetimelike:
@@ -633,7 +621,6 @@ class BaseGrouper:
         values,
         comp_ids,
         agg_func,
-        is_numeric,
         is_datetimelike,
         min_count=-1,
     ):
@@ -651,7 +638,6 @@ class BaseGrouper:
         values,
         comp_ids,
         transform_func,
-        is_numeric,
         is_datetimelike,
         **kwargs
     ):
@@ -660,6 +646,9 @@ class BaseGrouper:
         if values.ndim > 2:
             # punting for now
             raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif transform_func is libgroupby.group_rank:
+            # different signature from the others
+            transform_func(result, values, comp_ids, is_datetimelike=is_datetimelike, **kwargs)
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
