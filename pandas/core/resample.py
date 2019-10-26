@@ -822,8 +822,6 @@ class Resampler(_GroupBy):
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 
-            .. versionadded:: 0.20.0
-
         Returns
         -------
         DataFrame or Series

@@ -391,13 +391,15 @@ class TestDataFrameMissingData:
         cat = Categorical([np.nan, 2, np.nan])
         val = Categorical([np.nan, np.nan, np.nan])
         df = DataFrame({"cats": cat, "vals": val})
-        res = df.fillna(df.median())
+        with tm.assert_produces_warning(RuntimeWarning):
+            res = df.fillna(df.median())
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp}, dtype="category")
         tm.assert_frame_equal(res, df_exp)
 
         result = df.cats.fillna(np.nan)
         tm.assert_series_equal(result, df.cats)
+
         result = df.vals.fillna(np.nan)
         tm.assert_series_equal(result, df.vals)
 
@@ -874,6 +876,23 @@ class TestDataFrameInterpolate:
 
         result = df.interpolate(axis=0)
         expected = df.interpolate()
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "axis_name, axis_number",
+        [
+            pytest.param("rows", 0, id="rows_0"),
+            pytest.param("index", 0, id="index_0"),
+            pytest.param("columns", 1, id="columns_1"),
+        ],
+    )
+    def test_interp_axis_names(self, axis_name, axis_number):
+        # GH 29132: test axis names
+        data = {0: [0, np.nan, 6], 1: [1, np.nan, 7], 2: [2, 5, 8]}
+
+        df = DataFrame(data, dtype=np.float64)
+        result = df.interpolate(axis=axis_name, method="linear")
+        expected = df.interpolate(axis=axis_number, method="linear")
         assert_frame_equal(result, expected)
 
     def test_rowwise_alt(self):

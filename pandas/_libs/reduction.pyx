@@ -203,7 +203,8 @@ cdef class SeriesBinGrouper:
         self.f = f
 
         values = series.values
-        if not values.flags.c_contiguous:
+        if util.is_array(values) and not values.flags.c_contiguous:
+            # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
         self.typ = series._constructor
@@ -230,7 +231,8 @@ cdef class SeriesBinGrouper:
             values = dummy.values
             if values.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
-            if not values.flags.contiguous:
+            if util.is_array(values) and not values.flags.contiguous:
+                # e.g. Categorical has no `flags` attribute
                 values = values.copy()
             index = dummy.index.values
             if not index.flags.contiguous:
@@ -332,7 +334,8 @@ cdef class SeriesGrouper:
         self.f = f
 
         values = series.values
-        if not values.flags.c_contiguous:
+        if util.is_array(values) and not values.flags.c_contiguous:
+            # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
         self.typ = series._constructor
@@ -356,7 +359,8 @@ cdef class SeriesGrouper:
             if (dummy.dtype != self.arr.dtype
                     and values.dtype != self.arr.dtype):
                 raise ValueError('Dummy array must be same dtype')
-            if not values.flags.contiguous:
+            if util.is_array(values) and not values.flags.contiguous:
+                # e.g. Categorical has no `flags` attribute
                 values = values.copy()
             index = dummy.index.values
             if not index.flags.contiguous:
@@ -467,12 +471,13 @@ cdef class Slider:
         char *orig_data
 
     def __init__(self, object values, object buf):
-        assert(values.ndim == 1)
+        assert (values.ndim == 1)
 
-        if not values.flags.contiguous:
+        if util.is_array(values) and not values.flags.contiguous:
+            # e.g. Categorical has no `flags` attribute
             values = values.copy()
 
-        assert(values.dtype == buf.dtype)
+        assert (values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
         self.stride = values.strides[0]

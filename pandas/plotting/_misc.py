@@ -30,7 +30,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register(explicit=True):
+def register():
     """
     Register Pandas Formatters and Converters with matplotlib.
 
@@ -49,7 +49,7 @@ def register(explicit=True):
     deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
-    plot_backend.register(explicit=explicit)
+    plot_backend.register()
 
 
 def deregister():
@@ -353,8 +353,6 @@ def parallel_coordinates(
         Options to be passed to axvline method for vertical lines.
     sort_labels : bool, default False
         Sort class_column labels, useful when assigning colors.
-
-        .. versionadded:: 0.20.0
     **kwargs
         Options to pass to matplotlib plotting method.
 

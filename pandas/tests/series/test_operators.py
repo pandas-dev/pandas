@@ -878,6 +878,17 @@ class TestSeriesOperators:
         assert_series_equal(result[0], expected[0])
         assert_series_equal(result[1], expected[1])
 
+    @pytest.mark.parametrize("index", [None, range(9)])
+    def test_series_integer_mod(self, index):
+        # see gh-24396
+        s1 = Series(range(1, 10))
+        s2 = Series("foo", index=index)
+
+        msg = "not all arguments converted during string formatting"
+
+        with pytest.raises(TypeError, match=msg):
+            s2 % s1
+
 
 class TestSeriesUnaryOps:
     # __neg__, __pos__, __inv__

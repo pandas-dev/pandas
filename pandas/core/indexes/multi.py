@@ -1353,7 +1353,10 @@ class MultiIndex(Index):
             # Remove unobserved levels from level_index
             level_index = level_index.take(uniques)
 
-        grouper = level_index.take(codes)
+        if len(level_index):
+            grouper = level_index.take(codes)
+        else:
+            grouper = level_index.take(codes, fill_value=True)
 
         return grouper, codes, level_index
 
@@ -1868,8 +1871,6 @@ class MultiIndex(Index):
 
     def _sort_levels_monotonic(self):
         """
-        .. versionadded:: 0.20.0
-
         This is an *internal* function.
 
         Create a new MultiIndex from the current to monotonically sorted
@@ -1945,8 +1946,6 @@ class MultiIndex(Index):
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
         be .equals() to the original.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------
