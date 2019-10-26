@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Dict, List, Type
+from typing import List, Type
 
 import numpy as np
 import pytest
