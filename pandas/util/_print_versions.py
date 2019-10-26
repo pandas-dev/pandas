@@ -1,4 +1,5 @@
 import codecs
+import json
 import locale
 import os
 import platform
@@ -102,13 +103,6 @@ def show_versions(as_json=False):
         deps_blob.append((modname, ver))
 
     if as_json:
-        try:
-            import json
-        except ImportError:
-            # https://github.com/python/mypy/issues/1153
-            # error: Name 'json' already defined (by an import)
-            import simplejson as json  # type: ignore
-
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 
         if as_json is True:

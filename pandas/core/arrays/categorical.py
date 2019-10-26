@@ -49,14 +49,7 @@ from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import (
-    _get_data_algo,
-    _hashtables,
-    factorize,
-    take,
-    take_1d,
-    unique1d,
-)
+from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -2110,7 +2103,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Item assignment.
 
-
         Raises
         ------
         ValueError
@@ -2644,8 +2636,8 @@ def _get_codes_for_values(values, categories):
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    (_, _), cats = _get_data_algo(categories, _hashtables)
+    hash_klass, vals = _get_data_algo(values)
+    _, cats = _get_data_algo(categories)
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

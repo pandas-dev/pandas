@@ -586,8 +586,6 @@ class SelectionMixin:
 
                 except (TypeError, DataError):
                     pass
-                except SpecificationError:
-                    raise
                 else:
                     results.append(new_res)
 
@@ -606,8 +604,6 @@ class SelectionMixin:
                 except ValueError:
                     # cannot aggregate
                     continue
-                except SpecificationError:
-                    raise
                 else:
                     results.append(new_res)
                     keys.append(col)

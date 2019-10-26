@@ -1,7 +1,6 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
-from typing import Union
 
 import numpy as np
 
@@ -22,7 +21,6 @@ from .common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -1331,15 +1329,10 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
     np.ndarray / pandas type of length, filled with value
 
     """
-    subarr: Union["DatetimeIndex", "Categorical", np.ndarray]
-    if is_datetime64tz_dtype(dtype):
-        from pandas import DatetimeIndex
+    if is_extension_array_dtype(dtype):
+        cls = dtype.construct_array_type()
+        subarr = cls._from_sequence([value] * length, dtype=dtype)
 
-        subarr = DatetimeIndex([value] * length, dtype=dtype)
-    elif is_categorical_dtype(dtype):
-        from pandas import Categorical
-
-        subarr = Categorical([value] * length, dtype=dtype)
     else:
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype
