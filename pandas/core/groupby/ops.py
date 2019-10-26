@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
 import pandas.core.algorithms as algorithms
@@ -160,8 +161,7 @@ class BaseGrouper:
             and hasattr(splitter, "fast_apply")
             and axis == 0
             # with MultiIndex, apply_frame_axis0 would raise InvalidApply
-            # TODO: can we make this check prettier?
-            and not sdata.index._has_complex_internals
+            and not isinstance(sdata.index, ABCMultiIndex)
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -172,7 +172,7 @@ class BaseGrouper:
                     return group_keys, result_values, mutated
 
             except libreduction.InvalidApply as err:
-                # Cannot fast apply on MultiIndex (_has_complex_internals).
+                # Cannot fast apply on MultiIndex.
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 if "Let this error raise above us" not in str(err):
@@ -608,7 +608,7 @@ class BaseGrouper:
             # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif obj.index._has_complex_internals:
+        elif isinstance(obj.index, ABCMultiIndex):
             # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 

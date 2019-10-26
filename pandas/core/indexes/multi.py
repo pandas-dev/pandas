@@ -1396,11 +1396,6 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks
-        return True
-
     @cache_readonly
     def is_monotonic_increasing(self):
         """

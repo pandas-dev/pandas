@@ -5,6 +5,8 @@ from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
@@ -492,7 +494,7 @@ def apply_frame_axis0(object frame, object f, object names,
         object piece
         dict item_cache
 
-    if frame.index._has_complex_internals:
+    if isinstance(frame.index, ABCMultiIndex):
         raise InvalidApply('Cannot modify frame index internals')
 
     results = []
@@ -624,7 +626,7 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex
-        assert not labels._has_complex_internals
+        assert not isinstance(frame.index, ABCMultiIndex),('MultiIndex type')
 
         # pass as an ndarray/ExtensionArray
         labels = labels._values
