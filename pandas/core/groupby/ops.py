@@ -199,6 +199,9 @@ class BaseGrouper:
             f_name not in base.plotting_methods
             and hasattr(splitter, "fast_apply")
             and axis == 0
+            # with MultiIndex, apply_frame_axis0 would raise InvalidApply
+            # TODO: can we make this check prettier?
+            and not splitter._get_sorted_data().index._has_complex_internals
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -208,11 +211,14 @@ class BaseGrouper:
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
 
-            except libreduction.InvalidApply:
+            except libreduction.InvalidApply as err:
                 # Cannot fast apply on MultiIndex (_has_complex_internals).
                 # This Exception is also raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
-                pass
+                if "Let this error raise above us" not in str(err):
+                    # TODO: can we infer anything about whether this is
+                    #  worth-retrying in pure-python?
+                    raise
             except TypeError as err:
                 if "Cannot convert" in str(err):
                     # via apply_frame_axis0 if we pass a non-ndarray

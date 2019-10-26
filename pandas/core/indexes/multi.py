@@ -1308,7 +1308,10 @@ class MultiIndex(Index):
             # Remove unobserved levels from level_index
             level_index = level_index.take(uniques)
 
-        grouper = level_index.take(codes)
+        if len(level_index):
+            grouper = level_index.take(codes)
+        else:
+            grouper = level_index.take(codes, fill_value=True)
 
         return grouper, codes, level_index
 
