@@ -156,7 +156,8 @@ Other new features
 New plotting methods
 ~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: python
+.. ipython:: python
+   :suppress:
 
    import pandas as pd
    fx = pd.read_pickle('data/fx_prices')
@@ -164,7 +165,7 @@ New plotting methods
 
 ``Series.plot`` now supports a ``secondary_y`` option:
 
-.. code-block:: python
+.. ipython:: python
 
    plt.figure()
 
