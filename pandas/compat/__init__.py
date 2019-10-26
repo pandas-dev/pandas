@@ -37,16 +37,6 @@ def set_function_name(f, name, cls):
     return f
 
 
-def raise_with_traceback(exc, traceback=Ellipsis):
-    """
-    Raise exception with existing traceback.
-    If traceback is not passed, uses sys.exc_info() to get traceback.
-    """
-    if traceback == Ellipsis:
-        _, _, traceback = sys.exc_info()
-    raise exc.with_traceback(traceback)
-
-
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
