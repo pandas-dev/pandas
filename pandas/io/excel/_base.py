@@ -772,14 +772,19 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         return val, fmt
 
-    def check_extension(self, ext):
+    @classmethod
+    def check_extension(cls, ext):
         """checks that path's extension against the Writer's supported
         extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
         if ext.startswith("."):
             ext = ext[1:]
-        if not any(ext in extension for extension in self.supported_extensions):
+        # error: "Callable[[ExcelWriter], Tuple[str, ...]]" has no attribute "__iter__"
+        #  (not iterable)  [attr-defined]
+        if not any(
+            ext in extension for extension in cls.supported_extensions  # type: ignore
+        ):
             msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(self.engine), ext=pprint_thing(ext)
+                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
             )
             raise ValueError(msg)
         else:
