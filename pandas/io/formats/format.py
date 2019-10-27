@@ -226,226 +226,6 @@ class CategoricalFormatter:
         return str("\n".join(result))
 
 
-class SeriesFormatter:
-    def __init__(
-        self,
-        series: "Series",
-        buf: Optional[IO[str]] = None,
-        length: bool = True,
-        header: bool = True,
-        index: bool = True,
-        na_rep: str = "NaN",
-        name: bool = False,
-        float_format: Optional[str] = None,
-        dtype: bool = True,
-        max_rows: Optional[int] = None,
-        min_rows: Optional[int] = None,
-    ):
-        self.series = series
-        self.buf = buf if buf is not None else StringIO()
-        self.name = name
-        self.na_rep = na_rep
-        self.header = header
-        self.length = length
-        self.index = index
-        self.max_rows = max_rows
-        self.min_rows = min_rows
-
-        if float_format is None:
-            float_format = get_option("display.float_format")
-        self.float_format = float_format
-        self.dtype = dtype
-        self.adj = _get_adjustment()
-
-        self._chk_truncate()
-
-    def _chk_truncate(self) -> None:
-        from pandas.core.reshape.concat import concat
-
-        min_rows = self.min_rows
-        max_rows = self.max_rows
-        # truncation determined by max_rows, actual truncated number of rows
-        # used below by min_rows
-        truncate_v = max_rows and (len(self.series) > max_rows)
-        series = self.series
-        if truncate_v:
-            max_rows = cast(int, max_rows)
-            if min_rows:
-                # if min_rows is set (not None or 0), set max_rows to minimum
-                # of both
-                max_rows = min(min_rows, max_rows)
-            if max_rows == 1:
-                row_num = max_rows
-                series = series.iloc[:max_rows]
-            else:
-                row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.tr_row_num = row_num  # type: Optional[int]
-        else:
-            self.tr_row_num = None
-        self.tr_series = series
-        self.truncate_v = truncate_v
-
-    def _get_footer(self) -> str:
-        name = self.series.name
-        footer = ""
-
-        if getattr(self.series.index, "freq", None) is not None:
-            footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
-
-        if self.name is not False and name is not None:
-            if footer:
-                footer += ", "
-
-            series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += (
-                ("Name: {sname}".format(sname=series_name)) if name is not None else ""
-            )
-
-        if self.length is True or (self.length == "truncate" and self.truncate_v):
-            if footer:
-                footer += ", "
-            footer += "Length: {length}".format(length=len(self.series))
-
-        if self.dtype is not False and self.dtype is not None:
-            name = getattr(self.tr_series.dtype, "name", None)
-            if name:
-                if footer:
-                    footer += ", "
-                footer += "dtype: {typ}".format(typ=pprint_thing(name))
-
-        # level infos are added to the end and in a new line, like it is done
-        # for Categoricals
-        if is_categorical_dtype(self.tr_series.dtype):
-            level_info = self.tr_series._values._repr_categories_info()
-            if footer:
-                footer += "\n"
-            footer += level_info
-
-        return str(footer)
-
-    def _get_formatted_index(self) -> Tuple[List[str], bool]:
-        index = self.tr_series.index
-        is_multi = isinstance(index, ABCMultiIndex)
-
-        if is_multi:
-            have_header = any(name for name in index.names)
-            fmt_index = index.format(names=True)
-        else:
-            have_header = index.name is not None
-            fmt_index = index.format(name=True)
-        return fmt_index, have_header
-
-    def _get_formatted_values(self) -> List[str]:
-        return format_array(
-            self.tr_series._values,
-            None,
-            float_format=self.float_format,
-            na_rep=self.na_rep,
-        )
-
-    def to_string(self) -> str:
-        series = self.tr_series
-        footer = self._get_footer()
-
-        if len(series) == 0:
-            return "{name}([], {footer})".format(
-                name=self.series.__class__.__name__, footer=footer
-            )
-
-        fmt_index, have_header = self._get_formatted_index()
-        fmt_values = self._get_formatted_values()
-
-        if self.truncate_v:
-            n_header_rows = 0
-            row_num = self.tr_row_num
-            row_num = cast(int, row_num)
-            width = self.adj.len(fmt_values[row_num - 1])
-            if width > 3:
-                dot_str = "..."
-            else:
-                dot_str = ".."
-            # Series uses mode=center because it has single value columns
-            # DataFrame uses mode=left
-            dot_str = self.adj.justify([dot_str], width, mode="center")[0]
-            fmt_values.insert(row_num + n_header_rows, dot_str)
-            fmt_index.insert(row_num + 1, "")
-
-        if self.index:
-            result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
-        else:
-            result = self.adj.adjoin(3, fmt_values)
-
-        if self.header and have_header:
-            result = fmt_index[0] + "\n" + result
-
-        if footer:
-            result += "\n" + footer
-
-        return str("".join(result))
-
-
-class TextAdjustment:
-    def __init__(self):
-        self.encoding = get_option("display.encoding")
-
-    def len(self, text: str) -> int:
-        return len(text)
-
-    def justify(self, texts: Any, max_len: int, mode: str = "right") -> List[str]:
-        return justify(texts, max_len, mode=mode)
-
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
-
-
-class EastAsianTextAdjustment(TextAdjustment):
-    def __init__(self):
-        super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
-            self.ambiguous_width = 2
-        else:
-            self.ambiguous_width = 1
-
-        # Definition of East Asian Width
-        # http://unicode.org/reports/tr11/
-        # Ambiguous width can be changed by option
-        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
-
-    def len(self, text: str) -> int:
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if not isinstance(text, str):
-            return len(text)
-
-        return sum(
-            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
-        )
-
-    def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
-    ) -> List[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
-
-
-def _get_adjustment() -> TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
-    if use_east_asian_width:
-        return EastAsianTextAdjustment()
-    else:
-        return TextAdjustment()
-
-
 class TableFormatter:
 
     show_dimensions = None  # type: bool
@@ -516,6 +296,292 @@ class TableFormatter:
             if buf is None:
                 return f.getvalue()
             return None
+
+
+class SeriesFormatter(TableFormatter):
+    def __init__(
+        self,
+        series: "Series",
+        buf: Optional[IO[str]] = None,
+        length: bool = True,
+        header: bool = True,
+        index: bool = True,
+        na_rep: str = "NaN",
+        name: bool = False,
+        float_format: Optional[str] = None,
+        dtype: bool = True,
+        max_rows: Optional[int] = None,
+        min_rows: Optional[int] = None,
+        show_dimensions: bool = False,
+        col_space: Optional[Union[str, int]] = None,
+        decimal: str = ".",
+        index_names: bool = True,
+        series_id: Optional[str] = None,
+        render_links: bool = False,
+        bold_rows: bool = False,
+        escape: bool = True,
+    ):
+        self.series = series
+        self.buf = buf if buf is not None else StringIO()
+        self.name = name
+        self.na_rep = na_rep
+        self.header = header
+        self.length = length
+        self.index = index
+        self.max_rows = max_rows
+        self.min_rows = min_rows
+
+        self.show_dimensions = show_dimensions
+        self.col_space = col_space
+        self.decimal = decimal
+        self.show_index_names = index_names
+        self.series_id = series_id
+        self.render_links = render_links
+        self.bold_rows = bold_rows
+        self.escape = escape
+
+        if float_format is None:
+            float_format = get_option("display.float_format")
+        self.float_format = float_format
+        self.dtype = dtype
+        self.adj = _get_adjustment()
+
+        self._chk_truncate()
+
+    def _chk_truncate(self) -> None:
+        from pandas.core.reshape.concat import concat
+
+        min_rows = self.min_rows
+        max_rows = self.max_rows
+        # truncation determined by max_rows, actual truncated number of rows
+        # used below by min_rows
+        truncate_v = max_rows and (len(self.series) > max_rows)
+        series = self.series
+        if truncate_v:
+            max_rows = cast(int, max_rows)
+            if min_rows:
+                # if min_rows is set (not None or 0), set max_rows to minimum
+                # of both
+                max_rows = min(min_rows, max_rows)
+            if max_rows == 1:
+                row_num = max_rows
+                series = series.iloc[:max_rows]
+            else:
+                row_num = max_rows // 2
+                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+            self.tr_row_num = row_num  # type: Optional[int]
+        else:
+            self.tr_row_num = None
+        self.tr_series = series
+        self.truncate_v = truncate_v
+        self.is_truncated = self.truncate_v
+
+    def _get_footer(self) -> str:
+        name = self.series.name
+        footer = ""
+
+        if getattr(self.series.index, "freq", None) is not None:
+            footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
+
+        if self.name is not False and name is not None:
+            if footer:
+                footer += ", "
+
+            series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
+            footer += (
+                ("Name: {sname}".format(sname=series_name)) if name is not None else ""
+            )
+
+        if self.length is True or (self.length == "truncate" and self.truncate_v):
+            if footer:
+                footer += ", "
+            footer += "Length: {length}".format(length=len(self.series))
+
+        if self.dtype is not False and self.dtype is not None:
+            name = getattr(self.tr_series.dtype, "name", None)
+            if name:
+                if footer:
+                    footer += ", "
+                footer += "dtype: {typ}".format(typ=pprint_thing(name))
+
+        # level infos are added to the end and in a new line, like it is done
+        # for Categoricals
+        if is_categorical_dtype(self.tr_series.dtype):
+            level_info = self.tr_series._values._repr_categories_info()
+            if footer:
+                footer += "\n"
+            footer += level_info
+
+        return str(footer)
+
+    @property
+    def has_index_names(self) -> bool:
+        return _has_names(self.series.index)
+
+    @property
+    def show_row_idx_names(self) -> bool:
+        return all((self.has_index_names, self.index, self.show_index_names))
+
+    def _get_formatted_index(self) -> Tuple[List[str], bool]:
+        index = self.tr_series.index
+        is_multi = isinstance(index, ABCMultiIndex)
+
+        if is_multi:
+            have_header = any(name for name in index.names)
+            fmt_index = index.format(names=True)
+        else:
+            have_header = index.name is not None
+            fmt_index = index.format(name=True)
+        return fmt_index, have_header
+
+    def _get_formatted_values(self) -> List[str]:
+        return format_array(
+            self.tr_series._values,
+            None,
+            float_format=self.float_format,
+            na_rep=self.na_rep,
+        )
+
+    def to_string(self) -> str:
+        series = self.tr_series
+        footer = self._get_footer()
+
+        if len(series) == 0:
+            return "{name}([], {footer})".format(
+                name=self.series.__class__.__name__, footer=footer
+            )
+
+        fmt_index, have_header = self._get_formatted_index()
+        fmt_values = self._get_formatted_values()
+
+        if self.truncate_v:
+            n_header_rows = 0
+            row_num = self.tr_row_num
+            row_num = cast(int, row_num)
+            width = self.adj.len(fmt_values[row_num - 1])
+            if width > 3:
+                dot_str = "..."
+            else:
+                dot_str = ".."
+            # Series uses mode=center because it has single value columns
+            # DataFrame uses mode=left
+            dot_str = self.adj.justify([dot_str], width, mode="center")[0]
+            fmt_values.insert(row_num + n_header_rows, dot_str)
+            fmt_index.insert(row_num + 1, "")
+
+        if self.index:
+            result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
+        else:
+            result = self.adj.adjoin(3, fmt_values)
+
+        if self.header and have_header:
+            result = fmt_index[0] + "\n" + result
+
+        if footer:
+            result += "\n" + footer
+
+        return str("".join(result))
+
+    def _format_col(self) -> List[str]:
+        series = self.tr_series
+        formatter = None
+        return format_array(
+            series._values,
+            formatter,
+            float_format=self.float_format,
+            na_rep=self.na_rep,
+            decimal=self.decimal,
+        )
+
+    def to_html(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+        classes: Optional[Union[str, List, Tuple]] = None,
+        notebook: bool = False,
+        border: Optional[int] = None,
+    ) -> Optional[str]:
+        """
+        Render a Series to a html table.
+
+        Parameters
+        ----------
+        classes : str or list-like
+            classes to include in the `class` attribute of the opening
+            ``<table>`` tag, in addition to the default "dataframe".
+        notebook : {True, False}, optional, default False
+            Whether the generated HTML is for IPython Notebook.
+        border : int
+            A ``border=border`` attribute is included in the opening
+            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        """
+        from pandas.io.formats.html import HTMLColumnFormatter, NotebookColumnFormatter
+
+        Klass = NotebookColumnFormatter if notebook else HTMLColumnFormatter
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
+
+
+class TextAdjustment:
+    def __init__(self):
+        self.encoding = get_option("display.encoding")
+
+    def len(self, text: str) -> int:
+        return len(text)
+
+    def justify(self, texts: Any, max_len: int, mode: str = "right") -> List[str]:
+        return justify(texts, max_len, mode=mode)
+
+    def adjoin(self, space: int, *lists, **kwargs) -> str:
+        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+
+
+class EastAsianTextAdjustment(TextAdjustment):
+    def __init__(self):
+        super().__init__()
+        if get_option("display.unicode.ambiguous_as_wide"):
+            self.ambiguous_width = 2
+        else:
+            self.ambiguous_width = 1
+
+        # Definition of East Asian Width
+        # http://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
+
+    def len(self, text: str) -> int:
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(
+            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
+        )
+
+    def justify(
+        self, texts: Iterable[str], max_len: int, mode: str = "right"
+    ) -> List[str]:
+        # re-calculate padding space per str considering East Asian Width
+        def _get_pad(t):
+            return max_len - self.len(t) + len(t)
+
+        if mode == "left":
+            return [x.ljust(_get_pad(x)) for x in texts]
+        elif mode == "center":
+            return [x.center(_get_pad(x)) for x in texts]
+        else:
+            return [x.rjust(_get_pad(x)) for x in texts]
+
+
+def _get_adjustment() -> TextAdjustment:
+    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    if use_east_asian_width:
+        return EastAsianTextAdjustment()
+    else:
+        return TextAdjustment()
 
 
 class DataFrameFormatter(TableFormatter):
@@ -968,9 +1034,9 @@ class DataFrameFormatter(TableFormatter):
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
          """
-        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        from pandas.io.formats.html import HTMLTableFormatter, NotebookTableFormatter
 
-        Klass = NotebookFormatter if notebook else HTMLFormatter
+        Klass = NotebookTableFormatter if notebook else HTMLTableFormatter
         return Klass(self, classes=classes, border=border).get_result(
             buf=buf, encoding=encoding
         )

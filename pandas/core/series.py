@@ -1586,6 +1586,38 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
+    def _repr_html_(self) -> Optional[str]:
+        """
+        Return a html representation for a particular DataFrame.
+
+        Mainly for IPython notebook.
+        """
+        if get_option("display.notebook_repr_html"):
+            max_rows = get_option("display.max_rows")
+            min_rows = get_option("display.min_rows")
+            max_cols = get_option("display.max_columns")
+            show_dimensions = get_option("display.show_dimensions")
+
+            formatter = fmt.SeriesFormatter(
+                self,
+                name=self.name,
+                length=show_dimensions,
+                header=True,
+                index=True,
+                dtype=True,
+                na_rep="NaN",
+                float_format=None,
+                min_rows=min_rows,
+                max_rows=max_rows,
+                show_dimensions=show_dimensions,
+                decimal=".",
+                series_id=None,
+                render_links=False,
+            )
+            return formatter.to_html(notebook=True)
+        else:
+            return None
+
     def to_string(
         self,
         buf=None,

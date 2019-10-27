@@ -25,7 +25,7 @@ class LatexFormatter(TableFormatter):
 
     See Also
     --------
-    HTMLFormatter
+    HTMLTableFormatter
     """
 
     def __init__(
