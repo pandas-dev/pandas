@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
-import platform
+from distutils.version import StrictVersion
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -1549,9 +1550,8 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    # xpassing on MacPython with strict=False
-    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
-    platform.system() == "Darwin",
+    # Bug in old versions of python-dateutil (failing in 2.6.1)
+    StrictVersion(dateutil.__version__) <= StrictVersion("2.6.1"),
     reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
     strict=False,
 )
