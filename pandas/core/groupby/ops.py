@@ -560,13 +560,7 @@ class BaseGrouper:
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result,
-                counts,
-                values,
-                labels,
-                func,
-                is_datetimelike,
-                min_count,
+                result, counts, values, labels, func, is_datetimelike, min_count
             )
         elif kind == "transform":
             result = _maybe_fill(
@@ -616,14 +610,7 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_datetimelike,
-        min_count=-1,
+        self, result, counts, values, comp_ids, agg_func, is_datetimelike, min_count=-1
     ):
         if values.ndim > 2:
             # punting for now
@@ -634,13 +621,7 @@ class BaseGrouper:
         return result
 
     def _transform(
-        self,
-        result,
-        values,
-        comp_ids,
-        transform_func,
-        is_datetimelike,
-        **kwargs
+        self, result, values, comp_ids, transform_func, is_datetimelike, **kwargs
     ):
 
         comp_ids, _, ngroups = self.group_info
@@ -649,7 +630,9 @@ class BaseGrouper:
             raise NotImplementedError("number of dimensions is currently limited to 2")
         elif transform_func is libgroupby.group_rank:
             # different signature from the others
-            transform_func(result, values, comp_ids, is_datetimelike=is_datetimelike, **kwargs)
+            transform_func(
+                result, values, comp_ids, is_datetimelike=is_datetimelike, **kwargs
+            )
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
