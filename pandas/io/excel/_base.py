@@ -778,6 +778,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
         if ext.startswith("."):
             ext = ext[1:]
+        # https://github.com/python/mypy/issues/7760
         # error: "Callable[[ExcelWriter], Tuple[str, ...]]" has no attribute "__iter__"
         #  (not iterable)  [attr-defined]
         if not any(
