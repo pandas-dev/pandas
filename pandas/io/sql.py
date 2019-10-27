@@ -12,7 +12,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -1596,17 +1595,17 @@ class SQLiteDatabase(PandasSQL):
         except Exception as exc:
             try:
                 self.con.rollback()
-            except Exception:  # pragma: no cover
+            except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     "Execution failed on sql: {sql}\n{exc}\nunable "
                     "to rollback".format(sql=args[0], exc=exc)
                 )
-                raise_with_traceback(ex)
+                raise ex from inner_exc
 
             ex = DatabaseError(
                 "Execution failed on sql '{sql}': {exc}".format(sql=args[0], exc=exc)
             )
-            raise_with_traceback(ex)
+            raise ex from exc
 
     @staticmethod
     def _query_iterator(

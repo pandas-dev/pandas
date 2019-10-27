@@ -480,7 +480,7 @@ class SeriesGroupBy(GroupBy):
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -1228,7 +1228,7 @@ class DataFrameGroupBy(GroupBy):
                         return self._concat_objects(keys, values, not_indexed_same=True)
 
                 try:
-                    if self.axis == 0:
+                    if self.axis == 0 and isinstance(v, ABCSeries):
                         # GH6124 if the list of Series have a consistent name,
                         # then propagate that name to the result.
                         index = v.index.copy()
@@ -1264,15 +1264,24 @@ class DataFrameGroupBy(GroupBy):
                                 axis=self.axis,
                             ).unstack()
                             result.columns = index
-                    else:
+                    elif isinstance(v, ABCSeries):
                         stacked_values = np.vstack([np.asarray(v) for v in values])
                         result = DataFrame(
                             stacked_values.T, index=v.index, columns=key_index
                         )
+                    else:
+                        # GH#1738: values is list of arrays of unequal lengths
+                        #  fall through to the outer else clause
+                        # TODO: sure this is right?  we used to do this
+                        #  after raising AttributeError above
+                        return Series(
+                            values, index=key_index, name=self._selection_name
+                        )
 
-                except (ValueError, AttributeError):
+                except ValueError:
+                    # TODO: not reached in tests; is this still needed?
                     # GH1738: values is list of arrays of unequal lengths fall
-                    # through to the outer else caluse
+                    # through to the outer else clause
                     return Series(values, index=key_index, name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates

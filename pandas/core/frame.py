@@ -34,7 +34,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -485,7 +485,7 @@ class DataFrame(NDFrame):
                     "DataFrame constructor called with "
                     "incompatible data and dtype: {e}".format(e=e)
                 )
-                raise_with_traceback(exc)
+                raise exc from e
 
             if arr.ndim == 0 and index is not None and columns is not None:
                 values = cast_scalar_to_array(
@@ -7821,11 +7821,10 @@ class DataFrame(NDFrame):
                 elif filter_type == "bool":
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    e = NotImplementedError(
+                    raise NotImplementedError(
                         "Handling exception with filter_type {f} not"
                         "implemented.".format(f=filter_type)
-                    )
-                    raise_with_traceback(e)
+                    ) from e
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
