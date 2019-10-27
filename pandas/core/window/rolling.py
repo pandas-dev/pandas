@@ -349,36 +349,30 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def _get_roll_func(
-        self, cfunc: Callable, check_minp: Callable, index: np.ndarray, **kwargs
-    ) -> Callable:
+    def _get_roll_func(self, func_name: str) -> Callable:
         """
         Wrap rolling function to check values passed.
 
         Parameters
         ----------
-        cfunc : callable
+        func_name : str
             Cython function used to calculate rolling statistics
-        check_minp : callable
-            function to check minimum period parameter
-        index : ndarray
-            used for variable window
 
         Returns
         -------
         func : callable
         """
-
-        def func(arg, window, min_periods=None, closed=None):
-            minp = check_minp(min_periods, window)
-            return cfunc(arg, window, minp, index, closed, **kwargs)
-
-        return func
+        window_func = getattr(libwindow, func_name, None)
+        if window_func is None:
+            raise ValueError(
+                "we do not support this function "
+                "in libwindow.{func_name}".format(func_name=func_name)
+            )
+        return window_func
 
     def _apply(
         self,
-        func: Union[str, Callable],
-        name: Optional[str] = None,
+        func: Callable,
         window: Optional[Union[int, str]] = None,
         center: Optional[bool] = None,
         check_minp: Optional[Callable] = None,
@@ -391,9 +385,7 @@ class _Window(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        func : str/callable to apply
-        name : str, optional
-           name of this function
+        func : callable function to apply
         window : int/str, default to _get_window()
             window length or offset
         center : bool, default to self.center
@@ -914,13 +906,15 @@ class Window(_Window):
     @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        return self._apply("roll_weighted_sum", **kwargs)
+        window_func = self._get_roll_func("roll_weighted_sum")
+        return self._apply(window_func, **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply("roll_weighted_mean", **kwargs)
+        window_func = self._get_roll_func("roll_weighted_mean")
+        return self._apply(window_func, **kwargs)
 
 
 class _Rolling(_Window):
@@ -1069,12 +1063,14 @@ class _Rolling_and_Expanding(_Rolling):
                 args,
                 kwargs,
             )
+        window_func = self._get_roll_func("roll_generic")
 
-        return self._apply(f, func, args=args, kwargs=kwargs, center=False, raw=raw)
+        return self._apply(window_func, args=args, kwargs=kwargs, center=False, raw=raw)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        return self._apply("roll_sum", "sum", **kwargs)
+        window_func = self._get_roll_func("roll_sum")
+        return self._apply(window_func, **kwargs)
 
     _shared_docs["max"] = dedent(
         """
@@ -1089,7 +1085,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
-        return self._apply("roll_max", "max", **kwargs)
+        window_func = self._get_roll_func("roll_max")
+        return self._apply(window_func, **kwargs)
 
     _shared_docs["min"] = dedent(
         """
@@ -1130,11 +1127,13 @@ class _Rolling_and_Expanding(_Rolling):
 
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
-        return self._apply("roll_min", "min", **kwargs)
+        window_func = self._get_roll_func("roll_min")
+        return self._apply(window_func, **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply("roll_mean", "mean", **kwargs)
+        window_func = self._get_roll_func("roll_mean")
+        return self._apply(window_func, **kwargs)
 
     _shared_docs["median"] = dedent(
         """
@@ -1174,7 +1173,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def median(self, **kwargs):
-        return self._apply("roll_median_c", "median", **kwargs)
+        window_func = self._get_roll_func("roll_median_c")
+        return self._apply(window_func, **kwargs)
 
     _shared_docs["std"] = dedent(
         """
@@ -1246,10 +1246,9 @@ class _Rolling_and_Expanding(_Rolling):
             return _zsqrt(
                 libwindow.roll_var(arg, window, minp, index_as_array, self.closed, ddof)
             )
+        window_func = self._get_roll_func("roll_var")
 
-        return self._apply(
-            f, "std", check_minp=_require_min_periods(1), ddof=ddof, **kwargs
-        )
+        return self._apply(window_func, check_minp=_require_min_periods(1), ddof=ddof, **kwargs)
 
     _shared_docs["var"] = dedent(
         """
@@ -1313,9 +1312,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        return self._apply(
-            "roll_var", "var", check_minp=_require_min_periods(1), ddof=ddof, **kwargs
-        )
+        window_func = self._get_roll_func("roll_var")
+        return self._apply(window_func, check_minp=_require_min_periods(1), ddof=ddof, **kwargs)
 
     _shared_docs[
         "skew"
@@ -1329,9 +1327,8 @@ class _Rolling_and_Expanding(_Rolling):
     """
 
     def skew(self, **kwargs):
-        return self._apply(
-            "roll_skew", "skew", check_minp=_require_min_periods(3), **kwargs
-        )
+        window_func = self._get_roll_func("roll_skew")
+        return self._apply(window_func, check_minp=_require_min_periods(3), **kwargs)
 
     _shared_docs["kurt"] = dedent(
         """
@@ -1366,9 +1363,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def kurt(self, **kwargs):
-        return self._apply(
-            "roll_kurt", "kurt", check_minp=_require_min_periods(4), **kwargs
-        )
+        window_func = self._get_roll_func("roll_kurt")
+        return self._apply(window_func, check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs["quantile"] = dedent(
         """
@@ -1451,7 +1447,14 @@ class _Rolling_and_Expanding(_Rolling):
                     interpolation,
                 )
 
-        return self._apply(f, "quantile", quantile=quantile, **kwargs)
+        if quantile == 1.0:
+            window_func = self._get_roll_func("roll_max")
+        elif quantile == 0.0:
+            window_func = self._get_roll_func("roll_min")
+        else:
+            window_func = self._get_roll_func("roll_quantile")
+
+        return self._apply(window_func, quantile=quantile, **kwargs)
 
     _shared_docs[
         "cov"
@@ -1803,7 +1806,8 @@ class Rolling(_Rolling_and_Expanding):
 
         # different impl for freq counting
         if self.is_freq_type:
-            return self._apply("roll_count", "count")
+            window_func = self._get_roll_func("roll_count")
+            return self._apply(window_func)
 
         return super().count()
 
