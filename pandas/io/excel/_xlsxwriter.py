@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
@@ -8,7 +10,7 @@ class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING = {
+    STYLE_MAPPING: Dict[str, List] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
@@ -192,11 +194,13 @@ class _XlsxWriter(ExcelWriter):
         Save workbook to disk.
         """
 
+        assert self.book is not None
         return self.book.close()
 
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
+        assert self.book is not None
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
