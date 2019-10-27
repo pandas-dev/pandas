@@ -1658,7 +1658,7 @@ class TestStylerMatplotlibDep:
     def test_background_gradient_int64(self):
         # GH 28869
         df1 = pd.Series(range(3)).to_frame()
-        df2 = pd.Series(range(3), dtype='Int64').to_frame()
+        df2 = pd.Series(range(3), dtype="Int64").to_frame()
         ctx1 = df1.style.background_gradient()._compute().ctx
         ctx2 = df2.style.background_gradient()._compute().ctx
         assert ctx2[(0, 0)] == ctx1[(0, 0)]
