@@ -1550,9 +1550,8 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    # Bug in old versions of python-dateutil (failing in 2.6.1)
-    StrictVersion(dateutil.__version__) <= StrictVersion("2.6.1"),
-    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
+    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
+    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
     strict=False,
 )
 def test_small_year_parsing():
