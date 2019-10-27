@@ -745,7 +745,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self) -> Iterable[Tuple[Hashable, Series]]:
+    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -1340,18 +1340,18 @@ class GroupBy(_GroupBy):
                 # try a cython aggregation if we can
                 try:
                     return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-                except AssertionError:
-                    raise
                 except DataError:
                     pass
-                except Exception:
-                    # TODO: the remaining test cases that get here are from:
-                    #  - AttributeError from _cython_agg_blocks bug passing
-                    #    DataFrame to make_block; see  GH#28275
-                    #  - TypeError in _cython_operation calling ensure_float64
-                    #    on object array containing complex numbers;
-                    #    see test_groupby_complex, test_max_nan_bug
-                    pass
+                except NotImplementedError as err:
+                    if "function is not implemented for this dtype" in str(err):
+                        # raised in _get_cython_function, in some cases can
+                        #  be trimmed by implementing cython funcs for more dtypes
+                        pass
+                    elif "decimal does not support skipna=True" in str(err):
+                        # FIXME: kludge for test_decimal:test_in_numeric_groupby
+                        pass
+                    else:
+                        raise
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
@@ -1942,8 +1942,6 @@ class GroupBy(_GroupBy):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
-        .. versionadded:: 0.20.2
-
         Parameters
         ----------
         ascending : bool, default True
@@ -2080,7 +2078,7 @@ class GroupBy(_GroupBy):
             * dense: like 'min', but rank always increases by 1 between groups
         ascending : bool, default True
             False for ranks by high (1) to low (N).
-        na_option :  {'keep', 'top', 'bottom'}, default 'keep'
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending

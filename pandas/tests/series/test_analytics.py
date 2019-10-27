@@ -4,6 +4,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p18
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -160,6 +161,9 @@ class TestSeriesAnalytics:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p18, reason="numpy 1.18 changed min/max behavior for NaT"
+    )
     def test_cummin_datetime64(self):
         s = pd.Series(
             pd.to_datetime(["NaT", "2000-1-2", "NaT", "2000-1-1", "NaT", "2000-1-3"])
@@ -179,6 +183,9 @@ class TestSeriesAnalytics:
         result = s.cummin(skipna=False)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p18, reason="numpy 1.18 changed min/max behavior for NaT"
+    )
     def test_cummax_datetime64(self):
         s = pd.Series(
             pd.to_datetime(["NaT", "2000-1-2", "NaT", "2000-1-1", "NaT", "2000-1-3"])
@@ -198,6 +205,9 @@ class TestSeriesAnalytics:
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p18, reason="numpy 1.18 changed min/max behavior for NaT"
+    )
     def test_cummin_timedelta64(self):
         s = pd.Series(pd.to_timedelta(["NaT", "2 min", "NaT", "1 min", "NaT", "3 min"]))
 
@@ -213,6 +223,9 @@ class TestSeriesAnalytics:
         result = s.cummin(skipna=False)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p18, reason="numpy 1.18 changed min/max behavior for NaT"
+    )
     def test_cummax_timedelta64(self):
         s = pd.Series(pd.to_timedelta(["NaT", "2 min", "NaT", "1 min", "NaT", "3 min"]))
 

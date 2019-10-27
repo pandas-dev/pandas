@@ -1709,14 +1709,14 @@ cdef class _Period:
 
     def asfreq(self, freq, how='E'):
         """
-        Convert Period to desired frequency, either at the start or end of the
-        interval.
+        Convert Period to desired frequency, at the start or end of the interval.
 
         Parameters
         ----------
-        freq : string
+        freq : str
+            The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan
+            Start or end of the timespan.
 
         Returns
         -------
@@ -1776,17 +1776,19 @@ cdef class _Period:
 
     def to_timestamp(self, freq=None, how='start', tz=None):
         """
-        Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period.
+        Return the Timestamp representation of the Period.
+
+        Uses the target frequency specified at the part of the period specified
+        by `how`, which is either `Start` or `Finish`.
 
         Parameters
         ----------
-        freq : string or DateOffset
+        freq : str or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
-            longer and 'S' otherwise
+            longer and 'S' otherwise.
         how : str, default 'S' (start)
-            'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'
+            One of 'S', 'E'. Can be aliased as case insensitive
+            'Start', 'Finish', 'Begin', 'End'.
 
         Returns
         -------
@@ -2385,16 +2387,25 @@ class Period(_Period):
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005')
+        The time period represented (e.g., '4Q2005').
     freq : str, default None
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
+    ordinal : int, default None
+        The period offset from the gregorian proleptic epoch.
     year : int, default None
+        Year value of the period.
     month : int, default 1
+        Month value of the period.
     quarter : int, default None
+        Quarter value of the period.
     day : int, default 1
+        Day value of the period.
     hour : int, default 0
+        Hour value of the period.
     minute : int, default 0
+        Minute value of the period.
     second : int, default 0
+        Second value of the period.
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
