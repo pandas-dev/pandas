@@ -461,9 +461,7 @@ class DataFrame(NDFrame):
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
-                    arrays, columns = to_arrays(
-                        data, columns, dtype=dtype, to_integer_array=to_integer_array
-                    )
+                    arrays, columns = to_arrays(data, columns, dtype=dtype)
                     columns = ensure_index(columns)
 
                     # set the index
@@ -859,9 +857,9 @@ class DataFrame(NDFrame):
         ...                   index=['panda', 'polar', 'koala'])
         >>> df
                 species   population
-        panda 	bear 	  1864
-        polar 	bear 	  22000
-        koala 	marsupial 80000
+        panda   bear      1864
+        polar   bear      22000
+        koala   marsupial 80000
         >>> for label, content in df.items():
         ...     print('label:', label)
         ...     print('content:', content, sep='\n')
