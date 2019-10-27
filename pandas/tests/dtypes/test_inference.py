@@ -552,6 +552,14 @@ class TestInference:
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
 
+    def test_maybe_convert_objects_nullable_integer(self):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+        from pandas.core.arrays import IntegerArray
+        exp = IntegerArray(np.array([2, 0], dtype='i8'), np.array([False, True]))
+        tm.assert_equal(result, exp)
+
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
