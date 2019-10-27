@@ -51,7 +51,7 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import Dict, List
+from typing import Any, Dict, Iterable, List
 import warnings
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
@@ -64,7 +64,7 @@ _deprecated_options = {}  # type: Dict[str, DeprecatedOption]
 _registered_options = {}  # type: Dict[str, RegisteredOption]
 
 # holds the current values for registered options
-_global_config = {}  # type: Dict[str, str]
+_global_config: Dict[str, Any] = {}
 
 # keys which have a special meaning
 _reserved_keys = ["all"]  # type: List[str]
@@ -412,7 +412,7 @@ class option_context:
                 _set_option(pat, val, silent=True)
 
 
-def register_option(key, defval, doc="", validator=None, cb=None):
+def register_option(key: str, defval: object, doc="", validator=None, cb=None):
     """Register an option in the package-wide pandas config object
 
     Parameters
@@ -455,7 +455,9 @@ def register_option(key, defval, doc="", validator=None, cb=None):
     path = key.split(".")
 
     for k in path:
-        if not bool(re.match("^" + tokenize.Name + "$", k)):
+        # NOTE: tokenize.Name is not a public constant
+        # error: Module has no attribute "Name"  [attr-defined]
+        if not bool(re.match("^" + tokenize.Name + "$", k)):  # type: ignore
             raise ValueError("{k} is not a valid identifier".format(k=k))
         if keyword.iskeyword(k):
             raise ValueError("{k} is a python keyword".format(k=k))
@@ -666,7 +668,7 @@ def pp_options_list(keys, width=80, _print=False):
     from textwrap import wrap
     from itertools import groupby
 
-    def pp(name, ks):
+    def pp(name: str, ks: Iterable[str]) -> List[str]:
         pfx = "- " + name + ".[" if name else ""
         ls = wrap(
             ", ".join(ks),
@@ -679,7 +681,7 @@ def pp_options_list(keys, width=80, _print=False):
             ls[-1] = ls[-1] + "]"
         return ls
 
-    ls = []
+    ls: List[str] = []
     singles = [x for x in sorted(keys) if x.find(".") < 0]
     if singles:
         ls += pp("", singles)
