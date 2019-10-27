@@ -8,6 +8,7 @@ from collections import abc
 import numbers
 import os
 import re
+from typing import Iterable, List, Set, Tuple, TypeVar
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
@@ -24,6 +25,8 @@ _IMPORTS = False
 _HAS_BS4 = False
 _HAS_LXML = False
 _HAS_HTML5LIB = False
+
+_T = TypeVar("_T")
 
 
 def _importers():
@@ -439,7 +442,7 @@ class _HtmlFrameParser:
         """
 
         all_texts = []  # list of rows, each a list of str
-        remainder = []  # list of (index, text, nrows)
+        remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -491,7 +494,9 @@ class _HtmlFrameParser:
 
         return all_texts
 
-    def _handle_hidden_tables(self, tbl_list, attr_name):
+    def _handle_hidden_tables(
+        self, tbl_list: Iterable[_T], attr_name: str
+    ) -> Iterable[_T]:
         """
         Return list of tables, potentially removing hidden elements
 
@@ -547,7 +552,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found")
 
         result = []
-        unique_tables = set()
+        unique_tables: Set[Iterable] = set()
         tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
@@ -739,7 +744,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return r
 
     def _parse_thead_tr(self, table):
-        rows = []
+        rows: List = []
 
         for thead in table.xpath(".//thead"):
             rows.extend(thead.xpath("./tr"))
@@ -914,7 +919,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
-        raise retained
+        # https://github.com/pandas-dev/pandas/commit/a38a004629f8a2d4da9392133e3e1162261b1e3f#r35680919
+        # error: Exception must be derived from BaseException  [misc]
+        raise retained  # type: ignore
 
     ret = []
     for table in tables:
