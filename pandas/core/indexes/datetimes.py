@@ -1,6 +1,6 @@
 from datetime import datetime, time, timedelta
 import operator
-from typing import Type, cast
+from typing import Callable, Type, cast
 import warnings
 
 import numpy as np
@@ -225,7 +225,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     been deprecated in favor of :func:`date_range`.
     """
 
+    # Attributes
     dayofweek: Int64Index
+    # Methods
+    tz_convert: Callable
+    tz_localize: Callable
 
     _typ = "datetimeindex"
     _join_precedence = 10

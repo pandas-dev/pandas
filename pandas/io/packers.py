@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
+from typing import BinaryIO, Optional
 import warnings
 
 from dateutil.parser import parse
@@ -226,6 +227,8 @@ def read_msgpack(path_or_buf, encoding="utf-8", iterator=False, **kwargs):
             except IOError:
                 pass
         return unpacked_obj
+
+    fh: Optional[BinaryIO]
 
     # see if we have an actual file
     if isinstance(path_or_buf, str):
