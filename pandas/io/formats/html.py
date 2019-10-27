@@ -657,9 +657,12 @@ class HTMLColumnFormatter(HTMLTableFormatter):
             info.append('Length: {rows}'.format(rows=len(self.series)))
         info.append('dtype: {dtype}'.format(dtype=self.series.dtype))
 
-        self.write("<p>{info}</p>".format(info = ', '.join(info)))
+        self.write("<p>{info}</p>".format(info=', '.join(info)))
 
         return self.elements
+
+    def _get_formatted_values(self) -> Dict[int, List[str]]:
+        return {0: self.fmt._format_col()}
 
     def _write_column(self, indent: int = 0) -> None:
         _classes = ["series"]  # Default class.
@@ -727,12 +730,11 @@ class HTMLColumnFormatter(HTMLTableFormatter):
         nrows = len(self.fmt.tr_series)
 
         if self.fmt.index:
-            #fmt = self.fmt._get_formatter("__index__")
-            #if fmt is not None:
-            #    index_values = self.fmt.tr_frame.index.map(fmt)
-            #else:
-            #    index_values = self.fmt.tr_frame.index.format()
-            index_values = self.fmt.tr_series.index.format()
+            fmt = self.fmt._get_formatter("__index__")
+            if fmt is not None:
+                index_values = self.fmt.tr_series.index.map(fmt)
+            else:
+                index_values = self.fmt.tr_series.index.format()
 
         row = []  # type: List[str]
         for i in range(nrows):
@@ -775,9 +777,6 @@ class NotebookColumnFormatter(HTMLColumnFormatter):
     Notebooks. This class is intended for functionality specific to
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
-
-    def _get_formatted_values(self) -> Dict[int, List[str]]:
-        return {0: self.fmt._format_col()}
 
     def write_style(self) -> None:
         # We use the "scoped" attribute here so that the desired

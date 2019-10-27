@@ -312,6 +312,9 @@ class SeriesFormatter(TableFormatter):
         dtype: bool = True,
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
+        justify: Optional[str] = None,
+        sparsify: Optional[bool] = None,
+        formatters: Optional[formatters_type] = None,
         show_dimensions: bool = False,
         col_space: Optional[Union[str, int]] = None,
         decimal: str = ".",
@@ -324,6 +327,10 @@ class SeriesFormatter(TableFormatter):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
+        if formatters is None:
+            self.formatters = {}
+        else:
+            self.formatters = formatters
         self.na_rep = na_rep
         self.header = header
         self.length = length
@@ -339,6 +346,16 @@ class SeriesFormatter(TableFormatter):
         self.render_links = render_links
         self.bold_rows = bold_rows
         self.escape = escape
+
+        if sparsify is None:
+            sparsify = get_option("display.multi_sparse")
+
+        self.sparsify = sparsify
+
+        if justify is None:
+            justify = get_option("display.colheader_justify")
+
+        self.justify = justify
 
         if float_format is None:
             float_format = get_option("display.float_format")
