@@ -372,7 +372,7 @@ class BaseGrouper:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": "group_median",
+            "median": {"name": "group_median"},
             "var": "group_var",
             "first": {
                 "name": "group_nth",
@@ -433,7 +433,8 @@ class BaseGrouper:
         ftype = self._cython_functions[kind][how]
 
         if isinstance(ftype, dict):
-            # we only get here with (kind, how) == ("aggregate", "first")
+            # we only get here with kind == "aggregate" and
+            #  how == "first" or "median"
             func = afunc = get_func(ftype["name"])
 
             # a sub-function
