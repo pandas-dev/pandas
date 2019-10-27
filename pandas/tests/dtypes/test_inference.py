@@ -557,7 +557,8 @@ class TestInference:
         arr = np.array([2, np.NaN], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
         from pandas.core.arrays import IntegerArray
-        exp = IntegerArray(np.array([2, 0], dtype='i8'), np.array([False, True]))
+
+        exp = IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True]))
         tm.assert_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
