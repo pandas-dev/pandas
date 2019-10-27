@@ -117,7 +117,6 @@ def json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-    to_integer_array: bool = False,
 ):
     """
     Normalize semi-structured JSON data into a flat table.
@@ -256,7 +255,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, to_integer_array=to_integer_array)
+        return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -316,7 +315,7 @@ def json_normalize(
 
     _recursive_extract(data, record_path, {}, level=0)
 
-    result = DataFrame(records, to_integer_array=to_integer_array)
+    result = DataFrame(records)
 
     if record_prefix is not None:
         result = result.rename(columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
