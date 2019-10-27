@@ -1958,7 +1958,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 @cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
-                          bint convert_timedelta=0, to_integer_array=False):
+                          bint convert_timedelta=0,
+                          bint convert_to_nullable_integer=0):
     """
     Type inference function-- convert object array to proper dtype
     """
@@ -2102,7 +2103,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                     elif seen.float_:
                         return floats
                     elif seen.int_:
-                        if to_integer_array:
+                        if convert_to_nullable_integer:
                             from pandas.core.arrays import IntegerArray
                             return IntegerArray(ints, mask)
                         else:
