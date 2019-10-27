@@ -1,4 +1,5 @@
 import random
+from typing import Dict, Set
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
@@ -130,7 +131,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     if ax is None:
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
-    to_plot = {}
+    to_plot: Dict = {}
     colors = _get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
@@ -231,7 +232,7 @@ def andrews_curves(
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
     t = np.linspace(-np.pi, np.pi, samples)
-    used_legends = set()
+    used_legends: Set = set()
 
     color_values = _get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
@@ -331,7 +332,7 @@ def parallel_coordinates(
     else:
         df = frame[cols]
 
-    used_legends = set()
+    used_legends: Set = set()
 
     ncols = len(df.columns)
 
