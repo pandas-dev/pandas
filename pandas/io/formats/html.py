@@ -655,7 +655,7 @@ class HTMLColumnFormatter(HTMLTableFormatter):
         info.append('Name: {name}'.format(name=self.series.name))
         if self.should_show_dimensions:
             info.append('Length: {rows}'.format(rows=len(self.series)))
-        info.append('dtype: {dtype}'.format(dtype=self.series.dtype))
+        info.append('dtype: <tt>{dtype}</tt>'.format(dtype=self.series.dtype))
 
         self.write("<p>{info}</p>".format(info=', '.join(info)))
 
