@@ -422,17 +422,6 @@ class _Window(PandasObject, SelectionMixin):
                 results.append(values.copy())
                 continue
 
-            # if we have a string function name, wrap it
-            if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
-                    )
-
-                func = self._get_roll_func(cfunc, check_minp, index_as_array, **kwargs)
-
             # calculation function
             if center:
                 offset = _offset(window, center)
