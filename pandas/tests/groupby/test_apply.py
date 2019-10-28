@@ -363,17 +363,33 @@ def test_apply_multikey_corner(tsframe):
         tm.assert_frame_equal(result.loc[key], f(group))
 
 
-def test_apply_chunk_view(as_index, group_keys):
+@pytest.mark.parametrize(
+    "as_index, group_keys, expected_index",
+    [
+        (
+            True,
+            True,
+            MultiIndex.from_tuples(
+                [(1, 0), (1, 1), (2, 2), (2, 3)], names=["key", None]
+            ),
+        ),
+        (True, False, [0, 1, 2, 3]),
+        (False, True, MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2), (1, 3)])),
+        (False, False, [0, 1, 2, 3]),
+    ],
+)
+def test_apply_chunk_view(as_index, group_keys, expected_index):
     # Low level tinkering could be unsafe, make sure not
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
+    df = DataFrame({"key": [1, 1, 2, 2], "value": range(4)})
 
-    result = df.groupby("key", group_keys=group_keys, as_index=as_index).apply(
+    result = df.groupby("key", as_index=as_index, group_keys=group_keys).apply(
         lambda x: x[:2]
     )
     if as_index:
         df.pop("key")
 
-    expected = df.take([0, 1, 3, 4, 6, 7])
+    expected = df.copy()
+    expected.index = expected_index
     tm.assert_frame_equal(result, expected)
 
 
