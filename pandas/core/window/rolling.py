@@ -39,6 +39,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.window.common import (
+    _calculate_min_periods,
     _doc_template,
     _flex_binary_moment,
     _GroupByMixin,
@@ -374,7 +375,8 @@ class _Window(PandasObject, SelectionMixin):
         self,
         func: Callable,
         center: bool,
-        check_minp: Optional[Callable] = None,
+        require_min_periods: int = 0,
+        floor: int = 1,
         **kwargs
     ):
         """
@@ -386,7 +388,8 @@ class _Window(PandasObject, SelectionMixin):
         ----------
         func : callable function to apply
         center : bool
-        check_minp : function, default to _use_window
+        require_min_periods : int
+        floor: int
         **kwargs
             additional arguments for rolling function and window function
 
@@ -394,9 +397,6 @@ class _Window(PandasObject, SelectionMixin):
         -------
         y : type of input
         """
-        if check_minp is None:
-            check_minp = _use_window
-
         # Returns ndarray if win_type is specified or just an integer
         window = self._get_window(**kwargs)
 
@@ -439,18 +439,22 @@ class _Window(PandasObject, SelectionMixin):
                 additional_nans = np.array([np.NaN] * offset)
 
                 def calc(x):
+                    x = np.concatenate((x, additional_nans))
+                    min_periods = _calculate_min_periods(window, self.min_periods, len(x), require_min_periods, floor)
                     return func(
-                        np.concatenate((x, additional_nans)),
+                        x,
                         window,
-                        min_periods=self.min_periods,
+                        min_periods=min_periods,
                         closed=self.closed,
                     )
 
             else:
 
                 def calc(x):
+                    min_periods = _calculate_min_periods(window, self.min_periods, len(x),
+                                                         require_min_periods, floor)
                     return func(
-                        x, window, min_periods=self.min_periods, closed=self.closed
+                        x, window, min_periods=min_periods, closed=self.closed
                     )
 
             with np.errstate(all="ignore"):
@@ -1059,12 +1063,12 @@ class _Rolling_and_Expanding(_Rolling):
             )
         window_func = self._get_roll_func("roll_generic")
         # Why do we always pass center=False?
-        return self._apply(window_func, False, args=args, kwargs=kwargs, raw=raw)
+        return self._apply(window_func, False, floor=0, args=args, kwargs=kwargs, raw=raw)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_sum")
-        return self._apply(window_func, self.center, **kwargs)
+        return self._apply(window_func, self.center, floor=0, **kwargs)
 
     _shared_docs["max"] = dedent(
         """
@@ -1242,7 +1246,7 @@ class _Rolling_and_Expanding(_Rolling):
             )
         window_func = self._get_roll_func("roll_var")
 
-        return self._apply(window_func, self.center, check_minp=_require_min_periods(1), ddof=ddof, **kwargs)
+        return self._apply(window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs)
 
     _shared_docs["var"] = dedent(
         """
@@ -1307,7 +1311,7 @@ class _Rolling_and_Expanding(_Rolling):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = self._get_roll_func("roll_var")
-        return self._apply(window_func, self.center, check_minp=_require_min_periods(1), ddof=ddof, **kwargs)
+        return self._apply(window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs)
 
     _shared_docs[
         "skew"
@@ -1322,7 +1326,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def skew(self, **kwargs):
         window_func = self._get_roll_func("roll_skew")
-        return self._apply(window_func, self.center, check_minp=_require_min_periods(3), **kwargs)
+        return self._apply(window_func, self.center, require_min_periods=3, **kwargs)
 
     _shared_docs["kurt"] = dedent(
         """
@@ -1358,7 +1362,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def kurt(self, **kwargs):
         window_func = self._get_roll_func("roll_kurt")
-        return self._apply(window_func, self.center, check_minp=_require_min_periods(4), **kwargs)
+        return self._apply(window_func, self.center, require_min_periods=4, **kwargs)
 
     _shared_docs["quantile"] = dedent(
         """
