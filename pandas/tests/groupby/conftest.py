@@ -117,3 +117,10 @@ def as_index():
     """yields all possible options for the `as_index` parameter, one at a time.
     """
     return [True, False]
+
+
+@pytest.fixture
+def group_keys():
+    """yields all possible options for the `group_keys` parameter, one at a time.
+    """
+    return [True, False]

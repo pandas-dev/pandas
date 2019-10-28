@@ -90,8 +90,6 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
 
-    # GH 28549
-    # "A" should not be in output anymore
     expected = Series(
         [np.dtype("object")] + [np.dtype("float64")] * 2 + [np.dtype("int64")],
         index=["B", "C", "D", "value"],
@@ -947,28 +945,17 @@ def test_mutate_groups():
     assert_series_equal(grpby_copy, grpby_no_copy)
 
 
-def test_no_mutate_but_looks_like(as_index):
-
+def test_no_mutate_but_looks_like():
     # GH 8467
     # first show's mutation indicator
     # second does not, but should yield the same results
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    def run_test(df, as_index):
-        result1 = df.groupby("key", group_keys=True, as_index=as_index).apply(
-            lambda x: x[:].key
-        )
-        result2 = df.groupby("key", group_keys=True, as_index=as_index).apply(
-            lambda x: x.key
-        )
-        return result1, result2
-
-    if as_index:
-        with pytest.raises(AttributeError, match="'key'$"):
-            run_test(df, as_index)
-    else:
-        result1, result2 = run_test(df, as_index)
-        assert_series_equal(result1, result2)
+    result1 = df.groupby("key", group_keys=True, as_index=False).apply(
+        lambda x: x[:].key
+    )
+    result2 = df.groupby("key", group_keys=True, as_index=False).apply(lambda x: x.key)
+    assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1365,9 +1352,6 @@ def test_dont_clobber_name_column(as_index):
 
     result = df.groupby("key", as_index=as_index).apply(lambda x: x)
 
-    # GH 28549
-    # test both True and False for as index to ensure
-    # proper reduction
     if as_index:
         df.pop("key")
 

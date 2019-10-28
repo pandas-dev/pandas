@@ -479,12 +479,11 @@ def test_transform_mixed_type(as_index):
     with pd.option_context("mode.chained_assignment", None):
         for index, (key, group) in enumerate(grouped):
             res = f(group)
-            # GH 28549
-            # if as_index need to drop column from res
             if as_index:
                 res = res.drop("c", 1)
-
-            k = key if as_index else index
+                k = key
+            else:
+                k = index
 
             assert_frame_equal(res, result.loc[k])
 

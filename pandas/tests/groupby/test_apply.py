@@ -363,15 +363,13 @@ def test_apply_multikey_corner(tsframe):
         tm.assert_frame_equal(result.loc[key], f(group))
 
 
-def test_apply_chunk_view(as_index):
+def test_apply_chunk_view(as_index, group_keys):
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    result = df.groupby("key", group_keys=False, as_index=as_index).apply(
+    result = df.groupby("key", group_keys=group_keys, as_index=as_index).apply(
         lambda x: x[:2]
     )
-    # GH 28549
-    # key no longer included in reduction output
     if as_index:
         df.pop("key")
 

@@ -179,14 +179,15 @@ Backwards incompatible API changes
 ``GroupBy.apply`` behaves consistently with `as_index`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- The result of :meth:`GroupBy.apply` sometimes contained the grouper column(s),
-  in both the index, and in the `DataFrame`. From Pandas 1.0, :meth:`GroupBy.apply`
-  will respect the `as_index` parameter, and only return the grouper column(s) in
-  the result if `as_index` is set to `False`.
+- Previously, the result of :meth:`GroupBy.apply` sometimes contained the grouper column(s),
+  in both the index, and in the `DataFrame`. :meth:`GroupBy.apply`
+  now respects the ``as_index`` parameter, and only returns the grouper column(s) in
+  the result if ``as_index`` is set to `False`.  Other methods such as :meth:`GroupBy.resample`
+  exhibited similar behavior and now also respect the ``as_index`` parameter.
 
-*pandas 0.25.x*
+*Previous Behavior*
 
-.. code-block:: ipython
+.. ipython:: python
 
     In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
 
@@ -198,9 +199,34 @@ Backwards incompatible API changes
     2  4   7
     3  6  11
 
-*pandas 1.0.0*
+    In [3]: df.groupby("a").apply(lambda x: x.iloc[0])
+    Out[3]:
+       a  b
+    a
+    1  1  1
+    2  2  3
+    3  3  5
 
-.. code-block:: ipython
+    In [4]: idx = pd.date_range('1/1/2000', periods=4, freq='T')
+
+    In [5]: df = pd.DataFrame(data=4 * [range(2)],
+       ...:                   index=idx,
+       ...:                   columns=['a', 'b'])
+
+    In [6]: df.iloc[2, 0] = 5
+
+    In [7]: df.groupby('a').resample('M').sum()
+    Out[7]:
+                  a  b
+    a
+    0 2000-01-31  0  3
+    5 2000-01-31  5  1
+
+
+
+*Current Behavior*
+
+.. ipython:: python
 
     In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
 
@@ -212,33 +238,29 @@ Backwards incompatible API changes
     2   7
     3  11
 
-*pandas 0.25.x*
-
-.. code-block:: ipython
-
-    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
-
-    In [2]: df.groupby("a").apply(lambda x: x.iloc[0])
-    Out[2]:
-       a  b
-    a
-    1  1  1
-    2  2  3
-    3  3  5
-
-*pandas 1.0.0*
-
-.. code-block:: ipython
-
-    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
-
-    In [2]: df.groupby("a").apply(lambda x: x.iloc[0])
-    Out[2]:
+    In [3]: df.groupby("a").apply(lambda x: x.iloc[0])
+    Out[3]:
        b
     a
     1  1
     2  3
     3  5
+
+    In [4]: idx = pd.date_range('1/1/2000', periods=4, freq='T')
+
+    In [5]: df = pd.DataFrame(data=4 * [range(2)],
+       ...:                   index=idx,
+       ...:                   columns=['a', 'b'])
+
+    In [6]: df.iloc[2, 0] = 5
+
+    In [7]: df.groupby('a').resample('M').sum()
+    Out[7]:
+                  b
+    a
+    0 2000-01-31  3
+    5 2000-01-31  1
+
 
 .. _whatsnew_1000.api.other:
 

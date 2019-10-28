@@ -349,9 +349,6 @@ def test_cython_api2():
     tm.assert_frame_equal(result, expected)
 
     # GH 13994
-    # GH 28549
-    # Good represention of when as_index=False is now behaving
-    # as expected
     result = df.groupby("A", as_index=False).cumsum(axis=1)
     expected = df.cumsum(axis=1)
     tm.assert_frame_equal(result, expected)
@@ -1118,9 +1115,6 @@ def test_count():
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-
-        # GH 28549
-        # don't need to drop key here anymore
         right = df.groupby(key).apply(DataFrame.count)
         tm.assert_frame_equal(left, right)
 

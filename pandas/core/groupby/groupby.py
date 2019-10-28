@@ -721,20 +721,19 @@ b  2""",
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
-        with option_context("mode.chained_assignment", None), _group_selection_context(
-            self
-        ):
-            try:
-                result = self._python_apply_general(f)
-            except TypeError:
-                # gh-20949
-                # try again, with .apply acting as a filtering
-                # operation, by excluding the grouping column
-                # This would normally not be triggered
-                # except if the udf is trying an operation that
-                # fails on *some* columns, e.g. a numeric operation
-                # on a string grouper column
-                return self._python_apply_general(f)
+        with option_context("mode.chained_assignment", None):
+            with _group_selection_context(self):
+                try:
+                    result = self._python_apply_general(f)
+                except TypeError:
+                    # gh-20949
+                    # try again, with .apply acting as a filtering
+                    # operation, by excluding the grouping column
+                    # This would normally not be triggered
+                    # except if the udf is trying an operation that
+                    # fails on *some* columns, e.g. a numeric operation
+                    # on a string grouper column
+                    return self._python_apply_general(f)
 
         return result
 
