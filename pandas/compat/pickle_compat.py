@@ -39,7 +39,20 @@ def load_reduce(self):
             except TypeError:
                 pass
 
-        raise TypeErrr(msg, args)
+        # try to re-encode the arguments
+        if getattr(self, "encoding", None) is not None:
+            # This is needed for a pytables pickle in 0.8.0 release notes, see
+            #  GH#28645
+            args = tuple(
+                arg.encode(self.encoding) if isinstance(arg, str) else arg
+                for arg in args
+            )
+            try:
+                stack[-1] = func(*args)
+                return
+            except TypeError:
+                pass
+        raise
 
 
 _sparse_msg = """\
