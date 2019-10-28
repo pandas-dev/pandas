@@ -39,7 +39,7 @@ def load_reduce(self):
             except TypeError:
                 pass
 
-        raise err
+        raise TypeErrr(msg, args)
 
 
 _sparse_msg = """\
