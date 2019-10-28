@@ -374,7 +374,6 @@ class _Window(PandasObject, SelectionMixin):
         self,
         func: Callable,
         center: bool,
-        window: Optional[Union[int, str]] = None,
         check_minp: Optional[Callable] = None,
         **kwargs
     ):
@@ -387,8 +386,6 @@ class _Window(PandasObject, SelectionMixin):
         ----------
         func : callable function to apply
         center : bool
-        window : int/str, default to _get_window()
-            window length or offset
         check_minp : function, default to _use_window
         **kwargs
             additional arguments for rolling function and window function
@@ -400,8 +397,8 @@ class _Window(PandasObject, SelectionMixin):
         if check_minp is None:
             check_minp = _use_window
 
-        if window is None:
-            window = self._get_window(**kwargs)
+        # Returns ndarray if win_type is specified or just an integer
+        window = self._get_window(**kwargs)
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
