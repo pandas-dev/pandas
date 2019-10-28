@@ -1170,7 +1170,7 @@ class Index(IndexOpsMixin, PandasObject):
     def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys.
-        
+
         Useful with map for returning an indexer based on an index.
 
         Parameters
