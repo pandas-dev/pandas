@@ -28,15 +28,15 @@ class Methods:
 class Apply:
     params = (
         ["DataFrame", "Series"],
-        [10, 1000],
+        [3, 300],
         ["int", "float"],
         [sum, np.sum, lambda x: np.sum(x) + 5],
         [True, False],
     )
-    param_names = ["contructor", "window", "dtype", "function", "raw"]
+    param_names = ["constructor", "window", "dtype", "function", "raw"]
 
     def setup(self, constructor, window, dtype, function, raw):
-        N = 10 ** 5
+        N = 10 ** 3
         arr = (100 * np.random.random(N)).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 

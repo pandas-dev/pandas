@@ -229,7 +229,7 @@ class DateOffset(BaseOffset):
         - minute
         - second
         - microsecond
-        - nanosecond
+        - nanosecond.
 
     See Also
     --------
@@ -658,9 +658,7 @@ class BusinessHourMixin(BusinessMixin):
 
         # Validation of input
         if len(start) != len(end):
-            raise ValueError(
-                "number of starting time and ending time " "must be the same"
-            )
+            raise ValueError("number of starting time and ending time must be the same")
         num_openings = len(start)
 
         # sort starting and ending time by starting time
@@ -982,8 +980,6 @@ class BusinessHourMixin(BusinessMixin):
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business hours.
-
-    .. versionadded:: 0.16.1
     """
 
     _prefix = "BH"
@@ -1684,7 +1680,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
     """
 
     _prefix = "WOM"
@@ -1760,7 +1756,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
     """
 
     _prefix = "LWOM"
@@ -2080,7 +2076,7 @@ class FY5253(DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
 
     startingMonth : int {1, 2, ... 12}, default 1
         The month in which the fiscal year ends.
@@ -2242,7 +2238,7 @@ class FY5253(DateOffset):
             variation = "last"
         else:
             raise ValueError(
-                "Unable to parse varion_code: " "{code}".format(code=varion_code)
+                "Unable to parse varion_code: {code}".format(code=varion_code)
             )
 
         startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
@@ -2298,7 +2294,7 @@ class FY5253Quarter(DateOffset):
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday
+        - 6 is Sunday.
 
     startingMonth : int {1, 2, ..., 12}, default 1
         The month in which fiscal years end.
@@ -2557,7 +2553,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
         if normalize:
             raise ValueError(
-                "Tick offset with `normalize=True` are not " "allowed."
+                "Tick offset with `normalize=True` are not allowed."
             )  # GH#21427
 
     __gt__ = _tick_comp(operator.gt)

@@ -330,7 +330,8 @@ class Grouping:
                 self._group_index = CategoricalIndex(
                     Categorical.from_codes(
                         codes=codes, categories=categories, ordered=self.grouper.ordered
-                    )
+                    ),
+                    name=self.name,
                 )
 
             # we are done
