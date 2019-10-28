@@ -120,6 +120,9 @@ plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
 import pandas as pd"""
 
+# nbsphinx do not use requirejs (breaks bootstrap)
+nbsphinx_requirejs_path = ""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
 
@@ -191,7 +194,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "nature_with_gtoc"
+html_theme = "pandas_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -204,7 +207,7 @@ html_theme = "nature_with_gtoc"
 # html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ["themes"]
+# html_theme_path = ["themes"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -375,7 +378,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        r"Wes McKinney\n\& PyData Development Team",
+        "Wes McKinney and the Pandas Development Team",
         "manual",
     )
 ]
@@ -605,11 +608,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:
@@ -628,11 +627,11 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/{}{}".format(
             fn, linespec
         )
     else:
-        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/v{}/pandas/{}{}".format(
             pandas.__version__, fn, linespec
         )
 
