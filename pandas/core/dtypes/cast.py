@@ -66,18 +66,6 @@ _uint64_max = np.iinfo(np.uint64).max
 _float32_max = np.finfo(np.float32).max
 
 
-def _is_iNaT(x):
-    """
-    Helper function to circumvent numpy bug for timedeltas
-
-    Specifically, comparing a scalar timedelta against another scalar value may
-    raise a spurious DeprecationWarning, see numpy/numpy#10095
-    """
-    if not is_integer(x):
-        return False
-    return x == iNaT
-
-
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
@@ -585,13 +573,14 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
             "np.ndarray, received {}".format(fill_type)
         )
 
-    if all(isna(x) or _is_iNaT(x) for x in fill_value):
+    if all(isna(x) for x in fill_value):
         # only missing values (or no values at all)
 
-        if is_datetime_or_timedelta_dtype(dtype):
-            return dtype, iNaT
+        if is_datetime64_dtype(dtype):
+            return dtype, np.datetime64("NaT", "ns")
+        elif is_timedelta64_dtype(dtype):
+            return dtype, np.timedelta64("NaT", "ns")
         elif is_datetime64tz_dtype(dtype):
-            # DatetimeTZDtype does not use iNaT as missing value marker
             return dtype, NaT
 
         na_value = np.nan
@@ -605,17 +594,6 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
             # presence of pd.NaT upcasts everything that's not
             # datetime/timedelta (see above) to object
             dtype = np.dtype(object)
-        elif (
-            is_integer_dtype(dtype)
-            and dtype == "uint64"
-            and all(x == iNaT for x in fill_value)
-        ):
-            # uint64 + negative int casts to object
-            dtype = np.dtype(object)
-        elif is_integer_dtype(dtype) and all(x == iNaT for x in fill_value):
-            # integer + iNaT casts to int64
-            dtype = np.dtype("int64")
-            na_value = None
         elif is_integer_dtype(dtype):
             # integer + other missing value (np.nan / None) casts to float
             dtype = np.dtype("float64")
@@ -667,7 +645,6 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
     # * float vs float
     # * float vs complex (and vice versa)
     # * bool
-    # * bytes
     # * datetimetz
     # * datetime
     # * timedelta
@@ -758,10 +735,6 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
         # bool with bool is the only combination that stays bool; any other
         # combination involving bool upcasts to object, see else-clause below
         return dtype, None
-    elif issubclass(dtype.type, np.bytes_) and issubclass(fill_dtype.type, np.bytes_):
-        # bytes with bytes is the only combination that stays bytes; any other
-        # combination involving bytes upcasts to object, see else-clause below
-        return dtype, None
     elif (
         is_datetime64tz_dtype(dtype)
         and is_datetime64tz_dtype(fill_dtype)
@@ -771,7 +744,7 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
         # combination that stays datetimetz (in particular, mixing timezones or
         # tz-aware and tz-naive datetimes will cast to object);  any other
         # combination involving datetimetz upcasts to object, see below
-        return dtype, iNaT
+        return dtype, NaT
     elif (is_timedelta64_dtype(dtype) and is_timedelta64_dtype(fill_dtype)) or (
         is_datetime64_dtype(dtype) and is_datetime64_dtype(fill_dtype)
     ):
@@ -787,14 +760,19 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
                     "ignore", message=msg, category=DeprecationWarning
                 )
                 fill_value.astype(dtype)
-            na_value = iNaT
+
+            # can simplify if-cond. compared to cond. for entering this branch
+            if is_datetime64_dtype(dtype):
+                na_value = np.datetime64("NaT", "ns")
+            else:
+                na_value = np.timedelta64("NaT", "ns")
         except (ValueError, TypeError):
             dtype = np.dtype(object)
             na_value = np.nan
         return dtype, na_value
     else:
-        # anything else (e.g. strings, objects, or unmatched
-        # bool / bytes / datetime / datetimetz / timedelta)
+        # anything else (e.g. strings, objects, bytes, or unmatched
+        # bool / datetime / datetimetz / timedelta)
         return np.dtype(object), np.nan
 
 
