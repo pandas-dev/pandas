@@ -226,6 +226,8 @@ with migrating existing code.
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Removed the previously deprecated ``raise_with_traceback`` function in ``pandas.compat`` (:issue:`2917`)
+
 .. _whatsnew_1000.matplotlib_units:
 
 **Matplotlib unit registration**
