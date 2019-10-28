@@ -41,7 +41,7 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_SIZE_HINT_LIMIT = (1 << 20) + 7
+cdef int64_t _SIZE_HINT_LIMIT = (1 << 20) + 7
 
 
 cdef Py_ssize_t _INIT_VEC_CAP = 128

@@ -36,7 +36,7 @@ cdef inline void kh_resize(table_t *table, int n) nogil:
             kh_resize_pymap(table, n)
 
 
-cdef inline kh_destroy(table_t *table):
+cdef kh_destroy(table_t *table):
     if table_t is kh_float64_t:
         kh_destroy_float64(table)
     if table_t is kh_uint64_t:
@@ -227,7 +227,7 @@ def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
     kh_init(&table)
-    kh_resize(table, <int>min(n, _SIZE_HINT_LIMIT))
+    kh_resize(table, min(n, _SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
