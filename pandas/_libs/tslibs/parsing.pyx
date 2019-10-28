@@ -581,7 +581,7 @@ def try_parse_dates(object[:] values, parser=None,
                 else:
                     result[i] = parse_date(values[i])
         except Exception:
-            # Since parser is user-defined, we can't guess what it migh raise
+            # Since parser is user-defined, we can't guess what it might raise
             return values
     else:
         parse_date = parser
