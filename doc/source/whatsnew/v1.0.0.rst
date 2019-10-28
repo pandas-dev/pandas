@@ -226,7 +226,7 @@ with migrating existing code.
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Removed the previously deprecated ``raise_with_traceback`` function in ``pandas.compat`` (:issue:`29174`)
+- Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
 
 .. _whatsnew_1000.matplotlib_units:
 
