@@ -471,8 +471,6 @@ default of the index) in a DataFrame.
 Rolling window endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.20.0
-
 The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
 parameter:
 

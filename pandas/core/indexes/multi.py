@@ -639,7 +639,10 @@ class MultiIndex(Index):
 
     @property
     def levels(self):
-        return self._levels
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        return FrozenList(result)
 
     @property
     def _values(self):
@@ -830,7 +833,7 @@ class MultiIndex(Index):
         if level is None:
             new_codes = FrozenList(
                 _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
-                for lev, level_codes in zip(self.levels, codes)
+                for lev, level_codes in zip(self._levels, codes)
             )
         else:
             level = [self._get_level_number(l) for l in level]
@@ -1305,7 +1308,10 @@ class MultiIndex(Index):
             # Remove unobserved levels from level_index
             level_index = level_index.take(uniques)
 
-        grouper = level_index.take(codes)
+        if len(level_index):
+            grouper = level_index.take(codes)
+        else:
+            grouper = level_index.take(codes, fill_value=True)
 
         return grouper, codes, level_index
 
@@ -1820,8 +1826,6 @@ class MultiIndex(Index):
 
     def _sort_levels_monotonic(self):
         """
-        .. versionadded:: 0.20.0
-
         This is an *internal* function.
 
         Create a new MultiIndex from the current to monotonically sorted
@@ -1897,8 +1901,6 @@ class MultiIndex(Index):
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
         be .equals() to the original.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------
