@@ -1603,6 +1603,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 length=show_dimensions,
                 header=True,
                 index=True,
+                bold_rows=True,
+                escape=True,
                 dtype=True,
                 na_rep="NaN",
                 float_format=None,
