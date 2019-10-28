@@ -814,8 +814,10 @@ class DataFrame(NDFrame):
     @property
     def style(self):
         """
-        Property returning a Styler object containing methods for
-        building a styled HTML representation fo the DataFrame.
+        Returns a Styler object.
+
+        Property returning a Styler object containing methods for building
+        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -8207,6 +8209,8 @@ class DataFrame(NDFrame):
 
     def to_period(self, freq=None, axis=0, copy=True):
         """
+        Convert DataFrame from DatetimeIndex to PeriodIndex.
+
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed).
 
