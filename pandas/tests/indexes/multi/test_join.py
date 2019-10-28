@@ -93,7 +93,7 @@ def test_join_multi_wrong_order():
     # GH 25760
     # GH 28956
 
-    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=['a', 'b'])
-    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=['b', 'a'])
+    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["b", "a"])
 
     midx1.join(midx2)
