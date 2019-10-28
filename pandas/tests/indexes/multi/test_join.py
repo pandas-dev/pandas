@@ -87,3 +87,13 @@ def test_join_self_unique(idx, join_type):
     if idx.is_unique:
         joined = idx.join(idx, how=join_type)
         assert (idx == joined).all()
+
+
+def test_join_multi_wrong_order():
+    # GH 25760
+    # GH 28956
+
+    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=['a', 'b'])
+    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=['b', 'a'])
+
+    midx1.join(midx2)
