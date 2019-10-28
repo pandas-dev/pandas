@@ -9,12 +9,11 @@ import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
 from pandas.api.types import CategoricalDtype
-from pandas.tests.series.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesRank(TestData):
+class TestSeriesRank:
     s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
 
     results = {
@@ -25,20 +24,20 @@ class TestSeriesRank(TestData):
         "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
-    def test_rank(self):
+    def test_rank(self, datetime_series):
         pytest.importorskip("scipy.stats.special")
         rankdata = pytest.importorskip("scipy.stats.rankdata")
 
-        self.ts[::2] = np.nan
-        self.ts[:10][::3] = 4.0
+        datetime_series[::2] = np.nan
+        datetime_series[:10][::3] = 4.0
 
-        ranks = self.ts.rank()
-        oranks = self.ts.astype("O").rank()
+        ranks = datetime_series.rank()
+        oranks = datetime_series.astype("O").rank()
 
         assert_series_equal(ranks, oranks)
 
-        mask = np.isnan(self.ts)
-        filled = self.ts.fillna(np.inf)
+        mask = np.isnan(datetime_series)
+        filled = datetime_series.fillna(np.inf)
 
         # rankdata returns a ndarray
         exp = Series(rankdata(filled), index=filled.index, name="ts")

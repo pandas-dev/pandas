@@ -60,7 +60,6 @@ cdef class Packer:
 
     :param callable default:
         Convert user type to builtin type that Packer supports.
-        See also simplejson's document.
     :param str encoding:
         Convert unicode to bytes with this encoding. (default: 'utf-8')
     :param str unicode_errors:
