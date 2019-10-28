@@ -262,7 +262,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):
@@ -500,7 +500,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter()
 
-    cdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         # super(...) pattern doesn't seem to work with `cdef`
         Int64Engine._call_map_locations(self, values.view('i8'))
 

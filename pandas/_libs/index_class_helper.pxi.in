@@ -38,7 +38,7 @@ cdef class {{name}}Engine(IndexEngine):
             raise KeyError(val)
     {{endif}}
 
-    cdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         # self.mapping is of type {{hashtable_name}}HashTable,
         # so convert dtype of values
         self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))
