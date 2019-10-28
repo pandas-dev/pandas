@@ -3,18 +3,12 @@ import warnings
 
 from pandas._config import get_option
 
-from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
-
-# Trigger matplotlib import, which implicitly registers our
-# converts. Implicit registration is deprecated, and when enforced
-# we can lazily import matplotlib.
-import_optional_dependency("pandas.plotting._matplotlib", raise_on_missing=False)
 
 
 def hist_series(
