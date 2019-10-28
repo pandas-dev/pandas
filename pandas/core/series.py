@@ -1595,7 +1595,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
             min_rows = get_option("display.min_rows")
-            max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
             formatter = fmt.SeriesFormatter(
@@ -1707,7 +1706,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             border=border,
             encoding=encoding,
         )
-
 
     def to_string(
         self,
