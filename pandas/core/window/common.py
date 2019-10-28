@@ -251,22 +251,26 @@ def _use_window(minp, window):
         return minp
 
 
-def _calculate_min_periods(window: int,
-                           min_periods: Optional[int],
-                           num_values: int,
-                           required_min_periods: int,
-                           floor: int):
+def _calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+):
     if min_periods is None:
         min_periods = window
     else:
         min_periods = max(required_min_periods, min_periods)
     if min_periods > window:
-        raise ValueError("min_periods {min_periods} must be <= "
-                         "window {window}".format(min_periods=min_periods, window=window))
+        raise ValueError(
+            "min_periods {min_periods} must be <= "
+            "window {window}".format(min_periods=min_periods, window=window)
+        )
     elif min_periods > num_values:
         min_periods = num_values + 1
     elif min_periods < 0:
-        raise ValueError('min_periods must be >= 0')
+        raise ValueError("min_periods must be >= 0")
     return max(min_periods, floor)
 
 

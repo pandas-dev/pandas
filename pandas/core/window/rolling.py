@@ -429,22 +429,18 @@ class _Window(PandasObject, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    min_periods = _calculate_min_periods(window, self.min_periods, len(x), require_min_periods, floor)
-                    return func(
-                        x,
-                        window,
-                        min_periods=min_periods,
-                        closed=self.closed,
+                    min_periods = _calculate_min_periods(
+                        window, self.min_periods, len(x), require_min_periods, floor
                     )
+                    return func(x, window, min_periods=min_periods, closed=self.closed)
 
             else:
 
                 def calc(x):
-                    min_periods = _calculate_min_periods(window, self.min_periods, len(x),
-                                                         require_min_periods, floor)
-                    return func(
-                        x, window, min_periods=min_periods, closed=self.closed
+                    min_periods = _calculate_min_periods(
+                        window, self.min_periods, len(x), require_min_periods, floor
                     )
+                    return func(x, window, min_periods=min_periods, closed=self.closed)
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1:
@@ -1050,9 +1046,12 @@ class _Rolling_and_Expanding(_Rolling):
                 args,
                 kwargs,
             )
+
         window_func = self._get_roll_func("roll_generic")
         # Why do we always pass center=False?
-        return self._apply(window_func, False, floor=0, args=args, kwargs=kwargs, raw=raw)
+        return self._apply(
+            window_func, False, floor=0, args=args, kwargs=kwargs, raw=raw
+        )
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
@@ -1233,9 +1232,12 @@ class _Rolling_and_Expanding(_Rolling):
             return _zsqrt(
                 libwindow.roll_var(arg, window, minp, index_as_array, self.closed, ddof)
             )
+
         window_func = self._get_roll_func("roll_var")
 
-        return self._apply(window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs)
+        return self._apply(
+            window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs
+        )
 
     _shared_docs["var"] = dedent(
         """
@@ -1300,7 +1302,9 @@ class _Rolling_and_Expanding(_Rolling):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = self._get_roll_func("roll_var")
-        return self._apply(window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs)
+        return self._apply(
+            window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs
+        )
 
     _shared_docs[
         "skew"
