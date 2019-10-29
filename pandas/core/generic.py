@@ -5766,7 +5766,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def as_blocks(self, copy=True):
         """
-        Convert the frame to a dict of dtype.
+        Convert the frame to a dict of dtype -> Constructor Types.
 
         .. deprecated:: 0.21.0
 
