@@ -1457,15 +1457,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         Parameters
         ----------
         skipna : bool, default True
-            Whether to ignore any NaT elements
+            Whether to ignore any NaT elements.
 
         Returns
         -------
-        scalar (Timestamp or Timedelta)
+        scalar
+            Timestamp or Timedelta.
 
         See Also
         --------
-        numpy.ndarray.mean
+        numpy.ndarray.mean : Returns the average of array elements along a given axis.
         Series.mean : Return the mean value in a Series.
 
         Notes
