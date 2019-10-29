@@ -1,14 +1,13 @@
 from collections import OrderedDict
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, get_dummies
-from pandas.core.sparse.api import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
@@ -140,19 +139,19 @@ class TestGetDummies:
         # Sparse dataframes do not allow nan labelled columns, see #GH8822
         res_na = get_dummies(s, dummy_na=True, sparse=sparse, dtype=dtype)
         exp_na = DataFrame(
-            {nan: [0, 0, 1], "a": [1, 0, 0], "b": [0, 1, 0]},
+            {np.nan: [0, 0, 1], "a": [1, 0, 0], "b": [0, 1, 0]},
             dtype=self.effective_dtype(dtype),
         )
-        exp_na = exp_na.reindex(["a", "b", nan], axis=1)
+        exp_na = exp_na.reindex(["a", "b", np.nan], axis=1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         if sparse:
             exp_na = exp_na.apply(pd.SparseArray, fill_value=0.0)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, sparse=sparse, dtype=dtype)
+        res_just_na = get_dummies([np.nan], dummy_na=True, sparse=sparse, dtype=dtype)
         exp_just_na = DataFrame(
-            Series(1, index=[0]), columns=[nan], dtype=self.effective_dtype(dtype)
+            Series(1, index=[0]), columns=[np.nan], dtype=self.effective_dtype(dtype)
         )
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
@@ -464,14 +463,16 @@ class TestGetDummies:
         assert_frame_equal(res, exp)
 
         res_na = get_dummies(s_NA, dummy_na=True, drop_first=True, sparse=sparse)
-        exp_na = DataFrame({"b": [0, 1, 0], nan: [0, 0, 1]}, dtype=np.uint8).reindex(
-            ["b", nan], axis=1
+        exp_na = DataFrame({"b": [0, 1, 0], np.nan: [0, 0, 1]}, dtype=np.uint8).reindex(
+            ["b", np.nan], axis=1
         )
         if sparse:
             exp_na = exp_na.apply(pd.SparseArray, fill_value=0)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, drop_first=True, sparse=sparse)
+        res_just_na = get_dummies(
+            [np.nan], dummy_na=True, drop_first=True, sparse=sparse
+        )
         exp_just_na = DataFrame(index=np.arange(1))
         assert_frame_equal(res_just_na, exp_just_na)
 
@@ -607,6 +608,23 @@ class TestGetDummies:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("values", ["baz"])
+    def test_get_dummies_with_string_values(self, values):
+        # issue #28383
+        df = pd.DataFrame(
+            {
+                "bar": [1, 2, 3, 4, 5, 6],
+                "foo": ["one", "one", "one", "two", "two", "two"],
+                "baz": ["A", "B", "C", "A", "B", "C"],
+                "zoo": ["x", "y", "z", "q", "w", "t"],
+            }
+        )
+
+        msg = "Input must be a list-like for parameter `columns`"
+
+        with pytest.raises(TypeError, match=msg):
+            pd.get_dummies(df, columns=values)
+
 
 class TestCategoricalReshape:
     def test_reshaping_multi_index_categorical(self):
@@ -617,16 +635,15 @@ class TestCategoricalReshape:
         df.index.names = ["major", "minor"]
         df["str"] = "foo"
 
-        dti = df.index.levels[0]
-
         df["category"] = df["str"].astype("category")
         result = df["category"].unstack()
 
+        dti = df.index.levels[0]
         c = Categorical(["foo"] * len(dti))
         expected = DataFrame(
             {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
             columns=Index(list("ABCD"), name="minor"),
-            index=dti,
+            index=dti.rename("major"),
         )
         tm.assert_frame_equal(result, expected)
 

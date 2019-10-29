@@ -303,8 +303,8 @@ def get_flattened_iterator(comp_ids, ngroups, levels, labels):
 
 
 def get_indexer_dict(label_list, keys):
-    """ return a diction of {labels} -> {indexers} """
-    shape = list(map(len, keys))
+    """ return a dict of {labels} -> {indexers} """
+    shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     ngroups = (
@@ -484,9 +484,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
 
     if sorter is None:
         # mixed types
-        (hash_klass, _), values = algorithms._get_data_algo(
-            values, algorithms._hashtables
-        )
+        hash_klass, values = algorithms._get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

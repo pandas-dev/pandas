@@ -152,7 +152,7 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     ----------
     arr : array-like
           The array whose data type we want to enforce.
-    copy: boolean
+    copy: bool
           Whether to copy the original array or reuse
           it in place, if possible.
 
@@ -888,7 +888,8 @@ def is_dtype_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype) -> bool:
-    """Check whether the provided array or dtype is of an integer dtype.
+    """
+    Check whether the provided array or dtype is of an integer dtype.
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
