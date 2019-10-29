@@ -237,7 +237,8 @@ def _get_values(
     fill_value_typ: Optional[str] = None,
     mask: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype, np.dtype, Any]:
-    """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
+    """
+    Utility to get the values view, mask, dtype, dtype_max, and fill_value.
 
     If both mask and fill_value/fill_value_typ are not None and skipna is True,
     the values array will be copied.

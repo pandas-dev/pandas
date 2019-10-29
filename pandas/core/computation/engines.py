@@ -29,7 +29,7 @@ def _check_ne_builtin_clash(expr):
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ", ".join(map(repr, overlap))
+        s = ", ".join(repr(x) for x in overlap)
         raise NumExprClobberingError(
             'Variables in expression "{expr}" '
             "overlap with builtins: ({s})".format(expr=expr, s=s)

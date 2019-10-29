@@ -105,7 +105,7 @@ cdef class Reducer:
             flatiter it
             bint has_labels, has_ndarray_labels
             object res, name, labels, index
-            object cached_typ=None
+            object cached_typ = None
 
         arr = self.arr
         chunk = self.dummy
@@ -248,7 +248,7 @@ cdef class SeriesBinGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ=None, cached_ityp=None
+            object name, cached_typ = None, cached_ityp = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 

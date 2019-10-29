@@ -319,7 +319,7 @@ cdef slice_getitem(slice slc, ind):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(int64_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d

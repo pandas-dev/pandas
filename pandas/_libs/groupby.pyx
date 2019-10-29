@@ -146,7 +146,8 @@ def group_cumprod_float64(float64_t[:, :] out,
                           int ngroups,
                           bint is_datetimelike,
                           bint skipna=True):
-    """Cumulative product of columns of `values`, in row groups `labels`.
+    """
+    Cumulative product of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -203,7 +204,8 @@ def group_cumsum(numeric[:, :] out,
                  int ngroups,
                  is_datetimelike,
                  bint skipna=True):
-    """Cumulative sum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative sum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -314,7 +316,8 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
                          int64_t limit):
-    """Indexes how to fill values forwards or backwards within a group
+    """
+    Indexes how to fill values forwards or backwards within a group.
 
     Parameters
     ----------

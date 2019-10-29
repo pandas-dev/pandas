@@ -29,7 +29,7 @@ dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
 
 cdef class {{name}}Engine(IndexEngine):
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{hashtable_name}}HashTable(n)
 
     {{if name not in {'Float64', 'Float32'} }}
@@ -38,7 +38,7 @@ cdef class {{name}}Engine(IndexEngine):
             raise KeyError(val)
     {{endif}}
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         # self.mapping is of type {{hashtable_name}}HashTable,
         # so convert dtype of values
         self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))

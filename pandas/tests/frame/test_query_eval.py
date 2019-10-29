@@ -989,13 +989,12 @@ class TestDataFrameQueryStrings:
         assert_frame_equal(res, expec)
 
     def test_query_lex_compare_strings(self, parser, engine):
-        import operator as opr
 
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        ops = {"<": opr.lt, ">": opr.gt, "<=": opr.le, ">=": opr.ge}
+        ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
 
         for op, func in ops.items():
             res = df.query('X %s "d"' % op, engine=engine, parser=parser)
