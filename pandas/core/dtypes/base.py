@@ -66,7 +66,12 @@ class ExtensionDtype:
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array as only argument
     and is expected to return the appropriate pandas ExtensionArray for this
-    dtype and the passed values.
+    dtype and the passed values::
+
+        class ExtensionDtype:
+
+            def __from_arrow__(self, array: pyarrow.Array) -> ExtensionArray:
+                ...
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
