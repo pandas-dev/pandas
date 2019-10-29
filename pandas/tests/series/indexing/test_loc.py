@@ -13,30 +13,30 @@ def test_loc_uint64(val, expected):
     assert s.loc[val] == expected
 
 
-def test_loc_getitem(test_data):
-    inds = test_data.series.index[[3, 4, 7]]
-    assert_series_equal(test_data.series.loc[inds], test_data.series.reindex(inds))
-    assert_series_equal(test_data.series.iloc[5::2], test_data.series[5::2])
+def test_loc_getitem(string_series, datetime_series):
+    inds = string_series.index[[3, 4, 7]]
+    assert_series_equal(string_series.loc[inds], string_series.reindex(inds))
+    assert_series_equal(string_series.iloc[5::2], string_series[5::2])
 
     # slice with indices
-    d1, d2 = test_data.ts.index[[5, 15]]
-    result = test_data.ts.loc[d1:d2]
-    expected = test_data.ts.truncate(d1, d2)
+    d1, d2 = datetime_series.index[[5, 15]]
+    result = datetime_series.loc[d1:d2]
+    expected = datetime_series.truncate(d1, d2)
     assert_series_equal(result, expected)
 
     # boolean
-    mask = test_data.series > test_data.series.median()
-    assert_series_equal(test_data.series.loc[mask], test_data.series[mask])
+    mask = string_series > string_series.median()
+    assert_series_equal(string_series.loc[mask], string_series[mask])
 
     # ask for index value
-    assert test_data.ts.loc[d1] == test_data.ts[d1]
-    assert test_data.ts.loc[d2] == test_data.ts[d2]
+    assert datetime_series.loc[d1] == datetime_series[d1]
+    assert datetime_series.loc[d2] == datetime_series[d2]
 
 
-def test_loc_getitem_not_monotonic(test_data):
-    d1, d2 = test_data.ts.index[[5, 15]]
+def test_loc_getitem_not_monotonic(datetime_series):
+    d1, d2 = datetime_series.index[[5, 15]]
 
-    ts2 = test_data.ts[::2][[1, 2, 0]]
+    ts2 = datetime_series[::2][[1, 2, 0]]
 
     msg = r"Timestamp\('2000-01-10 00:00:00'\)"
     with pytest.raises(KeyError, match=msg):
@@ -73,41 +73,41 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
         s2.loc[3:11] = 0
 
 
-def test_loc_getitem_iterator(test_data):
-    idx = iter(test_data.series.index[:10])
-    result = test_data.series.loc[idx]
-    assert_series_equal(result, test_data.series[:10])
+def test_loc_getitem_iterator(string_series):
+    idx = iter(string_series.index[:10])
+    result = string_series.loc[idx]
+    assert_series_equal(result, string_series[:10])
 
 
-def test_loc_setitem_boolean(test_data):
-    mask = test_data.series > test_data.series.median()
+def test_loc_setitem_boolean(string_series):
+    mask = string_series > string_series.median()
 
-    result = test_data.series.copy()
+    result = string_series.copy()
     result.loc[mask] = 0
-    expected = test_data.series
+    expected = string_series
     expected[mask] = 0
     assert_series_equal(result, expected)
 
 
-def test_loc_setitem_corner(test_data):
-    inds = list(test_data.series.index[[5, 8, 12]])
-    test_data.series.loc[inds] = 5
+def test_loc_setitem_corner(string_series):
+    inds = list(string_series.index[[5, 8, 12]])
+    string_series.loc[inds] = 5
     msg = r"\['foo'\] not in index"
     with pytest.raises(KeyError, match=msg):
-        test_data.series.loc[inds + ["foo"]] = 5
+        string_series.loc[inds + ["foo"]] = 5
 
 
-def test_basic_setitem_with_labels(test_data):
-    indices = test_data.ts.index[[5, 10, 15]]
+def test_basic_setitem_with_labels(datetime_series):
+    indices = datetime_series.index[[5, 10, 15]]
 
-    cp = test_data.ts.copy()
-    exp = test_data.ts.copy()
+    cp = datetime_series.copy()
+    exp = datetime_series.copy()
     cp[indices] = 0
     exp.loc[indices] = 0
     assert_series_equal(cp, exp)
 
-    cp = test_data.ts.copy()
-    exp = test_data.ts.copy()
+    cp = datetime_series.copy()
+    exp = datetime_series.copy()
     cp[indices[0] : indices[2]] = 0
     exp.loc[indices[0] : indices[2]] = 0
     assert_series_equal(cp, exp)

@@ -38,15 +38,15 @@ def test_basic_indexing():
         s[5] = 0
 
 
-def test_basic_getitem_with_labels(test_data):
-    indices = test_data.ts.index[[5, 10, 15]]
+def test_basic_getitem_with_labels(datetime_series):
+    indices = datetime_series.index[[5, 10, 15]]
 
-    result = test_data.ts[indices]
-    expected = test_data.ts.reindex(indices)
+    result = datetime_series[indices]
+    expected = datetime_series.reindex(indices)
     assert_series_equal(result, expected)
 
-    result = test_data.ts[indices[0] : indices[2]]
-    expected = test_data.ts.loc[indices[0] : indices[2]]
+    result = datetime_series[indices[0] : indices[2]]
+    expected = datetime_series.loc[indices[0] : indices[2]]
     assert_series_equal(result, expected)
 
     # integer indexes, be careful
@@ -89,27 +89,24 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
-def test_getitem_get(test_data):
-    test_series = test_data.series
-    test_obj_series = test_data.objSeries
+def test_getitem_get(datetime_series, string_series, object_series):
+    idx1 = string_series.index[5]
+    idx2 = object_series.index[5]
 
-    idx1 = test_series.index[5]
-    idx2 = test_obj_series.index[5]
+    assert string_series[idx1] == string_series.get(idx1)
+    assert object_series[idx2] == object_series.get(idx2)
 
-    assert test_series[idx1] == test_series.get(idx1)
-    assert test_obj_series[idx2] == test_obj_series.get(idx2)
+    assert string_series[idx1] == string_series[5]
+    assert object_series[idx2] == object_series[5]
 
-    assert test_series[idx1] == test_series[5]
-    assert test_obj_series[idx2] == test_obj_series[5]
-
-    assert test_series.get(-1) == test_series.get(test_series.index[-1])
-    assert test_series[5] == test_series.get(test_series.index[5])
+    assert string_series.get(-1) == string_series.get(string_series.index[-1])
+    assert string_series[5] == string_series.get(string_series.index[5])
 
     # missing
-    d = test_data.ts.index[0] - BDay()
+    d = datetime_series.index[0] - BDay()
     msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
     with pytest.raises(KeyError, match=msg):
-        test_data.ts[d]
+        datetime_series[d]
 
     # None
     # GH 5652
@@ -118,20 +115,20 @@ def test_getitem_get(test_data):
         assert result is None
 
 
-def test_getitem_fancy(test_data):
-    slice1 = test_data.series[[1, 2, 3]]
-    slice2 = test_data.objSeries[[1, 2, 3]]
-    assert test_data.series.index[2] == slice1.index[1]
-    assert test_data.objSeries.index[2] == slice2.index[1]
-    assert test_data.series[2] == slice1[1]
-    assert test_data.objSeries[2] == slice2[1]
+def test_getitem_fancy(string_series, object_series):
+    slice1 = string_series[[1, 2, 3]]
+    slice2 = object_series[[1, 2, 3]]
+    assert string_series.index[2] == slice1.index[1]
+    assert object_series.index[2] == slice2.index[1]
+    assert string_series[2] == slice1[1]
+    assert object_series[2] == slice2[1]
 
 
-def test_getitem_generator(test_data):
-    gen = (x > 0 for x in test_data.series)
-    result = test_data.series[gen]
-    result2 = test_data.series[iter(test_data.series > 0)]
-    expected = test_data.series[test_data.series > 0]
+def test_getitem_generator(string_series):
+    gen = (x > 0 for x in string_series)
+    result = string_series[gen]
+    result2 = string_series[iter(string_series > 0)]
+    expected = string_series[string_series > 0]
     assert_series_equal(result, expected)
     assert_series_equal(result2, expected)
 
@@ -169,11 +166,11 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     assert result[2] == result_1[2]
 
 
-def test_getitem_out_of_bounds(test_data):
+def test_getitem_out_of_bounds(datetime_series):
     # don't segfault, GH #495
     msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
-        test_data.ts[len(test_data.ts)]
+        datetime_series[len(datetime_series)]
 
     # GH #917
     s = Series([])
@@ -190,8 +187,8 @@ def test_getitem_setitem_integers():
     tm.assert_almost_equal(s["a"], 5)
 
 
-def test_getitem_box_float64(test_data):
-    value = test_data.ts[5]
+def test_getitem_box_float64(datetime_series):
+    value = datetime_series[5]
     assert isinstance(value, np.float64)
 
 
@@ -308,14 +305,14 @@ def test_getitem_dataframe():
         s[df > 5]
 
 
-def test_setitem(test_data):
-    test_data.ts[test_data.ts.index[5]] = np.NaN
-    test_data.ts[[1, 2, 17]] = np.NaN
-    test_data.ts[6] = np.NaN
-    assert np.isnan(test_data.ts[6])
-    assert np.isnan(test_data.ts[2])
-    test_data.ts[np.isnan(test_data.ts)] = 5
-    assert not np.isnan(test_data.ts[2])
+def test_setitem(datetime_series, string_series):
+    datetime_series[datetime_series.index[5]] = np.NaN
+    datetime_series[[1, 2, 17]] = np.NaN
+    datetime_series[6] = np.NaN
+    assert np.isnan(datetime_series[6])
+    assert np.isnan(datetime_series[2])
+    datetime_series[np.isnan(datetime_series)] = 5
+    assert not np.isnan(datetime_series[2])
 
     # caught this bug when writing tests
     series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
@@ -324,11 +321,11 @@ def test_setitem(test_data):
     assert (series[::2] == 0).all()
 
     # set item that's not contained
-    s = test_data.series.copy()
+    s = string_series.copy()
     s["foobar"] = 1
 
     app = Series([1], index=["foobar"], name="series")
-    expected = test_data.series.append(app)
+    expected = string_series.append(app)
     assert_series_equal(s, expected)
 
     # Test for issue #10193
@@ -370,52 +367,52 @@ def test_setitem_dtypes():
     assert_series_equal(s, Series([np.nan, 1.0]))
 
 
-def test_set_value(test_data):
-    idx = test_data.ts.index[10]
-    res = test_data.ts._set_value(idx, 0)
-    assert res is test_data.ts
-    assert test_data.ts[idx] == 0
+def test_set_value(datetime_series, string_series):
+    idx = datetime_series.index[10]
+    res = datetime_series._set_value(idx, 0)
+    assert res is datetime_series
+    assert datetime_series[idx] == 0
 
     # equiv
-    s = test_data.series.copy()
+    s = string_series.copy()
     res = s._set_value("foobar", 0)
     assert res is s
     assert res.index[-1] == "foobar"
     assert res["foobar"] == 0
 
-    s = test_data.series.copy()
+    s = string_series.copy()
     s.loc["foobar"] = 0
     assert s.index[-1] == "foobar"
     assert s["foobar"] == 0
 
 
-def test_setslice(test_data):
-    sl = test_data.ts[5:20]
+def test_setslice(datetime_series):
+    sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
     assert sl.index.is_unique is True
 
 
 # FutureWarning from NumPy about [slice(None, 5).
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
-def test_basic_getitem_setitem_corner(test_data):
+def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "Can only tuple-index with a MultiIndex"
     with pytest.raises(ValueError, match=msg):
-        test_data.ts[:, 2]
+        datetime_series[:, 2]
     with pytest.raises(ValueError, match=msg):
-        test_data.ts[:, 2] = 2
+        datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
-    result = test_data.ts[[slice(None, 5)]]
-    expected = test_data.ts[:5]
+    result = datetime_series[[slice(None, 5)]]
+    expected = datetime_series[:5]
     assert_series_equal(result, expected)
 
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
-        test_data.ts[[5, slice(None, None)]]
+        datetime_series[[5, slice(None, None)]]
     with pytest.raises(TypeError, match=msg):
-        test_data.ts[[5, slice(None, None)]] = 2
+        datetime_series[[5, slice(None, None)]] = 2
 
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
@@ -556,25 +553,25 @@ def test_categorical_assigning_ops():
     tm.assert_series_equal(s, exp)
 
 
-def test_slice(test_data):
-    numSlice = test_data.series[10:20]
-    numSliceEnd = test_data.series[-10:]
-    objSlice = test_data.objSeries[10:20]
+def test_slice(string_series, object_series):
+    numSlice = string_series[10:20]
+    numSliceEnd = string_series[-10:]
+    objSlice = object_series[10:20]
 
-    assert test_data.series.index[9] not in numSlice.index
-    assert test_data.objSeries.index[9] not in objSlice.index
+    assert string_series.index[9] not in numSlice.index
+    assert object_series.index[9] not in objSlice.index
 
     assert len(numSlice) == len(numSlice.index)
-    assert test_data.series[numSlice.index[0]] == numSlice[numSlice.index[0]]
+    assert string_series[numSlice.index[0]] == numSlice[numSlice.index[0]]
 
-    assert numSlice.index[1] == test_data.series.index[11]
-    assert tm.equalContents(numSliceEnd, np.array(test_data.series)[-10:])
+    assert numSlice.index[1] == string_series.index[11]
+    assert tm.equalContents(numSliceEnd, np.array(string_series)[-10:])
 
     # Test return view.
-    sl = test_data.series[10:20]
+    sl = string_series[10:20]
     sl[:] = 0
 
-    assert (test_data.series[10:20] == 0).all()
+    assert (string_series[10:20] == 0).all()
 
 
 def test_slice_can_reorder_not_uniquely_indexed():
@@ -582,13 +579,13 @@ def test_slice_can_reorder_not_uniquely_indexed():
     s[::-1]  # it works!
 
 
-def test_loc_setitem(test_data):
-    inds = test_data.series.index[[3, 4, 7]]
+def test_loc_setitem(string_series):
+    inds = string_series.index[[3, 4, 7]]
 
-    result = test_data.series.copy()
+    result = string_series.copy()
     result.loc[inds] = 5
 
-    expected = test_data.series.copy()
+    expected = string_series.copy()
     expected[[3, 4, 7]] = 5
     assert_series_equal(result, expected)
 
@@ -597,16 +594,16 @@ def test_loc_setitem(test_data):
     assert_series_equal(result, expected)
 
     # set slice with indices
-    d1, d2 = test_data.series.index[[5, 15]]
+    d1, d2 = string_series.index[[5, 15]]
     result.loc[d1:d2] = 6
     expected[5:16] = 6  # because it's inclusive
     assert_series_equal(result, expected)
 
     # set index value
-    test_data.series.loc[d1] = 4
-    test_data.series.loc[d2] = 6
-    assert test_data.series[d1] == 4
-    assert test_data.series[d2] == 6
+    string_series.loc[d1] = 4
+    string_series.loc[d2] = 6
+    assert string_series[d1] == 4
+    assert string_series[d2] == 6
 
 
 def test_setitem_na():
@@ -776,10 +773,10 @@ def test_underlying_data_conversion():
     tm.assert_frame_equal(df, expected)
 
 
-def test_preserve_refs(test_data):
-    seq = test_data.ts[[5, 10, 15]]
+def test_preserve_refs(datetime_series):
+    seq = datetime_series[[5, 10, 15]]
     seq[1] = np.NaN
-    assert not np.isnan(test_data.ts[10])
+    assert not np.isnan(datetime_series[10])
 
 
 def test_cast_on_putmask():
@@ -902,11 +899,11 @@ def test_take_categorical():
     assert_series_equal(result, expected)
 
 
-def test_head_tail(test_data):
-    assert_series_equal(test_data.series.head(), test_data.series[:5])
-    assert_series_equal(test_data.series.head(0), test_data.series[0:0])
-    assert_series_equal(test_data.series.tail(), test_data.series[-5:])
-    assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
+def test_head_tail(string_series):
+    assert_series_equal(string_series.head(), string_series[:5])
+    assert_series_equal(string_series.head(0), string_series[0:0])
+    assert_series_equal(string_series.tail(), string_series[-5:])
+    assert_series_equal(string_series.tail(0), string_series[0:0])
 
 
 def test_uint_drop(any_int_dtype):

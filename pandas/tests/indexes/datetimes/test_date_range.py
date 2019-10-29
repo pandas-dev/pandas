@@ -14,7 +14,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
-from pandas.tests.series.common import TestData
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import (
@@ -82,7 +81,7 @@ class TestTimestampEquivDateRange:
         assert timestamp_instance == ts
 
 
-class TestDateRanges(TestData):
+class TestDateRanges:
     def test_date_range_nat(self):
         # GH#11587
         msg = "Neither `start` nor `end` can be NaT"
