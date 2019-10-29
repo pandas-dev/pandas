@@ -20,8 +20,10 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(ndarray[diff_t, ndim=2] arr,
-            ndarray[out_t, ndim=2] out,
+            out_t[:, :] out,
             Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
@@ -31,9 +33,6 @@ def diff_2d(ndarray[diff_t, ndim=2] arr,
     else:
         if (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t):
             raise NotImplementedError
-
-    cdef:
-        Py_ssize_t i, j, sx, sy
 
     sx, sy = (<object>arr).shape
     if arr.flags.f_contiguous:
