@@ -12,8 +12,8 @@ from pandas.util.testing import assert_series_equal
 from pandas.tseries.offsets import BDay
 
 
-def test_getitem_boolean(test_data):
-    s = test_data.series
+def test_getitem_boolean(string_series):
+    s = string_series
     mask = s > s.median()
 
     # passing list is OK
@@ -55,10 +55,10 @@ def test_getitem_boolean_empty():
         s[Series([True], dtype=bool)]
 
 
-def test_getitem_boolean_object(test_data):
+def test_getitem_boolean_object(string_series):
     # using column from DataFrame
 
-    s = test_data.series
+    s = string_series
     mask = s > s.median()
     omask = mask.astype(object)
 
@@ -83,8 +83,8 @@ def test_getitem_boolean_object(test_data):
         s[omask] = 5
 
 
-def test_getitem_setitem_boolean_corner(test_data):
-    ts = test_data.ts
+def test_getitem_setitem_boolean_corner(datetime_series):
+    ts = datetime_series
     mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
 
     # these used to raise...??
@@ -104,38 +104,38 @@ def test_getitem_setitem_boolean_corner(test_data):
         ts.loc[mask_shifted] = 1
 
 
-def test_setitem_boolean(test_data):
-    mask = test_data.series > test_data.series.median()
+def test_setitem_boolean(string_series):
+    mask = string_series > string_series.median()
 
     # similar indexed series
-    result = test_data.series.copy()
-    result[mask] = test_data.series * 2
-    expected = test_data.series * 2
+    result = string_series.copy()
+    result[mask] = string_series * 2
+    expected = string_series * 2
     assert_series_equal(result[mask], expected[mask])
 
     # needs alignment
-    result = test_data.series.copy()
-    result[mask] = (test_data.series * 2)[0:5]
-    expected = (test_data.series * 2)[0:5].reindex_like(test_data.series)
-    expected[-mask] = test_data.series[mask]
+    result = string_series.copy()
+    result[mask] = (string_series * 2)[0:5]
+    expected = (string_series * 2)[0:5].reindex_like(string_series)
+    expected[-mask] = string_series[mask]
     assert_series_equal(result[mask], expected[mask])
 
 
-def test_get_set_boolean_different_order(test_data):
-    ordered = test_data.series.sort_values()
+def test_get_set_boolean_different_order(string_series):
+    ordered = string_series.sort_values()
 
     # setting
-    copy = test_data.series.copy()
+    copy = string_series.copy()
     copy[ordered > 0] = 0
 
-    expected = test_data.series.copy()
+    expected = string_series.copy()
     expected[expected > 0] = 0
 
     assert_series_equal(copy, expected)
 
     # getting
-    sel = test_data.series[ordered > 0]
-    exp = test_data.series[test_data.series > 0]
+    sel = string_series[ordered > 0]
+    exp = string_series[string_series > 0]
     assert_series_equal(sel, exp)
 
 

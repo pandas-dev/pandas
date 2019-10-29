@@ -34,7 +34,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -485,7 +485,7 @@ class DataFrame(NDFrame):
                     "DataFrame constructor called with "
                     "incompatible data and dtype: {e}".format(e=e)
                 )
-                raise_with_traceback(exc)
+                raise exc from e
 
             if arr.ndim == 0 and index is not None and columns is not None:
                 values = cast_scalar_to_array(
@@ -814,8 +814,10 @@ class DataFrame(NDFrame):
     @property
     def style(self):
         """
-        Property returning a Styler object containing methods for
-        building a styled HTML representation fo the DataFrame.
+        Returns a Styler object.
+
+        Contains methods for building a styled HTML representation of the DataFrame.
+        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -1269,7 +1271,7 @@ class DataFrame(NDFrame):
         array([[1, 3],
                [2, 4]])
 
-        With heterogenous data, the lowest common type will have to
+        With heterogeneous data, the lowest common type will have to
         be used.
 
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
@@ -1664,11 +1666,12 @@ class DataFrame(NDFrame):
             else:
                 try:
                     index_data = [arrays[arr_columns.get_loc(field)] for field in index]
-                    result_index = ensure_index_from_sequences(index_data, names=index)
-
-                    exclude.update(index)
-                except Exception:
+                except (KeyError, TypeError):
+                    # raised by get_loc, see GH#29258
                     result_index = index
+                else:
+                    result_index = ensure_index_from_sequences(index_data, names=index)
+                    exclude.update(index)
 
         if any(exclude):
             arr_exclude = [x for x in exclude if x in arr_columns]
@@ -3623,11 +3626,11 @@ class DataFrame(NDFrame):
                 # GH 4107
                 try:
                     value = value.reindex(self.index)._values
-                except Exception as e:
-
-                    # duplicate axis
+                except ValueError as err:
+                    # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
                     if not value.index.is_unique:
-                        raise e
+                        # duplicate axis
+                        raise err
 
                     # other
                     raise TypeError(
@@ -7794,7 +7797,8 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except Exception as e:
+            except TypeError as err:
+                # e.g. in nanops trying to convert strs to float
 
                 # try by-column first
                 if filter_type is None and axis == 0:
@@ -7821,11 +7825,10 @@ class DataFrame(NDFrame):
                 elif filter_type == "bool":
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    e = NotImplementedError(
+                    raise NotImplementedError(
                         "Handling exception with filter_type {f} not"
                         "implemented.".format(f=filter_type)
-                    )
-                    raise_with_traceback(e)
+                    ) from err
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
@@ -8208,6 +8211,8 @@ class DataFrame(NDFrame):
 
     def to_period(self, freq=None, axis=0, copy=True):
         """
+        Convert DataFrame from DatetimeIndex to PeriodIndex.
+
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed).
 
