@@ -722,3 +722,10 @@ def test_from_frame_invalid_names(names, expected_error_msg):
     )
     with pytest.raises(ValueError, match=expected_error_msg):
         pd.MultiIndex.from_frame(df, names=names)
+
+
+def test_index_equal_empty_iterable():
+    # #16844
+    a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
+    b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
+    tm.assert_index_equal(a, b)
