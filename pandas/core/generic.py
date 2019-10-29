@@ -5770,9 +5770,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. deprecated:: 0.21.0
 
-        Convert the frame to a dict of dtype-> Constructor Types that each
-        has a homogeneous dtype.
-
         NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in
               as_matrix)
 
