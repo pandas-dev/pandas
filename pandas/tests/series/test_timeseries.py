@@ -26,11 +26,6 @@ from pandas import (
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-)
 
 from pandas.tseries.offsets import BDay, BMonthEnd
 
@@ -61,19 +56,19 @@ class TestTimeSeries:
         shifted = datetime_series.shift(1, freq=offset)
         unshifted = shifted.shift(-1, freq=offset)
 
-        assert_series_equal(unshifted, datetime_series)
+        tm.assert_series_equal(unshifted, datetime_series)
 
         unshifted = datetime_series.shift(0, freq=offset)
-        assert_series_equal(unshifted, datetime_series)
+        tm.assert_series_equal(unshifted, datetime_series)
 
         shifted = datetime_series.shift(1, freq="B")
         unshifted = shifted.shift(-1, freq="B")
 
-        assert_series_equal(unshifted, datetime_series)
+        tm.assert_series_equal(unshifted, datetime_series)
 
         # corner case
         unshifted = datetime_series.shift(0)
-        assert_series_equal(unshifted, datetime_series)
+        tm.assert_series_equal(unshifted, datetime_series)
 
         # Shifting with PeriodIndex
         ps = tm.makePeriodSeries()
@@ -85,8 +80,8 @@ class TestTimeSeries:
 
         shifted2 = ps.shift(1, "B")
         shifted3 = ps.shift(1, BDay())
-        assert_series_equal(shifted2, shifted3)
-        assert_series_equal(ps, shifted2.shift(-1, "B"))
+        tm.assert_series_equal(shifted2, shifted3)
+        tm.assert_series_equal(ps, shifted2.shift(-1, "B"))
 
         msg = "Given freq D does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
@@ -94,10 +89,10 @@ class TestTimeSeries:
 
         # legacy support
         shifted4 = ps.shift(1, freq="B")
-        assert_series_equal(shifted2, shifted4)
+        tm.assert_series_equal(shifted2, shifted4)
 
         shifted5 = ps.shift(1, freq=BDay())
-        assert_series_equal(shifted5, shifted4)
+        tm.assert_series_equal(shifted5, shifted4)
 
         # 32-bit taking
         # GH 8129
@@ -107,7 +102,7 @@ class TestTimeSeries:
             p = s1.iloc[1]
             result = s1.shift(periods=p)
             expected = Series([np.nan, 0, 1, 2, 3], index=index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         # xref 8260
         # with tz
@@ -117,7 +112,7 @@ class TestTimeSeries:
         result = s - s.shift()
 
         exp = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
-        assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
 
         # incompat tz
         s2 = Series(date_range("2000-01-01 09:00:00", periods=5, tz="CET"), name="foo")
@@ -215,13 +210,13 @@ class TestTimeSeries:
         shifted = ps.tshift(1)
         unshifted = shifted.tshift(-1)
 
-        assert_series_equal(unshifted, ps)
+        tm.assert_series_equal(unshifted, ps)
 
         shifted2 = ps.tshift(freq="B")
-        assert_series_equal(shifted, shifted2)
+        tm.assert_series_equal(shifted, shifted2)
 
         shifted3 = ps.tshift(freq=BDay())
-        assert_series_equal(shifted, shifted3)
+        tm.assert_series_equal(shifted, shifted3)
 
         msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
@@ -231,18 +226,18 @@ class TestTimeSeries:
         shifted = datetime_series.tshift(1)
         unshifted = shifted.tshift(-1)
 
-        assert_series_equal(datetime_series, unshifted)
+        tm.assert_series_equal(datetime_series, unshifted)
 
         shifted2 = datetime_series.tshift(freq=datetime_series.index.freq)
-        assert_series_equal(shifted, shifted2)
+        tm.assert_series_equal(shifted, shifted2)
 
         inferred_ts = Series(
             datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
         )
         shifted = inferred_ts.tshift(1)
         unshifted = shifted.tshift(-1)
-        assert_series_equal(shifted, datetime_series.tshift(1))
-        assert_series_equal(unshifted, inferred_ts)
+        tm.assert_series_equal(shifted, datetime_series.tshift(1))
+        tm.assert_series_equal(unshifted, inferred_ts)
 
         no_freq = datetime_series[[0, 5, 7]]
         msg = "Freq was not given and was not set in the index"
@@ -259,34 +254,34 @@ class TestTimeSeries:
 
         # neither specified
         truncated = ts.truncate()
-        assert_series_equal(truncated, ts)
+        tm.assert_series_equal(truncated, ts)
 
         # both specified
         expected = ts[1:3]
 
         truncated = ts.truncate(start, end)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(start_missing, end_missing)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         # start specified
         expected = ts[1:]
 
         truncated = ts.truncate(before=start)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(before=start_missing)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         # end specified
         expected = ts[:3]
 
         truncated = ts.truncate(after=end)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(after=end_missing)
-        assert_series_equal(truncated, expected)
+        tm.assert_series_equal(truncated, expected)
 
         # corner case, empty series returned
         truncated = ts.truncate(after=datetime_series.index[0] - offset)
@@ -359,19 +354,19 @@ class TestTimeSeries:
 
     def test_pct_change(self, datetime_series):
         rs = datetime_series.pct_change(fill_method=None)
-        assert_series_equal(rs, datetime_series / datetime_series.shift(1) - 1)
+        tm.assert_series_equal(rs, datetime_series / datetime_series.shift(1) - 1)
 
         rs = datetime_series.pct_change(2)
         filled = datetime_series.fillna(method="pad")
-        assert_series_equal(rs, filled / filled.shift(2) - 1)
+        tm.assert_series_equal(rs, filled / filled.shift(2) - 1)
 
         rs = datetime_series.pct_change(fill_method="bfill", limit=1)
         filled = datetime_series.fillna(method="bfill", limit=1)
-        assert_series_equal(rs, filled / filled.shift(1) - 1)
+        tm.assert_series_equal(rs, filled / filled.shift(1) - 1)
 
         rs = datetime_series.pct_change(freq="5D")
         filled = datetime_series.fillna(method="pad")
-        assert_series_equal(
+        tm.assert_series_equal(
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
@@ -380,7 +375,7 @@ class TestTimeSeries:
 
         chg = s.pct_change()
         expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
-        assert_series_equal(chg, expected)
+        tm.assert_series_equal(chg, expected)
 
     @pytest.mark.parametrize(
         "freq, periods, fill_method, limit",
@@ -403,12 +398,12 @@ class TestTimeSeries:
         rs_periods = datetime_series.pct_change(
             periods, fill_method=fill_method, limit=limit
         )
-        assert_series_equal(rs_freq, rs_periods)
+        tm.assert_series_equal(rs_freq, rs_periods)
 
         empty_ts = Series(index=datetime_series.index)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
         rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
-        assert_series_equal(rs_freq, rs_periods)
+        tm.assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self, datetime_series):
         # Just run the function
@@ -473,7 +468,7 @@ class TestTimeSeries:
     def test_mpl_compat_hack(self, datetime_series):
         result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
@@ -504,14 +499,14 @@ class TestTimeSeries:
         expected = Series(
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([epoch + t for t in range(20)]).astype(float)
         result = to_datetime(s, unit="s")
         expected = Series(
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([epoch + t for t in range(20)] + [iNaT])
         result = to_datetime(s, unit="s")
@@ -519,7 +514,7 @@ class TestTimeSeries:
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
             + [NaT]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([epoch + t for t in range(20)] + [iNaT]).astype(float)
         result = to_datetime(s, unit="s")
@@ -527,7 +522,7 @@ class TestTimeSeries:
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
             + [NaT]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # GH13834
         s = Series([epoch + t for t in np.arange(0, 2, 0.25)] + [iNaT]).astype(float)
@@ -539,7 +534,7 @@ class TestTimeSeries:
             ]
             + [NaT]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = concat(
             [Series([epoch + t for t in range(20)]).astype(float), Series([np.nan])],
@@ -550,7 +545,7 @@ class TestTimeSeries:
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
             + [NaT]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = to_datetime([1, 2, "NaT", pd.NaT, np.nan], unit="D")
         expected = DatetimeIndex(
@@ -615,13 +610,13 @@ class TestTimeSeries:
         result = ts + ts2
         result2 = ts2 + ts
         expected = ts + ts[5:]
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result2, expected)
 
         # test asfreq
         result = ts2.asfreq("4H", method="ffill")
         expected = ts[5:].asfreq("4H", method="ffill")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = rng.get_indexer(ts2.index)
         expected = rng.get_indexer(ts_slice.index)
@@ -637,7 +632,7 @@ class TestTimeSeries:
         norm = date_range("1/1/2000", periods=20)
         expected = Series(vals, index=norm)
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         vals = np.random.randn(20, 3)
         ts = DataFrame(vals, index=rng)
@@ -645,7 +640,7 @@ class TestTimeSeries:
         result = ts.asfreq("D", normalize=True)
         expected = DataFrame(vals, index=norm)
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_first_subset(self):
         ts = _simple_ts("1/1/2000", "1/1/2010", freq="12h")
@@ -658,14 +653,14 @@ class TestTimeSeries:
 
         result = ts.first("3M")
         expected = ts[:"3/31/2000"]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ts.first("21D")
         expected = ts[:21]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ts[:0].first("3M")
-        assert_series_equal(result, ts[:0])
+        tm.assert_series_equal(result, ts[:0])
 
     def test_first_raises(self):
         # GH20725
@@ -685,14 +680,14 @@ class TestTimeSeries:
 
         result = ts.last("21D")
         expected = ts["12/12/2009":]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ts.last("21D")
         expected = ts[-21:]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ts[:0].last("3M")
-        assert_series_equal(result, ts[:0])
+        tm.assert_series_equal(result, ts[:0])
 
     def test_last_raises(self):
         # GH20725
@@ -717,7 +712,7 @@ class TestTimeSeries:
 
         result = ts.at_time("9:30")
         expected = ts.at_time(time(9, 30))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame(np.random.randn(len(rng), 3), index=rng)
 
@@ -728,7 +723,7 @@ class TestTimeSeries:
 
         # expected.index = date_range('1/1/2000', '1/4/2000')
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         tm.assert_frame_equal(result_df, exp_df)
 
         chunk = df.loc["1/4/2000":]
@@ -741,7 +736,7 @@ class TestTimeSeries:
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.at_time(time(0, 0))
-        assert_series_equal(result, ts)
+        tm.assert_series_equal(result, ts)
 
         # time doesn't exist
         rng = date_range("1/1/2012", freq="23Min", periods=384)
@@ -762,7 +757,7 @@ class TestTimeSeries:
 
         result = series.between(left, right)
         expected = (series >= left) & (series <= right)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_between_time(self):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
@@ -794,7 +789,7 @@ class TestTimeSeries:
 
         result = ts.between_time("00:00", "01:00")
         expected = ts.between_time(stime, etime)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
@@ -891,12 +886,12 @@ class TestTimeSeries:
         pts = ts.to_period()
         exp = ts.copy()
         exp.index = period_range("1/1/2000", "1/1/2001")
-        assert_series_equal(pts, exp)
+        tm.assert_series_equal(pts, exp)
 
         pts = ts.to_period("M")
         exp.index = exp.index.asfreq("M")
         tm.assert_index_equal(pts.index, exp.index.asfreq("M"))
-        assert_series_equal(pts, exp)
+        tm.assert_series_equal(pts, exp)
 
         # GH 7606 without freq
         idx = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"])
@@ -907,16 +902,16 @@ class TestTimeSeries:
         s = Series(np.random.randn(4), index=idx)
         expected = s.copy()
         expected.index = exp_idx
-        assert_series_equal(s.to_period(), expected)
+        tm.assert_series_equal(s.to_period(), expected)
 
         df = DataFrame(np.random.randn(4, 4), index=idx, columns=idx)
         expected = df.copy()
         expected.index = exp_idx
-        assert_frame_equal(df.to_period(), expected)
+        tm.assert_frame_equal(df.to_period(), expected)
 
         expected = df.copy()
         expected.columns = exp_idx
-        assert_frame_equal(df.to_period(axis=1), expected)
+        tm.assert_frame_equal(df.to_period(axis=1), expected)
 
     def test_groupby_count_dateparseerror(self):
         dr = date_range(start="1/1/2012", freq="5min", periods=10)
@@ -930,7 +925,7 @@ class TestTimeSeries:
         grouped = s.groupby(lambda x: x[0] % 2 == 0)
         expected = grouped.count()
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_to_csv_numpy_16_bug(self):
         frame = DataFrame({"a": date_range("1/1/2000", periods=10)})

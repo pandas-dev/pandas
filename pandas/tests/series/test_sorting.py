@@ -5,7 +5,6 @@ import pytest
 
 from pandas import Categorical, DataFrame, IntervalIndex, MultiIndex, Series
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 
 class TestSeriesSorting:
@@ -38,17 +37,17 @@ class TestSeriesSorting:
         # ascending=False
         ordered = ts.sort_values(ascending=False)
         expected = np.sort(ts.dropna().values)[::-1]
-        assert_almost_equal(expected, ordered.dropna().values)
+        tm.assert_almost_equal(expected, ordered.dropna().values)
         ordered = ts.sort_values(ascending=False, na_position="first")
-        assert_almost_equal(expected, ordered.dropna().values)
+        tm.assert_almost_equal(expected, ordered.dropna().values)
 
         # ascending=[False] should behave the same as ascending=False
         ordered = ts.sort_values(ascending=[False])
         expected = ts.sort_values(ascending=False)
-        assert_series_equal(expected, ordered)
+        tm.assert_series_equal(expected, ordered)
         ordered = ts.sort_values(ascending=[False], na_position="first")
         expected = ts.sort_values(ascending=False, na_position="first")
-        assert_series_equal(expected, ordered)
+        tm.assert_series_equal(expected, ordered)
 
         msg = "ascending must be boolean"
         with pytest.raises(ValueError, match=msg):
@@ -92,28 +91,28 @@ class TestSeriesSorting:
 
         random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
-        assert_series_equal(sorted_series, datetime_series)
+        tm.assert_series_equal(sorted_series, datetime_series)
 
         # descending
         sorted_series = random_order.sort_index(ascending=False)
-        assert_series_equal(
+        tm.assert_series_equal(
             sorted_series, datetime_series.reindex(datetime_series.index[::-1])
         )
 
         # compat on level
         sorted_series = random_order.sort_index(level=0)
-        assert_series_equal(sorted_series, datetime_series)
+        tm.assert_series_equal(sorted_series, datetime_series)
 
         # compat on axis
         sorted_series = random_order.sort_index(axis=0)
-        assert_series_equal(sorted_series, datetime_series)
+        tm.assert_series_equal(sorted_series, datetime_series)
 
         msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
         with pytest.raises(ValueError, match=msg):
             random_order.sort_values(axis=1)
 
         sorted_series = random_order.sort_index(level=0, axis=0)
-        assert_series_equal(sorted_series, datetime_series)
+        tm.assert_series_equal(sorted_series, datetime_series)
 
         with pytest.raises(ValueError, match=msg):
             random_order.sort_index(level=0, axis=1)
@@ -149,12 +148,12 @@ class TestSeriesSorting:
 
         # implicit sort_remaining=True
         res = s.sort_index(level=level)
-        assert_series_equal(backwards, res)
+        tm.assert_series_equal(backwards, res)
 
         # GH13496
         # sort has no effect without remaining lvls
         res = s.sort_index(level=level, sort_remaining=False)
-        assert_series_equal(s, res)
+        tm.assert_series_equal(s, res)
 
     def test_sort_index_kind(self):
         # GH #14444 & #13589:  Add support for sort algo choosing
@@ -162,24 +161,24 @@ class TestSeriesSorting:
         expected_series = Series(index=[1, 2, 3, 3, 4])
 
         index_sorted_series = series.sort_index(kind="mergesort")
-        assert_series_equal(expected_series, index_sorted_series)
+        tm.assert_series_equal(expected_series, index_sorted_series)
 
         index_sorted_series = series.sort_index(kind="quicksort")
-        assert_series_equal(expected_series, index_sorted_series)
+        tm.assert_series_equal(expected_series, index_sorted_series)
 
         index_sorted_series = series.sort_index(kind="heapsort")
-        assert_series_equal(expected_series, index_sorted_series)
+        tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
         series = Series(index=[3, 2, 1, 4, 3, np.nan])
 
         expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4])
         index_sorted_series = series.sort_index(na_position="first")
-        assert_series_equal(expected_series_first, index_sorted_series)
+        tm.assert_series_equal(expected_series_first, index_sorted_series)
 
         expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
         index_sorted_series = series.sort_index(na_position="last")
-        assert_series_equal(expected_series_last, index_sorted_series)
+        tm.assert_series_equal(expected_series_last, index_sorted_series)
 
     def test_sort_index_intervals(self):
         s = Series(
@@ -188,13 +187,13 @@ class TestSeriesSorting:
 
         result = s.sort_index()
         expected = s
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.sort_index(ascending=False)
         expected = Series(
             [3, 2, 1, np.nan], IntervalIndex.from_arrays([3, 2, 1, 0], [4, 3, 2, 1])
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_sort_values_categorical(self):
 

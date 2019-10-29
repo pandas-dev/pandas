@@ -6,7 +6,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestSeriesCombine:
@@ -28,7 +27,7 @@ class TestSeriesCombine:
         pieces = [datetime_series[:5], datetime_series[5:10], datetime_series[10:]]
 
         result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, datetime_series)
+        tm.assert_series_equal(result, datetime_series)
 
     def test_append_duplicates(self):
         # GH 13677
@@ -110,7 +109,7 @@ class TestSeriesCombine:
         s = Series([1.0, 2, 3], index=[0, 1, 2])
         result = s.combine_first(Series([], index=[]))
         s.index = s.index.astype("O")
-        assert_series_equal(s, result)
+        tm.assert_series_equal(s, result)
 
     def test_update(self):
         s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
@@ -118,7 +117,7 @@ class TestSeriesCombine:
         s.update(s2)
 
         expected = Series([1.5, 3.5, 3.0, 5.0, np.nan])
-        assert_series_equal(s, expected)
+        tm.assert_series_equal(s, expected)
 
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
@@ -128,7 +127,7 @@ class TestSeriesCombine:
         expected = DataFrame(
             [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
         )
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
         "other, dtype, expected",
@@ -161,7 +160,7 @@ class TestSeriesCombine:
         other = Series(other, index=[1, 3])
         s.update(other)
 
-        assert_series_equal(s, expected)
+        tm.assert_series_equal(s, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
@@ -226,7 +225,7 @@ class TestSeriesCombine:
             tz=tz_naive_fixture,
         )
         exp = pd.Series(exp_vals, name="ser1")
-        assert_series_equal(exp, result)
+        tm.assert_series_equal(exp, result)
 
     def test_concat_empty_series_dtypes(self):
 
@@ -324,13 +323,13 @@ class TestSeriesCombine:
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)
         xp = to_datetime(Series(["2010", "2011"]))
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = Series([np.NaN, "2011"])
         rs = s0.combine_first(s1)
         xp = Series([datetime(2010, 1, 1), "2011"])
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
 
 class TestTimeseries:

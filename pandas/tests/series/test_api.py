@@ -20,7 +20,6 @@ from pandas import (
 from pandas.core.arrays import PeriodArray
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, ensure_clean
 
 import pandas.io.formats.printing as printing
 
@@ -110,15 +109,15 @@ class SharedWithSparse:
 
     def test_pickle_datetimes(self, datetime_series):
         unp_ts = self._pickle_roundtrip(datetime_series)
-        assert_series_equal(unp_ts, datetime_series)
+        tm.assert_series_equal(unp_ts, datetime_series)
 
     def test_pickle_strings(self, string_series):
         unp_series = self._pickle_roundtrip(string_series)
-        assert_series_equal(unp_series, string_series)
+        tm.assert_series_equal(unp_series, string_series)
 
     def _pickle_roundtrip(self, obj):
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             obj.to_pickle(path)
             unpickled = pd.read_pickle(path)
             return unpickled
@@ -399,16 +398,16 @@ class TestSeriesMisc(SharedWithSparse):
             # default deep is True
             if deep is None or deep is True:
                 # Did not modify original Series
-                assert_series_equal(s2, expected2)
-                assert_series_equal(s, expected)
+                tm.assert_series_equal(s2, expected2)
+                tm.assert_series_equal(s, expected)
             else:
                 # we DID modify the original Series
-                assert_series_equal(s2, expected2)
-                assert_series_equal(s, expected2)
+                tm.assert_series_equal(s2, expected2)
+                tm.assert_series_equal(s, expected2)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
-        assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
+        tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
         assert s.dropna().sum("rows") == 3
         assert s._get_axis_number("rows") == 0
         assert s._get_axis_name("rows") == "index"
@@ -490,7 +489,7 @@ class TestSeriesMisc(SharedWithSparse):
         s = Series([" jack", "jill ", " jesse ", "frank"])
         for method in methods:
             expected = Series([getattr(str, method)(x) for x in s.values])
-            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+            tm.assert_series_equal(getattr(Series.str, method)(s.str), expected)
 
         # str accessor only valid with string values
         s = Series(range(5))
