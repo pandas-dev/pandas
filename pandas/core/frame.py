@@ -5854,8 +5854,8 @@ class DataFrame(NDFrame):
         "pivot_table"
     ] = """
         Create a spreadsheet-style pivot table as a DataFrame.
-        
-        The levels in the pivot table will be stored in MultiIndex objects 
+
+        The levels in the pivot table will be stored in MultiIndex objects
         (hierarchical indexes) on the index and columns of the result DataFrame.
 
         Parameters
@@ -6250,7 +6250,7 @@ class DataFrame(NDFrame):
     def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
-        
+
         Returns a DataFrame having a new level of column labels whose inner-most level
         consists of the pivoted index labels.
 

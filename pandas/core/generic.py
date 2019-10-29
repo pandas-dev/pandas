@@ -4354,7 +4354,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def reindex(self, *args, **kwargs):
         """
         Conform %(klass)s to new index with optional filling logic.
-        
+
         Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         ``copy=False``.
