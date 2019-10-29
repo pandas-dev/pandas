@@ -354,7 +354,7 @@ class SeriesGroupBy(GroupBy):
 
         Parameters
         ----------
-        output : dict[int, np.ndarray]
+        output : Mapping[int, AnyArrayLike]
             Dict where the key represents the columnar-index and the values are
             the actual results. Must be ordered from 0..n
         index : pd.Index
@@ -388,7 +388,7 @@ class SeriesGroupBy(GroupBy):
 
         Parameters
         ----------
-        output : dict[int, np.ndarray]
+        output : Mapping[int, AnyArrayLike]
             Dict where the key represents the columnar-index and the values are
             the actual results.
         columns : pd.Index

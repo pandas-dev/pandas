@@ -913,6 +913,7 @@ b  2""",
             )
 
             if agg_names:
+                # e.g. ohlc
                 assert len(agg_names) == result.shape[1]
             else:
                 assert result.ndim == 1
