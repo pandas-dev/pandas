@@ -1,6 +1,8 @@
+from collections import OrderedDict
 from io import StringIO
 from itertools import islice
 import os
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
@@ -10,7 +12,8 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
+from pandas._typing import JSONSerializable
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -36,15 +39,16 @@ TABLE_SCHEMA_VERSION = "0.20.0"
 def to_json(
     path_or_buf,
     obj,
-    orient=None,
-    date_format="epoch",
-    double_precision=10,
-    force_ascii=True,
-    date_unit="ms",
-    default_handler=None,
-    lines=False,
-    compression="infer",
-    index=True,
+    orient: Optional[str] = None,
+    date_format: str = "epoch",
+    double_precision: int = 10,
+    force_ascii: bool = True,
+    date_unit: str = "ms",
+    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+    lines: bool = False,
+    compression: Optional[str] = "infer",
+    index: bool = True,
+    indent: int = 0,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -59,7 +63,7 @@ def to_json(
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
     if orient == "table" and isinstance(obj, DataFrame):
-        writer = JSONTableWriter
+        writer = JSONTableWriter  # type: Type["Writer"]
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):
@@ -76,6 +80,7 @@ def to_json(
         date_unit=date_unit,
         default_handler=default_handler,
         index=index,
+        indent=indent,
     ).write()
 
     if lines:
@@ -97,18 +102,19 @@ class Writer:
     def __init__(
         self,
         obj,
-        orient,
-        date_format,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        index,
-        default_handler=None,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        indent: int = 0,
     ):
         self.obj = obj
 
         if orient is None:
-            orient = self._default_orient
+            orient = self._default_orient  # type: ignore
 
         self.orient = orient
         self.date_format = date_format
@@ -117,6 +123,7 @@ class Writer:
         self.date_unit = date_unit
         self.default_handler = default_handler
         self.index = index
+        self.indent = indent
 
         self.is_copy = None
         self._format_axes()
@@ -133,17 +140,19 @@ class Writer:
             self.date_unit,
             self.date_format == "iso",
             self.default_handler,
+            self.indent,
         )
 
     def _write(
         self,
         obj,
-        orient,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        iso_dates,
-        default_handler,
+        orient: Optional[str],
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        iso_dates: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
+        indent: int,
     ):
         return dumps(
             obj,
@@ -153,6 +162,7 @@ class Writer:
             date_unit=date_unit,
             iso_dates=iso_dates,
             default_handler=default_handler,
+            indent=indent,
         )
 
 
@@ -169,12 +179,13 @@ class SeriesWriter(Writer):
     def _write(
         self,
         obj,
-        orient,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        iso_dates,
-        default_handler,
+        orient: Optional[str],
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        iso_dates: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
+        indent: int,
     ):
         if not self.index and orient == "split":
             obj = {"name": obj.name, "data": obj.values}
@@ -186,6 +197,7 @@ class SeriesWriter(Writer):
             date_unit,
             iso_dates,
             default_handler,
+            indent,
         )
 
 
@@ -214,12 +226,13 @@ class FrameWriter(Writer):
     def _write(
         self,
         obj,
-        orient,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        iso_dates,
-        default_handler,
+        orient: Optional[str],
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        iso_dates: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
+        indent: int,
     ):
         if not self.index and orient == "split":
             obj = obj.to_dict(orient="split")
@@ -232,6 +245,7 @@ class FrameWriter(Writer):
             date_unit,
             iso_dates,
             default_handler,
+            indent,
         )
 
 
@@ -241,13 +255,14 @@ class JSONTableWriter(FrameWriter):
     def __init__(
         self,
         obj,
-        orient,
-        date_format,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        index,
-        default_handler=None,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        indent: int = 0,
     ):
         """
         Adds a `schema` attribute with the Table Schema, resets
@@ -255,6 +270,7 @@ class JSONTableWriter(FrameWriter):
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
         """
+
         super().__init__(
             obj,
             orient,
@@ -264,6 +280,7 @@ class JSONTableWriter(FrameWriter):
             date_unit,
             index,
             default_handler=default_handler,
+            indent=indent,
         )
 
         if date_format != "iso":
@@ -315,19 +332,20 @@ class JSONTableWriter(FrameWriter):
         date_unit,
         iso_dates,
         default_handler,
+        indent,
     ):
-        data = super()._write(
-            obj,
+        table_obj = OrderedDict((("schema", self.schema), ("data", obj)))
+        serialized = super()._write(
+            table_obj,
             orient,
             double_precision,
             ensure_ascii,
             date_unit,
             iso_dates,
             default_handler,
+            indent,
         )
-        serialized = '{{"schema": {schema}, "data": {data}}}'.format(
-            schema=dumps(self.schema), data=data
-        )
+
         return serialized
 
 
@@ -364,7 +382,7 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    orient : string,
+    orient : str
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -970,10 +988,8 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except ValueError:
+            except (ValueError, OverflowError):
                 continue
-            except Exception:
-                break
             return new_data, True
         return data, False
 
@@ -1094,15 +1110,13 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = (
-                DataFrame.from_dict(
-                    loads(json, precise_float=self.precise_float),
-                    dtype=None,
-                    orient="index",
-                )
-                .sort_index(axis="columns")
-                .sort_index(axis="index")
+            self.obj = DataFrame.from_dict(
+                loads(json, precise_float=self.precise_float),
+                dtype=None,
+                orient="index",
             )
+            if compat.PY35:
+                self.obj = self.obj.sort_index(axis="columns").sort_index(axis="index")
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:

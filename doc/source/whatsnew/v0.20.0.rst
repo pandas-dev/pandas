@@ -338,8 +338,7 @@ See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    from scipy.sparse import csr_matrix
    arr = np.random.random(size=(1000, 5))
@@ -351,7 +350,7 @@ All sparse formats are supported, but matrices that are not in :mod:`COOrdinate 
 
 To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
 
-.. ipython:: python
+.. code-block:: python
 
    sdf.to_coo()
 

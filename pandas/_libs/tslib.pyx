@@ -609,16 +609,17 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             py_dt = parse_datetime_string(val,
                                                           dayfirst=dayfirst,
                                                           yearfirst=yearfirst)
-                        except Exception:
+                            # If the dateutil parser returned tzinfo, capture it
+                            # to check if all arguments have the same tzinfo
+                            tz = py_dt.utcoffset()
+
+                        except (ValueError, OverflowError):
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
                             raise TypeError("invalid string coercion to "
                                             "datetime")
 
-                        # If the dateutil parser returned tzinfo, capture it
-                        # to check if all arguments have the same tzinfo
-                        tz = py_dt.utcoffset()
                         if tz is not None:
                             seen_datetime_offset = 1
                             # dateutil timezone objects cannot be hashed, so

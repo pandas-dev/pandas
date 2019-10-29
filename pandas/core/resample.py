@@ -17,6 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
+from pandas.core.base import DataError
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
@@ -360,7 +361,25 @@ class Resampler(_GroupBy):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except Exception:
+        except AssertionError:
+            raise
+        except DataError:
+            # we have a non-reducing function; try to evaluate
+            result = grouped.apply(how, *args, **kwargs)
+        except ValueError as err:
+            if "Must produce aggregated value" in str(err):
+                # raised in _aggregate_named
+                pass
+            elif "len(index) != len(labels)" in str(err):
+                # raised in libgroupby validation
+                pass
+            elif "No objects to concatenate" in str(err):
+                # raised in concat call
+                #  In tests this is reached via either
+                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
+                pass
+            else:
+                raise
 
             # we have a non-reducing function
             # try to evaluate
@@ -423,7 +442,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             limit of how many values to fill
 
         Returns
@@ -514,7 +533,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             Limit of how many values to fill.
 
         Returns
@@ -628,7 +647,7 @@ class Resampler(_GroupBy):
             * 'backfill' or 'bfill': use next valid observation to fill gap.
             * 'nearest': use nearest valid observation to fill gap.
 
-        limit : integer, optional
+        limit : int, optional
             Limit of how many consecutive missing values to fill.
 
         Returns
@@ -803,8 +822,6 @@ class Resampler(_GroupBy):
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 
-            .. versionadded:: 0.20.0
-
         Returns
         -------
         DataFrame or Series
@@ -823,7 +840,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             Degrees of freedom.
 
         Returns
@@ -840,7 +857,7 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        ddof : integer, default 1
+        ddof : int, default 1
             degrees of freedom
 
         Returns

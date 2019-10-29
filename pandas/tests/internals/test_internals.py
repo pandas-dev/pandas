@@ -327,19 +327,27 @@ class TestBlock:
 
 
 class TestDatetimeBlock:
-    def test_try_coerce_arg(self):
+    def test_can_hold_element(self):
         block = create_block("datetime", [0])
 
-        # coerce None
-        none_coerced = block._try_coerce_args(None)
-        assert pd.Timestamp(none_coerced) is pd.NaT
+        # We will check that block._can_hold_element iff arr.__setitem__ works
+        arr = pd.array(block.values.ravel())
 
-        # coerce different types of date bojects
-        vals = (np.datetime64("2010-10-10"), datetime(2010, 10, 10), date(2010, 10, 10))
+        # coerce None
+        assert block._can_hold_element(None)
+        arr[0] = None
+        assert arr[0] is pd.NaT
+
+        # coerce different types of datetime objects
+        vals = [np.datetime64("2010-10-10"), datetime(2010, 10, 10)]
         for val in vals:
-            coerced = block._try_coerce_args(val)
-            assert np.datetime64 == type(coerced)
-            assert pd.Timestamp("2010-10-10") == pd.Timestamp(coerced)
+            assert block._can_hold_element(val)
+            arr[0] = val
+
+        val = date(2010, 10, 10)
+        assert not block._can_hold_element(val)
+        with pytest.raises(TypeError):
+            arr[0] = val
 
 
 class TestBlockManager:
@@ -528,32 +536,33 @@ class TestBlockManager:
         assert mgr.get("g").dtype == "datetime64[ns, CET]"
         assert mgr.as_array().dtype == "object"
 
-    def test_astype(self):
+    @pytest.mark.parametrize("t", ["float16", "float32", "float64", "int32", "int64"])
+    def test_astype(self, t):
         # coerce all
         mgr = create_mgr("c: f4; d: f2; e: f8")
-        for t in ["float16", "float32", "float64", "int32", "int64"]:
-            t = np.dtype(t)
-            tmgr = mgr.astype(t)
-            assert tmgr.get("c").dtype.type == t
-            assert tmgr.get("d").dtype.type == t
-            assert tmgr.get("e").dtype.type == t
+
+        t = np.dtype(t)
+        tmgr = mgr.astype(t)
+        assert tmgr.get("c").dtype.type == t
+        assert tmgr.get("d").dtype.type == t
+        assert tmgr.get("e").dtype.type == t
 
         # mixed
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
-        for t in ["float16", "float32", "float64", "int32", "int64"]:
-            t = np.dtype(t)
-            tmgr = mgr.astype(t, errors="ignore")
-            assert tmgr.get("c").dtype.type == t
-            assert tmgr.get("e").dtype.type == t
-            assert tmgr.get("f").dtype.type == t
-            assert tmgr.get("g").dtype.type == t
 
-            assert tmgr.get("a").dtype.type == np.object_
-            assert tmgr.get("b").dtype.type == np.object_
-            if t != np.int64:
-                assert tmgr.get("d").dtype.type == np.datetime64
-            else:
-                assert tmgr.get("d").dtype.type == t
+        t = np.dtype(t)
+        tmgr = mgr.astype(t, errors="ignore")
+        assert tmgr.get("c").dtype.type == t
+        assert tmgr.get("e").dtype.type == t
+        assert tmgr.get("f").dtype.type == t
+        assert tmgr.get("g").dtype.type == t
+
+        assert tmgr.get("a").dtype.type == np.object_
+        assert tmgr.get("b").dtype.type == np.object_
+        if t != np.int64:
+            assert tmgr.get("d").dtype.type == np.datetime64
+        else:
+            assert tmgr.get("d").dtype.type == t
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):

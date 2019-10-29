@@ -85,11 +85,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1d integer np.ndarray or PeriodArray), optional
+    data : array-like (1d int np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
-    freq : string or period object, optional
+    freq : str or period object, optional
         One of pandas period strings or corresponding objects
     start : starting value, period-like, optional
         If data is None, used as the start point in generating regular
@@ -457,7 +457,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 self.get_loc(key)
                 return True
-            except Exception:
+            except (TypeError, KeyError):
+                # TypeError can be reached if we pass a tuple that is not hashable
                 return False
 
     @cache_readonly
@@ -604,7 +605,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         try:
             return com.maybe_box(self, super().get_value(s, key), series, key)
         except (KeyError, IndexError):
-            try:
+            if isinstance(key, str):
                 asdt, parsed, reso = parse_time_string(key, self.freq)
                 grp = resolution.Resolution.get_freq_group(reso)
                 freqn = resolution.get_freq_group(self.freq)
@@ -630,8 +631,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     )
                 else:
                     raise KeyError(key)
-            except TypeError:
-                pass
 
             period = Period(key, self.freq)
             key = period.value if isna(period) else period.ordinal
@@ -765,7 +764,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 _, parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
-            except Exception:
+            except ValueError:
+                # string cannot be parsed as datetime-like
+                # TODO: we need tests for this case
                 raise KeyError(label)
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
@@ -1001,18 +1002,18 @@ def period_range(start=None, end=None, periods=None, freq=None, name=None):
 
     Parameters
     ----------
-    start : string or period-like, default None
+    start : str or period-like, default None
         Left bound for generating periods
-    end : string or period-like, default None
+    end : str or period-like, default None
         Right bound for generating periods
-    periods : integer, default None
+    periods : int, default None
         Number of periods to generate
-    freq : string or DateOffset, optional
+    freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
 
-    name : string, default None
+    name : str, default None
         Name of the resulting PeriodIndex
 
     Returns

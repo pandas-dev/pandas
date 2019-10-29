@@ -19,7 +19,7 @@ from pandas import (
     date_range,
     period_range,
 )
-from pandas.core.groupby.groupby import SpecificationError
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -385,10 +385,7 @@ def test_agg_consistency():
     # agg with ([]) and () not consistent
     # GH 6715
     def P1(a):
-        try:
-            return np.percentile(a.dropna(), q=1)
-        except Exception:
-            return np.nan
+        return np.percentile(a.dropna(), q=1)
 
     df = DataFrame(
         {

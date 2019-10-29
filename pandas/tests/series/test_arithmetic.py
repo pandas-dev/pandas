@@ -66,6 +66,21 @@ class TestSeriesArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 
+    @pytest.mark.parametrize(
+        "target_add,input_value,expected_value",
+        [
+            ("!", ["hello", "world"], ["hello!", "world!"]),
+            ("m", ["hello", "world"], ["hellom", "worldm"]),
+        ],
+    )
+    def test_string_addition(self, target_add, input_value, expected_value):
+        # GH28658 - ensure adding 'm' does not raise an error
+        a = Series(input_value)
+
+        result = a + target_add
+        expected = Series(expected_value)
+        tm.assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Comparisons

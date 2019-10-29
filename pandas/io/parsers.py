@@ -257,7 +257,7 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
-cache_dates : boolean, default True
+cache_dates : bool, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -1782,14 +1782,17 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_num_bool:
+        if try_num_bool and is_object_dtype(values.dtype):
+            # exclude e.g DatetimeIndex here
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isna(result).sum()
-            except Exception:
+            except (ValueError, TypeError):
+                # e.g. encountering datetime string gets ValueError
+                #  TypeError can be raised in floatify
                 result = values
-                if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values, False)
+            else:
+                na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
