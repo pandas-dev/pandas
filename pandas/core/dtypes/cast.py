@@ -21,7 +21,6 @@ from .common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -202,7 +201,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
         r = result.ravel()
         arr = np.array([r[0]])
 
-        if isna(arr).any() or not np.allclose(arr, trans(arr).astype(dtype), rtol=0):
+        if isna(arr).any():
             # if we have any nulls, then we are done
             return result
 
@@ -393,32 +392,29 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, np.integer):
             dtype = np.dtype(np.float64)
-            if not isna(fill_value):
-                fill_value = dtype.type(fill_value)
 
         elif dtype.kind == "f":
-            if not np.can_cast(fill_value, dtype):
-                # e.g. dtype is float32, need float64
-                dtype = np.min_scalar_type(fill_value)
+            mst = np.min_scalar_type(fill_value)
+            if mst > dtype:
+                # e.g. mst is np.float64 and dtype is np.float32
+                dtype = mst
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
             dtype = np.promote_types(dtype, mst)
 
-            if dtype.kind == "c" and not np.isnan(fill_value):
-                fill_value = dtype.type(fill_value)
-
     elif is_bool(fill_value):
         if not issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-        else:
-            fill_value = np.bool_(fill_value)
+            dtype = np.dtype(np.object_)
+
     elif is_integer(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, np.integer):
             if not np.can_cast(fill_value, dtype):
                 # upcast to prevent overflow
@@ -428,34 +424,19 @@ def maybe_promote(dtype, fill_value=np.nan):
                     # Case where we disagree with numpy
                     dtype = np.dtype(np.object_)
 
-            fill_value = dtype.type(fill_value)
-
-        elif issubclass(dtype.type, np.floating):
-            # check if we can cast
-            if _check_lossless_cast(fill_value, dtype):
-                fill_value = dtype.type(fill_value)
-
-        if dtype.kind in ["c", "f"]:
-            # e.g. if dtype is complex128 and fill_value is 1, we
-            #  want np.complex128(1)
-            fill_value = dtype.type(fill_value)
-
     elif is_complex(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.dtype(np.object_)
+
         elif issubclass(dtype.type, (np.integer, np.floating)):
             mst = np.min_scalar_type(fill_value)
             dtype = np.promote_types(dtype, mst)
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
-            if mst > dtype and mst.kind == "c":
+            if mst > dtype:
                 # e.g. mst is np.complex128 and dtype is np.complex64
                 dtype = mst
-
-        if dtype.kind == "c":
-            # make sure we have a np.complex and not python complex
-            fill_value = dtype.type(fill_value)
 
     elif fill_value is None:
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
@@ -466,37 +447,48 @@ def maybe_promote(dtype, fill_value=np.nan):
         elif is_datetime_or_timedelta_dtype(dtype):
             fill_value = dtype.type("NaT", "ns")
         else:
-            dtype = np.object_
+            dtype = np.dtype(np.object_)
             fill_value = np.nan
     else:
-        dtype = np.object_
+        dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
     if is_extension_array_dtype(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, (bytes, str)):
-        dtype = np.object_
+        dtype = np.dtype(np.object_)
 
+    fill_value = _ensure_dtype_type(fill_value, dtype)
     return dtype, fill_value
 
 
-def _check_lossless_cast(value, dtype: np.dtype) -> bool:
+def _ensure_dtype_type(value, dtype):
     """
-    Check if we can cast the given value to the given dtype _losslesly_.
+    Ensure that the given value is an instance of the given dtype.
+
+    e.g. if out dtype is np.complex64, we should have an instance of that
+    as opposed to a python complex object.
 
     Parameters
     ----------
     value : object
-    dtype : np.dtype
+    dtype : np.dtype or ExtensionDtype
 
     Returns
     -------
-    bool
+    object
     """
-    casted = dtype.type(value)
-    if casted == value:
-        return True
-    return False
+
+    # Start with exceptions in which we do _not_ cast to numpy types
+    if is_extension_array_dtype(dtype):
+        return value
+    elif dtype == np.object_:
+        return value
+    elif isna(value):
+        # e.g. keep np.nan rather than try to cast to np.float32(np.nan)
+        return value
+
+    return dtype.type(value)
 
 
 def infer_dtype_from(val, pandas_dtype=False):
@@ -1006,7 +998,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     Parameters
     ----------
     value : np.array / Series / Index / list-like
-    convert_dates : boolean, default False
+    convert_dates : bool, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
 
@@ -1332,14 +1324,10 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
     np.ndarray / pandas type of length, filled with value
 
     """
-    if is_datetime64tz_dtype(dtype):
-        from pandas import DatetimeIndex
+    if is_extension_array_dtype(dtype):
+        cls = dtype.construct_array_type()
+        subarr = cls._from_sequence([value] * length, dtype=dtype)
 
-        subarr = DatetimeIndex([value] * length, dtype=dtype)
-    elif is_categorical_dtype(dtype):
-        from pandas import Categorical
-
-        subarr = Categorical([value] * length, dtype=dtype)
     else:
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype
@@ -1439,7 +1427,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy=False):
         The array to cast.
     dtype : str, np.dtype
         The integer dtype to cast the array to.
-    copy: boolean, default False
+    copy: bool, default False
         Whether to make a copy of the array before returning.
 
     Returns

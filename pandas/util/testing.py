@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 import gzip
 import os
-import re
 from shutil import rmtree
 import string
 import tempfile
@@ -23,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -1156,7 +1155,9 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal(
+                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
+            )
 
     if check_exact:
         assert_numpy_array_equal(
@@ -1175,7 +1176,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -1315,8 +1316,9 @@ def assert_frame_equal(
 
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
-    AssertionError: Attributes are different
     ...
+    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
@@ -1600,7 +1602,9 @@ def makeUnicodeIndex(k=10, name=None):
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x, k), name=name, **kwargs)
+    return CategoricalIndex(
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
+    )
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
@@ -2363,26 +2367,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2390,150 +2394,13 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper
 
 
 with_connectivity_check = network
-
-
-def assert_raises_regex(_exception, _regexp, _callable=None, *args, **kwargs):
-    r"""
-    Check that the specified Exception is raised and that the error message
-    matches a given regular expression pattern. This may be a regular
-    expression object or a string containing a regular expression suitable
-    for use by `re.search()`. This is a port of the `assertRaisesRegexp`
-    function from unittest in Python 2.7.
-
-    .. deprecated:: 0.24.0
-        Use `pytest.raises` instead.
-
-    Examples
-    --------
-    >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
-    >>> import re
-    >>> assert_raises_regex(ValueError, re.compile('literal'), int, 'XYZ')
-
-    If an exception of a different type is raised, it bubbles up.
-
-    >>> assert_raises_regex(TypeError, 'literal', int, 'XYZ')
-    Traceback (most recent call last):
-        ...
-    ValueError: invalid literal for int() with base 10: 'XYZ'
-    >>> dct = dict()
-    >>> assert_raises_regex(KeyError, 'pear', dct.__getitem__, 'apple')
-    Traceback (most recent call last):
-        ...
-    AssertionError: "pear" does not match "'apple'"
-
-    You can also use this in a with statement.
-
-    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
-    ...     1 + {}
-    >>> with assert_raises_regex(TypeError, 'banana'):
-    ...     'apple'[0] = 'b'
-    Traceback (most recent call last):
-        ...
-    AssertionError: "banana" does not match "'str' object does not support \
-item assignment"
-    """
-    warnings.warn(
-        (
-            "assert_raises_regex has been deprecated and will "
-            "be removed in the next release. Please use "
-            "`pytest.raises` instead."
-        ),
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
-    if _callable is not None:
-        with manager:
-            _callable(*args, **kwargs)
-    else:
-        return manager
-
-
-class _AssertRaisesContextmanager:
-    """
-    Context manager behind `assert_raises_regex`.
-    """
-
-    def __init__(self, exception, regexp=None):
-        """
-        Initialize an _AssertRaisesContextManager instance.
-
-        Parameters
-        ----------
-        exception : class
-            The expected Exception class.
-        regexp : str, default None
-            The regex to compare against the Exception message.
-        """
-
-        self.exception = exception
-
-        if regexp is not None and not hasattr(regexp, "search"):
-            regexp = re.compile(regexp, re.DOTALL)
-
-        self.regexp = regexp
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, trace_back):
-        expected = self.exception
-
-        if not exc_type:
-            exp_name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{name} not raised.".format(name=exp_name))
-
-        return self.exception_matches(exc_type, exc_value, trace_back)
-
-    def exception_matches(self, exc_type, exc_value, trace_back):
-        """
-        Check that the Exception raised matches the expected Exception
-        and expected error message regular expression.
-
-        Parameters
-        ----------
-        exc_type : class
-            The type of Exception raised.
-        exc_value : Exception
-            The instance of `exc_type` raised.
-        trace_back : stack trace object
-            The traceback object associated with `exc_value`.
-
-        Returns
-        -------
-        is_matched : bool
-            Whether or not the Exception raised matches the expected
-            Exception class and expected error message regular expression.
-
-        Raises
-        ------
-        AssertionError : The error message provided does not match
-                         the expected error message regular expression.
-        """
-
-        if issubclass(exc_type, self.exception):
-            if self.regexp is not None:
-                val = str(exc_value)
-
-                if not self.regexp.search(val):
-                    msg = '"{pat}" does not match "{val}"'.format(
-                        pat=self.regexp.pattern, val=val
-                    )
-                    e = AssertionError(msg)
-                    raise_with_traceback(e, trace_back)
-
-            return True
-        else:
-            # Failed, so allow Exception to bubble up.
-            return False
 
 
 @contextmanager
