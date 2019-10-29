@@ -3,6 +3,7 @@ These test the method maybe_promote from core/dtypes/cast.py
 """
 
 import datetime
+import warnings
 
 import numpy as np
 import pytest
@@ -162,7 +163,11 @@ def _assert_match(result_fill_value, expected_fill_value):
         # On some builds, type comparison fails, e.g. np.int32 != np.int32
         assert res_type == ex_type or res_type.__name__ == ex_type.__name__
 
-    match_value = result_fill_value == expected_fill_value
+    with warnings.catch_warnings():
+        # we do not care about this warning, NaT is handled below anyway
+        msg = "In the future, 'NAT == x' and 'x == NAT' will always be False"
+        warnings.filterwarnings("ignore", message=msg, category=FutureWarning)
+        match_value = result_fill_value == expected_fill_value
 
     # Note: type check above ensures that we have the _same_ NA value
     # for missing values, None == None (which is checked
