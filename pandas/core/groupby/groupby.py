@@ -641,12 +641,15 @@ b  2""",
             # if we don't have this method to indicated to aggregate to
             # mark this column as an error
             try:
-                return self._aggregate_item_by_item(name, *args, **kwargs)
+                result = self._aggregate_item_by_item(name, *args, **kwargs)
+                assert self.obj.ndim == 2
+                return result
             except AttributeError:
                 # e.g. SparseArray has no flags attr
                 # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
                 #  occurs in idxmax() case
                 #  in tests.groupby.test_function.test_non_cython_api
+                assert self.obj.ndim == 1
                 raise ValueError
 
         wrapper.__name__ = name
