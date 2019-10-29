@@ -1666,8 +1666,8 @@ class DataFrame(NDFrame):
             else:
                 try:
                     index_data = [arrays[arr_columns.get_loc(field)] for field in index]
-                except KeyError:
-                    # raised by get_loc
+                except (KeyError, TypeError):
+                    # raised by get_loc, see GH#29258
                     result_index = index
                 else:
                     result_index = ensure_index_from_sequences(index_data, names=index)
