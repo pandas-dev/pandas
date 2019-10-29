@@ -3,6 +3,7 @@ Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
 from datetime import timedelta
+from functools import partial
 from textwrap import dedent
 from typing import Callable, List, Optional, Set, Union
 import warnings
@@ -1014,7 +1015,6 @@ class _Rolling_and_Expanding(_Rolling):
         kwargs.pop("_level", None)
         window = self._get_window()
         offset = _offset(window, self.center)
-        index_as_array = self._get_index()
 
         # TODO: default is for backward compat
         # change to False in the future
@@ -1030,28 +1030,22 @@ class _Rolling_and_Expanding(_Rolling):
             )
             raw = True
 
-        def f(arg, window, min_periods, closed):
-            minp = _use_window(min_periods, window)
-            if not raw:
-                arg = Series(arg, index=self.obj.index)
-            return libwindow.roll_generic(
-                arg,
-                window,
-                minp,
-                index_as_array,
-                closed,
-                offset,
-                func,
-                raw,
-                args,
-                kwargs,
-            )
-
-        window_func = self._get_roll_func("roll_generic")
-        # Why do we always pass center=False?
-        return self._apply(
-            window_func, False, floor=0, args=args, kwargs=kwargs, raw=raw
+        window_func = partial(
+            self._get_roll_func("roll_generic"),
+            args=args,
+            kwargs=kwargs,
+            raw=raw,
+            offset=offset,
+            func=func,
         )
+
+        def apply_func(values, begin, end, min_periods, raw=raw):
+            if not raw:
+                values = Series(values, index=self.obj.index)
+            return window_func(values, begin, end, min_periods)
+
+        # Why do we always pass center=False?
+        return self._apply(apply_func, False, floor=0)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
@@ -1224,20 +1218,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        window = self._get_window()
-        index_as_array = self._get_index()
-
-        def f(arg, *args, **kwargs):
-            minp = _require_min_periods(1)(self.min_periods, window)
-            return _zsqrt(
-                libwindow.roll_var(arg, window, minp, index_as_array, self.closed, ddof)
-            )
-
         window_func = self._get_roll_func("roll_var")
 
-        return self._apply(
-            window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs
-        )
+        def zsqrt_func(values, begin, end, min_periods):
+            return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
+
+        return self._apply(zsqrt_func, self.center, require_min_periods=1, **kwargs)
 
     _shared_docs["var"] = dedent(
         """
@@ -1301,10 +1287,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        window_func = self._get_roll_func("roll_var")
-        return self._apply(
-            window_func, self.center, require_min_periods=1, ddof=ddof, **kwargs
-        )
+        window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
+        return self._apply(window_func, self.center, require_min_periods=1, **kwargs)
 
     _shared_docs[
         "skew"
@@ -1414,38 +1398,18 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
-        window = self._get_window()
-        index_as_array = self._get_index()
-
-        def f(arg, *args, **kwargs):
-            minp = _use_window(self.min_periods, window)
-            if quantile == 1.0:
-                return libwindow.roll_max(
-                    arg, window, minp, index_as_array, self.closed
-                )
-            elif quantile == 0.0:
-                return libwindow.roll_min(
-                    arg, window, minp, index_as_array, self.closed
-                )
-            else:
-                return libwindow.roll_quantile(
-                    arg,
-                    window,
-                    minp,
-                    index_as_array,
-                    self.closed,
-                    quantile,
-                    interpolation,
-                )
-
         if quantile == 1.0:
             window_func = self._get_roll_func("roll_max")
         elif quantile == 0.0:
             window_func = self._get_roll_func("roll_min")
         else:
-            window_func = self._get_roll_func("roll_quantile")
+            window_func = partial(
+                self._get_roll_func("roll_quantile"),
+                quantile=quantile,
+                interpolation=interpolation,
+            )
 
-        return self._apply(window_func, self.center, quantile=quantile, **kwargs)
+        return self._apply(window_func, self.center, **kwargs)
 
     _shared_docs[
         "cov"
