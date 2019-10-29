@@ -1282,7 +1282,8 @@ def group_max(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
 
@@ -1353,7 +1354,8 @@ def group_min(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
 

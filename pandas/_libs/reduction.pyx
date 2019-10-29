@@ -190,7 +190,6 @@ cdef class SeriesBinGrouper:
     """
     cdef:
         Py_ssize_t nresults, ngroups
-        bint passed_dummy
 
     cdef public:
         object arr, index, dummy_arr, dummy_index
@@ -198,6 +197,8 @@ cdef class SeriesBinGrouper:
 
     def __init__(self, object series, object f, object bins, object dummy):
         n = len(series)
+
+        assert dummy is not None  # always obj[:0]
 
         self.bins = bins
         self.f = f
@@ -213,7 +214,6 @@ cdef class SeriesBinGrouper:
         self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
-        self.passed_dummy = dummy is not None
 
         # kludge for #1688
         if len(bins) > 0 and bins[-1] == len(series):
@@ -221,22 +221,18 @@ cdef class SeriesBinGrouper:
         else:
             self.ngroups = len(bins) + 1
 
-    cdef _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, dummy):
         # both values and index must be an ndarray!
 
-        if dummy is None:
-            values = np.empty(0, dtype=self.arr.dtype)
-            index = None
-        else:
-            values = dummy.values
-            if values.dtype != self.arr.dtype:
-                raise ValueError('Dummy array must be same dtype')
-            if util.is_array(values) and not values.flags.contiguous:
-                # e.g. Categorical has no `flags` attribute
-                values = values.copy()
-            index = dummy.index.values
-            if not index.flags.contiguous:
-                index = index.copy()
+        values = dummy.values
+        if values.dtype != self.arr.dtype:
+            raise ValueError('Dummy array must be same dtype')
+        if util.is_array(values) and not values.flags.contiguous:
+            # e.g. Categorical has no `flags` attribute
+            values = values.copy()
+        index = dummy.index.values
+        if not index.flags.contiguous:
+            index = index.copy()
 
         return values, index
 
@@ -320,7 +316,6 @@ cdef class SeriesGrouper:
     """
     cdef:
         Py_ssize_t nresults, ngroups
-        bint passed_dummy
 
     cdef public:
         object arr, index, dummy_arr, dummy_index
@@ -329,6 +324,10 @@ cdef class SeriesGrouper:
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
         n = len(series)
+
+        # in practice we always pass either obj[:0] or the
+        #  safer obj._get_values(slice(None, 0))
+        assert dummy is not None
 
         self.labels = labels
         self.f = f
@@ -344,27 +343,22 @@ cdef class SeriesGrouper:
         self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
-        self.passed_dummy = dummy is not None
         self.ngroups = ngroups
 
     cdef _check_dummy(self, dummy=None):
         # both values and index must be an ndarray!
 
-        if dummy is None:
-            values = np.empty(0, dtype=self.arr.dtype)
-            index = None
-        else:
-            values = dummy.values
-            # GH 23683: datetimetz types are equivalent to datetime types here
-            if (dummy.dtype != self.arr.dtype
-                    and values.dtype != self.arr.dtype):
-                raise ValueError('Dummy array must be same dtype')
-            if util.is_array(values) and not values.flags.contiguous:
-                # e.g. Categorical has no `flags` attribute
-                values = values.copy()
-            index = dummy.index.values
-            if not index.flags.contiguous:
-                index = index.copy()
+        values = dummy.values
+        # GH 23683: datetimetz types are equivalent to datetime types here
+        if (dummy.dtype != self.arr.dtype
+                and values.dtype != self.arr.dtype):
+            raise ValueError('Dummy array must be same dtype')
+        if util.is_array(values) and not values.flags.contiguous:
+            # e.g. Categorical has no `flags` attribute
+            values = values.copy()
+        index = dummy.index.values
+        if not index.flags.contiguous:
+            index = index.copy()
 
         return values, index
 
