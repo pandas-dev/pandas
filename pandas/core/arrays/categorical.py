@@ -47,14 +47,7 @@ from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import (
-    _get_data_algo,
-    _hashtables,
-    factorize,
-    take,
-    take_1d,
-    unique1d,
-)
+from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -295,7 +288,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
+    CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
 
     Notes
@@ -331,7 +324,9 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist", "get_values"])
+    _deprecations = PandasObject._deprecations | frozenset(
+        ["tolist", "itemsize", "get_values"]
+    )
     _typ = "categorical"
 
     def __init__(
@@ -343,7 +338,7 @@ class Categorical(ExtensionArray, PandasObject):
         )
         # At this point, dtype is always a CategoricalDtype, but
         # we may have dtype.categories be None, and we need to
-        # infer categories in a factorization step futher below
+        # infer categories in a factorization step further below
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, dtype.categories)
@@ -440,12 +435,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories as specified in new_categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Sets the categories to the specified new_categories.
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
         """
         return self.dtype.categories
 
@@ -876,11 +871,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories as specified in new_categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if ordered is None:
@@ -947,11 +942,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        reorder_categories : Reorder categories as specified in new_categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Sets the categories to the specified new_categories.
+        reorder_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
 
         Examples
         --------
@@ -1015,11 +1010,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories : Rename categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Sets the categories to the specified new_categories.
+        rename_categories
+        add_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if set(self.dtype.categories) != set(new_categories):
@@ -1055,11 +1050,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Rename categories.
-        reorder_categories : Reorder categories as specified in new_categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Sets the categories to the specified new_categories.
+        rename_categories
+        reorder_categories
+        remove_categories
+        remove_unused_categories
+        set_categories
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_list_like(new_categories):
@@ -1106,11 +1101,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories as specified in new_categories.
-        add_categories : Add new categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Sets the categories to the specified new_categories.
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_unused_categories
+        set_categories
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_list_like(removals):
@@ -1122,7 +1117,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # GH 10156
         if any(isna(removals)):
-            not_included = [x for x in not_included if notna(x)]
+            not_included = {x for x in not_included if notna(x)}
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
@@ -1149,11 +1144,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories as specified in new_categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        set_categories : Sets the categories to the specified new_categories.
+        rename_categories
+        reorder_categories
+        add_categories
+        remove_categories
+        set_categories
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
@@ -1580,7 +1575,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.argsort : Returns the indices that would sort this array.
+        numpy.ndarray.argsort
 
         Notes
         -----
@@ -2094,7 +2089,6 @@ class Categorical(ExtensionArray, PandasObject):
     def __setitem__(self, key, value):
         """
         Item assignment.
-
 
         Raises
         ------
@@ -2629,8 +2623,8 @@ def _get_codes_for_values(values, categories):
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    (_, _), cats = _get_data_algo(categories, _hashtables)
+    hash_klass, vals = _get_data_algo(values)
+    _, cats = _get_data_algo(categories)
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)
