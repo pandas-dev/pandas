@@ -4417,7 +4417,7 @@ class Index(IndexOpsMixin, PandasObject):
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
-        `where`) is not in the index, the latest index label upto the
+        `where`) is not in the index, the latest index label up to the
         passed label is chosen and its index returned.
 
         If all of the labels in the index are later than a label in `where`,
