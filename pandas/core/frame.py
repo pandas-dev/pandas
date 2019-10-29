@@ -16,7 +16,6 @@ import sys
 from textwrap import dedent
 from typing import (
     FrozenSet,
-    Generator,
     Hashable,
     Iterable,
     List,
@@ -891,7 +890,7 @@ class DataFrame(NDFrame):
     def iteritems(self):
         yield from self.items()
 
-    def iterrows(self) -> Generator[Tuple[Index, Series], None, None]:
+    def iterrows(self) -> Iterable[Tuple[Index, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -1029,7 +1028,9 @@ class DataFrame(NDFrame):
         """
         return len(self.index)
 
-    def dot(self, other: Union[Series, DataFrame]) -> Union[Series, DataFrame]:
+    def dot(
+        self, other: Union[Series, DataFrame, np.ndarray]
+    ) -> Union[Series, DataFrame, np.ndarray]:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -4826,7 +4827,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
