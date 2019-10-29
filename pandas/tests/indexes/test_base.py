@@ -1129,7 +1129,7 @@ class TestIndex(Base):
     )
     def test_map_with_non_function_missing_values(self, mapper):
         # GH 12756
-        expected = Index([2.0, np.nan, "foo"])
+        expected = Index([2.0, "", "foo"])
         result = Index([2, 1, 0]).map(mapper)
 
         tm.assert_index_equal(expected, result)

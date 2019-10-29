@@ -1267,7 +1267,7 @@ class IndexOpsMixin:
                 values = self.values
 
             indexer = mapper.index.get_indexer(values)
-            new_values = algorithms.take_1d(mapper._values, indexer)
+            new_values = algorithms.take_1d(mapper._values, indexer, fill_value="")
 
             return new_values
 
