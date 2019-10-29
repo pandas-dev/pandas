@@ -4353,8 +4353,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def reindex(self, *args, **kwargs):
         """
-        Conform %(klass)s to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
+        Conform %(klass)s to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         ``copy=False``.
 
@@ -4669,8 +4670,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Subset rows or columns of dataframe according to labels in
-        the specified index.
+        Subset the dataframe rows or columns according to the specified index labels.
 
         Note that this routine does not filter a dataframe on its
         contents. The filter is applied to the labels of the index.
@@ -8497,8 +8497,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def first(self, offset):
         """
-        Convenience method for subsetting initial periods of time series data
-        based on a date offset.
+        Method to subset initial periods of time series data based on a date offset.
 
         Parameters
         ----------
@@ -8560,8 +8559,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def last(self, offset):
         """
-        Convenience method for subsetting final periods of time series data
-        based on a date offset.
+        Method to subset final periods of time series data based on a date offset.
 
         Parameters
         ----------
