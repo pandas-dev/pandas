@@ -81,7 +81,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     An immutable ndarray. Indicates regular periods in time such as particular years,
     quarters, months, etc. Index keys are boxed to Period objects which carries the
-    metadata (eg, frequency information). If `ordinal` and `data` are not used, the 
+    metadata (eg, frequency information). If `ordinal` and `data` are not used, the
     time values are passed to :meth: `_generate_range()`.
 
     Parameters
