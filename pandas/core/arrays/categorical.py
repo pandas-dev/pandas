@@ -338,7 +338,7 @@ class Categorical(ExtensionArray, PandasObject):
         )
         # At this point, dtype is always a CategoricalDtype, but
         # we may have dtype.categories be None, and we need to
-        # infer categories in a factorization step futher below
+        # infer categories in a factorization step further below
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, dtype.categories)

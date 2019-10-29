@@ -747,7 +747,7 @@ class IntervalIndex(IntervalMixin, Index):
         Returns
         -------
         key: scalar or list-like
-            The original key if no conversion occured, int if converted scalar,
+            The original key if no conversion occurred, int if converted scalar,
             Int64Index if converted list-like.
         """
         original = key

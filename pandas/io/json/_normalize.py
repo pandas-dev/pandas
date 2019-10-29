@@ -183,7 +183,7 @@ def json_normalize(
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
     2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
-    Normalizes nested data upto level 1.
+    Normalizes nested data up to level 1.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",

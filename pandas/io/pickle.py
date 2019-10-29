@@ -140,7 +140,7 @@ def read_pickle(path, compression="infer"):
     path = _stringify_path(path)
     f, fh = _get_handle(path, "rb", compression=compression, is_text=False)
 
-    # 1) try standard libary Pickle
+    # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
     # 3) try pickle_compat with latin1 encoding
 

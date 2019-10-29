@@ -54,7 +54,7 @@ def filepath_or_buffer_id(request):
 @pytest.fixture
 def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
     """
-    A fixture yeilding a string representing a filepath, a path-like object
+    A fixture yielding a string representing a filepath, a path-like object
     and a StringIO buffer. Also checks that buffer is not closed.
     """
     if filepath_or_buffer_id == "buffer":

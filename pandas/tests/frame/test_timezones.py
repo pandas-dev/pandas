@@ -37,7 +37,7 @@ class TestDataFrameTimezones:
         expected = np.concatenate([expected, expected], axis=1)
         tm.assert_numpy_array_equal(result, expected)
 
-        # three columns, heterogenous
+        # three columns, heterogeneous
         est = "US/Eastern"
         df = df.assign(C=df.A.dt.tz_convert(est))
 
