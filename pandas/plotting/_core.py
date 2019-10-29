@@ -498,7 +498,7 @@ class PlotAccessor(PandasObject):
     """
     Make plots of Series or DataFrame.
 
-    Make plots of Series or DataFrame using the backend specified by the
+    Uses the backend specified by the
     option ``plotting.backend``. By default, matplotlib is used.
 
     Parameters
