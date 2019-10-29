@@ -1291,8 +1291,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
 class _IXIndexer(_NDFrameIndexer):
     """
-    A primarily label-location based indexer, with integer position
-    fallback.
+    A primarily label-location based indexer, with integer position fallback.
 
     Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
     favor of the more strict .iloc and .loc indexers.
