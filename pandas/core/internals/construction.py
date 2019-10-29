@@ -9,7 +9,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 import pandas.compat as compat
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -164,11 +164,10 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             try:
                 values = values.astype(dtype)
             except Exception as orig:
-                e = ValueError(
+                raise ValueError(
                     "failed to cast to '{dtype}' (Exception "
                     "was: {orig})".format(dtype=dtype, orig=orig)
-                )
-                raise_with_traceback(e)
+                ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
     values = values.T

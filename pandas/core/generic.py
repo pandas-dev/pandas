@@ -7048,14 +7048,15 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        axis = self._get_axis_number(axis)
+
         if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
         elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
-        else:
-            _maybe_transposed_self = self
+
         ax = _maybe_transposed_self._get_axis_number(ax)
 
         if _maybe_transposed_self.ndim == 2:
@@ -10852,7 +10853,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Also returns None for empty %(klass)s.
         """
 
-    def _find_valid_index(self, how):
+    def _find_valid_index(self, how: str):
         """
         Retrieves the index of the first valid value.
 

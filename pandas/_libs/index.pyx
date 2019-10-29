@@ -18,6 +18,7 @@ cnp.import_array()
 cimport pandas._libs.util as util
 
 from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -170,17 +171,17 @@ cdef class IndexEngine:
 
         raise KeyError(val)
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
         if not self.is_mapping_populated:
             return 0
         return self.mapping.sizeof(deep=deep)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         return self.sizeof()
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -192,14 +193,14 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
         return self.monotonic_inc == 1
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
@@ -242,7 +243,7 @@ cdef class IndexEngine:
         hash(val)
 
     @property
-    def is_mapping_populated(self):
+    def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
@@ -547,30 +548,31 @@ cpdef convert_scalar(ndarray arr, object value):
         if util.is_array(value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
-            return Timestamp(value).value
+            return Timestamp(value).to_datetime64()
         elif util.is_timedelta64_object(value):
             # exclude np.timedelta64("NaT") from value != value below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timestamp(value).value
-        raise ValueError("cannot set a Timestamp with a non-timestamp")
+            return np.datetime64("NaT", "ns")
+        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
+                         .format(typ=type(value).__name__))
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
             pass
         elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            return Timedelta(value).value
+            value = Timedelta(value)
+            if value is NaT:
+                return np.timedelta64("NaT", "ns")
+            return value.to_timedelta64()
         elif util.is_datetime64_object(value):
             # exclude np.datetime64("NaT") which would otherwise be picked up
             #  by the `value != value check below
             pass
         elif value is None or value != value:
-            return NPY_NAT
-        elif isinstance(value, str):
-            return Timedelta(value).value
-        raise ValueError("cannot set a Timedelta with a non-timedelta")
+            return np.timedelta64("NaT", "ns")
+        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
+                         .format(typ=type(value).__name__))
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):

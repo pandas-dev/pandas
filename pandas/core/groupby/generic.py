@@ -263,9 +263,14 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except AssertionError:
+            except (AssertionError, TypeError):
                 raise
-            except Exception:
+            except (ValueError, KeyError, AttributeError, IndexError):
+                # TODO: IndexError can be removed here following GH#29106
+                # TODO: AttributeError is caused by _index_data hijinx in
+                #  libreduction, can be removed after GH#29160
+                # TODO: KeyError is raised in _python_agg_general,
+                #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
@@ -476,7 +481,7 @@ class SeriesGroupBy(GroupBy):
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -1075,15 +1080,8 @@ class DataFrameGroupBy(GroupBy):
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
-                try:
-                    fres = func(data, *args, **kwargs)
-                except AssertionError:
-                    raise
-                except Exception:
-                    wrapper = lambda x: func(x, *args, **kwargs)
-                    result[name] = data.apply(wrapper, axis=axis)
-                else:
-                    result[name] = self._try_cast(fres, data)
+                fres = func(data, *args, **kwargs)
+                result[name] = self._try_cast(fres, data)
 
         return self._wrap_frame_output(result, obj)
 
@@ -1100,10 +1098,7 @@ class DataFrameGroupBy(GroupBy):
 
             cast = self._transform_should_cast(func)
             try:
-
                 result[item] = colg.aggregate(func, *args, **kwargs)
-                if cast:
-                    result[item] = self._try_cast(result[item], data)
 
             except ValueError as err:
                 if "Must produce aggregated value" in str(err):
@@ -1112,10 +1107,10 @@ class DataFrameGroupBy(GroupBy):
                     raise
                 cannot_agg.append(item)
                 continue
-            except TypeError as e:
-                cannot_agg.append(item)
-                errors = e
-                continue
+
+            else:
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1234,7 +1229,7 @@ class DataFrameGroupBy(GroupBy):
                         return self._concat_objects(keys, values, not_indexed_same=True)
 
                 try:
-                    if self.axis == 0:
+                    if self.axis == 0 and isinstance(v, ABCSeries):
                         # GH6124 if the list of Series have a consistent name,
                         # then propagate that name to the result.
                         index = v.index.copy()
@@ -1270,15 +1265,24 @@ class DataFrameGroupBy(GroupBy):
                                 axis=self.axis,
                             ).unstack()
                             result.columns = index
-                    else:
+                    elif isinstance(v, ABCSeries):
                         stacked_values = np.vstack([np.asarray(v) for v in values])
                         result = DataFrame(
                             stacked_values.T, index=v.index, columns=key_index
                         )
+                    else:
+                        # GH#1738: values is list of arrays of unequal lengths
+                        #  fall through to the outer else clause
+                        # TODO: sure this is right?  we used to do this
+                        #  after raising AttributeError above
+                        return Series(
+                            values, index=key_index, name=self._selection_name
+                        )
 
-                except (ValueError, AttributeError):
+                except ValueError:
+                    # TODO: not reached in tests; is this still needed?
                     # GH1738: values is list of arrays of unequal lengths fall
-                    # through to the outer else caluse
+                    # through to the outer else clause
                     return Series(values, index=key_index, name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates

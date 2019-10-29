@@ -34,7 +34,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -490,7 +490,7 @@ class DataFrame(NDFrame):
                     "DataFrame constructor called with "
                     "incompatible data and dtype: {e}".format(e=e)
                 )
-                raise_with_traceback(exc)
+                raise exc from e
 
             if arr.ndim == 0 and index is not None and columns is not None:
                 values = cast_scalar_to_array(
@@ -759,6 +759,7 @@ class DataFrame(NDFrame):
         decimal: str = ".",
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
+        encoding: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -769,6 +770,10 @@ class DataFrame(NDFrame):
             Max width to truncate each column in characters. By default, no limit.
 
             .. versionadded:: 1.0.0
+        encoding : str, default "utf-8"
+            Set character encoding.
+
+            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -807,7 +812,7 @@ class DataFrame(NDFrame):
                 decimal=decimal,
                 line_width=line_width,
             )
-            return formatter.to_string(buf=buf)
+            return formatter.to_string(buf=buf, encoding=encoding)
 
     # ----------------------------------------------------------------------
 
@@ -7850,11 +7855,10 @@ class DataFrame(NDFrame):
                 elif filter_type == "bool":
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    e = NotImplementedError(
+                    raise NotImplementedError(
                         "Handling exception with filter_type {f} not"
                         "implemented.".format(f=filter_type)
-                    )
-                    raise_with_traceback(e)
+                    ) from e
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)

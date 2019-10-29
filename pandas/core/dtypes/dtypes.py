@@ -793,7 +793,7 @@ class PeriodDtype(PandasExtensionDtype):
     Parameters
     ----------
     freq : str or DateOffset
-        The frequency of this PeriodDtype
+        The frequency of this PeriodDtype.
 
     Attributes
     ----------
