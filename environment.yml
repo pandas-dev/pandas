@@ -42,7 +42,7 @@ dependencies:
   - numexpr>=2.6.8
   - openpyxl
   - pyarrow>=0.9.0
-  - pytables>=3.4.2
+  - pytables>=3.5.2
   - pytest-cov
   - pytest-xdist
   - s3fs
