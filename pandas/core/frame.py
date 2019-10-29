@@ -816,7 +816,7 @@ class DataFrame(NDFrame):
         """
         Returns a Styler object.
 
-        Property returning a Styler object containing methods for building
+        Contains methods for building a styled HTML representation of the DataFrame.
         a styled HTML representation fo the DataFrame.
 
         See Also
