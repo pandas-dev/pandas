@@ -8,7 +8,7 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-import pytest_asyncio
+import asyncio
 
 import pandas as pd
 from pandas import DataFrame
