@@ -506,7 +506,7 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
     Determine minimal dtype to hold fill_value, when starting from dtype
 
     This will also return the default missing value for the resulting dtype, if
-    necessary (e.g. for datetime / timedelta, the missing value will be `iNaT`)
+    necessary (e.g. for datetime / timedelta, the missing value will be `NaT`)
 
     Parameters
     ----------
@@ -535,12 +535,12 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
     ...                          fill_value=np.array(['abcd']))
     (dtype('O'), nan)
 
-    For datetimes, timedeltas and datetimes with a timezone, the missing value
-    marker is pandas._libs.tslibs.iNaT (== np.iinfo('int64').min):
+    For datetimes without timezones, the missing value marker is
+    numpy.datetime64('NaT'), and similarly for timedelta values.
 
     >>> maybe_promote_with_array(np.dtype('datetime64[ns]'),
     ...                          fill_value=np.array([None]))
-    (dtype('<M8[ns]'), -9223372036854775808)
+    (dtype('<M8[ns]'), numpy.datetime64('NaT'))
 
     String values do not get cast to datetime/timedelta automatically, but
     force an upcast to object (with corresponding missing value marker nan).
