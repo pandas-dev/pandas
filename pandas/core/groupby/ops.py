@@ -669,25 +669,22 @@ class BaseGrouper:
         if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
+            # TODO: can we get a performant workaround for EAs backed by ndarray?
             # TODO: is the datetime64tz case supposed to go through here?
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif obj.index._has_complex_internals:
+            # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
             return self._aggregate_series_fast(obj, func)
-        except AssertionError:
-            raise
         except ValueError as err:
             if "No result." in str(err):
                 # raised in libreduction
                 pass
             elif "Function does not reduce" in str(err):
                 # raised in libreduction
-                pass
-            else:
-                raise
-        except TypeError as err:
-            if "ndarray" in str(err):
-                # raised in libreduction if obj's values is no ndarray
                 pass
             else:
                 raise
