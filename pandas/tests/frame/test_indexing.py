@@ -25,7 +25,6 @@ from pandas import (
 )
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal,
@@ -36,7 +35,7 @@ from pandas.util.testing import (
 from pandas.tseries.offsets import BDay
 
 
-class TestDataFrameIndexing(TestData):
+class TestDataFrameIndexing:
     def test_getitem(self, float_frame):
         # Slicing
         sl = float_frame[:20]
@@ -1167,8 +1166,8 @@ class TestDataFrameIndexing(TestData):
 
         with catch_warnings(record=True):
             simplefilter("ignore", FutureWarning)
-            self.mixed_frame.ix[:5, ["C", "B", "A"]] = 5
-            result = self.mixed_frame.ix[:5, ["C", "B", "A"]]
+            float_string_frame.ix[:5, ["C", "B", "A"]] = 5
+            result = float_string_frame.ix[:5, ["C", "B", "A"]]
             assert (result.values == 5).all()
 
             float_string_frame.ix[5] = np.nan
@@ -3402,7 +3401,7 @@ class TestDataFrameIndexing(TestData):
         assert_series_equal(result, expected)
 
 
-class TestDataFrameIndexingDatetimeWithTZ(TestData):
+class TestDataFrameIndexingDatetimeWithTZ:
     def test_setitem(self, timezone_frame):
 
         df = timezone_frame
@@ -3461,7 +3460,7 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         tm.assert_frame_equal(df, expected)
 
 
-class TestDataFrameIndexingUInt64(TestData):
+class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
 
         df = uint64_frame
