@@ -345,7 +345,7 @@ cdef class SeriesGrouper:
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.ngroups = ngroups
 
-    cdef _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, dummy):
         # both values and index must be an ndarray!
 
         values = dummy.values
