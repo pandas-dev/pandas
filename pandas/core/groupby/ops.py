@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
-from pandas._typing import Axis
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -471,7 +470,7 @@ class BaseGrouper:
         return func
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis: Axis, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
