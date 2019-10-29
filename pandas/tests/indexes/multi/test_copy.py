@@ -74,7 +74,7 @@ def test_copy_method(deep):
 @pytest.mark.parametrize(
     "kwarg, value",
     [
-        ("names", ["thrid", "fourth"]),
+        ("names", ["third", "fourth"]),
         ("levels", [["foo2", "bar2"], ["fizz2", "buzz2"]]),
         ("codes", [[1, 0, 0, 0], [1, 1, 0, 0]]),
     ],

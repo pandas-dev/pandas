@@ -670,7 +670,7 @@ class TestBusinessDay(Base):
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -912,7 +912,7 @@ class TestBusinessHour(Base):
             BusinessHour(start=start, end=end)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2278,7 +2278,7 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start="14:00:05")
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2556,7 +2556,7 @@ class TestCustomBusinessDay(Base):
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2827,7 +2827,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2976,7 +2976,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
