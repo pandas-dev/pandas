@@ -10,7 +10,7 @@ import pytest
 from pandas._libs.tslibs import NaT
 from pandas.compat import is_platform_windows
 
-from pandas.core.dtypes.cast import maybe_promote_with_array, maybe_promote
+from pandas.core.dtypes.cast import maybe_promote, maybe_promote_with_array
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
