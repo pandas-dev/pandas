@@ -92,8 +92,8 @@ cdef class Reducer:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length %d' %
-                                 self.chunksize)
+                raise ValueError('Dummy array must be length {length}'
+                                 .format(length=self.chunksize))
 
         return dummy, typ, index, ityp
 
@@ -105,7 +105,7 @@ cdef class Reducer:
             flatiter it
             bint has_labels, has_ndarray_labels
             object res, name, labels, index
-            object cached_typ=None
+            object cached_typ = None
 
         arr = self.arr
         chunk = self.dummy
@@ -248,7 +248,7 @@ cdef class SeriesBinGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ=None, cached_ityp=None
+            object name, cached_typ = None, cached_ityp = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -377,7 +377,7 @@ cdef class SeriesGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ=None, cached_ityp=None
+            object name, cached_typ = None, cached_ityp = None
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)

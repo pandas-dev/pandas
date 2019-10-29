@@ -135,6 +135,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
