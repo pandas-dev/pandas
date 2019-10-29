@@ -171,10 +171,3 @@ ordered=False\\)"""
             assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         assert_index_equal(idx1, idx2, check_categorical=check_categorical)
-
-
-def test_index_equal_empty_iterable():
-    # #16844
-    a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
-    b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
-    assert_index_equal(a, b)
