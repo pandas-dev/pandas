@@ -4,7 +4,7 @@
 from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
-import operator as op
+import operator
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
-_reductions = "sum", "prod"
+_reductions = ("sum", "prod")
 
 _unary_math_ops = (
     "sin",
@@ -273,20 +273,37 @@ def _not_in(x, y):
         return x not in y
 
 
-_cmp_ops_syms = ">", "<", ">=", "<=", "==", "!=", "in", "not in"
-_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne, _in, _not_in
+_cmp_ops_syms = (">", "<", ">=", "<=", "==", "!=", "in", "not in")
+_cmp_ops_funcs = (
+    operator.gt,
+    operator.lt,
+    operator.ge,
+    operator.le,
+    operator.eq,
+    operator.ne,
+    _in,
+    _not_in,
+)
 _cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
 
-_bool_ops_syms = "&", "|", "and", "or"
-_bool_ops_funcs = op.and_, op.or_, op.and_, op.or_
+_bool_ops_syms = ("&", "|", "and", "or")
+_bool_ops_funcs = (operator.and_, operator.or_, operator.and_, operator.or_)
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
-_arith_ops_syms = "+", "-", "*", "/", "**", "//", "%"
-_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv, op.pow, op.floordiv, op.mod)
+_arith_ops_syms = ("+", "-", "*", "/", "**", "//", "%")
+_arith_ops_funcs = (
+    operator.add,
+    operator.sub,
+    operator.mul,
+    operator.truediv,
+    operator.pow,
+    operator.floordiv,
+    operator.mod,
+)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
 
-_special_case_arith_ops_syms = "**", "//", "%"
-_special_case_arith_ops_funcs = op.pow, op.floordiv, op.mod
+_special_case_arith_ops_syms = ("**", "//", "%")
+_special_case_arith_ops_funcs = (operator.pow, operator.floordiv, operator.mod)
 _special_case_arith_ops_dict = dict(
     zip(_special_case_arith_ops_syms, _special_case_arith_ops_funcs)
 )
@@ -371,7 +388,7 @@ class BinOp(Op):
         """
         # handle truediv
         if self.op == "/" and env.scope["truediv"]:
-            self.func = op.truediv
+            self.func = operator.truediv
 
         # recurse over the left/right nodes
         left = self.lhs(env)
@@ -502,8 +519,8 @@ class Div(BinOp):
         _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
-_unary_ops_syms = "+", "-", "~", "not"
-_unary_ops_funcs = op.pos, op.neg, op.invert, op.invert
+_unary_ops_syms = ("+", "-", "~", "not")
+_unary_ops_funcs = (operator.pos, operator.neg, operator.invert, operator.invert)
 _unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
 
 
