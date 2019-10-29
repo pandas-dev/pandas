@@ -123,8 +123,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.

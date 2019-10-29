@@ -45,8 +45,7 @@ cdef class Reducer:
         Py_ssize_t increment, chunksize, nresults
         object arr, dummy, f, labels, typ, ityp, index
 
-    def __init__(self, object arr, object f, axis=1, dummy=None,
-                 labels=None):
+    def __init__(self, object arr, object f, axis=1, dummy=None, labels=None):
         n, k = arr.shape
 
         if axis == 0:
@@ -70,8 +69,9 @@ cdef class Reducer:
         self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
             dummy=dummy)
 
-    def _check_dummy(self, dummy=None):
-        cdef object index=None, typ=None, ityp=None
+    cdef _check_dummy(self, dummy=None):
+        cdef:
+            object index = None, typ = None, ityp = None
 
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
@@ -221,7 +221,7 @@ cdef class SeriesBinGrouper:
         else:
             self.ngroups = len(bins) + 1
 
-    def _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, dummy=None):
         # both values and index must be an ndarray!
 
         if dummy is None:
@@ -347,7 +347,7 @@ cdef class SeriesGrouper:
         self.passed_dummy = dummy is not None
         self.ngroups = ngroups
 
-    def _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, dummy=None):
         # both values and index must be an ndarray!
 
         if dummy is None:
@@ -489,7 +489,7 @@ cdef class Slider:
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
 
-    cpdef advance(self, Py_ssize_t k):
+    cdef advance(self, Py_ssize_t k):
         self.buf.data = <char*>self.buf.data + self.stride * k
 
     cdef move(self, int start, int end):
@@ -499,10 +499,10 @@ cdef class Slider:
         self.buf.data = self.values.data + self.stride * start
         self.buf.shape[0] = end - start
 
-    cpdef set_length(self, Py_ssize_t length):
+    cdef set_length(self, Py_ssize_t length):
         self.buf.shape[0] = length
 
-    cpdef reset(self):
+    cdef reset(self):
 
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
@@ -607,10 +607,10 @@ cdef class BlockSlider:
     def __dealloc__(self):
         free(self.base_ptrs)
 
-    cpdef move(self, int start, int end):
+    cdef move(self, int start, int end):
         cdef:
             ndarray arr
-            object index
+            Py_ssize_t i
 
         # move blocks
         for i in range(self.nblocks):
@@ -629,6 +629,7 @@ cdef class BlockSlider:
     cdef reset(self):
         cdef:
             ndarray arr
+            Py_ssize_t i
 
         # reset blocks
         for i in range(self.nblocks):
