@@ -833,6 +833,9 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 
     elif rank_t is int64_t:
         return is_datetimelike and val == NPY_NAT
+    elif rank_t is uint64_t:
+        # There is no NA value for uint64
+        return False
     else:
         return val != val
 
@@ -1278,7 +1281,8 @@ def group_max(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
 
@@ -1349,7 +1353,8 @@ def group_min(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
 
