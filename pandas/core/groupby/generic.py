@@ -262,8 +262,6 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (AssertionError, TypeError):
-                raise
             except (ValueError, KeyError, AttributeError, IndexError):
                 # TODO: IndexError can be removed here following GH#29106
                 # TODO: AttributeError is caused by _index_data hijinx in
@@ -1465,8 +1463,6 @@ class DataFrameGroupBy(GroupBy):
         for i, col in enumerate(obj):
             try:
                 output[col] = self[col].transform(wrapper)
-            except AssertionError:
-                raise
             except TypeError:
                 # e.g. trying to call nanmean with string values
                 pass
