@@ -23,6 +23,12 @@ def test_parse_time_string():
     assert parsed == parsed_lower
 
 
+def test_parse_time_string_invalid_type():
+    # Raise on invalid input, don't just return it
+    with pytest.raises(TypeError):
+        parse_time_string((4, 5))
+
+
 @pytest.mark.parametrize(
     "dashed,normal", [("1988-Q2", "1988Q2"), ("2Q-1988", "2Q1988")]
 )
@@ -209,3 +215,13 @@ def test_try_parse_dates():
 
     expected = np.array([parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_parse_time_string_check_instance_type_raise_exception():
+    # issue 20684
+    with pytest.raises(TypeError):
+        parse_time_string((1, 2, 3))
+
+    result = parse_time_string("2019")
+    expected = (datetime(2019, 1, 1), datetime(2019, 1, 1), "year")
+    assert result == expected

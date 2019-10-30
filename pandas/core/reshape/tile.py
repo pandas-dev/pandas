@@ -11,6 +11,7 @@ from pandas._libs.lib import infer_dtype
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     ensure_int64,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -284,10 +285,10 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : integer or array of quantiles
+    q : int or list-like of int
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
-    labels : array or boolean, default None
+    labels : array or bool, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins.
@@ -298,8 +299,6 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
         The precision at which to store and display the bins labels
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -423,8 +422,8 @@ def _bins_to_cuts(
 
 def _coerce_to_type(x):
     """
-    if the passed data is of datetime/timedelta type,
-    this method converts it to numeric so that cut method can
+    if the passed data is of datetime/timedelta or bool type,
+    this method converts it to numeric so that cut or qcut method can
     handle it
     """
     dtype = None
@@ -437,6 +436,9 @@ def _coerce_to_type(x):
     elif is_timedelta64_dtype(x):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
+    elif is_bool_dtype(x):
+        # GH 20303
+        x = x.astype(np.int64)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion

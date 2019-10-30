@@ -25,12 +25,15 @@ from ..datetimelike import DatetimeLike
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
 
-    def setup_method(self, method):
-        self.indices = dict(
-            index=tm.makePeriodIndex(10),
-            index_dec=period_range("20130101", periods=10, freq="D")[::-1],
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[
+            tm.makePeriodIndex(10),
+            period_range("20130101", periods=10, freq="D")[::-1],
+        ],
+        ids=["index_inc", "index_dec"],
+    )
+    def indices(self, request):
+        return request.param
 
     def create_index(self):
         return period_range("20130101", periods=5, freq="D")
@@ -645,6 +648,44 @@ class TestPeriodIndex(DatetimeLike):
         for na in (np.nan, pd.NaT, None):
             result = period_range("2017Q1", periods=4, freq="Q").insert(1, na)
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "msg, key",
+        [
+            (r"Period\('2019', 'A-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
+            (r"Period\('2019', 'A-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
+            (r"Period\('2019', 'A-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (
+                r"Period\('2018', 'A-DEC'\), Period\('2016', 'A-DEC'\), 'bar'",
+                (Period(2018), Period(2016), "bar"),
+            ),
+            (r"Period\('2018', 'A-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (
+                r"Period\('2017', 'A-DEC'\), 'foo', Period\('2015', 'A-DEC'\)",
+                (Period(2017), "foo", Period(2015)),
+            ),
+            (r"Period\('2017', 'A-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+        ],
+    )
+    def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
+        # issue 20684
+        """
+        parse_time_string return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        If first argument is Period and a tuple has 3 items,
+        process go on not raise exception
+        """
+        df = DataFrame(
+            {
+                "A": [Period(2019), "x1", "x2"],
+                "B": [Period(2018), Period(2016), "y1"],
+                "C": [Period(2017), "z1", Period(2015)],
+                "V1": [1, 2, 3],
+                "V2": [10, 20, 30],
+            }
+        ).set_index(["A", "B", "C"])
+        with pytest.raises(KeyError, match=msg):
+            df.loc[key]
 
 
 def test_maybe_convert_timedelta():
