@@ -310,8 +310,9 @@ ValueError: columns overlap but no suffix specified:
 
 class DataFrame(NDFrame):
     """
-    Two-dimensional size-mutable, potentially heterogeneous tabular data structure with labeled axes (rows and columns). .
+    Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
+    Data structure also contains labeled axes (rows and columns).
     Arithmetic operations align on both row and column labels. Can be
     thought of as a dict-like container for Series objects. The primary
     pandas data structure.
@@ -4836,7 +4837,9 @@ class DataFrame(NDFrame):
 
     def duplicated(self, subset=None, keep="first"):
         """
-        Return boolean Series denoting duplicate rows, optionally only considering certain columns.
+        Return boolean Series denoting duplicate rows.
+
+        Considering certain columns is optional.
 
         Parameters
         ----------
@@ -7537,9 +7540,11 @@ class DataFrame(NDFrame):
 
     def corrwith(self, other, axis=0, drop=False, method="pearson"):
         """
-        Compute pairwise correlation between rows or columns of DataFrame with rows or columns of Series or DataFrame.
+        Compute pairwise correlation.
 
-        DataFrames are first aligned along both axes before computing the
+        Pairwise correlation is computed between rows or columns of
+        DataFrame with rows or columns of Series or DataFrame. DataFrames
+        are first aligned along both axes before computing the
         correlations.
 
         Parameters

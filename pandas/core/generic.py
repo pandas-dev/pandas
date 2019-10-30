@@ -5157,7 +5157,7 @@ class NDFrame(PandasObject, SelectionMixin):
         "transform"
     ] = """
     Call ``func`` on self producing a %(klass)s with transformed values.
-    
+
     Produced %(klass)s will have same axis length as self.
 
     Parameters
@@ -8742,7 +8742,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "align"
     ] = """
-        Align two objects on their axes with the specified join method for each axis Index.
+        Align two objects on their axes with the specified join method.
+         
+        Join method is specified for each axis Index.
 
         Parameters
         ----------
