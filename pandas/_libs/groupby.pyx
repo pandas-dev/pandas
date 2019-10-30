@@ -146,7 +146,8 @@ def group_cumprod_float64(float64_t[:, :] out,
                           int ngroups,
                           bint is_datetimelike,
                           bint skipna=True):
-    """Cumulative product of columns of `values`, in row groups `labels`.
+    """
+    Cumulative product of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -203,7 +204,8 @@ def group_cumsum(numeric[:, :] out,
                  int ngroups,
                  is_datetimelike,
                  bint skipna=True):
-    """Cumulative sum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative sum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -314,7 +316,8 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
                          int64_t limit):
-    """Indexes how to fill values forwards or backwards within a group
+    """
+    Indexes how to fill values forwards or backwards within a group.
 
     Parameters
     ----------
@@ -763,6 +766,9 @@ def group_quantile(ndarray[float64_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
+            if lab == -1:  # NA group label
+                continue
+
             counts[lab] += 1
             if not mask[i]:
                 non_na_counts[lab] += 1
@@ -830,6 +836,9 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 
     elif rank_t is int64_t:
         return is_datetimelike and val == NPY_NAT
+    elif rank_t is uint64_t:
+        # There is no NA value for uint64
+        return False
     else:
         return val != val
 
@@ -1275,7 +1284,8 @@ def group_max(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
 
@@ -1346,7 +1356,8 @@ def group_min(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
 

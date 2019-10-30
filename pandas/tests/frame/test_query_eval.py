@@ -9,7 +9,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.tests.frame.common import TestData
 from pandas.util.testing import (
     assert_frame_equal,
     assert_series_equal,
@@ -704,7 +703,6 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         super().setup_class()
         cls.engine = "numexpr"
         cls.parser = "python"
-        cls.frame = TestData().frame
 
     def test_date_query_no_attribute_access(self):
         engine, parser = self.engine, self.parser
@@ -808,7 +806,6 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         super().setup_class()
         cls.engine = "python"
         cls.parser = "pandas"
-        cls.frame = TestData().frame
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
@@ -827,7 +824,6 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
     def setup_class(cls):
         super().setup_class()
         cls.engine = cls.parser = "python"
-        cls.frame = TestData().frame
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
@@ -989,13 +985,12 @@ class TestDataFrameQueryStrings:
         assert_frame_equal(res, expec)
 
     def test_query_lex_compare_strings(self, parser, engine):
-        import operator as opr
 
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        ops = {"<": opr.lt, ">": opr.gt, "<=": opr.le, ">=": opr.ge}
+        ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
 
         for op, func in ops.items():
             res = df.query('X %s "d"' % op, engine=engine, parser=parser)

@@ -1,7 +1,7 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator as op
+import operator
 
 import numpy as np
 import pytest
@@ -408,10 +408,10 @@ class TestSlicing:
     @pytest.mark.parametrize(
         "op,expected",
         [
-            (op.lt, [True, False, False, False]),
-            (op.le, [True, True, False, False]),
-            (op.eq, [False, True, False, False]),
-            (op.gt, [False, False, False, True]),
+            (operator.lt, [True, False, False, False]),
+            (operator.le, [True, True, False, False]),
+            (operator.eq, [False, True, False, False]),
+            (operator.gt, [False, False, False, True]),
         ],
     )
     def test_selection_by_datetimelike(self, datetimelike, op, expected):
