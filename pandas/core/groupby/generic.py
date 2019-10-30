@@ -1109,6 +1109,7 @@ class DataFrameGroupBy(GroupBy):
                     # raised in _aggregate_named, handle at higher level
                     #  see test_apply_with_mutated_index
                     raise
+                # otherwise we get here from an AttributeError in _make_wrapper
                 cannot_agg.append(item)
                 continue
 
@@ -1471,7 +1472,8 @@ class DataFrameGroupBy(GroupBy):
                 output[col] = self[col].transform(wrapper)
             except AssertionError:
                 raise
-            except Exception:
+            except TypeError:
+                # e.g. trying to call nanmean with string values
                 pass
             else:
                 inds.append(i)

@@ -4358,8 +4358,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def reindex(self, *args, **kwargs):
         """
-        Conform %(klass)s to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
+        Conform %(klass)s to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         ``copy=False``.
 
@@ -4674,8 +4675,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Subset rows or columns of dataframe according to labels in
-        the specified index.
+        Subset the dataframe rows or columns according to the specified index labels.
 
         Note that this routine does not filter a dataframe on its
         contents. The filter is applied to the labels of the index.
@@ -5771,8 +5771,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def as_blocks(self, copy=True):
         """
-        Convert the frame to a dict of dtype -> Constructor Types that each has
-        a homogeneous dtype.
+        Convert the frame to a dict of dtype -> Constructor Types.
 
         .. deprecated:: 0.21.0
 
@@ -8506,8 +8505,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def first(self, offset):
         """
-        Convenience method for subsetting initial periods of time series data
-        based on a date offset.
+        Method to subset initial periods of time series data based on a date offset.
 
         Parameters
         ----------
@@ -8569,8 +8567,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def last(self, offset):
         """
-        Convenience method for subsetting final periods of time series data
-        based on a date offset.
+        Method to subset final periods of time series data based on a date offset.
 
         Parameters
         ----------
@@ -9436,9 +9433,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def slice_shift(self, periods=1, axis=0):
         """
-        Equivalent to `shift` without copying data. The shifted data will
-        not include the dropped periods and the shifted axis will be smaller
-        than the original.
+        Equivalent to `shift` without copying data.
+
+        The shifted data will not include the dropped periods and the
+        shifted axis will be smaller than the original.
 
         Parameters
         ----------
@@ -10747,10 +10745,11 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            """Return the difference between the maximum value and the
+            """Return the difference between the min and max value.
+            \n.. deprecated:: 0.24.0 Use numpy.ptp instead
+            \nReturn the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
-            ``numpy.ndarray`` method ``ptp``.\n\n.. deprecated:: 0.24.0
-                Use numpy.ptp instead""",
+            ``numpy.ndarray`` method ``ptp``.""",
             nanptp,
         )
 
