@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
+import pandas._libs.window_indexer as libwindow_indexer
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -371,6 +372,14 @@ class _Window(PandasObject, SelectionMixin):
                 "in libwindow.{func_name}".format(func_name=func_name)
             )
         return window_func
+
+    def _get_window_indexer(self, index_as_array):
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        if self.is_freq_type:
+            return libwindow_indexer.VariableWindowIndexer(index_as_array)
+        return libwindow_indexer.FixedWindowIndexer()
 
     def _apply(
         self,
