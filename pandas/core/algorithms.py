@@ -1465,13 +1465,13 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=N
             func = _convert_wrapper(func, out_dtype)
             return func
 
-    def func(arr, indexer, out, fill_value=np.nan):
+    def func2(arr, indexer, out, fill_value=np.nan):
         indexer = ensure_int64(indexer)
         _take_nd_object(
             arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
         )
 
-    return func
+    return func2
 
 
 def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
@@ -1661,9 +1661,9 @@ def take_nd(
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     if out is None:
-        out_shape = list(arr.shape)
-        out_shape[axis] = len(indexer)
-        out_shape = tuple(out_shape)
+        out_shape_ = list(arr.shape)
+        out_shape_[axis] = len(indexer)
+        out_shape = tuple(out_shape_)
         if arr.flags.f_contiguous and axis == arr.ndim - 1:
             # minor tweak that can make an order-of-magnitude difference
             # for dataframes initialized directly from 2-d ndarrays
