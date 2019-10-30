@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.util.testing import assert_series_equal
+import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
@@ -15,18 +15,18 @@ def test_loc_uint64(val, expected):
 
 def test_loc_getitem(string_series, datetime_series):
     inds = string_series.index[[3, 4, 7]]
-    assert_series_equal(string_series.loc[inds], string_series.reindex(inds))
-    assert_series_equal(string_series.iloc[5::2], string_series[5::2])
+    tm.assert_series_equal(string_series.loc[inds], string_series.reindex(inds))
+    tm.assert_series_equal(string_series.iloc[5::2], string_series[5::2])
 
     # slice with indices
     d1, d2 = datetime_series.index[[5, 15]]
     result = datetime_series.loc[d1:d2]
     expected = datetime_series.truncate(d1, d2)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # boolean
     mask = string_series > string_series.median()
-    assert_series_equal(string_series.loc[mask], string_series[mask])
+    tm.assert_series_equal(string_series.loc[mask], string_series[mask])
 
     # ask for index value
     assert datetime_series.loc[d1] == datetime_series[d1]
@@ -62,8 +62,8 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
     result2 = s.loc[3:11]
     expected = s.reindex([4, 6, 8, 10])
 
-    assert_series_equal(result, expected)
-    assert_series_equal(result2, expected)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result2, expected)
 
     # non-monotonic, raise KeyError
     s2 = s.iloc[list(range(5)) + list(range(9, 4, -1))]
@@ -76,7 +76,7 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
 def test_loc_getitem_iterator(string_series):
     idx = iter(string_series.index[:10])
     result = string_series.loc[idx]
-    assert_series_equal(result, string_series[:10])
+    tm.assert_series_equal(result, string_series[:10])
 
 
 def test_loc_setitem_boolean(string_series):
@@ -86,7 +86,7 @@ def test_loc_setitem_boolean(string_series):
     result.loc[mask] = 0
     expected = string_series
     expected[mask] = 0
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_loc_setitem_corner(string_series):
@@ -104,13 +104,13 @@ def test_basic_setitem_with_labels(datetime_series):
     exp = datetime_series.copy()
     cp[indices] = 0
     exp.loc[indices] = 0
-    assert_series_equal(cp, exp)
+    tm.assert_series_equal(cp, exp)
 
     cp = datetime_series.copy()
     exp = datetime_series.copy()
     cp[indices[0] : indices[2]] = 0
     exp.loc[indices[0] : indices[2]] = 0
-    assert_series_equal(cp, exp)
+    tm.assert_series_equal(cp, exp)
 
     # integer indexes, be careful
     s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
@@ -121,13 +121,13 @@ def test_basic_setitem_with_labels(datetime_series):
     exp = s.copy()
     s[inds] = 0
     s.loc[inds] = 0
-    assert_series_equal(cp, exp)
+    tm.assert_series_equal(cp, exp)
 
     cp = s.copy()
     exp = s.copy()
     s[arr_inds] = 0
     s.loc[arr_inds] = 0
-    assert_series_equal(cp, exp)
+    tm.assert_series_equal(cp, exp)
 
     inds_notfound = [0, 4, 5, 6]
     arr_inds_notfound = np.array([0, 4, 5, 6])

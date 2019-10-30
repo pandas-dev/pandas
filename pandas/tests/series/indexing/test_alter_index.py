@@ -6,7 +6,6 @@ import pytest
 import pandas as pd
 from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 @pytest.mark.parametrize(
@@ -41,8 +40,8 @@ def test_align(datetime_series, first_slice, second_slice, join_type, fill):
         ea = ea.fillna(fill)
         eb = eb.fillna(fill)
 
-    assert_series_equal(aa, ea)
-    assert_series_equal(ab, eb)
+    tm.assert_series_equal(aa, ea)
+    tm.assert_series_equal(ab, eb)
     assert aa.name == "ts"
     assert ea.name == "ts"
     assert ab.name == "ts"
@@ -75,8 +74,8 @@ def test_align_fill_method(
     ea = ea.fillna(method=method, limit=limit)
     eb = eb.fillna(method=method, limit=limit)
 
-    assert_series_equal(aa, ea)
-    assert_series_equal(ab, eb)
+    tm.assert_series_equal(aa, ea)
+    tm.assert_series_equal(ab, eb)
 
 
 def test_align_nocopy(datetime_series):
@@ -197,12 +196,12 @@ def test_reindex_nan():
     ts = Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
 
     i, j = [np.nan, 1, np.nan, 8, 4, np.nan], [2, 0, 2, 3, 1, 2]
-    assert_series_equal(ts.reindex(i), ts.iloc[j])
+    tm.assert_series_equal(ts.reindex(i), ts.iloc[j])
 
     ts.index = ts.index.astype("object")
 
     # reindex coerces index.dtype to float, loc/iloc doesn't
-    assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
+    tm.assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
 
 
 def test_reindex_series_add_nat():
@@ -239,7 +238,7 @@ def test_reindex_corner(datetime_series):
 
     # pass non-Index
     reindexed = datetime_series.reindex(list(datetime_series.index))
-    assert_series_equal(datetime_series, reindexed)
+    tm.assert_series_equal(datetime_series, reindexed)
 
     # bad fill method
     ts = datetime_series[::2]
@@ -257,10 +256,10 @@ def test_reindex_pad():
 
     reindexed = s2.reindex(s.index, method="pad")
     reindexed2 = s2.reindex(s.index, method="ffill")
-    assert_series_equal(reindexed, reindexed2)
+    tm.assert_series_equal(reindexed, reindexed2)
 
     expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
-    assert_series_equal(reindexed, expected)
+    tm.assert_series_equal(reindexed, expected)
 
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
@@ -269,27 +268,27 @@ def test_reindex_pad():
 
     # this changes dtype because the ffill happens after
     result = s.reindex(new_index).ffill()
-    assert_series_equal(result, expected.astype("float64"))
+    tm.assert_series_equal(result, expected.astype("float64"))
 
     result = s.reindex(new_index).ffill(downcast="infer")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
     result = s.reindex(list(new_index)).ffill()
     expected = Series([True, True, False], index=list(new_index))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
     result = s.shift(1).fillna(method="bfill")
     expected = Series(False, index=range(0, 5))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_nearest():
@@ -297,23 +296,23 @@ def test_reindex_nearest():
     target = [0.1, 0.9, 1.5, 2.0]
     actual = s.reindex(target, method="nearest")
     expected = Series(np.around(target).astype("int64"), target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex_like(actual, method="nearest")
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex_like(actual, method="nearest", tolerance=1)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
     actual = s.reindex_like(actual, method="nearest", tolerance=[1, 2, 3, 4])
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex(target, method="nearest", tolerance=0.2)
     expected = Series([0, 1, np.nan, 2], target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
     expected = Series([0, np.nan, np.nan, 2], target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
 
 def test_reindex_backfill():
@@ -385,7 +384,7 @@ def test_reindex_categorical():
 
 def test_reindex_like(datetime_series):
     other = datetime_series[::2]
-    assert_series_equal(
+    tm.assert_series_equal(
         datetime_series.reindex(other.index), datetime_series.reindex_like(other)
     )
 
@@ -399,7 +398,7 @@ def test_reindex_like(datetime_series):
 
     result = series1.reindex_like(series2, method="pad")
     expected = Series([5, np.nan], index=[day1, day3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_fill_value():
@@ -408,11 +407,11 @@ def test_reindex_fill_value():
     floats = Series([1.0, 2.0, 3.0])
     result = floats.reindex([1, 2, 3])
     expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = floats.reindex([1, 2, 3], fill_value=0)
     expected = Series([2.0, 3.0, 0], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # ints
@@ -420,13 +419,13 @@ def test_reindex_fill_value():
 
     result = ints.reindex([1, 2, 3])
     expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # don't upcast
     result = ints.reindex([1, 2, 3], fill_value=0)
     expected = Series([2, 3, 0], index=[1, 2, 3])
     assert issubclass(result.dtype.type, np.integer)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # objects
@@ -434,11 +433,11 @@ def test_reindex_fill_value():
 
     result = objects.reindex([1, 2, 3])
     expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = objects.reindex([1, 2, 3], fill_value="foo")
     expected = Series([2, 3, "foo"], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------
     # bools
@@ -446,11 +445,11 @@ def test_reindex_fill_value():
 
     result = bools.reindex([1, 2, 3])
     expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = bools.reindex([1, 2, 3], fill_value=False)
     expected = Series([False, True, False], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
@@ -474,7 +473,7 @@ def test_rename():
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name="IntIndex"))
     result = s.rename(str)
     expected = s.rename(lambda i: str(i))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     assert result.name == expected.name
 
