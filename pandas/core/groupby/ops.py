@@ -560,11 +560,6 @@ class BaseGrouper:
         if values.ndim > 2:
             # punting for now
             raise NotImplementedError("number of dimensions is currently limited to 2")
-        elif transform_func is libgroupby.group_rank:
-            # different signature from the others
-            transform_func(
-                result, values, comp_ids, is_datetimelike=is_datetimelike, **kwargs
-            )
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 

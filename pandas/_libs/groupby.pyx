@@ -1022,6 +1022,7 @@ def group_nth(rank_t[:, :] out,
 def group_rank(float64_t[:, :] out,
                rank_t[:, :] values,
                const int64_t[:] labels,
+               int ngroups,
                bint is_datetimelike, object ties_method="average",
                bint ascending=True, bint pct=False, object na_option="keep"):
     """
@@ -1033,6 +1034,9 @@ def group_rank(float64_t[:, :] out,
     values : array of rank_t values to be ranked
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
+    ngroups : int
+        This parameter is not used, is needed to match signatures of other
+        groupby functions.
     is_datetimelike : bool, default False
         unused in this method but provided for call compatibility with other
         Cython transformations
