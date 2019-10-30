@@ -319,12 +319,9 @@ class BaseGrouper:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": {"name": "group_median"},
+            "median": "group_median",
             "var": "group_var",
-            "first": {
-                "name": "group_nth",
-                "f": lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1),
-            },
+            "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
         },
@@ -379,23 +376,7 @@ class BaseGrouper:
 
         ftype = self._cython_functions[kind][how]
 
-        if isinstance(ftype, dict):
-            # we only get here with kind == "aggregate" and
-            #  how == "first" or "median"
-            func = afunc = get_func(ftype["name"])
-
-            # a sub-function
-            f = ftype.get("f")
-            if f is not None:
-
-                def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)
-
-                # need to curry our sub-function
-                func = wrapper
-
-        else:
-            func = get_func(ftype)
+        func = get_func(ftype)
 
         if func is None:
             raise NotImplementedError(
@@ -562,6 +543,10 @@ class BaseGrouper:
         if values.ndim > 2:
             # punting for now
             raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif agg_func is libgroupby.group_nth:
+            # different signature from the others
+            # TODO: should we be using min_count instead of hard-coding it?
+            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 

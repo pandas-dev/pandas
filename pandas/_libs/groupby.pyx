@@ -931,7 +931,7 @@ def group_last(rank_t[:, :] out,
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               rank_t[:, :] values,
-              const int64_t[:] labels, int64_t rank,
+              const int64_t[:] labels, int64_t rank=1,
               Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
