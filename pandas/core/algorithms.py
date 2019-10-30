@@ -226,9 +226,8 @@ def _get_hashtable_algo(values):
     -------
     htable : HashTable subclass
     values : ndarray
-    dtype : str or dtype
     """
-    values, dtype, ndtype = _ensure_data(values)
+    values, _, ndtype = _ensure_data(values)
 
     if ndtype == "object":
 
@@ -239,7 +238,7 @@ def _get_hashtable_algo(values):
             ndtype = "string"
 
     htable = _hashtables[ndtype]
-    return htable, values, dtype
+    return htable, values
 
 
 def _get_values_for_rank(values):
@@ -261,52 +260,14 @@ def _get_data_algo(values):
         if lib.infer_dtype(values, skipna=False) in ["string"]:
             ndtype = "string"
 
-    f = _hashtables.get(ndtype, _hashtables["object"])
+    htable = _hashtables.get(ndtype, _hashtables["object"])
 
-    return f, values
+    return htable, values
 
 
 # --------------- #
 # top-level algos #
 # --------------- #
-
-
-def match(to_match, values, na_sentinel=-1):
-    """
-    Compute locations of to_match into values
-
-    Parameters
-    ----------
-    to_match : array-like
-        values to find positions of
-    values : array-like
-        Unique set of values
-    na_sentinel : int, default -1
-        Value to mark "not found"
-
-    Examples
-    --------
-
-    Returns
-    -------
-    match : ndarray of integers
-    """
-    values = com.asarray_tuplesafe(values)
-    htable, values, dtype = _get_hashtable_algo(values)
-    to_match, _, _ = _ensure_data(to_match, dtype)
-    table = htable(min(len(to_match), 1000000))
-    table.map_locations(values)
-    result = table.lookup(to_match)
-
-    if na_sentinel != -1:
-        # replace but return a numpy array
-        # use a Series because it handles dtype conversions properly
-        from pandas import Series
-
-        result = Series(result.ravel()).replace(-1, na_sentinel)
-        result = result.values.reshape(result.shape)
-
-    return result
 
 
 def unique(values):
@@ -395,7 +356,7 @@ def unique(values):
         return values.unique()
 
     original = values
-    htable, values, _ = _get_hashtable_algo(values)
+    htable, values = _get_hashtable_algo(values)
 
     table = htable(len(values))
     uniques = table.unique(values)
