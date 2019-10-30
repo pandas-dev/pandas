@@ -10,7 +10,6 @@ from pandas.core.dtypes.common import is_scalar
 import pandas as pd
 from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 from pandas.tseries.offsets import BDay
 
@@ -43,11 +42,11 @@ def test_basic_getitem_with_labels(datetime_series):
 
     result = datetime_series[indices]
     expected = datetime_series.reindex(indices)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = datetime_series[indices[0] : indices[2]]
     expected = datetime_series.loc[indices[0] : indices[2]]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # integer indexes, be careful
     s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
@@ -56,12 +55,12 @@ def test_basic_getitem_with_labels(datetime_series):
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s[inds]
     expected = s.reindex(inds)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s[arr_inds]
     expected = s.reindex(arr_inds)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH12089
     # with tz for values
@@ -83,7 +82,7 @@ def test_getitem_setitem_ellipsis():
     np.fix(s)
 
     result = s[...]
-    assert_series_equal(result, s)
+    tm.assert_series_equal(result, s)
 
     s[...] = 5
     assert (result == 5).all()
@@ -129,8 +128,8 @@ def test_getitem_generator(string_series):
     result = string_series[gen]
     result2 = string_series[iter(string_series > 0)]
     expected = string_series[string_series > 0]
-    assert_series_equal(result, expected)
-    assert_series_equal(result2, expected)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result2, expected)
 
 
 def test_type_promotion():
@@ -140,7 +139,7 @@ def test_type_promotion():
     s["b"] = 3.0
     s["c"] = "foo"
     expected = Series([pd.Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 @pytest.mark.parametrize(
@@ -162,7 +161,7 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
     result = result_1.append(duplicate_item)
     expected = expected_1.append(duplicate_item)
-    assert_series_equal(result[1], expected)
+    tm.assert_series_equal(result[1], expected)
     assert result[2] == result_1[2]
 
 
@@ -268,14 +267,14 @@ def test_getitem_dups_with_missing():
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s[["foo", "bar", "bah", "bam"]]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_getitem_dups():
     s = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
     expected = Series([3, 4], index=["C", "C"], dtype=np.int64)
     result = s["C"]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_setitem_ambiguous_keyerror():
@@ -285,12 +284,12 @@ def test_setitem_ambiguous_keyerror():
     s2 = s.copy()
     s2[1] = 5
     expected = s.append(Series([5], index=[1]))
-    assert_series_equal(s2, expected)
+    tm.assert_series_equal(s2, expected)
 
     s2 = s.copy()
     s2.loc[1] = 5
     expected = s.append(Series([5], index=[1]))
-    assert_series_equal(s2, expected)
+    tm.assert_series_equal(s2, expected)
 
 
 def test_getitem_dataframe():
@@ -326,19 +325,19 @@ def test_setitem(datetime_series, string_series):
 
     app = Series([1], index=["foobar"], name="series")
     expected = string_series.append(app)
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # Test for issue #10193
     key = pd.Timestamp("2012-01-01")
     series = pd.Series()
     series[key] = 47
     expected = pd.Series(47, [key])
-    assert_series_equal(series, expected)
+    tm.assert_series_equal(series, expected)
 
     series = pd.Series([], pd.DatetimeIndex([], freq="D"))
     series[key] = 47
     expected = pd.Series(47, pd.DatetimeIndex([key], freq="D"))
-    assert_series_equal(series, expected)
+    tm.assert_series_equal(series, expected)
 
 
 def test_setitem_dtypes():
@@ -348,23 +347,23 @@ def test_setitem_dtypes():
 
     s = Series([1, 2, 3])
     s.iloc[0] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     s = Series([1, 2, 3])
     s.loc[0] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     s = Series([1, 2, 3])
     s[0] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     s = Series([False])
     s.loc[0] = np.nan
-    assert_series_equal(s, Series([np.nan]))
+    tm.assert_series_equal(s, Series([np.nan]))
 
     s = Series([False, True])
     s.loc[0] = np.nan
-    assert_series_equal(s, Series([np.nan, 1.0]))
+    tm.assert_series_equal(s, Series([np.nan, 1.0]))
 
 
 def test_set_value(datetime_series, string_series):
@@ -405,7 +404,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
     # weird lists. [slice(0, 5)] will work but not two slices
     result = datetime_series[[slice(None, 5)]]
     expected = datetime_series[:5]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # OK
     msg = r"unhashable type(: 'slice')?"
@@ -587,17 +586,17 @@ def test_loc_setitem(string_series):
 
     expected = string_series.copy()
     expected[[3, 4, 7]] = 5
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result.iloc[5:10] = 10
     expected[5:10] = 10
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # set slice with indices
     d1, d2 = string_series.index[[5, 15]]
     result.loc[d1:d2] = 6
     expected[5:16] = 6  # because it's inclusive
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # set index value
     string_series.loc[d1] = 4
@@ -611,18 +610,18 @@ def test_setitem_na():
     expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
     s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
     s[::2] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # gets coerced to float, right?
     expected = Series([np.nan, 1, np.nan, 0])
     s = Series([True, True, False, False])
     s[::2] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
     s = Series(np.arange(10))
     s[:5] = np.nan
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 def test_timedelta_assignment():
@@ -787,7 +786,7 @@ def test_cast_on_putmask():
     s[[True, False]] = Series([0], index=[1], dtype="int64")
     expected = Series([0, 2], index=[1, 2], dtype="int64")
 
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 def test_type_promote_putmask():
@@ -796,19 +795,19 @@ def test_type_promote_putmask():
     left, mask = ts.copy(), ts > 0
     right = ts[mask].copy().map(str)
     left[mask] = right
-    assert_series_equal(left, ts.map(lambda t: str(t) if t > 0 else t))
+    tm.assert_series_equal(left, ts.map(lambda t: str(t) if t > 0 else t))
 
     s = Series([0, 1, 2, 0])
     mask = s > 0
     s2 = s[mask].map(str)
     s[mask] = s2
-    assert_series_equal(s, Series([0, "1", "2", 0]))
+    tm.assert_series_equal(s, Series([0, "1", "2", 0]))
 
     s = Series([0, "foo", "bar", 0])
     mask = Series([False, True, True, False])
     s2 = s[mask]
     s[mask] = s2
-    assert_series_equal(s, Series([0, "foo", "bar", 0]))
+    tm.assert_series_equal(s, Series([0, "foo", "bar", 0]))
 
 
 def test_multilevel_preserve_name():
@@ -868,7 +867,7 @@ def test_pop():
     assert result == 4
 
     expected = Series([0, 0], index=["A", "C"], name=4)
-    assert_series_equal(k, expected)
+    tm.assert_series_equal(k, expected)
 
 
 def test_take():
@@ -896,14 +895,14 @@ def test_take_categorical():
     expected = Series(
         pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_head_tail(string_series):
-    assert_series_equal(string_series.head(), string_series[:5])
-    assert_series_equal(string_series.head(0), string_series[0:0])
-    assert_series_equal(string_series.tail(), string_series[-5:])
-    assert_series_equal(string_series.tail(0), string_series[0:0])
+    tm.assert_series_equal(string_series.head(), string_series[:5])
+    tm.assert_series_equal(string_series.head(0), string_series[0:0])
+    tm.assert_series_equal(string_series.tail(), string_series[-5:])
+    tm.assert_series_equal(string_series.tail(0), string_series[0:0])
 
 
 def test_uint_drop(any_int_dtype):

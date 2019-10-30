@@ -215,3 +215,13 @@ def test_try_parse_dates():
 
     expected = np.array([parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_parse_time_string_check_instance_type_raise_exception():
+    # issue 20684
+    with pytest.raises(TypeError):
+        parse_time_string((1, 2, 3))
+
+    result = parse_time_string("2019")
+    expected = (datetime(2019, 1, 1), datetime(2019, 1, 1), "year")
+    assert result == expected
