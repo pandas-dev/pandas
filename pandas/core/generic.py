@@ -8743,7 +8743,7 @@ class NDFrame(PandasObject, SelectionMixin):
         "align"
     ] = """
         Align two objects on their axes with the specified join method.
-         
+
         Join method is specified for each axis Index.
 
         Parameters
