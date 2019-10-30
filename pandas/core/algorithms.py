@@ -79,7 +79,6 @@ def _ensure_data(values, dtype=None):
     -------
     values : ndarray
     pandas_dtype : str or dtype
-
     """
 
     # we check some simple dtypes first
@@ -229,16 +228,8 @@ def _get_hashtable_algo(values):
     values : ndarray
     """
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
 
-    if ndtype == "object":
-
-        # it's cheaper to use a String Hash Table than Object; we infer
-        # including nulls because that is the only difference between
-        # StringHashTable and ObjectHashtable
-        if lib.infer_dtype(values, skipna=False) in ["string"]:
-            ndtype = "string"
-
+    ndtype = _check_object_for_strings(values)
     htable = _hashtables[ndtype]
     return htable, values
 
@@ -253,8 +244,27 @@ def _get_values_for_rank(values):
 
 def _get_data_algo(values):
     values = _get_values_for_rank(values)
-    ndtype = values.dtype.name
 
+    ndtype = _check_object_for_strings(values)
+    htable = _hashtables.get(ndtype, _hashtables["object"])
+
+    return htable, values
+
+
+def _check_object_for_strings(values) -> str:
+    """
+    Check if we can use string hashtable instead of object hashtable.
+
+    Parameters
+    ----------
+    values : ndarray
+    ndtype : str
+
+    Returns
+    -------
+    str
+    """
+    ndtype = values.dtype.name
     if ndtype == "object":
 
         # it's cheaper to use a String Hash Table than Object; we infer
@@ -262,10 +272,7 @@ def _get_data_algo(values):
         # StringHashTable and ObjectHashtable
         if lib.infer_dtype(values, skipna=False) in ["string"]:
             ndtype = "string"
-
-    htable = _hashtables.get(ndtype, _hashtables["object"])
-
-    return htable, values
+    return ndtype
 
 
 # --------------- #
@@ -370,9 +377,9 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps, values):
+def isin(comps, values) -> np.ndarray:
     """
-    Compute the isin boolean array
+    Compute the isin boolean array.
 
     Parameters
     ----------
@@ -381,7 +388,8 @@ def isin(comps, values):
 
     Returns
     -------
-    boolean array same length as comps
+    ndarray[bool]
+        Same length as `comps`.
     """
 
     if not is_list_like(comps):
@@ -413,17 +421,17 @@ def isin(comps, values):
     values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d
-    f = lambda x, y: htable.ismember_object(x, y)
+    f = htable.ismember_object
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1000000 and not is_object_dtype(comps):
-        f = lambda x, y: np.in1d(x, y)
+        f = np.in1d
     elif is_integer_dtype(comps):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
-            f = lambda x, y: htable.ismember_int64(x, y)
+            f = htable.ismember_int64
         except (TypeError, ValueError, OverflowError):
             values = values.astype(object)
             comps = comps.astype(object)
@@ -432,7 +440,7 @@ def isin(comps, values):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)
-            f = lambda x, y: htable.ismember_float64(x, y)
+            f = htable.ismember_float64
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
@@ -440,7 +448,7 @@ def isin(comps, values):
     return f(comps, values)
 
 
-def _factorize_array(values, na_sentinel=-1, size_hint=None, na_value=None):
+def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=None):
     """
     Factorize an array-like to labels and uniques.
 
@@ -601,7 +609,7 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 @deprecate_kwarg(old_arg_name="order", new_arg_name=None)
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=None):
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing labels and uniques
@@ -657,7 +665,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-):
+) -> ABCSeries:
     """
     Compute a histogram of the counts of non-null values.
 
@@ -686,6 +694,7 @@ def value_counts(
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
+
         values = Series(values)
         try:
             ii = cut(values, bins, include_lowest=True)
@@ -728,25 +737,25 @@ def value_counts(
     return result
 
 
-def _value_counts_arraylike(values, dropna):
+def _value_counts_arraylike(values, dropna: bool):
     """
     Parameters
     ----------
     values : arraylike
-    dropna : boolean
+    dropna : bool
 
     Returns
     -------
-    (uniques, counts)
-
+    uniques : np.ndarray or ExtensionArray
+    counts : np.ndarray
     """
     values = _ensure_arraylike(values)
     original = values
-    values, dtype = _ensure_data(values)
+    values, _ = _ensure_data(values)
     ndtype = values.dtype.name
 
     if needs_i8_conversion(original.dtype):
-        # i8
+        # datetime, timedelta, or period
 
         keys, counts = htable.value_count_int64(values, dropna)
 
@@ -772,7 +781,7 @@ def _value_counts_arraylike(values, dropna):
     return keys, counts
 
 
-def duplicated(values, keep="first"):
+def duplicated(values, keep="first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -798,7 +807,7 @@ def duplicated(values, keep="first"):
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True):
+def mode(values, dropna: bool = True) -> ABCSeries:
     """
     Returns the mode(s) of an array.
 
@@ -844,7 +853,14 @@ def mode(values, dropna: bool = True):
     return Series(result)
 
 
-def rank(values, axis=0, method="average", na_option="keep", ascending=True, pct=False):
+def rank(
+    values,
+    axis: int = 0,
+    method: str = "average",
+    na_option: str = "keep",
+    ascending: bool = True,
+    pct: bool = False,
+):
     """
     Rank the values along a given axis.
 
@@ -1058,7 +1074,7 @@ def quantile(x, q, interpolation_method="fraction"):
 
 
 class SelectN:
-    def __init__(self, obj, n, keep):
+    def __init__(self, obj, n: int, keep: str):
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -1168,7 +1184,7 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj, n, keep, columns):
+    def __init__(self, obj, n: int, keep: str, columns):
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
@@ -1307,7 +1323,7 @@ def _take_2d_multi_object(arr, indexer, out, fill_value, mask_info):
             out[i, j] = arr[u_, v]
 
 
-def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
+def _take_nd_object(arr, indexer, out, axis: int, fill_value, mask_info):
     if mask_info is not None:
         mask, needs_masking = mask_info
     else:
@@ -1424,7 +1440,7 @@ _take_2d_multi_dict = {
 }
 
 
-def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
+def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=None):
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -1458,7 +1474,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
+def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
 
@@ -1552,7 +1568,13 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
 
 
 def take_nd(
-    arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None, allow_fill=True
+    arr,
+    indexer,
+    axis=0,
+    out=None,
+    fill_value=np.nan,
+    mask_info=None,
+    allow_fill: bool = True,
 ):
     """
     Specialized Cython take which sets NaN values in one pass
