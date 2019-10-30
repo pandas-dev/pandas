@@ -840,6 +840,9 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 
     elif rank_t is int64_t:
         return is_datetimelike and val == NPY_NAT
+    elif rank_t is uint64_t:
+        # There is no NA value for uint64
+        return False
     else:
         return val != val
 
