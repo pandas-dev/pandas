@@ -766,6 +766,9 @@ def group_quantile(ndarray[float64_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
+            if lab == -1:  # NA group label
+                continue
+
             counts[lab] += 1
             if not mask[i]:
                 non_na_counts[lab] += 1
