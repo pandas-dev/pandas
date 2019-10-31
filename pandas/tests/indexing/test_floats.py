@@ -3,7 +3,6 @@ import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 
 class TestFloatIndexers:
@@ -21,7 +20,7 @@ class TestFloatIndexers:
             else:
                 expected = original.iloc[indexer]
 
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def test_scalar_error(self):
 
@@ -504,7 +503,7 @@ class TestFloatIndexers:
 
         result = s[2:4]
         expected = s.iloc[2:4]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         for idxr in [lambda x: x, lambda x: x.iloc]:
 
@@ -642,8 +641,8 @@ class TestFloatIndexers:
         result1 = s[1.0:3.0]
         result2 = s.loc[1.0:3.0]
         result3 = s.loc[1.0:3.0]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
 
         # exact indexing when found
         result1 = s[5.0]
@@ -674,58 +673,58 @@ class TestFloatIndexers:
         # fancy tests
         expected = Series([2, 0], index=Float64Index([5.0, 0.0]))
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
-            assert_series_equal(s[fancy_idx], expected)
-            assert_series_equal(s.loc[fancy_idx], expected)
-            assert_series_equal(s.loc[fancy_idx], expected)
+            tm.assert_series_equal(s[fancy_idx], expected)
+            tm.assert_series_equal(s.loc[fancy_idx], expected)
+            tm.assert_series_equal(s.loc[fancy_idx], expected)
 
         expected = Series([2, 0], index=Index([5, 0], dtype="int64"))
         for fancy_idx in [[5, 0], np.array([5, 0])]:  # int
-            assert_series_equal(s[fancy_idx], expected)
-            assert_series_equal(s.loc[fancy_idx], expected)
-            assert_series_equal(s.loc[fancy_idx], expected)
+            tm.assert_series_equal(s[fancy_idx], expected)
+            tm.assert_series_equal(s.loc[fancy_idx], expected)
+            tm.assert_series_equal(s.loc[fancy_idx], expected)
 
         # all should return the same as we are slicing 'the same'
         result1 = s.loc[2:5]
         result2 = s.loc[2.0:5.0]
         result3 = s.loc[2.0:5]
         result4 = s.loc[2.1:5]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, result4)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result4)
 
         # previously this did fallback indexing
         result1 = s[2:5]
         result2 = s[2.0:5.0]
         result3 = s[2.0:5]
         result4 = s[2.1:5]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, result4)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result4)
 
         result1 = s.loc[2:5]
         result2 = s.loc[2.0:5.0]
         result3 = s.loc[2.0:5]
         result4 = s.loc[2.1:5]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, result4)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result4)
 
         # combined test
         result1 = s.loc[2:5]
         result2 = s.loc[2:5]
         result3 = s[2:5]
 
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
 
         # list selection
         result1 = s[[0.0, 5, 10]]
         result2 = s.loc[[0.0, 5, 10]]
         result3 = s.loc[[0.0, 5, 10]]
         result4 = s.iloc[[0, 2, 4]]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, result4)
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, result4)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result1 = s[[1.6, 5, 10]]
@@ -733,9 +732,9 @@ class TestFloatIndexers:
             result2 = s.loc[[1.6, 5, 10]]
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result3 = s.loc[[1.6, 5, 10]]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, Series([np.nan, 2, 4], index=[1.6, 5, 10]))
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, Series([np.nan, 2, 4], index=[1.6, 5, 10]))
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result1 = s[[0, 1, 2]]
@@ -743,21 +742,21 @@ class TestFloatIndexers:
             result2 = s.loc[[0, 1, 2]]
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result3 = s.loc[[0, 1, 2]]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, Series([0.0, np.nan, np.nan], index=[0, 1, 2]))
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, Series([0.0, np.nan, np.nan], index=[0, 1, 2]))
 
         result1 = s.loc[[2.5, 5]]
         result2 = s.loc[[2.5, 5]]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, Series([1, 2], index=[2.5, 5.0]))
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, Series([1, 2], index=[2.5, 5.0]))
 
         result1 = s[[2.5]]
         result2 = s.loc[[2.5]]
         result3 = s.loc[[2.5]]
-        assert_series_equal(result1, result2)
-        assert_series_equal(result1, result3)
-        assert_series_equal(result1, Series([1], index=[2.5]))
+        tm.assert_series_equal(result1, result2)
+        tm.assert_series_equal(result1, result3)
+        tm.assert_series_equal(result1, Series([1], index=[2.5]))
 
     def test_floating_tuples(self):
         # see gh-13509

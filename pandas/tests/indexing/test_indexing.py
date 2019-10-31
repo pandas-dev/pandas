@@ -264,9 +264,8 @@ class TestFancy(Base):
     def test_dups_fancy_indexing(self):
 
         # GH 3455
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(10, 3)
+        df = tm.makeCustomDataframe(10, 3)
         df.columns = ["a", "a", "b"]
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
