@@ -16,11 +16,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-)
 
 
 class SharedWithSparse:
@@ -344,7 +339,7 @@ class SharedWithSparse:
         # single block corner case
         arr = float_frame[["A", "B"]].values
         expected = float_frame.reindex(columns=["A", "B"]).values
-        assert_almost_equal(arr, expected)
+        tm.assert_almost_equal(arr, expected)
 
     def test_to_numpy(self):
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
@@ -401,11 +396,11 @@ class SharedWithSparse:
         # reg name
         expected = f.sum(axis=0)
         result = f.sum(axis="index")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = f.sum(axis=1)
         result = f.sum(axis="columns")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_class_axis(self):
         # GH 18147
@@ -474,8 +469,8 @@ class TestDataFrameMisc(SharedWithSparse):
 
     klass = DataFrame
     # SharedWithSparse tests use generic, klass-agnostic assertion
-    _assert_frame_equal = staticmethod(assert_frame_equal)
-    _assert_series_equal = staticmethod(assert_series_equal)
+    _assert_frame_equal = staticmethod(tm.assert_frame_equal)
+    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_values(self, float_frame):
         float_frame.values[:, 0] = 5.0
