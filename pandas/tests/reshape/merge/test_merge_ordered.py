@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, merge_ordered
-from pandas.util.testing import assert_frame_equal
+import pandas.util.testing as tm
 
 
 class TestMergeOrdered:
@@ -22,7 +22,7 @@ class TestMergeOrdered:
             }
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
         result = merge_ordered(self.left, self.right, on="key", fill_method="ffill")
@@ -33,7 +33,7 @@ class TestMergeOrdered:
                 "rvalue": [np.nan, 1, 2, 3, 3, 4],
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_multigroup(self):
         left = pd.concat([self.left, self.left], ignore_index=True)
@@ -52,12 +52,12 @@ class TestMergeOrdered:
         )
         expected["group"] = ["a"] * 6 + ["b"] * 6
 
-        assert_frame_equal(result, expected.loc[:, result.columns])
+        tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
         result2 = merge_ordered(
             self.right, left, on="key", right_by="group", fill_method="ffill"
         )
-        assert_frame_equal(result, result2.loc[:, result.columns])
+        tm.assert_frame_equal(result, result2.loc[:, result.columns])
 
         result = merge_ordered(left, self.right, on="key", left_by="group")
         assert result["group"].notna().all()
@@ -114,4 +114,4 @@ class TestMergeOrdered:
             }
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
