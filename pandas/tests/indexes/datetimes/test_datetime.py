@@ -7,7 +7,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 randn = np.random.randn
 
@@ -262,7 +261,7 @@ class TestDatetimeIndex:
         result = index.isin(list(index))
         assert result.all()
 
-        assert_almost_equal(
+        tm.assert_almost_equal(
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 

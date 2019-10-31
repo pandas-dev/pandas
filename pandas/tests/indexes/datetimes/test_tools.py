@@ -31,8 +31,7 @@ from pandas import (
 )
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
-from pandas.util import testing as tm
-from pandas.util.testing import assert_series_equal
+import pandas.util.testing as tm
 
 
 class TestTimeConversionFormats:
@@ -55,7 +54,7 @@ class TestTimeConversionFormats:
                 expected = expecteds[i]
 
                 if isinstance(expected, Series):
-                    assert_series_equal(result, Series(expected))
+                    tm.assert_series_equal(result, Series(expected))
                 elif isinstance(expected, Timestamp):
                     assert result == expected
                 else:
@@ -67,10 +66,10 @@ class TestTimeConversionFormats:
         expected = Series([Timestamp(x) for x in s.apply(str)])
 
         result = to_datetime(s, format="%Y%m%d", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = to_datetime(s.apply(str), format="%Y%m%d", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # with NaT
         expected = Series(
@@ -80,13 +79,13 @@ class TestTimeConversionFormats:
         s[2] = np.nan
 
         result = to_datetime(s, format="%Y%m%d", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # string with NaT
         s = s.apply(str)
         s[2] = "nat"
         result = to_datetime(s, format="%Y%m%d", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coercion
         # GH 7930
@@ -131,7 +130,7 @@ class TestTimeConversionFormats:
         # GH 25512
         # format='%Y%m%d', errors='coerce'
         result = pd.to_datetime(input_s, format="%Y%m%d", errors="coerce")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format_integer(self, cache):
@@ -140,13 +139,13 @@ class TestTimeConversionFormats:
         expected = Series([Timestamp(x) for x in s.apply(str)])
 
         result = to_datetime(s, format="%Y", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([200001, 200105, 200206])
         expected = Series([Timestamp(x[:4] + "-" + x[4:]) for x in s.apply(str)])
 
         result = to_datetime(s, format="%Y%m", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "int_date, expected",
@@ -216,7 +215,7 @@ class TestTimeConversionFormats:
         expected = to_datetime(
             s.str.extract(r"(\d+\w+\d+)", expand=False), format="%d%b%y", cache=cache
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_parse_nanoseconds_with_formula(self, cache):
@@ -1204,11 +1203,11 @@ class TestToDatetimeUnit:
         expected = Series(
             [Timestamp("20150204 00:00:00"), Timestamp("20160305 00:0:00")]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # dict-like
         result = to_datetime(df[["year", "month", "day"]].to_dict(), cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # dict but with constructable
         df2 = df[["year", "month", "day"]].to_dict()
@@ -1217,7 +1216,7 @@ class TestToDatetimeUnit:
         expected2 = Series(
             [Timestamp("20150204 00:00:00"), Timestamp("20160205 00:0:00")]
         )
-        assert_series_equal(result, expected2)
+        tm.assert_series_equal(result, expected2)
 
         # unit mappings
         units = [
@@ -1244,7 +1243,7 @@ class TestToDatetimeUnit:
             expected = Series(
                 [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")]
             )
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         d = {
             "year": "year",
@@ -1265,11 +1264,11 @@ class TestToDatetimeUnit:
                 Timestamp("20160305 07:59:11.001002003"),
             ]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce back to int
         result = to_datetime(df.astype(str), cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # passing coerce
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
@@ -1282,7 +1281,7 @@ class TestToDatetimeUnit:
             to_datetime(df2, cache=cache)
         result = to_datetime(df2, errors="coerce", cache=cache)
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # extra columns
         msg = "extra keys have been passed to the datetime assemblage: " r"\[foo\]"
@@ -1330,7 +1329,7 @@ class TestToDatetimeUnit:
         expected = Series(
             [Timestamp("20150204 00:00:00"), Timestamp("20160305 00:00:00")]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # mixed dtypes
         df["month"] = df["month"].astype("int8")
@@ -1339,7 +1338,7 @@ class TestToDatetimeUnit:
         expected = Series(
             [Timestamp("20150204 00:00:00"), Timestamp("20160305 00:00:00")]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
@@ -1434,7 +1433,7 @@ class TestToDatetimeMisc:
         td = Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
         expected = pd.to_datetime(td, format="%b %y", cache=cache)
         result = td.apply(pd.to_datetime, format="%b %y", cache=cache)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         td = pd.Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
         msg = r"time data '' does not match format '%b %y' \(match\)"
@@ -1447,7 +1446,7 @@ class TestToDatetimeMisc:
         result = td.apply(
             lambda x: pd.to_datetime(x, format="%b %y", errors="coerce", cache=cache)
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_types(self, cache):
@@ -1584,10 +1583,10 @@ class TestToDatetimeMisc:
             else:
                 expected[i] = to_datetime(x, cache=cache)
 
-        assert_series_equal(result, expected, check_names=False)
+        tm.assert_series_equal(result, expected, check_names=False)
         assert result.name == "foo"
 
-        assert_series_equal(dresult, expected, check_names=False)
+        tm.assert_series_equal(dresult, expected, check_names=False)
         assert dresult.name == "foo"
 
     @pytest.mark.parametrize(
@@ -2158,20 +2157,20 @@ class TestOrigin:
         expected = Series(
             pd.to_datetime(julian_dates - pd.Timestamp(0).to_julian_date(), unit="D")
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = Series(pd.to_datetime([0, 1, 2], unit="D", origin="unix"))
         expected = Series(
             [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # default
         result = Series(pd.to_datetime([0, 1, 2], unit="D"))
         expected = Series(
             [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_julian_round_trip(self):
         result = pd.to_datetime(2456658, origin="julian", unit="D")
@@ -2204,7 +2203,7 @@ class TestOrigin:
         )
 
         result = Series(pd.to_datetime(units_from_epochs, unit=units, origin=epochs))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "origin, exc",

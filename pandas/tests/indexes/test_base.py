@@ -43,7 +43,6 @@ from pandas.core.sorting import safe_sort
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):
@@ -1452,7 +1451,7 @@ class TestIndex(Base):
 
         r1 = index1.get_indexer(index2)
         e1 = np.array([1, 3, -1], dtype=np.intp)
-        assert_almost_equal(r1, e1)
+        tm.assert_almost_equal(r1, e1)
 
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize(
@@ -1473,7 +1472,7 @@ class TestIndex(Base):
             expected = expected[::-1]
 
         result = index2.get_indexer(index1, method=method)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def test_get_indexer_invalid(self):
         # GH10411
@@ -1921,7 +1920,7 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        assert_almost_equal(index.get_value(values, value), values[67])
+        tm.assert_almost_equal(index.get_value(values, value), values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(

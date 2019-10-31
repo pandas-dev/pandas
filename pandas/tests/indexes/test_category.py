@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import Categorical, IntervalIndex
 from pandas.core.indexes.api import CategoricalIndex, Index
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 from .common import Base
 
@@ -678,7 +677,7 @@ class TestCategoricalIndex(Base):
 
         for indexer in [idx2, list("abf"), Index(list("abf"))]:
             r1 = idx1.get_indexer(idx2)
-            assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
+            tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
         msg = (
             "method='pad' and method='backfill' not implemented yet for"
