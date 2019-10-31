@@ -232,9 +232,9 @@ class TestCasting(base.BaseCastingTests):
             ),
             (
                 "datetime64[ns, MET]",
-                pd.arrays.DatetimeArray(
-                    pd.array([pd.Timestamp("2015-01-01 00:00:00+0100", tz="MET")])
-                ),
+                pd.DatetimeIndex(
+                    [pd.Timestamp("2015-01-01 00:00:00+0100", tz="MET")]
+                ).array,
             ),
         ],
     )
