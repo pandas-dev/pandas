@@ -1,7 +1,4 @@
-from datetime import datetime
 import warnings
-
-import numpy as np
 
 import pandas as pd
 
@@ -54,24 +51,6 @@ class ApplyIndex:
         offset.apply_index(self.rng)
 
 
-class OnOffset:
-
-    params = offsets
-    param_names = ["offset"]
-
-    def setup(self, offset):
-        self.dates = [
-            datetime(2016, m, d)
-            for m in [10, 11, 12]
-            for d in [1, 2, 3, 28, 29, 30, 31]
-            if not (m == 11 and d == 31)
-        ]
-
-    def time_on_offset(self, offset):
-        for date in self.dates:
-            offset.onOffset(date)
-
-
 class OffsetSeriesArithmetic:
 
     params = offsets
@@ -99,31 +78,3 @@ class OffsetDatetimeIndexArithmetic:
     def time_add_offset(self, offset):
         with warnings.catch_warnings(record=True):
             self.data + offset
-
-
-class OffestDatetimeArithmetic:
-
-    params = offsets
-    param_names = ["offset"]
-
-    def setup(self, offset):
-        self.date = datetime(2011, 1, 1)
-        self.dt64 = np.datetime64("2011-01-01 09:00Z")
-
-    def time_apply(self, offset):
-        offset.apply(self.date)
-
-    def time_apply_np_dt64(self, offset):
-        offset.apply(self.dt64)
-
-    def time_add(self, offset):
-        self.date + offset
-
-    def time_add_10(self, offset):
-        self.date + (10 * offset)
-
-    def time_subtract(self, offset):
-        self.date - offset
-
-    def time_subtract_10(self, offset):
-        self.date - (10 * offset)
