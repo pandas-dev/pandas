@@ -9,7 +9,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import MultiIndex, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 from .test_generic import Generic
 
@@ -23,7 +22,7 @@ except ImportError:
 
 class TestSeries(Generic):
     _typ = Series
-    _comparator = lambda self, x, y: assert_series_equal(x, y)
+    _comparator = lambda self, x, y: tm.assert_series_equal(x, y)
 
     def setup_method(self):
         self.ts = tm.makeTimeSeries()  # Was at top level in test_series
@@ -213,11 +212,11 @@ class TestSeries(Generic):
         repr(result)
         assert len(result) == 6
         assert len(result.coords) == 1
-        assert_almost_equal(list(result.coords.keys()), ["foo"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, DataArray)
 
         # idempotency
-        assert_series_equal(
+        tm.assert_series_equal(
             result.to_series(), s, check_index_type=False, check_categorical=True
         )
 
@@ -230,7 +229,7 @@ class TestSeries(Generic):
         result = s.to_xarray()
         assert len(result) == 0
         assert len(result.coords) == 1
-        assert_almost_equal(list(result.coords.keys()), ["foo"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, DataArray)
 
         s = Series(range(6))
@@ -240,9 +239,9 @@ class TestSeries(Generic):
         )
         result = s.to_xarray()
         assert len(result) == 2
-        assert_almost_equal(list(result.coords.keys()), ["one", "two"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
         assert isinstance(result, DataArray)
-        assert_series_equal(result.to_series(), s)
+        tm.assert_series_equal(result.to_series(), s)
 
     def test_valid_deprecated(self):
         # GH18800

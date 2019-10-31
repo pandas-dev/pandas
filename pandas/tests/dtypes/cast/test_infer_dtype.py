@@ -11,7 +11,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import Categorical, Period, Series, Timedelta, Timestamp, date_range
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

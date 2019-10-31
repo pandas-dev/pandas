@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 from pandas.core.indexing import _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")

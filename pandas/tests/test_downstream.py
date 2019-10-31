@@ -11,7 +11,7 @@ import pytest
 from pandas.compat import PY36
 
 from pandas import DataFrame, Series
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def import_module(name):

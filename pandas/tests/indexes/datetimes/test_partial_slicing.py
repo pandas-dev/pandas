@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestSlicing:

@@ -5,7 +5,7 @@ import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas.core.common as com
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.fixture

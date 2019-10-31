@@ -12,7 +12,6 @@ import pandas as pd
 from pandas import isna
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -386,7 +385,7 @@ class TestSparseArray:
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
         assert res.fill_value == 0
-        assert_almost_equal(res.sp_values, self.zarr.sp_values)
+        tm.assert_almost_equal(res.sp_values, self.zarr.sp_values)
 
     def test_constructor_copy(self):
         cp = SparseArray(self.arr, copy=True)
@@ -586,7 +585,7 @@ class TestSparseArray:
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.to_dense(), self.arr_data)
+        tm.assert_almost_equal(self.arr.to_dense(), self.arr_data)
 
     @pytest.mark.parametrize(
         "data,shape,dtype",
@@ -625,7 +624,7 @@ class TestSparseArray:
 
     def test_getitem(self):
         def _checkit(i):
-            assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
+            tm.assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
 
         for i in range(len(self.arr)):
             _checkit(i)
@@ -703,7 +702,7 @@ class TestSparseArray:
                 op(first.to_dense(), second.to_dense()), fill_value=first.fill_value
             )
             assert isinstance(res, SparseArray)
-            assert_almost_equal(res.to_dense(), exp.to_dense())
+            tm.assert_almost_equal(res.to_dense(), exp.to_dense())
 
             res2 = op(first, second.to_dense())
             assert isinstance(res2, SparseArray)
@@ -723,8 +722,8 @@ class TestSparseArray:
             except ValueError:
                 pass
             else:
-                assert_almost_equal(res4.fill_value, exp_fv)
-                assert_almost_equal(res4.to_dense(), exp)
+                tm.assert_almost_equal(res4.fill_value, exp_fv)
+                tm.assert_almost_equal(res4.to_dense(), exp)
 
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:

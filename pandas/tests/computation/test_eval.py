@@ -34,14 +34,6 @@ from pandas.core.computation.ops import (
     _unary_math_ops,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_frame_equal,
-    assert_numpy_array_equal,
-    assert_produces_warning,
-    assert_series_equal,
-    makeCustomDataframe as mkdf,
-    randbool,
-)
 
 
 @pytest.fixture(
@@ -205,14 +197,14 @@ class TestEvalNumexprPandas:
 
     def test_simple_cmp_ops(self):
         bool_lhses = (
-            DataFrame(randbool(size=(10, 5))),
-            Series(randbool((5,))),
-            randbool(),
+            DataFrame(tm.randbool(size=(10, 5))),
+            Series(tm.randbool((5,))),
+            tm.randbool(),
         )
         bool_rhses = (
-            DataFrame(randbool(size=(10, 5))),
-            Series(randbool((5,))),
-            randbool(),
+            DataFrame(tm.randbool(size=(10, 5))),
+            Series(tm.randbool((5,))),
+            tm.randbool(),
         )
         for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
@@ -475,13 +467,13 @@ class TestEvalNumexprPandas:
         else:
             expect = ~lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+            tm.assert_frame_equal(expect, result)
 
         # bool always works
         lhs = DataFrame(rand(5, 2) > 0.5)
         expect = ~lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
         # object raises
         lhs = DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5})
@@ -514,13 +506,13 @@ class TestEvalNumexprPandas:
         else:
             expect = ~lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+            tm.assert_series_equal(expect, result)
 
         # bool
         lhs = Series(rand(5) > 0.5)
         expect = ~lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
         # float
         # int
@@ -542,13 +534,13 @@ class TestEvalNumexprPandas:
         lhs = DataFrame(randn(5, 2))
         expect = -lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
         # int
         lhs = DataFrame(randint(5, size=(5, 2)))
         expect = -lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
@@ -558,7 +550,7 @@ class TestEvalNumexprPandas:
         else:
             expect = -lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+            tm.assert_frame_equal(expect, result)
 
     def test_series_negate(self):
         expr = self.ex("-")
@@ -567,13 +559,13 @@ class TestEvalNumexprPandas:
         lhs = Series(randn(5))
         expect = -lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
         # int
         lhs = Series(randint(5, size=5))
         expect = -lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
@@ -583,7 +575,7 @@ class TestEvalNumexprPandas:
         else:
             expect = -lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+            tm.assert_series_equal(expect, result)
 
     def test_frame_pos(self):
         expr = self.ex("+")
@@ -592,19 +584,19 @@ class TestEvalNumexprPandas:
         lhs = DataFrame(randn(5, 2))
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
         # int
         lhs = DataFrame(randint(5, size=(5, 2)))
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_frame_equal(expect, result)
+        tm.assert_frame_equal(expect, result)
 
     def test_series_pos(self):
         expr = self.ex("+")
@@ -613,19 +605,19 @@ class TestEvalNumexprPandas:
         lhs = Series(randn(5))
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
         # int
         lhs = Series(randint(5, size=5))
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
         expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        assert_series_equal(expect, result)
+        tm.assert_series_equal(expect, result)
 
     def test_scalar_unary(self):
         with pytest.raises(TypeError):
@@ -645,7 +637,7 @@ class TestEvalNumexprPandas:
 
     def test_unary_in_array(self):
         # GH 11235
-        assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             pd.eval(
                 "[-True, True, ~True, +True,"
                 "-False, False, ~False, +False,"
@@ -847,18 +839,18 @@ class TestTypeCasting:
     # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
     @pytest.mark.parametrize("dt", [np.float32, np.float64])
     def test_binop_typecasting(self, engine, parser, op, dt):
-        df = mkdf(5, 3, data_gen_f=f, dtype=dt)
+        df = tm.makeCustomDataframe(5, 3, data_gen_f=f, dtype=dt)
         s = "df {} 3".format(op)
         res = pd.eval(s, engine=engine, parser=parser)
         assert df.values.dtype == dt
         assert res.values.dtype == dt
-        assert_frame_equal(res, eval(s))
+        tm.assert_frame_equal(res, eval(s))
 
         s = "3 {} df".format(op)
         res = pd.eval(s, engine=engine, parser=parser)
         assert df.values.dtype == dt
         assert res.values.dtype == dt
-        assert_frame_equal(res, eval(s))
+        tm.assert_frame_equal(res, eval(s))
 
 
 # -------------------------------------
@@ -882,19 +874,19 @@ class TestAlignment:
 
     def test_align_nested_unary_op(self, engine, parser):
         s = "df * ~2"
-        df = mkdf(5, 3, data_gen_f=f)
+        df = tm.makeCustomDataframe(5, 3, data_gen_f=f)
         res = pd.eval(s, engine=engine, parser=parser)
-        assert_frame_equal(res, df * ~2)
+        tm.assert_frame_equal(res, df * ~2)
 
     def test_basic_frame_alignment(self, engine, parser):
         args = product(self.lhs_index_types, self.index_types, self.index_types)
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
             for lr_idx_type, rr_idx_type, c_idx_type in args:
-                df = mkdf(
+                df = tm.makeCustomDataframe(
                     10, 10, data_gen_f=f, r_idx_type=lr_idx_type, c_idx_type=c_idx_type
                 )
-                df2 = mkdf(
+                df2 = tm.makeCustomDataframe(
                     20, 10, data_gen_f=f, r_idx_type=rr_idx_type, c_idx_type=c_idx_type
                 )
                 # only warns if not monotonic and not sortable
@@ -903,20 +895,20 @@ class TestAlignment:
                         res = pd.eval("df + df2", engine=engine, parser=parser)
                 else:
                     res = pd.eval("df + df2", engine=engine, parser=parser)
-                assert_frame_equal(res, df + df2)
+                tm.assert_frame_equal(res, df + df2)
 
     def test_frame_comparison(self, engine, parser):
         args = product(self.lhs_index_types, repeat=2)
         for r_idx_type, c_idx_type in args:
-            df = mkdf(
+            df = tm.makeCustomDataframe(
                 10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
             )
             res = pd.eval("df < 2", engine=engine, parser=parser)
-            assert_frame_equal(res, df < 2)
+            tm.assert_frame_equal(res, df < 2)
 
             df3 = DataFrame(randn(*df.shape), index=df.index, columns=df.columns)
             res = pd.eval("df < df3", engine=engine, parser=parser)
-            assert_frame_equal(res, df < df3)
+            tm.assert_frame_equal(res, df < df3)
 
     @pytest.mark.slow
     def test_medium_complex_frame_alignment(self, engine, parser):
@@ -928,19 +920,25 @@ class TestAlignment:
             warnings.simplefilter("always", RuntimeWarning)
 
             for r1, c1, r2, c2 in args:
-                df = mkdf(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-                df2 = mkdf(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-                df3 = mkdf(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+                df = tm.makeCustomDataframe(
+                    3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1
+                )
+                df2 = tm.makeCustomDataframe(
+                    4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
+                )
+                df3 = tm.makeCustomDataframe(
+                    5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
+                )
                 if should_warn(df.index, df2.index, df3.index):
                     with tm.assert_produces_warning(RuntimeWarning):
                         res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
                 else:
                     res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
-                assert_frame_equal(res, df + df2 + df3)
+                tm.assert_frame_equal(res, df + df2 + df3)
 
     def test_basic_frame_series_alignment(self, engine, parser):
         def testit(r_idx_type, c_idx_type, index_name):
-            df = mkdf(
+            df = tm.makeCustomDataframe(
                 10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
             )
             index = getattr(df, index_name)
@@ -956,7 +954,7 @@ class TestAlignment:
                 expected = df.add(s) if engine == "numexpr" else df + s
             else:
                 expected = df + s
-            assert_frame_equal(res, expected)
+            tm.assert_frame_equal(res, expected)
 
         args = product(self.lhs_index_types, self.index_types, ("index", "columns"))
         with warnings.catch_warnings(record=True):
@@ -966,7 +964,9 @@ class TestAlignment:
 
     def test_basic_series_frame_alignment(self, engine, parser):
         def testit(r_idx_type, c_idx_type, index_name):
-            df = mkdf(10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type)
+            df = tm.makeCustomDataframe(
+                10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+            )
             index = getattr(df, index_name)
             s = Series(np.random.randn(5), index[:5])
             if should_warn(s.index, df.index):
@@ -979,7 +979,7 @@ class TestAlignment:
                 expected = df.add(s) if engine == "numexpr" else s + df
             else:
                 expected = s + df
-            assert_frame_equal(res, expected)
+            tm.assert_frame_equal(res, expected)
 
         # only test dt with dt, otherwise weird joins result
         args = product(["i", "u", "s"], ["i", "u", "s"], ("index", "columns"))
@@ -1007,7 +1007,7 @@ class TestAlignment:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
             for r_idx_type, c_idx_type, op, index_name in args:
-                df = mkdf(
+                df = tm.makeCustomDataframe(
                     10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
                 )
                 index = getattr(df, index_name)
@@ -1026,7 +1026,7 @@ class TestAlignment:
 
                 if r_idx_type != "dt" and c_idx_type != "dt":
                     if engine == "numexpr":
-                        assert_frame_equal(a, b)
+                        tm.assert_frame_equal(a, b)
 
     @pytest.mark.slow
     def test_complex_series_frame_alignment(self, engine, parser):
@@ -1045,8 +1045,12 @@ class TestAlignment:
                 index_name = random.choice(["index", "columns"])
                 obj_name = random.choice(["df", "df2"])
 
-                df = mkdf(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-                df2 = mkdf(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+                df = tm.makeCustomDataframe(
+                    m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1
+                )
+                df2 = tm.makeCustomDataframe(
+                    m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
+                )
                 index = getattr(locals().get(obj_name), index_name)
                 s = Series(np.random.randn(n), index[:n])
 
@@ -1072,7 +1076,7 @@ class TestAlignment:
                 else:
                     res = pd.eval("df2 + s + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
-                assert_frame_equal(res, expected)
+                tm.assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(self, engine, parser):
         df = DataFrame(randn(1000, 10))
@@ -1082,16 +1086,16 @@ class TestAlignment:
         else:
             seen = False
 
-        with assert_produces_warning(seen):
+        with tm.assert_produces_warning(seen):
             pd.eval("df + s", engine=engine, parser=parser)
 
         s = Series(randn(1000))
-        with assert_produces_warning(False):
+        with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
         df = DataFrame(randn(10, 10000))
         s = Series(randn(10000))
-        with assert_produces_warning(False):
+        with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
         df = DataFrame(randn(10, 10))
@@ -1104,7 +1108,7 @@ class TestAlignment:
         else:
             wrn = False
 
-        with assert_produces_warning(wrn) as w:
+        with tm.assert_produces_warning(wrn) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
             if not is_python_engine:
@@ -1199,7 +1203,7 @@ class TestOperationsNumExprPandas:
     def test_single_variable(self):
         df = DataFrame(randn(10, 2))
         df2 = self.eval("df", local_dict={"df": df})
-        assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df, df2)
 
     def test_truediv(self):
         s = np.array([1])
@@ -1237,7 +1241,7 @@ class TestOperationsNumExprPandas:
         df = DataFrame(np.random.randn(5, 3))
         result = self.eval("(df + 1)[df > 2]", local_dict={"df": df})
         expected = (df + 1)[df > 2]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_attr_expression(self):
         df = DataFrame(np.random.randn(5, 3), columns=list("abc"))
@@ -1250,7 +1254,7 @@ class TestOperationsNumExprPandas:
         exprs = expr1, expr2, expr3
         expecs = expec1, expec2, expec3
         for e, expec in zip(exprs, expecs):
-            assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
+            tm.assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
 
     def test_assignment_fails(self):
         df = DataFrame(np.random.randn(5, 3), columns=list("abc"))
@@ -1284,14 +1288,14 @@ class TestOperationsNumExprPandas:
         expected["a"] = expected["a"] + expected["b"]
         df = orig_df.copy()
         df.eval("a = a + b", inplace=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # single assignment - new variable
         expected = orig_df.copy()
         expected["c"] = expected["a"] + expected["b"]
         df = orig_df.copy()
         df.eval("c = a + b", inplace=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # with a local name overlap
         def f():
@@ -1303,7 +1307,7 @@ class TestOperationsNumExprPandas:
         df = f()
         expected = orig_df.copy()
         expected["a"] = 1 + expected["b"]
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         df = orig_df.copy()
 
@@ -1312,7 +1316,7 @@ class TestOperationsNumExprPandas:
             old_a = df.a.copy()
             df.eval("a = a + b", inplace=True)
             result = old_a + df.b
-            assert_series_equal(result, df.a, check_names=False)
+            tm.assert_series_equal(result, df.a, check_names=False)
             assert result.name is None
 
         f()
@@ -1329,14 +1333,14 @@ class TestOperationsNumExprPandas:
         self.eval("c = df.a + df.b", local_dict={"df": df}, target=df, inplace=True)
         expected = orig_df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_column_in(self):
         # GH 11235
         df = DataFrame({"a": [11], "b": [-32]})
         result = df.eval("a in [11, -32]")
         expected = Series([True])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def assignment_not_inplace(self):
         # see gh-9297
@@ -1362,7 +1366,7 @@ class TestOperationsNumExprPandas:
         d = c + b""",
             inplace=True,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
         assert ans is None
 
         expected["a"] = expected["a"] - 1
@@ -1373,7 +1377,7 @@ class TestOperationsNumExprPandas:
         e = a + 2""",
             inplace=True,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
         assert ans is None
 
         # multi-line not valid if not all assignments
@@ -1398,7 +1402,7 @@ class TestOperationsNumExprPandas:
         d = c + b""",
             inplace=False,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
 
         expected["a"] = expected["a"] - 1
         expected["e"] = expected["a"] + 2
@@ -1408,7 +1412,7 @@ class TestOperationsNumExprPandas:
         e = a + 2""",
             inplace=False,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
 
     def test_multi_line_expression_local_variable(self):
         # GH 15342
@@ -1425,7 +1429,7 @@ class TestOperationsNumExprPandas:
         """,
             inplace=True,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
         assert ans is None
 
     def test_multi_line_expression_callable_local_variable(self):
@@ -1445,7 +1449,7 @@ class TestOperationsNumExprPandas:
         """,
             inplace=True,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
         assert ans is None
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
@@ -1465,7 +1469,7 @@ class TestOperationsNumExprPandas:
         """,
             inplace=True,
         )
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
         assert ans is None
 
     def test_assignment_in_query(self):
@@ -1474,7 +1478,7 @@ class TestOperationsNumExprPandas:
         df_orig = df.copy()
         with pytest.raises(ValueError):
             df.query("a = 1")
-        assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(df, df_orig)
 
     def test_query_inplace(self):
         # see gh-11149
@@ -1482,7 +1486,7 @@ class TestOperationsNumExprPandas:
         expected = df.copy()
         expected = expected[expected["a"] == 2]
         df.query("a == 2", inplace=True)
-        assert_frame_equal(expected, df)
+        tm.assert_frame_equal(expected, df)
 
         df = {}
         expected = {"a": 3}
@@ -1522,26 +1526,26 @@ class TestOperationsNumExprPandas:
             self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
-        df = mkdf(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
+        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
 
         e = df < 2
         r = self.eval("df < 2", local_dict={"df": df})
         x = df < 2
 
-        assert_frame_equal(r, e)
-        assert_frame_equal(x, e)
+        tm.assert_frame_equal(r, e)
+        tm.assert_frame_equal(x, e)
 
     def test_basic_period_index_subscript_expression(self):
-        df = mkdf(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
+        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
         r = self.eval("df[df < 2 + 3]", local_dict={"df": df})
         e = df[df < 2 + 3]
-        assert_frame_equal(r, e)
+        tm.assert_frame_equal(r, e)
 
     def test_nested_period_index_subscript_expression(self):
-        df = mkdf(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
+        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
         r = self.eval("df[df[df < 2] < 2] + df * 2", local_dict={"df": df})
         e = df[df[df < 2] < 2] + df * 2
-        assert_frame_equal(r, e)
+        tm.assert_frame_equal(r, e)
 
     def test_date_boolean(self):
         df = DataFrame(randn(5, 3))
@@ -1553,7 +1557,7 @@ class TestOperationsNumExprPandas:
             parser=self.parser,
         )
         expec = df.dates1 < "20130101"
-        assert_series_equal(res, expec, check_names=False)
+        tm.assert_series_equal(res, expec, check_names=False)
 
     def test_simple_in_ops(self):
         if self.parser != "python":

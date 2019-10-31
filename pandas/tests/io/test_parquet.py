@@ -10,7 +10,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 from pandas.io.parquet import (
     FastParquetImpl,

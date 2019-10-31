@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index

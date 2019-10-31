@@ -5,7 +5,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndex:

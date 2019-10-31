@@ -5,7 +5,7 @@ import pytest
 
 from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
 from pandas.tests.test_base import CheckImmutable, CheckStringMixin
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestFrozenList(CheckImmutable, CheckStringMixin):

@@ -10,11 +10,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-)
 
 from .test_generic import Generic
 
@@ -28,7 +23,7 @@ except ImportError:
 
 class TestDataFrame(Generic):
     _typ = DataFrame
-    _comparator = lambda self, x, y: assert_frame_equal(x, y)
+    _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
 
     def test_rename_mi(self):
         df = DataFrame(
@@ -177,7 +172,7 @@ class TestDataFrame(Generic):
         df.y = 5
 
         assert df.y == 5
-        assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
+        tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
 
     @pytest.mark.skipif(
         not _XARRAY_INSTALLED
@@ -222,7 +217,7 @@ class TestDataFrame(Generic):
         assert result.dims["foo"] == 3
         assert len(result.coords) == 1
         assert len(result.data_vars) == 8
-        assert_almost_equal(list(result.coords.keys()), ["foo"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, Dataset)
 
         # idempotency
@@ -233,7 +228,7 @@ class TestDataFrame(Generic):
         expected["f"] = expected["f"].astype(object)
         expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
-        assert_frame_equal(
+        tm.assert_frame_equal(
             result.to_dataframe(),
             expected,
             check_index_type=False,
@@ -270,7 +265,7 @@ class TestDataFrame(Generic):
         assert result.dims["two"] == 3
         assert len(result.coords) == 2
         assert len(result.data_vars) == 8
-        assert_almost_equal(list(result.coords.keys()), ["one", "two"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
         assert isinstance(result, Dataset)
 
         result = result.to_dataframe()
@@ -278,7 +273,7 @@ class TestDataFrame(Generic):
         expected["f"] = expected["f"].astype(object)
         expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
-        assert_frame_equal(result, expected, check_index_type=False)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_deepcopy_empty(self):
         # This test covers empty frame copying with non-empty column sets
