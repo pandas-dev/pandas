@@ -695,7 +695,7 @@ class Styler:
         """
         Apply a function elementwise.
 
-        Updating the HTML representation with the result.
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
