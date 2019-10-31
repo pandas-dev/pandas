@@ -3549,7 +3549,8 @@ class Index(IndexOpsMixin, PandasObject):
             ldrop_names = list(self_names - overlap)
             rdrop_names = list(other_names - overlap)
 
-            if len(ldrop_names + rdrop_names) == 0:  # if only the order differs
+            # if only the order differs
+            if not len(ldrop_names + rdrop_names):
                 self_jnlevels = self
                 other_jnlevels = other.reorder_levels(self.names)
             else:
