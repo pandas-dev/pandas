@@ -818,7 +818,7 @@ class Styler:
         """
         Set the styles on the current Styler.
 
-        Possibly using styles from ``Styler.export``.
+        Possibly uses styles from ``Styler.export``.
 
         Parameters
         ----------
