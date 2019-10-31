@@ -319,12 +319,9 @@ class BaseGrouper:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": {"name": "group_median"},
+            "median": "group_median",
             "var": "group_var",
-            "first": {
-                "name": "group_nth",
-                "f": lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1),
-            },
+            "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
         },
@@ -333,19 +330,7 @@ class BaseGrouper:
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
-            "rank": {
-                "name": "group_rank",
-                "f": lambda func, a, b, c, d, e, **kwargs: func(
-                    a,
-                    b,
-                    c,
-                    e,
-                    kwargs.get("ties_method", "average"),
-                    kwargs.get("ascending", True),
-                    kwargs.get("pct", False),
-                    kwargs.get("na_option", "keep"),
-                ),
-            },
+            "rank": "group_rank",
         },
     }
 
@@ -391,21 +376,7 @@ class BaseGrouper:
 
         ftype = self._cython_functions[kind][how]
 
-        if isinstance(ftype, dict):
-            func = afunc = get_func(ftype["name"])
-
-            # a sub-function
-            f = ftype.get("f")
-            if f is not None:
-
-                def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)
-
-                # need to curry our sub-function
-                func = wrapper
-
-        else:
-            func = get_func(ftype)
+        func = get_func(ftype)
 
         if func is None:
             raise NotImplementedError(
@@ -517,14 +488,7 @@ class BaseGrouper:
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result,
-                counts,
-                values,
-                labels,
-                func,
-                is_numeric,
-                is_datetimelike,
-                min_count,
+                result, counts, values, labels, func, is_datetimelike, min_count
             )
         elif kind == "transform":
             result = _maybe_fill(
@@ -533,7 +497,7 @@ class BaseGrouper:
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_numeric, is_datetimelike, **kwargs
+                result, values, labels, func, is_datetimelike, **kwargs
             )
 
         if is_integer_dtype(result) and not is_datetimelike:
@@ -574,33 +538,22 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_numeric,
-        is_datetimelike,
-        min_count=-1,
+        self, result, counts, values, comp_ids, agg_func, is_datetimelike, min_count=-1
     ):
         if values.ndim > 2:
             # punting for now
             raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif agg_func is libgroupby.group_nth:
+            # different signature from the others
+            # TODO: should we be using min_count instead of hard-coding it?
+            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
         return result
 
     def _transform(
-        self,
-        result,
-        values,
-        comp_ids,
-        transform_func,
-        is_numeric,
-        is_datetimelike,
-        **kwargs
+        self, result, values, comp_ids, transform_func, is_datetimelike, **kwargs
     ):
 
         comp_ids, _, ngroups = self.group_info
