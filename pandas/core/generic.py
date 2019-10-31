@@ -5156,7 +5156,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "transform"
     ] = """
-    Call ``func`` on self producing a %(klass)s with transformed valuesnd that has the same axis length as self.
+    Call ``func`` on self producing a %(klass)s with transformed values and that has the same axis length as self.
 
     Parameters
     ----------

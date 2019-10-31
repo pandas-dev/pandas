@@ -4838,7 +4838,7 @@ class DataFrame(NDFrame):
     def duplicated(self, subset=None, keep="first"):
         """
         Return boolean Series denoting duplicate rows.
-        
+
         Optionally only considers certain columns.
 
         Parameters
