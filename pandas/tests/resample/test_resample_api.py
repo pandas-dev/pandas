@@ -8,7 +8,6 @@ import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 
@@ -64,7 +63,7 @@ def test_groupby_resample_api():
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
     result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_resample_on_api():
@@ -83,7 +82,7 @@ def test_groupby_resample_on_api():
     expected = df.set_index("dates").groupby("key").resample("D").mean()
 
     result = df.groupby("key").resample("D", on="dates").mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_pipe(test_frame):
@@ -158,11 +157,11 @@ def tests_skip_nuisance(test_frame):
     r = df.resample("H")
     result = r[["A", "B"]].sum()
     expected = pd.concat([r.A.sum(), r.B.sum()], axis=1)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
     result = r.sum()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_downsample_but_actually_upsampling():
@@ -175,7 +174,7 @@ def test_downsample_but_actually_upsampling():
         [0, 20, 40, 60, 80],
         index=pd.date_range("2012-01-01 00:00:00", freq="20s", periods=5),
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_combined_up_downsampling_of_irregular():
@@ -191,7 +190,7 @@ def test_combined_up_downsampling_of_irregular():
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = ts2.resample("2s", how="mean", fill_method="ffill")
     expected = ts2.resample("2s").mean().ffill()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform():
@@ -199,7 +198,7 @@ def test_transform():
     r = test_series.resample("20min")
     expected = test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
     result = r.transform("mean")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_fillna():
@@ -211,11 +210,11 @@ def test_fillna():
 
     expected = r.ffill()
     result = r.fillna(method="ffill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     expected = r.bfill()
     result = r.fillna(method="bfill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     msg = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill"
@@ -233,7 +232,7 @@ def test_apply_without_aggregation():
 
     for t in [g, r]:
         result = t.apply(lambda x: x)
-        assert_series_equal(result, test_series)
+        tm.assert_series_equal(result, test_series)
 
 
 def test_agg_consistency():
@@ -251,7 +250,7 @@ def test_agg_consistency():
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         expected = r[["A", "B", "C"]].agg({"r1": "mean", "r2": "sum"})
         result = r.agg({"r1": "mean", "r2": "sum"})
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 # TODO: once GH 14008 is fixed, move these tests into
@@ -289,31 +288,31 @@ def test_agg():
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
         result = t.aggregate([np.mean, np.std])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
         result = t.aggregate({"A": np.mean, "B": np.std})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     for t in cases:
         result = t.aggregate({"A": ["mean", "std"]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, a_sum], axis=1)
     expected.columns = ["mean", "sum"]
     for t in cases:
         result = t["A"].aggregate(["mean", "sum"])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, a_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "sum")])
     for t in cases:
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -327,7 +326,7 @@ def test_agg():
                     "B": {"mean2": "mean", "sum2": "sum"},
                 }
             )
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -335,7 +334,7 @@ def test_agg():
     )
     for t in cases:
         result = t.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -374,7 +373,7 @@ def test_agg_misc():
         result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
         rcustom = t["B"].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # agg with renamers
     expected = pd.concat(
@@ -389,7 +388,7 @@ def test_agg_misc():
             result = t[["A", "B"]].agg(
                 OrderedDict([("result1", np.sum), ("result2", np.mean)])
             )
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # agg with different hows
     expected = pd.concat(
@@ -400,12 +399,12 @@ def test_agg_misc():
     )
     for t in cases:
         result = t.agg(OrderedDict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # equivalent of using a selection list / or not
     for t in cases:
         result = t[["A", "B"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # series like aggs
     for t in cases:
@@ -413,7 +412,7 @@ def test_agg_misc():
             result = t["A"].agg({"A": ["sum", "std"]})
         expected = pd.concat([t["A"].sum(), t["A"].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([("A", "sum"), ("A", "std")])
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat(
             [t["A"].agg(["sum", "std"]), t["A"].agg(["mean", "std"])], axis=1
@@ -423,7 +422,7 @@ def test_agg_misc():
         )
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # errors
     # invalid names in the agg specification
@@ -469,11 +468,11 @@ def test_agg_nested_dicts():
             result = t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_try_aggregate_non_existing_column():
@@ -534,10 +533,10 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
 
     exp.index.name = "d"
-    assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
 
 
 @pytest.mark.parametrize(
@@ -564,4 +563,4 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         ),
         columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
