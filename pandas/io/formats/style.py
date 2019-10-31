@@ -635,7 +635,7 @@ class Styler:
         """
         Apply a function column-wise, row-wise, or table-wise.
 
-        Updating the HTML representation with the result.
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
