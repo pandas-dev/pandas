@@ -100,7 +100,19 @@ def test_join_multi_wrong_order():
 
     exp_ridx = np.array([-1, -1, -1, -1], dtype=np.intp)
 
-    assert midx1.equals(join_idx)
-    assert midx2.equals(join_idx)
+    tm.assert_index_equal(midx1, join_idx)
     assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+    midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
+
+    df1 = pd.DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
+    df2 = pd.DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
+
+    df_joined = df1.join(df2)
+
+    expected = pd.DataFrame(
+        index=midx1, data={"x": [10, 20, 30, 40], "y": ["fing", "foo", "bar", np.nan]}
+    )
+
+    tm.assert_equal(df_joined, expected)
