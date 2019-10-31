@@ -5156,7 +5156,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "transform"
     ] = """
-    Call ``func`` on self producing a %(klass)s with transformed values and that has the same axis length as self.
+    Call ``func`` on self producing a %(klass)s with transformed values.
+
+    %(klass)s has the same axis length as self.
 
     Parameters
     ----------
@@ -8740,7 +8742,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "align"
     ] = """
-        Align two objects on their axes with the specified join method for each axis Index.
+        Align two objects on their axes with the specified join for each axis Index.
 
         Parameters
         ----------
@@ -9967,8 +9969,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Statistics summarizes the central tendency, dispersion and
         shape of a dataset's distribution, excluding ``NaN`` values.
 
-        Analyzes both numeric and object series, as well as ``DataFrame`` column sets of mixed data types.
-        The output will vary depending on what is provided. Refer to the notes below for more detail.
+        Analyzes both numeric and object series.
+        In addition, it also analyses ``DataFrame`` column sets of mixed data types.
+        The output will vary depending on what is provided.
+        Refer to the notes below for more detail.
 
         Parameters
         ----------
@@ -10654,8 +10658,9 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased kurtosis over requested axis using Fisher's definition of kurtosis(kurtosis of normal == 0.0)."
-            "\n\nNormalized by N-1.",
+            "Return unbiased kurtosis over requested axis."
+            "\n\nFisher's definition of kurtosis is used(kurtosis of normal == 0.0)."
+            "\nNormalized by N-1.",
             nanops.nankurt,
         )
         cls.kurtosis = cls.kurt
