@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, safe_ea_cast
+from pandas.core.arrays import Categorical, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -820,7 +820,7 @@ b  2""",
 
                 # return the same type (Series) as our caller
                 cls = dtype.construct_array_type()
-                result = safe_ea_cast(cls, result, dtype=dtype)
+                result = try_cast_to_ea(cls, result, dtype=dtype)
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 

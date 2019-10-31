@@ -32,9 +32,20 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
-def safe_ea_cast(cls, obj, dtype=None):
+def try_cast_to_ea(cls, obj, dtype=None):
     """
     Call to cls._from_sequence that returns the object unchanged on Exception.
+
+    Parameters
+    ----------
+    cls : ExtensionArray subclass
+    obj : arraylike
+        Values to pass to cls._from_sequence
+    dtype : ExtensionDtype, optional
+
+    Returns
+    -------
+    ExtensionArray or obj
     """
     try:
         result = cls._from_sequence(obj, dtype=dtype)
@@ -1168,7 +1179,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = safe_ea_cast(self, arr)
+                    res = try_cast_to_ea(self, arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

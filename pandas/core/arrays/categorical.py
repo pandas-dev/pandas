@@ -56,7 +56,7 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-from .base import ExtensionArray, _extension_array_shared_docs, safe_ea_cast
+from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
 
 _take_msg = textwrap.dedent(
     """\
@@ -2614,8 +2614,8 @@ def _get_codes_for_values(values, categories):
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
         cls = categories.dtype.construct_array_type()
-        values = safe_ea_cast(cls, values)
-        if not isinstance(values, Categorical):
+        values = try_cast_to_ea(cls, values)
+        if not isinstance(values, cls):
             # exception raised in _from_sequence
             values = ensure_object(values)
             categories = ensure_object(categories)

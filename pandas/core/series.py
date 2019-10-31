@@ -55,7 +55,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, safe_ea_cast
+from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -2849,7 +2849,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = safe_ea_cast(self._values, new_values)
+            new_values = try_cast_to_ea(self._values, new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
