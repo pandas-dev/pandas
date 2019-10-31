@@ -98,5 +98,9 @@ def test_join_multi_wrong_order():
 
     join_idx, lidx, ridx = midx1.join(midx2, return_indexers=False)
 
+    exp_ridx = np.array([-1, -1, -1, -1], dtype=np.intp)
+
     assert midx1.equals(join_idx)
     assert midx2.equals(join_idx)
+    assert lidx is None
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
