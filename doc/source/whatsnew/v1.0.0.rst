@@ -60,7 +60,7 @@ Previously, strings were typically stored in object-dtype NumPy arrays.
 
 .. warning::
 
-   ``StringDtype`` and is currently considered experimental. The implementation
+   ``StringDtype`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
 The text extension type solves several issues with object-dtype NumPy arrays:
@@ -255,6 +255,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
+- Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
 -
 
 .. _whatsnew_1000.performance:
