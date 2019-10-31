@@ -1376,7 +1376,6 @@ class _IXIndexer(_NDFrameIndexer):
 
 
 class _LocationIndexer(_NDFrameIndexer):
-
     def __getitem__(self, key):
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
