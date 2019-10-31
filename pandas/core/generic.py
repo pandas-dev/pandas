@@ -9965,9 +9965,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generate descriptive statistics that summarize the central tendency,
-        dispersion and shape of a dataset's distribution, excluding
-        ``NaN`` values.
+        Generate descriptive statistics that summarizes a dataset.
+        
+        Statistics summarizes the central tendency, dispersion and 
+        shape of a dataset's distribution, excluding ``NaN`` values.
 
         Analyzes both numeric and object series, as well
         as ``DataFrame`` column sets of mixed data types. The output
@@ -10649,7 +10650,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased skew over requested axis\nNormalized by N-1.",
+            "Return unbiased skew over requested axis normalized by N-1.",
             nanops.nanskew,
         )
         cls.kurt = _make_stat_function(
@@ -10659,7 +10660,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "Return unbiased kurtosis over requested axis using Fisher's "
-            "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
+            "definition of kurtosis(kurtosis of normal == 0.0).\nNormalized "
             "by N-1.",
             nanops.nankurt,
         )

@@ -310,10 +310,11 @@ ValueError: columns overlap but no suffix specified:
 
 class DataFrame(NDFrame):
     """
-    Two-dimensional size-mutable, potentially heterogeneous tabular data
-    structure with labeled axes (rows and columns). Arithmetic operations
-    align on both row and column labels. Can be thought of as a dict-like
-    container for Series objects. The primary pandas data structure.
+    Two-dimensional size-mutable, potentially heterogeneous tabular data structure with labeled axes (rows and columns). 
+    
+    Arithmetic operations align on both row and column labels. 
+    Can be thought of as a dict-like container for Series objects.
+    The primary pandas data structure.
 
     Parameters
     ----------
@@ -4798,9 +4799,10 @@ class DataFrame(NDFrame):
 
     def drop_duplicates(self, subset=None, keep="first", inplace=False):
         """
-        Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns. Indexes, including time indexes
-        are ignored.
+        Return DataFrame with duplicate rows removed.
+        
+        Optionally only considers certain columns. 
+        Indexes, including time indexes are ignored.
 
         Parameters
         ----------
@@ -4834,8 +4836,9 @@ class DataFrame(NDFrame):
 
     def duplicated(self, subset=None, keep="first"):
         """
-        Return boolean Series denoting duplicate rows, optionally only
-        considering certain columns.
+        Return boolean Series denoting duplicate rows.
+        
+        Optionally only considers certain columns.
 
         Parameters
         ----------
@@ -7536,9 +7539,10 @@ class DataFrame(NDFrame):
 
     def corrwith(self, other, axis=0, drop=False, method="pearson"):
         """
-        Compute pairwise correlation between rows or columns of DataFrame
-        with rows or columns of Series or DataFrame.  DataFrames are first
-        aligned along both axes before computing the correlations.
+        Compute pairwise correlation between rows or columns of DataFrame.
+        
+        Correlation is computed with rows or columns of Series or DataFrame. 
+        DataFrames are first aligned along both axes before computing the correlations.
 
         Parameters
         ----------
