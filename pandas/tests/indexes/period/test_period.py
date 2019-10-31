@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 from ..datetimelike import DatetimeLike
 
