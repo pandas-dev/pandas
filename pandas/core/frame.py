@@ -4803,7 +4803,7 @@ class DataFrame(NDFrame):
         Return DataFrame with duplicate rows removed.
 
         Optionally only considers certain columns.
-        Indexes, including time indexes are ignored.
+        Indexes, including time indexes, are ignored.
 
         Parameters
         ----------
