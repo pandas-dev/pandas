@@ -719,6 +719,11 @@ def group_quantile(ndarray[float64_t] out,
         ndarray[int64_t] counts, non_na_counts, sort_arr
 
     assert values.shape[0] == N
+
+    if not (0 <= q <= 1):
+        raise ValueError("'q' must be between 0 and 1. Got"
+                         " '{}' instead".format(q))
+
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
         'lower': INTERPOLATION_LOWER,
@@ -736,6 +741,9 @@ def group_quantile(ndarray[float64_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
+            if lab == -1:  # NA group label
+                continue
+
             counts[lab] += 1
             if not mask[i]:
                 non_na_counts[lab] += 1
