@@ -10,7 +10,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestLoc(Base):
