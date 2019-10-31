@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 from pandas.tests.io.pytables.common import ensure_clean_path
-from pandas.util.testing import assert_frame_equal
+import pandas.util.testing as tm
 
 tables = pytest.importorskip("tables")
 
@@ -52,25 +52,25 @@ class TestReadPyTablesHDF5:
         path, objname, df = pytables_hdf5_file
         result = pd.read_hdf(path, key=objname)
         expected = df
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_start(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, start=1)
         expected = df[1:].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_stop(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, stop=1)
         expected = df[:1].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_startstop(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, start=1, stop=2)
         expected = df[1:2].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

@@ -42,7 +42,6 @@ from pandas.tests.io.pytables.common import (
     tables,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from pandas.io.pytables import (
     ClosedFileError,
@@ -99,19 +98,19 @@ class TestHDFStore:
                 return read_hdf(path, key)
 
             o = tm.makeTimeSeries()
-            assert_series_equal(o, roundtrip("series", o))
+            tm.assert_series_equal(o, roundtrip("series", o))
 
             o = tm.makeStringSeries()
-            assert_series_equal(o, roundtrip("string_series", o))
+            tm.assert_series_equal(o, roundtrip("string_series", o))
 
             o = tm.makeDataFrame()
-            assert_frame_equal(o, roundtrip("frame", o))
+            tm.assert_frame_equal(o, roundtrip("frame", o))
 
             # table
             df = DataFrame(dict(A=range(5), B=range(5)))
             df.to_hdf(path, "table", append=True)
             result = read_hdf(path, "table", where=["index>2"])
-            assert_frame_equal(df[df.index > 2], result)
+            tm.assert_frame_equal(df[df.index > 2], result)
 
         finally:
             safe_remove(path)
@@ -127,7 +126,7 @@ class TestHDFStore:
             store.append("df", df, data_columns=["a"])
 
             result = store.select("df")
-            assert_frame_equal(df, result)
+            tm.assert_frame_equal(df, result)
 
     def test_api(self, setup_path):
 
@@ -138,39 +137,39 @@ class TestHDFStore:
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path, "df", append=True, format="table")
             df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
             # append to False
             df.iloc[:10].to_hdf(path, "df", append=False, format="table")
             df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
         with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path, "df", append=True)
             df.iloc[10:].to_hdf(path, "df", append=True, format="table")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
             # append to False
             df.iloc[:10].to_hdf(path, "df", append=False, format="table")
             df.iloc[10:].to_hdf(path, "df", append=True)
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
         with ensure_clean_path(setup_path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path, "df", append=False, format="fixed")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
             df.to_hdf(path, "df", append=False, format="f")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
             df.to_hdf(path, "df", append=False)
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
             df.to_hdf(path, "df")
-            assert_frame_equal(read_hdf(path, "df"), df)
+            tm.assert_frame_equal(read_hdf(path, "df"), df)
 
         with ensure_clean_store(setup_path) as store:
 
@@ -180,24 +179,24 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.append("df", df.iloc[:10], append=True, format="table")
             store.append("df", df.iloc[10:], append=True, format="table")
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
 
             # append to False
             _maybe_remove(store, "df")
             store.append("df", df.iloc[:10], append=False, format="table")
             store.append("df", df.iloc[10:], append=True, format="table")
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
 
             # formats
             _maybe_remove(store, "df")
             store.append("df", df.iloc[:10], append=False, format="table")
             store.append("df", df.iloc[10:], append=True, format="table")
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
 
             _maybe_remove(store, "df")
             store.append("df", df.iloc[:10], append=False, format="table")
             store.append("df", df.iloc[10:], append=True, format=None)
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
 
         with ensure_clean_path(setup_path) as path:
             # Invalid.
@@ -432,7 +431,7 @@ class TestHDFStore:
                         read_hdf(path, "df", mode=mode)
                 else:
                     result = read_hdf(path, "df", mode=mode)
-                    assert_frame_equal(result, df)
+                    tm.assert_frame_equal(result, df)
 
         def check_default_mode():
 
@@ -440,7 +439,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 df.to_hdf(path, "df", mode="w")
                 result = read_hdf(path, "df")
-                assert_frame_equal(result, df)
+                tm.assert_frame_equal(result, df)
 
         check("r")
         check("r+")
@@ -962,7 +961,7 @@ class TestHDFStore:
 
                 _maybe_remove(store, "df")
                 store.put("df", df, format=format)
-                assert_frame_equal(df, store["df"])
+                tm.assert_frame_equal(df, store["df"])
 
             for index in [
                 tm.makeFloatIndex,
@@ -1032,9 +1031,11 @@ class TestHDFStore:
 
         if is_categorical_dtype(s_nan):
             assert is_categorical_dtype(retr)
-            assert_series_equal(s_nan, retr, check_dtype=False, check_categorical=False)
+            tm.assert_series_equal(
+                s_nan, retr, check_dtype=False, check_categorical=False
+            )
         else:
-            assert_series_equal(s_nan, retr)
+            tm.assert_series_equal(s_nan, retr)
 
         # FIXME: don't leave commented-out
         # fails:
@@ -1861,14 +1862,14 @@ class TestHDFStore:
             # repeated append of 0/non-zero frames
             df = DataFrame(np.random.rand(10, 3), columns=list("ABC"))
             store.append("df", df)
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
             store.append("df", df_empty)
-            assert_frame_equal(store.select("df"), df)
+            tm.assert_frame_equal(store.select("df"), df)
 
             # store
             df = DataFrame(columns=list("ABC"))
             store.put("df2", df)
-            assert_frame_equal(store.select("df2"), df)
+            tm.assert_frame_equal(store.select("df2"), df)
 
     def test_append_raise(self, setup_path):
 
@@ -1929,11 +1930,11 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
             store.append("df_f8", df1)
-            assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
+            tm.assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
 
             df2 = DataFrame({"a": [1, 2, 3]}, dtype="i8")
             store.append("df_i8", df2)
-            assert_series_equal(df2.dtypes, store["df_i8"].dtypes)
+            tm.assert_series_equal(df2.dtypes, store["df_i8"].dtypes)
 
             # incompatible dtype
             with pytest.raises(ValueError):
@@ -1943,7 +1944,7 @@ class TestHDFStore:
             # actually create them thought)
             df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
             store.append("df_f4", df1)
-            assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
+            tm.assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
             assert df1.dtypes[0] == "float32"
 
             # check with mixed dtypes
@@ -2057,11 +2058,11 @@ class TestHDFStore:
 
             store.put("fixed", s)
             result = store.select("fixed")
-            assert_series_equal(result, s)
+            tm.assert_series_equal(result, s)
 
             store.append("table", s)
             result = store.select("table")
-            assert_series_equal(result, s)
+            tm.assert_series_equal(result, s)
 
     def test_roundtrip_tz_aware_index(self, setup_path):
         # GH 17618
@@ -2096,32 +2097,32 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.append("df", df, data_columns=True)
             result = store.select("df")
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
 
             result = store.select("df", where="C<100000")
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
 
             result = store.select("df", where="C<pd.Timedelta('-3D')")
-            assert_frame_equal(result, df.iloc[3:])
+            tm.assert_frame_equal(result, df.iloc[3:])
 
             result = store.select("df", "C<'-3D'")
-            assert_frame_equal(result, df.iloc[3:])
+            tm.assert_frame_equal(result, df.iloc[3:])
 
             # a bit hacky here as we don't really deal with the NaT properly
 
             result = store.select("df", "C<'-500000s'")
             result = result.dropna(subset=["C"])
-            assert_frame_equal(result, df.iloc[6:])
+            tm.assert_frame_equal(result, df.iloc[6:])
 
             result = store.select("df", "C<'-3.5D'")
             result = result.iloc[1:]
-            assert_frame_equal(result, df.iloc[4:])
+            tm.assert_frame_equal(result, df.iloc[4:])
 
             # fixed
             _maybe_remove(store, "df2")
             store.put("df2", df)
             result = store.select("df2")
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
 
     def test_remove(self, setup_path):
 
@@ -2228,16 +2229,16 @@ class TestHDFStore:
             import datetime  # noqa
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             from datetime import datetime  # noqa
 
             # technically an error, but allow it
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df", "index>datetime(2013,1,5)")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_series(self, setup_path):
 
@@ -2459,7 +2460,7 @@ class TestHDFStore:
             df.to_hdf(path, "df", format=table_format)
             df2 = read_hdf(path, "df")
 
-            assert_frame_equal(df, df2, check_names=True)
+            tm.assert_frame_equal(df, df2, check_names=True)
 
             assert type(df2.index.name) == str
             assert type(df2.columns.name) == str
@@ -2534,15 +2535,15 @@ class TestHDFStore:
 
             result = store.select("df")
             expected = df
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
             result = store.select("df", columns=df.columns)
             expected = df
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
             result = store.select("df", columns=["A"])
             expected = df.loc[:, ["A"]]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
         # dups across dtypes
         df = concat(
@@ -2561,19 +2562,19 @@ class TestHDFStore:
 
             result = store.select("df")
             expected = df
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
             result = store.select("df", columns=df.columns)
             expected = df
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
             expected = df.loc[:, ["A"]]
             result = store.select("df", columns=["A"])
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
             expected = df.loc[:, ["B", "A"]]
             result = store.select("df", columns=["B", "A"])
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
         # duplicates on both index and columns
         with ensure_clean_store(setup_path) as store:
@@ -2583,7 +2584,7 @@ class TestHDFStore:
             expected = df.loc[:, ["B", "A"]]
             expected = concat([expected, expected])
             result = store.select("df", columns=["B", "A"])
-            assert_frame_equal(result, expected, by_blocks=True)
+            tm.assert_frame_equal(result, expected, by_blocks=True)
 
     def test_overwrite_node(self, setup_path):
 
@@ -3269,40 +3270,40 @@ class TestHDFStore:
             l = selection.index.tolist()  # noqa
             store = HDFStore(hh)
             result = store.select("df", where="l1=l")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
             store.close()
 
             result = read_hdf(hh, "df", where="l1=l")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # index
             index = selection.index  # noqa
             result = read_hdf(hh, "df", where="l1=index")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = read_hdf(hh, "df", where="l1=selection.index")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = read_hdf(hh, "df", where="l1=list(selection.index)")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # scope with index
             store = HDFStore(hh)
 
             result = store.select("df", where="l1=index")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df", where="l1=selection.index")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df", where="l1=selection.index.tolist()")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df", where="l1=list(selection.index)")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             store.close()
 
@@ -3337,11 +3338,11 @@ class TestHDFStore:
 
             result = store.select("df", "x=none")
             expected = df[df.x == "none"]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df", "x!=none")
             expected = df[df.x != "none"]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             df2 = df.copy()
             df2.loc[df2.x == "", "x"] = np.nan
@@ -3349,7 +3350,7 @@ class TestHDFStore:
             store.append("df2", df2, data_columns=["x"])
             result = store.select("df2", "x!=none")
             expected = df2[isna(df2.x)]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # int ==/!=
             df["int"] = 1
@@ -3359,11 +3360,11 @@ class TestHDFStore:
 
             result = store.select("df3", "int=2")
             expected = df[df.int == 2]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df3", "int!=2")
             expected = df[df.int != 2]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_read_column(self, setup_path):
 
@@ -3700,7 +3701,7 @@ class TestHDFStore:
             # write w/o the index on that particular column
             store.append("df", df, data_columns=True, index=["cols"])
             result = store.select("df", where="values>2.0")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_start_stop_table(self, setup_path):
 
@@ -3816,7 +3817,7 @@ class TestHDFStore:
             store.append("test_dataset", df)
 
             result = store.select("test_dataset", start=start, stop=stop)
-            assert_frame_equal(df[start:stop], result)
+            tm.assert_frame_equal(df[start:stop], result)
 
     def test_path_pathlib_hdfstore(self, setup_path):
         df = tm.makeDataFrame()
@@ -4044,7 +4045,7 @@ class TestHDFStore:
                 columns=["A", "B", "C", "D"],
                 index=pd.Index(["ABC"], name="INDEX_NAME"),
             )
-            assert_frame_equal(expected, result)
+            tm.assert_frame_equal(expected, result)
 
     def test_legacy_table_read_py2(self, datapath, setup_path):
         # issue: 24925
@@ -4055,7 +4056,7 @@ class TestHDFStore:
             result = store.select("table")
 
         expected = pd.DataFrame({"a": ["a", "b"], "b": [2, 3]})
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
 
     def test_copy(self, setup_path):
 
@@ -4152,7 +4153,7 @@ class TestHDFStore:
             store["a"] = df
             result = store["a"]
 
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
             assert result.index.freq == df.index.freq
             tm.assert_class_equal(result.index, df.index, obj="dataframe index")
 
@@ -4161,7 +4162,7 @@ class TestHDFStore:
             store["a"] = df
             result = store["a"]
 
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
             assert result.index.freq == df.index.freq
             tm.assert_class_equal(result.index, df.index, obj="dataframe index")
 
@@ -4442,7 +4443,7 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             store["df"] = df
-            assert_frame_equal(store["df"], df)
+            tm.assert_frame_equal(store["df"], df)
 
     def test_columns_multiindex_modified(self, setup_path):
         # BUG: 7212
@@ -4569,7 +4570,7 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="a")
             reread = read_hdf(path)
-            assert_frame_equal(df, reread)
+            tm.assert_frame_equal(df, reread)
             df.to_hdf(path, "df2", mode="a")
 
             with pytest.raises(ValueError):
@@ -4582,7 +4583,7 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="a", format="table")
             reread = read_hdf(path)
-            assert_frame_equal(df, reread)
+            tm.assert_frame_equal(df, reread)
             df.to_hdf(path, "df2", mode="a", format="table")
 
             with pytest.raises(ValueError):
@@ -4739,7 +4740,7 @@ class TestHDFStore:
             mode="r",
         ) as store:
             result = store["p"]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
     def test_select_empty_where(self, where):
@@ -4754,7 +4755,7 @@ class TestHDFStore:
             with pd.HDFStore(path) as store:
                 store.put("df", df, "t")
                 result = pd.read_hdf(store, "df", where=where)
-                assert_frame_equal(result, df)
+                tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
         "idx",

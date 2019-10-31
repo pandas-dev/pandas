@@ -13,7 +13,6 @@ from pandas._libs.parsers import TextReader
 
 from pandas import DataFrame
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 from pandas.io.parsers import TextFileReader, read_csv
 
@@ -323,19 +322,19 @@ a,b,c
 
         for _ in range(100):
             df = read_csv(StringIO("a,b\nc\n"), skiprows=0, names=["a"], engine="c")
-            assert_frame_equal(df, a)
+            tm.assert_frame_equal(df, a)
 
             df = read_csv(
                 StringIO("1,1,1,1,0\n" * 2 + "\n" * 2), names=list("abcd"), engine="c"
             )
-            assert_frame_equal(df, b)
+            tm.assert_frame_equal(df, b)
 
             df = read_csv(
                 StringIO("0,1,2,3,4\n5,6\n7,8,9,10,11\n12,13,14"),
                 names=list("abcd"),
                 engine="c",
             )
-            assert_frame_equal(df, c)
+            tm.assert_frame_equal(df, c)
 
     def test_empty_csv_input(self):
         # GH14867

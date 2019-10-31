@@ -3,7 +3,7 @@ import warnings
 import pytest
 
 from pandas import DataFrame
-from pandas.util.testing import ensure_clean
+import pandas.util.testing as tm
 
 from pandas.io.excel import ExcelWriter
 
@@ -20,7 +20,7 @@ def test_column_format(ext):
         warnings.simplefilter("ignore")
         openpyxl = pytest.importorskip("openpyxl")
 
-    with ensure_clean(ext) as path:
+    with tm.ensure_clean(ext) as path:
         frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
 
         writer = ExcelWriter(path)
@@ -59,6 +59,6 @@ def test_column_format(ext):
 def test_write_append_mode_raises(ext):
     msg = "Append mode is not supported with xlsxwriter!"
 
-    with ensure_clean(ext) as f:
+    with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
