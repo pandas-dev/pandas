@@ -22,7 +22,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import (
+from urllib.parse import (  # noqa
     urlencode,
     urljoin,
     urlparse as parse_url,
