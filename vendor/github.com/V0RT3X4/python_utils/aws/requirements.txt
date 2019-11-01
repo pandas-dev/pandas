@@ -1,0 +1,5 @@
+boto3
+pycryptodomex
+nose2
+pandas
+logzero
