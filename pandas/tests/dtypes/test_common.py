@@ -23,6 +23,9 @@ from pandas.conftest import (
 )
 import pandas.util.testing as tm
 
+from typing import TYPE_CHECKING, List, Union, AnyStr
+from pandas._typing import Dtype
+
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
@@ -322,15 +325,17 @@ def test_is_datetimelike():
     assert com.is_datetimelike(s)
 
 
+integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [
-        pd.Series([1, 2]),
-        *ALL_INT_DTYPES,
-        *to_numpy_dtypes(ALL_INT_DTYPES),
-        *ALL_EA_INT_DTYPES,
-        *to_ea_dtypes(ALL_EA_INT_DTYPES),
-    ],
+    integer_dtypes
+    + pd.Series([1, 2])
+    + ALL_INT_DTYPES
+    + to_numpy_dtypes(ALL_INT_DTYPES)
+    + ALL_EA_INT_DTYPES
+    + to_ea_dtypes(ALL_EA_INT_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -352,15 +357,17 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
+signed_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [
-        pd.Series([1, 2]),
-        *SIGNED_INT_DTYPES,
-        *to_numpy_dtypes(SIGNED_INT_DTYPES),
-        *SIGNED_EA_INT_DTYPES,
-        *to_ea_dtypes(SIGNED_EA_INT_DTYPES),
-    ],
+    signed_integer_dtypes 
+    + pd.Series([1, 2])
+    + SIGNED_INT_DTYPES
+    + to_numpy_dtypes(SIGNED_INT_DTYPES)
+    + SIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(SIGNED_EA_INT_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -386,15 +393,17 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
+unsigned_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [
-        pd.Series([1, 2], dtype=np.uint32),
-        *UNSIGNED_INT_DTYPES,
-        *to_numpy_dtypes(UNSIGNED_INT_DTYPES),
-        *UNSIGNED_EA_INT_DTYPES,
-        *to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
-    ],
+    unsigned_integer_dtypes
+    + pd.Series([1, 2], dtype=np.uint32)
+    + UNSIGNED_INT_DTYPES
+    + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
+    + UNSIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
