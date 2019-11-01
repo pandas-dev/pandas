@@ -952,7 +952,7 @@ def test_no_mutate_but_looks_like():
         lambda x: x[:].key
     )
     result2 = df.groupby("key", group_keys=True, as_index=False).apply(lambda x: x.key)
-    assert_series_equal(result1, result2)
+    tm.assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1352,7 +1352,7 @@ def test_dont_clobber_name_column(as_index):
     if as_index:
         df.pop("key")
 
-    assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, df)
 
 
 def test_skip_group_keys():
