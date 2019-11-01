@@ -123,8 +123,8 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i
 
-# XXX: Some of our environments end up with old verisons of pip (10.x)
-# Adding a new enough verison of pip to the requirements explodes the
+# XXX: Some of our environments end up with old versions of pip (10.x)
+# Adding a new enough version of pip to the requirements explodes the
 # solve time. Just using pip to update itself.
 # - py35_macos
 # - py35_compat

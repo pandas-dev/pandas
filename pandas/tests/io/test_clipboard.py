@@ -6,8 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
-from pandas.util import testing as tm
-from pandas.util.testing import makeCustomDataframe as mkdf
+import pandas.util.testing as tm
 
 from pandas.io.clipboard import clipboard_get, clipboard_set
 from pandas.io.clipboard.exceptions import PyperclipException
@@ -54,12 +53,12 @@ def df(request):
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
-        return mkdf(
+        return tm.makeCustomDataframe(
             5, 3, c_idx_type="s", r_idx_type="i", c_idx_names=[None], r_idx_names=[None]
         )
     elif data_type == "long":
         max_rows = get_option("display.max_rows")
-        return mkdf(
+        return tm.makeCustomDataframe(
             max_rows + 1,
             3,
             data_gen_f=lambda *args: randint(2),
@@ -72,7 +71,7 @@ def df(request):
         return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
-        return mkdf(
+        return tm.makeCustomDataframe(
             5,
             3,
             data_gen_f=lambda *args: "x" * _cw,
@@ -86,7 +85,7 @@ def df(request):
             {"a": np.arange(1.0, 6.0) + 0.01, "b": np.arange(1, 6), "c": list("abcde")}
         )
     elif data_type == "float":
-        return mkdf(
+        return tm.makeCustomDataframe(
             5,
             3,
             data_gen_f=lambda r, c: float(r) + 0.01,
@@ -96,7 +95,7 @@ def df(request):
             r_idx_names=[None],
         )
     elif data_type == "int":
-        return mkdf(
+        return tm.makeCustomDataframe(
             5,
             3,
             data_gen_f=lambda *args: randint(2),

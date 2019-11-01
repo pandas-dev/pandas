@@ -6,7 +6,6 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 test_frame = DataFrame(
     {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
@@ -56,7 +55,7 @@ def test_deferred_with_groupby():
 
     expected = df.groupby("id").apply(f)
     result = df.set_index("date").groupby("id").resample("D").asfreq()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     df = DataFrame(
         {
@@ -71,7 +70,7 @@ def test_deferred_with_groupby():
 
     expected = df.groupby("group").apply(f)
     result = df.groupby("group").resample("1D").ffill()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_getitem():
@@ -80,13 +79,13 @@ def test_getitem():
     expected = g.B.apply(lambda x: x.resample("2s").mean())
 
     result = g.resample("2s").B.mean()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = g.B.resample("2s").mean()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = g.resample("2s").mean().B
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_getitem_multiple():
@@ -105,10 +104,10 @@ def test_getitem_multiple():
         ),
         name="buyer",
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = r["buyer"].count()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_resample_on_api_with_getitem():
@@ -118,7 +117,7 @@ def test_groupby_resample_on_api_with_getitem():
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
     result = df.groupby("id").resample("2D", on="date")["data"].sum()
-    assert_series_equal(result, exp)
+    tm.assert_series_equal(result, exp)
 
 
 def test_nearest():
@@ -144,7 +143,7 @@ def test_nearest():
             freq="20S",
         ),
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_methods():
@@ -154,37 +153,37 @@ def test_methods():
     for f in ["first", "last", "median", "sem", "sum", "mean", "min", "max"]:
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     for f in ["size"]:
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     for f in ["count"]:
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     # series only
     for f in ["nunique"]:
         result = getattr(r.B, f)()
         expected = g.B.apply(lambda x: getattr(x.resample("2s"), f)())
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     for f in ["nearest", "backfill", "ffill", "asfreq"]:
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     result = r.ohlc()
     expected = g.apply(lambda x: x.resample("2s").ohlc())
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     for f in ["std", "var"]:
         result = getattr(r, f)(ddof=1)
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)(ddof=1))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_apply():
@@ -199,13 +198,13 @@ def test_apply():
         return x.resample("2s").sum()
 
     result = r.apply(f)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     def f(x):
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_with_mutated_index():
@@ -220,12 +219,12 @@ def test_apply_with_mutated_index():
     expected = df.groupby(pd.Grouper(freq="M")).apply(f)
 
     result = df.resample("M").apply(f)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # A case for series
     expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
     result = df["col1"].resample("M").apply(f)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_groupby_with_label():
@@ -245,7 +244,7 @@ def test_resample_groupby_with_label():
         data={"col0": [0, 0, 2, 2], "col1": [1, 1, 2, 1]}, index=mindex
     )
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_consistency_with_window():
@@ -275,4 +274,4 @@ def test_median_duplicate_columns():
     expected = df2.resample("5s").median()
     result = df.resample("5s").median()
     expected.columns = result.columns
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)

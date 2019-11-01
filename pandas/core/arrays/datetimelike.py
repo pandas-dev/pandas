@@ -1441,7 +1441,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             values = self.asi8
 
         if not len(values):
-            # short-circut for empty max / min
+            # short-circuit for empty max / min
             return NaT
 
         result = nanops.nanmax(values, skipna=skipna)
@@ -1457,15 +1457,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         Parameters
         ----------
         skipna : bool, default True
-            Whether to ignore any NaT elements
+            Whether to ignore any NaT elements.
 
         Returns
         -------
-        scalar (Timestamp or Timedelta)
+        scalar
+            Timestamp or Timedelta.
 
         See Also
         --------
-        numpy.ndarray.mean
+        numpy.ndarray.mean : Returns the average of array elements along a given axis.
         Series.mean : Return the mean value in a Series.
 
         Notes

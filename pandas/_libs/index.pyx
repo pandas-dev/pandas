@@ -171,17 +171,17 @@ cdef class IndexEngine:
 
         raise KeyError(val)
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
         if not self.is_mapping_populated:
             return 0
         return self.mapping.sizeof(deep=deep)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         return self.sizeof()
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -193,14 +193,14 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
         return self.monotonic_inc == 1
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
@@ -227,7 +227,7 @@ cdef class IndexEngine:
     cdef _get_index_values(self):
         return self.vgetter()
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
@@ -236,14 +236,14 @@ cdef class IndexEngine:
     def get_pad_indexer(self, other, limit=None):
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
 
     cdef _check_type(self, object val):
         hash(val)
 
     @property
-    def is_mapping_populated(self):
+    def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
@@ -262,7 +262,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):
@@ -391,7 +391,7 @@ cdef class ObjectEngine(IndexEngine):
     """
     Index Engine for use with object-dtype Index, namely the base class Index
     """
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
 
@@ -418,7 +418,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
@@ -500,11 +500,13 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter()
 
-    cpdef _call_map_locations(self, values):
-        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+    cdef void _call_map_locations(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        Int64Engine._call_map_locations(self, values.view('i8'))
 
-    def _call_monotonic(self, values):
-        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+    cdef _call_monotonic(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
