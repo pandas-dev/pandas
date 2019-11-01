@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas import (
@@ -27,7 +28,6 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
-    Series,
     to_datetime,
     to_timedelta,
 )
@@ -208,7 +208,8 @@ def cut(
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
     # for handling the cut for datetime and timedelta objects
-    x_is_series, series_index, name, x = _preprocess_for_cut(x)
+    original = x
+    x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
@@ -270,9 +271,7 @@ def cut(
         duplicates=duplicates,
     )
 
-    return _postprocess_for_cut(
-        fac, bins, retbins, x_is_series, series_index, name, dtype
-    )
+    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
@@ -328,8 +327,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
-    x_is_series, series_index, name, x = _preprocess_for_cut(x)
-
+    original = x
+    x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
@@ -347,9 +346,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
         duplicates=duplicates,
     )
 
-    return _postprocess_for_cut(
-        fac, bins, retbins, x_is_series, series_index, name, dtype
-    )
+    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
 
 
 def _bins_to_cuts(
@@ -537,13 +534,6 @@ def _preprocess_for_cut(x):
     input to array, strip the index information and store it
     separately
     """
-    x_is_series = isinstance(x, Series)
-    series_index = None
-    name = None
-
-    if x_is_series:
-        series_index = x.index
-        name = x.name
 
     # Check that the passed array is a Pandas or Numpy object
     # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
@@ -553,17 +543,17 @@ def _preprocess_for_cut(x):
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return x_is_series, series_index, name, x
+    return x
 
 
-def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name, dtype):
+def _postprocess_for_cut(fac, bins, retbins, dtype, original):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
     datatype was a series
     """
-    if x_is_series:
-        fac = Series(fac, index=series_index, name=name)
+    if isinstance(original, ABCSeries):
+        fac = original._constructor(fac, index=original.index, name=original.name)
 
     if not retbins:
         return fac
