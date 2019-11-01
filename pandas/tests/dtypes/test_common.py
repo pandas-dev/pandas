@@ -362,7 +362,7 @@ signed_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
 
 @pytest.mark.parametrize(
     "dtype",
-    signed_integer_dtypes 
+    signed_integer_dtypes
     + pd.Series([1, 2])
     + SIGNED_INT_DTYPES
     + to_numpy_dtypes(SIGNED_INT_DTYPES)
