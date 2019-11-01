@@ -294,7 +294,7 @@ def read_sql_query(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -372,7 +372,7 @@ def read_sql(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
