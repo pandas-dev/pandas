@@ -331,7 +331,7 @@ integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
 @pytest.mark.parametrize(
     "dtype",
     integer_dtypes
-    + pd.Series([1, 2])
+    + [pd.Series([1, 2])]
     + ALL_INT_DTYPES
     + to_numpy_dtypes(ALL_INT_DTYPES)
     + ALL_EA_INT_DTYPES
@@ -363,7 +363,7 @@ signed_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
 @pytest.mark.parametrize(
     "dtype",
     signed_integer_dtypes
-    + pd.Series([1, 2])
+    + [pd.Series([1, 2])]
     + SIGNED_INT_DTYPES
     + to_numpy_dtypes(SIGNED_INT_DTYPES)
     + SIGNED_EA_INT_DTYPES
@@ -399,7 +399,7 @@ unsigned_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
 @pytest.mark.parametrize(
     "dtype",
     unsigned_integer_dtypes
-    + pd.Series([1, 2], dtype=np.uint32)
+    + [pd.Series([1, 2], dtype=np.uint32)]
     + UNSIGNED_INT_DTYPES
     + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
     + UNSIGNED_EA_INT_DTYPES
