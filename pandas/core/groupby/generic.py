@@ -7,7 +7,6 @@ which here returns a DataFrameGroupBy object.
 """
 from collections import OrderedDict, abc, namedtuple
 import copy
-import functools
 from functools import partial
 from textwrap import dedent
 import typing
@@ -1689,7 +1688,9 @@ class DataFrameGroupBy(GroupBy):
         )
         loc = (blk.mgr_locs for blk in data.blocks)
 
-        counted = [lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val]
+        counted = [
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
+        ]
         blk = map(make_block, counted, loc)
 
         return self._wrap_agged_blocks(data.items, list(blk))
