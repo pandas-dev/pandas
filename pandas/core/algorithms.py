@@ -46,7 +46,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
