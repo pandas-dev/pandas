@@ -23,7 +23,7 @@ from pandas.conftest import (
 )
 import pandas.util.testing as tm
 
-from typing import TYPE_CHECKING, List, Union, AnyStr
+from typing import List, Union
 from pandas._typing import Dtype
 
 
