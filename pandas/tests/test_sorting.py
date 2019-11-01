@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series, array, concat, merge
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.sorting import (
     decons_group_index,
     get_group_index,

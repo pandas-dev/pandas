@@ -7,11 +7,11 @@ import warnings
 import numpy as np
 
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     _factorize_from_iterable,
     _factorize_from_iterables,
 )
+import pandas.core.common as com
 from pandas.core.generic import NDFrame
 from pandas.core.index import (
     _all_indexes_same,

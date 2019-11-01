@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, option_context
-from pandas.core import common as com
+import pandas.core.common as com
 import pandas.util.testing as tm
 
 

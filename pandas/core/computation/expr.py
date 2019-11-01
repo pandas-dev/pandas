@@ -12,7 +12,7 @@ from typing import Type
 import numpy as np
 
 import pandas as pd
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
     _remove_spaces_column_name,
