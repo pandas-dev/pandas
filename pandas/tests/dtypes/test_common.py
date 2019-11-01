@@ -1,3 +1,5 @@
+from typing import Any, List, Union
+
 import numpy as np
 import pytest
 
@@ -13,6 +15,7 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
+from pandas._typing import Dtype, ExtensionDtype
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -22,9 +25,6 @@ from pandas.conftest import (
     UNSIGNED_INT_DTYPES,
 )
 import pandas.util.testing as tm
-
-from typing import List, Union
-from pandas._typing import Dtype
 
 
 # EA & Actual Dtypes
@@ -325,7 +325,7 @@ def test_is_datetimelike():
     assert com.is_datetimelike(s)
 
 
-integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
+integer_dtypes = []  # type: List[Union[Series, str, str, Any, ExtensionDtype]
 
 
 @pytest.mark.parametrize(
@@ -393,7 +393,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype]]
+unsigned_integer_dtypes = []  # type: List[Union[Series, str, str, Any, ExtensionDtype]
 
 
 @pytest.mark.parametrize(
