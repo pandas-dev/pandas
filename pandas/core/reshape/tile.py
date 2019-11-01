@@ -288,7 +288,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     q : int or list-like of int
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
-    labels : array or bool, default None
+    labels : array or bool, default None.
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins.
@@ -296,7 +296,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
     precision : int, optional
-        The precision at which to store and display the bins labels
+        The precision at which to store and display the bins labels.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
 
