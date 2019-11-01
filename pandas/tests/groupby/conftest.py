@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame, MultiIndex
 from pandas.core.groupby.base import reduction_kernels
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.fixture
