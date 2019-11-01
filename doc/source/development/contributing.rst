@@ -254,35 +254,37 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext --inplace -j 0
    python -m pip install -e . --no-build-isolation
 
 **Windows**
 
 Below is a brief overview on how to set-up a virtual environment with Powershell
-under Windows. For details please refer to the 
+under Windows. For details please refer to the
 `official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
 
 .. code-block:: powershell
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
-   # '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or 
+   # '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
    # %USERPROFILE% (cmd.exe) environment variable
    # Any parent directories should already exist
 
-   # If you are using cmd.exe, run instead: python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
-   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev 
+   # If you are using cmd.exe, run instead:
+   # python -m venv %USERPROFILE%\virtualenvs\pandas-dev
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
 
    # Activate the virtualenv
-   # If you are using cmd.exe, run instead: %USERPROFILE%\virtualenvs\pandas-dev\Scripts\activate.bat
-   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1 
+   # If you are using cmd.exe, run instead:
+   # %USERPROFILE%\virtualenvs\pandas-dev\Scripts\activate.bat
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
 
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext --inplace -j 0
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
