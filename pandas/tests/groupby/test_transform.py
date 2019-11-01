@@ -484,7 +484,7 @@ def test_transform_mixed_type(as_index):
             else:
                 k = index
 
-            assert_frame_equal(res, result.loc[k])
+            tm.assert_frame_equal(res, result.loc[k])
 
 
 def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
