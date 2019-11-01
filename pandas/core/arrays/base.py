@@ -32,13 +32,13 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
-def try_cast_to_ea(cls, obj, dtype=None):
+def try_cast_to_ea(cls_or_instance, obj, dtype=None):
     """
     Call to cls._from_sequence that returns the object unchanged on Exception.
 
     Parameters
     ----------
-    cls : ExtensionArray subclass
+    cls_or_instance : ExtensionArray subclass or instance
     obj : arraylike
         Values to pass to cls._from_sequence
     dtype : ExtensionDtype, optional
@@ -48,7 +48,7 @@ def try_cast_to_ea(cls, obj, dtype=None):
     ExtensionArray or obj
     """
     try:
-        result = cls._from_sequence(obj, dtype=dtype)
+        result = cls_or_instance._from_sequence(obj, dtype=dtype)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
