@@ -192,77 +192,30 @@ Backwards incompatible API changes
 
 .. ipython:: python
 
-    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
-
-    In [2]: df.groupby("a").apply(lambda x: x.sum())
-    Out[2]:
-       a   b
-    a
-    1  2   3
-    2  4   7
-    3  6  11
-
-    In [3]: df.groupby("a").apply(lambda x: x.iloc[0])
-    Out[3]:
-       a  b
-    a
-    1  1  1
-    2  2  3
-    3  3  5
-
-    In [4]: idx = pd.date_range('1/1/2000', periods=4, freq='T')
-
-    In [5]: df = pd.DataFrame(data=4 * [range(2)],
-       ...:                   index=idx,
-       ...:                   columns=['a', 'b'])
-
-    In [6]: df.iloc[2, 0] = 5
-
-    In [7]: df.groupby('a').resample('M').sum()
-    Out[7]:
-                  a  b
-    a
-    0 2000-01-31  0  3
-    5 2000-01-31  5  1
-
+    df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
+    df.groupby("a").apply(lambda x: x.sum())
+    df.groupby("a").apply(lambda x: x.iloc[0])
+    idx = pd.date_range('1/1/2000', periods=4, freq='T')
+    df = pd.DataFrame(data=4 * [range(2)],
+                      index=idx,
+                      columns=['a', 'b'])
+    df.iloc[2, 0] = 5
+    df.groupby('a').resample('M').sum()
 
 
 *Current Behavior*
 
 .. ipython:: python
 
-    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
-
-    In [2]: df.groupby("a").apply(lambda x: x.sum())
-    Out[2]:
-        b
-    a
-    1   3
-    2   7
-    3  11
-
-    In [3]: df.groupby("a").apply(lambda x: x.iloc[0])
-    Out[3]:
-       b
-    a
-    1  1
-    2  3
-    3  5
-
-    In [4]: idx = pd.date_range('1/1/2000', periods=4, freq='T')
-
-    In [5]: df = pd.DataFrame(data=4 * [range(2)],
-       ...:                   index=idx,
-       ...:                   columns=['a', 'b'])
-
-    In [6]: df.iloc[2, 0] = 5
-
-    In [7]: df.groupby('a').resample('M').sum()
-    Out[7]:
-                  b
-    a
-    0 2000-01-31  3
-    5 2000-01-31  1
+    df = pd.DataFrame({"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 3, 4, 5, 6]})
+    df.groupby("a").apply(lambda x: x.sum())
+    df.groupby("a").apply(lambda x: x.iloc[0])
+    idx = pd.date_range('1/1/2000', periods=4, freq='T')
+    df = pd.DataFrame(data=4 * [range(2)],
+                      index=idx,
+                      columns=['a', 'b'])
+    df.iloc[2, 0] = 5
+    df.groupby('a').resample('M').sum()
 
 
 .. _whatsnew_1000.api.other:
