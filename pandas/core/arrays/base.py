@@ -34,7 +34,7 @@ _extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 def try_cast_to_ea(cls_or_instance, obj, dtype=None):
     """
-    Call to cls._from_sequence that returns the object unchanged on Exception.
+    Call to `_from_sequence` that returns the object unchanged on Exception.
 
     Parameters
     ----------
