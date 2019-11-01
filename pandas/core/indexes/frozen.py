@@ -7,7 +7,6 @@ These are used for:
 - .levels & .codes (FrozenNDArray)
 
 """
-
 import warnings
 
 import numpy as np
@@ -68,7 +67,7 @@ class FrozenList(PandasObject, list):
         return type(self)(temp)
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
-    __add__ = __iadd__ = union
+    __add__ = __iadd__ = union  # type: ignore
 
     def __getitem__(self, n):
         if isinstance(n, slice):
@@ -110,8 +109,8 @@ class FrozenList(PandasObject, list):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    pop = append = extend = remove = sort = insert = _disabled
+    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled  # type: ignore
+    pop = append = extend = remove = sort = insert = _disabled  # type: ignore
 
 
 class FrozenNDArray(PandasObject, np.ndarray):
