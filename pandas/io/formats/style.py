@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
+from typing import Optional
 from uuid import uuid1
 
 import numpy as np
@@ -18,7 +19,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
@@ -963,8 +963,8 @@ class Styler:
         axis=0,
         subset=None,
         text_color_threshold=0.408,
-        vmin=None,
-        vmax=None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ):
         """
         Color the background in a gradient style.
@@ -1038,7 +1038,13 @@ class Styler:
 
     @staticmethod
     def _background_gradient(
-        s, cmap="PuBu", low=0, high=0, text_color_threshold=0.408, vmin=None, vmax=None
+        s,
+        cmap="PuBu",
+        low=0,
+        high=0,
+        text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ):
         """
         Color background in a range according to the data.
@@ -1051,12 +1057,8 @@ class Styler:
             raise ValueError(msg)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = s.min() if vmin is None else vmin
-            if isinstance(smin, ABCSeries):
-                smin = smin.min()
-            smax = s.max() if vmax is None else vmax
-            if isinstance(smax, ABCSeries):
-                smax = smax.max()
+            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
             rng = smax - smin
             # extend lower / upper bounds, compresses color range
             norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
@@ -1133,12 +1135,8 @@ class Styler:
         Draw bar chart in dataframe cells.
         """
         # Get input value range.
-        smin = s.min() if vmin is None else vmin
-        if isinstance(smin, ABCSeries):
-            smin = smin.min()
-        smax = s.max() if vmax is None else vmax
-        if isinstance(smax, ABCSeries):
-            smax = smax.max()
+        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
         if align == "mid":
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1326,17 +1324,15 @@ class Styler:
         Highlight the min or max in a Series or DataFrame.
         """
         attr = "background-color: {0}".format(color)
+
+        if max_:
+            extrema = data == np.nanmax(data.to_numpy())
+        else:
+            extrema = data == np.nanmin(data.to_numpy())
+
         if data.ndim == 1:  # Series from .apply
-            if max_:
-                extrema = data == data.max()
-            else:
-                extrema = data == data.min()
             return [attr if v else "" for v in extrema]
         else:  # DataFrame from .tee
-            if max_:
-                extrema = data == data.max().max()
-            else:
-                extrema = data == data.min().min()
             return pd.DataFrame(
                 np.where(extrema, attr, ""), index=data.index, columns=data.columns
             )
