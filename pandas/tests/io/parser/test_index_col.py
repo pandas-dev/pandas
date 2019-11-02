@@ -22,8 +22,8 @@ KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
     header = (
-        "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"  # noqa
-    )
+        "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
+    )  # noqa
 
     if with_header:
         data = header + no_header
