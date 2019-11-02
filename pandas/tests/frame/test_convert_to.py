@@ -615,8 +615,16 @@ class TestDataFrameConvertTo:
 
     def test_to_dict_orient_dtype(self):
         # https://github.com/pandas-dev/pandas/issues/22620
+        # Input Data
         input_data = {"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["X", "Y", "Z"]}
         df = DataFrame(input_data)
-        result = {col: type(value) for col, value in df.to_dict("records")[0].items()}
-        expected = {col: type(data[0]) for col, data in input_data.items()}
+        # Expected Dtypes
+        expected = {"a": int, "b": float, "c": str}
+        # Extracting dtypes out of to_dict operation
+        df_dict = df.to_dict("records")[0]
+        result = {
+            "a": type(df_dict["a"]),
+            "b": type(df_dict["b"]),
+            "c": type(df_dict["c"]),
+        }
         assert result == expected
