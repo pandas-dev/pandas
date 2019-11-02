@@ -300,10 +300,13 @@ class TestIndexReductions:
         assert result[0] == expected
 
         # invalid ops
-        for op in ["skew", "kurt", "sem", "prod"]:
+        for op in ["skew", "kurt", "sem", "prod", "var"]:
             msg = "reduction operation '{}' not allowed for this dtype"
             with pytest.raises(TypeError, match=msg.format(op)):
                 getattr(td, op)()
+
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td.to_frame(), op)(numeric_only=False)
 
         # GH#10040
         # make sure NaT is properly handled by median()
@@ -636,8 +639,13 @@ class TestSeriesReductions:
         assert pd.isna(result)
 
         # timedelta64[ns]
-        result = getattr(Series(dtype="m8[ns]"), method)()
-        assert result is pd.NaT
+        tdser = Series([], dtype="m8[ns]")
+        if method == "var":
+            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+                getattr(tdser, method)()
+        else:
+            result = getattr(tdser, method)()
+            assert result is pd.NaT
 
     def test_nansum_buglet(self):
         ser = Series([1.0, np.nan], index=[0, 1])
