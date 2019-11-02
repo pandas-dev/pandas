@@ -1169,20 +1169,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     def to_series(self, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
         index : Index, optional
-            index of resulting Series. If None, defaults to original index
+            Index of resulting Series. If None, defaults to original index.
         name : str, optional
-            name of resulting Series. If None, defaults to name of original
-            index
+            Dame of resulting Series. If None, defaults to name of original
+            index.
 
         Returns
         -------
-        Series : dtype will be based on the type of the Index values.
+        Series
+            The dtype will be based on the type of the Index values.
         """
 
         from pandas import Series
@@ -1897,8 +1899,6 @@ class Index(IndexOpsMixin, PandasObject):
         empty strings `''` or :attr:`numpy.inf` are not considered NA values
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
-        .. versionadded:: 0.20.0
-
         Returns
         -------
         numpy.ndarray
@@ -1955,8 +1955,6 @@ class Index(IndexOpsMixin, PandasObject):
         (unless you set ``pandas.options.mode.use_inf_as_na = True``).
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -3420,8 +3418,6 @@ class Index(IndexOpsMixin, PandasObject):
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword)
 
-            .. versionadded:: 0.20.0
-
         Returns
         -------
         join_index, (left_indexer, right_indexer)
@@ -4421,7 +4417,7 @@ class Index(IndexOpsMixin, PandasObject):
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
-        `where`) is not in the index, the latest index label upto the
+        `where`) is not in the index, the latest index label up to the
         passed label is chosen and its index returned.
 
         If all of the labels in the index are later than a label in `where`,

@@ -311,7 +311,7 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     ranked_mat = np.empty((N, K), dtype=np.float64)
 
     for i in range(K):
-        ranked_mat[:, i] = rank_1d_float64(mat[:, i])
+        ranked_mat[:, i] = rank_1d(mat[:, i])
 
     for xi in range(K):
         for yi in range(xi + 1):
@@ -337,8 +337,8 @@ def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
                         j += 1
 
                 if not all_ranks:
-                    maskedx = rank_1d_float64(maskedx)
-                    maskedy = rank_1d_float64(maskedy)
+                    maskedx = rank_1d(maskedx)
+                    maskedy = rank_1d(maskedy)
 
                 mean = (nobs + 1) / 2.
 
@@ -379,13 +379,38 @@ ctypedef fused algos_t:
     uint8_t
 
 
+def _validate_limit(nobs: int, limit=None) -> int:
+    """
+    Check that the `limit` argument is a positive integer.
+
+    Parameters
+    ----------
+    nobs : int
+    limit : object
+
+    Returns
+    -------
+    int
+    """
+    if limit is None:
+        lim = nobs
+    else:
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
+        lim = limit
+
+    return lim
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
-        algos_t cur, next
+        algos_t cur, next_val
         int lim, fill_count = 0
 
     nleft = len(old)
@@ -393,14 +418,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
         return indexer
@@ -426,9 +444,9 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
                 j += 1
             break
 
-        next = old[i + 1]
+        next_val = old[i + 1]
 
-        while j < nright and cur <= new[j] < next:
+        while j < nright and cur <= new[j] < next_val:
             if new[j] == cur:
                 indexer[j] = i
             elif fill_count < lim:
@@ -438,16 +456,14 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
         fill_count = 0
         i += 1
-        cur = next
+        cur = next_val
 
     return indexer
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values,
-                const uint8_t[:] mask,
-                limit=None):
+def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -459,14 +475,7 @@ def pad_inplace(algos_t[:] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     val = values[0]
     for i in range(N):
@@ -482,9 +491,7 @@ def pad_inplace(algos_t[:] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(algos_t[:, :] values,
-                   const uint8_t[:, :] mask,
-                   limit=None):
+def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
@@ -496,14 +503,7 @@ def pad_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -559,14 +559,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
         return indexer
@@ -612,9 +605,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(algos_t[:] values,
-                     const uint8_t[:] mask,
-                     limit=None):
+def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -626,14 +617,7 @@ def backfill_inplace(algos_t[:] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     val = values[N - 1]
     for i in range(N - 1, -1, -1):
@@ -663,14 +647,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -1005,12 +982,6 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
         return ranks
 
 
-rank_1d_object = rank_1d["object"]
-rank_1d_float64 = rank_1d["float64_t"]
-rank_1d_uint64 = rank_1d["uint64_t"]
-rank_1d_int64 = rank_1d["int64_t"]
-
-
 def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
             ascending=True, na_option='keep', pct=False):
     """
@@ -1083,8 +1054,8 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         except TypeError:
             values = in_arr
             for i in range(len(values)):
-                ranks[i] = rank_1d_object(in_arr[i], ties_method=ties_method,
-                                          ascending=ascending, pct=pct)
+                ranks[i] = rank_1d(in_arr[i], ties_method=ties_method,
+                                   ascending=ascending, pct=pct)
             if axis == 0:
                 return ranks.T
             else:
@@ -1177,12 +1148,6 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         return ranks.T
     else:
         return ranks
-
-
-rank_2d_object = rank_2d["object"]
-rank_2d_float64 = rank_2d["float64_t"]
-rank_2d_uint64 = rank_2d["uint64_t"]
-rank_2d_int64 = rank_2d["int64_t"]
 
 
 # generated from template
