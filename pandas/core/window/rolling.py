@@ -70,7 +70,7 @@ class _Window(PandasObject, SelectionMixin):
         center: Optional[bool] = False,
         win_type: Optional[str] = None,
         axis: Axis = 0,
-        on: Optional[str] = None,
+        on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
         **kwargs
     ):
@@ -126,7 +126,7 @@ class _Window(PandasObject, SelectionMixin):
         obj = self._selected_obj
 
         # filter out the on from the object
-        if self.on is not None:
+        if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         blocks = obj._to_dict_of_blocks(copy=False).values()
@@ -637,10 +637,10 @@ class Window(_Window):
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
     on : str, optional
-        For a DataFrame, a datetime-like column on which to calculate the rolling
-        window, rather than the DataFrame's index. Provided integer column is
-        ignored and excluded from result since an integer index is not used to
-        calculate the rolling window.
+        For a DataFrame, a datetime-like column or MultiIndex level on which
+        to calculate the rolling window, rather than the DataFrame's index.
+        Provided integer column is ignored and excluded from result since
+        an integer index is not used to calculate the rolling window.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
@@ -648,8 +648,6 @@ class Window(_Window):
         For offset-based windows, it defaults to 'right'.
         For fixed windows, defaults to 'both'. Remaining cases not implemented
         for fixed windows.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -1651,18 +1649,19 @@ class Rolling(_Rolling_and_Expanding):
 
     @cache_readonly
     def _on(self):
-
         if self.on is None:
             if self.axis == 0:
                 return self.obj.index
             elif self.axis == 1:
                 return self.obj.columns
+        elif isinstance(self.on, Index):
+            return self.on
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
             return Index(self.obj[self.on])
         else:
             raise ValueError(
                 "invalid on specified as {0}, "
-                "must be a column (if DataFrame) "
+                "must be a column (of DataFrame), an Index "
                 "or None".format(self.on)
             )
 
@@ -1706,10 +1705,12 @@ class Rolling(_Rolling_and_Expanding):
 
     def _validate_monotonic(self):
         """
-        Validate on is_monotonic.
+        Validate monotonic (increasing or decreasing).
         """
-        if not self._on.is_monotonic:
-            formatted = self.on or "index"
+        if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
+            formatted = self.on
+            if self.on is None:
+                formatted = "index"
             raise ValueError("{0} must be monotonic".format(formatted))
 
     def _validate_freq(self):

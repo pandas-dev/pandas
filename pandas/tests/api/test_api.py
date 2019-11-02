@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 from pandas import api, compat
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class Base:

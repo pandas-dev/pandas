@@ -16,7 +16,6 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas.util.testing as tm
-from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -108,7 +107,7 @@ class TestReadHtml:
 
     def test_to_html_compat(self):
         df = (
-            mkdf(
+            tm.makeCustomDataframe(
                 4,
                 3,
                 data_gen_f=lambda *args: rand(),
@@ -122,7 +121,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @network
+    @tm.network
     def test_banklist_url(self):
         url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
@@ -132,7 +131,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @network
+    @tm.network
     def test_spam_url(self):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
@@ -275,12 +274,12 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @network
+    @tm.network
     def test_bad_url_protocol(self):
         with pytest.raises(URLError):
             self.read_html("git://github.com", match=".*Water.*")
 
-    @network
+    @tm.network
     @pytest.mark.slow
     def test_invalid_url(self):
         try:
@@ -361,13 +360,13 @@ class TestReadHtml:
         with pytest.raises(ValueError, match=msg):
             self.read_html(self.spam_data, "Water", skiprows=-1)
 
-    @network
+    @tm.network
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
-    @network
+    @tm.network
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")

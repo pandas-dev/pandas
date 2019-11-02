@@ -17,7 +17,7 @@ def test_constructor_single_level():
         levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
     )
     assert isinstance(result, MultiIndex)
-    expected = Index(["foo", "bar", "baz", "qux"])
+    expected = Index(["foo", "bar", "baz", "qux"], name="first")
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["first"]
 
@@ -292,7 +292,7 @@ def test_from_arrays_empty():
     # 1 level
     result = MultiIndex.from_arrays(arrays=[[]], names=["A"])
     assert isinstance(result, MultiIndex)
-    expected = Index([])
+    expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["A"]
 
@@ -440,7 +440,7 @@ def test_from_product_empty_zero_levels():
 
 def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
-    expected = pd.Index([])
+    expected = pd.Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["A"]
 
@@ -722,3 +722,10 @@ def test_from_frame_invalid_names(names, expected_error_msg):
     )
     with pytest.raises(ValueError, match=expected_error_msg):
         pd.MultiIndex.from_frame(df, names=names)
+
+
+def test_index_equal_empty_iterable():
+    # #16844
+    a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
+    b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
+    tm.assert_index_equal(a, b)

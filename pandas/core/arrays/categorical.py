@@ -47,14 +47,7 @@ from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import (
-    _get_data_algo,
-    _hashtables,
-    factorize,
-    take,
-    take_1d,
-    unique1d,
-)
+from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -63,7 +56,7 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-from .base import ExtensionArray, _extension_array_shared_docs
+from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
 
 _take_msg = textwrap.dedent(
     """\
@@ -295,7 +288,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
+    CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
 
     Notes
@@ -345,7 +338,7 @@ class Categorical(ExtensionArray, PandasObject):
         )
         # At this point, dtype is always a CategoricalDtype, but
         # we may have dtype.categories be None, and we need to
-        # infer categories in a factorization step futher below
+        # infer categories in a factorization step further below
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, dtype.categories)
@@ -680,7 +673,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError(msg)
 
         codes = np.asarray(codes)  # #21767
-        if not is_integer_dtype(codes):
+        if len(codes) and not is_integer_dtype(codes):
             msg = "codes need to be array-like integers"
             if is_float_dtype(codes):
                 icodes = codes.astype("i8")
@@ -1124,7 +1117,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # GH 10156
         if any(isna(removals)):
-            not_included = [x for x in not_included if notna(x)]
+            not_included = {x for x in not_included if notna(x)}
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
@@ -2097,7 +2090,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Item assignment.
 
-
         Raises
         ------
         ValueError
@@ -2621,18 +2613,18 @@ def _get_codes_for_values(values, categories):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
-        try:
-            values = categories.dtype.construct_array_type()._from_sequence(values)
-        except Exception:
-            # but that may fail for any reason, so fall back to object
+        cls = categories.dtype.construct_array_type()
+        values = try_cast_to_ea(cls, values)
+        if not isinstance(values, cls):
+            # exception raised in _from_sequence
             values = ensure_object(values)
             categories = ensure_object(categories)
     else:
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
-    (_, _), cats = _get_data_algo(categories, _hashtables)
+    hash_klass, vals = _get_data_algo(values)
+    _, cats = _get_data_algo(categories)
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

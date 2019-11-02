@@ -6,16 +6,10 @@ pip install --no-deps -U pip wheel setuptools
 pip install python-dateutil pytz cython pytest pytest-xdist hypothesis
 
 # Possible alternative for getting numpy:
-# pip install --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com/ numpy
-git clone https://github.com/numpy/numpy
-cd numpy
-python setup.py build_ext --inplace
-python setup.py install
-cd ..
-rm -rf numpy
+pip install --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com/ numpy
 
 python setup.py build_ext -inplace
-python -m pip install --no-build-isolation -e .
+python -m pip install -v --no-build-isolation -e .
 
 python -c "import sys; print(sys.version_info)"
 python -c "import pandas as pd"

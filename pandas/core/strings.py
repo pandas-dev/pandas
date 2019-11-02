@@ -123,8 +123,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
@@ -135,6 +135,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
@@ -491,18 +492,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     ----------
     pat : str or compiled regex
         String can be a character sequence or regular expression.
-
-        .. versionadded:: 0.20.0
-            `pat` also accepts a compiled regex.
-
     repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
-
-        .. versionadded:: 0.20.0
-            `repl` also accepts a callable.
-
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None
@@ -1343,7 +1336,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='right')``.
     Series.str.center : Fills boths sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
-    Series.str.zfill :  Pad strings in the Series/Index by prepending '0'
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
 
     Examples
