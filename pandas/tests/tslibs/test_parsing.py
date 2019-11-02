@@ -11,7 +11,7 @@ from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
 
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_parse_time_string():

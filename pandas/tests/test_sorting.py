@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series, array, concat, merge
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.sorting import (
     decons_group_index,
     get_group_index,
@@ -15,8 +15,7 @@ from pandas.core.sorting import (
     nargsort,
     safe_sort,
 )
-from pandas.util import testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+import pandas.util.testing as tm
 
 
 class TestSorting:
@@ -98,8 +97,8 @@ class TestSorting:
             res = DataFrame(arr, columns=["jim", "joe"], index=mi)
             return res.sort_index()
 
-        assert_frame_equal(gr.mean(), aggr(np.mean))
-        assert_frame_equal(gr.median(), aggr(np.median))
+        tm.assert_frame_equal(gr.mean(), aggr(np.mean))
+        tm.assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_lexsort_indexer(self):
         keys = [[np.nan] * 5 + list(range(100)) + [np.nan] * 5]
@@ -205,22 +204,22 @@ class TestMerge:
 
         out = merge(left, right, how="outer")
         assert len(out) == len(left)
-        assert_series_equal(out["left"], -out["right"], check_names=False)
+        tm.assert_series_equal(out["left"], -out["right"], check_names=False)
         result = out.iloc[:, :-2].sum(axis=1)
-        assert_series_equal(out["left"], result, check_names=False)
+        tm.assert_series_equal(out["left"], result, check_names=False)
         assert result.name is None
 
         out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
         for how in ["left", "right", "outer", "inner"]:
-            assert_frame_equal(out, merge(left, right, how=how, sort=True))
+            tm.assert_frame_equal(out, merge(left, right, how=how, sort=True))
 
         # check that left merge w/ sort=False maintains left frame order
         out = merge(left, right, how="left", sort=False)
-        assert_frame_equal(left, out[left.columns.tolist()])
+        tm.assert_frame_equal(left, out[left.columns.tolist()])
 
         out = merge(right, left, how="left", sort=False)
-        assert_frame_equal(right, out[right.columns.tolist()])
+        tm.assert_frame_equal(right, out[right.columns.tolist()])
 
         # one-2-many/none match
         n = 1 << 11
@@ -284,7 +283,7 @@ class TestMerge:
 
         def verify_order(df):
             kcols = list("ABCDEFG")
-            assert_frame_equal(
+            tm.assert_frame_equal(
                 df[kcols].copy(), df[kcols].sort_values(kcols, kind="mergesort")
             )
 
@@ -309,7 +308,7 @@ class TestMerge:
                     verify_order(res)
 
                 # as in GH9092 dtypes break with outer/right join
-                assert_frame_equal(
+                tm.assert_frame_equal(
                     frame, align(res), check_dtype=how not in ("right", "outer")
                 )
 
