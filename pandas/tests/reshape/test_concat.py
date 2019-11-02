@@ -2747,6 +2747,16 @@ def test_concat_categorical_tz():
     tm.assert_series_equal(result, expected)
 
 
+def test_concat_categorical_unch():
+    # GH-12007
+    df1 = pd.DataFrame(pd.Series(["a", "b", "c"], dtype="category"))
+    s1 = pd.Series([0, 1, 2], index=[0, 1, 3])
+    df2 = pd.concat([df1, s1], axis=1)
+    result = df2.dtypes
+    expected = pd.Series(["category", "float64"], index=[0, 0])
+    tm.assert_series_equal(result, expected)
+
+
 def test_concat_datetimeindex_freq():
     # GH 3232
     # Monotonic index result
