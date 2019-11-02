@@ -1932,6 +1932,14 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
 
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        cols = [(1, 2), (3, 4), (5, 6), (7, 8)]
+        data = ["a", "b", "c", "d"]
+        result = pd.DataFrame(data, columns=MultiIndex.from_tuples(cols)).dtypes.a.d.i
+        expected = pd.DataFrame(data, columns=MultiIndex.from_tuples(cols)).a.d.i.dtypes
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
