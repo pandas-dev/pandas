@@ -322,7 +322,7 @@ class CombinedDatetimelikeProperties(
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
             data = Series(
-                orig.values,
+                orig.array,
                 name=orig.name,
                 copy=False,
                 dtype=orig.values.categories.dtype,

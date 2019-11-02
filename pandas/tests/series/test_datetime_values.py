@@ -344,7 +344,7 @@ class TestSeriesDatetimeValues:
         expected = Series([2017, 2017, 2018, 2018], name="foo")
         tm.assert_series_equal(result, expected)
 
-    def test_dt_tz_localize(self, tz_aware_fixture):
+    def test_dt_tz_localize_categorical(self, tz_aware_fixture):
         # GH 27952
         tz = tz_aware_fixture
         datetimes = pd.Series(
