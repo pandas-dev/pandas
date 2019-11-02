@@ -1678,17 +1678,16 @@ def roll_generic(object obj,
 
 
 def roll_weighted_sum(float64_t[:] values, float64_t[:] weights, int minp):
-    # `.base` to access underlying ndarray
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
 def roll_weighted_mean(float64_t[:] values, float64_t[:] weights, int minp):
-    # `.base` to access underlying ndarray
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-cdef _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
-                             int minp, bint avg):
+cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
+                                                float64_t[:] weights,
+                                                int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
@@ -1700,10 +1699,10 @@ cdef _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
     in_n = len(values)
     win_n = len(weights)
 
-    output = np.zeros(in_n, dtype=float)
-    counts = np.zeros(in_n, dtype=float)
+    output = np.zeros(in_n, dtype=np.float64)
+    counts = np.zeros(in_n, dtype=np.float64)
     if avg:
-        tot_wgt = np.zeros(in_n, dtype=float)
+        tot_wgt = np.zeros(in_n, dtype=np.float64)
 
     minp = _check_minp(len(weights), minp, in_n)
 
@@ -1750,7 +1749,8 @@ cdef _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
                 if c < minp:
                     output[in_i] = NaN
 
-    return output
+    # `.base` to access underlying ndarray
+    return output.base
 
 
 # ----------------------------------------------------------------------
@@ -1800,7 +1800,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
         for i in range(1, N):
             cur = vals[i]
             is_observation = (cur == cur)
-            nobs += <int64_t>(1 if is_observation else 0)
+            nobs += <int64_t>is_observation
             if weighted_avg == weighted_avg:
 
                 if is_observation or (not ignore_na):
@@ -1890,7 +1890,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
             cur_x = input_x[i]
             cur_y = input_y[i]
             is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
-            nobs += <int64_t>(1 if is_observation else 0)
+            nobs += <int64_t>is_observation
             if mean_x == mean_x:
                 if is_observation or (not ignore_na):
                     sum_wt *= old_wt_factor
