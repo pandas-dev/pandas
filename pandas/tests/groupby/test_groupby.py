@@ -1825,18 +1825,6 @@ def test_groupby_empty_list_raises():
         df.groupby([[]])
 
 
-def test_groupby_with_empty_category():
-    # GH-9614
-    df = pd.DataFrame({"id": [None] * 3, "spam": [None] * 3})
-    df["spam"] = df["spam"].astype("category")
-    df["spam"] == "spam"  # works as expected
-    result = df.groupby("id").first()["spam"] == "spam"
-    expected = Series(
-        [], name="spam", dtype=bool, index=pd.Series([], dtype="object", name="id")
-    )
-    tm.assert_series_equal(result, expected)
-
-
 def test_groupby_multiindex_series_keys_len_equal_group_axis():
     # GH 25704
     index_array = [["x", "x"], ["a", "b"], ["k", "k"]]
