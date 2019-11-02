@@ -526,6 +526,9 @@ class TestCategoricalConstructors:
         codes = [1.0, 2.0, 0]  # integer, but in float dtype
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
+        # empty codes should not raise for floats
+        Categorical.from_codes([], dtype.categories)
+
         with tm.assert_produces_warning(FutureWarning):
             cat = Categorical.from_codes(codes, dtype.categories)
         tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))

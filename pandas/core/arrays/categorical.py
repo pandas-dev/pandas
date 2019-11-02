@@ -673,7 +673,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError(msg)
 
         codes = np.asarray(codes)  # #21767
-        if not is_integer_dtype(codes):
+        if len(codes) and not is_integer_dtype(codes):
             msg = "codes need to be array-like integers"
             if is_float_dtype(codes):
                 icodes = codes.astype("i8")
