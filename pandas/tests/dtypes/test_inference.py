@@ -18,6 +18,7 @@ import pytz
 from pandas._libs import iNaT, lib, missing as libmissing
 import pandas.util._test_decorators as td
 
+from pandas.core.arrays import IntegerArray
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     ensure_categorical,
@@ -552,14 +553,19 @@ class TestInference:
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
 
-    def test_maybe_convert_objects_nullable_integer(self):
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
         arr = np.array([2, np.NaN], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
-        from pandas.core.arrays import IntegerArray
 
-        exp = IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True]))
-        tm.assert_equal(result, exp)
+        tm.assert_extension_array_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
