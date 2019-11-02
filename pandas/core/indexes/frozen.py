@@ -100,7 +100,9 @@ class FrozenList(PandasObject, list):
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
         raise TypeError(
-            "'{cls}' does not support mutable operations.".format(cls=self.__class__.__name__)
+            "'{cls}' does not support mutable operations.".format(
+                cls=self.__class__.__name__
+            )
         )
 
     def __str__(self):
@@ -131,7 +133,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError("'{cls}' does not support mutable operations.".format(cls=self.__class__))
+        raise TypeError(
+            "'{cls}' does not support mutable operations.".format(cls=self.__class__)
+        )
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     put = itemset = fill = _disabled
