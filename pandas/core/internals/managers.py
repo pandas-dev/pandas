@@ -14,7 +14,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     maybe_convert_objects,
-    maybe_promote,
+    maybe_promote_scalar,
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -1292,7 +1292,7 @@ class BlockManager(PandasObject):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_tuple[0] is None:
-                    _, fill_value = maybe_promote(blk.dtype)
+                    _, fill_value = maybe_promote_scalar(blk.dtype)
                     fill_tuple = (fill_value,)
 
                 return [

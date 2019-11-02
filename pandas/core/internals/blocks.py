@@ -22,7 +22,7 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
-    maybe_promote,
+    maybe_promote_scalar,
     maybe_upcast,
     soft_convert_objects,
 )
@@ -856,7 +856,7 @@ class Block(PandasObject):
 
         # cast the values to a type that can hold nan (if necessary)
         if not self._can_hold_element(value):
-            dtype, _ = maybe_promote(arr_value.dtype)
+            dtype, _ = maybe_promote_scalar(arr_value.dtype)
             values = values.astype(dtype)
 
         if transpose:
@@ -994,7 +994,7 @@ class Block(PandasObject):
                         n = np.array(new)
 
                     # type of the new block
-                    dtype, _ = maybe_promote(n.dtype)
+                    dtype, _ = maybe_promote_scalar(n.dtype)
 
                     # we need to explicitly astype here to make a copy
                     n = n.astype(dtype)
@@ -3169,7 +3169,7 @@ def _putmask_smart(v, mask, n):
         return _putmask_preserve(v, n)
 
     # change the dtype if needed
-    dtype, _ = maybe_promote(n.dtype)
+    dtype, _ = maybe_promote_scalar(n.dtype)
 
     if is_extension_type(v.dtype) and is_object_dtype(dtype):
         v = v._internal_get_values(dtype)
