@@ -23,7 +23,7 @@ def diff_2d(ndarray[diff_t, ndim=2] arr,
             ndarray[out_t, ndim=2] out,
             Py_ssize_t periods, int axis):
     cdef:
-        Py_ssize_t i, j, sx, sy
+        Py_ssize_t i, j, sx, sy, start, stop
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646

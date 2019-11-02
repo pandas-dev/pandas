@@ -58,7 +58,8 @@ HOUR_SECONDS = 3600
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
-    """Return the number of days in the given month of the given year.
+    """
+    Return the number of days in the given month of the given year.
 
     Parameters
     ----------
@@ -81,7 +82,8 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 @cython.boundscheck(False)
 @cython.cdivision
 cdef int dayofweek(int y, int m, int d) nogil:
-    """Find the day of week for the date described by the Y/M/D triple y, m, d
+    """
+    Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
 
     0 represents Monday.  See [1]_.
@@ -117,7 +119,8 @@ cdef int dayofweek(int y, int m, int d) nogil:
 
 
 cdef bint is_leapyear(int64_t year) nogil:
-    """Returns 1 if the given year is a leap year, 0 otherwise.
+    """
+    Returns 1 if the given year is a leap year, 0 otherwise.
 
     Parameters
     ----------
@@ -134,7 +137,8 @@ cdef bint is_leapyear(int64_t year) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
-    """Return the ordinal week-of-year for the given day.
+    """
+    Return the ordinal week-of-year for the given day.
 
     Parameters
     ----------
@@ -178,7 +182,8 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
-    """Return the ordinal day-of-year for the given day.
+    """
+    Return the ordinal day-of-year for the given day.
 
     Parameters
     ----------
@@ -207,8 +212,9 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     return day_of_year
 
 
-def get_locale_names(name_type: object, locale: object=None):
-    """Returns an array of localized day or month names
+def get_locale_names(name_type: str, locale: object = None):
+    """
+    Returns an array of localized day or month names.
 
     Parameters
     ----------

@@ -27,6 +27,13 @@ _int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
+cdef enum InterpolationEnumType:
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOWER,
+    INTERPOLATION_HIGHER,
+    INTERPOLATION_NEAREST,
+    INTERPOLATION_MIDPOINT
+
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
