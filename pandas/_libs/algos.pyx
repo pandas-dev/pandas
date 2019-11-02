@@ -380,6 +380,18 @@ ctypedef fused algos_t:
 
 
 def _validate_limit(nobs: int, limit=None) -> int:
+    """
+    Check that the `limit` argument is a positive integer.
+
+    Parameters
+    ----------
+    nobs : int
+    limit : object
+
+    Returns
+    -------
+    int
+    """
     if limit is None:
         lim = nobs
     else:
