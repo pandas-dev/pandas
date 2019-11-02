@@ -3988,6 +3988,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+
         delegate = self._values
 
         if axis is not None:
