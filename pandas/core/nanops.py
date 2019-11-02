@@ -273,6 +273,12 @@ def _get_values(
     fill_value : Any
         fill value used
     """
+
+    # In _get_values is only called from within nanops, and in all cases
+    #  with scalar fill_value.  This guarantee is important for the
+    #  maybe_upcast_putmask call below
+    assert is_scalar(fill_value)
+
     mask = _maybe_get_mask(values, skipna, mask)
 
     if is_datetime64tz_dtype(values):

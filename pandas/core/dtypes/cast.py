@@ -232,7 +232,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     return result
 
 
-def maybe_upcast_putmask(result, mask, other):
+def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
     """
     A safe version of putmask that potentially upcasts the result.
     The result is replaced with the first N elements of other,
@@ -245,8 +245,8 @@ def maybe_upcast_putmask(result, mask, other):
         The destination array. This will be mutated in-place if no upcasting is
         necessary.
     mask : boolean ndarray
-    other : ndarray or scalar
-        The source array or value
+    other : scalar
+        The source value
 
     Returns
     -------
@@ -264,6 +264,10 @@ def maybe_upcast_putmask(result, mask, other):
 
     if not isinstance(result, np.ndarray):
         raise ValueError("The result input must be a ndarray.")
+    if not is_scalar(other):
+        # We _could_ support non-scalar other, but until we have a compelling
+        #  use case, we assume away the possibility.
+        raise ValueError("other must be a scalar")
 
     if mask.any():
         # Two conversions for date-like dtypes that can't be done automatically
