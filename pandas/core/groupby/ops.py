@@ -514,7 +514,6 @@ class BaseGrouper:
             result = result[:, 0]
 
         if how in self._name_functions:
-            # TODO
             names = self._name_functions[how]()
         else:
             names = None
@@ -698,7 +697,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -707,12 +706,8 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if isinstance(data, NDFrame):
-            slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
-            length = len(data.axes[axis])
-        else:
-            slicer = lambda start, edge: data[slice(start, edge)]
-            length = len(data)
+        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        length = len(data.axes[axis])
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
