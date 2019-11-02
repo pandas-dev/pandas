@@ -306,7 +306,6 @@ class TestSeriesReplace:
         expected = pd.Series([0, 1, "100000000000000000001"])
         tm.assert_series_equal(result, expected)
 
-
     def test_replace_no_cast(self):
         # GH 9113
         # BUG: replace int64 dtype with bool coerces to int64
