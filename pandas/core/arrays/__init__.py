@@ -2,6 +2,7 @@ from .base import (  # noqa: F401
     ExtensionArray,
     ExtensionOpsMixin,
     ExtensionScalarOpsMixin,
+    try_cast_to_ea,
 )
 from .categorical import Categorical  # noqa: F401
 from .datetimes import DatetimeArray  # noqa: F401
