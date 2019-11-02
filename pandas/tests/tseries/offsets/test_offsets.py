@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Type
+from typing import Type, List, Tuple, Dict
 
 import numpy as np
 import pytest
@@ -90,7 +90,7 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
-
+OffsetTestCaseList = List[Tuple[int, Dict[datetime, datetime]]]
 
 class Base:
     _offset = None  # type: Type[DateOffset]
@@ -662,6 +662,8 @@ class TestDateOffset(Base):
 class TestBusinessDay(Base):
     _offset = BDay
 
+
+
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
@@ -741,7 +743,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = [] # type: OffsetTestCaseList
     apply_cases.append(
         (
             BDay(),
@@ -2629,7 +2631,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: OffsetTestCaseList
     apply_cases.append(
         (
             CDay(),
@@ -2876,7 +2878,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: OffsetTestCaseList
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -3025,7 +3027,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: OffsetTestCaseList
     apply_cases.append(
         (
             CBMonthBegin(),
