@@ -325,19 +325,6 @@ def _get_values(
     return values, mask, dtype, dtype_max, fill_value
 
 
-def _isfinite(values):
-    if is_datetime_or_timedelta_dtype(values):
-        return isna(values)
-    if (
-        is_complex_dtype(values)
-        or is_float_dtype(values)
-        or is_integer_dtype(values)
-        or is_bool_dtype(values)
-    ):
-        return ~np.isfinite(values)
-    return ~np.isfinite(values.astype("float64"))
-
-
 def _na_ok_dtype(dtype):
     # TODO: what about datetime64tz?  PeriodDtype?
     return not issubclass(dtype.type, (np.integer, np.timedelta64, np.datetime64))
