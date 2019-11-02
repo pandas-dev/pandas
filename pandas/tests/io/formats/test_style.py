@@ -377,6 +377,7 @@ class TestStyler:
         (df.style.applymap(color_negative_red, subset=idx[:, idx["b", "d"]]).render())
 
     def test_applymap_subset_multiindex_code(self):
+        # https://github.com/pandas-dev/pandas/issues/25858
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
         columns = pd.MultiIndex(
             levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
