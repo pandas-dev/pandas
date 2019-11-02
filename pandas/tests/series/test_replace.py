@@ -305,3 +305,21 @@ class TestSeriesReplace:
         result = s.replace(["100000000000000000000"], [1])
         expected = pd.Series([0, 1, "100000000000000000001"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "s, replacements, expected",
+        [
+            (pd.Series([1, 2, 3]), {1: 2, 2: 3, 3: 4}, pd.Series([2, 3, 4])),
+            (
+                pd.Series(["1", "2", "3"]),
+                {"1": "2", "2": "3", "3": "4"},
+                pd.Series(["2", "3", "4"]),
+            ),
+        ],
+    )
+    def test_replace_commutative(self, s, replacements, expected):
+        # GH 16051
+        # DataFrame.replace() overwrites when values are non-numeric
+
+        result = s.replace(replacements)
+        tm.assert_series_equal(result, expected)
