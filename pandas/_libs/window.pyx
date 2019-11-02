@@ -1749,8 +1749,7 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
                 if c < minp:
                     output[in_i] = NaN
 
-    # `.base` to access underlying ndarray
-    return output.base
+    return np.asarray(output)
 
 
 # ----------------------------------------------------------------------
