@@ -14,6 +14,7 @@ from pandas import (
     date_range,
 )
 from pandas.core.groupby.grouper import Grouping
+from pandas.core.indexes.frozen import FrozenList
 import pandas.util.testing as tm
 
 # selection
@@ -640,6 +641,27 @@ class TestGrouping:
             dtype="int64",
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"]).set_index("a"),
+            pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"]).set_index(
+                "a"
+            ),
+            pd.DataFrame(
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"]
+            ).set_index("a"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method", ["mean", "median", "prod", "min", "max", "sum", "std", "var"]
+    )
+    def test_groupby_on_index_and_column_consistent_structure(self, df, method):
+        # https://github.com/pandas-dev/pandas/issues/17681
+        df_gb = df.groupby(["a", "c"])
+        result = getattr(df_gb, method)()
+        assert result.index.names == FrozenList(["a", "c"])
 
 
 # get_group
