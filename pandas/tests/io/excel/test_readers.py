@@ -22,6 +22,9 @@ engine_params = [
         marks=[
             td.skip_if_no("xlrd"),
             pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+            pytest.mark.filterwarnings(
+                'ignore:The Excel reader engine "xlrd" is deprecated,'
+            ),
         ],
     ),
     pytest.param(
@@ -34,8 +37,8 @@ engine_params = [
     pytest.param(
         None,
         marks=[
-            td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+            td.skip_if_no("openpyxl"),
+            pytest.mark.filterwarnings("ignore:.*html argument"),
         ],
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
@@ -50,6 +53,8 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     """
     engine = engine.values[0]
     if engine == "openpyxl" and read_ext == ".xls":
+        return False
+    if engine is None and read_ext == ".xls":
         return False
     if engine == "odf" and read_ext != ".ods":
         return False
@@ -559,7 +564,7 @@ class TestReaders:
             columns=["DateColWithBigInt", "StringCol"],
         )
 
-        if pd.read_excel.keywords["engine"] == "openpyxl":
+        if pd.read_excel.keywords["engine"] in ["openpyxl", None]:
             pytest.xfail("Maybe not supported by openpyxl")
 
         result = pd.read_excel("testdateoverflow" + read_ext)
@@ -942,7 +947,10 @@ class TestReaders:
         expected = pd.Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
-    def test_deprecated_kwargs(self, read_ext):
+    def test_deprecated_kwargs(self, engine, read_ext):
+        if engine == "xlrd":
+            pytest.skip("Use of xlrd engine produces a FutureWarning as well")
+
         with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
@@ -960,6 +968,19 @@ class TestReaders:
             file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_excel_high_surrogate(self, engine, read_ext):
+        # GH 23809
+        if read_ext != ".xlsx":
+            pytest.skip("Test is only applicable to .xlsx file")
+        if engine in ["openpyxl", None]:
+            pytest.skip("Test does not work for openpyxl")
+
+        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+
+        # should not produce a segmentation violation
+        actual = pd.read_excel("high_surrogate.xlsx")
+        tm.assert_frame_equal(expected, actual)
 
 
 class TestExcelFileRead:
@@ -1114,14 +1135,6 @@ class TestExcelFileRead:
             data = f.read()
 
         actual = pd.read_excel(data, engine=engine)
-        tm.assert_frame_equal(expected, actual)
-
-    def test_excel_high_surrogate(self, engine):
-        # GH 23809
-        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
-
-        # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])

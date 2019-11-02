@@ -17,6 +17,9 @@ def skip_ods_and_xlsb_files(read_ext):
         pytest.skip("Not valid for xlrd")
 
 
+@pytest.mark.filterwarnings(
+    'ignore:The Excel reader engine "xlrd" is deprecated:FutureWarning'
+)
 def test_read_xlrd_book(read_ext, frame):
     df = frame
 
@@ -36,8 +39,31 @@ def test_read_xlrd_book(read_ext, frame):
 
 
 # TODO: test for openpyxl as well
+@pytest.mark.filterwarnings(
+    'ignore:The Excel reader engine "xlrd" is deprecated:FutureWarning'
+)
 def test_excel_table_sheet_by_index(datapath, read_ext):
     path = datapath("io", "data", "excel", f"test1{read_ext}")
-    with pd.ExcelFile(path) as excel:
+    with pd.ExcelFile(path, engine="xlrd") as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, sheet_name="asdf")
+
+
+def test_excel_file_warning_with_xlsx_file(datapath):
+    # GH 29375
+    path = datapath("io", "data", "excel", "test1.xlsx")
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=True, raise_on_extra_warnings=False
+    ) as w:
+        pd.ExcelFile(path, engine="xlrd")
+        assert '"xlrd" is deprecated, use "openpyxl" instead.' in str(w[0].message)
+
+
+def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
+    # GH 29375
+    path = datapath("io", "data", "excel", "test1.xlsx")
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ) as w:
+        pd.read_excel(path, "Sheet1", engine="xlrd")
+        assert '"xlrd" is deprecated, use "openpyxl" instead.' in str(w[0].message)

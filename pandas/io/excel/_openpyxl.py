@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -517,7 +518,11 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         # TODO: replace with openpyxl constants
         if cell.is_date:
-            return cell.value
+            try:
+                # workaround for inaccurate timestamp notation in excel
+                return datetime.fromtimestamp(round(cell.value.timestamp()))
+            except (AttributeError, OSError):
+                return cell.value
         elif cell.data_type == "e":
             return np.nan
         elif cell.data_type == "b":

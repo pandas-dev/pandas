@@ -4,6 +4,7 @@ from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
 from typing import Any, Mapping, Union
+import warnings
 
 from pandas._config import config
 
@@ -825,8 +826,7 @@ def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-
-    Uses xlrd engine by default. See read_excel for more documentation
+    Uses xlrd, openpyxl or odf. See read_excel for more documentation
 
     Parameters
     ----------
@@ -837,7 +837,7 @@ class ExcelFile:
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-        default ``xlrd``.
+        default ``openpyxl``, ``xlrd`` for .xls files, ``odf`` for .ods files.
         Engine compatibility :
         - ``xlrd`` supports most old/new Excel file formats.
         - ``openpyxl`` supports newer Excel file formats.
@@ -861,7 +861,7 @@ class ExcelFile:
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            engine = "xlrd"
+            engine = "openpyxl"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
@@ -869,6 +869,16 @@ class ExcelFile:
                 ext = os.path.splitext(str(path_or_buffer))[-1]
                 if ext == ".ods":
                     engine = "odf"
+                elif ext == ".xls":
+                    engine = "xlrd"
+
+        elif engine == "xlrd":
+            warnings.warn(
+                'The Excel reader engine "xlrd" is deprecated, use "openpyxl" instead. '
+                'Specify engine="openpyxl" to suppress this warning.',
+                FutureWarning,
+                stacklevel=2,
+            )
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
