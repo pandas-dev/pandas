@@ -92,6 +92,7 @@ def test_to_M8():
 #####
 OffsetTestCaseList = List[Tuple[int, Dict[datetime, datetime]]]
 
+
 class Base:
     _offset = None  # type: Type[DateOffset]
     d = Timestamp(datetime(2008, 1, 2))
@@ -662,8 +663,6 @@ class TestDateOffset(Base):
 class TestBusinessDay(Base):
     _offset = BDay
 
-
-
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
@@ -743,7 +742,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = [] # type: OffsetTestCaseList
+    apply_cases = []  # type: OffsetTestCaseList
     apply_cases.append(
         (
             BDay(),
