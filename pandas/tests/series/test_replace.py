@@ -307,14 +307,13 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "ser, to_replace, value, exp",
-        [([1, 2, 3], 2, True, [1, True, 3]), (["x", 2, 3], 2, True, ["x", True, 3])],
+        "ser, exp", [([1, 2, 3], [1, True, 3]), (["x", 2, 3], ["x", True, 3])]
     )
-    def test_replace_no_cast(self, ser, to_replace, value, exp):
+    def test_replace_no_cast(self, ser, exp):
         # GH 9113
         # BUG: replace int64 dtype with bool coerces to int64
 
         series = pd.Series(ser)
-        result = series.replace(to_replace, value)
+        result = series.replace(2, True)
         expected = pd.Series(exp)
         tm.assert_series_equal(result, expected)
