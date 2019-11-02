@@ -298,14 +298,14 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 
 .. ipython:: python
 
-    left_df = pd.DataFrame({"colors": ["blue", "red"]}, index = pd.Index([0, 1]))
-    right_df = pd.DataFrame({"hats": ["small", "big"]}, index = pd.Index([1, 0]))
+    left_df = pd.DataFrame({"colors": ["blue", "red"]}, index=pd.Index([0, 1]))
+    right_df = pd.DataFrame({"hats": ["small", "big"]}, index=pd.Index([1, 0]))
 
 *pandas 0.25.x*
 
 .. ipython:: python
     left_df.merge(right_df, left_index=True, right_index=True, how="right")
-       colors   hats
+        colors   hats
     0    blue    big
     1     red  small
 
