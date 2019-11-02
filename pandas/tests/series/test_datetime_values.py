@@ -355,7 +355,7 @@ class TestSeriesDatetimeValues:
         expected = datetimes.dt.tz_localize(tz)
         tm.assert_series_equal(result, expected)
 
-    def test_dt_tz_convert(self, tz_aware_fixture):
+    def test_dt_tz_convert_categorical(self, tz_aware_fixture):
         # GH 27952
         tz = tz_aware_fixture
         datetimes = pd.Series(
@@ -367,7 +367,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("accessor", ["year", "month", "day"])
-    def test_dt_other_accessors(self, accessor):
+    def test_dt_other_accessors_categorical(self, accessor):
         # GH 27952
         datetimes = pd.Series(
             ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
