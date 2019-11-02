@@ -219,7 +219,7 @@ def eval(
         More backends may be available in the future.
 
     truediv : bool, optional
-        Whether to use true division, like in Python >= 3
+        Whether to use true division, like in Python >= 3.
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional

@@ -103,13 +103,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     Parameters
     ----------
     data  : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with
+        Optional datetime-like data to construct index with.
     copy  : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
-        inferred frequency upon creation
+        inferred frequency upon creation.
 
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
@@ -119,19 +119,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
+        over end argument.
 
         .. deprecated:: 0.24.0
 
     end : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
-        time on or just past end argument
+        time on or just past end argument.
 
         .. deprecated:: 0.24.0
 
     closed : str or None, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
         .. deprecated:: 0.24. 0
 
