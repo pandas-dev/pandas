@@ -357,7 +357,22 @@ def maybe_promote(dtype, fill_value=np.nan):
 
 
 def maybe_promote_scalar(dtype, fill_value=np.nan):
-    # maybe_promote, but restricted to fill_value being non-ndarray
+    """
+    Find the minimal dtype that can hold both the given dtype and fill_value.
+
+    Parameters
+    ----------
+    dtype : np.dtype or ExceptionDtype
+    fill_value : scalar, default np.nan
+
+    Returns
+    -------
+    dtype
+        Upcasted from dtype argument if necessary.
+    fill_value
+        Upcasted from fill_value argument if necessary.
+    """
+    assert is_scalar(fill_value)
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
