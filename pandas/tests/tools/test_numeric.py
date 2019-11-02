@@ -610,7 +610,6 @@ def test_non_coerce_uint64_conflict(errors, exp):
         result = to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, ser)
 
-# @pytest.mark.parametrize()
 def test_downcast_uint64_exception():
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
