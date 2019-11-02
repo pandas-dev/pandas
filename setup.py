@@ -165,7 +165,7 @@ The two primary data structures of pandas, Series (1-dimensional) and DataFrame
 (2-dimensional), handle the vast majority of typical use cases in finance,
 statistics, social science, and many areas of engineering. For R users,
 DataFrame provides everything that R's ``data.frame`` provides and much
-more. pandas is built on top of `NumPy <http://www.numpy.org>`__ and is
+more. pandas is built on top of `NumPy <https://www.numpy.org>`__ and is
 intended to integrate well within a scientific computing environment with many
 other 3rd party libraries.
 
@@ -209,11 +209,11 @@ DISTNAME = "pandas"
 LICENSE = "BSD"
 AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
-URL = "http://pandas.pydata.org"
+URL = "https://pandas.pydata.org"
 DOWNLOAD_URL = ""
 PROJECT_URLS = {
     "Bug Tracker": "https://github.com/pandas-dev/pandas/issues",
-    "Documentation": "http://pandas.pydata.org/pandas-docs/stable/",
+    "Documentation": "https://pandas.pydata.org/pandas-docs/stable/",
     "Source Code": "https://github.com/pandas-dev/pandas",
 }
 CLASSIFIERS = [
