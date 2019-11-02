@@ -7,7 +7,6 @@ which here returns a DataFrameGroupBy object.
 """
 from collections import OrderedDict, abc, namedtuple
 import copy
-import functools
 from functools import partial
 from textwrap import dedent
 import typing
@@ -1782,8 +1781,10 @@ class DataFrameGroupBy(GroupBy):
         )
         loc = (blk.mgr_locs for blk in data.blocks)
 
-        counter = partial(lib.count_level_2d, labels=ids, max_bin=ngroups, axis=1)
-        blk = map(make_block, map(counter, val), loc)
+        counted = [
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
+        ]
+        blk = map(make_block, counted, loc)
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
@@ -1995,7 +1996,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     mangled_aggfuncs = []
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
-            aggfunc = functools.partial(aggfunc)
+            aggfunc = partial(aggfunc)
             aggfunc.__name__ = "<lambda_{}>".format(i)
             i += 1
         mangled_aggfuncs.append(aggfunc)

@@ -141,15 +141,20 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        # oh boy
-        f_name = com.get_callable_name(f)
-        if (
-            f_name not in base.plotting_methods
+        sdata = splitter._get_sorted_data()
+        if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
+            # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
+            #  if we pass EA instead of ndarray
+            #  TODO: can we have a workaround for EAs backed by ndarray?
+            pass
+
+        elif (
+            com.get_callable_name(f) not in base.plotting_methods
             and hasattr(splitter, "fast_apply")
             and axis == 0
             # with MultiIndex, apply_frame_axis0 would raise InvalidApply
             # TODO: can we make this check prettier?
-            and not splitter._get_sorted_data().index._has_complex_internals
+            and not sdata.index._has_complex_internals
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -166,12 +171,6 @@ class BaseGrouper:
                 if "Let this error raise above us" not in str(err):
                     # TODO: can we infer anything about whether this is
                     #  worth-retrying in pure-python?
-                    raise
-            except TypeError as err:
-                if "Cannot convert" in str(err):
-                    # via apply_frame_axis0 if we pass a non-ndarray
-                    pass
-                else:
                     raise
 
         for key, (i, group) in zip(group_keys, splitter):
@@ -320,12 +319,9 @@ class BaseGrouper:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": {"name": "group_median"},
+            "median": "group_median",
             "var": "group_var",
-            "first": {
-                "name": "group_nth",
-                "f": lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1),
-            },
+            "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
         },
@@ -334,19 +330,7 @@ class BaseGrouper:
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
-            "rank": {
-                "name": "group_rank",
-                "f": lambda func, a, b, c, d, e, **kwargs: func(
-                    a,
-                    b,
-                    c,
-                    e,
-                    kwargs.get("ties_method", "average"),
-                    kwargs.get("ascending", True),
-                    kwargs.get("pct", False),
-                    kwargs.get("na_option", "keep"),
-                ),
-            },
+            "rank": "group_rank",
         },
     }
 
@@ -392,21 +376,7 @@ class BaseGrouper:
 
         ftype = self._cython_functions[kind][how]
 
-        if isinstance(ftype, dict):
-            func = afunc = get_func(ftype["name"])
-
-            # a sub-function
-            f = ftype.get("f")
-            if f is not None:
-
-                def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)
-
-                # need to curry our sub-function
-                func = wrapper
-
-        else:
-            func = get_func(ftype)
+        func = get_func(ftype)
 
         if func is None:
             raise NotImplementedError(
@@ -526,14 +496,7 @@ class BaseGrouper:
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result,
-                counts,
-                values,
-                labels,
-                func,
-                is_numeric,
-                is_datetimelike,
-                min_count,
+                result, counts, values, labels, func, is_datetimelike, min_count
             )
         elif kind == "transform":
             result = _maybe_fill(
@@ -542,7 +505,7 @@ class BaseGrouper:
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_numeric, is_datetimelike, **kwargs
+                result, values, labels, func, is_datetimelike, **kwargs
             )
 
         if is_integer_dtype(result) and not is_datetimelike:
@@ -582,33 +545,22 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_numeric,
-        is_datetimelike,
-        min_count=-1,
+        self, result, counts, values, comp_ids, agg_func, is_datetimelike, min_count=-1
     ):
         if values.ndim > 2:
             # punting for now
             raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif agg_func is libgroupby.group_nth:
+            # different signature from the others
+            # TODO: should we be using min_count instead of hard-coding it?
+            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
         return result
 
     def _transform(
-        self,
-        result,
-        values,
-        comp_ids,
-        transform_func,
-        is_numeric,
-        is_datetimelike,
-        **kwargs
+        self, result, values, comp_ids, transform_func, is_datetimelike, **kwargs
     ):
 
         comp_ids, _, ngroups = self.group_info
@@ -753,7 +705,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -762,12 +714,8 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if isinstance(data, NDFrame):
-            slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
-            length = len(data.axes[axis])
-        else:
-            slicer = lambda start, edge: data[slice(start, edge)]
-            length = len(data)
+        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        length = len(data.axes[axis])
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
@@ -845,7 +793,7 @@ def _get_axes(group):
         return group.axes
 
 
-def _is_indexed_like(obj, axes):
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
