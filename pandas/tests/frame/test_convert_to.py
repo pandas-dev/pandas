@@ -621,10 +621,10 @@ class TestDataFrameConvertTo:
         # Expected Dtypes
         expected = {"a": int, "b": float, "c": str}
         # Extracting dtypes out of to_dict operation
-        df_dict = df.to_dict("records")[0]
-        result = {
-            "a": type(df_dict["a"]),
-            "b": type(df_dict["b"]),
-            "c": type(df_dict["c"]),
-        }
-        assert result == expected
+        for df_dict in df.to_dict("records"):
+            result = {
+                "a": type(df_dict["a"]),
+                "b": type(df_dict["b"]),
+                "c": type(df_dict["c"]),
+            }
+            assert result == expected
