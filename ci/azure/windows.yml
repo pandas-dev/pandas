@@ -11,10 +11,12 @@ jobs:
       py36_np15:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
+        PATTERN: "not slow and not network"
 
       py37_np141:
         ENV_FILE: ci/deps/azure-windows-37.yaml
         CONDA_PY: "37"
+        PATTERN: "not slow and not network"
 
   steps:
     - powershell: |
@@ -33,7 +35,7 @@ jobs:
       displayName: 'Build'
     - bash: |
         source activate pandas-dev
-        pytest -m "not slow and not network" --junitxml=test-data.xml pandas -n 2 -r sxX --strict --durations=10 %*
+        ci/run_tests.sh
       displayName: 'Test'
     - task: PublishTestResults@2
       inputs:
