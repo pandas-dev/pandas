@@ -11,6 +11,23 @@ class CSSWarning(UserWarning):
     pass
 
 
+def _side_expander(prop_fmt: str):
+    def expand(self, prop, value):
+        tokens = value.split()
+        try:
+            mapping = self.SIDE_SHORTHANDS[len(tokens)]
+        except KeyError:
+            warnings.warn(
+                'Could not expand "{prop}: {val}"'.format(prop=prop, val=value),
+                CSSWarning,
+            )
+            return
+        for key, idx in zip(self.SIDES, mapping):
+            yield prop_fmt.format(key), tokens[idx]
+
+    return expand
+
+
 class CSSResolver:
     """A callable for parsing and resolving CSS to atomic properties
 
@@ -212,22 +229,6 @@ class CSSResolver:
         4: [0, 1, 2, 3],
     }
     SIDES = ("top", "right", "bottom", "left")
-
-    def _side_expander(prop_fmt):
-        def expand(self, prop, value):
-            tokens = value.split()
-            try:
-                mapping = self.SIDE_SHORTHANDS[len(tokens)]
-            except KeyError:
-                warnings.warn(
-                    'Could not expand "{prop}: {val}"'.format(prop=prop, val=value),
-                    CSSWarning,
-                )
-                return
-            for key, idx in zip(self.SIDES, mapping):
-                yield prop_fmt.format(key), tokens[idx]
-
-        return expand
 
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")

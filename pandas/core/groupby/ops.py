@@ -790,7 +790,7 @@ def _get_axes(group):
         return group.axes
 
 
-def _is_indexed_like(obj, axes):
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
