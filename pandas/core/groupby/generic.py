@@ -52,7 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
-from pandas._typing import AnyArrayLike, FrameOrSeries
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -346,14 +346,17 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[int, AnyArrayLike], index: Index, columns: Index
+        self,
+        output: Mapping[int, Union[Series, np.ndarray]],
+        index: Index,
+        columns: Index,
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
         Parameters
         ----------
-        output : Mapping[int, AnyArrayLike]
+        output : Mapping[int, Union[Series, np.ndarray]]
             Dict where the key represents the columnar-index and the values are
             the actual results. Must be ordered from 0..n
         index : pd.Index
@@ -380,14 +383,14 @@ class SeriesGroupBy(GroupBy):
         return result
 
     def _wrap_aggregated_output(
-        self, output: Mapping[int, AnyArrayLike], columns: Index
+        self, output: Mapping[int, Union[Series, np.ndarray]], columns: Index
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
         ----------
-        output : Mapping[int, AnyArrayLike]
+        output : Mapping[int, Union[Series, np.ndarray]]
             Dict where the key represents the columnar-index and the values are
             the actual results.
         columns : pd.Index
@@ -408,14 +411,14 @@ class SeriesGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Mapping[int, AnyArrayLike], columns: Index
+        self, output: Mapping[int, Union[Series, np.ndarray]], columns: Index
     ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
         ----------
-        output : dict[int, np.ndarray]
+        output : dict[int, Union[Series, np.ndarray]]
             Dict with a sole key of 0 and a value of the result values.
         columns : pd.Index
             Columns to apply to the output.
@@ -1669,14 +1672,14 @@ class DataFrameGroupBy(GroupBy):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[int, AnyArrayLike], columns: Index
+        self, output: Mapping[int, Union[Series, np.ndarray]], columns: Index
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
 
         Parameters
         ----------
-        output : dict[int, np.ndarray]
+        output : dict[int, Union[Series, np.ndarray]]
             Dict where the key represents the columnar-index and the values are
             the actual results.
         columns : pd.Index
@@ -1702,14 +1705,14 @@ class DataFrameGroupBy(GroupBy):
         return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(
-        self, output: Mapping[int, AnyArrayLike], columns: Index
+        self, output: Mapping[int, Union[Series, np.ndarray]], columns: Index
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
 
         Parameters
         ----------
-        output : dict[int, np.ndarray]
+        output : dict[int, Union[Series, np.ndarray]]
             Dict where the key represents the columnar-index and the values are
             the actual results.
         columns : pd.Index
