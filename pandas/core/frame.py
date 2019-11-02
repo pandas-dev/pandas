@@ -476,7 +476,9 @@ class DataFrame(NDFrame):
                             else:
                                 index = ibase.default_index(len(data))
 
-                        mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                        mgr = arrays_to_mgr(
+                            arrays, columns, index, columns, dtype=dtype
+                        )
 
                     except TypeError:
                         mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
