@@ -376,6 +376,26 @@ class TestStyler:
 
         (df.style.applymap(color_negative_red, subset=idx[:, idx["b", "d"]]).render())
 
+    def test_applymap_subset_multiindex_code(self):
+        codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
+        columns = pd.MultiIndex(
+            levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
+        )
+        df = DataFrame(
+            [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
+        )
+        pct_subset = pd.IndexSlice[:, pd.IndexSlice[:, "%":"%"]]
+
+        def color_negative_red(val):
+            color = "red" if val < 0 else "black"
+            return "color: %s" % color
+
+        # Works on both 0.22 and 0.24.
+        df.loc[pct_subset]
+
+        # This works on 0.22, but `TypeError: unhashable type` on 0.24!
+        df.style.applymap(color_negative_red, subset=pct_subset)
+
     def test_where_with_one_style(self):
         # GH 17474
         def f(x):
