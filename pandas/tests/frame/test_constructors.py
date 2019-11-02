@@ -1055,6 +1055,18 @@ class TestDataFrameConstructors:
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_containing_lists_and_non_iterables(self):
+        # GH-29213
+        # First element iterable
+        result = pd.DataFrame([[1, 2, 3], 4])
+        expected = pd.DataFrame(pd.Series([[1, 2, 3], 4]))
+        tm.assert_frame_equal(result, expected)
+
+        # First element non-iterable
+        result = pd.DataFrame([4, [1, 2, 3]])
+        expected = pd.DataFrame(pd.Series([4, [1, 2, 3]]))
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like

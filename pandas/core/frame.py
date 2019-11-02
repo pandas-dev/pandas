@@ -460,21 +460,27 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    if is_named_tuple(data[0]) and columns is None:
-                        columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
-                    columns = ensure_index(columns)
+                    # try to infer that all elements are list-like as well
+                    try:
+                        if is_named_tuple(data[0]) and columns is None:
+                            columns = data[0]._fields
+                        arrays, columns = to_arrays(data, columns, dtype=dtype)
+                        columns = ensure_index(columns)
 
-                    # set the index
-                    if index is None:
-                        if isinstance(data[0], Series):
-                            index = get_names_from_index(data)
-                        elif isinstance(data[0], Categorical):
-                            index = ibase.default_index(len(data[0]))
-                        else:
-                            index = ibase.default_index(len(data))
+                        # set the index
+                        if index is None:
+                            if isinstance(data[0], Series):
+                                index = get_names_from_index(data)
+                            elif isinstance(data[0], Categorical):
+                                index = ibase.default_index(len(data[0]))
+                            else:
+                                index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                        mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+
+                    except TypeError:
+                        mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
