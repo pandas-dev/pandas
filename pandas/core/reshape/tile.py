@@ -38,12 +38,12 @@ import pandas.core.nanops as nanops
 def cut(
     x,
     bins,
-    right=True,
+    right: bool = True,
     labels=None,
-    retbins=False,
-    precision=3,
-    include_lowest=False,
-    duplicates="raise",
+    retbins: bool = False,
+    precision: int = 3,
+    include_lowest: bool = False,
+    duplicates: str = "raise",
 ):
     """
     Bin values into discrete intervals.
@@ -275,7 +275,14 @@ def cut(
     )
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
+def qcut(
+    x,
+    q,
+    labels=None,
+    retbins: bool = False,
+    precision: int = 3,
+    duplicates: str = "raise",
+):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -355,12 +362,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
 def _bins_to_cuts(
     x,
     bins,
-    right=True,
+    right: bool = True,
     labels=None,
-    precision=3,
-    include_lowest=False,
+    precision: int = 3,
+    include_lowest: bool = False,
     dtype=None,
-    duplicates="raise",
+    duplicates: str = "raise",
 ):
 
     if duplicates not in ["raise", "drop"]:
@@ -498,7 +505,9 @@ def _convert_bin_to_datelike_type(bins, dtype):
     return bins
 
 
-def _format_labels(bins, precision, right=True, include_lowest=False, dtype=None):
+def _format_labels(
+    bins, precision, right: bool = True, include_lowest: bool = False, dtype=None
+):
     """ based on the dtype, return our labels """
 
     closed = "right" if right else "left"
@@ -556,7 +565,9 @@ def _preprocess_for_cut(x):
     return x_is_series, series_index, name, x
 
 
-def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name, dtype):
+def _postprocess_for_cut(
+    fac, bins, retbins: bool, x_is_series, series_index, name, dtype
+):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
