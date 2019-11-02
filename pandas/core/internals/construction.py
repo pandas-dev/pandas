@@ -83,7 +83,6 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
 
     # essentially process a record array then fill it
     fill_value = data.fill_value
-
     fdata = ma.getdata(data)
     if index is None:
         index = get_names_from_index(fdata)
