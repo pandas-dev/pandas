@@ -245,9 +245,9 @@ class TestDataFrameConstructors:
             np.array([2 ** 64], dtype=object),
             np.array([2 ** 65]),
             [2 ** 64 + 1],
-            np.array([-2 ** 63 - 4], dtype=object),
-            np.array([-2 ** 64 - 1]),
-            [-2 ** 65 - 2],
+            np.array([-(2 ** 63) - 4], dtype=object),
+            np.array([-(2 ** 64) - 1]),
+            [-(2 ** 65) - 2],
         ],
     )
     def test_constructor_int_overflow(self, values):
