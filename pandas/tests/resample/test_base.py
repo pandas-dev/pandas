@@ -11,12 +11,6 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_index_equal,
-    assert_series_equal,
-)
 
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
@@ -53,7 +47,7 @@ def test_asfreq(series_and_frame, freq, create_index):
     result = obj.resample(freq).asfreq()
     new_index = create_index(obj.index[0], obj.index[-1], freq=freq)
     expected = obj.reindex(new_index)
-    assert_almost_equal(result, expected)
+    tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -67,21 +61,21 @@ def test_asfreq_fill_value(series, create_index):
     result = s.resample("1H").asfreq()
     new_index = create_index(s.index[0], s.index[-1], freq="1H")
     expected = s.reindex(new_index)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     frame = s.to_frame("value")
     frame.iloc[1] = None
     result = frame.resample("1H").asfreq(fill_value=4.0)
     new_index = create_index(frame.index[0], frame.index[-1], freq="1H")
     expected = frame.reindex(new_index, fill_value=4.0)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @all_ts
 def test_resample_interpolate(frame):
     # # 12925
     df = frame
-    assert_frame_equal(
+    tm.assert_frame_equal(
         df.resample("1T").asfreq().interpolate(), df.resample("1T").interpolate()
     )
 
@@ -113,9 +107,9 @@ def test_resample_empty_series(freq, empty_series, resample_method):
         expected.index = s.index.asfreq(freq=freq)
     else:
         expected.index = s.index._shallow_copy(freq=freq)
-    assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts
@@ -135,9 +129,9 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
         expected.index = df.index.asfreq(freq=freq)
     else:
         expected.index = df.index._shallow_copy(freq=freq)
-    assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    assert_almost_equal(result, expected, check_dtype=False)
+    tm.assert_almost_equal(result, expected, check_dtype=False)
 
     # test size for GH13212 (currently stays as df)
 
@@ -186,12 +180,12 @@ def test_resample_loffset_arg_type(frame, create_index):
         if isinstance(expected.index, TimedeltaIndex):
             msg = "DataFrame are different"
             with pytest.raises(AssertionError, match=msg):
-                assert_frame_equal(result_agg, expected)
+                tm.assert_frame_equal(result_agg, expected)
             with pytest.raises(AssertionError, match=msg):
-                assert_frame_equal(result_how, expected)
+                tm.assert_frame_equal(result_how, expected)
         else:
-            assert_frame_equal(result_agg, expected)
-            assert_frame_equal(result_how, expected)
+            tm.assert_frame_equal(result_agg, expected)
+            tm.assert_frame_equal(result_how, expected)
 
 
 @all_ts
@@ -202,7 +196,7 @@ def test_apply_to_empty_series(empty_series):
         result = s.resample(freq).apply(lambda x: 1)
         expected = s.resample(freq).apply(np.sum)
 
-        assert_series_equal(result, expected, check_dtype=False)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts
@@ -214,7 +208,7 @@ def test_resampler_is_iterable(series):
     resampled = series.resample(freq)
     for (rk, rv), (gk, gv) in zip(resampled, grouped):
         assert rk == gk
-        assert_series_equal(rv, gv)
+        tm.assert_series_equal(rv, gv)
 
 
 @all_ts

@@ -1276,7 +1276,6 @@ class BlockManager(PandasObject):
         Returns
         -------
         new_blocks : list of Block
-
         """
 
         allow_fill = fill_tuple is not None

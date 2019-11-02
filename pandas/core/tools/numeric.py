@@ -36,9 +36,9 @@ def to_numeric(arg, errors="raise", downcast=None):
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaN
-        - If 'ignore', then invalid parsing will return the input
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaN.
+        - If 'ignore', then invalid parsing will return the input.
     downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
