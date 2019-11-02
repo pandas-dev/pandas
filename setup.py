@@ -330,7 +330,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/missing.pyx",
         "pandas/_libs/reduction.pyx",
         "pandas/_libs/testing.pyx",
-        "pandas/_libs/skiplist.pyx",
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
@@ -604,10 +603,6 @@ ext_data = {
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.properties": {"pyxfile": "_libs/properties", "include": []},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
-    "_libs.skiplist": {
-        "pyxfile": "_libs/skiplist",
-        "depends": ["pandas/_libs/src/skiplist.h"],
-    },
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {
         "pyxfile": "_libs/tslib",
