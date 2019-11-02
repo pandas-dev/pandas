@@ -376,7 +376,6 @@ def maybe_promote_scalar(dtype, fill_value=np.nan):
     fill_value
         Upcasted from fill_value argument if necessary.
     """
-    assert is_scalar(fill_value)
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
