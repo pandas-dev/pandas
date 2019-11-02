@@ -839,7 +839,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_codes = FrozenList(
-                self._coerce(level_codes, lev, copy=copy)._shallow_copy()
+                self._coerce(level_codes, lev, copy=copy).view()
                 for lev, level_codes in zip(self._levels, codes)
             )
         else:
@@ -847,9 +847,7 @@ class MultiIndex(Index):
             new_codes = list(self._codes)
             for lev_idx, level_codes in zip(level, codes):
                 lev = self.levels[lev_idx]
-                new_codes[lev_idx] = self._coerce(
-                    level_codes, lev, copy=copy
-                )._shallow_copy()
+                new_codes[lev_idx] = self._coerce(level_codes, lev, copy=copy)
             new_codes = FrozenList(new_codes)
 
         if verify_integrity:
