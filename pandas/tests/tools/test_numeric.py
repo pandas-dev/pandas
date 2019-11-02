@@ -568,6 +568,24 @@ def test_downcast_limits(dtype, downcast, min_max):
 
 
 @pytest.mark.parametrize(
+    "ser,expected",
+    [
+        (
+            pd.Series([0, 9223372036854775808]),
+            pd.Series([0, 9223372036854775808], dtype=np.uint64),
+        )
+    ],
+)
+def test_downcast_uint64(ser, expected):
+    # see gh-14422:
+    # BUG: to_numeric doesn't work uint64 numbers
+
+    result = pd.to_numeric(ser, downcast="unsigned")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data,exp_data",
     [
         (
@@ -609,16 +627,3 @@ def test_non_coerce_uint64_conflict(errors, exp):
     else:
         result = to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, ser)
-
-
-def test_downcast_uint64_exception():
-    # see gh-14422:
-    # BUG: to_numeric doesn't work uint64 numbers
-
-    series = pd.Series([0, 9223372036854775808])
-
-    expected = pd.Series([0, 9223372036854775808], dtype=np.uint64)
-
-    result = pd.to_numeric(series, downcast="unsigned")
-
-    tm.assert_series_equal(result, expected)
