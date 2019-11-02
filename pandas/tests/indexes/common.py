@@ -1,4 +1,5 @@
 import gc
+from typing import Optional, Type
 
 import numpy as np
 import pytest
@@ -30,7 +31,7 @@ import pandas.util.testing as tm
 class Base:
     """ base class for index sub-class tests """
 
-    _holder = None
+    _holder = None  # type: Optional[Type[Index]]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def test_pickle_compat_construction(self):

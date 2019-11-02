@@ -27,7 +27,6 @@ from pandas import (
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesDatetimeValues:
@@ -587,11 +586,11 @@ class TestSeriesDatetimeValues:
 
         result = s[s.between(s[3], s[17])]
         expected = s[3:18].dropna()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s[s.between(s[3], s[17], inclusive=False)]
         expected = s[5:16].dropna()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_date_tz(self):
         # GH11757
@@ -601,8 +600,8 @@ class TestSeriesDatetimeValues:
         )
         s = Series(rng)
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
-        assert_series_equal(s.dt.date, expected)
-        assert_series_equal(s.apply(lambda x: x.date()), expected)
+        tm.assert_series_equal(s.dt.date, expected)
+        tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
 
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series

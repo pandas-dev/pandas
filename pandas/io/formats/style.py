@@ -591,6 +591,7 @@ class Styler:
     def clear(self):
         """
         Reset the styler, removing any previously applied styles.
+
         Returns None.
         """
         self.ctx.clear()
@@ -649,8 +650,9 @@ class Styler:
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wise,
-        updating the HTML representation with the result.
+        Apply a function column-wise, row-wise, or table-wise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
@@ -708,8 +710,9 @@ class Styler:
 
     def applymap(self, func, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with the result.
+        Apply a function elementwise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
@@ -736,9 +739,10 @@ class Styler:
 
     def where(self, cond, value, other=None, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with a style which is selected in
-        accordance with the return value of a function.
+        Apply a function elementwise.
+
+        Updates the HTML representation with a style which is
+        selected in accordance with the return value of a function.
 
         .. versionadded:: 0.21.0
 
@@ -829,8 +833,9 @@ class Styler:
 
     def use(self, styles):
         """
-        Set the styles on the current Styler, possibly using styles
-        from ``Styler.export``.
+        Set the styles on the current Styler.
+
+        Possibly uses styles from ``Styler.export``.
 
         Parameters
         ----------
@@ -996,10 +1001,10 @@ class Styler:
         text_color_threshold=0.408,
     ):
         """
-        Color the background in a gradient according to
-        the data in each column (optionally row).
+        Color the background in a gradient style.
 
-        Requires matplotlib.
+        The background color is determined according
+        to the data in each column (optionally row). Requires matplotlib.
 
         Parameters
         ----------
@@ -1113,8 +1118,7 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs):
         """
-        Convenience method for setting one or more non-data dependent
-        properties or each cell.
+        Method to set one or more non-data dependent properties or each cell.
 
         Parameters
         ----------
@@ -1354,8 +1358,9 @@ class Styler:
     @classmethod
     def from_custom_template(cls, searchpath, name):
         """
-        Factory function for creating a subclass of ``Styler``
-        with a custom template and Jinja environment.
+        Factory function for creating a subclass of ``Styler``.
+
+        Uses a custom template and Jinja environment.
 
         Parameters
         ----------
