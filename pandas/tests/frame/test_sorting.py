@@ -735,3 +735,25 @@ class TestDataFrameSortIndexKinds:
 
         with pytest.raises(ValueError):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
+
+    def test_sort_multicolumn_uint64(self):
+        # GH9918
+        # uint64 multicolumn sort
+
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([18446637057563306014, 1162265347240853609]),
+                "b": pd.Series([1, 2]),
+            }
+        )
+        df["a"] = df["a"].astype(np.uint64)
+        result = df.sort_values(["a", "b"]).reset_index(drop=True)
+
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1162265347240853609, 18446637057563306014]),
+                "b": pd.Series([2, 1]),
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
