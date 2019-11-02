@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
-Dtype = Type[Union[str, float, bool, np.dtype, "ExtensionDtype"]]
+Dtype = Union[ExtensionDtype, Type[Union[str, float, int, complex, bool]]]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
