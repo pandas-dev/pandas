@@ -482,7 +482,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 

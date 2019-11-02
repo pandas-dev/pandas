@@ -1881,8 +1881,9 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = algos.diff_2d
-        f(arr, out_arr, n, axis)
+        # TODO: can diff_2d dtype specialization troubles be fixed by defining
+        #  out_arr inside diff_2d?
+        algos.diff_2d(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
