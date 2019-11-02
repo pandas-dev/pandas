@@ -32,7 +32,7 @@ matrix:
     include:
     - dist: bionic
       # 18.04
-      python: 3.8-dev
+      python: 3.8.0
       env:
         - JOB="3.8-dev" PATTERN="(not slow and not network)"
 
