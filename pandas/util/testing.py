@@ -811,7 +811,7 @@ def assert_categorical_equal(
     right: Categorical,
     check_dtype: bool = True,
     check_category_order: bool = True,
-    obj: str = "Categorical"
+    obj: str = "Categorical",
 ) -> None:
     """Test that Categoricals are equivalent.
 
@@ -858,10 +858,10 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(
-        left: IntervalArray,
-        right: IntervalArray,
-        exact: str = "equiv",
-        obj: str = "IntervalArray"
+    left: IntervalArray,
+    right: IntervalArray,
+    exact: str = "equiv",
+    obj: str = "IntervalArray",
 ) -> None:
     """Test that two IntervalArrays are equivalent.
 
@@ -889,9 +889,7 @@ def assert_interval_array_equal(
 
 
 def assert_period_array_equal(
-        left: PeriodArray,
-        right: PeriodArray,
-        obj: str = "PeriodArray"
+    left: PeriodArray, right: PeriodArray, obj: str = "PeriodArray"
 ) -> None:
     _check_isinstance(left, right, PeriodArray)
 
@@ -902,9 +900,7 @@ def assert_period_array_equal(
 
 
 def assert_datetime_array_equal(
-        left: DatetimeArray,
-        right: DatetimeArray,
-        obj: str = "DatetimeArray"
+    left: DatetimeArray, right: DatetimeArray, obj: str = "DatetimeArray"
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
@@ -915,9 +911,7 @@ def assert_datetime_array_equal(
 
 
 def assert_timedelta_array_equal(
-        left: TimedeltaArray,
-        right: TimedeltaArray,
-        obj: str = "TimedeltaArray"
+    left: TimedeltaArray, right: TimedeltaArray, obj: str = "TimedeltaArray"
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
@@ -960,7 +954,7 @@ def assert_numpy_array_equal(
     err_msg: Optional[str] = None,
     check_same: Optional[str] = None,
     obj: str = "numpy array",
-):
+) -> None:
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1431,9 +1425,9 @@ def assert_frame_equal(
 
 
 def assert_equal(
-        left: Union[DataFrame, AnyArrayLike],
-        right: Union[DataFrame, AnyArrayLike],
-        **kwargs
+    left: Union[DataFrame, AnyArrayLike],
+    right: Union[DataFrame, AnyArrayLike],
+    **kwargs
 ) -> None:
     """
     Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
