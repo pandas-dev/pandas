@@ -1195,8 +1195,8 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
 
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
-    expected = df_cat.groupby(['A', 'B'])['C'].mean()
-    result = df_cat.groupby(['A', 'B']).mean()['C']
+    expected = df_cat.groupby(["A", "B"])["C"].mean()
+    result = df_cat.groupby(["A", "B"]).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 
