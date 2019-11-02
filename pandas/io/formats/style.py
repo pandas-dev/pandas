@@ -75,6 +75,8 @@ class Styler:
         Representation for missing values.
         If ``na_rep`` is None, no special formatting is applied
 
+        .. versionadded:: 1.0.0
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
@@ -423,7 +425,7 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter=None, subset=None, na_rep=None):
+    def format(self, formatter, subset=None, na_rep=None):
         """
         Format the text display value of cells.
 
@@ -437,6 +439,8 @@ class Styler:
         na_rep : str or None, default None
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -913,7 +917,7 @@ class Styler:
         self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep):
+    def set_na_rep(self, na_rep: str) -> "Styler":
         """
         Set the missing data representation on a Styler.
 
@@ -974,21 +978,19 @@ class Styler:
             "background-color: {color}".format(color=null_color) if pd.isna(v) else ""
         )
 
-    def highlight_null(self, null_color="red", subset=None):
+    def highlight_null(self, null_color="red"):
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
         null_color : str
-        subset : IndexSlice, default None
-            A valid slice for ``data`` to limit the style application to.
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
+        self.applymap(self._highlight_null, null_color=null_color)
         return self
 
     def background_gradient(

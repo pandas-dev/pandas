@@ -112,7 +112,8 @@ Other enhancements
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
 - Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
-- Added ``na_rep`` argument to :meth:`DataFrame.style` and :meth:`Styler.format` to help formatting missing values (:issue:`28358`)
+- :class:`Styler` added :meth:`Styler.set_na_rep` method to set default missing values representation for the entire table.
+  :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
 
 Build Changes
 ^^^^^^^^^^^^^
