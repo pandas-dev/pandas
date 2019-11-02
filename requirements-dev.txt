@@ -3,7 +3,7 @@ python-dateutil>=2.6.1
 pytz
 asv
 cython>=0.29.13
-black
+black<=19.3b0
 cpplint
 flake8
 flake8-comprehensions

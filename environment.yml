@@ -16,7 +16,7 @@ dependencies:
   - cython>=0.29.13
 
   # code checks
-  - black
+  - black<=19.3b0
   - cpplint
   - flake8
   - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
