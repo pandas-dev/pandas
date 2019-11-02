@@ -16,6 +16,11 @@ Groupby/resample/rolling
 
 - Bug in :meth:`DataFrameGroupBy.quantile` where NA values in the grouping could cause segfaults or incorrect results (:issue:`28882`)
 
+Series
+^^^^^^
+
+- Bug in :meth:`Series.var` not computing the right value with an integer series with missing values when ddof = 0
+
 Contributors
 ~~~~~~~~~~~~
 
