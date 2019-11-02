@@ -1800,7 +1800,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
         for i in range(1, N):
             cur = vals[i]
             is_observation = (cur == cur)
-            nobs += <int64_t>is_observation
+            nobs += is_observation
             if weighted_avg == weighted_avg:
 
                 if is_observation or (not ignore_na):
@@ -1890,7 +1890,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
             cur_x = input_x[i]
             cur_y = input_y[i]
             is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
-            nobs += <int64_t>is_observation
+            nobs += is_observation
             if mean_x == mean_x:
                 if is_observation or (not ignore_na):
                     sum_wt *= old_wt_factor
