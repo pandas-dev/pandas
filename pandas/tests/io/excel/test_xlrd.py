@@ -39,3 +39,19 @@ def test_excel_table_sheet_by_index(datapath, read_ext):
     with pd.ExcelFile(path) as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, "asdf")
+
+
+def test_excel_file_warning_with_default_engine(datapath):
+    path = datapath("io", "data", "test1.xls")
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        pd.ExcelFile(path)
+
+
+def test_read_excel_warning_with_default_engine(tmpdir, datapath):
+    path = datapath("io", "data", "test1.xls")
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        pd.read_excel(path, "Sheet1")

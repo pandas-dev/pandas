@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
+import warnings
 
 from pandas._config import config
 
@@ -784,7 +785,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See read_excel for more documentation
+    Uses xlrd, openpyxl or odf. See read_excel for more documentation
 
     Parameters
     ----------
@@ -804,8 +805,13 @@ class ExcelFile:
     _engines = {"xlrd": _XlrdReader, "openpyxl": _OpenpyxlReader, "odf": _ODFReader}
 
     def __init__(self, io, engine=None):
-        if engine is None:
+        if engine == "xlrd" or engine is None:
             engine = "xlrd"
+            warnings.warn(
+                "xlrd is deprecated. Alternative supported engines: 'openpyxl' or 'odf'.",
+                FutureWarning,
+                stacklevel=2,
+            )
         if engine not in self._engines:
             raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
