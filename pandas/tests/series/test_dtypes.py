@@ -382,7 +382,7 @@ class TestSeriesDtypes:
         s = Series([True, False, np.nan])
         assert s.dtypes == np.object_
 
-        result = s.astype(pd.api.types.CategoricalDtype(categories=[True, False]))
+        result = s.astype(CategoricalDtype(categories=[True, False]))
         expected = Series(Categorical([True, False, np.nan], categories=[True, False]))
         tm.assert_series_equal(result, expected)
 
