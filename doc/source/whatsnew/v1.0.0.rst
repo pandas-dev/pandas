@@ -293,6 +293,9 @@ Categorical
 - Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning an object of the
   same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue: `27952`)
+- Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning the same object that would
+  be returned if one used the :meth:`.str.<method>` / :meth:`.dt.<method>` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
+  :class:`Categorical` with duplicate entries, the accessor would skip duplicates (:issue: `27952`)
 -
 
 
