@@ -610,6 +610,7 @@ def test_non_coerce_uint64_conflict(errors, exp):
         result = to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, ser)
 
+
 def test_downcast_uint64_exception():
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
@@ -618,6 +619,6 @@ def test_downcast_uint64_exception():
 
     expected = pd.Series([0, 9223372036854775808], dtype=np.uint64)
 
-    result = pd.to_numeric(series, downcast='unsigned')
+    result = pd.to_numeric(series, downcast="unsigned")
 
     tm.assert_series_equal(result, expected)
