@@ -222,7 +222,7 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX)
+      if passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
 
     Returns

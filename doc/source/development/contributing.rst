@@ -238,12 +238,15 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least python3.5 installed on your system.
 
-.. code-block:: none
+**Unix**/**Mac OS**
+
+.. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
@@ -251,8 +254,34 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext --inplace -j 0
    python -m pip install -e . --no-build-isolation
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+'~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
+%USERPROFILE% (cmd.exe) environment variable. Any parent directories
+should already exist.
+
+.. code-block:: powershell
+
+   # Create a virtual environment
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
+
+   # Activate the virtualenv. Use activate.bat for cmd.exe
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
 -----------------
@@ -453,7 +482,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 

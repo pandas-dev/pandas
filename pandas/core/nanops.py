@@ -237,7 +237,8 @@ def _get_values(
     fill_value_typ: Optional[str] = None,
     mask: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype, np.dtype, Any]:
-    """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
+    """
+    Utility to get the values view, mask, dtype, dtype_max, and fill_value.
 
     If both mask and fill_value/fill_value_typ are not None and skipna is True,
     the values array will be copied.
@@ -704,11 +705,14 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    orig_dtype = values.dtype
+    values, mask, dtype, dtype_max, fill_value = _get_values(values, skipna, mask=mask)
+
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
-    return _wrap_results(result, values.dtype)
+    return _wrap_results(result, orig_dtype)
 
 
-@disallow("M8")
+@disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     """

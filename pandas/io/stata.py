@@ -2730,7 +2730,7 @@ class StataStrLWriter:
         Modifies the DataFrame in-place.
 
         The DataFrame returned encodes the (v,o) values as uint64s. The
-        encoding depends on teh dta version, and can be expressed as
+        encoding depends on the dta version, and can be expressed as
 
         enc = v + o * 2 ** (o_size * 8)
 

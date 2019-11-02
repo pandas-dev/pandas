@@ -1,3 +1,4 @@
+from collections import ChainMap
 from datetime import datetime, timedelta
 import inspect
 
@@ -690,6 +691,24 @@ class TestDataFrameAlterAxes:
         renamed = renamer.rename(index={"foo": "bar", "bar": "foo"})
         tm.assert_index_equal(renamed.index, Index(["bar", "foo"], name="name"))
         assert renamed.index.name == renamer.index.name
+
+    @pytest.mark.parametrize(
+        "args,kwargs",
+        [
+            ((ChainMap({"A": "a"}, {"B": "b"}),), dict(axis="columns")),
+            ((), dict(columns=ChainMap({"A": "a"}, {"B": "b"}))),
+        ],
+    )
+    def test_rename_chainmap(self, args, kwargs):
+        # see gh-23859
+        colAData = range(1, 11)
+        colBdata = np.random.randn(10)
+
+        df = DataFrame({"A": colAData, "B": colBdata})
+        result = df.rename(*args, **kwargs)
+
+        expected = DataFrame({"a": colAData, "b": colBdata})
+        tm.assert_frame_equal(result, expected)
 
     def test_rename_axis_inplace(self, float_frame):
         # GH 15704
