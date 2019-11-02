@@ -1080,16 +1080,16 @@ class TestDataFrameAnalytics:
         # possible bug when calculating mean of DataFrame?
 
         d = [
-            {'A': 2, 'B': None, 'C': 628.00},
-            {'A': 1, 'B': None, 'C': 383.00},
-            {'A': 3, 'B': None, 'C': 651.00},
-            {'A': 2, 'B': None, 'C': 575.00},
-            {'A': 4, 'B': None, 'C': 1114.00},
-            {'A': 1, 'B': 'TEST', 'C': 241.00},
-            {'A': 2, 'B': None, 'C': 572.00},
-            {'A': 4, 'B': None, 'C': 609.00},
-            {'A': 3, 'B': None, 'C': 820.00},
-            {'A': 5, 'B': None, 'C': 1223.00}
+            {"A": 2, "B": None, "C": 628.00},
+            {"A": 1, "B": None, "C": 383.00},
+            {"A": 3, "B": None, "C": 651.00},
+            {"A": 2, "B": None, "C": 575.00},
+            {"A": 4, "B": None, "C": 1114.00},
+            {"A": 1, "B": "TEST", "C": 241.00},
+            {"A": 2, "B": None, "C": 572.00},
+            {"A": 4, "B": None, "C": 609.00},
+            {"A": 3, "B": None, "C": 820.00},
+            {"A": 5, "B": None, "C": 1223.00},
         ]
 
         df = pd.DataFrame(d)
