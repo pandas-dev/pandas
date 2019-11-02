@@ -170,6 +170,13 @@ class TestSeriesApply:
         expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
+    def test_apply_empty_integer_series_with_datetime_index(self):
+        # GH 21245
+        s = pd.Series([],
+                      index=pd.date_range(start="2018-01-01", periods=0),
+                      dtype=int)
+        tm.assert_series_equal(s.apply(lambda x: x), s)
+
 
 class TestSeriesAggregate:
     def test_transform(self, string_series):
