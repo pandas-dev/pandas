@@ -1067,6 +1067,18 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame(pd.Series([4, [1, 2, 3]]))
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_from_dict_lists_and_non_iterables(self):
+        # GH-29213
+        # First dict.values() element iterable
+        result = pd.DataFrame.from_dict({"a": [1, 2, 3], "b": 4}, orient="index")
+        expected = pd.DataFrame(pd.Series([[1, 2, 3], 4], ["a", "b"]))
+        tm.assert_frame_equal(result, expected)
+
+        # First dict.values() element non-iterable
+        result = pd.DataFrame.from_dict({"b": 4, "a": [1, 2, 3]}, orient="index")
+        expected = pd.DataFrame(pd.Series([4, [1, 2, 3]], ["b", "a"]))
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
