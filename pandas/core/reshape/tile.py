@@ -1,8 +1,6 @@
 """
 Quantilization functions and related stuff
 """
-from functools import partial
-
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp
@@ -513,7 +511,7 @@ def _format_labels(
     closed = "right" if right else "left"
 
     if is_datetime64tz_dtype(dtype):
-        formatter = partial(Timestamp, tz=dtype.tz)
+        formatter = lambda x: Timestamp(x, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
     elif is_datetime64_dtype(dtype):
         formatter = Timestamp
