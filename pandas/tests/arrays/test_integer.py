@@ -828,6 +828,13 @@ def test_arrow_array(data):
     expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
     assert arr.equals(expected)
 
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_var_ddof(ddof):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    result = s.var(ddof=ddof)
+    expected = np.var([1, 2, 3, 4, 5, 6, np.nan, np.nan], ddof=ddof)
+    assert expected == result
+
 
 # TODO(jreback) - these need testing / are broken
 
