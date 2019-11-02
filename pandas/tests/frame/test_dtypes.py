@@ -1063,6 +1063,17 @@ class TestDataFrameDataTypes:
         expected = np.array([[1, 1], [2, 2]], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_str_to_small_float_conversion_type(self):
+        # GH 20388
+        np.random.seed(13)
+        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+
+        df = pd.DataFrame(col_data, columns=["A"])
+        assert df["A"].dtype == np.object_
+
+        df.loc[df.index, "A"] = [float(x) for x in col_data]
+        assert df["A"].dtype == np.float64
+
 
 class TestDataFrameDatetimeWithTZ:
     def test_interleave(self, timezone_frame):
