@@ -34,8 +34,8 @@ import time
 import typing
 
 import feedparser
-import jinja2
 import markdown
+import jinja2
 import requests
 import yaml
 
