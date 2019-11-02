@@ -735,14 +735,12 @@ class TestDataFrameSortIndexKinds:
 
         with pytest.raises(ValueError):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
-            
+
     def test_sort_index_nan(self):
 
-        df = pd.DataFrame(0, 
-                            columns=[],
-                            index=pd.MultiIndex.from_product([[], []]))
-        df.loc['b', '2'] = 1
-        df.loc['a', '3'] = 1
+        df = pd.DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
         result = df.sort_index()
-        
+
         assert result.index.is_monotonic == True
