@@ -11,7 +11,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_integer,
     is_integer_dtype,
     is_numeric_v_string_like,
     is_scalar,
@@ -191,13 +190,7 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    if limit is None:
-        # limit = len(xvalues)
-        pass
-    elif not is_integer(limit):
-        raise ValueError("Limit must be an integer")
-    elif limit < 1:
-        raise ValueError("Limit must be greater than 0")
+    limit = algos._validate_limit(nobs=None, limit=limit)
 
     from pandas import Series
 
