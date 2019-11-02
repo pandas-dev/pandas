@@ -13,6 +13,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
+from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -40,7 +41,7 @@ from pandas.core.indexes.base import (
     _index_shared_docs,
     ensure_index,
 )
-from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
+from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
@@ -822,6 +823,12 @@ class MultiIndex(Index):
         )
         return self.codes
 
+    def _coerce(self, array_like, categories, copy=False):
+        array_like = coerce_indexer_dtype(array_like, categories)
+        if copy:
+            array_like = array_like.copy()
+        return array_like
+
     def _set_codes(
         self, codes, level=None, copy=False, validate=True, verify_integrity=False
     ):
@@ -832,7 +839,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_codes = FrozenList(
-                _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
+                self._coerce(level_codes, lev, copy=copy)._shallow_copy()
                 for lev, level_codes in zip(self._levels, codes)
             )
         else:
@@ -840,7 +847,7 @@ class MultiIndex(Index):
             new_codes = list(self._codes)
             for lev_idx, level_codes in zip(level, codes):
                 lev = self.levels[lev_idx]
-                new_codes[lev_idx] = _ensure_frozen(
+                new_codes[lev_idx] = self._coerce(
                     level_codes, lev, copy=copy
                 )._shallow_copy()
             new_codes = FrozenList(new_codes)
