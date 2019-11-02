@@ -90,7 +90,7 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
-OffsetTestCaseList = List[Tuple[int, Dict[datetime, datetime]]]
+_ApplyCases = List[Tuple[int, Dict[datetime, datetime]]]
 
 
 class Base:
@@ -742,7 +742,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: OffsetTestCaseList
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             BDay(),
@@ -2630,7 +2630,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: OffsetTestCaseList
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CDay(),
@@ -2877,7 +2877,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: OffsetTestCaseList
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -3026,7 +3026,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []  # type: OffsetTestCaseList
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthBegin(),
