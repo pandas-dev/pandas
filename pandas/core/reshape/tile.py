@@ -4,6 +4,7 @@ Quantilization functions and related stuff
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp
+from pandas._libs.interval import Interval
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
@@ -21,14 +22,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas import (
-    Categorical,
-    Index,
-    Interval,
-    IntervalIndex,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical, Index, IntervalIndex, to_datetime, to_timedelta
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 

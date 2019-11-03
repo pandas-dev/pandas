@@ -1575,7 +1575,6 @@ def take_nd(
     axis: int = 0,
     out=None,
     fill_value=np.nan,
-    mask_info=None,
     allow_fill: bool = True,
 ):
     """
@@ -1599,10 +1598,6 @@ def take_nd(
         maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    mask_info : tuple of (ndarray, boolean)
-        If provided, value should correspond to:
-            (indexer != -1, (indexer != -1).any())
-        If not provided, it will be computed internally if necessary
     allow_fill : boolean, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
@@ -1613,6 +1608,7 @@ def take_nd(
     subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
+    mask_info = None
 
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -1634,12 +1630,9 @@ def take_nd(
             dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
-                if mask_info is not None:
-                    mask, needs_masking = mask_info
-                else:
-                    mask = indexer == -1
-                    needs_masking = mask.any()
-                    mask_info = mask, needs_masking
+                mask = indexer == -1
+                needs_masking = mask.any()
+                mask_info = mask, needs_masking
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
                         raise TypeError("Incompatible type for fill_value")
