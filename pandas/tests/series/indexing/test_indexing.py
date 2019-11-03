@@ -395,7 +395,10 @@ def test_incorrect_assigment():
     x = np.random.randn(2, 2)
     y = pd.Series(range(2))
 
-    msg = r"shape mismatch: value array of shape \(2,2\) could not be broadcast to indexing result of shape \(2,\)"
+    msg = (
+        "shape mismatch: value array of shape \(2,2\) could not be"
+        " broadcast to indexing result of shape \(2,\)"
+    )
     with pytest.raises(ValueError, match=msg):
         y.loc[range(2)] = x
 
