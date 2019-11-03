@@ -1868,6 +1868,33 @@ c  10  11  12  13  14\
 
         tm.reset_display_options()
 
+    def test_repr_html_series(self):
+        data = [1, "two", 3.1, -4.2, True, np.nan]
+
+        fmt.set_option("display.max_rows", len(data))
+
+        small = pd.Series(data, name="test series")
+        sm_html = small._repr_html_()
+
+        for val in data:
+            if pd.isnull(val):
+                assert f"<td>NaN</td>" in sm_html
+            else:
+                assert f"<td>{val}</td>" in sm_html
+
+        assert f"<p>Name: <b>{small.name}</b>" in sm_html
+        assert f"Length: {len(small)}" in sm_html
+        assert f"dtype: <tt>{small.dtype}</tt>" in sm_html
+
+        large = small.repeat(1000)
+        large.name = None
+        lg_html = large._repr_html_()
+
+        assert "<td>...</td>" in lg_html
+        assert "<p>Name: <b>" not in lg_html
+
+        tm.reset_display_options()
+
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()
