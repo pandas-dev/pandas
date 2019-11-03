@@ -255,7 +255,7 @@ You'll need to have at least python3.5 installed on your system.
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 0
-   python -m pip install -e . --no-build-isolation
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
 
