@@ -18,7 +18,6 @@ import pytz
 from pandas._libs import iNaT, lib, missing as libmissing
 import pandas.util._test_decorators as td
 
-from pandas.core.arrays import IntegerArray
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     ensure_categorical,
@@ -52,7 +51,9 @@ from pandas import (
     Timestamp,
     isna,
 )
-import pandas.util.testing as tm
+
+from pandas.core.arrays import IntegerArray
+from pandas.util import testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)
