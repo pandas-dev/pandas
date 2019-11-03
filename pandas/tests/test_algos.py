@@ -28,42 +28,6 @@ from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
 from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
-
-
-class TestMatch:
-    def test_ints(self):
-        values = np.array([0, 2, 1])
-        to_match = np.array([0, 1, 2, 2, 0, 1, 3, 0])
-
-        result = algos.match(to_match, values)
-        expected = np.array([0, 2, 1, 1, 0, 2, -1, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(to_match, values, np.nan))
-        expected = Series(np.array([0, 2, 1, 1, 0, 2, np.nan, 0]))
-        tm.assert_series_equal(result, expected)
-
-        s = Series(np.arange(5), dtype=np.float32)
-        result = algos.match(s, [2, 4])
-        expected = np.array([-1, -1, 0, -1, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(s, [2, 4], np.nan))
-        expected = Series(np.array([np.nan, np.nan, 0, np.nan, 1]))
-        tm.assert_series_equal(result, expected)
-
-    def test_strings(self):
-        values = ["foo", "bar", "baz"]
-        to_match = ["bar", "foo", "qux", "foo", "bar", "baz", "qux"]
-
-        result = algos.match(to_match, values)
-        expected = np.array([1, 0, -1, 0, 1, 2, -1], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(to_match, values, np.nan))
-        expected = Series(np.array([1, 0, np.nan, 0, 1, 2, np.nan]))
-        tm.assert_series_equal(result, expected)
 
 
 class TestFactorize:
@@ -1623,7 +1587,7 @@ class TestRank:
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
-            assert_almost_equal(result, exp)
+            tm.assert_almost_equal(result, exp)
 
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))

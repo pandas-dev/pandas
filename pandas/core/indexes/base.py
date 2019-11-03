@@ -1169,20 +1169,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     def to_series(self, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
         index : Index, optional
-            index of resulting Series. If None, defaults to original index
+            Index of resulting Series. If None, defaults to original index.
         name : str, optional
-            name of resulting Series. If None, defaults to name of original
-            index
+            Dame of resulting Series. If None, defaults to name of original
+            index.
 
         Returns
         -------
-        Series : dtype will be based on the type of the Index values.
+        Series
+            The dtype will be based on the type of the Index values.
         """
 
         from pandas import Series
@@ -1723,9 +1725,6 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         return self.is_unique and self.is_monotonic_decreasing
-
-    def is_lexsorted_for_tuple(self, tup):
-        return True
 
     @cache_readonly
     def is_unique(self):
@@ -4415,7 +4414,7 @@ class Index(IndexOpsMixin, PandasObject):
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
-        `where`) is not in the index, the latest index label upto the
+        `where`) is not in the index, the latest index label up to the
         passed label is chosen and its index returned.
 
         If all of the labels in the index are later than a label in `where`,

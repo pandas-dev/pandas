@@ -17,7 +17,6 @@ from pandas import (
     qcut,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import assert_equal, assert_frame_equal, assert_series_equal
 
 
 def cartesian_product_for_groupers(result, args, names):
@@ -159,7 +158,7 @@ def test_basic():
     exp_idx = CategoricalIndex(levels, categories=cats.categories, ordered=True)
     expected = expected.reindex(exp_idx)
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     grouped = data.groupby(cats, observed=False)
     desc_result = grouped.describe()
@@ -172,7 +171,7 @@ def test_basic():
         ord_labels, ordered=True, categories=["foo", "bar", "baz", "qux"]
     )
     expected = ord_data.groupby(exp_cats, sort=False, observed=False).describe()
-    assert_frame_equal(desc_result, expected)
+    tm.assert_frame_equal(desc_result, expected)
 
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
@@ -206,7 +205,7 @@ def test_level_get_group(observed):
     )
     result = g.get_group("a")
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
@@ -232,21 +231,21 @@ def test_apply(ordered):
     #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
     #  when we expect Series(0., index=["values"])
     result = grouped.apply(lambda x: np.mean(x))
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # we coerce back to ints
     expected = expected.astype("int")
     result = grouped.mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     result = grouped.agg(np.mean)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # but for transform we should still get back the original index
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
     result = grouped.apply(lambda x: 1)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_observed(observed):
@@ -335,7 +334,7 @@ def test_observed(observed):
         c, i = key
         result = groups_double_key.get_group(key)
         expected = df[(df.cat == c) & (df.ints == i)]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     # gh-8869
     # with as_index
@@ -522,7 +521,7 @@ def test_datetime():
         expected.index, categories=expected.index, ordered=True
     )
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     grouped = data.groupby(cats, observed=False)
     desc_result = grouped.describe()
@@ -531,7 +530,7 @@ def test_datetime():
     ord_labels = cats.take(idx)
     ord_data = data.take(idx)
     expected = ord_data.groupby(ord_labels, observed=False).describe()
-    assert_frame_equal(desc_result, expected)
+    tm.assert_frame_equal(desc_result, expected)
     tm.assert_index_equal(desc_result.index, expected.index)
     tm.assert_index_equal(
         desc_result.index.get_level_values(0), expected.index.get_level_values(0)
@@ -560,7 +559,7 @@ def test_categorical_index():
     expected.index = CategoricalIndex(
         Categorical.from_codes([0, 1, 2, 3], levels, ordered=True), name="cats"
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # with a cat column, should produce a cat index
     result = df.groupby("cats", observed=False).sum()
@@ -568,7 +567,7 @@ def test_categorical_index():
     expected.index = CategoricalIndex(
         Categorical.from_codes([0, 1, 2, 3], levels, ordered=True), name="cats"
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_describe_categorical_columns():
@@ -757,7 +756,7 @@ def test_categorical_no_compress():
     exp.index = CategoricalIndex(
         exp.index, categories=cats.categories, ordered=cats.ordered
     )
-    assert_series_equal(result, exp)
+    tm.assert_series_equal(result, exp)
 
     codes = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
     cats = Categorical.from_codes(codes, [0, 1, 2, 3], ordered=True)
@@ -767,7 +766,7 @@ def test_categorical_no_compress():
     exp.index = CategoricalIndex(
         exp.index, categories=cats.categories, ordered=cats.ordered
     )
-    assert_series_equal(result, exp)
+    tm.assert_series_equal(result, exp)
 
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
@@ -829,12 +828,12 @@ def test_sort2():
 
     col = "range"
     result_sort = df.groupby(col, sort=True, observed=False).first()
-    assert_frame_equal(result_sort, expected_sort)
+    tm.assert_frame_equal(result_sort, expected_sort)
 
     # when categories is ordered, group is ordered by category's order
     expected_sort = result_sort
     result_sort = df.groupby(col, sort=False, observed=False).first()
-    assert_frame_equal(result_sort, expected_sort)
+    tm.assert_frame_equal(result_sort, expected_sort)
 
     df["range"] = Categorical(df["range"], ordered=False)
     index = CategoricalIndex(
@@ -857,10 +856,10 @@ def test_sort2():
 
     # this is an unordered categorical, but we allow this ####
     result_sort = df.groupby(col, sort=True, observed=False).first()
-    assert_frame_equal(result_sort, expected_sort)
+    tm.assert_frame_equal(result_sort, expected_sort)
 
     result_nosort = df.groupby(col, sort=False, observed=False).first()
-    assert_frame_equal(result_nosort, expected_nosort)
+    tm.assert_frame_equal(result_nosort, expected_nosort)
 
 
 def test_sort_datetimelike():
@@ -912,10 +911,14 @@ def test_sort_datetimelike():
     )
 
     col = "dt"
-    assert_frame_equal(result_sort, df.groupby(col, sort=True, observed=False).first())
+    tm.assert_frame_equal(
+        result_sort, df.groupby(col, sort=True, observed=False).first()
+    )
 
     # when categories is ordered, group is ordered by category's order
-    assert_frame_equal(result_sort, df.groupby(col, sort=False, observed=False).first())
+    tm.assert_frame_equal(
+        result_sort, df.groupby(col, sort=False, observed=False).first()
+    )
 
     # ordered = False
     df["dt"] = Categorical(df["dt"], ordered=False)
@@ -942,8 +945,10 @@ def test_sort_datetimelike():
     result_nosort.index = CategoricalIndex(index, categories=index, name="dt")
 
     col = "dt"
-    assert_frame_equal(result_sort, df.groupby(col, sort=True, observed=False).first())
-    assert_frame_equal(
+    tm.assert_frame_equal(
+        result_sort, df.groupby(col, sort=True, observed=False).first()
+    )
+    tm.assert_frame_equal(
         result_nosort, df.groupby(col, sort=False, observed=False).first()
     )
 
@@ -1022,7 +1027,7 @@ def test_groupby_multiindex_categorical_datetime():
         names=["key1", "key2"],
     )
     expected = DataFrame({"values": [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1058,7 +1063,7 @@ def test_groupby_agg_observed_true_single_column(as_index, expected):
 
     result = df.groupby(["a", "b"], as_index=as_index, observed=True)["x"].sum()
 
-    assert_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("fill_value", [None, np.nan, pd.NaT])
@@ -1070,7 +1075,7 @@ def test_shift(fill_value):
         [None, "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
     )
     res = ct.shift(1, fill_value=fill_value)
-    assert_equal(res, expected)
+    tm.assert_equal(res, expected)
 
 
 @pytest.fixture
@@ -1112,7 +1117,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("operation", ["agg", "apply"])
@@ -1130,7 +1135,7 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1185,7 +1190,14 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     result = df_cat.groupby(["A", "B"], observed=observed)["C"].apply(
         lambda x: OrderedDict([("min", x.min()), ("max", x.max())])
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_series_dataframe_consistent(df_cat):
+    # GH 20416
+    expected = df_cat.groupby(["A", "B"])["C"].mean()
+    result = df_cat.groupby(["A", "B"]).mean()["C"]
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("code", [([1, 0, 0]), ([0, 0, 0])])
@@ -1195,7 +1207,7 @@ def test_groupby_categorical_axis_1(code):
     cat = pd.Categorical.from_codes(code, categories=list("abc"))
     result = df.groupby(cat, axis=1).mean()
     expected = df.T.groupby(cat, axis=0).mean().T
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_cat_preserves_structure(observed, ordered_fixture):
@@ -1212,7 +1224,7 @@ def test_groupby_cat_preserves_structure(observed, ordered_fixture):
         .reset_index()
     )
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_get_nonexistent_category():

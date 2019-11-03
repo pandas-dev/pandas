@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -641,12 +641,15 @@ b  2""",
             # if we don't have this method to indicated to aggregate to
             # mark this column as an error
             try:
-                return self._aggregate_item_by_item(name, *args, **kwargs)
+                result = self._aggregate_item_by_item(name, *args, **kwargs)
+                assert self.obj.ndim == 2
+                return result
             except AttributeError:
                 # e.g. SparseArray has no flags attr
                 # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
                 #  occurs in idxmax() case
                 #  in tests.groupby.test_function.test_non_cython_api
+                assert self.obj.ndim == 1
                 raise ValueError
 
         wrapper.__name__ = name
@@ -816,14 +819,8 @@ b  2""",
                 # if the type is compatible with the calling EA.
 
                 # return the same type (Series) as our caller
-                try:
-                    result = obj._values._from_sequence(result, dtype=dtype)
-                except Exception:
-                    # https://github.com/pandas-dev/pandas/issues/22850
-                    # pandas has no control over what 3rd-party ExtensionArrays
-                    # do in _values_from_sequence. We still want ops to work
-                    # though, so we catch any regular Exception.
-                    pass
+                cls = dtype.construct_array_type()
+                result = try_cast_to_ea(cls, result, dtype=dtype)
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 

@@ -31,7 +31,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import _factorize_from_iterables
+from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -440,7 +440,7 @@ class MultiIndex(Index):
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError("all arrays must be same length")
 
-        codes, levels = _factorize_from_iterables(arrays)
+        codes, levels = factorize_from_iterables(arrays)
         if names is _no_default_names:
             names = [getattr(arr, "name", None) for arr in arrays]
 
@@ -562,7 +562,7 @@ class MultiIndex(Index):
         elif is_iterator(iterables):
             iterables = list(iterables)
 
-        codes, levels = _factorize_from_iterables(iterables)
+        codes, levels = factorize_from_iterables(iterables)
         if names is _no_default_names:
             names = [getattr(it, "name", None) for it in iterables]
 
@@ -704,22 +704,23 @@ class MultiIndex(Index):
         # This is NOT part of the levels property because it should be
         # externally not allowed to set levels. User beware if you change
         # _levels directly
-        if validate and len(levels) == 0:
-            raise ValueError("Must set non-zero number of levels.")
-        if validate and level is None and len(levels) != self.nlevels:
-            raise ValueError("Length of levels must match number of levels.")
-        if validate and level is not None and len(levels) != len(level):
-            raise ValueError("Length of levels must match length of level.")
+        if validate:
+            if len(levels) == 0:
+                raise ValueError("Must set non-zero number of levels.")
+            if level is None and len(levels) != self.nlevels:
+                raise ValueError("Length of levels must match number of levels.")
+            if level is not None and len(levels) != len(level):
+                raise ValueError("Length of levels must match length of level.")
 
         if level is None:
             new_levels = FrozenList(
                 ensure_index(lev, copy=copy)._shallow_copy() for lev in levels
             )
         else:
-            level = [self._get_level_number(l) for l in level]
+            level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels = list(self._levels)
-            for l, v in zip(level, levels):
-                new_levels[l] = ensure_index(v, copy=copy)._shallow_copy()
+            for lev_num, lev in zip(level_numbers, levels):
+                new_levels[lev_num] = ensure_index(lev, copy=copy)._shallow_copy()
             new_levels = FrozenList(new_levels)
 
         if verify_integrity:
@@ -825,10 +826,11 @@ class MultiIndex(Index):
     def _set_codes(
         self, codes, level=None, copy=False, validate=True, verify_integrity=False
     ):
-        if validate and level is None and len(codes) != self.nlevels:
-            raise ValueError("Length of codes must match number of levels")
-        if validate and level is not None and len(codes) != len(level):
-            raise ValueError("Length of codes must match length of levels.")
+        if validate:
+            if level is None and len(codes) != self.nlevels:
+                raise ValueError("Length of codes must match number of levels")
+            if level is not None and len(codes) != len(level):
+                raise ValueError("Length of codes must match length of levels.")
 
         if level is None:
             new_codes = FrozenList(
@@ -836,11 +838,11 @@ class MultiIndex(Index):
                 for lev, level_codes in zip(self._levels, codes)
             )
         else:
-            level = [self._get_level_number(l) for l in level]
+            level_numbers = [self._get_level_number(lev) for lev in level]
             new_codes = list(self._codes)
-            for lev_idx, level_codes in zip(level, codes):
-                lev = self.levels[lev_idx]
-                new_codes[lev_idx] = _ensure_frozen(
+            for lev_num, level_codes in zip(level_numbers, codes):
+                lev = self.levels[lev_num]
+                new_codes[lev_num] = _ensure_frozen(
                     level_codes, lev, copy=copy
                 )._shallow_copy()
             new_codes = FrozenList(new_codes)
@@ -882,13 +884,13 @@ class MultiIndex(Index):
         Parameters
         ----------
         codes : sequence or list of sequence
-            new codes to apply
+            New codes to apply.
         level : int, level name, or sequence of int/level names (default None)
-            level(s) to set (None for all levels)
+            Level(s) to set (None for all levels).
         inplace : bool
-            if True, mutates in place
+            If True, mutates in place.
         verify_integrity : bool (default True)
-            if True, checks that levels and codes are compatible
+            If True, checks that levels and codes are compatible.
 
         Returns
         -------
@@ -1253,17 +1255,18 @@ class MultiIndex(Index):
             raise ValueError("Names should be list-like for a MultiIndex")
         names = list(names)
 
-        if validate and level is not None and len(names) != len(level):
-            raise ValueError("Length of names must match length of level.")
-        if validate and level is None and len(names) != self.nlevels:
-            raise ValueError(
-                "Length of names must match number of levels in MultiIndex."
-            )
+        if validate:
+            if level is not None and len(names) != len(level):
+                raise ValueError("Length of names must match length of level.")
+            if level is None and len(names) != self.nlevels:
+                raise ValueError(
+                    "Length of names must match number of levels in MultiIndex."
+                )
 
         if level is None:
             level = range(self.nlevels)
         else:
-            level = [self._get_level_number(l) for l in level]
+            level = [self._get_level_number(lev) for lev in level]
 
         # set the name
         for lev, name in zip(level, names):
@@ -1717,7 +1720,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         n_repeat : int
-            Number of times to repeat the labels on self
+            Number of times to repeat the labels on self.
         n_shuffle : int
             Controls the reordering of the labels. If the result is going
             to be an inner level in a MultiIndex, n_shuffle will need to be
@@ -2335,11 +2338,11 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : list-like, int or str, default 0
-            If a string is given, must be a name of the level
+            If a string is given, must be a name of the level.
             If list-like must be names or ints of levels.
         ascending : bool, default True
-            False to sort in descending order
-            Can also be a list to specify a directed ordering
+            False to sort in descending order.
+            Can also be a list to specify a directed ordering.
         sort_remaining : sort by the remaining levels after level
 
         Returns
