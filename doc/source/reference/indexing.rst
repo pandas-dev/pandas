@@ -93,7 +93,6 @@ Compatibility with MultiIndex
    :toctree: api/
 
    Index.set_names
-   Index.is_lexsorted_for_tuple
    Index.droplevel
 
 Missing values

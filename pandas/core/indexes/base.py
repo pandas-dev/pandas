@@ -1726,9 +1726,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_unique and self.is_monotonic_decreasing
 
-    def is_lexsorted_for_tuple(self, tup):
-        return True
-
     @cache_readonly
     def is_unique(self):
         """
