@@ -808,7 +808,7 @@ class ExcelFile:
         if engine == "xlrd" or engine is None:
             engine = "xlrd"
             warnings.warn(
-                "xlrd is deprecated. Alternative supported engines: 'openpyxl' or 'odf'.",
+                "xlrd is deprecated. Maintained engines: 'openpyxl' or 'odf'.",
                 FutureWarning,
                 stacklevel=2,
             )
