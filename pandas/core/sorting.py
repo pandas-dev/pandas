@@ -20,7 +20,7 @@ from pandas.core.construction import extract_array
 _INT64_MAX = np.iinfo(np.int64).max
 
 
-def get_group_index(labels, shape, sort, xnull):
+def get_group_index(labels, shape, sort: bool, xnull: bool):
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
@@ -48,7 +48,7 @@ def get_group_index(labels, shape, sort, xnull):
     labels are equal at all location.
     """
 
-    def _int64_cut_off(shape):
+    def _int64_cut_off(shape) -> int:
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
@@ -125,7 +125,7 @@ def get_compressed_ids(labels, sizes):
     return compress_group_index(ids, sort=True)
 
 
-def is_int64_overflow_possible(shape):
+def is_int64_overflow_possible(shape) -> bool:
     the_prod = 1
     for x in shape:
         the_prod *= int(x)
@@ -153,7 +153,7 @@ def decons_group_index(comp_labels, shape):
     return label_list[::-1]
 
 
-def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
+def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
     """
     reconstruct labels from observed group ids
 
@@ -177,7 +177,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     return [i8copy(lab[i]) for lab in labels]
 
 
-def indexer_from_factorized(labels, shape, compress=True):
+def indexer_from_factorized(labels, shape, compress: bool = True):
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
     if not compress:
@@ -235,7 +235,7 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
     return indexer_from_factorized(labels, shape)
 
 
-def nargsort(items, kind="quicksort", ascending=True, na_position="last"):
+def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"):
     """
     This is intended to be a drop-in replacement for np.argsort which
     handles NaNs. It adds ascending and na_position parameters.
@@ -325,7 +325,7 @@ def get_indexer_dict(label_list, keys):
 # sorting levels...cleverly?
 
 
-def get_group_index_sorter(group_index, ngroups):
+def get_group_index_sorter(group_index, ngroups: int):
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -350,7 +350,7 @@ def get_group_index_sorter(group_index, ngroups):
         return group_index.argsort(kind="mergesort")
 
 
-def compress_group_index(group_index, sort=True):
+def compress_group_index(group_index, sort: bool = True):
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -391,7 +391,13 @@ def _reorder_by_uniques(uniques, labels):
     return uniques, labels
 
 
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=True):
+def safe_sort(
+    values,
+    labels=None,
+    na_sentinel: int = -1,
+    assume_unique: bool = False,
+    verify: bool = True,
+):
     """
     Sort ``values`` and reorder corresponding ``labels``.
     ``values`` should be unique if ``labels`` is not None.

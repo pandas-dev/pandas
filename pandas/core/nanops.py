@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_any_int_dtype,
     is_bool_dtype,
     is_complex,
-    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
