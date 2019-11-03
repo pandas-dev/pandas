@@ -143,8 +143,8 @@ class TestMerge:
 
         right = left.astype(float)
         expected = left
-
-        tm.assert_frame_equal(expected, pd.merge(left, right))
+        result = pd.merge(left, right)
+        tm.assert_frame_equal(expected, result)
 
     def test_merge_index_as_on_arg(self):
         # GH14355
