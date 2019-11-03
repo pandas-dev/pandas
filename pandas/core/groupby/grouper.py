@@ -172,7 +172,9 @@ class Grouper:
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
-                    raise KeyError("The grouper name {key} is not found".format(key=key))
+                    raise KeyError(
+                        "The grouper name {key} is not found".format(key=key)
+                    )
                 ax = Index(obj[key], name=key)
 
         else:
@@ -188,7 +190,9 @@ class Grouper:
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError("The level {level} is not valid".format(level=level))
+                        raise ValueError(
+                            "The level {level} is not valid".format(level=level)
+                        )
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
@@ -278,7 +282,9 @@ class Grouping:
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError("Level {level} not in index".format(level=level))
+                    raise AssertionError(
+                        "Level {level} not in index".format(level=level)
+                    )
                 level = index.names.index(level)
 
             if self.name is None:
@@ -495,7 +501,9 @@ def _get_grouper(
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {level} is not the name of the index".format(level=level)
+                        "level name {level} is not the name of the index".format(
+                            level=level
+                        )
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
