@@ -561,7 +561,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            "'{typ}' object has no attribute '{attr}'".format(
+                typ=type(self).__name__, attr=attr
+            )
         )
 
     @Substitution(

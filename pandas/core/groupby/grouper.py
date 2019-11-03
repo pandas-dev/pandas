@@ -344,7 +344,7 @@ class Grouping:
             ):
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '{}' not 1-dimensional".format(t))
+                    raise ValueError("Grouper for '{t}' not 1-dimensional".format(t=t))
                 self.grouper = self.index.map(self.grouper)
                 if not (
                     hasattr(self.grouper, "__len__")
@@ -352,7 +352,9 @@ class Grouping:
                 ):
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        "len(data)\nresult: %s" % pprint_thing(self.grouper)
+                        "len(data)\nresult: {grper}".format(
+                            grper=pprint_thing(self.grouper)
+                        )
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
