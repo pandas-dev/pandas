@@ -1570,12 +1570,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
 
 def take_nd(
-    arr,
-    indexer,
-    axis: int = 0,
-    out=None,
-    fill_value=np.nan,
-    allow_fill: bool = True,
+    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
 ):
     """
     Specialized Cython take which sets NaN values in one pass
