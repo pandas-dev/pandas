@@ -783,7 +783,9 @@ def test_categorical_no_compress():
 
 def test_groupby_empty_with_category():
     # GH-9614
-    df = pd.DataFrame({"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])})
+    df = pd.DataFrame(
+        {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
+    )
     result = df.groupby("A").first()["B"]
     expected = pd.Series(
         pd.Categorical([], categories=["test", "train"]),
