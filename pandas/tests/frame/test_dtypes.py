@@ -1067,12 +1067,13 @@ class TestDataFrameDataTypes:
         # GH 20388
         np.random.seed(13)
         col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
-
-        df = pd.DataFrame(col_data, columns=["A"])
-        assert df["A"].dtype == np.object_
-
-        df.loc[df.index, "A"] = [float(x) for x in col_data]
-        assert df["A"].dtype == np.float64
+        result = pd.DataFrame(col_data, columns=["A"])
+        expected = pd.DataFrame(col_data, columns=["A"], dtype=object)
+        tm.assert_frame_equal(result, expected)
+        # change the dtype of the elements from object to float one by one
+        result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ:
