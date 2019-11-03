@@ -71,7 +71,7 @@ class Styler:
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
         where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
         number and ``<num_col>`` is the column number.
-    na_rep : str or None, default None
+    na_rep : str, optional
         Representation for missing values.
         If ``na_rep`` is None, no special formatting is applied
 
@@ -436,7 +436,7 @@ class Styler:
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
-        na_rep : str or None, default None
+        na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied
 
@@ -484,16 +484,14 @@ class Styler:
         if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
-                col_formatter = _maybe_wrap_formatter(col_formatter)
-                col_formatter = _maybe_wrap_na_formatter(col_formatter, na_rep)
+                col_formatter = _maybe_wrap_formatter(col_formatter, na_rep)
                 col_num = self.data.columns.get_indexer_for([col])[0]
 
                 for row_num in row_locs:
                     self._display_funcs[(row_num, col_num)] = col_formatter
         else:
             # single scalar to format all cells with
-            formatter = _maybe_wrap_formatter(formatter)
-            formatter = _maybe_wrap_na_formatter(formatter, na_rep)
+            formatter = _maybe_wrap_formatter(formatter, na_rep)
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
                 self._display_funcs[(i, j)] = formatter
@@ -1507,11 +1505,11 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _maybe_wrap_formatter(formatter):
+def _maybe_wrap_formatter(formatter, na_rep):
     if is_string_like(formatter):
-        return lambda x: formatter.format(x)
+        formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
-        return formatter
+        formatter_func = formatter
     else:
         msg = (
             "Expected a template string or callable, got {formatter} "
@@ -1519,12 +1517,10 @@ def _maybe_wrap_formatter(formatter):
         )
         raise TypeError(msg)
 
-
-def _maybe_wrap_na_formatter(formatter, na_rep):
     if na_rep is None:
-        return formatter
+        return formatter_func
     elif is_string_like(na_rep):
-        return lambda x: na_rep if pd.isna(x) else formatter(x)
+        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
     else:
         msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)
         raise TypeError(msg)
