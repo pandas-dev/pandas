@@ -385,7 +385,7 @@ class BaseGrouper:
 
         return func
 
-    def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
+    def _cython_operation(self, kind: str, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
         orig_values = values
 

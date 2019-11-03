@@ -172,7 +172,7 @@ class Grouper:
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
-                    raise KeyError("The grouper name {0} is not found".format(key))
+                    raise KeyError("The grouper name {key} is not found".format(key=key))
                 ax = Index(obj[key], name=key)
 
         else:
@@ -188,7 +188,7 @@ class Grouper:
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError("The level {0} is not valid".format(level))
+                        raise ValueError("The level {level} is not valid".format(level=level))
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
@@ -278,7 +278,7 @@ class Grouping:
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError("Level {} not in index".format(level))
+                    raise AssertionError("Level {level} not in index".format(level=level))
                 level = index.names.index(level)
 
             if self.name is None:
@@ -428,7 +428,7 @@ class Grouping:
 def _get_grouper(
     obj: NDFrame,
     key=None,
-    axis=0,
+    axis: int = 0,
     level=None,
     sort=True,
     observed=False,
@@ -495,7 +495,7 @@ def _get_grouper(
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {} is not the name of the index".format(level)
+                        "level name {level} is not the name of the index".format(level=level)
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
@@ -584,7 +584,7 @@ def _get_grouper(
     exclusions = []
 
     # if the actual grouper should be obj[key]
-    def is_in_axis(key):
+    def is_in_axis(key) -> bool:
         if not _is_label_like(key):
             items = obj._data.items
             try:
@@ -596,7 +596,7 @@ def _get_grouper(
         return True
 
     # if the grouper is obj[name]
-    def is_in_obj(gpr):
+    def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
         try:
