@@ -1586,6 +1586,58 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
+    def _repr_html_(self):
+        # TODO: Full independent HTML generation in SeriesFormatter, rather
+        # than depending on a limited subset of functionality via to_frame().
+
+        if get_option("display.notebook_repr_html"):
+            max_rows = get_option("display.max_rows")
+            min_rows = get_option("display.min_rows")
+            max_cols = get_option("display.max_columns")
+            show_dimensions = get_option("display.show_dimensions")
+
+            formatter = fmt.DataFrameFormatter(
+                self.to_frame(),
+                columns=None,
+                col_space=None,
+                na_rep="NaN",
+                formatters=None,
+                float_format=None,
+                sparsify=None,
+                justify=None,
+                index_names=True,
+                header=False,
+                index=True,
+                bold_rows=True,
+                escape=True,
+                max_rows=max_rows,
+                min_rows=min_rows,
+                max_cols=max_cols,
+                show_dimensions=False,  # We do this later for a series.
+                decimal=".",
+                table_id=None,
+                render_links=False,
+            )
+            html = formatter.to_html(notebook=True).split("\n")
+
+            # Find out where the column ends - we will insert footer information here.
+            tbl_end = [
+                rownum for (rownum, row) in enumerate(html) if "</table>" in row
+            ][-1]
+
+            footer = []
+            if self.name is not None:
+                footer.append("Name: <b>{name}</b>".format(name=self.name))
+            if show_dimensions:
+                footer.append("Length: {rows}".format(rows=len(self)))
+            footer.append("dtype: <tt>{dtype}</tt>".format(dtype=self.dtype))
+
+            html.insert(tbl_end + 1, "<p>{footer}</p>".format(footer=", ".join(footer)))
+
+            return "\n".join(html)
+        else:
+            return None
+
     def to_string(
         self,
         buf=None,
