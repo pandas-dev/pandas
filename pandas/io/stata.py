@@ -112,7 +112,7 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or StataReader.
+DataFrame or StataReader
 
 See Also
 --------
