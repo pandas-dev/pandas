@@ -1,4 +1,4 @@
-from typing import List, Union, Any
+from typing import Sequence, Union
 
 import numpy as np
 import pytest
@@ -326,7 +326,7 @@ def test_is_datetimelike():
     assert com.is_datetimelike(s)
 
 
-integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype, Any, ExtensionDtype]]
+integer_dtypes = []  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
 
 
 @pytest.mark.parametrize(
@@ -358,7 +358,7 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype, Any, ExtensionDtype]]
+signed_integer_dtypes = []  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
 
 
 @pytest.mark.parametrize(
@@ -394,7 +394,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes = []  # type: List[Union[pd.Series, str, Dtype, Any, ExtensionDtype]]
+unsigned_integer_dtypes = []  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
 
 
 @pytest.mark.parametrize(
