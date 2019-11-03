@@ -358,7 +358,9 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes = []  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
+signed_integer_dtypes = (
+    []
+)  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
 
 
 @pytest.mark.parametrize(
@@ -394,7 +396,9 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes = []  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
+unsigned_integer_dtypes = (
+    []
+)  # type: Sequence[Union[pd.Series, str, Dtype, ExtensionDtype]]
 
 
 @pytest.mark.parametrize(
