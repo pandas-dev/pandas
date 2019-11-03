@@ -495,7 +495,7 @@ def _ensure_dtype_type(value, dtype):
     return dtype.type(value)
 
 
-def infer_dtype_from(val, pandas_dtype=False):
+def infer_dtype_from(val, pandas_dtype: bool = False):
     """
     interpret the dtype from a scalar or array. This is a convenience
     routines to infer dtype from a scalar or an array
@@ -512,7 +512,7 @@ def infer_dtype_from(val, pandas_dtype=False):
     return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
 
 
-def infer_dtype_from_scalar(val, pandas_dtype=False):
+def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
     """
     interpret the dtype from a scalar
 
@@ -587,7 +587,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
     return dtype, val
 
 
-def infer_dtype_from_array(arr, pandas_dtype=False):
+def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     """
     infer the dtype from a scalar or array
 

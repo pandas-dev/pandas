@@ -1089,7 +1089,7 @@ class SelectN:
         return self.compute("nsmallest")
 
     @staticmethod
-    def is_valid_dtype_n_method(dtype):
+    def is_valid_dtype_n_method(dtype) -> bool:
         """
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
