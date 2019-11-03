@@ -1,8 +1,8 @@
 from datetime import timedelta
+from decimal import Decimal
 import operator
 from string import ascii_lowercase
 import warnings
-from decimal import Decimal
 
 import numpy as np
 import pytest
