@@ -2749,6 +2749,8 @@ def test_concat_categorical_tz():
 
 def test_concat_categorical_unchanged():
     # GH-12007
+    # test fix for when concat on categorical and float
+    # coerces dtype categorical -> float
     df = pd.DataFrame(pd.Series(["a", "b", "c"], dtype="category", name="A"))
     ser = pd.Series([0, 1, 2], index=[0, 1, 3], name="B")
     result = pd.concat([df, ser], axis=1)
