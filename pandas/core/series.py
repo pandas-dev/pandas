@@ -4609,7 +4609,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace : bool, default False
             If True, do operation inplace and return None.
         how : str, optional
-            Not in use.
+            Not in use. Kept for compatibility.
 
         Returns
         -------
