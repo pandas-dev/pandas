@@ -134,6 +134,18 @@ class TestMerge:
         exp = merge(self.df, self.df2, on=["key1", "key2"])
         tm.assert_frame_equal(joined, exp)
 
+    def test_merge_non_string_columns(self):
+        # https://github.com/pandas-dev/pandas/issues/17962
+        # Checks that method runs for non string column names
+        left = pd.DataFrame(
+            {0: [1, 0, 1, 0], 1: [0, 1, 0, 0], 2: [0, 0, 2, 0], 3: [1, 0, 0, 3]}
+        )
+
+        right = left.astype(float)
+        expected = left
+        result = pd.merge(left, right)
+        tm.assert_frame_equal(expected, result)
+
     def test_merge_index_as_on_arg(self):
         # GH14355
 
