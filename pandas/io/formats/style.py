@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
+from typing import Optional
 from uuid import uuid1
 
 import numpy as np
@@ -18,7 +19,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
@@ -999,6 +999,8 @@ class Styler:
         axis=0,
         subset=None,
         text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ):
         """
         Color the background in a gradient style.
@@ -1027,6 +1029,18 @@ class Styler:
 
             .. versionadded:: 0.24.0
 
+        vmin : float, optional
+            Minimum data value that corresponds to colormap minimum value.
+            When None (default): the minimum value of the data will be used.
+
+            .. versionadded:: 1.0.0
+
+        vmax : float, optional
+            Maximum data value that corresponds to colormap maximum value.
+            When None (default): the maximum value of the data will be used.
+
+            .. versionadded:: 1.0.0
+
         Returns
         -------
         self : Styler
@@ -1053,11 +1067,21 @@ class Styler:
             low=low,
             high=high,
             text_color_threshold=text_color_threshold,
+            vmin=vmin,
+            vmax=vmax,
         )
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap="PuBu", low=0, high=0, text_color_threshold=0.408):
+    def _background_gradient(
+        s,
+        cmap="PuBu",
+        low=0,
+        high=0,
+        text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ):
         """
         Color background in a range according to the data.
         """
@@ -1069,14 +1093,14 @@ class Styler:
             raise ValueError(msg)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = s.values.min()
-            smax = s.values.max()
+            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
             rng = smax - smin
             # extend lower / upper bounds, compresses color range
             norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
             # matplotlib colors.Normalize modifies inplace?
             # https://github.com/matplotlib/matplotlib/issues/5427
-            rgbas = plt.cm.get_cmap(cmap)(norm(s.values))
+            rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
 
             def relative_luminance(rgba):
                 """
@@ -1147,12 +1171,8 @@ class Styler:
         Draw bar chart in dataframe cells.
         """
         # Get input value range.
-        smin = s.min() if vmin is None else vmin
-        if isinstance(smin, ABCSeries):
-            smin = smin.min()
-        smax = s.max() if vmax is None else vmax
-        if isinstance(smax, ABCSeries):
-            smax = smax.max()
+        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
         if align == "mid":
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1161,7 +1181,7 @@ class Styler:
             smax = max(abs(smin), abs(smax))
             smin = -smax
         # Transform to percent-range of linear-gradient
-        normed = width * (s.values - smin) / (smax - smin + 1e-12)
+        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
         zero = -width * smin / (smax - smin + 1e-12)
 
         def css_bar(start, end, color):
@@ -1340,17 +1360,15 @@ class Styler:
         Highlight the min or max in a Series or DataFrame.
         """
         attr = "background-color: {0}".format(color)
+
+        if max_:
+            extrema = data == np.nanmax(data.to_numpy())
+        else:
+            extrema = data == np.nanmin(data.to_numpy())
+
         if data.ndim == 1:  # Series from .apply
-            if max_:
-                extrema = data == data.max()
-            else:
-                extrema = data == data.min()
             return [attr if v else "" for v in extrema]
         else:  # DataFrame from .tee
-            if max_:
-                extrema = data == data.max().max()
-            else:
-                extrema = data == data.min().min()
             return pd.DataFrame(
                 np.where(extrema, attr, ""), index=data.index, columns=data.columns
             )

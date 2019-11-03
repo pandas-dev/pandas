@@ -344,6 +344,39 @@ class TestSeriesDatetimeValues:
         expected = Series([2017, 2017, 2018, 2018], name="foo")
         tm.assert_series_equal(result, expected)
 
+    def test_dt_tz_localize_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_localize(tz)
+        expected = datetimes.dt.tz_localize(tz)
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_tz_convert_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_convert(tz)
+        expected = datetimes.dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("accessor", ["year", "month", "day"])
+    def test_dt_other_accessors_categorical(self, accessor):
+        # GH 27952
+        datetimes = pd.Series(
+            ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = getattr(categorical.dt, accessor)
+        expected = getattr(datetimes.dt, accessor)
+        tm.assert_series_equal(result, expected)
+
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range("20130101", periods=5, freq="D"))

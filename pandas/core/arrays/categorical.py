@@ -56,7 +56,7 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-from .base import ExtensionArray, _extension_array_shared_docs
+from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
 
 _take_msg = textwrap.dedent(
     """\
@@ -673,7 +673,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError(msg)
 
         codes = np.asarray(codes)  # #21767
-        if not is_integer_dtype(codes):
+        if len(codes) and not is_integer_dtype(codes):
             msg = "codes need to be array-like integers"
             if is_float_dtype(codes):
                 icodes = codes.astype("i8")
@@ -2613,10 +2613,10 @@ def _get_codes_for_values(values, categories):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
-        try:
-            values = categories.dtype.construct_array_type()._from_sequence(values)
-        except Exception:
-            # but that may fail for any reason, so fall back to object
+        cls = categories.dtype.construct_array_type()
+        values = try_cast_to_ea(cls, values)
+        if not isinstance(values, cls):
+            # exception raised in _from_sequence
             values = ensure_object(values)
             categories = ensure_object(categories)
     else:

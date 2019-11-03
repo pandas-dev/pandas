@@ -140,15 +140,20 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        # oh boy
-        f_name = com.get_callable_name(f)
-        if (
-            f_name not in base.plotting_methods
+        sdata = splitter._get_sorted_data()
+        if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
+            # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
+            #  if we pass EA instead of ndarray
+            #  TODO: can we have a workaround for EAs backed by ndarray?
+            pass
+
+        elif (
+            com.get_callable_name(f) not in base.plotting_methods
             and hasattr(splitter, "fast_apply")
             and axis == 0
             # with MultiIndex, apply_frame_axis0 would raise InvalidApply
             # TODO: can we make this check prettier?
-            and not splitter._get_sorted_data().index._has_complex_internals
+            and not sdata.index._has_complex_internals
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -165,12 +170,6 @@ class BaseGrouper:
                 if "Let this error raise above us" not in str(err):
                     # TODO: can we infer anything about whether this is
                     #  worth-retrying in pure-python?
-                    raise
-            except TypeError as err:
-                if "Cannot convert" in str(err):
-                    # via apply_frame_axis0 if we pass a non-ndarray
-                    pass
-                else:
                     raise
 
         for key, (i, group) in zip(group_keys, splitter):
@@ -514,7 +513,6 @@ class BaseGrouper:
             result = result[:, 0]
 
         if how in self._name_functions:
-            # TODO
             names = self._name_functions[how]()
         else:
             names = None
@@ -698,7 +696,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -707,12 +705,8 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if isinstance(data, NDFrame):
-            slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
-            length = len(data.axes[axis])
-        else:
-            slicer = lambda start, edge: data[slice(start, edge)]
-            length = len(data)
+        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        length = len(data.axes[axis])
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
@@ -790,7 +784,7 @@ def _get_axes(group):
         return group.axes
 
 
-def _is_indexed_like(obj, axes):
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
