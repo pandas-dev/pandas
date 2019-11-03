@@ -1878,13 +1878,13 @@ c  10  11  12  13  14\
 
         for val in data:
             if pd.isnull(val):
-                assert f"<td>NaN</td>" in sm_html
+                assert "<td>NaN</td>" in sm_html
             else:
-                assert f"<td>{val}</td>" in sm_html
+                assert "<td>{}</td>".format(val) in sm_html
 
-        assert f"<p>Name: <b>{small.name}</b>" in sm_html
-        assert f"Length: {len(small)}" in sm_html
-        assert f"dtype: <tt>{small.dtype}</tt>" in sm_html
+        assert "<p>Name: <b>{}</b>".format(small.name) in sm_html
+        assert "Length: {}".format(len(small)) in sm_html
+        assert "dtype: <tt>{}</tt>".format(small.dtype) in sm_html
 
         large = small.repeat(1000)
         large.name = None
