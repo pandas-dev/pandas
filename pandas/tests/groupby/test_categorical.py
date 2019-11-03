@@ -783,6 +783,8 @@ def test_categorical_no_compress():
 
 def test_groupby_empty_with_category():
     # GH-9614
+    # test fix for when group by on None resulted in
+    # coercion of dtype categorical -> float
     df = pd.DataFrame(
         {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
     )
