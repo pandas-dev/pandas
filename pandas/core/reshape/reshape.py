@@ -1046,43 +1046,7 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def make_axis_dummies(frame, axis="minor", transform=None):
-    """
-    Construct 1-0 dummy variables corresponding to designated axis
-    labels
-
-    Parameters
-    ----------
-    frame : DataFrame
-    axis : {'major', 'minor'}, default 'minor'
-    transform : function, default None
-        Function to apply to axis labels first. For example, to
-        get "day of week" dummies in a time series regression
-        you might call::
-
-            make_axis_dummies(panel, axis='major',
-                              transform=lambda d: d.weekday())
-    Returns
-    -------
-    dummies : DataFrame
-        Column names taken from chosen axis
-    """
-    numbers = {"major": 0, "minor": 1}
-    num = numbers.get(axis, axis)
-
-    items = frame.index.levels[num]
-    codes = frame.index.codes[num]
-    if transform is not None:
-        mapped_items = items.map(transform)
-        codes, items = _factorize_from_iterable(mapped_items.take(codes))
-
-    values = np.eye(len(items), dtype=float)
-    values = values.take(codes, axis=0)
-
-    return DataFrame(values, columns=items, index=frame.index)
-
-
-def _reorder_for_extension_array_stack(arr, n_rows, n_columns):
+def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
     """
     Re-orders the values when stacking multiple extension-arrays.
 

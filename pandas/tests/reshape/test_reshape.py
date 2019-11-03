@@ -645,24 +645,3 @@ class TestCategoricalReshape:
             index=dti.rename("major"),
         )
         tm.assert_frame_equal(result, expected)
-
-
-class TestMakeAxisDummies:
-    def test_preserve_categorical_dtype(self):
-        # GH13854
-        for ordered in [False, True]:
-            cidx = pd.CategoricalIndex(list("xyz"), ordered=ordered)
-            midx = pd.MultiIndex(levels=[["a"], cidx], codes=[[0, 0], [0, 1]])
-            df = DataFrame([[10, 11]], index=midx)
-
-            expected = DataFrame(
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], index=midx, columns=cidx
-            )
-
-            from pandas.core.reshape.reshape import make_axis_dummies
-
-            result = make_axis_dummies(df)
-            tm.assert_frame_equal(result, expected)
-
-            result = make_axis_dummies(df, transform=lambda x: x)
-            tm.assert_frame_equal(result, expected)
