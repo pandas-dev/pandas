@@ -233,7 +233,7 @@ Removal of prior version deprecations/changes
 
 Previously, pandas would register converters with matplotlib as a side effect of importing pandas (:issue:`18720`).
 This changed the output of plots made via matplotlib plots after pandas was imported, even if you were using
-matplotlib directly rather than rather than :meth:`~DataFrame.plot`.
+matplotlib directly rather than :meth:`~DataFrame.plot`.
 
 To use pandas formatters with a matplotlib plot, specify
 
@@ -430,6 +430,7 @@ Reshaping
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- :meth:`DataFrame.append` raised an ``IndexError`` when passed an empty ``list`` (:issue:`28769`)
 
 Sparse
 ^^^^^^

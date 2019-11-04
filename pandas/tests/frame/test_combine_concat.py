@@ -182,6 +182,22 @@ class TestDataFrameConcatCommon:
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_append_empty_list(self, float_frame):
+        result = float_frame.append([])
+        expected = float_frame
+        tm.assert_frame_equal(result, expected)
+
+    def test_append_list_of_frames(self, float_frame):
+        more_dfs = [float_frame] * 2
+        result = float_frame.append(more_dfs)
+        expected = pd.concat([float_frame] + more_dfs)
+        tm.assert_frame_equal(result, expected)
+
+    def test_append_tuple_of_frames(self, float_frame):
+        more_dfs = (float_frame, float_frame)
+        with pytest.raises(TypeError):
+            float_frame.append(more_dfs)
+
     def test_append_missing_cols(self):
         # GH22252
         # exercise the conditional branch in append method where the data
