@@ -244,7 +244,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
 
-        if isinstance(func, abc.Iterable):
+        elif isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
@@ -261,8 +261,6 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (AssertionError, TypeError):
-                raise
             except (ValueError, KeyError, AttributeError, IndexError):
                 # TODO: IndexError can be removed here following GH#29106
                 # TODO: AttributeError is caused by _index_data hijinx in
@@ -325,7 +323,7 @@ class SeriesGroupBy(GroupBy):
             if name in results:
                 raise SpecificationError(
                     "Function names must be unique, found multiple named "
-                    "{}".format(name)
+                    "{name}".format(name=name)
                 )
 
             # reset the cache so that we
@@ -1464,8 +1462,6 @@ class DataFrameGroupBy(GroupBy):
         for i, col in enumerate(obj):
             try:
                 output[col] = self[col].transform(wrapper)
-            except AssertionError:
-                raise
             except TypeError:
                 # e.g. trying to call nanmean with string values
                 pass
@@ -1538,8 +1534,8 @@ class DataFrameGroupBy(GroupBy):
             else:
                 # non scalars aren't allowed
                 raise TypeError(
-                    "filter function returned a %s, "
-                    "but expected a scalar bool" % type(res).__name__
+                    "filter function returned a {typ}, "
+                    "but expected a scalar bool".format(typ=type(res).__name__)
                 )
 
         return self._apply_filter(indices, dropna)

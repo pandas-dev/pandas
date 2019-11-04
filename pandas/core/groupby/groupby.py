@@ -344,7 +344,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self,
         obj: NDFrame,
         keys=None,
-        axis=0,
+        axis: int = 0,
         level=None,
         grouper=None,
         exclusions=None,
@@ -561,7 +561,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            "'{typ}' object has no attribute '{attr}'".format(
+                typ=type(self).__name__, attr=attr
+            )
         )
 
     @Substitution(
@@ -2486,6 +2488,6 @@ def groupby(obj, by, **kwds):
 
         klass = DataFrameGroupBy
     else:
-        raise TypeError("invalid type: {}".format(obj))
+        raise TypeError("invalid type: {obj}".format(obj=obj))
 
     return klass(obj, by, **kwds)

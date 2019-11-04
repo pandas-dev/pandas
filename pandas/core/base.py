@@ -586,9 +586,16 @@ class SelectionMixin:
                     new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
-                except ValueError:
+                except ValueError as err:
                     # cannot aggregate
-                    continue
+                    if "Must produce aggregated value" in str(err):
+                        # raised directly in _aggregate_named
+                        pass
+                    elif "no results" in str(err):
+                        # raised direcly in _aggregate_multiple_funcs
+                        pass
+                    else:
+                        raise
                 else:
                     results.append(new_res)
                     keys.append(col)
