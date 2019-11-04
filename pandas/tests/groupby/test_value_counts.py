@@ -4,12 +4,12 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from itertools import cycle, islice, product
+from itertools import product
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, date_range
+from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
 import pandas.util.testing as tm
 
 
@@ -81,23 +81,29 @@ def test_series_groupby_value_counts(
     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
-@pytest.mark.parametrize("freq", ["1D", "2D", "1W", "1Y"])
-@pytest.mark.parametrize("size", [100, 1000])
-@pytest.mark.parametrize("frac", [0.1, 0.5, 1])
-def test_series_groupby_value_counts_with_grouper(freq, size, frac):
+def test_series_groupby_value_counts_with_grouper():
     # GH28479
-    df = DataFrame.from_dict(
+    df = DataFrame(
         {
-            "date": date_range("2019-09-25", periods=size),
-            "name": islice(cycle("abc"), size),
+            "Timestamp": [
+                1565083561,
+                1565083561 + 86400,
+                1565083561 + 86500,
+                1565083561 + 86400 * 2,
+                1565083561 + 86400 * 3,
+                1565083561 + 86500 * 3,
+                1565083561 + 86400 * 4,
+            ],
+            "Food": ["apple", "apple", "banana", "banana", "orange", "orange", "pear"],
         }
-    ).sample(frac=frac)
+    ).drop([3])
 
-    gr = df.groupby(Grouper(key="date", freq=freq))["name"]
+    df["Datetime"] = to_datetime(df["Timestamp"].apply(lambda t: str(t)), unit="s")
+    dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
 
     # have to sort on index because of unstable sort on values xref GH9212
-    result = gr.value_counts().sort_index()
-    expected = gr.apply(Series.value_counts).sort_index()
+    result = dfg["Food"].value_counts().sort_index()
+    expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
 
     tm.assert_series_equal(result, expected)
