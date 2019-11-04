@@ -4,13 +4,11 @@ import numpy as np
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
 
-from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_categorical_dtype,
     is_extension_array_dtype,
-    is_list_like,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -389,132 +387,3 @@ def _reorder_by_uniques(uniques, labels):
     uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels
-
-
-def safe_sort(
-    values,
-    labels=None,
-    na_sentinel: int = -1,
-    assume_unique: bool = False,
-    verify: bool = True,
-):
-    """
-    Sort ``values`` and reorder corresponding ``labels``.
-    ``values`` should be unique if ``labels`` is not None.
-    Safe for use with mixed types (int, str), orders ints before strs.
-
-    Parameters
-    ----------
-    values : list-like
-        Sequence; must be unique if ``labels`` is not None.
-    labels : list_like
-        Indices to ``values``. All out of bound indices are treated as
-        "not found" and will be masked with ``na_sentinel``.
-    na_sentinel : int, default -1
-        Value in ``labels`` to mark "not found".
-        Ignored when ``labels`` is None.
-    assume_unique : bool, default False
-        When True, ``values`` are assumed to be unique, which can speed up
-        the calculation. Ignored when ``labels`` is None.
-    verify : bool, default True
-        Check if labels are out of bound for the values and put out of bound
-        labels equal to na_sentinel. If ``verify=False``, it is assumed there
-        are no out of bound labels. Ignored when ``labels`` is None.
-
-        .. versionadded:: 0.25.0
-
-    Returns
-    -------
-    ordered : ndarray
-        Sorted ``values``
-    new_labels : ndarray
-        Reordered ``labels``; returned when ``labels`` is not None.
-
-    Raises
-    ------
-    TypeError
-        * If ``values`` is not list-like or if ``labels`` is neither None
-        nor list-like
-        * If ``values`` cannot be sorted
-    ValueError
-        * If ``labels`` is not None and ``values`` contain duplicates.
-    """
-    if not is_list_like(values):
-        raise TypeError(
-            "Only list-like objects are allowed to be passed to safe_sort as values"
-        )
-
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
-        # don't convert to string types
-        dtype, _ = infer_dtype_from_array(values)
-        values = np.asarray(values, dtype=dtype)
-
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
-
-    sorter = None
-    if (
-        not is_extension_array_dtype(values)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
-    ):
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
-    else:
-        try:
-            sorter = values.argsort()
-            ordered = values.take(sorter)
-        except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
-
-    # labels:
-
-    if labels is None:
-        return ordered
-
-    if not is_list_like(labels):
-        raise TypeError(
-            "Only list-like objects or None are allowed to be"
-            "passed to safe_sort as labels"
-        )
-    labels = ensure_platform_int(np.asarray(labels))
-
-    from pandas import Index
-
-    if not assume_unique and not Index(values).is_unique:
-        raise ValueError("values should be unique if labels is not None")
-
-    if sorter is None:
-        # mixed types
-        hash_klass, values = algorithms._get_data_algo(values)
-        t = hash_klass(len(values))
-        t.map_locations(values)
-        sorter = ensure_platform_int(t.lookup(ordered))
-
-    if na_sentinel == -1:
-        # take_1d is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
-        new_labels = algorithms.take_1d(order2, labels, fill_value=-1)
-        if verify:
-            mask = (labels < -len(values)) | (labels >= len(values))
-        else:
-            mask = None
-    else:
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
-        # Out of bound indices will be masked with `na_sentinel` next, so we
-        # may deal with them here without performance loss using `mode='wrap'`
-        new_labels = reverse_indexer.take(labels, mode="wrap")
-
-        mask = labels == na_sentinel
-        if verify:
-            mask = mask | (labels < -len(values)) | (labels >= len(values))
-
-    if mask is not None:
-        np.putmask(new_labels, mask, na_sentinel)
-
-    return ordered, ensure_platform_int(new_labels)

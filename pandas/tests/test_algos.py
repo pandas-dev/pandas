@@ -26,7 +26,6 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
 
 
@@ -309,7 +308,7 @@ class TestFactorize:
         labels, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
             expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
-            expected_uniques = safe_sort(uniques)
+            expected_uniques = algos.safe_sort(uniques)
         else:
             expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
             expected_uniques = uniques

@@ -73,7 +73,6 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -2504,7 +2503,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if sort is None:
                 try:
-                    result = sorting.safe_sort(result)
+                    result = algos.safe_sort(result)
                 except TypeError as e:
                     warnings.warn(
                         "{}, sort order is undefined for "
@@ -2600,7 +2599,7 @@ class Index(IndexOpsMixin, PandasObject):
         taken = other.take(indexer)
 
         if sort is None:
-            taken = sorting.safe_sort(taken.values)
+            taken = algos.safe_sort(taken.values)
             if self.name != other.name:
                 name = None
             else:
@@ -2670,7 +2669,7 @@ class Index(IndexOpsMixin, PandasObject):
         the_diff = this.values.take(label_diff)
         if sort is None:
             try:
-                the_diff = sorting.safe_sort(the_diff)
+                the_diff = algos.safe_sort(the_diff)
             except TypeError:
                 pass
 
@@ -2747,7 +2746,7 @@ class Index(IndexOpsMixin, PandasObject):
         the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
             try:
-                the_diff = sorting.safe_sort(the_diff)
+                the_diff = algos.safe_sort(the_diff)
             except TypeError:
                 pass
 
