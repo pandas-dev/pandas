@@ -204,6 +204,15 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_single_row_categorical(self):
+        df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
+        categories = pd.Categorical(df["Alpha"], categories=["a", "b", "c"])
+        df.loc[:, "Alpha"] = categories
+
+        result = df["Alpha"]
+        expected = Series(categories, index=df.index, name="Alpha")
+        tm.assert_series_equal(result, expected)
+
     def test_setitem_mulit_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns

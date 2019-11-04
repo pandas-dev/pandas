@@ -883,6 +883,14 @@ class Block(PandasObject):
         ):
             values[indexer] = value
             try:
+                # GH25495 may need to convert to categorical block
+                if self.is_categorical_astype(
+                    arr_value.dtype
+                ) and not is_categorical_dtype(values):
+                    return self.make_block(
+                        Categorical(self.values, dtype=arr_value.dtype)
+                    )
+
                 values = values.astype(arr_value.dtype)
             except ValueError:
                 pass
