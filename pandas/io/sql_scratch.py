@@ -45,7 +45,7 @@ def get_pkey_values(table: SQLTable):
     table.pd_sql.execute(statement)
 
 
-### REPRODUCIBLE SQLTable Creation:
+### REPRODUCIBLE SQLTable Creation:table
 import sqlalchemy
 
 engine = sqlalchemy.create_engine('enter string here')
@@ -54,3 +54,32 @@ table_name = 'charterers' # or wtv
 meta.reflect(only=[table_name], views=True)
 db = SQLDatabase(engine, meta=meta)
 table = SQLTable(table_name, db, index=None, schema=None)
+
+
+from vortexa_utils.database import ProdFactory
+from sqlalchemy import create_engine
+import pandas as pd
+from pandas.io.sql import SQLTable, SQLDatabase
+
+engine_v = ProdFactory().engine()
+engine = create_engine('sqlite:///:memory:')
+table_name = 'charterers'
+df = pd.read_sql_table(table_name, engine_v)
+df_test = df.head().copy()
+df_test['name'] = df_test['name'].apply(lambda x: x + '_TEST')
+engine.execute("create table charterers(id varchar primary key, name text, energy integer)")
+df.to_sql(table_name, index=False, if_exists='append', con=engine)
+
+db = SQLDatabase(engine, schema=None, meta=None)
+new_data = SQLTable(table_name, db, frame=df_test, index=False)
+
+from sqlalchemy.sql import tuple_
+
+
+def delete_matching_keys(sql_table, key_columns, value_iter):
+    delete_expression = sql_table.table.delete().where(
+        tuple_(*(table.table.c[col] for col in key_columns)).in_(value_iter)
+    )
+    with sql_table.connectable.connect() as conn:
+        conn.execute(delete_expression)
+
