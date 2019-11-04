@@ -34,7 +34,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36, raise_with_traceback
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     infer_dtype_from_object,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -311,10 +310,12 @@ ValueError: columns overlap but no suffix specified:
 
 class DataFrame(NDFrame):
     """
-    Two-dimensional size-mutable, potentially heterogeneous tabular data
-    structure with labeled axes (rows and columns). Arithmetic operations
-    align on both row and column labels. Can be thought of as a dict-like
-    container for Series objects. The primary pandas data structure.
+    Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
+    Data structure also contains labeled axes (rows and columns).
+    Arithmetic operations align on both row and column labels. Can be
+    thought of as a dict-like container for Series objects. The primary
+    pandas data structure.
 
     Parameters
     ----------
@@ -486,7 +487,7 @@ class DataFrame(NDFrame):
                     "DataFrame constructor called with "
                     "incompatible data and dtype: {e}".format(e=e)
                 )
-                raise_with_traceback(exc)
+                raise exc from e
 
             if arr.ndim == 0 and index is not None and columns is not None:
                 values = cast_scalar_to_array(
@@ -755,6 +756,7 @@ class DataFrame(NDFrame):
         decimal: str = ".",
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
+        encoding: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -765,6 +767,10 @@ class DataFrame(NDFrame):
             Max width to truncate each column in characters. By default, no limit.
 
             .. versionadded:: 1.0.0
+        encoding : str, default "utf-8"
+            Set character encoding.
+
+            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -803,15 +809,17 @@ class DataFrame(NDFrame):
                 decimal=decimal,
                 line_width=line_width,
             )
-            return formatter.to_string(buf=buf)
+            return formatter.to_string(buf=buf, encoding=encoding)
 
     # ----------------------------------------------------------------------
 
     @property
     def style(self):
         """
-        Property returning a Styler object containing methods for
-        building a styled HTML representation fo the DataFrame.
+        Returns a Styler object.
+
+        Contains methods for building a styled HTML representation of the DataFrame.
+        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -872,7 +880,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Hashable, Series]]:
+    def items(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -1265,7 +1273,7 @@ class DataFrame(NDFrame):
         array([[1, 3],
                [2, 4]])
 
-        With heterogenous data, the lowest common type will have to
+        With heterogeneous data, the lowest common type will have to
         be used.
 
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
@@ -1660,11 +1668,12 @@ class DataFrame(NDFrame):
             else:
                 try:
                     index_data = [arrays[arr_columns.get_loc(field)] for field in index]
-                    result_index = ensure_index_from_sequences(index_data, names=index)
-
-                    exclude.update(index)
-                except Exception:
+                except (KeyError, TypeError):
+                    # raised by get_loc, see GH#29258
                     result_index = index
+                else:
+                    result_index = ensure_index_from_sequences(index_data, names=index)
+                    exclude.update(index)
 
         if any(exclude):
             arr_exclude = [x for x in exclude if x in arr_columns]
@@ -2082,8 +2091,6 @@ class DataFrame(NDFrame):
     def to_feather(self, fname):
         """
         Write out the binary feather-format for DataFrames.
-
-        .. versionadded:: 0.20.0
 
         Parameters
         ----------
@@ -3621,11 +3628,11 @@ class DataFrame(NDFrame):
                 # GH 4107
                 try:
                     value = value.reindex(self.index)._values
-                except Exception as e:
-
-                    # duplicate axis
+                except ValueError as err:
+                    # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
                     if not value.index.is_unique:
-                        raise e
+                        # duplicate axis
+                        raise err
 
                     # other
                     raise TypeError(
@@ -4793,8 +4800,9 @@ class DataFrame(NDFrame):
 
     def drop_duplicates(self, subset=None, keep="first", inplace=False):
         """
-        Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns. Indexes, including time indexes
+        Return DataFrame with duplicate rows removed.
+
+        Considering certain columns is optional. Indexes, including time indexes
         are ignored.
 
         Parameters
@@ -4829,8 +4837,9 @@ class DataFrame(NDFrame):
 
     def duplicated(self, subset=None, keep="first"):
         """
-        Return boolean Series denoting duplicate rows, optionally only
-        considering certain columns.
+        Return boolean Series denoting duplicate rows.
+
+        Considering certain columns is optional.
 
         Parameters
         ----------
@@ -5247,8 +5256,7 @@ class DataFrame(NDFrame):
 
     def reorder_levels(self, order, axis=0):
         """
-        Rearrange index levels using input order. May not drop or
-        duplicate levels.
+        Rearrange index levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -5850,9 +5858,10 @@ class DataFrame(NDFrame):
     _shared_docs[
         "pivot_table"
     ] = """
-        Create a spreadsheet-style pivot table as a DataFrame. The levels in
-        the pivot table will be stored in MultiIndex objects (hierarchical
-        indexes) on the index and columns of the result DataFrame.
+        Create a spreadsheet-style pivot table as a DataFrame.
+
+        The levels in the pivot table will be stored in MultiIndex objects
+        (hierarchical indexes) on the index and columns of the result DataFrame.
 
         Parameters
         ----------%s
@@ -6245,8 +6254,9 @@ class DataFrame(NDFrame):
 
     def unstack(self, level=-1, fill_value=None):
         """
-        Pivot a level of the (necessarily hierarchical) index labels, returning
-        a DataFrame having a new level of column labels whose inner-most level
+        Pivot a level of the (necessarily hierarchical) index labels.
+
+        Returns a DataFrame having a new level of column labels whose inner-most level
         consists of the pivoted index labels.
 
         If the index is not a MultiIndex, the output will be a Series
@@ -6308,8 +6318,7 @@ class DataFrame(NDFrame):
     _shared_docs[
         "melt"
     ] = """
-    Unpivot a DataFrame from wide format to long format, optionally
-    leaving identifier variables set.
+    Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
     This function is useful to massage a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
@@ -6446,8 +6455,6 @@ class DataFrame(NDFrame):
             values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Take difference over rows (0) or columns (1).
-
-            .. versionadded:: 0.16.1.
 
         Returns
         -------
@@ -7533,9 +7540,12 @@ class DataFrame(NDFrame):
 
     def corrwith(self, other, axis=0, drop=False, method="pearson"):
         """
-        Compute pairwise correlation between rows or columns of DataFrame
-        with rows or columns of Series or DataFrame.  DataFrames are first
-        aligned along both axes before computing the correlations.
+        Compute pairwise correlation.
+
+        Pairwise correlation is computed between rows or columns of
+        DataFrame with rows or columns of Series or DataFrame. DataFrames
+        are first aligned along both axes before computing the
+        correlations.
 
         Parameters
         ----------
@@ -7784,20 +7794,9 @@ class DataFrame(NDFrame):
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
-        # exclude timedelta/datetime unless we are uniform types
-        if (
-            axis == 1
-            and self._is_datelike_mixed_type
-            and (
-                not self._is_homogeneous_type
-                and not is_datetime64tz_dtype(self.dtypes[0])
-            )
-        ):
-            numeric_only = True
-
         if numeric_only is None:
+            values = self.values
             try:
-                values = self.values
                 result = f(values)
 
                 if filter_type == "bool" and is_object_dtype(values) and axis is None:
@@ -7805,42 +7804,38 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except Exception as e:
+            except TypeError as err:
+                # e.g. in nanops trying to convert strs to float
 
                 # try by-column first
                 if filter_type is None and axis == 0:
-                    try:
+                    # this can end up with a non-reduction
+                    # but not always. if the types are mixed
+                    # with datelike then need to make sure a series
 
-                        # this can end up with a non-reduction
-                        # but not always. if the types are mixed
-                        # with datelike then need to make sure a series
+                    # we only end up here if we have not specified
+                    # numeric_only and yet we have tried a
+                    # column-by-column reduction, where we have mixed type.
+                    # So let's just do what we can
+                    from pandas.core.apply import frame_apply
 
-                        # we only end up here if we have not specified
-                        # numeric_only and yet we have tried a
-                        # column-by-column reduction, where we have mixed type.
-                        # So let's just do what we can
-                        from pandas.core.apply import frame_apply
-
-                        opa = frame_apply(
-                            self, func=f, result_type="expand", ignore_failures=True
-                        )
-                        result = opa.get_result()
-                        if result.ndim == self.ndim:
-                            result = result.iloc[0]
-                        return result
-                    except Exception:
-                        pass
+                    opa = frame_apply(
+                        self, func=f, result_type="expand", ignore_failures=True
+                    )
+                    result = opa.get_result()
+                    if result.ndim == self.ndim:
+                        result = result.iloc[0]
+                    return result
 
                 if filter_type is None or filter_type == "numeric":
                     data = self._get_numeric_data()
                 elif filter_type == "bool":
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    e = NotImplementedError(
+                    raise NotImplementedError(
                         "Handling exception with filter_type {f} not"
                         "implemented.".format(f=filter_type)
-                    )
-                    raise_with_traceback(e)
+                    ) from err
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
@@ -7886,8 +7881,6 @@ class DataFrame(NDFrame):
         Return Series with number of distinct observations. Can ignore NaN
         values.
 
-        .. versionadded:: 0.20.0
-
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
@@ -7924,6 +7917,7 @@ class DataFrame(NDFrame):
     def idxmin(self, axis=0, skipna=True):
         """
         Return index of first occurrence of minimum over requested axis.
+
         NA/null values are excluded.
 
         Parameters
@@ -7961,6 +7955,7 @@ class DataFrame(NDFrame):
     def idxmax(self, axis=0, skipna=True):
         """
         Return index of first occurrence of maximum over requested axis.
+
         NA/null values are excluded.
 
         Parameters
@@ -8225,6 +8220,8 @@ class DataFrame(NDFrame):
 
     def to_period(self, freq=None, axis=0, copy=True):
         """
+        Convert DataFrame from DatetimeIndex to PeriodIndex.
+
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed).
 

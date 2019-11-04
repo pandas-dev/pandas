@@ -23,8 +23,6 @@ def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
         default, infers from the file extension in specified path.
-
-        .. versionadded:: 0.20.0
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -99,8 +97,6 @@ def read_pickle(path, compression="infer"):
         or '.zip' respectively, and no decompression otherwise.
         Set to None for no decompression.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
     unpickled : same type as object stored in file
@@ -144,7 +140,7 @@ def read_pickle(path, compression="infer"):
     path = _stringify_path(path)
     f, fh = _get_handle(path, "rb", compression=compression, is_text=False)
 
-    # 1) try standard libary Pickle
+    # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
     # 3) try pickle_compat with latin1 encoding
 

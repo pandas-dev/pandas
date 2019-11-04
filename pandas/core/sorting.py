@@ -162,6 +162,10 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     xnull: boolean,
         if nulls are excluded; i.e. -1 labels are passed through
     """
+    labels = list(labels)
+    unique_comp_ids = np.unique(comp_ids)
+    if (shape[0] != len(unique_comp_ids)) and (shape[0] == len(labels[0])):
+        return [unique_comp_ids]
 
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
@@ -484,9 +488,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, verify=T
 
     if sorter is None:
         # mixed types
-        (hash_klass, _), values = algorithms._get_data_algo(
-            values, algorithms._hashtables
-        )
+        hash_klass, values = algorithms._get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

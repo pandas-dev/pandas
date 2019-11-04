@@ -171,10 +171,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
     MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
@@ -208,7 +204,7 @@ import sys
 import pandas
 
 blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
-             'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
+             'lxml', 'matplotlib', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
 
 # GH#28227 for some of these check for top-level modules, while others are
