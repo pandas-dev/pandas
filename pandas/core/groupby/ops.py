@@ -748,6 +748,10 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
+    def recons_labels(self):
+        return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1])]]
+
+    @cache_readonly
     def result_index(self):
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
