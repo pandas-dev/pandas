@@ -446,7 +446,7 @@ class _Window(PandasObject, SelectionMixin):
                     start, end = window_indexer.get_window_bounds(
                         x, window, self.closed, index_as_array
                     )
-                    return func(x, window, min_periods=min_periods, closed=self.closed)
+                    return func(x, start, end, min_periods)
 
             else:
 
@@ -457,7 +457,7 @@ class _Window(PandasObject, SelectionMixin):
                     start, end = window_indexer.get_window_bounds(
                         x, window, self.closed, index_as_array
                     )
-                    return func(x, window, min_periods=min_periods, closed=self.closed)
+                    return func(x, start, end, min_periods)
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1:
