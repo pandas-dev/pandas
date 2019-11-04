@@ -417,3 +417,53 @@ class TestDataFramePlots(TestPlotBase):
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
+
+    def test_has_externally_shared_axis(self):
+        func = plotting._matplotlib.tools._has_externally_shared_axis
+
+        # Test x-axis
+        fig = self.plt.figure()
+        plots = fig.subplots(2, 4)
+
+        # Create *externally* shared axes for first and third columns
+        plots[0][0] = self.plt.subplot(231, sharex=plots[1][0])
+        plots[0][2] = self.plt.subplot(233, sharex=plots[1][2])
+
+        # Create *internally* shared axes for second and third columns
+        plots[0][1].twinx()
+        plots[0][2].twinx()
+
+        # First  column is only externally shared
+        # Second column is only internally shared
+        # Third  column is both
+        # Fourth column is neither
+        assert func(plots[0][0], "x") is True
+        assert func(plots[0][1], "x") is False
+        assert func(plots[0][2], "x") is True
+        assert func(plots[0][3], "x") is False
+
+        # Test y-axis
+        fig = self.plt.figure()
+        plots = fig.subplots(4, 2)
+
+        # Create *externally* shared axes for first and third rows
+        plots[0][0] = self.plt.subplot(321, sharey=plots[0][1])
+        plots[2][0] = self.plt.subplot(325, sharey=plots[2][1])
+
+        # Create *internally* shared axes for second and third rows
+        plots[1][0].twiny()
+        plots[2][0].twiny()
+
+        # First  row is only externally shared
+        # Second row is only internally shared
+        # Third  row is both
+        # Fourth row is neither
+        assert func(plots[0][0], "y") is True
+        assert func(plots[1][0], "y") is False
+        assert func(plots[2][0], "y") is True
+        assert func(plots[3][0], "y") is False
+
+        # Check that an invalid compare_axis value triggers the expected exception
+        msg = "needs 'x' or 'y' as a second parameter"
+        with pytest.raises(ValueError, match=msg):
+            func(plots[0][0], "z")
