@@ -734,6 +734,29 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
+    @staticmethod
+    def _get_primary_key_values(sql_table, primary_keys):
+        """
+        This static method gets all values for specified columns, returning them via
+        a lazy generator
+        Parameters
+        ----------
+        sql_table: SQLTable
+            Table from which data is to be returned
+        primary_keys: List[str]
+            Names of columns to be returned
+
+        Returns
+        -------
+        generator Object
+        """
+        from sqlalchemy import select
+        statement = select([sql_table.table.c[key] for key in primary_keys])
+        result = sql_table.pd_sql.execute(statement)
+        for row in result:
+            yield row
+
+
     def insert(self, chunksize=None, method=None):
 
         # set insert method
@@ -749,6 +772,29 @@ class SQLTable(PandasObject):
             exec_insert = partial(method, self)
         else:
             raise ValueError("Invalid parameter `method`: {}".format(method))
+
+        if method.startswith('upsert_'):
+            # Upsert operation will require knowledge of what is already in the database
+            # Following will create new meta and SQLDatabase objects so that we have
+            # access to existing table without overriding objects' self.meta attribute
+            from sqlalchemy.schema import MetaData
+            upsert_meta = MetaData(self.pd_sql.connectable, schema=self.schema)
+            upsert_meta.reflect(only=[self.name], views=True)
+            upsert_sql_database = SQLDatabase(
+                engine=self.pd_sql.connectable, schema=self.schema, meta=upsert_meta
+            )
+            # Check if table exists in given database connection
+            if upsert_sql_database.has_table(name=self.name, schema=self.schema):
+                upsert_sql_table = upsert_sql_database.get_table(self.name, self.schema)
+                primary_keys = [
+                    primary_key.name for primary_key in upsert_sql_table.table.primary_keys.columns.values()
+                ]
+                # Create generator object to lazily return rows in primary key columns
+                primary_key_values = self._get_primary_key_values(upsert_sql_table, primary_keys)
+            else:
+                raise ValueError(
+                    f"No table named {self.name} found in database"
+                )
 
         keys, data_list = self.insert_data()
 
