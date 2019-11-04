@@ -49,7 +49,7 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 #
 
 
-def _check_minp(win, minp, N, floor=None):
+def _check_minp(win, minp, N, floor=None) -> int:
     """
     Parameters
     ----------
@@ -180,7 +180,8 @@ cdef class FixedWindowIndexer(WindowIndexer):
     def __init__(self, ndarray values, int64_t win, int64_t minp,
                  bint left_closed, bint right_closed,
                  object index=None, object floor=None):
-        cdef ndarray start_s, start_e, end_s, end_e
+        cdef:
+            ndarray[int64_t] start_s, start_e, end_s, end_e
 
         assert index is None
         self.is_variable = 0
@@ -298,7 +299,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
 def get_window_indexer(values, win, minp, index, closed,
                        floor=None, use_mock=True):
     """
-    return the correct window indexer for the computation
+    Return the correct window indexer for the computation.
 
     Parameters
     ----------
@@ -318,7 +319,6 @@ def get_window_indexer(values, win, minp, index, closed,
         instead of the FixedWindow Indexer. This is a type
         compat Indexer that allows us to use a standard
         code path with all of the indexers.
-
 
     Returns
     -------
@@ -365,7 +365,7 @@ def roll_count(ndarray[float64_t] values, int64_t win, int64_t minp,
         float64_t val, count_x = 0.0
         int64_t s, e, nobs, N
         Py_ssize_t i, j
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, _ = get_window_indexer(values, win,
@@ -413,8 +413,7 @@ def roll_count(ndarray[float64_t] values, int64_t win, int64_t minp,
 # Rolling sum
 
 
-cdef inline float64_t calc_sum(int64_t minp, int64_t nobs,
-                               float64_t sum_x) nogil:
+cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogil:
     cdef:
         float64_t result
 
@@ -435,8 +434,7 @@ cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogil:
         sum_x[0] = sum_x[0] + val
 
 
-cdef inline void remove_sum(float64_t val,
-                            int64_t *nobs, float64_t *sum_x) nogil:
+cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogil:
     """ remove a value from the sum calc """
 
     if notnan(val):
@@ -451,7 +449,7 @@ def roll_sum(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
@@ -572,7 +570,7 @@ def roll_mean(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t s, e
         bint is_variable
         Py_ssize_t nobs = 0, i, j, neg_ct = 0, N
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
@@ -709,7 +707,7 @@ def roll_var(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t s, e
         bint is_variable
         Py_ssize_t i, j, N
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
@@ -871,7 +869,7 @@ def roll_skew(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t nobs = 0, i, j, N
         int64_t s, e
         bint is_variable
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
@@ -1015,7 +1013,7 @@ def roll_kurt(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t nobs = 0, i, j, N
         int64_t s, e
         bint is_variable
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
@@ -1088,7 +1086,7 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
         Py_ssize_t i, j
         int64_t nobs = 0, N, s, e
         int midpoint
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
 
     # we use the Fixed/Variable Indexer here as the
@@ -1471,7 +1469,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
         bint is_variable
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
         ndarray[float64_t] output
         float64_t vlow, vhigh
         InterpolationType interpolation_type
@@ -1589,7 +1587,7 @@ def roll_generic(object obj,
         float64_t *oldbuf
         int64_t nobs = 0, i, j, s, e, N
         bint is_variable
-        ndarray[int64_t] start, end
+        int64_t[:] start, end
 
     n = len(obj)
     if n == 0:
@@ -1679,18 +1677,17 @@ def roll_generic(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_weighted_sum(float64_t[:] values, float64_t[:] weights,
-                      int minp):
+def roll_weighted_sum(float64_t[:] values, float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_weighted_mean(float64_t[:] values, float64_t[:] weights,
-                       int minp):
+def roll_weighted_mean(float64_t[:] values, float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
-                            int minp, bint avg):
+cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
+                                                float64_t[:] weights,
+                                                int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
@@ -1702,64 +1699,64 @@ def _roll_weighted_sum_mean(float64_t[:] values, float64_t[:] weights,
     in_n = len(values)
     win_n = len(weights)
 
-    output = np.zeros(in_n, dtype=float)
-    counts = np.zeros(in_n, dtype=float)
+    output = np.zeros(in_n, dtype=np.float64)
+    counts = np.zeros(in_n, dtype=np.float64)
     if avg:
-        tot_wgt = np.zeros(in_n, dtype=float)
+        tot_wgt = np.zeros(in_n, dtype=np.float64)
 
     minp = _check_minp(len(weights), minp, in_n)
 
-    if avg:
-        for win_i in range(win_n):
-            val_win = weights[win_i]
-            if val_win != val_win:
-                continue
+    with nogil:
+        if avg:
+            for win_i in range(win_n):
+                val_win = weights[win_i]
+                if val_win != val_win:
+                    continue
 
-            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
-                val_in = values[in_i]
-                if val_in == val_in:
-                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
-                    counts[in_i + (win_n - win_i) - 1] += 1
-                    tot_wgt[in_i + (win_n - win_i) - 1] += val_win
+                for in_i in range(in_n - (win_n - win_i) + 1):
+                    val_in = values[in_i]
+                    if val_in == val_in:
+                        output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                        counts[in_i + (win_n - win_i) - 1] += 1
+                        tot_wgt[in_i + (win_n - win_i) - 1] += val_win
 
-        for in_i in range(in_n):
-            c = counts[in_i]
-            if c < minp:
-                output[in_i] = NaN
-            else:
-                w = tot_wgt[in_i]
-                if w == 0:
+            for in_i in range(in_n):
+                c = counts[in_i]
+                if c < minp:
                     output[in_i] = NaN
                 else:
-                    output[in_i] /= tot_wgt[in_i]
+                    w = tot_wgt[in_i]
+                    if w == 0:
+                        output[in_i] = NaN
+                    else:
+                        output[in_i] /= tot_wgt[in_i]
 
-    else:
-        for win_i in range(win_n):
-            val_win = weights[win_i]
-            if val_win != val_win:
-                continue
+        else:
+            for win_i in range(win_n):
+                val_win = weights[win_i]
+                if val_win != val_win:
+                    continue
 
-            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
-                val_in = values[in_i]
+                for in_i in range(in_n - (win_n - win_i) + 1):
+                    val_in = values[in_i]
 
-                if val_in == val_in:
-                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
-                    counts[in_i + (win_n - win_i) - 1] += 1
+                    if val_in == val_in:
+                        output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                        counts[in_i + (win_n - win_i) - 1] += 1
 
-        for in_i in range(in_n):
-            c = counts[in_i]
-            if c < minp:
-                output[in_i] = NaN
+            for in_i in range(in_n):
+                c = counts[in_i]
+                if c < minp:
+                    output[in_i] = NaN
 
-    return output
+    return np.asarray(output)
 
 
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
 
-def ewma(float64_t[:] vals, float64_t com,
-         int adjust, int ignore_na, int minp):
+def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1768,12 +1765,12 @@ def ewma(float64_t[:] vals, float64_t com,
     vals : ndarray (float64 type)
     com : float64
     adjust: int
-    ignore_na: int
+    ignore_na: bool
     minp: int
 
     Returns
     -------
-    y : ndarray
+    ndarray
     """
 
     cdef:
@@ -1781,6 +1778,7 @@ def ewma(float64_t[:] vals, float64_t com,
         ndarray[float64_t] output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
         Py_ssize_t i, nobs
+        bint is_observation
 
     if N == 0:
         return output
@@ -1797,29 +1795,30 @@ def ewma(float64_t[:] vals, float64_t com,
     output[0] = weighted_avg if (nobs >= minp) else NaN
     old_wt = 1.
 
-    for i in range(1, N):
-        cur = vals[i]
-        is_observation = (cur == cur)
-        nobs += int(is_observation)
-        if weighted_avg == weighted_avg:
+    with nogil:
+        for i in range(1, N):
+            cur = vals[i]
+            is_observation = (cur == cur)
+            nobs += is_observation
+            if weighted_avg == weighted_avg:
 
-            if is_observation or (not ignore_na):
+                if is_observation or (not ignore_na):
 
-                old_wt *= old_wt_factor
-                if is_observation:
+                    old_wt *= old_wt_factor
+                    if is_observation:
 
-                    # avoid numerical errors on constant series
-                    if weighted_avg != cur:
-                        weighted_avg = ((old_wt * weighted_avg) +
-                                        (new_wt * cur)) / (old_wt + new_wt)
-                    if adjust:
-                        old_wt += new_wt
-                    else:
-                        old_wt = 1.
-        elif is_observation:
-            weighted_avg = cur
+                        # avoid numerical errors on constant series
+                        if weighted_avg != cur:
+                            weighted_avg = ((old_wt * weighted_avg) +
+                                            (new_wt * cur)) / (old_wt + new_wt)
+                        if adjust:
+                            old_wt += new_wt
+                        else:
+                            old_wt = 1.
+            elif is_observation:
+                weighted_avg = cur
 
-        output[i] = weighted_avg if (nobs >= minp) else NaN
+            output[i] = weighted_avg if (nobs >= minp) else NaN
 
     return output
 
@@ -1829,7 +1828,7 @@ def ewma(float64_t[:] vals, float64_t com,
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, int ignore_na, int minp, int bias):
+           float64_t com, int adjust, bint ignore_na, int minp, int bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1839,21 +1838,23 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     input_y : ndarray (float64 type)
     com : float64
     adjust: int
-    ignore_na: int
+    ignore_na: bool
     minp: int
     bias: int
 
     Returns
     -------
-    y : ndarray
+    ndarray
     """
 
     cdef:
         Py_ssize_t N = len(input_x)
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
+        float64_t numerator, denominator
         Py_ssize_t i, nobs
         ndarray[float64_t] output
+        bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
         raise ValueError("arrays are of different lengths "
@@ -1882,55 +1883,57 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     sum_wt2 = 1.
     old_wt = 1.
 
-    for i in range(1, N):
-        cur_x = input_x[i]
-        cur_y = input_y[i]
-        is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
-        nobs += int(is_observation)
-        if mean_x == mean_x:
-            if is_observation or (not ignore_na):
-                sum_wt *= old_wt_factor
-                sum_wt2 *= (old_wt_factor * old_wt_factor)
-                old_wt *= old_wt_factor
-                if is_observation:
-                    old_mean_x = mean_x
-                    old_mean_y = mean_y
+    with nogil:
 
-                    # avoid numerical errors on constant series
-                    if mean_x != cur_x:
-                        mean_x = ((old_wt * old_mean_x) +
-                                  (new_wt * cur_x)) / (old_wt + new_wt)
+        for i in range(1, N):
+            cur_x = input_x[i]
+            cur_y = input_y[i]
+            is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
+            nobs += is_observation
+            if mean_x == mean_x:
+                if is_observation or (not ignore_na):
+                    sum_wt *= old_wt_factor
+                    sum_wt2 *= (old_wt_factor * old_wt_factor)
+                    old_wt *= old_wt_factor
+                    if is_observation:
+                        old_mean_x = mean_x
+                        old_mean_y = mean_y
 
-                    # avoid numerical errors on constant series
-                    if mean_y != cur_y:
-                        mean_y = ((old_wt * old_mean_y) +
-                                  (new_wt * cur_y)) / (old_wt + new_wt)
-                    cov = ((old_wt * (cov + ((old_mean_x - mean_x) *
-                                             (old_mean_y - mean_y)))) +
-                           (new_wt * ((cur_x - mean_x) *
-                                      (cur_y - mean_y)))) / (old_wt + new_wt)
-                    sum_wt += new_wt
-                    sum_wt2 += (new_wt * new_wt)
-                    old_wt += new_wt
-                    if not adjust:
-                        sum_wt /= old_wt
-                        sum_wt2 /= (old_wt * old_wt)
-                        old_wt = 1.
-        elif is_observation:
-            mean_x = cur_x
-            mean_y = cur_y
+                        # avoid numerical errors on constant series
+                        if mean_x != cur_x:
+                            mean_x = ((old_wt * old_mean_x) +
+                                      (new_wt * cur_x)) / (old_wt + new_wt)
 
-        if nobs >= minp:
-            if not bias:
-                numerator = sum_wt * sum_wt
-                denominator = numerator - sum_wt2
-                if (denominator > 0.):
-                    output[i] = ((numerator / denominator) * cov)
+                        # avoid numerical errors on constant series
+                        if mean_y != cur_y:
+                            mean_y = ((old_wt * old_mean_y) +
+                                      (new_wt * cur_y)) / (old_wt + new_wt)
+                        cov = ((old_wt * (cov + ((old_mean_x - mean_x) *
+                                                 (old_mean_y - mean_y)))) +
+                               (new_wt * ((cur_x - mean_x) *
+                                          (cur_y - mean_y)))) / (old_wt + new_wt)
+                        sum_wt += new_wt
+                        sum_wt2 += (new_wt * new_wt)
+                        old_wt += new_wt
+                        if not adjust:
+                            sum_wt /= old_wt
+                            sum_wt2 /= (old_wt * old_wt)
+                            old_wt = 1.
+            elif is_observation:
+                mean_x = cur_x
+                mean_y = cur_y
+
+            if nobs >= minp:
+                if not bias:
+                    numerator = sum_wt * sum_wt
+                    denominator = numerator - sum_wt2
+                    if (denominator > 0.):
+                        output[i] = ((numerator / denominator) * cov)
+                    else:
+                        output[i] = NaN
                 else:
-                    output[i] = NaN
+                    output[i] = cov
             else:
-                output[i] = cov
-        else:
-            output[i] = NaN
+                output[i] = NaN
 
     return output
