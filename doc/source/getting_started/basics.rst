@@ -764,7 +764,7 @@ First some setup:
         """
         Chicago, IL -> Chicago for city_name column
         """
-        df['city_name'] = df['city_and_code'].apply(lambda x: x.split(', ')[0])
+        df['city_name'] = df['city_and_code'].str.split(",").str.get(0)
         return df
 
     def add_country_name(df, country_name=None):
@@ -772,7 +772,7 @@ First some setup:
         Chicago -> Chicago-US for city_name column
         """
         col = 'city_name'
-        df['city_and_country'] = df[col].apply(lambda x: f'{x}-{country_name}')
+        df['city_and_country'] = df[col] + country_name
         return df
 
     df_p = pd.DataFrame({'city_and_code': ['Chicago, IL']})
