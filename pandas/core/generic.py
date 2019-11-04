@@ -3221,7 +3221,7 @@ class NDFrame(PandasObject, SelectionMixin):
             and mode is 'zip' or inferred as 'zip', other entries passed as
             additional compression options.
 
-            .. versionchanged:: 0.25.0
+            .. versionchanged:: 1.0.0
 
                May now be a dict with key 'method' as compression mode
                and other entries as additional compression options if
