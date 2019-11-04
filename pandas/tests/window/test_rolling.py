@@ -368,9 +368,9 @@ def test_rolling_window_as_string():
     date_today = datetime.now()
     days = pd.date_range(date_today, date_today + timedelta(365), freq="D")
 
-    np.random.seed(seed=421)
+    npr = np.random.RandomState(seed=421)
 
-    data = np.random.randint(1, high=100, size=len(days))
+    data = npr.randint(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)
