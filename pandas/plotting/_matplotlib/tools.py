@@ -289,20 +289,34 @@ def _remove_labels_from_axis(axis):
     axis.get_label().set_visible(False)
 
 
-# If two axes sharing an axis also have the same position, they can be referred to as
-# internally sharing the common axis (a.k.a twinning). _handle_shared_axes() is only
-# interested in axes externally sharing an axis, regardless of whether either of the
-# axes is also internally sharing with a third axes.
+def _has_externally_shared_axis(ax1, compare_axis):
+    """If two axes sharing an axis also have the same position, they can be referred to
+    as internally sharing the common axis (a.k.a twinning). _handle_shared_axes() is
+    only interested in axes externally sharing an axis, regardless of whether either of
+    the axes is also internally sharing with a third axes.
 
+    """
 
-def _ignore_colocated_axes(ax1, axes):
-    # Remove colocated axes from a list.
+    if compare_axis == "x":
+        axes = ax1.get_shared_x_axes()
+    elif compare_axis == "y":
+        axes = ax1.get_shared_y_axes()
+    else:
+        raise ValueError(
+            "_has_externally_shared_axis() needs 'x' or 'y' as a second parameter"
+        )
+
+    axes = axes.get_siblings(ax1)
+
+    # Remove colocated axes
     ax1_points = ax1.get_position().get_points()
-    return [
+    axes = [
         ax2
         for ax2 in axes
         if ax1 == ax2 or not np.array_equal(ax1_points, ax2.get_position().get_points())
     ]
+
+    return len(axes) > 1
 
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
@@ -322,15 +336,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     # the last in the column, because below is no subplot/gap.
                     if not layout[ax.rowNum + 1, ax.colNum]:
                         continue
-                    if (
-                        sharex
-                        or len(
-                            _ignore_colocated_axes(
-                                ax, ax.get_shared_x_axes().get_siblings(ax)
-                            )
-                        )
-                        > 1
-                    ):
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
             except IndexError:
@@ -339,15 +345,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 for ax in axarr:
                     if ax.is_last_row():
                         continue
-                    if (
-                        sharex
-                        or len(
-                            _ignore_colocated_axes(
-                                ax, ax.get_shared_x_axes().get_siblings(ax)
-                            )
-                        )
-                        > 1
-                    ):
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
@@ -357,15 +355,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 # have a subplot there, we can skip the layout test
                 if ax.is_first_col():
                     continue
-                if (
-                    sharey
-                    or len(
-                        _ignore_colocated_axes(
-                            ax, ax.get_shared_y_axes().get_siblings(ax)
-                        )
-                    )
-                    > 1
-                ):
+                if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
