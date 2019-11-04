@@ -101,7 +101,7 @@ class Rank:
 
 class Correlation:
 
-    params = [["spearman", "kendall", "pearson"], [True, False]]
+    params = [["spearman", "pearson"], [True, False]]
     param_names = ["method", "use_bottleneck"]
 
     def setup(self, method, use_bottleneck):
