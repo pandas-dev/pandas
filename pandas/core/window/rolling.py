@@ -373,13 +373,13 @@ class _Window(PandasObject, SelectionMixin):
             )
         return window_func
 
-    def _get_window_indexer(self, index_as_array):
+    def _get_window_indexer(self):
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if self.is_freq_type:
-            return libwindow_indexer.VariableWindowIndexer(index_as_array)
-        return libwindow_indexer.FixedWindowIndexer()
+            return libwindow_indexer.VariableWindowIndexer
+        return libwindow_indexer.FixedWindowIndexer
 
     def _apply(
         self,
@@ -413,6 +413,7 @@ class _Window(PandasObject, SelectionMixin):
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
         index_as_array = self._get_index()
+        window_indexer = self._get_window_indexer()
 
         results = []
         exclude = []  # type: List[Scalar]
@@ -442,6 +443,9 @@ class _Window(PandasObject, SelectionMixin):
                     min_periods = _calculate_min_periods(
                         window, self.min_periods, len(x), require_min_periods, floor
                     )
+                    start, end = window_indexer.get_window_bounds(
+                        x, window, self.closed, index_as_array
+                    )
                     return func(x, window, min_periods=min_periods, closed=self.closed)
 
             else:
@@ -449,6 +453,9 @@ class _Window(PandasObject, SelectionMixin):
                 def calc(x):
                     min_periods = _calculate_min_periods(
                         window, self.min_periods, len(x), require_min_periods, floor
+                    )
+                    start, end = window_indexer.get_window_bounds(
+                        x, window, self.closed, index_as_array
                     )
                     return func(x, window, min_periods=min_periods, closed=self.closed)
 

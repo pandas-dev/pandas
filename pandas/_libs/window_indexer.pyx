@@ -22,18 +22,12 @@ cpdef class MockFixedWindowIndexer:
         values data array
     win: int64_t
         window size
-    minp: int64_t
-        min number of obs in a window to consider non-NaN
     index: object
         index of the values
-    floor: optional
-        unit for flooring
     closed: string
         closed behavior
     """
-    def __init__(self, ndarray values, int64_t win, int64_t minp,
-                 object closed,
-                 object index=None, object floor=None):
+    def __init__(self, ndarray values, int64_t win, object closed, object index=None):
 
         self.start = np.empty(0, dtype='int64')
         self.end = np.empty(0, dtype='int64')
@@ -55,18 +49,12 @@ cpdef class FixedWindowIndexer:
         values data array
     win: int64_t
         window size
-    minp: int64_t
-        min number of obs in a window to consider non-NaN
     index: object
         index of the values
-    floor: optional
-        unit for flooring the unit
     closed: string
         closed behavior
     """
-    def __init__(self, ndarray values, int64_t win, int64_t minp,
-                 object closed,
-                 object index=None, object floor=None):
+    def __init__(self, ndarray values, int64_t win, object closed, object index=None):
         cdef:
             ndarray start_s, start_e, end_s, end_e
             int64_t N = len(values)
@@ -95,18 +83,12 @@ cpdef class VariableWindowIndexer:
         values data array
     win: int64_t
         window size
-    minp: int64_t
-        min number of obs in a window to consider non-NaN
     index: ndarray
         index of the values
     closed: string
         closed behavior
-    floor: optional
-        unit for flooring the unit
     """
-    def __init__(self, ndarray values, int64_t win, int64_t minp,
-                 object closed, ndarray index,
-                 object floor=None):
+    def __init__(self, ndarray values, int64_t win, object closed, ndarray index):
         cdef:
             bint left_closed = False
             bint right_closed = False
