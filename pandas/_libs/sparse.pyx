@@ -746,9 +746,6 @@ cdef class BlockUnion(BlockMerge):
 
         nend = xend[xi]
 
-        # print 'here xi=%d, yi=%d, mode=%d, nend=%d' % (self.xi, self.yi,
-        #                                                mode, nend)
-
         # done with y?
         if yi == ynblocks:
             self._set_current_indices(xi + 1, yi, mode)
