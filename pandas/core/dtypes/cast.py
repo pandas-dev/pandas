@@ -686,6 +686,8 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     dtype : if None, then use the dtype of the values, else coerce to this type
     copy : if True always make a copy even if no upcast is required
     """
+    if not is_scalar(fill_value):
+        raise ValueError("fill_value must be a scalar")
 
     if is_extension_type(values):
         if copy:
