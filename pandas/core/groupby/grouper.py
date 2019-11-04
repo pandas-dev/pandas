@@ -59,7 +59,7 @@ class Grouper:
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
     sort : bool, default to False
-        whether to sort the resulting labels
+        whether to sort the resulting codes
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -231,7 +231,7 @@ class Grouping:
     obj :
     name :
     level :
-    observed : boolean, default False
+    observed : bool, default False
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
@@ -240,9 +240,7 @@ class Grouping:
     -------
     **Attributes**:
       * indices : dict of {group -> index_list}
-      * labels : ndarray, group labels
-      * ids : mapping of label -> group
-      * counts : array of group counts
+      * codes : ndarray, group codes
       * group_index : unique groups
       * groups : dict of {group -> label_list}
     """
@@ -290,12 +288,12 @@ class Grouping:
             if self.name is None:
                 self.name = index.names[level]
 
-            self.grouper, self._labels, self._group_index = index._get_grouper_for_level(  # noqa: E501
+            self.grouper, self._codes, self._group_index = index._get_grouper_for_level(  # noqa: E501
                 self.grouper, level
             )
 
         # a passed Grouper like, directly get the grouper in the same way
-        # as single grouper groupby, use the group_info to get labels
+        # as single grouper groupby, use the group_info to get codes
         elif isinstance(self.grouper, Grouper):
             # get the new grouper; we already have disambiguated
             # what key/level refer to exactly, don't need to
@@ -324,7 +322,7 @@ class Grouping:
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes
-                self._labels = self.grouper.codes
+                self._codes = self.grouper.codes
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
@@ -380,7 +378,7 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _labels = None
+    _codes = None
     _group_index = None
 
     @property
@@ -397,10 +395,10 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def labels(self):
-        if self._labels is None:
-            self._make_labels()
-        return self._labels
+    def codes(self):
+        if self._codes is None:
+            self._make_codes()
+        return self._codes
 
     @cache_readonly
     def result_index(self):
@@ -411,24 +409,24 @@ class Grouping:
     @property
     def group_index(self):
         if self._group_index is None:
-            self._make_labels()
+            self._make_codes()
         return self._group_index
 
-    def _make_labels(self):
-        if self._labels is None or self._group_index is None:
+    def _make_codes(self):
+        if self._codes is None or self._group_index is None:
             # we have a list of groupers
             if isinstance(self.grouper, BaseGrouper):
-                labels = self.grouper.label_info
+                codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
-                labels, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+                codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
                 uniques = Index(uniques, name=self.name)
-            self._labels = labels
+            self._codes = codes
             self._group_index = uniques
 
     @cache_readonly
     def groups(self):
-        return self.index.groupby(Categorical.from_codes(self.labels, self.group_index))
+        return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
 def _get_grouper(

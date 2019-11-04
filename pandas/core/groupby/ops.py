@@ -139,7 +139,7 @@ class BaseGrouper:
             comp_ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.labels)
+            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
     def apply(self, f, data, axis: int = 0):
         mutated = self.mutated
@@ -210,13 +210,13 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].indices
         else:
-            label_list = [ping.labels for ping in self.groupings]
+            codes_list = [ping.codes for ping in self.groupings]
             keys = [com.values_from_object(ping.group_index) for ping in self.groupings]
-            return get_indexer_dict(label_list, keys)
+            return get_indexer_dict(codes_list, keys)
 
     @property
-    def labels(self):
-        return [ping.labels for ping in self.groupings]
+    def codes(self):
+        return [ping.codes for ping in self.groupings]
 
     @property
     def levels(self):
@@ -256,46 +256,46 @@ class BaseGrouper:
 
     @cache_readonly
     def group_info(self):
-        comp_ids, obs_group_ids = self._get_compressed_labels()
+        comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
         comp_ids = ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
-    def label_info(self):
-        # return the labels of items in original grouped axis
-        labels, _, _ = self.group_info
+    def codes_info(self):
+        # return the codes of items in original grouped axis
+        codes, _, _ = self.group_info
         if self.indexer is not None:
-            sorter = np.lexsort((labels, self.indexer))
-            labels = labels[sorter]
-        return labels
+            sorter = np.lexsort((codes, self.indexer))
+            codes = codes[sorter]
+        return codes
 
-    def _get_compressed_labels(self):
-        all_labels = [ping.labels for ping in self.groupings]
-        if len(all_labels) > 1:
-            group_index = get_group_index(all_labels, self.shape, sort=True, xnull=True)
+    def _get_compressed_codes(self):
+        all_codes = [ping.codes for ping in self.groupings]
+        if len(all_codes) > 1:
+            group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
 
         ping = self.groupings[0]
-        return ping.labels, np.arange(len(ping.group_index))
+        return ping.codes, np.arange(len(ping.group_index))
 
     @cache_readonly
     def ngroups(self) -> int:
         return len(self.result_index)
 
     @property
-    def recons_labels(self):
+    def recons_codes(self):
         comp_ids, obs_ids, _ = self.group_info
-        labels = (ping.labels for ping in self.groupings)
-        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels, xnull=True)
+        codes = (ping.codes for ping in self.groupings)
+        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
     def result_index(self):
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
-        codes = self.recons_labels
+        codes = self.recons_codes
         levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
@@ -307,9 +307,9 @@ class BaseGrouper:
             return [self.groupings[0].result_index]
 
         name_list = []
-        for ping, labels in zip(self.groupings, self.recons_labels):
-            labels = ensure_platform_int(labels)
-            levels = ping.result_index.take(labels)
+        for ping, codes in zip(self.groupings, self.recons_codes):
+            codes = ensure_platform_int(codes)
+            levels = ping.result_index.take(codes)
 
             name_list.append(levels)
 
@@ -490,7 +490,7 @@ class BaseGrouper:
             else:
                 out_dtype = "object"
 
-        labels, _, _ = self.group_info
+        codes, _, _ = self.group_info
 
         if kind == "aggregate":
             result = _maybe_fill(
@@ -498,7 +498,7 @@ class BaseGrouper:
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result, counts, values, labels, func, is_datetimelike, min_count
+                result, counts, values, codes, func, is_datetimelike, min_count
             )
         elif kind == "transform":
             result = _maybe_fill(
@@ -507,7 +507,7 @@ class BaseGrouper:
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_datetimelike, **kwargs
+                result, values, codes, func, is_datetimelike, **kwargs
             )
 
         if is_integer_dtype(result) and not is_datetimelike:
