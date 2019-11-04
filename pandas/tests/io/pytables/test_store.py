@@ -784,7 +784,7 @@ class TestHDFStore:
                 gname = "foo"
 
                 # Write and read file to see if data is consistent
-                df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
+                df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl, format="table")
                 result = pd.read_hdf(tmpfile, gname)
                 tm.assert_frame_equal(result, df)
 
