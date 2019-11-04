@@ -275,10 +275,11 @@ def qcut(
     duplicates: str = "raise",
 ):
     """
-    Quantile-based discretization function. Discretize variable into
-    equal-sized buckets based on rank or based on sample quantiles. For example
-    1000 values for 10 quantiles would produce a Categorical object indicating
-    quantile membership for each data point.
+    Quantile-based discretization function. 
+
+    Discretize variable into equal-sized buckets based on rank or based 
+    on sample quantiles. For example 1000 values for 10 quantiles would 
+    produce a Categorical object indicating quantile membership for each data point.
 
     Parameters
     ----------
