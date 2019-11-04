@@ -46,7 +46,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
@@ -1089,7 +1089,7 @@ class SelectN:
         return self.compute("nsmallest")
 
     @staticmethod
-    def is_valid_dtype_n_method(dtype):
+    def is_valid_dtype_n_method(dtype) -> bool:
         """
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
@@ -1881,8 +1881,9 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = algos.diff_2d
-        f(arr, out_arr, n, axis)
+        # TODO: can diff_2d dtype specialization troubles be fixed by defining
+        #  out_arr inside diff_2d?
+        algos.diff_2d(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.

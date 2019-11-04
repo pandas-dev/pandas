@@ -112,6 +112,7 @@ Other enhancements
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
 - Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
+- :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -256,6 +257,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
 - Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
+- Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)
 -
 
 .. _whatsnew_1000.performance:
@@ -288,6 +290,9 @@ Categorical
 - :meth:`Categorical.searchsorted` and :meth:`CategoricalIndex.searchsorted` now work on unordered categoricals also (:issue:`21667`)
 - Added test to assert roundtripping to parquet with :func:`DataFrame.to_parquet` or :func:`read_parquet` will preserve Categorical dtypes for string types (:issue:`27955`)
 - Changed the error message in :meth:`Categorical.remove_categories` to always show the invalid removals as a set (:issue:`28669`)
+- Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning an object of the
+  same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
+  :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue: `27952`)
 
 
 Datetimelike
@@ -304,6 +309,8 @@ Datetimelike
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 - Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
+- Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -386,6 +393,7 @@ I/O
 - Bug in :meth:`DataFrame.read_excel` with ``engine='ods'`` when ``sheet_name`` argument references a non-existent sheet (:issue:`27676`)
 - Bug in :meth:`pandas.io.formats.style.Styler` formatting for floating values not displaying decimals correctly (:issue:`13257`)
 - Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
+- Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
 
 Plotting
 ^^^^^^^^
