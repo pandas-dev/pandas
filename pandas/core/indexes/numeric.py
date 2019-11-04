@@ -176,9 +176,9 @@ _num_index_shared_docs[
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: %(dtype)s)
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
