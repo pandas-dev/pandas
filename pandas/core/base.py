@@ -1073,7 +1073,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1096,7 +1096,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1137,7 +1137,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1486,7 +1486,7 @@ class IndexOpsMixin:
         ----------
         deep : bool
             Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+            `object` dtypes for system-level memory consumption.
 
         Returns
         -------
