@@ -257,9 +257,13 @@ def to_hdf(
     """ store this object, close it if we opened it """
 
     if append:
-        f = lambda store: store.append(key, value, complib=complib, complevel=complevel, **kwargs)
+        f = lambda store: store.append(
+            key, value, complib=complib, complevel=complevel, **kwargs
+        )
     else:
-        f = lambda store: store.put(key, value, complib=complib, complevel=complevel, **kwargs)
+        f = lambda store: store.put(
+            key, value, complib=complib, complevel=complevel, **kwargs
+        )
 
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
@@ -925,7 +929,16 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key, value, format=None, append=False, complib=None, complevel=None, **kwargs):
+    def put(
+        self,
+        key,
+        value,
+        format=None,
+        append=False,
+        complib=None,
+        complevel=None,
+        **kwargs
+    ):
         """
         Store object in HDFStore.
 
@@ -966,7 +979,9 @@ class HDFStore:
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
         kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, complib=complib, complevel=complevel, append=append, **kwargs)
+        self._write_to_group(
+            key, value, complib=complib, complevel=complevel, append=append, **kwargs
+        )
 
     def remove(self, key, where=None, start=None, stop=None):
         """
@@ -1021,7 +1036,16 @@ class HDFStore:
             return s.delete(where=where, start=start, stop=stop)
 
     def append(
-        self, key, value, format=None, append=True, columns=None, dropna=None, complib=None, complevel=None, **kwargs
+        self,
+        key,
+        value,
+        format=None,
+        append=True,
+        columns=None,
+        dropna=None,
+        complib=None,
+        complevel=None,
+        **kwargs
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1549,7 +1573,9 @@ class HDFStore:
             raise ValueError("Compression not supported on Fixed format stores")
 
         # write the object
-        s.write(obj=value, append=append, complib=complib, complevel=complevel, **kwargs)
+        s.write(
+            obj=value, append=append, complib=complib, complevel=complevel, **kwargs
+        )
 
         if s.is_table and index:
             s.create_index(columns=index)
