@@ -257,9 +257,9 @@ def to_hdf(
     """ store this object, close it if we opened it """
 
     if append:
-        f = lambda store: store.append(key, value, **kwargs)
+        f = lambda store: store.append(key, value, complib=complib, complevel=complevel, **kwargs)
     else:
-        f = lambda store: store.put(key, value, **kwargs)
+        f = lambda store: store.put(key, value, complib=complib, complevel=complevel, **kwargs)
 
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
@@ -925,7 +925,7 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key, value, format=None, append=False, **kwargs):
+    def put(self, key, value, format=None, append=False, complib=None, complevel=None, **kwargs):
         """
         Store object in HDFStore.
 
@@ -943,6 +943,17 @@ class HDFStore:
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
         data_columns : list, default None
             List of columns to create as data columns, or True to
             use all columns. See `here
@@ -955,7 +966,7 @@ class HDFStore:
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
         kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, **kwargs)
+        self._write_to_group(key, value, complib=complib, complevel=complevel, append=append, **kwargs)
 
     def remove(self, key, where=None, start=None, stop=None):
         """
@@ -1010,7 +1021,7 @@ class HDFStore:
             return s.delete(where=where, start=start, stop=stop)
 
     def append(
-        self, key, value, format=None, append=True, columns=None, dropna=None, **kwargs
+        self, key, value, format=None, append=True, columns=None, dropna=None, complib=None, complevel=None, **kwargs
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1040,6 +1051,17 @@ class HDFStore:
         dropna       : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
 
         Notes
         -----
@@ -1477,6 +1499,7 @@ class HDFStore:
         index=True,
         append=False,
         complib=None,
+        complevel=None,
         encoding=None,
         **kwargs
     ):
@@ -1526,7 +1549,7 @@ class HDFStore:
             raise ValueError("Compression not supported on Fixed format stores")
 
         # write the object
-        s.write(obj=value, append=append, complib=complib, **kwargs)
+        s.write(obj=value, append=append, complib=complib, complevel=complevel, **kwargs)
 
         if s.is_table and index:
             s.create_index(columns=index)
