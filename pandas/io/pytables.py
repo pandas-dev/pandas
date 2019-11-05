@@ -934,11 +934,11 @@ class HDFStore:
         self,
         key,
         value,
-        format=None,
-        append=False,
-        complib=None,
-        complevel=None,
-        dropna=False,
+        format: str =None,
+        append: bool =False,
+        complib: str =None,
+        complevel: int =None,
+        dropna: bool=False,
         **kwargs
     ):
         """
@@ -4469,7 +4469,7 @@ class AppendableSeriesTable(AppendableFrameTable):
     def get_object(self, obj):
         return obj
 
-    def write(self, obj, data_columns=None, **kwargs):
+    def write(self, obj, data_columns=None, dropna=None, **kwargs):
         """ we are going to write this as a frame table """
         if not isinstance(obj, DataFrame):
             name = obj.name or "values"
