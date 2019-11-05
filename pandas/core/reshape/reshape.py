@@ -958,7 +958,7 @@ def _get_dummies_1d(
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_frame(data):
+    def get_empty_frame(data) -> DataFrame:
         if isinstance(data, Series):
             index = data.index
         else:
