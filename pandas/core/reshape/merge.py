@@ -1204,7 +1204,7 @@ class _MergeOperation:
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
-    def _validate(self, validate):
+    def _validate(self, validate: str):
 
         # Check uniqueness of each
         if self.left_index:
@@ -1300,7 +1300,12 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
-    left, right, dropped_level_names, join_index, lindexer, rindexer
+    left: MultiIndex,
+    right: MultiIndex,
+    dropped_level_names,
+    join_index,
+    lindexer,
+    rindexer,
 ):
     """
     *this is an internal non-public method*
@@ -1338,7 +1343,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index):
+    def _convert_to_mulitindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:

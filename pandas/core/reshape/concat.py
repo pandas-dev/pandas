@@ -478,7 +478,7 @@ class _Concatenator:
                 self, method="concat"
             )
 
-    def _get_result_dim(self):
+    def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
             return 2
         else:
@@ -580,7 +580,7 @@ class _Concatenator:
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index):
+    def _maybe_check_integrity(self, concat_index: Index):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
@@ -590,11 +590,11 @@ class _Concatenator:
                 )
 
 
-def _concat_indexes(indexes):
+def _concat_indexes(indexes) -> Index:
     return indexes[0].append(indexes[1:])
 
 
-def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
 
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
