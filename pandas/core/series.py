@@ -1593,7 +1593,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
             min_rows = get_option("display.min_rows")
-            max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
 
             formatter = fmt.DataFrameFormatter(
@@ -1612,7 +1611,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 escape=True,
                 max_rows=max_rows,
                 min_rows=min_rows,
-                max_cols=max_cols,
                 show_dimensions=False,  # We do this later for a series.
                 decimal=".",
                 table_id=None,
