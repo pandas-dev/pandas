@@ -99,8 +99,8 @@ class TestMultiIndexSorted:
     def test_not_contained_item_tuple_multiIndex(self):
         # issue #21094
         i = MultiIndex(
-            levels=[[1], [(2, 3, 2)]], codes=[[0, 0], [0, 0]], names=[u"bar", u"foo"]
+            levels=[[1], [(2, 3, 2)]], codes=[[0, 0], [0, 0]], names=["bar", "foo"]
         )
 
-        assert (1, (2, 3, 2)) in i == True
-        assert (1, (2, 3, 3)) in i == False
+        assert (1, (2, 3, 2)) in i is True
+        assert (1, (2, 3, 3)) in i is False
