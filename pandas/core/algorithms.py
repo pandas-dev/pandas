@@ -8,12 +8,13 @@ from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import algos, hashtable as htable, lib
+from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
+    infer_dtype_from_array,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -639,8 +640,6 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
         )
 
     if sort and len(uniques) > 0:
-        from pandas.core.sorting import safe_sort
-
         uniques, labels = safe_sort(
             uniques, labels, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
@@ -1440,7 +1439,9 @@ _take_2d_multi_dict = {
 }
 
 
-def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=None):
+def _get_take_nd_function(
+    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+):
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -1474,7 +1475,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=N
     return func2
 
 
-def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
+def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
 
@@ -1568,13 +1569,7 @@ def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
 
 
 def take_nd(
-    arr,
-    indexer,
-    axis=0,
-    out=None,
-    fill_value=np.nan,
-    mask_info=None,
-    allow_fill: bool = True,
+    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1597,10 +1592,6 @@ def take_nd(
         maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    mask_info : tuple of (ndarray, boolean)
-        If provided, value should correspond to:
-            (indexer != -1, (indexer != -1).any())
-        If not provided, it will be computed internally if necessary
     allow_fill : boolean, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
@@ -1611,6 +1602,7 @@ def take_nd(
     subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
+    mask_info = None
 
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -1632,12 +1624,9 @@ def take_nd(
             dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
-                if mask_info is not None:
-                    mask, needs_masking = mask_info
-                else:
-                    mask = indexer == -1
-                    needs_masking = mask.any()
-                    mask_info = mask, needs_masking
+                mask = indexer == -1
+                needs_masking = mask.any()
+                mask_info = mask, needs_masking
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
                         raise TypeError("Incompatible type for fill_value")
@@ -1818,12 +1807,12 @@ def searchsorted(arr, value, side="left", sorter=None):
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
-        from pandas.core.series import Series
-
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
-        value_ser = Series(value)._values
+        value_ser = array([value]) if is_scalar(value) else array(value)
         value = value_ser[0] if is_scalar(value) else value_ser
+        if isinstance(value, Timestamp) and value.tzinfo is None:
+            value = value.to_datetime64()
 
     result = arr.searchsorted(value, side=side, sorter=sorter)
     return result
@@ -1920,3 +1909,138 @@ def diff(arr, n: int, axis: int = 0):
         out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
     return out_arr
+
+
+# --------------------------------------------------------------------
+# Helper functions
+
+# Note: safe_sort is in algorithms.py instead of sorting.py because it is
+#  low-dependency, is used in this module, and used private methods from
+#  this module.
+def safe_sort(
+    values,
+    labels=None,
+    na_sentinel: int = -1,
+    assume_unique: bool = False,
+    verify: bool = True,
+):
+    """
+    Sort ``values`` and reorder corresponding ``labels``.
+    ``values`` should be unique if ``labels`` is not None.
+    Safe for use with mixed types (int, str), orders ints before strs.
+
+    Parameters
+    ----------
+    values : list-like
+        Sequence; must be unique if ``labels`` is not None.
+    labels : list_like
+        Indices to ``values``. All out of bound indices are treated as
+        "not found" and will be masked with ``na_sentinel``.
+    na_sentinel : int, default -1
+        Value in ``labels`` to mark "not found".
+        Ignored when ``labels`` is None.
+    assume_unique : bool, default False
+        When True, ``values`` are assumed to be unique, which can speed up
+        the calculation. Ignored when ``labels`` is None.
+    verify : bool, default True
+        Check if labels are out of bound for the values and put out of bound
+        labels equal to na_sentinel. If ``verify=False``, it is assumed there
+        are no out of bound labels. Ignored when ``labels`` is None.
+
+        .. versionadded:: 0.25.0
+
+    Returns
+    -------
+    ordered : ndarray
+        Sorted ``values``
+    new_labels : ndarray
+        Reordered ``labels``; returned when ``labels`` is not None.
+
+    Raises
+    ------
+    TypeError
+        * If ``values`` is not list-like or if ``labels`` is neither None
+        nor list-like
+        * If ``values`` cannot be sorted
+    ValueError
+        * If ``labels`` is not None and ``values`` contain duplicates.
+    """
+    if not is_list_like(values):
+        raise TypeError(
+            "Only list-like objects are allowed to be passed to safe_sort as values"
+        )
+
+    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+        # don't convert to string types
+        dtype, _ = infer_dtype_from_array(values)
+        values = np.asarray(values, dtype=dtype)
+
+    def sort_mixed(values):
+        # order ints before strings, safe in py3
+        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+        nums = np.sort(values[~str_pos])
+        strs = np.sort(values[str_pos])
+        return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+    sorter = None
+    if (
+        not is_extension_array_dtype(values)
+        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
+    ):
+        # unorderable in py3 if mixed str/int
+        ordered = sort_mixed(values)
+    else:
+        try:
+            sorter = values.argsort()
+            ordered = values.take(sorter)
+        except TypeError:
+            # try this anyway
+            ordered = sort_mixed(values)
+
+    # labels:
+
+    if labels is None:
+        return ordered
+
+    if not is_list_like(labels):
+        raise TypeError(
+            "Only list-like objects or None are allowed to be"
+            "passed to safe_sort as labels"
+        )
+    labels = ensure_platform_int(np.asarray(labels))
+
+    from pandas import Index
+
+    if not assume_unique and not Index(values).is_unique:
+        raise ValueError("values should be unique if labels is not None")
+
+    if sorter is None:
+        # mixed types
+        hash_klass, values = _get_data_algo(values)
+        t = hash_klass(len(values))
+        t.map_locations(values)
+        sorter = ensure_platform_int(t.lookup(ordered))
+
+    if na_sentinel == -1:
+        # take_1d is faster, but only works for na_sentinels of -1
+        order2 = sorter.argsort()
+        new_labels = take_1d(order2, labels, fill_value=-1)
+        if verify:
+            mask = (labels < -len(values)) | (labels >= len(values))
+        else:
+            mask = None
+    else:
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        # Out of bound indices will be masked with `na_sentinel` next, so we
+        # may deal with them here without performance loss using `mode='wrap'`
+        new_labels = reverse_indexer.take(labels, mode="wrap")
+
+        mask = labels == na_sentinel
+        if verify:
+            mask = mask | (labels < -len(values)) | (labels >= len(values))
+
+    if mask is not None:
+        np.putmask(new_labels, mask, na_sentinel)
+
+    return ordered, ensure_platform_int(new_labels)

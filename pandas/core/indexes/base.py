@@ -73,7 +73,6 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -176,11 +175,11 @@ class Index(IndexOpsMixin, PandasObject):
         If an actual dtype is provided, we coerce to that dtype if it's safe.
         Otherwise, an error will be raised.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
     tupleize_cols : bool (default: True)
-        When True, attempt to create a MultiIndex if possible
+        When True, attempt to create a MultiIndex if possible.
 
     See Also
     --------
@@ -791,13 +790,13 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         indices : list
-            Indices to be taken
+            Indices to be taken.
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
         fill_value : bool, default None
             If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError.
 
         Returns
         -------
@@ -1077,7 +1076,7 @@ class Index(IndexOpsMixin, PandasObject):
             2) quoting : bool or None
                 Whether or not there are quoted values in `self`
             3) date_format : str
-                The format used to represent date-like values
+                The format used to represent date-like values.
 
         Returns
         -------
@@ -2001,7 +2000,7 @@ class Index(IndexOpsMixin, PandasObject):
         downcast : dict, default is None
             a dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible)
+            equal type (e.g. float64 to int64 if possible).
 
         Returns
         -------
@@ -2056,7 +2055,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         level : int or str, optional, default None
-            Only return values from specified level (for MultiIndex)
+            Only return values from specified level (for MultiIndex).
 
             .. versionadded:: 0.23.0
 
@@ -2504,7 +2503,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if sort is None:
                 try:
-                    result = sorting.safe_sort(result)
+                    result = algos.safe_sort(result)
                 except TypeError as e:
                     warnings.warn(
                         "{}, sort order is undefined for "
@@ -2600,7 +2599,7 @@ class Index(IndexOpsMixin, PandasObject):
         taken = other.take(indexer)
 
         if sort is None:
-            taken = sorting.safe_sort(taken.values)
+            taken = algos.safe_sort(taken.values)
             if self.name != other.name:
                 name = None
             else:
@@ -2670,7 +2669,7 @@ class Index(IndexOpsMixin, PandasObject):
         the_diff = this.values.take(label_diff)
         if sort is None:
             try:
-                the_diff = sorting.safe_sort(the_diff)
+                the_diff = algos.safe_sort(the_diff)
             except TypeError:
                 pass
 
@@ -2747,7 +2746,7 @@ class Index(IndexOpsMixin, PandasObject):
         the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
             try:
-                the_diff = sorting.safe_sort(the_diff)
+                the_diff = algos.safe_sort(the_diff)
             except TypeError:
                 pass
 
@@ -3413,7 +3412,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexers : bool, default False
         sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
-            the order of the join keys depends on the join type (how keyword)
+            the order of the join keys depends on the join type (how keyword).
 
         Returns
         -------
@@ -4923,9 +4922,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         start : label, default None
-            If None, defaults to the beginning
+            If None, defaults to the beginning.
         end : label, default None
-            If None, defaults to the end
+            If None, defaults to the end.
         step : int, default None
         kind : str, default None
 
@@ -5122,11 +5121,11 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         start : label, default None
-            If None, defaults to the beginning
+            If None, defaults to the beginning.
         end : label, default None
-            If None, defaults to the end
+            If None, defaults to the end.
         step : int, defaults None
-            If None, defaults to 1
+            If None, defaults to 1.
         kind : {'ix', 'loc', 'getitem'} or None
 
         Returns
