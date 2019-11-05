@@ -208,7 +208,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e . --no-build-isolation
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -255,7 +255,7 @@ You'll need to have at least python3.5 installed on your system.
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 0
-   python -m pip install -e . --no-build-isolation
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
 
@@ -482,7 +482,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 

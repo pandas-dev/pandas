@@ -44,7 +44,6 @@ from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
-import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
 
 
@@ -1912,7 +1911,7 @@ def _sort_labels(uniques, left, right):
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 

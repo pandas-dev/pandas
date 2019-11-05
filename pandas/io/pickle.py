@@ -5,7 +5,7 @@ import warnings
 
 from numpy.lib.format import read_array
 
-from pandas.compat import pickle_compat as pc
+from pandas.compat import PY36, pickle_compat as pc
 
 from pandas.io.common import _get_handle, _stringify_path
 
@@ -142,18 +142,24 @@ def read_pickle(path, compression="infer"):
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
-    # 3) try pickle_compat with latin1 encoding
+
+    excs_to_catch = (AttributeError, ImportError)
+    if PY36:
+        excs_to_catch += (ModuleNotFoundError,)
 
     try:
         with warnings.catch_warnings(record=True):
             # We want to silence any warnings about, e.g. moved modules.
             warnings.simplefilter("ignore", Warning)
             return pickle.load(f)
-    except Exception:
-        try:
-            return pc.load(f, encoding=None)
-        except Exception:
-            return pc.load(f, encoding="latin1")
+    except excs_to_catch:
+        # e.g.
+        #  "No module named 'pandas.core.sparse.series'"
+        #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+        return pc.load(f, encoding=None)
+    except UnicodeDecodeError:
+        # e.g. can occur for files written in py27; see GH#28645
+        return pc.load(f, encoding="latin-1")
     finally:
         f.close()
         for _f in fh:

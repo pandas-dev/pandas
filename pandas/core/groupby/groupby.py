@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -344,7 +344,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self,
         obj: NDFrame,
         keys=None,
-        axis=0,
+        axis: int = 0,
         level=None,
         grouper=None,
         exclusions=None,
@@ -561,7 +561,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            "'{typ}' object has no attribute '{attr}'".format(
+                typ=type(self).__name__, attr=attr
+            )
         )
 
     @Substitution(
@@ -819,14 +821,8 @@ b  2""",
                 # if the type is compatible with the calling EA.
 
                 # return the same type (Series) as our caller
-                try:
-                    result = obj._values._from_sequence(result, dtype=dtype)
-                except Exception:
-                    # https://github.com/pandas-dev/pandas/issues/22850
-                    # pandas has no control over what 3rd-party ExtensionArrays
-                    # do in _values_from_sequence. We still want ops to work
-                    # though, so we catch any regular Exception.
-                    pass
+                cls = dtype.construct_array_type()
+                result = try_cast_to_ea(cls, result, dtype=dtype)
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
@@ -2492,6 +2488,6 @@ def groupby(obj, by, **kwds):
 
         klass = DataFrameGroupBy
     else:
-        raise TypeError("invalid type: {}".format(obj))
+        raise TypeError("invalid type: {obj}".format(obj=obj))
 
     return klass(obj, by, **kwds)

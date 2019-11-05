@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, writers
+from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -393,10 +393,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            if not is_integer(limit):
-                raise ValueError("Limit must be an integer")
-            if limit < 1:
-                raise ValueError("Limit must be greater than 0")
+            limit = libalgos._validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -1285,6 +1282,10 @@ class Block(PandasObject):
 
     def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods, possibly upcast """
+
+        if not lib.is_scalar(fill_value):
+            # We could go further and require e.g. self._can_hold_element(fv)
+            raise ValueError("fill_value must be a scalar")
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also

@@ -1648,6 +1648,23 @@ class TestStylerMatplotlibDep:
         assert result[(1, 0)] == mid
         assert result[(1, 1)] == high
 
+    def test_background_gradient_vmin_vmax(self):
+        # GH 12145
+        df = pd.DataFrame(range(5))
+        ctx = df.style.background_gradient(vmin=1, vmax=3)._compute().ctx
+        assert ctx[(0, 0)] == ctx[(1, 0)]
+        assert ctx[(4, 0)] == ctx[(3, 0)]
+
+    def test_background_gradient_int64(self):
+        # GH 28869
+        df1 = pd.Series(range(3)).to_frame()
+        df2 = pd.Series(range(3), dtype="Int64").to_frame()
+        ctx1 = df1.style.background_gradient()._compute().ctx
+        ctx2 = df2.style.background_gradient()._compute().ctx
+        assert ctx2[(0, 0)] == ctx1[(0, 0)]
+        assert ctx2[(1, 0)] == ctx1[(1, 0)]
+        assert ctx2[(2, 0)] == ctx1[(2, 0)]
+
 
 def test_block_names():
     # catch accidental removal of a block
