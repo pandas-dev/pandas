@@ -931,3 +931,7 @@ class TestSeriesPlots(TestPlotBase):
         df = pd.Series(["a", "b", "c"])
         with pytest.raises(TypeError):
             df.plot()
+
+    def test_style_single_ok(self):
+        s = pd.Series([1, 2])
+        s.plot(style="s", color="C3")
