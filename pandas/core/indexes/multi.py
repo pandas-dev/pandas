@@ -2179,7 +2179,9 @@ class MultiIndex(Index):
             mask = indexer == -1
             if mask.any():
                 if errors != "ignore":
-                    raise ValueError("codes %s not contained in axis" % codes[mask])
+                    raise ValueError(
+                        "codes {codes} not contained in axis".format(codes=codes[mask])
+                    )
         except Exception:
             pass
 

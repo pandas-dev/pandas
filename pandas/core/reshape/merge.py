@@ -1948,13 +1948,13 @@ def _get_join_keys(llab, rlab, shape, sort):
     return _get_join_keys(llab, rlab, shape, sort)
 
 
-def _should_fill(lname, rname):
+def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 
 
-def _any(x):
+def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 

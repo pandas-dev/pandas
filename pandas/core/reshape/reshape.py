@@ -88,7 +88,7 @@ class _Unstacker:
 
     def __init__(
         self,
-        values,
+        values: np.ndarray,
         index,
         level=-1,
         value_columns=None,
@@ -985,7 +985,7 @@ def _get_dummies_1d(
     else:
 
         # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level):
+        def _make_col_name(prefix, prefix_sep, level) -> str:
             fstr = "{prefix}{prefix_sep}{level}"
             return fstr.format(prefix=prefix, prefix_sep=prefix_sep, level=level)
 
