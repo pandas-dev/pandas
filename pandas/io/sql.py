@@ -681,17 +681,36 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(data))
 
-    def _execute_upsert_update(self):
+    def _execute_upsert_update(self, conn, keys, data_iter, primary_keys):
         """Execute an SQL UPSERT, and in cases of key clashes,
         overwrite records in the Database with incoming records.
         """
         pass
 
-    def _execute_upsert_ignore(self):
+    def _execute_upsert_ignore(self, conn, keys, data_iter, primary_keys):
         """Execute an SQL UPSERT, and in cases of key clashes,
         keep records in the Database, and ignore incoming records.
         """
-        pass
+        incoming_pkey_values = list(zip(*[self.frame[key] for key in primary_keys]))
+        existing_pkey_values = self._primary_key_iterator(primary_keys=primary_keys)
+
+
+        for pkey_value in existing_pkey_values:
+            # stop iterating over query results if all incoming values are exhausted
+            if len(incoming_pkey_values) == 0:
+                break # OR return?
+            elif pkey_value in incoming_pkey_values:
+                incoming_pkey_values.remove(pkey_value)
+
+        temp_frame = self.frame.reset_index()
+        # WHAT IF INDEX IS NOT NONE?
+        ipv = zip(*[temp_frame[col] for col in ['index'] + primary_keys])
+        dov = {tuple(val for val in vals): idx for idx, *vals in ipv}
+        for pkey_value in existing_pkey_values:
+            if len(dov) == 0:
+                break
+            elif dov[pkey_value] is not None:
+               del dov[pkey_value]
 
     def insert_data(self):
         if self.index is not None:
@@ -734,14 +753,14 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    @staticmethod
-    def _get_primary_key_values(sql_table, primary_keys):
+    def _primary_key_iterator(self, primary_keys):
         """
         This static method gets all values for specified columns, returning them via
         a lazy generator
+
         Parameters
         ----------
-        sql_table: SQLTable
+        self: SQLTable
             Table from which data is to be returned
         primary_keys: List[str]
             Names of columns to be returned
@@ -751,14 +770,43 @@ class SQLTable(PandasObject):
         generator Object
         """
         from sqlalchemy import select
-        statement = select([sql_table.table.c[key] for key in primary_keys])
-        result = sql_table.pd_sql.execute(statement)
-        for row in result:
-            yield row
+        statement = select([self.table.c[key] for key in primary_keys])
+        result = self.pd_sql.execute(statement)
+        while True:
+            data = result.fetchone()
+            if not data:
+                result.close()
+                break
+            else:
+                yield data
 
+    def _get_primary_key_columns(self):
+        """
+        Upsert workflows require knowledge of what is already in the database
+        this method reflects the meta object and gets primary key a list of primary keys
+
+        Returns
+        -------
+        List[str] - list of primary key column names
+        """
+        # reflect MetaData object and assign contents of db to self.table attribute
+        self.pd_sql.meta.reflect(only=[self.name], views=True)
+        self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
+
+        primary_keys = [
+            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
+        ]
+
+        # For the time being, this method is defensive and will break if no pkeys are found
+        # If desired this default behaviour could be changed so that in cases where no pkeys
+        # are found, it could default to a normal insert
+        if len(primary_keys) == 0:
+            raise ValueError(
+                f"No primary keys found for table {self.name}"
+            )
+        return primary_keys
 
     def insert(self, chunksize=None, method=None):
-
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -773,29 +821,8 @@ class SQLTable(PandasObject):
         else:
             raise ValueError("Invalid parameter `method`: {}".format(method))
 
-        if method.startswith('upsert_'):
-            # Upsert operation will require knowledge of what is already in the database
-            # Following will create new meta and SQLDatabase objects so that we have
-            # access to existing table without overriding objects' self.meta attribute
-            from sqlalchemy.schema import MetaData
-            upsert_meta = MetaData(self.pd_sql.connectable, schema=self.schema)
-            upsert_meta.reflect(only=[self.name], views=True)
-            upsert_sql_database = SQLDatabase(
-                engine=self.pd_sql.connectable, schema=self.schema, meta=upsert_meta
-            )
-            # Check if table exists in given database connection
-            if upsert_sql_database.has_table(name=self.name, schema=self.schema):
-                upsert_sql_table = upsert_sql_database.get_table(self.name, self.schema)
-                primary_keys = [
-                    primary_key.name for primary_key in upsert_sql_table.table.primary_keys.columns.values()
-                ]
-                # Create generator object to lazily return rows in primary key columns
-                primary_key_values = self._get_primary_key_values(upsert_sql_table, primary_keys)
-            else:
-                raise ValueError(
-                    f"No table named {self.name} found in database"
-                )
-
+        # Need to pre-process data for upsert here
+        # for upsert ignore - delete records from self.frame directly
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
