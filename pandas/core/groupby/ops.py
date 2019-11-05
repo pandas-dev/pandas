@@ -96,7 +96,7 @@ class BaseGrouper:
         return iter(self.indices)
 
     @property
-    def nkeys(self):
+    def nkeys(self) -> int:
         return len(self.groupings)
 
     def get_iterator(self, data, axis=0):
@@ -135,7 +135,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.labels)
 
-    def apply(self, f, data, axis=0):
+    def apply(self, f, data, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -220,7 +220,7 @@ class BaseGrouper:
     def names(self):
         return [ping.name for ping in self.groupings]
 
-    def size(self):
+    def size(self) -> Series:
         """
         Compute group sizes
 
@@ -244,7 +244,7 @@ class BaseGrouper:
             return self.axis.groupby(to_groupby)
 
     @cache_readonly
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic
 
@@ -275,7 +275,7 @@ class BaseGrouper:
         return ping.labels, np.arange(len(ping.group_index))
 
     @cache_readonly
-    def ngroups(self):
+    def ngroups(self) -> int:
         return len(self.result_index)
 
     @property
@@ -345,7 +345,7 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
-    def _get_cython_function(self, kind, how, values, is_numeric):
+    def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
 
         dtype_str = values.dtype.name
 
@@ -386,7 +386,9 @@ class BaseGrouper:
 
         return func
 
-    def _cython_operation(self, kind: str, values, how, axis, min_count=-1, **kwargs):
+    def _cython_operation(
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
+    ):
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -530,16 +532,23 @@ class BaseGrouper:
 
         return result, names
 
-    def aggregate(self, values, how, axis=0, min_count=-1):
+    def aggregate(self, values, how: str, axis: int = 0, min_count: int = -1):
         return self._cython_operation(
             "aggregate", values, how, axis, min_count=min_count
         )
 
-    def transform(self, values, how, axis=0, **kwargs):
+    def transform(self, values, how: str, axis: int = 0, **kwargs):
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self, result, counts, values, comp_ids, agg_func, is_datetimelike, min_count=-1
+        self,
+        result,
+        counts,
+        values,
+        comp_ids,
+        agg_func,
+        is_datetimelike: bool,
+        min_count: int = -1,
     ):
         if values.ndim > 2:
             # punting for now
@@ -554,7 +563,7 @@ class BaseGrouper:
         return result
 
     def _transform(
-        self, result, values, comp_ids, transform_func, is_datetimelike, **kwargs
+        self, result, values, comp_ids, transform_func, is_datetimelike: bool, **kwargs
     ):
 
         comp_ids, _, ngroups = self.group_info
@@ -566,7 +575,7 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj, func):
+    def agg_series(self, obj: Series, func):
         if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
@@ -684,7 +693,7 @@ class BinGrouper(BaseGrouper):
         return result
 
     @property
-    def nkeys(self):
+    def nkeys(self) -> int:
         return 1
 
     def _get_grouper(self):
@@ -771,7 +780,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj, func):
+    def agg_series(self, obj: Series, func):
         dummy = obj[:0]
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()

@@ -875,7 +875,7 @@ b  2""",
         raise AbstractMethodError(self)
 
     def _cython_agg_general(
-        self, how, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
         output = {}
         for name, obj in self._iterate_slices():
