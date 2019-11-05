@@ -305,7 +305,7 @@ class UInt64Index(IntegerIndex):
         # Cast the indexer to uint64 if possible so that the values returned
         # from indexing are also uint64.
         if is_integer_dtype(keyarr) or (
-            lib.infer_dtype(keyarr, skipna=False) == "integer"
+            lib.infer_dtype(keyarr) == "integer"
         ):
             keyarr = com.asarray_tuplesafe(keyarr, dtype=np.uint64)
         else:
