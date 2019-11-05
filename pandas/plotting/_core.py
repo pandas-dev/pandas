@@ -679,7 +679,9 @@ def boxplot_frame_groupby(
 
 class PlotAccessor(PandasObject):
     """
-    Make plots of Series or DataFrame using the backend specified by the
+    Make plots of Series or DataFrame.
+
+    Uses the backend specified by the
     option ``plotting.backend``. By default, matplotlib is used.
 
     Parameters

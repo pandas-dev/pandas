@@ -119,7 +119,7 @@ def _convert_expression(expr):
     """
     Convert an object to an expression.
 
-    Thus function converts an object to an expression (a unicode string) and
+    This function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
     convert operators to their string representation for recursive calls to
     :func:`~pandas.eval`.
@@ -219,7 +219,7 @@ def eval(
         More backends may be available in the future.
 
     truediv : bool, optional
-        Whether to use true division, like in Python >= 3
+        Whether to use true division, like in Python >= 3.
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional

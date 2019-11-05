@@ -235,7 +235,8 @@ cdef class Packer:
                 continue
             else:
                 raise TypeError("can't serialize {thing!r}".format(thing=o))
-            return ret
+            break
+        return ret
 
     cpdef pack(self, object obj):
         cdef int ret

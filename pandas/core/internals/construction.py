@@ -97,6 +97,9 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     # fill if needed
     new_arrays = []
     for fv, arr, col in zip(fill_value, arrays, arr_columns):
+        # TODO: numpy docs suggest fv must be scalar, but could it be
+        #  non-scalar for object dtype?
+        assert lib.is_scalar(fv), fv
         mask = ma.getmaskarray(data[col])
         if mask.any():
             arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
