@@ -263,7 +263,7 @@ def to_hdf(
         )
     else:
         f = lambda store: store.put(
-            key, value, complib=complib, complevel=complevel, dropna=dropna,**kwargs
+            key, value, complib=complib, complevel=complevel, dropna=dropna, **kwargs
         )
 
     path_or_buf = _stringify_path(path_or_buf)
@@ -934,11 +934,11 @@ class HDFStore:
         self,
         key,
         value,
-        format: str =None,
-        append: bool =False,
-        complib: str =None,
-        complevel: int =None,
-        dropna: bool=False,
+        format: str = None,
+        append: bool = False,
+        complib: str = None,
+        complevel: int = None,
+        dropna: bool = False,
         **kwargs
     ):
         """
@@ -982,7 +982,13 @@ class HDFStore:
             format = get_option("io.hdf.default_format") or "fixed"
         kwargs = self._validate_format(format, kwargs)
         self._write_to_group(
-            key, value, complib=complib, complevel=complevel, append=append, dropna=dropna, **kwargs
+            key,
+            value,
+            complib=complib,
+            complevel=complevel,
+            append=append,
+            dropna=dropna,
+            **kwargs
         )
 
     def remove(self, key, where=None, start=None, stop=None):
@@ -1104,7 +1110,15 @@ class HDFStore:
         if format is None:
             format = get_option("io.hdf.default_format") or "table"
         kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, complib=complib, complevel=complevel, append=append, dropna=dropna, **kwargs)
+        self._write_to_group(
+            key,
+            value,
+            complib=complib,
+            complevel=complevel,
+            append=append,
+            dropna=dropna,
+            **kwargs
+        )
 
     def append_to_multiple(
         self, d, value, selector, data_columns=None, axes=None, dropna=False, **kwargs
@@ -1577,7 +1591,12 @@ class HDFStore:
 
         # write the object
         s.write(
-            obj=value, append=append, complib=complib, complevel=complevel, dropna=dropna, **kwargs
+            obj=value,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            dropna=dropna,
+            **kwargs
         )
 
         if s.is_table and index:

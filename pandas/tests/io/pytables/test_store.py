@@ -265,12 +265,9 @@ class TestHDFStore:
 
     def test_api_dropna(self, setup_path):
 
-        #GH2930 
+        # GH2930
 
-        df = DataFrame(
-                {"A1": np.random.randn(20)},
-                index=np.arange(20)
-            )
+        df = DataFrame({"A1": np.random.randn(20)}, index=np.arange(20))
         df.loc[0:15] = np.nan
 
         with ensure_clean_store(setup_path) as path:
