@@ -66,6 +66,7 @@ from pandas.core.api import (
     PeriodDtype,
     IntervalDtype,
     DatetimeTZDtype,
+    StringDtype,
     # missing
     isna,
     isnull,
@@ -114,7 +115,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.sparse.api import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets

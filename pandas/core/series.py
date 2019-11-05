@@ -5,7 +5,7 @@ from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -16,7 +16,7 @@ from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_extension_type,
-    is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
@@ -45,6 +44,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCSparseArray,
 )
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -54,8 +54,8 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
-from pandas.core.accessor import CachedAccessor, DirNamesMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -173,13 +173,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = ["name"]
+    _metadata = []  # type: List[str]
     _accessors = {"dt", "cat", "str", "sparse"}
-    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = (
-        generic.NDFrame._deprecations
-        | DirNamesMixin._deprecations
-        | frozenset(["asobject", "reshape", "valid", "tolist", "ftype", "real", "imag"])
+        base.IndexOpsMixin._deprecations
+        | generic.NDFrame._deprecations
+        | frozenset(
+            [
+                "asobject",
+                "compress",
+                "valid",
+                "ftype",
+                "real",
+                "imag",
+                "put",
+                "ptp",
+                "nonzero",
+            ]
+        )
     )
 
     # Override cache_readonly bc Series is mutable
@@ -313,7 +324,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data = SingleBlockManager(data, index, fastpath=True)
 
         generic.NDFrame.__init__(self, data, fastpath=True)
-
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -325,11 +335,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         data : dict or dict-like
-            Data used to populate the new Series
+            Data used to populate the new Series.
         index : Index or index-like, default None
-            index for the new Series: if None, use dict keys
+            Index for the new Series: if None, use dict keys.
         dtype : dtype, default None
-            dtype for the new Series: if None, infer from data
+            The dtype for the new Series: if None, infer from data.
 
         Returns
         -------
@@ -446,19 +456,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # we want to call the generic version and not the IndexOpsMixin
         return generic.NDFrame._update_inplace(self, result, **kwargs)
 
-    @property
-    def name(self):
-        """
-        Return name of the Series.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        if value is not None and not is_hashable(value):
-            raise TypeError("Series.name must be a hashable type")
-        object.__setattr__(self, "_name", value)
-
     # ndarray compatibility
     @property
     def dtype(self):
@@ -473,6 +470,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
+
+    @property
+    def name(self) -> Optional[Hashable]:
+        return self.attrs.get("name", None)
+
+    @name.setter
+    def name(self, value: Optional[Hashable]) -> None:
+        if not is_hashable(value):
+            raise TypeError("Series.name must be a hashable type")
+        self.attrs["name"] = value
 
     @property
     def ftype(self):
@@ -1277,6 +1284,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             if isinstance(key, tuple):
                 try:
+                    # TODO: no test cases that get here
                     self._set_values(key, value)
                 except Exception:
                     pass
@@ -1324,9 +1332,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         label : object
-            Partial indexing with MultiIndex not allowed
+            Partial indexing with MultiIndex not allowed.
         value : object
-            Scalar value
+            Scalar value.
         takeable : interpret the index as indexers, default False
 
         Returns
@@ -1781,7 +1789,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         name : str
         inplace : bool
-            whether to modify `self` directly or return a copy
+            Whether to modify `self` directly or return a copy.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         ser = self if inplace else self.copy()
@@ -1924,9 +1932,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'
+            Method to handle dropping duplicates:
+
             - 'first' : Drop duplicates except for the first occurrence.
             - 'last' : Drop duplicates except for the last occurrence.
             - ``False`` : Drop all duplicates.
+
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
 
@@ -2002,6 +2013,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         keep : {'first', 'last', False}, default 'first'
+            Method to handle dropping duplicates:
+
             - 'first' : Mark duplicates as ``True`` except for the first
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
@@ -2076,12 +2089,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
@@ -2146,12 +2159,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
         axis : int, default 0
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
@@ -2244,10 +2257,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        decimals : int
-            Number of decimal places to round to (default: 0).
-            If decimals is negative, it specifies the number of
-            positions to the left of the decimal point.
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
 
         Returns
         -------
@@ -2281,7 +2293,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute.
+            The quantile(s) to compute, which can lie in range: 0 <= q <= 1.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2317,7 +2329,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
 
-        self._check_percentile(q)
+        validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
         #  about 2D cases.
@@ -2343,15 +2355,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         other : Series
             Series with which to compute the correlation.
         method : {'pearson', 'kendall', 'spearman'} or callable
-            * pearson : standard correlation coefficient
-            * kendall : Kendall Tau correlation coefficient
-            * spearman : Spearman rank correlation
-            * callable: callable with input two 1d ndarrays
-                and returning a float. Note that the returned matrix from corr
-                will have 1 along the diagonals and will be symmetric
-                regardless of the callable's behavior
-                .. versionadded:: 0.24.0
+            Method used to compute correlation:
 
+            - pearson : Standard correlation coefficient
+            - kendall : Kendall Tau correlation coefficient
+            - spearman : Spearman rank correlation
+            - callable: Callable with input two 1d ndarrays and returning a float.
+
+            .. versionadded:: 0.24.0
+                Note that the returned matrix from corr will have 1 along the
+                diagonals and will be symmetric regardless of the callable's
+                behavior.
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
 
@@ -2712,10 +2726,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         func : binary operator
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
-            location, the result will be NA regardless of the passed fill value
+            location, the result will be NA regardless of the passed fill value.
         level : int or level name, default None
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
+            passed MultiIndex level.
 
         Returns
         -------
@@ -2738,10 +2752,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        if func.__name__ in ["divmod", "rdivmod"]:
-            ret = ops._construct_divmod_result(self, result, new_index, name)
-        else:
-            ret = ops._construct_result(self, result, new_index, name)
+        ret = ops._construct_result(self, result, new_index, name)
         return ret
 
     def combine(self, other, func, fill_value=None):
@@ -2838,14 +2849,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            try:
-                new_values = self._values._from_sequence(new_values)
-            except Exception:
-                # https://github.com/pandas-dev/pandas/issues/22850
-                # pandas has no control over what 3rd-party ExtensionArrays
-                # do in _values_from_sequence. We still want ops to work
-                # though, so we catch any regular Exception.
-                pass
+            new_values = try_cast_to_ea(self._values, new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
@@ -3298,7 +3302,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm
+            information. 'mergesort' is the only stable algorithm.
         order : None
             Has no effect but is accepted for compatibility with numpy.
 
@@ -3552,7 +3556,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         order : list of int representing new level order
-               (reference level by number or key)
+            Reference level by number or key.
 
         Returns
         -------
@@ -3753,9 +3757,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         key : string / list of selections
         ndim : 1,2
-            requested ndim of result
+            Requested ndim of result.
         subset : object, default None
-            subset to act on
+            Subset to act on.
         """
         return self
 
@@ -3977,6 +3981,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+
         delegate = self._values
 
         if axis is not None:
@@ -4079,7 +4084,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         index : scalar, hashable sequence, dict-like or function, optional
-            dict-like or functions are transformations to apply to
+            Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
@@ -4160,9 +4165,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index, columns : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
+        index : single label or list-like
+            Redundant for application on Series, but 'index' can be used instead
+            of 'labels'.
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
+            No change is made to the Series; use 'index' or 'labels' instead.
 
             .. versionadded:: 0.21.0
         level : int or level name, optional
@@ -4410,9 +4419,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        left : scalar
+        left : scalar or list-like
             Left boundary.
-        right : scalar
+        right : scalar or list-like
             Right boundary.
         inclusive : bool, default True
             Include boundaries.
@@ -4586,7 +4595,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def notnull(self):
         return super().notnull()
 
-    def dropna(self, axis=0, inplace=False, **kwargs):
+    def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
 
@@ -4599,8 +4608,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             There is only one axis to drop values from.
         inplace : bool, default False
             If True, do operation inplace and return None.
-        **kwargs
-            Not in use.
+        how : str, optional
+            Not in use. Kept for compatibility.
 
         Returns
         -------
@@ -4658,12 +4667,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs.pop("how", None)
-        if kwargs:
-            raise TypeError(
-                "dropna() got an unexpected keyword "
-                'argument "{0}"'.format(list(kwargs.keys())[0])
-            )
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 

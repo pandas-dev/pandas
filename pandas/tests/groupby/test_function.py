@@ -378,7 +378,7 @@ def test_median_empty_bins(observed):
 
 
 @pytest.mark.parametrize(
-    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64"]
+    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64", "uint64"]
 )
 @pytest.mark.parametrize(
     "method,data",
@@ -1371,6 +1371,29 @@ def test_quantile_out_of_bounds_q_raises():
 
     with pytest.raises(ValueError, match="Got '-1.0' instead"):
         g.quantile(-1)
+
+
+def test_quantile_missing_group_values_no_segfaults():
+    # GH 28662
+    data = np.array([1.0, np.nan, 1.0])
+    df = pd.DataFrame(dict(key=data, val=range(3)))
+
+    # Random segfaults; would have been guaranteed in loop
+    grp = df.groupby("key")
+    for _ in range(100):
+        grp.quantile()
+
+
+def test_quantile_missing_group_values_correct_results():
+    # GH 28662
+    data = np.array([1.0, np.nan, 3.0, np.nan])
+    df = pd.DataFrame(dict(key=data, val=range(4)))
+
+    result = df.groupby("key").quantile()
+    expected = pd.DataFrame(
+        [1.0, 3.0], index=pd.Index([1.0, 3.0], name="key"), columns=["val"]
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 # pipe

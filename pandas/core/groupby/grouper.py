@@ -48,17 +48,17 @@ class Grouper:
 
     Parameters
     ----------
-    key : string, defaults to None
+    key : str, defaults to None
         groupby key, which selects the grouping column of the target
     level : name/number, defaults to None
         the level for the target index
-    freq : string / frequency object, defaults to None
+    freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
-    sort : boolean, default to False
+    sort : bool, default to False
         whether to sort the resulting labels
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -69,7 +69,7 @@ class Grouper:
         If grouper is PeriodIndex and `freq` parameter is passed.
     base : int, default 0
         Only when `freq` parameter is passed.
-    loffset : string, DateOffset, timedelta object
+    loffset : str, DateOffset, timedelta object
         Only when `freq` parameter is passed.
 
     Returns
@@ -172,7 +172,9 @@ class Grouper:
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
-                    raise KeyError("The grouper name {0} is not found".format(key))
+                    raise KeyError(
+                        "The grouper name {key} is not found".format(key=key)
+                    )
                 ax = Index(obj[key], name=key)
 
         else:
@@ -188,7 +190,9 @@ class Grouper:
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError("The level {0} is not valid".format(level))
+                        raise ValueError(
+                            "The level {level} is not valid".format(level=level)
+                        )
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
@@ -278,7 +282,9 @@ class Grouping:
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError("Level {} not in index".format(level))
+                    raise AssertionError(
+                        "Level {level} not in index".format(level=level)
+                    )
                 level = index.names.index(level)
 
             if self.name is None:
@@ -330,7 +336,8 @@ class Grouping:
                 self._group_index = CategoricalIndex(
                     Categorical.from_codes(
                         codes=codes, categories=categories, ordered=self.grouper.ordered
-                    )
+                    ),
+                    name=self.name,
                 )
 
             # we are done
@@ -343,7 +350,7 @@ class Grouping:
             ):
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '{}' not 1-dimensional".format(t))
+                    raise ValueError("Grouper for '{t}' not 1-dimensional".format(t=t))
                 self.grouper = self.index.map(self.grouper)
                 if not (
                     hasattr(self.grouper, "__len__")
@@ -351,7 +358,9 @@ class Grouping:
                 ):
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        "len(data)\nresult: %s" % pprint_thing(self.grouper)
+                        "len(data)\nresult: {grper}".format(
+                            grper=pprint_thing(self.grouper)
+                        )
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
@@ -425,7 +434,7 @@ class Grouping:
 def _get_grouper(
     obj: NDFrame,
     key=None,
-    axis=0,
+    axis: int = 0,
     level=None,
     sort=True,
     observed=False,
@@ -492,7 +501,9 @@ def _get_grouper(
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {} is not the name of the index".format(level)
+                        "level name {level} is not the name of the index".format(
+                            level=level
+                        )
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
@@ -581,7 +592,7 @@ def _get_grouper(
     exclusions = []
 
     # if the actual grouper should be obj[key]
-    def is_in_axis(key):
+    def is_in_axis(key) -> bool:
         if not _is_label_like(key):
             items = obj._data.items
             try:
@@ -593,7 +604,7 @@ def _get_grouper(
         return True
 
     # if the grouper is obj[name]
-    def is_in_obj(gpr):
+    def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
         try:

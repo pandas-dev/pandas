@@ -32,6 +32,29 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()  # type: Dict[str, str]
 
 
+def try_cast_to_ea(cls_or_instance, obj, dtype=None):
+    """
+    Call to `_from_sequence` that returns the object unchanged on Exception.
+
+    Parameters
+    ----------
+    cls_or_instance : ExtensionArray subclass or instance
+    obj : arraylike
+        Values to pass to cls._from_sequence
+    dtype : ExtensionDtype, optional
+
+    Returns
+    -------
+    ExtensionArray or obj
+    """
+    try:
+        result = cls_or_instance._from_sequence(obj, dtype=dtype)
+    except Exception:
+        # We can't predict what downstream EA constructors may raise
+        result = obj
+    return result
+
+
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -177,7 +200,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -200,7 +223,7 @@ class ExtensionArray:
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
-        copy : boolean, default False
+        copy : bool, default False
             If True, copy the underlying data.
 
         Returns
@@ -474,7 +497,7 @@ class ExtensionArray:
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use NEXT valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -485,7 +508,8 @@ class ExtensionArray:
 
         Returns
         -------
-        filled : ExtensionArray with NA/NaN filled
+        ExtensionArray
+            With NA/NaN filled.
         """
         value, method = validate_fillna_kwargs(value, method)
 
@@ -539,13 +563,14 @@ class ExtensionArray:
 
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
-            The default is ``self.dtype.na_value``
+            The default is ``self.dtype.na_value``.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        shifted : ExtensionArray
+        ExtensionArray
+            Shifted.
 
         Notes
         -----
@@ -769,7 +794,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of integers
+        indices : sequence of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
@@ -869,11 +894,12 @@ class ExtensionArray:
         Parameters
         ----------
         dtype : str, np.dtype, or ExtensionDtype, optional
-            Default None
+            Default None.
 
         Returns
         -------
         ExtensionArray
+            A view of the :class:`ExtensionArray`.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
@@ -1101,7 +1127,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         ----------
         op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype :  bool, default True
+        coerce_to_dtype : bool, default True
             boolean indicating whether to attempt to convert
             the result to the underlying ExtensionArray dtype.
             If it's not possible to create a new ExtensionArray with the
@@ -1153,9 +1179,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    try:
-                        res = self._from_sequence(arr)
-                    except Exception:
+                    res = try_cast_to_ea(self, arr)
+                    if not isinstance(res, type(self)):
+                        # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
                 else:
                     res = np.asarray(arr)
