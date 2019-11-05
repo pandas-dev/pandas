@@ -114,12 +114,19 @@ def test_repr():
     assert result == expected
 
 
-@pytest.mark.skipif(
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+pyarrow_skip = pytest.mark.skipif(
     not _PYARROW_INSTALLED
     or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
-    reason="pyarrow >= 0.15.0 required",
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"),
+    reason="pyarrow > 0.15 required",
 )
+
+
+@pyarrow_skip
 def test_arrow_extension_type():
     import pyarrow as pa
     from pandas.core.arrays.interval import ArrowIntervalType
@@ -135,24 +142,30 @@ def test_arrow_extension_type():
     assert not hash(p1) == hash(p3)
 
 
-@pytest.mark.skipif(
-    not _PYARROW_INSTALLED
-    or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
-    reason="pyarrow >= 0.15.0 required",
-)
+@pyarrow_skip
 def test_arrow_array():
     import pyarrow as pa
     from pandas.core.arrays.interval import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
 
-    arr = pa.array(intervals)
-    assert isinstance(arr.type, ArrowIntervalType)
-    assert arr.type.closed == intervals.closed
-    assert arr.type.subtype == pa.int64()
+    result = pa.array(intervals)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == intervals.closed
+    assert result.type.subtype == pa.int64()
+    assert result.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
+    assert result.storage.field("right").equals(pa.array([2, 3, 4, 5], type="int64"))
 
-    assert arr.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
+    expected = pa.array([{"left": i, "right": i + 1} for i in range(1, 5)])
+    assert result.storage.equals(expected)
 
+    # convert to its storage type
+    result = pa.array(intervals, type=expected.type)
+    assert result.equals(expected)
+
+    # unsupported conversions
     with pytest.raises(TypeError):
         pa.array(intervals, type="float64")
+
+    with pytest.raises(TypeError, match="different 'subtype'"):
+        pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))

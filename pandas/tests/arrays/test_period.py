@@ -338,13 +338,15 @@ class TestReductions:
 # ----------------------------------------------------------------------------
 # Arrow interaction
 
-
-@pytest.mark.skipif(
+pyarrow_skip = pytest.mark.skipif(
     not _PYARROW_INSTALLED
     or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
-    reason="pyarrow >= 0.15.0 required",
+    and LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"),
+    reason="pyarrow > 0.15 required",
 )
+
+
+@pyarrow_skip
 def test_arrow_extension_type():
     from pandas.core.arrays.period import ArrowPeriodType
 
@@ -359,12 +361,7 @@ def test_arrow_extension_type():
     assert not hash(p1) == hash(p3)
 
 
-@pytest.mark.skipif(
-    not _PYARROW_INSTALLED
-    or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.14.1.dev"),
-    reason="pyarrow >= 0.15.0 required",
-)
+@pyarrow_skip
 @pytest.mark.parametrize(
     "data, freq",
     [
@@ -377,11 +374,34 @@ def test_arrow_array(data, freq):
     from pandas.core.arrays.period import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
-    arr = pa.array(periods)
-    assert isinstance(arr.type, ArrowPeriodType)
-    assert arr.type.freq == freq
+    result = pa.array(periods)
+    assert isinstance(result.type, ArrowPeriodType)
+    assert result.type.freq == freq
     expected = pa.array(periods.asi8, type="int64")
-    assert arr.storage.equals(expected)
+    assert result.storage.equals(expected)
 
+    # convert to its storage type
+    result = pa.array(periods, type=pa.int64())
+    assert result.equals(expected)
+
+    # unsupported conversions
     with pytest.raises(TypeError):
         pa.array(periods, type="float64")
+
+    with pytest.raises(TypeError, match="different 'freq'"):
+        pa.array(periods, type=ArrowPeriodType("T"))
+
+
+@pyarrow_skip
+def test_arrow_array_missing():
+    import pyarrow as pa
+    from pandas.core.arrays.period import ArrowPeriodType
+
+    arr = PeriodArray([1, 2, 3], freq="D")
+    arr[1] = pd.NaT
+
+    result = pa.array(arr)
+    assert isinstance(result.type, ArrowPeriodType)
+    assert result.type.freq == "D"
+    expected = pa.array([1, None, 3], type="int64")
+    assert result.storage.equals(expected)

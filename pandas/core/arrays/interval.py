@@ -1051,9 +1051,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow as pa
 
-        if type is not None and not isinstance(type, ArrowIntervalType):
-            raise TypeError("not supported")
-
         # TODO better conversion to arrow type, handle missing values
         subtype = pa.type_for_alias(str(self.dtype.subtype))
         interval_type = ArrowIntervalType(subtype, self.closed)
@@ -1064,6 +1061,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ],
             names=["left", "right"],
         )
+
+        if type is not None:
+            if type.equals(interval_type.storage_type):
+                return storage_array
+            elif isinstance(type, ArrowIntervalType):
+                # ensure we have the same subtype and closed attributes
+                if not type.equals(interval_type):
+                    raise TypeError(
+                        "Not supported to convert IntervalArray to type with "
+                        "different 'subtype' ({0} vs {1}) and 'closed' ({2} vs {3}) "
+                        "attributes".format(
+                            self.dtype.subtype, type.subtype, self.closed, type.closed
+                        )
+                    )
+            else:
+                raise TypeError(
+                    "Not supported to convert IntervalArray to '{0}' type".format(type)
+                )
+
         return pa.ExtensionArray.from_storage(interval_type, storage_array)
 
     _interval_shared_docs[
@@ -1259,9 +1275,7 @@ def maybe_convert_platform_interval(values):
     return maybe_convert_platform(values)
 
 
-if _PYARROW_INSTALLED and (
-    LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
-):
+if _PYARROW_INSTALLED and LooseVersion(pyarrow.__version__) >= LooseVersion("0.15"):
 
     class ArrowIntervalType(pyarrow.ExtensionType):
         def __init__(self, subtype, closed):

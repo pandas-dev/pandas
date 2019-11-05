@@ -353,8 +353,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         import pyarrow as pa
 
-        if type is not None and not isinstance(type, ArrowPeriodType):
-            raise TypeError("not supported")
+        if type is not None:
+            if pa.types.is_integer(type):
+                return pa.array(self._data, mask=self.isna(), type=type)
+            elif isinstance(type, ArrowPeriodType):
+                # ensure we have the same freq
+                if self.freqstr != type.freq:
+                    raise TypeError(
+                        "Not supported to convert PeriodArray to array with different"
+                        " 'freq' ({0} vs {1})".format(self.freqstr, type.freq)
+                    )
+            else:
+                raise TypeError(
+                    "Not supported to convert PeriodArray to '{0}' type".format(type)
+                )
 
         period_type = ArrowPeriodType(self.freqstr)
         storage_array = pa.array(self._data, mask=self.isna(), type="int64")
@@ -1115,9 +1127,7 @@ def _make_field_arrays(*fields):
     return arrays
 
 
-if _PYARROW_INSTALLED and (
-    LooseVersion(pyarrow.__version__) >= LooseVersion("0.14.1.dev")
-):
+if _PYARROW_INSTALLED and LooseVersion(pyarrow.__version__) >= LooseVersion("0.15"):
 
     class ArrowPeriodType(pyarrow.ExtensionType):
         def __init__(self, freq):
