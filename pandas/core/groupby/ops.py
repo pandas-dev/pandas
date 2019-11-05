@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 
@@ -863,10 +863,11 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data, *args, **kwargs):
+def get_splitter(data: NDFrame, *args, **kwargs):
     if isinstance(data, Series):
-        klass = SeriesSplitter
-    elif isinstance(data, DataFrame):
+        klass = SeriesSplitter  # type: Type[DataSplitter]
+    else:
+        # i.e. DataFrame
         klass = FrameSplitter
 
     return klass(data, *args, **kwargs)
