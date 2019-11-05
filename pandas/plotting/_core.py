@@ -56,6 +56,9 @@ def hist_series(
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
+
+        .. versionadded:: 1.0.0
+
     **kwargs
         To be passed to the actual plotting function.
 
@@ -157,6 +160,9 @@ def hist_frame(
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
+
+        .. versionadded:: 1.0.0
+
     **kwargs
         All other plotting keyword arguments to be passed to
         :meth:`matplotlib.pyplot.hist`.
@@ -376,6 +382,8 @@ backend : str, default None
     ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
     specify the ``plotting.backend`` for the whole session, set
     ``pd.options.plotting.backend``.
+
+    .. versionadded:: 1.0.0
 """
 
 
@@ -489,6 +497,9 @@ def boxplot_frame_groupby(
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
+
+        .. versionadded:: 1.0.0
+
     **kwargs
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function.
@@ -626,6 +637,9 @@ class PlotAccessor(PandasObject):
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
+
+        .. versionadded:: 1.0.0
+
     **kwargs
         Options to pass to matplotlib plotting method.
 
