@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas
 
 dummy_backend = types.ModuleType("pandas_dummy_backend")
-setattr(dummy_backend, "plot", lambda *args, **kwargs: None)
+setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
 
 
 @pytest.fixture
@@ -36,6 +36,14 @@ def test_backend_is_correct(monkeypatch, restore_backend):
     assert (
         pandas.plotting._core._get_plot_backend("pandas_dummy_backend") is dummy_backend
     )
+
+
+def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
+    df = pandas.DataFrame([1, 2, 3])
+
+    assert pandas.get_option("plotting.backend") == "matplotlib"
+    assert df.plot(backend="pandas_dummy_backend") == "used_dummy"
 
 
 @td.skip_if_no_mpl
