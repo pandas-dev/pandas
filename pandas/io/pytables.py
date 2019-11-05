@@ -252,17 +252,18 @@ def to_hdf(
     complevel=None,
     complib=None,
     append=None,
+    dropna=None,
     **kwargs
 ):
     """ store this object, close it if we opened it """
 
     if append:
         f = lambda store: store.append(
-            key, value, complib=complib, complevel=complevel, **kwargs
+            key, value, complib=complib, complevel=complevel, dropna=dropna, **kwargs
         )
     else:
         f = lambda store: store.put(
-            key, value, complib=complib, complevel=complevel, **kwargs
+            key, value, complib=complib, complevel=complevel, dropna=dropna,**kwargs
         )
 
     path_or_buf = _stringify_path(path_or_buf)
@@ -937,6 +938,7 @@ class HDFStore:
         append=False,
         complib=None,
         complevel=None,
+        dropna=False,
         **kwargs
     ):
         """
@@ -956,9 +958,6 @@ class HDFStore:
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
-        complevel : int, 0-9, default None
-            Specifies a compression level for data.
-            A value of 0 or None disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported
@@ -967,20 +966,23 @@ class HDFStore:
              'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        dropna   : bool, default False, do not write an ALL nan row to
+            The store settable by the option 'io.hdf.dropna_table'.
         data_columns : list, default None
             List of columns to create as data columns, or True to
             use all columns. See `here
             <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
-        dropna   : bool, default False, do not write an ALL nan row to
-            The store settable by the option 'io.hdf.dropna_table'.
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
         kwargs = self._validate_format(format, kwargs)
         self._write_to_group(
-            key, value, complib=complib, complevel=complevel, append=append, **kwargs
+            key, value, complib=complib, complevel=complevel, append=append, dropna=dropna, **kwargs
         )
 
     def remove(self, key, where=None, start=None, stop=None):
@@ -1102,7 +1104,7 @@ class HDFStore:
         if format is None:
             format = get_option("io.hdf.default_format") or "table"
         kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
+        self._write_to_group(key, value, complib=complib, complevel=complevel, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(
         self, d, value, selector, data_columns=None, axes=None, dropna=False, **kwargs
@@ -1524,6 +1526,7 @@ class HDFStore:
         append=False,
         complib=None,
         complevel=None,
+        dropna=False,
         encoding=None,
         **kwargs
     ):
@@ -1574,7 +1577,7 @@ class HDFStore:
 
         # write the object
         s.write(
-            obj=value, append=append, complib=complib, complevel=complevel, **kwargs
+            obj=value, append=append, complib=complib, complevel=complevel, dropna=dropna, **kwargs
         )
 
         if s.is_table and index:
