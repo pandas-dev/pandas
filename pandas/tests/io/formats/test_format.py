@@ -1876,15 +1876,22 @@ c  10  11  12  13  14\
         small = pd.Series(data, name="test series")
         sm_html = small._repr_html_()
 
-        for val in data:
-            if pd.isnull(val):
-                assert "<td>NaN</td>" in sm_html
-            else:
-                assert "<td>{}</td>".format(val) in sm_html
+        html = (
+            "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n"
+            "        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th"
+            " {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n"
+            '        text-align: right;\n    }\n</style>\n<table border="1" '
+            'class="dataframe">\n  <tbody>\n    <tr>\n      <th>0</th>\n      '
+            "<td>1</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>two</td>\n"
+            "    </tr>\n    <tr>\n      <th>2</th>\n      <td>3.1</td>\n    </tr>\n"
+            "    <tr>\n      <th>3</th>\n      <td>-4.2</td>\n    </tr>\n    <tr>\n"
+            "      <th>4</th>\n      <td>True</td>\n    </tr>\n    <tr>\n      "
+            "<th>5</th>\n      <td>NaN</td>\n    </tr>\n  </tbody>\n</table>\n"
+            "<p>Name: <b>test series</b>, Length: 6, dtype: <tt>object</tt></p>\n"
+            "</div>"
+        )
 
-        assert "<p>Name: <b>{}</b>".format(small.name) in sm_html
-        assert "Length: {}".format(len(small)) in sm_html
-        assert "dtype: <tt>{}</tt>".format(small.dtype) in sm_html
+        assert sm_html == html
 
         large = small.repeat(1000)
         large.name = None
