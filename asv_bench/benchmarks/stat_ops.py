@@ -101,8 +101,8 @@ class Rank:
 
 class Correlation:
 
-    params = [["spearman", "pearson"], [True, False]]
-    param_names = ["method", "use_bottleneck"]
+    params = [["spearman", "kendall", "pearson"], [True, False]]
+    param_names = ["method"]
 
     def setup(self, method, use_bottleneck):
         try:
@@ -111,12 +111,12 @@ class Correlation:
             from pandas.core import nanops
 
             nanops._USE_BOTTLENECK = use_bottleneck
-        self.df = pd.DataFrame(np.random.randn(1000, 30))
-        self.df2 = pd.DataFrame(np.random.randn(1000, 30))
-        self.df_wide = pd.DataFrame(np.random.randn(1000, 200))
-        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 200)) < 0.9)
-        self.s = pd.Series(np.random.randn(1000))
-        self.s2 = pd.Series(np.random.randn(1000))
+        self.df = pd.DataFrame(np.random.randn(500, 15))
+        self.df2 = pd.DataFrame(np.random.randn(500, 15))
+        self.df_wide = pd.DataFrame(np.random.randn(500, 100))
+        self.df_wide_nans = self.df_wide.where(np.random.random((500, 100)) < 0.9)
+        self.s = pd.Series(np.random.randn(500))
+        self.s2 = pd.Series(np.random.randn(500))
 
     def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
