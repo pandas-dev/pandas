@@ -1876,7 +1876,7 @@ c  10  11  12  13  14\
         small = pd.Series(data, name="test series")
         sm_html = small._repr_html_()
 
-        html = (
+        true_sm_html = (
             "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n"
             "        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th"
             " {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n"
@@ -1891,14 +1891,28 @@ c  10  11  12  13  14\
             "</div>"
         )
 
-        assert sm_html == html
+        assert sm_html == true_sm_html
 
         large = small.repeat(1000)
         large.name = None
         lg_html = large._repr_html_()
 
-        assert "<td>...</td>" in lg_html
-        assert "<p>Name: <b>" not in lg_html
+        true_lg_html = (
+            "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n"
+            "        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n"
+            "        vertical-align: top;\n    }\n\n    .dataframe thead th {\n"
+            '        text-align: right;\n    }\n</style>\n<table border="1" '
+            'class="dataframe">\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>1</td>'
+            "\n    </tr>\n    <tr>\n      <th>0</th>\n      <td>1</td>\n    </tr>\n    "
+            "<tr>\n      <th>0</th>\n      <td>1</td>\n    </tr>\n    <tr>\n      "
+            "<th>...</th>\n      <td>...</td>\n    </tr>\n    <tr>\n      <th>5</th>\n"
+            "      <td>NaN</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      "
+            "<td>NaN</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>NaN</td>\n"
+            "    </tr>\n  </tbody>\n</table>\n<p>Length: 6000, dtype: <tt>object</tt>"
+            "</p>\n</div>"
+        )
+
+        assert lg_html == true_lg_html
 
         tm.reset_display_options()
 
