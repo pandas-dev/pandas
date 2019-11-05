@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy.stats import kurtosis, skew, sem
 
 import pandas.util._test_decorators as td
 
@@ -829,13 +830,18 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@pytest.mark.parametrize("ddof", [0, 1])
-def test_var_ddof(ddof):
+@pytest.mark.parametrize("pandasmethname, npfunction, kwargs, np_kwargs",
+                         [("var",  np.nanvar, {'ddof': 0}, {'ddof': 0}),
+                          ("var",  np.nanvar, {'ddof': 1}, {'ddof': 1}),
+                          ("kurtosis",  kurtosis, {}, {'bias': False, 'nan_policy': 'omit'}),
+                          ("skew",  skew, {}, {'nan_policy': 'omit'}),
+                          ("sem",  sem, {}, {'nan_policy': 'omit'})])
+def test_stat_method(pandasmethname, npfunction, kwargs, np_kwargs):
     s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
-    result = s.var(ddof=ddof)
-    expected = np.nanvar([1, 2, 3, 4, 5, 6, np.nan, np.nan], ddof=ddof)
-    assert expected == result
-
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    expected = npfunction([1, 2, 3, 4, 5, 6, np.nan, np.nan], **np_kwargs)
+    assert np.isclose(expected, result)
 
 # TODO(jreback) - these need testing / are broken
 
