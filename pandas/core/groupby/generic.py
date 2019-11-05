@@ -655,7 +655,8 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = list(map(rep, self.grouper.recons_codes)) + [llab(lab, inc)]
+        codes = self.grouper.recons_codes
+        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 
@@ -694,8 +695,8 @@ class SeriesGroupBy(GroupBy):
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype="bool")
-        for codes_ in codes[:-1]:
-            diff |= np.r_[True, codes_[1:] != codes_[:-1]]
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
         ncat, nbin = diff.sum(), len(levels[-1])
 
@@ -711,7 +712,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        codes = list(map(lambda codes: np.repeat(codes[diff], nbin), codes[:-1]))
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
+
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
         codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)

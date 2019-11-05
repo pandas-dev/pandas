@@ -59,7 +59,7 @@ class Grouper:
         <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
     sort : bool, default to False
-        whether to sort the resulting codes
+        whether to sort the resulting labels
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -378,11 +378,11 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes = None
-    _group_index = None
+    _codes = None  # type: np.ndarray
+    _group_index = None  # type: Index
 
     @property
-    def ngroups(self):
+    def ngroups(self) -> int:
         return len(self.group_index)
 
     @cache_readonly
@@ -395,24 +395,24 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def codes(self):
+    def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
         return self._codes
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if self.all_grouper is not None:
             return recode_from_groupby(self.all_grouper, self.sort, self.group_index)
         return self.group_index
 
     @property
-    def group_index(self):
+    def group_index(self) -> Index:
         if self._group_index is None:
             self._make_codes()
         return self._group_index
 
-    def _make_codes(self):
+    def _make_codes(self) -> None:
         if self._codes is None or self._group_index is None:
             # we have a list of groupers
             if isinstance(self.grouper, BaseGrouper):
@@ -425,7 +425,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> dict:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
