@@ -1687,7 +1687,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True):
         """
         Return DataFrame with number of distinct observations per group for
         each column.
