@@ -1201,8 +1201,26 @@ def test_uint64_keys_in_list():
             8991270399732411471,
         ],
     )
-    
+
     tm.assert_equal(
         bug.loc[[7606741985629028552, 17876870360202815256]], bug.iloc[[0, 1]]
+    )
+
+
+def test_uint_index_not_converted_to_float64():
+    # https://github.com/pandas-dev/pandas/issues/28279
+    bug = pd.Series(
+        [0, 1, 2, 3, 4],
+        index=[
+            7606741985629028552,
+            17876870360202815256,
+            13106359306506049338,
+            8991270399732411471,
+            8991270399732411472,
+        ],
+    )
+
+    assert isinstance(
+        bug.loc[[7606741985629028552, 17876870360202815256]].index, UInt64Index
     )
 
