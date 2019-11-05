@@ -1902,14 +1902,14 @@ c  10  11  12  13  14\
             "        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n"
             "        vertical-align: top;\n    }\n\n    .dataframe thead th {\n"
             '        text-align: right;\n    }\n</style>\n<table border="1" '
-            'class="dataframe">\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>1</td>'
-            "\n    </tr>\n    <tr>\n      <th>0</th>\n      <td>1</td>\n    </tr>\n    "
-            "<tr>\n      <th>0</th>\n      <td>1</td>\n    </tr>\n    <tr>\n      "
-            "<th>...</th>\n      <td>...</td>\n    </tr>\n    <tr>\n      <th>5</th>\n"
+            'class="dataframe">\n  <tbody>\n    <tr>\n      <th>0</th>\n      '
+            "<td>1</td>\n    </tr>\n    <tr>\n      <th>0</th>\n      <td>1</td>\n    "
+            "</tr>\n    <tr>\n      <th>0</th>\n      <td>1</td>\n    </tr>\n    <tr>"
+            "\n      <th>...</th>\n      <td>...</td>\n    </tr>\n    <tr>\n      "
+            "<th>5</th>\n      <td>NaN</td>\n    </tr>\n    <tr>\n      <th>5</th>\n"
             "      <td>NaN</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      "
-            "<td>NaN</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>NaN</td>\n"
-            "    </tr>\n  </tbody>\n</table>\n<p>Length: 6000, dtype: <tt>object</tt>"
-            "</p>\n</div>"
+            "<td>NaN</td>\n    </tr>\n  </tbody>\n</table>\n<p>Length: 6000, dtype: "
+            "<tt>object</tt></p>\n</div>"
         )
 
         assert lg_html == true_lg_html
