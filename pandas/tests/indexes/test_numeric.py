@@ -1223,4 +1223,3 @@ def test_uint_index_not_converted_to_float64():
     assert isinstance(
         bug.loc[[7606741985629028552, 17876870360202815256]].index, UInt64Index
     )
-
