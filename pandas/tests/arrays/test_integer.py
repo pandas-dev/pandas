@@ -841,7 +841,7 @@ def test_stat_method(pandasmethname, kwargs):
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
     pandasmeth = getattr(s2, pandasmethname)
-    expected =  pandasmeth(**kwargs)
+    expected = pandasmeth(**kwargs)
     assert expected == result
 
 # TODO(jreback) - these need testing / are broken
