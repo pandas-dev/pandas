@@ -944,6 +944,36 @@ class PeriodDtype(PandasExtensionDtype):
 
         return PeriodArray
 
+    def __from_arrow__(self, array):
+        """Construct PeriodArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import PeriodArray
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            buflist = arr.buffers()
+            data = np.frombuffer(buflist[-1], dtype="int64")[
+                arr.offset : arr.offset + len(arr)
+            ]
+            bitmask = buflist[0]
+            if bitmask is not None:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    pyarrow.bool_(), len(arr), [None, bitmask]
+                )
+                mask = np.asarray(mask)
+            else:
+                mask = np.ones(len(arr), dtype=bool)
+            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr[~mask] = NaT
+            results.append(parr)
+
+        return PeriodArray._concat_same_type(results)
+
 
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype):
@@ -1115,3 +1145,22 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super().is_dtype(dtype)
+
+    def __from_arrow__(self, array):
+        """Construct IntervalArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import IntervalArray
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            left = np.asarray(arr.storage.field("left"), dtype=self.subtype)
+            right = np.asarray(arr.storage.field("right"), dtype=self.subtype)
+            iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
+            results.append(iarr)
+
+        return IntervalArray._concat_same_type(results)

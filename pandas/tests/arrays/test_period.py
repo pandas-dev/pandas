@@ -405,3 +405,24 @@ def test_arrow_array_missing():
     assert result.type.freq == "D"
     expected = pa.array([1, None, 3], type="int64")
     assert result.storage.equals(expected)
+
+
+@pyarrow_skip
+def test_arrow_table_roundtrip():
+    import pyarrow as pa
+    from pandas.core.arrays.period import ArrowPeriodType
+
+    arr = PeriodArray([1, 2, 3], freq="D")
+    arr[1] = pd.NaT
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    assert isinstance(table.field("a").type, ArrowPeriodType)
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, PeriodDtype)
+    tm.assert_frame_equal(result, df)
+
+    table2 = pa.concat_tables([table, table])
+    result = table2.to_pandas()
+    expected = pd.concat([df, df], ignore_index=True)
+    tm.assert_frame_equal(result, expected)
