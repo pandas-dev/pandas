@@ -3221,7 +3221,7 @@ class NDFrame(PandasObject, SelectionMixin):
             and mode is 'zip' or inferred as 'zip', other entries passed as
             additional compression options.
 
-            .. versionchanged:: 0.25.0
+            .. versionchanged:: 1.0.0
 
                May now be a dict with key 'method' as compression mode
                and other entries as additional compression options if
@@ -4353,8 +4353,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def reindex(self, *args, **kwargs):
         """
-        Conform %(klass)s to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
+        Conform %(klass)s to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         ``copy=False``.
 
@@ -4669,8 +4670,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Subset rows or columns of dataframe according to labels in
-        the specified index.
+        Subset the dataframe rows or columns according to the specified index labels.
 
         Note that this routine does not filter a dataframe on its
         contents. The filter is applied to the labels of the index.
@@ -5156,8 +5156,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "transform"
     ] = """
-    Call ``func`` on self producing a %(klass)s with transformed values
-    and that has the same axis length as self.
+    Call ``func`` on self producing a %(klass)s with transformed values.
+
+    Produced %(klass)s will have same axis length as self.
 
     Parameters
     ----------
@@ -8497,8 +8498,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def first(self, offset):
         """
-        Convenience method for subsetting initial periods of time series data
-        based on a date offset.
+        Method to subset initial periods of time series data based on a date offset.
 
         Parameters
         ----------
@@ -8560,8 +8560,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def last(self, offset):
         """
-        Convenience method for subsetting final periods of time series data
-        based on a date offset.
+        Method to subset final periods of time series data based on a date offset.
 
         Parameters
         ----------
@@ -8743,8 +8742,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "align"
     ] = """
-        Align two objects on their axes with the
-        specified join method for each axis Index.
+        Align two objects on their axes with the specified join method.
+
+        Join method is specified for each axis Index.
 
         Parameters
         ----------
@@ -9967,9 +9967,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generate descriptive statistics that summarize the central tendency,
-        dispersion and shape of a dataset's distribution, excluding
-        ``NaN`` values.
+        Generate descriptive statistics.
+
+        Descriptive statistics include those that summarize the central
+        tendency, dispersion and shape of a
+        dataset's distribution, excluding ``NaN`` values.
 
         Analyzes both numeric and object series, as well
         as ``DataFrame`` column sets of mixed data types. The output
@@ -10651,7 +10653,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased skew over requested axis\nNormalized by N-1.",
+            "Return unbiased skew over requested axis.\n\nNormalized by N-1.",
             nanops.nanskew,
         )
         cls.kurt = _make_stat_function(
@@ -10660,8 +10662,9 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased kurtosis over requested axis using Fisher's "
-            "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
+            "Return unbiased kurtosis over requested axis.\n\n"
+            "Kurtosis obtained using Fisher's definition of\n"
+            "kurtosis (kurtosis of normal == 0.0). Normalized "
             "by N-1.",
             nanops.nankurt,
         )

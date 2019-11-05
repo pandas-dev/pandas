@@ -7,11 +7,11 @@ import warnings
 import numpy as np
 
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core import common as com
 from pandas.core.arrays.categorical import (
-    _factorize_from_iterable,
-    _factorize_from_iterables,
+    factorize_from_iterable,
+    factorize_from_iterables,
 )
+import pandas.core.common as com
 from pandas.core.generic import NDFrame
 from pandas.core.index import (
     _all_indexes_same,
@@ -604,7 +604,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            _, levels = _factorize_from_iterables(zipped)
+            _, levels = factorize_from_iterables(zipped)
         else:
             levels = [ensure_index(x) for x in levels]
     else:
@@ -645,7 +645,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             codes_list.extend(concat_index.codes)
         else:
-            codes, categories = _factorize_from_iterable(concat_index)
+            codes, categories = factorize_from_iterable(concat_index)
             levels.append(categories)
             codes_list.append(codes)
 

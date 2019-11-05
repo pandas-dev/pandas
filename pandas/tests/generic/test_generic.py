@@ -8,7 +8,6 @@ from pandas.core.dtypes.common import is_scalar
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -606,7 +605,7 @@ class TestNDFrame:
             }
         )
         sample1 = df.sample(n=1, weights="easyweights")
-        assert_frame_equal(sample1, df.iloc[5:6])
+        tm.assert_frame_equal(sample1, df.iloc[5:6])
 
         # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
@@ -635,19 +634,21 @@ class TestNDFrame:
         # Test axis argument
         df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
         )
 
         # Different axis arg types
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=1, axis="columns", weights=second_column_weight), df[["col2"]]
         )
 
         weight = [0] * 10
         weight[5] = 0.5
-        assert_frame_equal(df.sample(n=1, axis="rows", weights=weight), df.iloc[5:6])
-        assert_frame_equal(df.sample(n=1, axis="index", weights=weight), df.iloc[5:6])
+        tm.assert_frame_equal(df.sample(n=1, axis="rows", weights=weight), df.iloc[5:6])
+        tm.assert_frame_equal(
+            df.sample(n=1, axis="index", weights=weight), df.iloc[5:6]
+        )
 
         # Check out of range axis values
         with pytest.raises(ValueError):
@@ -672,26 +673,26 @@ class TestNDFrame:
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
-        assert_frame_equal(sample1, df[["colString"]])
+        tm.assert_frame_equal(sample1, df[["colString"]])
 
         # Test default axes
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=3, random_state=42), df.sample(n=3, axis=0, random_state=42)
         )
 
         # Test that function aligns weights with frame
         df = DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
         s = Series([1, 0, 0], index=[3, 5, 9])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
 
         # Weights have index values to be dropped because not in
         # sampled DataFrame
         s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
 
         # Weights have empty values to be filed with zeros
         s3 = Series([0.01, 0], index=[3, 5])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
 
         # No overlap in weight and sampled DataFrame indices
         s4 = Series([1, 0], index=[1, 2])
@@ -893,19 +894,19 @@ class TestNDFrame:
         f = lambda x, y: x ** y
         result = df.pipe(f, 2)
         expected = DataFrame({"A": [1, 4, 9]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.A.pipe(f, 2)
-        assert_series_equal(result, expected.A)
+        tm.assert_series_equal(result, expected.A)
 
     def test_pipe_tuple(self):
         df = DataFrame({"A": [1, 2, 3]})
         f = lambda x, y: y
         result = df.pipe((f, "y"), 0)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.A.pipe((f, "y"), 0)
-        assert_series_equal(result, df.A)
+        tm.assert_series_equal(result, df.A)
 
     def test_pipe_tuple_error(self):
         df = DataFrame({"A": [1, 2, 3]})
