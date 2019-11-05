@@ -269,7 +269,7 @@ class TestHDFStore:
 
         df = DataFrame(
                 {"A1": np.random.randn(20)},
-                index=np.arange(20),
+                index=np.arange(20)
             )
         df.loc[0:15] = np.nan
 
