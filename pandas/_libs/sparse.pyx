@@ -597,7 +597,7 @@ cdef class BlockIndex(SparseIndex):
 
         result = np.empty(other.npoints, dtype=np.float64)
 
-        for 0 <= i < other.nblocks:
+        for i in range(other.nblocks):
             ocur = olocs[i]
             ocurlen = olens[i]
 

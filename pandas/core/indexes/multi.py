@@ -2172,9 +2172,9 @@ class MultiIndex(Index):
         if level is not None:
             return self._drop_from_level(codes, level)
 
-        if not isinstance(codes, (np.ndarray, Index)):
-            codes = com.index_labels_to_array(codes)
         try:
+            if not isinstance(codes, (np.ndarray, Index)):
+                codes = com.index_labels_to_array(codes)
             indexer = self.get_indexer(codes)
             mask = indexer == -1
             if mask.any():
