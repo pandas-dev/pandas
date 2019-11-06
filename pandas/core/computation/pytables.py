@@ -2,6 +2,7 @@
 
 import ast
 from functools import partial
+from typing import Optional
 
 import numpy as np
 
@@ -33,9 +34,6 @@ class Term(ops.Term):
         klass = Constant if not isinstance(name, str) else cls
         return object.__new__(klass)
 
-    def __init__(self, name, env, side=None, encoding=None):
-        super().__init__(name, env, side=side, encoding=encoding)
-
     def _resolve_name(self):
         # must be a queryables
         if self.side == "left":
@@ -56,9 +54,6 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None):
-        super().__init__(value, env, side=side, encoding=encoding)
-
     def _resolve_name(self):
         return self._name
 
@@ -129,12 +124,12 @@ class BinOp(ops.BinOp):
         return rhs
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """ return True if this is a valid field """
         return self.lhs in self.queryables
 
     @property
-    def is_in_table(self):
+    def is_in_table(self) -> bool:
         """ return True if this is a valid column name for generation (e.g. an
         actual column in the table) """
         return self.queryables.get(self.lhs) is not None
@@ -200,7 +195,7 @@ class BinOp(ops.BinOp):
             return TermValue(v, v, kind)
         elif kind == "bool":
             if isinstance(v, str):
-                v = not v.strip().lower() in [
+                v = v.strip().lower() not in [
                     "false",
                     "f",
                     "no",
@@ -229,7 +224,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )
@@ -253,6 +248,7 @@ class FilterBinOp(BinOp):
 
         rhs = self.conform(self.rhs)
         values = [TermValue(v, v, self.kind).value for v in rhs]
+        # TODO: Isnt TermValue(v, v, self.kind).value just `v`?
 
         if self.is_in_table:
 
@@ -295,7 +291,7 @@ class JointFilterBinOp(FilterBinOp):
 
 
 class ConditionBinOp(BinOp):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing("[Condition : [{cond}]]".format(cond=self.condition))
 
     def invert(self):
@@ -478,7 +474,8 @@ def _validate_where(w):
 
 
 class Expr(expr.Expr):
-    """ hold a pytables like expression, comprised of possibly multiple 'terms'
+    """
+    Hold a pytables like expression, comprised of possibly multiple 'terms'.
 
     Parameters
     ----------
@@ -486,6 +483,7 @@ class Expr(expr.Expr):
     queryables : a "kinds" map (dict of column name -> kind), or None if column
         is non-indexable
     encoding : an encoding that will encode the query terms
+    scope_level : int, default 0
 
     Returns
     -------
@@ -505,7 +503,7 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    def __init__(self, where, queryables=None, encoding=None, scope_level=0):
+    def __init__(self, where, queryables=None, encoding=None, scope_level: int = 0):
 
         where = _validate_where(where)
 
@@ -513,7 +511,7 @@ class Expr(expr.Expr):
         self.condition = None
         self.filter = None
         self.terms = None
-        self._visitor = None
+        self._visitor = None  # type: Optional[ExprVisitor]
 
         # capture the environment if needed
         local_dict = DeepChainMap()
@@ -523,13 +521,16 @@ class Expr(expr.Expr):
             where = where.expr
 
         elif isinstance(where, (list, tuple)):
+            # TODO: could disallow tuple arg?
+            where = list(where)
             for idx, w in enumerate(where):
                 if isinstance(w, Expr):
                     local_dict = w.env.scope
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            where = " & ".join(map("({})".format, com.flatten(where)))  # noqa
+            wheres = ["({x})".format(x=x) for x in com.flatten(where)]
+            where = " & ".join(wheres)
 
         self.expr = where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
@@ -545,7 +546,7 @@ class Expr(expr.Expr):
             )
             self.terms = self.parse()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)
@@ -574,7 +575,7 @@ class Expr(expr.Expr):
 class TermValue:
     """ hold a term value the we use to construct a condition/filter """
 
-    def __init__(self, value, converted, kind):
+    def __init__(self, value, converted, kind: str):
         self.value = value
         self.converted = converted
         self.kind = kind
@@ -593,7 +594,7 @@ class TermValue:
         return self.converted
 
 
-def maybe_expression(s):
+def maybe_expression(s) -> bool:
     """ loose checking if s is a pytables-acceptable expression """
     if not isinstance(s, str):
         return False

@@ -7,7 +7,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 
@@ -40,7 +40,7 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source):
+def tokenize_string(source: str):
     """
     Tokenize a Python source code string.
 
@@ -68,7 +68,8 @@ def tokenize_string(source):
 
 
 def _rewrite_assign(tok):
-    """Rewrite the assignment operator for PyTables expressions that use ``=``
+    """
+    Rewrite the assignment operator for PyTables expressions that use ``=``
     as a substitute for ``==``.
 
     Parameters
@@ -86,7 +87,8 @@ def _rewrite_assign(tok):
 
 
 def _replace_booleans(tok):
-    """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
+    """
+    Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
 
     Parameters
@@ -110,7 +112,8 @@ def _replace_booleans(tok):
 
 
 def _replace_locals(tok):
-    """Replace local variables with a syntactically valid name.
+    """
+    Replace local variables with a syntactically valid name.
 
     Parameters
     ----------
@@ -135,7 +138,8 @@ def _replace_locals(tok):
 
 
 def _clean_spaces_backtick_quoted_names(tok):
-    """Clean up a column name if surrounded by backticks.
+    """
+    Clean up a column name if surrounded by backticks.
 
     Backtick quoted string are indicated by a certain tokval value. If a string
     is a backtick quoted token it will processed by
@@ -303,7 +307,8 @@ def _node_not_implemented(node_name, cls):
 
 
 def disallow(nodes):
-    """Decorator to disallow certain nodes from parsing. Raises a
+    """
+    Decorator to disallow certain nodes from parsing. Raises a
     NotImplementedError instead.
 
     Returns
@@ -324,7 +329,8 @@ def disallow(nodes):
 
 
 def _op_maker(op_class, op_symbol):
-    """Return a function to create an op class with its symbol already passed.
+    """
+    Return a function to create an op class with its symbol already passed.
 
     Returns
     -------
@@ -332,8 +338,8 @@ def _op_maker(op_class, op_symbol):
     """
 
     def f(self, node, *args, **kwargs):
-        """Return a partial function with an Op subclass with an operator
-        already passed.
+        """
+        Return a partial function with an Op subclass with an operator already passed.
 
         Returns
         -------
@@ -813,18 +819,27 @@ class Expr:
     parser : str, optional, default 'pandas'
     env : Scope, optional, default None
     truediv : bool, optional, default True
-    level : int, optional, default 2
+    level : int, optional, default 0
     """
 
     def __init__(
-        self, expr, engine="numexpr", parser="pandas", env=None, truediv=True, level=0
+        self,
+        expr,
+        engine: str = "numexpr",
+        parser: str = "pandas",
+        env=None,
+        truediv: bool = True,
+        level: int = 0,
     ):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
         self.env.scope["truediv"] = truediv
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self._visitor = _parsers[parser](
+            self.env, self.engine, self.parser
+        )  # type: Optional[BaseExprVisitor]
+        assert isinstance(self._visitor, BaseExprVisitor), type(self._visitor)
         self.terms = self.parse()
 
     @property
@@ -834,10 +849,10 @@ class Expr:
     def __call__(self):
         return self.terms(self.env)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return printing.pprint_thing(self.terms)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.expr)
 
     def parse(self):

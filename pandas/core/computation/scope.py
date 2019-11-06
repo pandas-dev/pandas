@@ -9,6 +9,7 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import Mapping
 
 import numpy as np
 
@@ -17,7 +18,7 @@ from pandas.compat.chainmap import DeepChainMap
 
 
 def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
 ):
     """Ensure that we are grabbing the correct scope."""
     return Scope(
@@ -29,9 +30,11 @@ def _ensure_scope(
     )
 
 
-def _replacer(x):
-    """Replace a number with its hexadecimal representation. Used to tag
-    temporary variables with their calling scope's id.
+def _replacer(x) -> str:
+    """
+    Replace a number with its hexadecimal representation.
+
+    Used to tag temporary variables with their calling scope's id.
     """
     # get the hex repr of the binary char and remove 0x and pad by pad_size
     # zeros
@@ -44,7 +47,7 @@ def _replacer(x):
     return hex(hexin)
 
 
-def _raw_hex_id(obj):
+def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
@@ -63,7 +66,7 @@ _DEFAULT_GLOBALS = {
 }
 
 
-def _get_pretty_string(obj):
+def _get_pretty_string(obj) -> str:
     """
     Return a prettier version of obj.
 
@@ -106,7 +109,12 @@ class Scope:
     __slots__ = ["level", "scope", "target", "resolvers", "temps"]
 
     def __init__(
-        self, level, global_dict=None, local_dict=None, resolvers=(), target=None
+        self,
+        level: int,
+        global_dict=None,
+        local_dict=None,
+        resolvers: tuple = (),
+        target=None,
     ):
         self.level = level + 1
 
@@ -127,19 +135,23 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-            self.scope = self.scope.new_child((global_dict or frame.f_globals).copy())
+            self.scope = DeepChainMap(
+                self.scope.new_child((global_dict or frame.f_globals).copy())
+            )
             if not isinstance(local_dict, Scope):
-                self.scope = self.scope.new_child((local_dict or frame.f_locals).copy())
+                self.scope = DeepChainMap(
+                    self.scope.new_child((local_dict or frame.f_locals).copy())
+                )
         finally:
             del frame
 
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
             resolvers += tuple(local_dict.resolvers.maps)
-        self.resolvers = DeepChainMap(*resolvers)
-        self.temps = {}
+        self.resolvers = DeepChainMap(*resolvers)  # type: DeepChainMap
+        self.temps = {}  # type: Mapping
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
         unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"
@@ -148,19 +160,20 @@ class Scope:
         )
 
     @property
-    def has_resolvers(self):
-        """Return whether we have any extra scope.
+    def has_resolvers(self) -> bool:
+        """
+        Return whether we have any extra scope.
 
         For example, DataFrames pass Their columns as resolvers during calls to
         ``DataFrame.eval()`` and ``DataFrame.query()``.
 
         Returns
         -------
-        hr : bool
+        bool
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
@@ -202,7 +215,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local)
 
-    def swapkey(self, old_key, new_key, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
         """
         Replace a variable name, with a potentially new value.
 
@@ -223,6 +236,7 @@ class Scope:
         maps.append(self.temps)
 
         for mapping in maps:
+            assert isinstance(mapping, (DeepChainMap, dict)), type(mapping)
             if old_key in mapping:
                 mapping[new_key] = new_value
                 return
@@ -250,7 +264,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level):
+    def update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 
@@ -270,7 +284,7 @@ class Scope:
         finally:
             del stack[:], stack
 
-    def add_tmp(self, value):
+    def add_tmp(self, value) -> str:
         """
         Add a temporary variable to the scope.
 
@@ -281,7 +295,7 @@ class Scope:
 
         Returns
         -------
-        name : basestring
+        name : str
             The name of the temporary variable created.
         """
         name = "{name}_{num}_{hex_id}".format(
@@ -290,6 +304,7 @@ class Scope:
 
         # add to inner most scope
         assert name not in self.temps
+        assert isinstance(self.temps, dict)
         self.temps[name] = value
         assert name in self.temps
 
@@ -297,12 +312,12 @@ class Scope:
         return name
 
     @property
-    def ntemps(self):
+    def ntemps(self) -> int:
         """The number of temporary variables in this scope"""
         return len(self.temps)
 
     @property
-    def full_scope(self):
+    def full_scope(self) -> DeepChainMap:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.

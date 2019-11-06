@@ -157,7 +157,7 @@ def _where_numexpr(cond, a, b):
 set_use_numexpr(get_option("compute.use_numexpr"))
 
 
-def _has_bool_dtype(x):
+def _has_bool_dtype(x) -> bool:
     if isinstance(x, ABCDataFrame):
         return "bool" in x.dtypes
     try:

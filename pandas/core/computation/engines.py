@@ -22,7 +22,7 @@ def _check_ne_builtin_clash(expr):
 
     Parameters
     ----------
-    terms : Term
+    expr : Term
         Terms can contain
     """
     names = expr.names
@@ -46,8 +46,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.aligned_axes = None
         self.result_type = None
 
-    def convert(self):
-        """Convert an expression for evaluation.
+    def convert(self) -> str:
+        """
+        Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """
@@ -75,10 +76,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         )
 
     @property
-    def _is_aligned(self):
+    def _is_aligned(self) -> bool:
         return self.aligned_axes is not None and self.result_type is not None
 
-    @abc.abstractmethod
     def _evaluate(self):
         """
         Return an evaluated expression.
@@ -93,7 +93,11 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         -----
         Must be implemented by subclasses.
         """
-        pass
+        # mypy complains if we use @abc.abstractmethod, so we do use
+        #  AbstractMethodError instead
+        from pandas.errors import AbstractMethodError
+
+        raise AbstractMethodError(self)
 
 
 class NumExprEngine(AbstractEngine):
@@ -101,10 +105,7 @@ class NumExprEngine(AbstractEngine):
 
     has_neg_frac = True
 
-    def __init__(self, expr):
-        super().__init__(expr)
-
-    def convert(self):
+    def convert(self) -> str:
         return str(super().convert())
 
     def _evaluate(self):
@@ -136,9 +137,6 @@ class PythonEngine(AbstractEngine):
     """
 
     has_neg_frac = False
-
-    def __init__(self, expr):
-        super().__init__(expr)
 
     def evaluate(self):
         return self.expr()

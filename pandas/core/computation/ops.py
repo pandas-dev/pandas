@@ -57,10 +57,10 @@ class UndefinedVariableError(NameError):
 
     def __init__(self, name, is_local):
         if is_local:
-            msg = "local variable {0!r} is not defined"
+            msg = "local variable {name!r} is not defined"
         else:
-            msg = "name {0!r} is not defined"
-        super().__init__(msg.format(name))
+            msg = "name {name!r} is not defined"
+        super().__init__(msg.format(name=name))
 
 
 class Term:
@@ -79,10 +79,10 @@ class Term:
         self.encoding = encoding
 
     @property
-    def local_name(self):
+    def local_name(self) -> str:
         return self.name.replace(_LOCAL_TAG, "")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing(self.name)
 
     def __call__(self, *args, **kwargs):
@@ -120,7 +120,7 @@ class Term:
         self.value = value
 
     @property
-    def is_scalar(self):
+    def is_scalar(self) -> bool:
         return is_scalar(self._value)
 
     @property
@@ -139,14 +139,14 @@ class Term:
     return_type = type
 
     @property
-    def raw(self):
+    def raw(self) -> str:
         return pprint_thing(
-            "{0}(name={1!r}, type={2})"
-            "".format(self.__class__.__name__, self.name, self.type)
+            "{cls}(name={name!r}, type={typ})"
+            "".format(cls=self.__class__.__name__, name=self.name, typ=self.type)
         )
 
     @property
-    def is_datetime(self):
+    def is_datetime(self) -> bool:
         try:
             t = self.type.type
         except AttributeError:
@@ -167,7 +167,7 @@ class Term:
         return self._name
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return self._value.ndim
 
 
@@ -182,7 +182,7 @@ class Constant(Term):
     def name(self):
         return self.value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # in python 2 str() of float
         # can truncate shorter than repr()
         return repr(self.name)
@@ -204,13 +204,13 @@ class Op:
     def __iter__(self):
         return iter(self.operands)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Print a generic n-ary operator and its operands using infix notation.
         """
         # recurse over the operands
-        parened = ("({0})".format(pprint_thing(opr)) for opr in self.operands)
-        return pprint_thing(" {0} ".format(self.op).join(parened))
+        parened = ("({opr})".format(opr=pprint_thing(opr)) for opr in self.operands)
+        return pprint_thing(" {op} ".format(op=self.op).join(parened))
 
     @property
     def return_type(self):
@@ -220,7 +220,7 @@ class Op:
         return _result_type_many(*(term.type for term in com.flatten(self)))
 
     @property
-    def has_invalid_return_type(self):
+    def has_invalid_return_type(self) -> bool:
         types = self.operand_types
         obj_dtype_set = frozenset([np.dtype("object")])
         return self.return_type == object and types - obj_dtype_set
@@ -230,11 +230,11 @@ class Op:
         return frozenset(term.type for term in com.flatten(self))
 
     @property
-    def is_scalar(self):
+    def is_scalar(self) -> bool:
         return all(operand.is_scalar for operand in self.operands)
 
     @property
-    def is_datetime(self):
+    def is_datetime(self) -> bool:
         try:
             t = self.return_type.type
         except AttributeError:
@@ -339,7 +339,7 @@ def _cast_inplace(terms, acceptable_dtypes, dtype):
         term.update(new_value)
 
 
-def is_term(obj):
+def is_term(obj) -> bool:
     return isinstance(obj, Term)
 
 
@@ -354,7 +354,7 @@ class BinOp(Op):
     right : Term or Op
     """
 
-    def __init__(self, op, lhs, rhs, **kwargs):
+    def __init__(self, op: str, lhs, rhs, **kwargs):
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -369,9 +369,10 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                "Invalid binary operator {0!r}, valid"
-                " operators are {1}".format(op, keys)
+                "Invalid binary operator {op!r}, valid"
+                " operators are {keys}".format(op=op, keys=keys)
             )
+        assert not kwargs, kwargs
 
     def __call__(self, env):
         """
@@ -396,7 +397,7 @@ class BinOp(Op):
 
         return self.func(left, right)
 
-    def evaluate(self, env, engine, parser, term_type, eval_in_python):
+    def evaluate(self, env, engine: str, parser: str, term_type, eval_in_python):
         """
         Evaluate a binary operation *before* being passed to the engine.
 
@@ -446,6 +447,7 @@ class BinOp(Op):
     def convert_values(self):
         """Convert datetimes to a comparable value in an expression.
         """
+        assert self.encoding is None, self.encoding
 
         def stringify(value):
             if self.encoding is not None:
@@ -488,7 +490,7 @@ class BinOp(Op):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
-def isnumeric(dtype):
+def isnumeric(dtype) -> bool:
     return issubclass(np.dtype(dtype).type, np.number)
 
 
@@ -557,8 +559,8 @@ class UnaryOp(Op):
         operand = self.operand(env)
         return self.func(operand)
 
-    def __repr__(self):
-        return pprint_thing("{0}({1})".format(self.op, self.operand))
+    def __repr__(self) -> str:
+        return pprint_thing("{op}({operand})".format(op=self.op, operand=self.operand))
 
     @property
     def return_type(self):
@@ -582,13 +584,13 @@ class MathCall(Op):
         with np.errstate(all="ignore"):
             return self.func.func(*operands)
 
-    def __repr__(self):
-        operands = map(str, self.operands)
-        return pprint_thing("{0}({1})".format(self.op, ",".join(operands)))
+    def __repr__(self) -> str:
+        operands = ",".join(str(x) for x in self.operands)
+        return pprint_thing("{op}({operands})".format(op=self.op, operands=operands))
 
 
 class FuncNode:
-    def __init__(self, name):
+    def __init__(self, name: str):
         from pandas.core.computation.check import _NUMEXPR_INSTALLED, _NUMEXPR_VERSION
 
         if name not in _mathops or (
@@ -596,7 +598,7 @@ class FuncNode:
             and _NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
-            raise ValueError('"{0}" is not a supported function'.format(name))
+            raise ValueError('"{name}" is not a supported function'.format(name=name))
 
         self.name = name
         self.func = getattr(np, name)

@@ -15,7 +15,7 @@ from pandas.core.computation.scope import _ensure_scope
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
+def _check_engine(engine) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -64,7 +64,7 @@ def _check_engine(engine):
     return engine
 
 
-def _check_parser(parser):
+def _check_parser(parser: str):
     """
     Make sure a valid parser is passed.
 
@@ -97,14 +97,13 @@ def _check_resolvers(resolvers):
                 )
 
 
-def _check_expression(expr):
+def _check_expression(expr: str):
     """
     Make sure an expression is not an empty string
 
     Parameters
     ----------
-    expr : object
-        An object that can be converted to a string
+    expr : str
 
     Raises
     ------
@@ -115,7 +114,7 @@ def _check_expression(expr):
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr):
+def _convert_expression(expr) -> str:
     """
     Convert an object to an expression.
 
@@ -144,7 +143,7 @@ def _convert_expression(expr):
     return s
 
 
-def _check_for_locals(expr, stack_level, parser):
+def _check_for_locals(expr, stack_level: int, parser):
     from pandas.core.computation.expr import tokenize_string
 
     at_top_of_stack = stack_level == 0
@@ -168,15 +167,15 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(
     expr,
-    parser="pandas",
+    parser: str = "pandas",
     engine=None,
     truediv=True,
     local_dict=None,
     global_dict=None,
     resolvers=(),
-    level=0,
+    level: int = 0,
     target=None,
-    inplace=False,
+    inplace: bool = False,
 ):
     """
     Evaluate a Python expression as a string using various backends.
@@ -192,7 +191,7 @@ def eval(
 
     Parameters
     ----------
-    expr : str or unicode
+    expr : str
         The expression to evaluate. This string cannot contain any Python
         `statements
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
@@ -232,7 +231,7 @@ def eval(
         ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
-    level : int, optional
+    level : int, default 0
         The number of prior stack frames to traverse and add to the current
         scope. Most users will **not** need to change this parameter.
     target : object, optional, default None
