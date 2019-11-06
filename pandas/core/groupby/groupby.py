@@ -15,6 +15,7 @@ import inspect
 import re
 import types
 from typing import (
+    Dict,
     FrozenSet,
     Hashable,
     Iterable,
@@ -2271,7 +2272,7 @@ class GroupBy(_GroupBy):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()
+        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
         names = []  # List[Hashable]
         base_func = getattr(libgroupby, how)
 
