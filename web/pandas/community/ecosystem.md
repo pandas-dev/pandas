@@ -86,12 +86,12 @@ models to emphasize patterns in a dataset.
 
 ### [yhat/ggpy](https://github.com/yhat/ggpy)
 
-Hadley Wickham\'s [ggplot2](https://ggplot2.tidyverse.org/) is a
+Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
-on [\"The Grammar of
-Graphics\"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
+on ["The Grammar of
+Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
 it provides a powerful, declarative and extremely general way to
-generate bespoke plots of any kind of data. It\'s really quite
+generate bespoke plots of any kind of data. It's really quite
 incredible. Various implementations to other languages are available,
 but a faithful implementation for Python users has long been missing.
 Although still young (as of Jan-2014), the
@@ -158,8 +158,8 @@ for pandas `display.` settings.
 
 ### [quantopian/qgrid](https://github.com/quantopian/qgrid)
 
-qgrid is \"an interactive grid for sorting and filtering DataFrames in
-IPython Notebook\" built with SlickGrid.
+qgrid is "an interactive grid for sorting and filtering DataFrames in
+IPython Notebook" built with SlickGrid.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -172,8 +172,8 @@ environment like MATLAB or Rstudio.
 Its [Variable
 Explorer](https://docs.spyder-ide.org/variableexplorer.html) allows
 users to view, manipulate and edit pandas `Index`, `Series`, and
-`DataFrame` objects like a \"spreadsheet\", including copying and
-modifying values, sorting, displaying a \"heatmap\", converting data
+`DataFrame` objects like a "spreadsheet", including copying and
+modifying values, sorting, displaying a "heatmap", converting data
 types and more. Pandas objects can also be renamed, duplicated, new
 columns added, copyed/pasted to/from the clipboard (as TSV), and
 saved/loaded to/from a file. Spyder can also import data from a variety
@@ -181,8 +181,8 @@ of plain text and binary files or the clipboard into a new pandas
 DataFrame via a sophisticated import wizard.
 
 Most pandas classes, methods and data attributes can be autocompleted in
-Spyder\'s [Editor](https://docs.spyder-ide.org/editor.html) and [IPython
-Console](https://docs.spyder-ide.org/ipythonconsole.html), and Spyder\'s
+Spyder's [Editor](https://docs.spyder-ide.org/editor.html) and [IPython
+Console](https://docs.spyder-ide.org/ipythonconsole.html), and Spyder's
 [Help pane](https://docs.spyder-ide.org/help.html) can retrieve and
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
@@ -355,7 +355,7 @@ which work well with pandas' data containers.
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
 
 Cyberpandas provides an extension type for storing arrays of IP
-Addresses. These arrays can be stored inside pandas\' Series and
+Addresses. These arrays can be stored inside pandas' Series and
 DataFrame.
 
 ## Accessors
