@@ -61,8 +61,7 @@ class BaseGrouper:
 
     Parameters
     ----------
-    axis : int
-        the axis to group
+    axis : Index
     groupings : array of grouping
         all the grouping instances to handle in this grouper
         for example for grouper list to groupby, need to pass the list
@@ -78,8 +77,15 @@ class BaseGrouper:
     """
 
     def __init__(
-        self, axis, groupings, sort=True, group_keys=True, mutated=False, indexer=None
+        self,
+        axis: Index,
+        groupings,
+        sort=True,
+        group_keys=True,
+        mutated=False,
+        indexer=None,
     ):
+        assert isinstance(axis, Index), axis
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self.groupings = groupings
@@ -614,7 +620,7 @@ class BaseGrouper:
         counts = np.zeros(ngroups, dtype=int)
         result = None
 
-        splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)
+        splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
             res = func(group)
@@ -626,8 +632,12 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: try_cast back to EA?
+        if result is not None:
+            # if splitter is empty, result can be None, in which case
+            #  maybe_convert_objects would raise TypeError
+            result = lib.maybe_convert_objects(result, try_float=0)
+            # TODO: try_cast back to EA?
+
         return result, counts
 
 
@@ -772,6 +782,11 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj, func):
+        if is_extension_array_dtype(obj.dtype):
+            # pre-empty SeriesBinGrouper from raising TypeError
+            # TODO: watch out, this can return None
+            return self._aggregate_series_pure_python(obj, func)
+
         dummy = obj[:0]
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
@@ -800,12 +815,13 @@ def _is_indexed_like(obj, axes) -> bool:
 
 
 class DataSplitter:
-    def __init__(self, data, labels, ngroups, axis=0):
+    def __init__(self, data, labels, ngroups, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
         self.ngroups = ngroups
 
         self.axis = axis
+        assert isinstance(axis, int), axis
 
     @cache_readonly
     def slabels(self):
@@ -828,12 +844,6 @@ class DataSplitter:
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         for i, (start, end) in enumerate(zip(starts, ends)):
-            # Since I'm now compressing the group ids, it's now not "possible"
-            # to produce empty slices because such groups would not be observed
-            # in the data
-            # if start >= end:
-            #     raise AssertionError('Start %s must be less than end %s'
-            #                          % (str(start), str(end)))
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
