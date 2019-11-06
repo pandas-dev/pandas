@@ -46,9 +46,7 @@ from pandas.core.window.common import (
     _flex_binary_moment,
     _GroupByMixin,
     _offset,
-    _require_min_periods,
     _shared_docs,
-    _use_window,
     _zsqrt,
 )
 

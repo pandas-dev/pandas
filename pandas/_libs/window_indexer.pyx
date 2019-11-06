@@ -2,14 +2,13 @@
 
 import numpy as np
 from numpy cimport ndarray, int64_t
-cnp.import_array()
 
 # ----------------------------------------------------------------------
 # The indexer objects for rolling
 # These define start/end indexers to compute offsets
 
 
-cpdef class MockFixedWindowIndexer:
+class MockFixedWindowIndexer:
     """
 
     We are just checking parameters of the indexer,
@@ -36,7 +35,7 @@ cpdef class MockFixedWindowIndexer:
         return self.start, self.end
 
 
-cpdef class FixedWindowIndexer:
+class FixedWindowIndexer:
     """
     create a fixed length window indexer object
     that has start & end, that point to offsets in
@@ -70,7 +69,7 @@ cpdef class FixedWindowIndexer:
     def get_window_bounds(self):
         return self.start, self.end
 
-cpdef class VariableWindowIndexer:
+class VariableWindowIndexer:
     """
     create a variable length window indexer object
     that has start & end, that point to offsets in
@@ -115,7 +114,7 @@ cpdef class VariableWindowIndexer:
 
         cdef:
             ndarray[int64_t] start, end
-            int64_t start_bound, end_bound, N
+            int64_t start_bound, end_bound
             Py_ssize_t i, j
 
         start = np.empty(N, dtype='int64')
