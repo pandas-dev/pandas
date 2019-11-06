@@ -284,7 +284,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     return start, stop, step, length
 
 
-def slice_getitem(slice slc not None, ind):
+cdef slice_getitem(slice slc, ind):
     cdef:
         Py_ssize_t s_start, s_stop, s_step, s_len
         Py_ssize_t ind_start, ind_stop, ind_step, ind_len
@@ -319,7 +319,7 @@ def slice_getitem(slice slc not None, ind):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(int64_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d

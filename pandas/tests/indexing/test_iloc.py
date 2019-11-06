@@ -10,7 +10,7 @@ from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestiLoc(Base):
@@ -766,9 +766,8 @@ class TestiLoc(Base):
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_iloc_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(5, 2)
+        df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
             df.iloc[:, []],

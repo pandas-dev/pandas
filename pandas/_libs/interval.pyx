@@ -18,7 +18,7 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.util cimport is_integer_object, is_float_object
 
 from pandas._libs.tslibs import Timestamp
@@ -94,7 +94,7 @@ cdef class IntervalMixin:
     @property
     def mid(self):
         """
-        Return the midpoint of the Interval
+        Return the midpoint of the Interval.
         """
         try:
             return 0.5 * (self.left + self.right)
@@ -104,7 +104,9 @@ cdef class IntervalMixin:
 
     @property
     def length(self):
-        """Return the length of the Interval"""
+        """
+        Return the length of the Interval.
+        """
         return self.right - self.left
 
     @property
@@ -283,15 +285,19 @@ cdef class Interval(IntervalMixin):
     _typ = "interval"
 
     cdef readonly object left
-    """Left bound for the interval"""
+    """
+    Left bound for the interval.
+    """
 
     cdef readonly object right
-    """Right bound for the interval"""
+    """
+    Right bound for the interval.
+    """
 
     cdef readonly str closed
     """
     Whether the interval is closed on the left-side, right-side, both or
-    neither
+    neither.
     """
 
     def __init__(self, left, right, str closed='right'):

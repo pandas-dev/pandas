@@ -5,7 +5,6 @@ from pandas._libs import join as _join
 
 from pandas import Categorical, DataFrame, Index, merge
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
 class TestIndexer:
@@ -182,12 +181,12 @@ def test_inner_join_indexer():
     index, ares, bres = _join.inner_join_indexer(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
-    assert_almost_equal(index, index_exp)
+    tm.assert_almost_equal(index, index_exp)
 
     aexp = np.array([2, 4], dtype=np.int64)
     bexp = np.array([1, 2], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
+    tm.assert_almost_equal(ares, aexp)
+    tm.assert_almost_equal(bres, bexp)
 
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
@@ -205,12 +204,12 @@ def test_outer_join_indexer():
     index, ares, bres = _join.outer_join_indexer(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(index, index_exp)
+    tm.assert_almost_equal(index, index_exp)
 
     aexp = np.array([-1, 0, 1, 2, 3, 4, -1, -1], dtype=np.int64)
     bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
+    tm.assert_almost_equal(ares, aexp)
+    tm.assert_almost_equal(bres, bexp)
 
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
@@ -227,12 +226,12 @@ def test_left_join_indexer():
 
     index, ares, bres = _join.left_join_indexer(a, b)
 
-    assert_almost_equal(index, a)
+    tm.assert_almost_equal(index, a)
 
     aexp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
     bexp = np.array([-1, -1, 1, -1, 2], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
+    tm.assert_almost_equal(ares, aexp)
+    tm.assert_almost_equal(bres, bexp)
 
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
@@ -250,13 +249,13 @@ def test_left_join_indexer2():
     res, lidx, ridx = _join.left_join_indexer(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
+    tm.assert_almost_equal(res, exp_res)
 
     exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
+    tm.assert_almost_equal(lidx, exp_lidx)
 
     exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
+    tm.assert_almost_equal(ridx, exp_ridx)
 
 
 def test_outer_join_indexer2():
@@ -266,13 +265,13 @@ def test_outer_join_indexer2():
     res, lidx, ridx = _join.outer_join_indexer(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
+    tm.assert_almost_equal(res, exp_res)
 
     exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
+    tm.assert_almost_equal(lidx, exp_lidx)
 
     exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
+    tm.assert_almost_equal(ridx, exp_ridx)
 
 
 def test_inner_join_indexer2():
@@ -282,13 +281,13 @@ def test_inner_join_indexer2():
     res, lidx, ridx = _join.inner_join_indexer(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
+    tm.assert_almost_equal(res, exp_res)
 
     exp_lidx = np.array([0, 0, 1, 2], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
+    tm.assert_almost_equal(lidx, exp_lidx)
 
     exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
+    tm.assert_almost_equal(ridx, exp_ridx)
 
 
 def test_merge_join_categorical_multiindex():
@@ -315,7 +314,7 @@ def test_merge_join_categorical_multiindex():
     )
     result = a.join(b, on=["Cat1", "Int1"])
     expected = expected.drop(["Cat", "Int"], axis=1)
-    assert_frame_equal(expected, result)
+    tm.assert_frame_equal(expected, result)
 
     # Same test, but with ordered categorical
     a = {
@@ -344,4 +343,4 @@ def test_merge_join_categorical_multiindex():
     )
     result = a.join(b, on=["Cat1", "Int1"])
     expected = expected.drop(["Cat", "Int"], axis=1)
-    assert_frame_equal(expected, result)
+    tm.assert_frame_equal(expected, result)

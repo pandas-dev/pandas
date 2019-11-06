@@ -3,7 +3,7 @@ import warnings
 import pytest
 
 from pandas import DataFrame, Series
-from pandas.core.sorting import safe_sort
+from pandas.core.algorithms import safe_sort
 import pandas.util.testing as tm
 
 
