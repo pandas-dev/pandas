@@ -24,6 +24,7 @@ def diff_2d(ndarray[diff_t, ndim=2] arr,
             Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
+        bint f_contig = arr.flags.f_contiguous
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
@@ -37,40 +38,41 @@ def diff_2d(ndarray[diff_t, ndim=2] arr,
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code
         sx, sy = (<object>arr).shape
-        if arr.flags.f_contiguous:
-            if axis == 0:
-                if periods >= 0:
-                    start, stop = periods, sx
-                else:
-                    start, stop = 0, sx + periods
-                for j in range(sy):
-                    for i in range(start, stop):
-                        out[i, j] = arr[i, j] - arr[i - periods, j]
-            else:
-                if periods >= 0:
-                    start, stop = periods, sy
-                else:
-                    start, stop = 0, sy + periods
-                for j in range(start, stop):
-                    for i in range(sx):
-                        out[i, j] = arr[i, j] - arr[i, j - periods]
-        else:
-            if axis == 0:
-                if periods >= 0:
-                    start, stop = periods, sx
-                else:
-                    start, stop = 0, sx + periods
-                for i in range(start, stop):
+        with nogil:
+            if f_contig:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
                     for j in range(sy):
-                        out[i, j] = arr[i, j] - arr[i - periods, j]
-            else:
-                if periods >= 0:
-                    start, stop = periods, sy
+                        for i in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
                 else:
-                    start, stop = 0, sy + periods
-                for i in range(sx):
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
                     for j in range(start, stop):
-                        out[i, j] = arr[i, j] - arr[i, j - periods]
+                        for i in range(sx):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
+            else:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
+                    for i in range(start, stop):
+                        for j in range(sy):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                else:
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
+                    for i in range(sx):
+                        for j in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
 # ----------------------------------------------------------------------

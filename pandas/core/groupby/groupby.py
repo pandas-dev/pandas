@@ -344,7 +344,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self,
         obj: NDFrame,
         keys=None,
-        axis=0,
+        axis: int = 0,
         level=None,
         grouper=None,
         exclusions=None,
@@ -561,7 +561,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            "'{typ}' object has no attribute '{attr}'".format(
+                typ=type(self).__name__, attr=attr
+            )
         )
 
     @Substitution(
@@ -1090,9 +1092,8 @@ class GroupBy(_GroupBy):
 
         return self._get_cythonized_result(
             "group_any_all",
-            self.grouper,
             aggregate=True,
-            cython_dtype=np.uint8,
+            cython_dtype=np.dtype(np.uint8),
             needs_values=True,
             needs_mask=True,
             pre_processing=objs_to_bool,
@@ -1303,7 +1304,7 @@ class GroupBy(_GroupBy):
         result = self.grouper.size()
 
         if isinstance(self.obj, Series):
-            result.name = getattr(self.obj, "name", None)
+            result.name = self.obj.name
         return result
 
     @classmethod
@@ -1584,9 +1585,8 @@ class GroupBy(_GroupBy):
 
         return self._get_cythonized_result(
             "group_fillna_indexer",
-            self.grouper,
             needs_mask=True,
-            cython_dtype=np.int64,
+            cython_dtype=np.dtype(np.int64),
             result_is_index=True,
             direction=direction,
             limit=limit,
@@ -1880,11 +1880,10 @@ class GroupBy(_GroupBy):
         if is_scalar(q):
             return self._get_cythonized_result(
                 "group_quantile",
-                self.grouper,
                 aggregate=True,
                 needs_values=True,
                 needs_mask=True,
-                cython_dtype=np.float64,
+                cython_dtype=np.dtype(np.float64),
                 pre_processing=pre_processor,
                 post_processing=post_processor,
                 q=q,
@@ -1894,11 +1893,10 @@ class GroupBy(_GroupBy):
             results = [
                 self._get_cythonized_result(
                     "group_quantile",
-                    self.grouper,
                     aggregate=True,
                     needs_values=True,
                     needs_mask=True,
-                    cython_dtype=np.float64,
+                    cython_dtype=np.dtype(np.float64),
                     pre_processing=pre_processor,
                     post_processing=post_processor,
                     q=qi,
@@ -2165,14 +2163,13 @@ class GroupBy(_GroupBy):
 
     def _get_cythonized_result(
         self,
-        how,
-        grouper,
-        aggregate=False,
-        cython_dtype=None,
-        needs_values=False,
-        needs_mask=False,
-        needs_ngroups=False,
-        result_is_index=False,
+        how: str,
+        cython_dtype: np.dtype,
+        aggregate: bool = False,
+        needs_values: bool = False,
+        needs_mask: bool = False,
+        needs_ngroups: bool = False,
+        result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
         **kwargs
@@ -2183,13 +2180,11 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         how : str, Cythonized function name to be called
-        grouper : Grouper object containing pertinent group info
+        cython_dtype : np.dtype
+            Type of the array that will be modified by the Cython call.
         aggregate : bool, default False
             Whether the result should be aggregated to match the number of
             groups
-        cython_dtype : default None
-            Type of the array that will be modified by the Cython call. If
-            `None`, the type will be inferred from the values of each slice
         needs_values : bool, default False
             Whether the values should be a part of the Cython call
             signature
@@ -2232,8 +2227,10 @@ class GroupBy(_GroupBy):
                     "Cannot use 'pre_processing' without specifying 'needs_values'!"
                 )
 
+        grouper = self.grouper
+
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()
+        output = collections.OrderedDict()  # type: dict
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
@@ -2243,9 +2240,6 @@ class GroupBy(_GroupBy):
                 result_sz = ngroups
             else:
                 result_sz = len(values)
-
-            if not cython_dtype:
-                cython_dtype = values.dtype
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
@@ -2306,8 +2300,7 @@ class GroupBy(_GroupBy):
 
         return self._get_cythonized_result(
             "group_shift_indexer",
-            self.grouper,
-            cython_dtype=np.int64,
+            cython_dtype=np.dtype(np.int64),
             needs_ngroups=True,
             result_is_index=True,
             periods=periods,
@@ -2476,16 +2469,18 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj, by, **kwds):
+def groupby(obj: NDFrame, by, **kwds):
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
-        klass = SeriesGroupBy
+        klass = (
+            SeriesGroupBy
+        )  # type: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
     elif isinstance(obj, DataFrame):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
     else:
-        raise TypeError("invalid type: {}".format(obj))
+        raise TypeError("invalid type: {obj}".format(obj=obj))
 
     return klass(obj, by, **kwds)

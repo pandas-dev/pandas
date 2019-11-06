@@ -192,6 +192,8 @@ Other API changes
   Now, pandas custom formatters will only be applied to plots created by pandas, through :meth:`~DataFrame.plot`.
   Previously, pandas' formatters would be applied to all plots created *after* a :meth:`~DataFrame.plot`.
   See :ref:`units registration <whatsnew_1000.matplotlib_units>` for more.
+- :meth:`Series.dropna` has dropped its ``**kwargs`` argument in favor of a single ``how`` parameter.
+  Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
 -
 
 
@@ -407,6 +409,7 @@ Plotting
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
+- :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

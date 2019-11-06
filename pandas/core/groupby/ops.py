@@ -7,6 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
+from typing import List, Optional
 
 import numpy as np
 
@@ -385,7 +386,7 @@ class BaseGrouper:
 
         return func
 
-    def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):
+    def _cython_operation(self, kind: str, values, how, axis, min_count=-1, **kwargs):
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -398,16 +399,18 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError("{} dtype not supported".format(values.dtype))
+            raise NotImplementedError(
+                "{dtype} dtype not supported".format(dtype=values.dtype)
+            )
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {} operations".format(how)
+                    "datetime64 type does not support {how} operations".format(how=how)
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {} operations".format(how)
+                    "timedelta64 type does not support {how} operations".format(how=how)
                 )
 
         if is_datetime64tz_dtype(values.dtype):
@@ -513,7 +516,7 @@ class BaseGrouper:
             result = result[:, 0]
 
         if how in self._name_functions:
-            names = self._name_functions[how]()
+            names = self._name_functions[how]()  # type: Optional[List[str]]
         else:
             names = None
 
@@ -589,12 +592,9 @@ class BaseGrouper:
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
+        # At this point we have already checked that obj.index is not a MultiIndex
+        #  and that obj is backed by an ndarray, not ExtensionArray
         func = self._is_builtin_func(func)
-
-        # TODO: pre-empt this, also pre-empt get_result raising TypError if we pass a EA
-        #   for EAs backed by ndarray we may have a performant workaround
-        if obj.index._has_complex_internals:
-            raise TypeError("Incompatible index for Cython grouper")
 
         group_index, _, ngroups = self.group_info
 
@@ -839,15 +839,12 @@ class DataSplitter:
     def _get_sorted_data(self):
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata, slice_obj):
-        raise AbstractMethodError(self)
-
-    def apply(self, f):
+    def _chop(self, sdata, slice_obj: slice):
         raise AbstractMethodError(self)
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata, slice_obj):
+    def _chop(self, sdata, slice_obj: slice):
         return sdata._get_values(slice_obj)
 
 
@@ -859,7 +856,7 @@ class FrameSplitter(DataSplitter):
         sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
-    def _chop(self, sdata, slice_obj):
+    def _chop(self, sdata, slice_obj: slice):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:

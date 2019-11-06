@@ -4595,7 +4595,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def notnull(self):
         return super().notnull()
 
-    def dropna(self, axis=0, inplace=False, **kwargs):
+    def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
 
@@ -4608,8 +4608,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             There is only one axis to drop values from.
         inplace : bool, default False
             If True, do operation inplace and return None.
-        **kwargs
-            Not in use.
+        how : str, optional
+            Not in use. Kept for compatibility.
 
         Returns
         -------
@@ -4667,12 +4667,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs.pop("how", None)
-        if kwargs:
-            raise TypeError(
-                "dropna() got an unexpected keyword "
-                'argument "{0}"'.format(list(kwargs.keys())[0])
-            )
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 

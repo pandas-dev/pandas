@@ -737,19 +737,18 @@ class MultiIndex(Index):
 
     def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
         """
-        Set new levels on MultiIndex. Defaults to returning
-        new index.
+        Set new levels on MultiIndex. Defaults to returning new index.
 
         Parameters
         ----------
         levels : sequence or list of sequence
-            new level(s) to apply
+            New level(s) to apply.
         level : int, level name, or sequence of int/level names (default None)
-            level(s) to set (None for all levels)
+            Level(s) to set (None for all levels).
         inplace : bool
-            if True, mutates in place
+            If True, mutates in place.
         verify_integrity : bool (default True)
-            if True, checks that levels and codes are compatible
+            If True, checks that levels and codes are compatible.
 
         Returns
         -------
@@ -2180,7 +2179,9 @@ class MultiIndex(Index):
             mask = indexer == -1
             if mask.any():
                 if errors != "ignore":
-                    raise ValueError("codes %s not contained in axis" % codes[mask])
+                    raise ValueError(
+                        "codes {codes} not contained in axis".format(codes=codes[mask])
+                    )
         except Exception:
             pass
 
