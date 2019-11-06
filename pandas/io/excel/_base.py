@@ -805,7 +805,7 @@ class ExcelFile:
     _engines = {"xlrd": _XlrdReader, "openpyxl": _OpenpyxlReader, "odf": _ODFReader}
 
     def __init__(self, io, engine=None):
-        if engine == "xlrd" or engine is None:
+        if engine is None:
             engine = "xlrd"
             warnings.warn(
                 'The Excel reader engine will default to "openpyxl" in the future. \
