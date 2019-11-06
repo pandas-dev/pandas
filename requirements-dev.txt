@@ -10,7 +10,7 @@ flake8
 flake8-comprehensions
 flake8-rst>=0.6.0,<=0.7.0
 isort
-mypy
+mypy==0.720
 pycodestyle
 gitpython
 sphinx
