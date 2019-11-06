@@ -53,7 +53,7 @@ jobs:
         #   TEST_ARGS: "-W error"
         #   PANDAS_TESTING_MODE: "deprecate"
         #   EXTRA_APT: "xsel"
-        #   # TODO: 
+        #   # TODO:
         #   continueOnError: true
 
   steps:
