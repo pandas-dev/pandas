@@ -21,7 +21,10 @@ def id_func(x):
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
-    # zero-dim integer array behaves like an integer
+    """
+    Several variants of integer value 1. The zero-dim integer array
+    behaves like an integer.
+    """
     return request.param
 
 
@@ -40,8 +43,10 @@ zeros.extend([0, 0.0, -0.0])
 
 @pytest.fixture(params=zeros)
 def zero(request):
-    # For testing division by (or of) zero for Index with length 5, this
-    # gives several scalar-zeros and length-5 vector-zeros
+    """
+    Several types of scalar zeros and length 5 vectors of zeros. For
+    testing division by (or of) zero.
+    """
     return request.param
 
 
