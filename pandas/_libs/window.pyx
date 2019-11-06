@@ -609,7 +609,6 @@ def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
-        bint is_variable
         int64_t[:] start, end
         ndarray[float64_t] output
 
@@ -639,7 +638,6 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarra
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
-        bint is_variable
         ndarray[int64_t] start, end
         ndarray[float64_t] output
 
@@ -830,7 +828,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int
                   int64_t minp, int64_t win):
     cdef:
         float64_t val, res, prev
-        bint err = 0, is_variable
+        bint err = 0
         int ret = 0
         skiplist_t *sl
         Py_ssize_t i, j
@@ -1226,7 +1224,6 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
         skiplist_t *skiplist
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
-        bint is_variable
         int64_t[:] start, end
         ndarray[float64_t] output
         float64_t vlow, vhigh
@@ -1340,7 +1337,6 @@ def roll_generic_fixed(object obj,
         float64_t *buf
         float64_t *oldbuf
         int64_t nobs = 0, i, j, s, e, N
-        bint is_variable
         int64_t[:] start, end
 
     n = len(obj)
@@ -1414,7 +1410,6 @@ def roll_generic_variable(object obj,
         float64_t *buf
         float64_t *oldbuf
         int64_t nobs = 0, i, j, s, e, N
-        bint is_variable
         ndarray[int64_t] start, end
 
     n = len(obj)
