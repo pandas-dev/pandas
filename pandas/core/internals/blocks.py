@@ -891,7 +891,6 @@ class Block(PandasObject):
                 return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
 
             try:
-
                 values = values.astype(arr_value.dtype)
             except ValueError:
                 pass
