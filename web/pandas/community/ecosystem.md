@@ -100,9 +100,7 @@ quickly in that direction.
 
 ### [IPython Vega](https://github.com/vega/ipyvega)
 
-[IPython Vega](https://github.com/vega/ipyvega) leverages [Vega
-\<https://github.com/trifacta/vega\>]\_\_ to create plots
-within Jupyter Notebook.
+[IPython Vega](https://github.com/vega/ipyvega) leverages [Vega](https://github.com/vega/vega) to create plots within Jupyter Notebook.
 
 ### [Plotly](https://plot.ly/python)
 
@@ -364,7 +362,7 @@ A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  Library                                                       Accessor   Classes
-  ------------------------------------------------------------- ---------- -----------------------
-  [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)   `ip`       `Series`
-  [pdvega](https://altair-viz.github.io/pdvega/)                `vgplot`   `Series`, `DataFrame`
+  | Library                                                     | Accessor |  Classes              |
+  | ------------------------------------------------------------|----------|-----------------------|
+  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest) | `ip`     | `Series`              |
+  | [pdvega](https://altair-viz.github.io/pdvega/)              | `vgplot` | `Series`, `DataFrame` |
