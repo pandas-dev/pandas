@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, FrozenSet, Optional
+from typing import Dict, FrozenSet, List, Optional
 import warnings
 
 import numpy as np
@@ -569,7 +569,7 @@ class SelectionMixin:
                 try:
                     new_res = colg.aggregate(a)
 
-                except (TypeError, DataError):
+                except TypeError:
                     pass
                 else:
                     results.append(new_res)
@@ -618,6 +618,23 @@ class SelectionMixin:
                 raise ValueError("cannot combine transform and aggregation operations")
             return result
 
+    def _get_cython_func(self, arg: str) -> Optional[str]:
+        """
+        if we define an internal function for this argument, return it
+        """
+        return self._cython_table.get(arg)
+
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return self._builtin_table.get(arg, arg)
+
+
+class ShallowMixin:
+    _attributes = []  # type: List[str]
+
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
         """
         return a new object with the replacement attributes
@@ -632,19 +649,6 @@ class SelectionMixin:
             if attr not in kwargs:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
-
-    def _get_cython_func(self, arg: str) -> Optional[str]:
-        """
-        if we define an internal function for this argument, return it
-        """
-        return self._cython_table.get(arg)
-
-    def _is_builtin_func(self, arg):
-        """
-        if we define an builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return self._builtin_table.get(arg, arg)
 
 
 class IndexOpsMixin:

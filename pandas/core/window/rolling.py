@@ -35,7 +35,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas._typing import Axis, FrameOrSeries, Scalar
-from pandas.core.base import DataError, PandasObject, SelectionMixin
+from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.window.common import (
@@ -50,7 +50,7 @@ from pandas.core.window.common import (
 )
 
 
-class _Window(PandasObject, SelectionMixin):
+class _Window(PandasObject, ShallowMixin, SelectionMixin):
     _attributes = [
         "window",
         "min_periods",
@@ -90,6 +90,21 @@ class _Window(PandasObject, SelectionMixin):
     @property
     def _constructor(self):
         return Window
+
+    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if obj is None:
+            obj = self._selected_obj.copy()
+        if obj_type is None:
+            obj_type = self._constructor
+        if isinstance(obj, obj_type):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return obj_type(obj, **kwargs)
 
     @property
     def is_datetimelike(self) -> Optional[bool]:
