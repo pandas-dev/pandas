@@ -1203,8 +1203,6 @@ def assert_series_equal(
             )
     elif is_interval_dtype(left) or is_interval_dtype(left):
         # must cast to interval dtype to keep mypy happy
-        assert is_interval_dtype(right)
-        assert is_interval_dtype(left)
         left_array = IntervalArray(left.array)
         right_array = IntervalArray(right.array)
         assert_interval_array_equal(left_array, right_array)
