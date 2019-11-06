@@ -1,11 +1,10 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
   # required
   - numpy>=1.15
-  - python=3
+  - python=3.7
   - python-dateutil>=2.6.1
   - pytz
 
@@ -54,7 +53,6 @@ dependencies:
   - moto  # mock S3
   - pytest>=4.0.2
   - pytest-cov
-  - pytest-mock
   - pytest-xdist
   - seaborn
   - statsmodels
