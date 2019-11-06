@@ -391,7 +391,7 @@ def test_setslice(datetime_series):
     assert sl.index.is_unique is True
 
 
-def test_incorrect_assigment():
+def test_2d_to_1d_assignment_error_raised():
     x = np.random.randn(2, 2)
     y = pd.Series(range(2))
 
