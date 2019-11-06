@@ -10,7 +10,6 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
-    ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
