@@ -207,7 +207,7 @@ class SelectionMixin:
             return self.obj[self._selection]
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         return self._selected_obj.ndim
 
     @cache_readonly
@@ -339,7 +339,7 @@ class SelectionMixin:
 
             obj = self._selected_obj
 
-            def nested_renaming_depr(level=4):
+            def nested_renaming_depr(level: int = 4):
                 # deprecation of nested renaming
                 # GH 15931
                 msg = textwrap.dedent(
@@ -488,11 +488,11 @@ class SelectionMixin:
 
             # combine results
 
-            def is_any_series():
+            def is_any_series() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCSeries) for r in result.values())
 
-            def is_any_frame():
+            def is_any_frame() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame) for r in result.values())
 
