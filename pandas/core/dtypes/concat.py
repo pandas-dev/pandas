@@ -191,7 +191,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
     Parameters
     ----------
-    to_union : list-like 
+    to_union : list-like
         Categorical, CategoricalIndex, or Series with dtype='category'.
     sort_categories : bool, default False
         If true, resulting categories will be lexsorted, otherwise
