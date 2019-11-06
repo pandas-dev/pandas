@@ -4574,7 +4574,7 @@ class DataFrame(NDFrame):
                         values = values._data
 
                     if mask.any():
-                        values, changed = maybe_upcast_putmask(values, mask, np.nan)
+                        values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
                         values = values_type(values, dtype=values_dtype)

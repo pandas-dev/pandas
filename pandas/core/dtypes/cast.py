@@ -235,6 +235,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
 def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
     """
     A safe version of putmask that potentially upcasts the result.
+
     The result is replaced with the first N elements of other,
     where N is the number of True values in mask.
     If the length of other is shorter than N, other will be repeated.
@@ -246,13 +247,13 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
         necessary.
     mask : boolean ndarray
     other : scalar
-        The source value
+        The source value.
 
     Returns
     -------
     result : ndarray
-    changed : boolean
-        Set to true if the result array was upcasted
+    changed : bool
+        Set to true if the result array was upcasted.
 
     Examples
     --------
@@ -275,33 +276,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
         #   NaN -> NaT
         #   integer or integer array -> date-like array
         if is_datetimelike(result.dtype):
-            if is_scalar(other):
-                if isna(other):
-                    other = result.dtype.type("nat")
-                elif is_integer(other):
-                    other = np.array(other, dtype=result.dtype)
-            elif is_integer_dtype(other):
+            if isna(other):
+                other = result.dtype.type("nat")
+            elif is_integer(other):
                 other = np.array(other, dtype=result.dtype)
 
         def changeit():
-
-            # try to directly set by expanding our array to full
-            # length of the boolean
-            try:
-                om = other[mask]
-            except (IndexError, TypeError):
-                # IndexError occurs in test_upcast when we have a boolean
-                #  mask of the wrong shape
-                # TypeError occurs in test_upcast when `other` is a bool
-                pass
-            else:
-                om_at = om.astype(result.dtype)
-                if (om == om_at).all():
-                    new_result = result.values.copy()
-                    new_result[mask] = om_at
-                    result[:] = new_result
-                    return result, False
-
             # we are forced to change the dtype of the result as the input
             # isn't compatible
             r, _ = maybe_upcast(result, fill_value=other, copy=True)
@@ -319,15 +299,8 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
-            if is_scalar(other) or (isinstance(other, np.ndarray) and other.ndim < 1):
-                if isna(other):
-                    return changeit()
-
-            # we have an ndarray and the masking has nans in it
-            else:
-
-                if isna(other).any():
-                    return changeit()
+            if isna(other):
+                return changeit()
 
         try:
             np.place(result, mask, other)
@@ -339,6 +312,21 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
+    """
+    Find the minimal dtype that can hold both the given dtype and fill_value.
+
+    Parameters
+    ----------
+    dtype : np.dtype or ExceptionDtype
+    fill_value : scalar, default np.nan
+
+    Returns
+    -------
+    dtype
+        Upcasted from dtype argument if necessary.
+    fill_value
+        Upcasted from fill_value argument if necessary.
+    """
     if not is_scalar(fill_value) and not is_object_dtype(dtype):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
@@ -594,11 +582,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
 
 def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     """
-    infer the dtype from a scalar or array
+    Infer the dtype from an array.
 
     Parameters
     ----------
-    arr : scalar or array
+    arr : array
     pandas_dtype : bool, default False
         whether to infer dtype including pandas extension types.
         If False, array belongs to pandas extension types
@@ -624,7 +612,6 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
 
     >>> infer_dtype_from_array([1, '1'])
     (numpy.object_, [1, '1'])
-
     """
 
     if isinstance(arr, np.ndarray):
@@ -649,7 +636,8 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
 
 
 def maybe_infer_dtype_type(element):
-    """Try to infer an object's dtype, for use in arithmetic ops
+    """
+    Try to infer an object's dtype, for use in arithmetic ops.
 
     Uses `element.dtype` if that's available.
     Objects implementing the iterator protocol are cast to a NumPy array,
@@ -681,15 +669,18 @@ def maybe_infer_dtype_type(element):
     return tipo
 
 
-def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
-    """ provide explicit type promotion and coercion
+def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
+    """
+    Provide explicit type promotion and coercion.
 
     Parameters
     ----------
-    values : the ndarray that we want to maybe upcast
+    values : ndarray or ExtensionArray
+        The array that we want to maybe upcast.
     fill_value : what we want to fill with
     dtype : if None, then use the dtype of the values, else coerce to this type
-    copy : if True always make a copy even if no upcast is required
+    copy : bool, default True
+        If True always make a copy even if no upcast is required.
     """
     if not is_scalar(fill_value) and not is_object_dtype(values.dtype):
         # We allow arbitrary fill values for object dtype
