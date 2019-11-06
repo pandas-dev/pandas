@@ -1934,66 +1934,12 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_subsets_multiindex_dtype(self):
         # GH 20757
-        data = [
-            [
-                "n",
-                1,
-                0,
-                False,
-                2,
-                1,
-                False,
-                0,
-                0,
-                False,
-                2,
-                0,
-                False,
-                0,
-                1,
-                False,
-                1,
-                1,
-                False,
-                "o",
-                1521734085.289453,
-                "p",
-                3233,
-                1521734085.289494,
-            ]
-        ]
-
-        columns = [
-            ("a", "d", "i", np.nan, np.nan),
-            ("a", "d", "j", 0.0, "k"),
-            ("a", "d", "j", 0.0, "l"),
-            ("a", "d", "j", 0.0, "m"),
-            ("a", "d", "j", 1.0, "k"),
-            ("a", "d", "j", 1.0, "l"),
-            ("a", "d", "j", 1.0, "m"),
-            ("a", "d", "j", 2.0, "k"),
-            ("a", "d", "j", 2.0, "l"),
-            ("a", "d", "j", 2.0, "m"),
-            ("a", "d", "j", 3.0, "k"),
-            ("a", "d", "j", 3.0, "l"),
-            ("a", "d", "j", 3.0, "m"),
-            ("a", "d", "j", 4.0, "k"),
-            ("a", "d", "j", 4.0, "l"),
-            ("a", "d", "j", 4.0, "m"),
-            ("a", "d", "j", 5.0, "k"),
-            ("a", "d", "j", 5.0, "l"),
-            ("a", "d", "j", 5.0, "m"),
-            ("b", "f", np.nan, np.nan, np.nan),
-            ("b", "h", np.nan, np.nan, np.nan),
-            ("c", "e", np.nan, np.nan, np.nan),
-            ("c", "g", np.nan, np.nan, np.nan),
-            ("c", "h", np.nan, np.nan, np.nan),
-        ]
-
-        columns = pd.MultiIndex.from_tuples(columns)
-        df = pd.DataFrame(data, columns=columns)
-
-        tm.assert_equal(df.dtypes.a.d.i, df.a.d.i.dtypes)
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(expected, result)
 
 
 class TestSorted(Base):
