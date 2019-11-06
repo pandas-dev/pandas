@@ -1,17 +1,11 @@
 """ test orc compat """
 import datetime
-from distutils.version import LooseVersion
 import os
-from warnings import catch_warnings
 
 import numpy as np
-import pytest
-
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas.util.testing as tm
-
+import pytest
 from pandas.io.orc import PyArrowImpl, get_engine, read_orc
 
 try:
@@ -69,7 +63,7 @@ def test_invalid_engine(dirpath):
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     engine = "foo"
     with pytest.raises(ValueError):
-        pd.read_orc(inputfile, engine=engine, columns=["boolean1"])
+        read_orc(inputfile, engine=engine, columns=["boolean1"])
 
 
 def test_orc_reader_empty(dirpath, engine):
@@ -100,7 +94,7 @@ def test_orc_reader_empty(dirpath, engine):
         expected[colname] = pd.Series(dtype=dtype)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
-    got = pd.read_orc(inputfile, engine=engine, columns=columns)
+    got = read_orc(inputfile, engine=engine, columns=columns)
 
     tm.assert_equal(expected, got)
 
@@ -120,7 +114,7 @@ def test_orc_reader_basic(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.test1.orc")
-    got = pd.read_orc(inputfile, engine=engine, columns=data.keys())
+    got = read_orc(inputfile, engine=engine, columns=data.keys())
 
     tm.assert_equal(expected, got)
 
@@ -149,7 +143,7 @@ def test_orc_reader_decimal(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.decimal.orc")
-    got = pd.read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile, engine=engine).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -190,7 +184,7 @@ def test_orc_reader_date_low(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate1900.orc")
-    got = pd.read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile, engine=engine).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -231,7 +225,7 @@ def test_orc_reader_date_high(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate2038.orc")
-    got = pd.read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile, engine=engine).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -272,6 +266,6 @@ def test_orc_reader_snappy_compressed(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testSnappy.orc")
-    got = pd.read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile, engine=engine).iloc[:10]
 
     tm.assert_equal(expected, got)

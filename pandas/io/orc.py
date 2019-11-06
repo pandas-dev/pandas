@@ -1,13 +1,11 @@
 """ orc compat """
 
-from warnings import catch_warnings
-
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
+from pandas.io.common import get_filepath_or_buffer
 
 
 def get_engine(engine):
