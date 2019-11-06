@@ -361,11 +361,9 @@ def read_sql(
         or DBAPI2 connection (fallback mode)
 
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library. If a DBAPI2 object, only sqlite3 is supported.
-
-        Closing the connection is handled by the SQLAlchemy Engine. See `here \
-            <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
-
+        library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible 
+        for engine disposal and connection closure for the SQLAlchemy connectable. See 
+        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_ 
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True

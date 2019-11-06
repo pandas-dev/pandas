@@ -2645,9 +2645,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Name of SQL table.
         con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library. Legacy support is provided for sqlite3.Connection objects.
-
-            Closing the connection is handled by the SQLAlchemy Engine. See `here \
+            library. Legacy support is provided for sqlite3.Connection objects. The user 
+            is responsible for engine disposal and connection closure for the SQLAlchemy
+            connectable See `here \
                 <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
 
         schema : str, optional
