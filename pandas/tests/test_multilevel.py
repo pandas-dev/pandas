@@ -358,6 +358,52 @@ class TestMultiLevel(Base):
         # test that int32 work
         self.ymd.astype(np.int32).unstack()
 
+    def test_unstack_partial(self):
+        # check for regressions on this issue: https://github.com/pandas-dev/pandas/issues/19351
+        # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
+        # and the Index levels contain values that are not present in the subset
+        result1 = pd.DataFrame(
+            [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
+            columns=[u"ix1", u"ix2", u"col1", u"col2", u"col3", u"col4"],
+        ).set_index([u"ix1", "ix2"])
+        result1 = result1.iloc[1:2].unstack("ix2")
+        expected1 = pd.DataFrame(
+            [[None, None, 30.0, None]],
+            columns=pd.MultiIndex.from_product(
+                [["col1", "col2", "col3", "col4"], [2]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result1, expected1)
+
+        result2 = pd.DataFrame(
+            [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
+            columns=[u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+        ).set_index([u"ix1", "ix2"])
+        result2 = result2.iloc[1:2].unstack("ix2")
+        expected2 = pd.DataFrame(
+            [[None, None, 30.0]],
+            columns=pd.MultiIndex.from_product(
+                [["col1", "col2", "col3"], [2]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result2, expected2)
+
+        result3 = pd.DataFrame(
+            [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
+            columns=[u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+        ).set_index([u"ix1", "ix2"])
+        result3 = result3.iloc[1:2].unstack("ix2")
+        expected3 = pd.DataFrame(
+            [[None, None, 30.0]],
+            columns=pd.MultiIndex.from_product(
+                [["col1", "col2", "col3"], [None]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result3, expected3)
+
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples(
             [(0, "foo", 0), (0, "bar", 0), (1, "baz", 1), (1, "qux", 1)]
