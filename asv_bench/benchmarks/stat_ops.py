@@ -12,12 +12,6 @@ class FrameOps:
 
     def setup(self, op, dtype, axis, use_bottleneck):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
 
     def time_op(self, op, dtype, axis, use_bottleneck):
@@ -47,16 +41,10 @@ class FrameMultiIndexOps:
 class SeriesOps:
 
     params = [ops, ["float", "int"], [True, False]]
-    param_names = ["op", "dtype", "use_bottleneck"]
+    param_names = ["op", "dtype"]
 
     def setup(self, op, dtype, use_bottleneck):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
 
     def time_op(self, op, dtype, use_bottleneck):
@@ -105,12 +93,6 @@ class Correlation:
     param_names = ["method"]
 
     def setup(self, method, use_bottleneck):
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(500, 15))
         self.df2 = pd.DataFrame(np.random.randn(500, 15))
         self.df_wide = pd.DataFrame(np.random.randn(500, 100))
@@ -143,15 +125,9 @@ class Correlation:
 class Covariance:
 
     params = [[True, False]]
-    param_names = ["use_bottleneck"]
+    param_names = []
 
     def setup(self, use_bottleneck):
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except TypeError:
-            from pandas.core import nanops
-
-            nanops._USE_BOTTLENECK = use_bottleneck
         self.s = pd.Series(np.random.randn(100000))
         self.s2 = pd.Series(np.random.randn(100000))
 
