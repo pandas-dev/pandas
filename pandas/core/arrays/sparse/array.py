@@ -1572,9 +1572,6 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
             mask = splib.make_mask_object_ndarray(arr, fill_value)
         else:
             mask = arr != fill_value
-            # https://github.com/pandas-dev/pandas/issues/29432
-            # workaround numpydev issue
-            mask = mask.astype(bool)
 
     length = len(arr)
     if length != len(mask):
