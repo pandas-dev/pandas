@@ -435,12 +435,13 @@ class Generic:
         self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
 
     def test_sample_upsampling_without_replacement(self):
+        # GH27451
         df = pd.DataFrame({"A": list("abc")})
         msg = (
             "Replace has to be set to `True` when upsampling the population `frac` > 1"
         )
         with pytest.raises(TypeError, match=msg):
-            hash(df.sample(frac=2, replace=False))
+            df.sample(frac=2, replace=False)
 
     def test_size_compat(self):
         # GH8846
