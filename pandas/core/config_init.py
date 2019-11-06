@@ -568,6 +568,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.orc specific configuration.
+orc_engine_doc = """
+: string
+    The default orc reader/writer engine. Available options:
+    'auto', 'pyarrow', the default is 'auto'
+"""
+
+with cf.config_prefix("io.orc"):
+    cf.register_option(
+        "engine",
+        "auto",
+        orc_engine_doc,
+        validator=is_one_of_factory(["auto", "pyarrow"]),
+    )
+
 # --------
 # Plotting
 # ---------
