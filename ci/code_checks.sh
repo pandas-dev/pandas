@@ -120,9 +120,15 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
-    invgrep -R --include="*.py*" -E "from collections.abc import " pandas
-    invgrep -R --include="*.py*" -E "from numpy import nan " pandas
+    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+
+    # Checks for test suite
+    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG
@@ -169,10 +175,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for incorrect sphinx directives' ; echo $MSG
     invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`

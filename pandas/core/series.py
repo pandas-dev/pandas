@@ -55,7 +55,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -2849,14 +2849,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            try:
-                new_values = self._values._from_sequence(new_values)
-            except Exception:
-                # https://github.com/pandas-dev/pandas/issues/22850
-                # pandas has no control over what 3rd-party ExtensionArrays
-                # do in _values_from_sequence. We still want ops to work
-                # though, so we catch any regular Exception.
-                pass
+            new_values = try_cast_to_ea(self._values, new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
@@ -3988,6 +3981,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+
         delegate = self._values
 
         if axis is not None:
@@ -4601,7 +4595,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def notnull(self):
         return super().notnull()
 
-    def dropna(self, axis=0, inplace=False, **kwargs):
+    def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
 
@@ -4614,8 +4608,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             There is only one axis to drop values from.
         inplace : bool, default False
             If True, do operation inplace and return None.
-        **kwargs
-            Not in use.
+        how : str, optional
+            Not in use. Kept for compatibility.
 
         Returns
         -------
@@ -4673,12 +4667,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs.pop("how", None)
-        if kwargs:
-            raise TypeError(
-                "dropna() got an unexpected keyword "
-                'argument "{0}"'.format(list(kwargs.keys())[0])
-            )
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 

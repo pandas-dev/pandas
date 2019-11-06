@@ -227,7 +227,7 @@ cdef class IndexEngine:
     cdef _get_index_values(self):
         return self.vgetter()
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
@@ -236,7 +236,7 @@ cdef class IndexEngine:
     def get_pad_indexer(self, other, limit=None):
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
 
     cdef _check_type(self, object val):
@@ -262,7 +262,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):
@@ -391,7 +391,7 @@ cdef class ObjectEngine(IndexEngine):
     """
     Index Engine for use with object-dtype Index, namely the base class Index
     """
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
 
@@ -418,7 +418,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
@@ -500,11 +500,13 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter()
 
-    cpdef _call_map_locations(self, values):
-        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+    cdef void _call_map_locations(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        Int64Engine._call_map_locations(self, values.view('i8'))
 
-    def _call_monotonic(self, values):
-        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+    cdef _call_monotonic(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals

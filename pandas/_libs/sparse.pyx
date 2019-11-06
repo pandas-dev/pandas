@@ -597,7 +597,7 @@ cdef class BlockIndex(SparseIndex):
 
         result = np.empty(other.npoints, dtype=np.float64)
 
-        for 0 <= i < other.nblocks:
+        for i in range(other.nblocks):
             ocur = olocs[i]
             ocurlen = olens[i]
 
@@ -745,9 +745,6 @@ cdef class BlockUnion(BlockMerge):
             ynblocks = self.x.nblocks
 
         nend = xend[xi]
-
-        # print 'here xi=%d, yi=%d, mode=%d, nend=%d' % (self.xi, self.yi,
-        #                                                mode, nend)
 
         # done with y?
         if yi == ynblocks:

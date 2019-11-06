@@ -44,7 +44,6 @@ from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
-import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
 
 
@@ -359,7 +358,7 @@ def merge_asof(
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., strictly less-than / strictly greater-than)
+          (i.e., strictly less-than / strictly greater-than).
 
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
@@ -1912,7 +1911,7 @@ def _sort_labels(uniques, left, right):
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
@@ -1949,13 +1948,13 @@ def _get_join_keys(llab, rlab, shape, sort):
     return _get_join_keys(llab, rlab, shape, sort)
 
 
-def _should_fill(lname, rname):
+def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 
 
-def _any(x):
+def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
