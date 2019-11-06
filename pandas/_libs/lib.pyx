@@ -125,7 +125,7 @@ def is_scalar(val: object) -> bool:
         - Interval
         - DateOffset
         - Fraction
-        - Number
+        - Number.
 
     Returns
     -------
@@ -867,9 +867,10 @@ def is_list_like(obj: object, allow_sets: bool = True):
 
     Parameters
     ----------
-    obj : The object to check
-    allow_sets : boolean, default True
-        If this parameter is False, sets will not be considered list-like
+    obj : object
+        The object to check.
+    allow_sets : bool, default True
+        If this parameter is False, sets will not be considered list-like.
 
         .. versionadded:: 0.24.0
 

@@ -185,13 +185,14 @@ def concat_categorical(to_concat, axis=0):
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     """
-    Combine list-like of Categorical-like, unioning categories. All
-    categories must have the same dtype.
+    Combine list-like of Categorical-like, unioning categories.
+
+    All categories must have the same dtype.
 
     Parameters
     ----------
-    to_union : list-like of Categorical, CategoricalIndex,
-               or Series with dtype='category'
+    to_union : list-like
+        Categorical, CategoricalIndex, or Series with dtype='category'.
     sort_categories : bool, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
@@ -201,7 +202,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
     Returns
     -------
-    result : Categorical
+    Categorical
 
     Raises
     ------
