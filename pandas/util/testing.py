@@ -1439,7 +1439,8 @@ def assert_equal(
     __tracebackhide__ = True
 
     if isinstance(left, Index):
-        assert isinstance(right, Index)
+        _check_isinstance(left, right, Index)
+        right = Index(right)
         assert_index_equal(left, right, **kwargs)
     elif isinstance(left, Series):
         assert isinstance(right, Series)
