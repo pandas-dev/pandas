@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT
-from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -426,11 +425,6 @@ def test_maybe_promote_datetimetz_with_any_numpy_dtype(
 def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fixture2):
     dtype = DatetimeTZDtype(tz=tz_aware_fixture)
     fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture2)
-
-    from dateutil.tz import tzlocal
-
-    if is_platform_windows() and tz_aware_fixture2 == tzlocal():
-        pytest.xfail("Cannot process fill_value with this dtype, see GH 24310")
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = pd.Series([10 ** 9], dtype=fill_dtype)[0]
