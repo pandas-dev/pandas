@@ -897,7 +897,7 @@ b  2""",
         output = {}
         for name, obj in self._iterate_slices():
             try:
-                # if this function is invalid for this dtype, we will ignore it
+                # if this function is invalid for this dtype, we will ignore it.
                 func(obj[:0])
             except TypeError:
                 continue
@@ -905,7 +905,7 @@ b  2""",
                 raise
             except Exception:
                 # Our function depends on having a non-empty argument
-                #  See test_decimal.test_groupby_agg
+                #  See test_groupby_agg_err_catching
                 pass
 
             result, counts = self.grouper.agg_series(obj, f)
