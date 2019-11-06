@@ -31,6 +31,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthBegin,
     BMonthEnd,
@@ -90,7 +91,7 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
-_ApplyCases = List[Tuple[int, Dict[datetime, datetime]]]
+_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
