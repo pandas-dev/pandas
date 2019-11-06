@@ -111,9 +111,7 @@ def test_orc_reader_basic(dirpath, engine):
         "byte1": np.array([1, 100], dtype="int8"),
         "short1": np.array([1024, 2048], dtype="int16"),
         "int1": np.array([65536, 65536], dtype="int32"),
-        "long1": np.array(
-            [9223372036854775807, 9223372036854775807], dtype="int64"
-        ),
+        "long1": np.array([9223372036854775807, 9223372036854775807], dtype="int64"),
         "float1": np.array([1.0, 2.0], dtype="float32"),
         "double1": np.array([-15.0, -5.0], dtype="float64"),
         "bytes1": np.array([b"\x00\x01\x02\x03\x04", b""], dtype="object"),

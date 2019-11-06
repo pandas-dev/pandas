@@ -80,9 +80,7 @@ class PyArrowImpl(BaseImpl):
         py_file = self.api.input_stream(path)
         orc_file = self.api.orc.ORCFile(py_file)
 
-        result = orc_file.read(
-            columns=columns, **kwargs
-        ).to_pandas()
+        result = orc_file.read(columns=columns, **kwargs).to_pandas()
 
         return result
 
