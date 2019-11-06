@@ -84,8 +84,8 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
     Returns
     -------
-    result : ndarray[int64_t]
-        result is sorted
+    ndarray[int64_t]
+        An ordered ndarray[int64_t]
     """
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -150,9 +150,10 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 @cython.wraparound(False)
 def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
-    compute a 1-d indexer that is an ordering of the passed index,
-    ordered by the groups. This is a reverse of the label
-    factorization process.
+    Compute a 1-d indexer.
+
+    The indexer is an ordering of the passed index,
+    ordered by the groups.
 
     Parameters
     ----------
@@ -161,7 +162,14 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     ngroups: int64
         number of groups
 
-    return a tuple of (1-d indexer ordered by groups, group counts)
+    Returns
+    -------
+        tuple
+            1-d indexer ordered by groups, group counts
+
+    Notes
+    -----
+    This is a reverse of the label factorization process.
     """
 
     cdef:
@@ -391,6 +399,7 @@ def _validate_limit(nobs: int, limit=None) -> int:
     Returns
     -------
     int
+        The limit.
     """
     if limit is None:
         lim = nobs
@@ -669,7 +678,8 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
-    is_monotonic_inc, is_monotonic_dec, is_unique
+    tuple
+        is_monotonic_inc, is_monotonic_dec, is_unique
     """
     cdef:
         Py_ssize_t i, n

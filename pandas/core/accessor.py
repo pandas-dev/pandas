@@ -197,7 +197,7 @@ def _register_accessor(name, cls):
 
 
 _doc = """
-Register a custom accessor on %(klass)s objects.
+Register a custom accessor on {klass} objects.
 
 Parameters
 ----------
@@ -212,7 +212,7 @@ callable
 
 See Also
 --------
-%(others)s
+{others}
 
 Notes
 -----
@@ -268,7 +268,7 @@ Back in an interactive IPython session:
 
 @Appender(
     _doc
-    % dict(
+    .format(
         klass="DataFrame", others=("register_series_accessor, register_index_accessor")
     )
 )
@@ -280,7 +280,7 @@ def register_dataframe_accessor(name):
 
 @Appender(
     _doc
-    % dict(
+    .format(
         klass="Series", others=("register_dataframe_accessor, register_index_accessor")
     )
 )
@@ -292,7 +292,7 @@ def register_series_accessor(name):
 
 @Appender(
     _doc
-    % dict(
+    .format(
         klass="Index", others=("register_dataframe_accessor, register_series_accessor")
     )
 )
