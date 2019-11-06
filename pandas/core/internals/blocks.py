@@ -828,14 +828,6 @@ class Block(PandasObject):
             if lib.is_scalar(value):
                 value = convert_scalar(values, value)
 
-            if (
-                hasattr(value, "dtype")
-                and self.is_categorical_astype(value.dtype)
-                and not is_categorical_dtype(values)
-            ):
-                values[indexer] = value
-                return self.make_block(Categorical(self.values, dtype=value.dtype))
-
         else:
             # current dtype cannot store value, coerce to common dtype
             find_dtype = False
@@ -890,6 +882,14 @@ class Block(PandasObject):
             and arr_value.size == values.size
         ):
             values[indexer] = value
+
+            if self.is_categorical_astype(arr_value.dtype) and not is_categorical_dtype(
+                values
+            ):
+                # GH25495 - If the current dtype is not categorical,
+                # we need to create a new categorical block
+                return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
             try:
 
                 values = values.astype(arr_value.dtype)
