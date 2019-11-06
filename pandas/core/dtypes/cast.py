@@ -339,6 +339,11 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
+    if not is_scalar(fill_value) and not is_object_dtype(dtype):
+        # with object dtype there is nothing to promote, and the user can
+        #  pass pretty much any weird fill_value they like
+        raise ValueError("fill_value must be a scalar")
+
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
@@ -686,7 +691,8 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     dtype : if None, then use the dtype of the values, else coerce to this type
     copy : if True always make a copy even if no upcast is required
     """
-    if not is_scalar(fill_value):
+    if not is_scalar(fill_value) and not is_object_dtype(values.dtype):
+        # We allow arbitrary fill values for object dtype
         raise ValueError("fill_value must be a scalar")
 
     if is_extension_type(values):
