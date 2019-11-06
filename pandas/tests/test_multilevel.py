@@ -1939,7 +1939,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
         expected = df.dtypes.a.b
         result = df.a.b.dtypes
-        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(result, expected)
 
 
 class TestSorted(Base):
