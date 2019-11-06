@@ -52,6 +52,9 @@ jobs:
           TEST_ARGS: "-W error"
           PANDAS_TESTING_MODE: "deprecate"
           EXTRA_APT: "xsel"
+          # https://github.com/pandas-dev/pandas/issues/29432
+          # remove continueOnError
+          continueOnError: true
 
   steps:
     - script: |
