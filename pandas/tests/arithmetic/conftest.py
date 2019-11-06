@@ -31,7 +31,6 @@ def one(request):
 
     Examples
     --------
-
     >>> dti = pd.date_range('2016-01-01', periods=2, freq='H')
     >>> dti
     DatetimeIndex(['2016-01-01 00:00:00', '2016-01-01 01:00:00'],
@@ -39,7 +38,6 @@ def one(request):
     >>> dti + one
     DatetimeIndex(['2016-01-01 01:00:00', '2016-01-01 02:00:00'],
     dtype='datetime64[ns]', freq='H')
-
     """
     return request.param
 
@@ -62,6 +60,15 @@ def zero(request):
     """
     Several types of scalar zeros and length 5 vectors of zeros. For
     testing division by (or of) zero.
+
+    Uses vector of length 5 for broadcasting with `numeric_idx` fixture,
+    which creates numerical Indexes vectors also of length 5.
+
+    Examples
+    --------
+    >>> arr = pd.RangeIndex(5)
+    >>> arr / zeros
+    Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
 
