@@ -41,17 +41,15 @@ def test_excel_table_sheet_by_index(datapath, read_ext):
             pd.read_excel(excel, "asdf")
 
 
+# See issue #29375
 def test_excel_file_warning_with_default_engine(datapath):
     path = datapath("io", "data", "test1.xls")
-    with tm.assert_produces_warning(
-        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
+    with tm.assert_produces_warning(FutureWarning):
         pd.ExcelFile(path)
 
 
+# See issue #29375
 def test_read_excel_warning_with_default_engine(tmpdir, datapath):
     path = datapath("io", "data", "test1.xls")
-    with tm.assert_produces_warning(
-        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
+    with tm.assert_produces_warning(FutureWarning):
         pd.read_excel(path, "Sheet1")
