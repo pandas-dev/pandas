@@ -359,7 +359,8 @@ class TestMultiLevel(Base):
         self.ymd.astype(np.int32).unstack()
 
     def test_unstack_partial(self):
-        # check for regressions on this issue: https://github.com/pandas-dev/pandas/issues/19351
+        # check for regressions on this issue:
+        # https://github.com/pandas-dev/pandas/issues/19351
         # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
         # and the Index levels contain values that are not present in the subset
         result1 = pd.DataFrame(
