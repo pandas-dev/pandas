@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import List, Optional, Type
+from typing import List, Optional, Sequence, Type
 
 import numpy as np
 
@@ -41,7 +41,7 @@ from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import base, grouper
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -62,13 +62,13 @@ class BaseGrouper:
     Parameters
     ----------
     axis : Index
-    groupings : array of grouping
+    groupings : Sequence[Grouping]
         all the grouping instances to handle in this grouper
         for example for grouper list to groupby, need to pass the list
-    sort : boolean, default True
+    sort : bool, default True
         whether this grouper will give sorted result or not
-    group_keys : boolean, default True
-    mutated : boolean, default False
+    group_keys : bool, default True
+    mutated : bool, default False
     indexer : intp array, optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
@@ -79,16 +79,17 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings,
-        sort=True,
-        group_keys=True,
-        mutated=False,
-        indexer=None,
+        groupings: "Sequence[grouper.Grouping]",
+        sort: bool = True,
+        group_keys: bool = True,
+        mutated: bool = False,
+        indexer: Optional[np.ndarray] = None,
     ):
         assert isinstance(axis, Index), axis
+
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self.groupings = groupings
+        self.groupings = groupings  # type: Sequence[grouper.Grouping]
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated

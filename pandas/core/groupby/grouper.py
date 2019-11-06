@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 import warnings
 
 import numpy as np
@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
@@ -228,7 +229,7 @@ class Grouping:
     ----------
     index : Index
     grouper :
-    obj :
+    obj Union[DataFrame, Series]:
     name :
     level :
     observed : bool, default False
@@ -247,16 +248,15 @@ class Grouping:
 
     def __init__(
         self,
-        index,
+        index: Index,
         grouper=None,
-        obj=None,
+        obj: Optional[FrameOrSeries] = None,
         name=None,
         level=None,
-        sort=True,
-        observed=False,
-        in_axis=False,
+        sort: bool = True,
+        observed: bool = False,
+        in_axis: bool = False,
     ):
-
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
@@ -306,7 +306,7 @@ class Grouping:
             self.grouper = grouper._get_grouper()
 
         else:
-            if self.grouper is None and self.name is not None:
+            if self.grouper is None and self.name is not None and self.obj is not None:
                 self.grouper = self.obj[self.name]
 
             elif isinstance(self.grouper, (list, tuple)):
@@ -676,7 +676,7 @@ def _is_label_like(val):
     return isinstance(val, (str, tuple)) or (val is not None and is_scalar(val))
 
 
-def _convert_grouper(axis, grouper):
+def _convert_grouper(axis: Index, grouper):
     if isinstance(grouper, dict):
         return grouper.get
     elif isinstance(grouper, Series):
