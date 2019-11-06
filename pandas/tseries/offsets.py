@@ -36,8 +36,6 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.inference import is_list_like
 
-from pandas.core.tools.datetimes import to_datetime
-
 __all__ = [
     "Day",
     "BusinessDay",
@@ -2752,8 +2750,10 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     offset = to_offset(offset)
 
-    start = to_datetime(start)
-    end = to_datetime(end)
+    start = Timestamp(start)
+    start = start if start is not NaT else None
+    end = Timestamp(end)
+    end = end if end is not NaT else None
 
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)

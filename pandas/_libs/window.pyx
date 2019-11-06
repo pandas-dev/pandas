@@ -69,8 +69,8 @@ def _check_minp(win, minp, N, floor=None) -> int:
     if not util.is_integer_object(minp):
         raise ValueError("min_periods must be an integer")
     if minp > win:
-        raise ValueError("min_periods (%d) must be <= "
-                         "window (%d)" % (minp, win))
+        raise ValueError("min_periods (minp) must be <= "
+                         "window (win)".format(minp=minp, win=win))
     elif minp > N:
         minp = N + 1
     elif minp < 0:

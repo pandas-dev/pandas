@@ -121,7 +121,7 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj_old(ndarray arr):
+def isnaobj_old(arr: ndarray) -> ndarray:
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     defined as being any of:
@@ -156,7 +156,7 @@ def isnaobj_old(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj2d(ndarray arr):
+def isnaobj2d(arr: ndarray) -> ndarray:
     """
     Return boolean mask denoting which elements of a 2-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -198,7 +198,7 @@ def isnaobj2d(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj2d_old(ndarray arr):
+def isnaobj2d_old(arr: ndarray) -> ndarray:
     """
     Return boolean mask denoting which elements of a 2-D array are na-like,
     according to the criteria defined in `checknull_old`:
