@@ -108,7 +108,6 @@ def roll_count(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_
         float64_t val, count_x = 0.0
         int64_t s, e, nobs, N = len(values)
         Py_ssize_t i, j
-        int64_t[:] start, end
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -189,7 +188,6 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
         float64_t sum_x = 0
         int64_t s, e
         int64_t nobs = 0, i, j, N = len(values)
-        int64_t[:] start, end
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -439,8 +437,7 @@ def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[in
         float64_t mean_x = 0, ssqdm_x = 0, nobs = 0,
         float64_t val, prev, delta, mean_x_old
         int64_t s, e
-        Py_ssize_t i, j, N
-        int64_t[:] start, end
+        Py_ssize_t i, j, N = len(values)
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -496,8 +493,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
         float64_t mean_x = 0, ssqdm_x = 0, nobs = 0,
         float64_t val, prev, delta, mean_x_old
         int64_t s, e
-        Py_ssize_t i, j, N
-        ndarray[int64_t] start, end
+        Py_ssize_t i, j, N = len(values)
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -609,7 +605,6 @@ def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
-        int64_t[:] start, end
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -638,7 +633,6 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarra
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
-        ndarray[int64_t] start, end
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -754,9 +748,8 @@ def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, N
+        int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
-        int64_t[:] start, end
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -782,8 +775,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarra
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, N = len(values)
-        ndarray[int64_t] start, end
+        int64_t nobs = 0, i, j, s, e, N = len(values)
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
@@ -832,9 +824,8 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int
         int ret = 0
         skiplist_t *sl
         Py_ssize_t i, j
-        int64_t nobs = 0, N, s, e
+        int64_t nobs = 0, N = len(values), s, e
         int midpoint
-        int64_t[:] start, end
         ndarray[float64_t] output
 
     # we use the Fixed/Variable Indexer here as the
@@ -1222,9 +1213,8 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     cdef:
         float64_t val, prev, midpoint, idx_with_fraction
         skiplist_t *skiplist
-        int64_t nobs = 0, i, j, s, e, N
+        int64_t nobs = 0, i, j, s, e, N = len(values)
         Py_ssize_t idx
-        int64_t[:] start, end
         ndarray[float64_t] output
         float64_t vlow, vhigh
         InterpolationType interpolation_type
@@ -1336,8 +1326,7 @@ def roll_generic_fixed(object obj,
         ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
-        int64_t nobs = 0, i, j, s, e, N
-        int64_t[:] start, end
+        int64_t nobs = 0, i, j, s, e, N = len(start)
 
     n = len(obj)
     if n == 0:
@@ -1409,8 +1398,7 @@ def roll_generic_variable(object obj,
         ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
-        int64_t nobs = 0, i, j, s, e, N
-        ndarray[int64_t] start, end
+        int64_t nobs = 0, i, j, s, e, N = len(start)
 
     n = len(obj)
     if n == 0:
