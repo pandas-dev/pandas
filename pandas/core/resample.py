@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError
+from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
-class Resampler(_GroupBy):
+class Resampler(_GroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
