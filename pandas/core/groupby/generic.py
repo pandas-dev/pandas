@@ -21,6 +21,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -369,7 +370,7 @@ class SeriesGroupBy(GroupBy):
             # GH #6265
             return Series([], name=self._selection_name, index=keys)
 
-        def _get_index():
+        def _get_index() -> Index:
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
@@ -462,7 +463,7 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func, func_nm):
+    def _transform_fast(self, func, func_nm) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
@@ -512,7 +513,7 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notna(x, *args, **kwargs):
+        def true_and_notna(x, *args, **kwargs) -> bool:
             b = wrapper(x, *args, **kwargs)
             return b and notna(b)
 
@@ -526,7 +527,7 @@ class SeriesGroupBy(GroupBy):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True) -> Series:
         """
         Return number of unique elements in the group.
 
@@ -719,7 +720,7 @@ class SeriesGroupBy(GroupBy):
             out = ensure_int64(out)
         return Series(out, index=mi, name=self._selection_name)
 
-    def count(self):
+    def count(self) -> Series:
         """
         Compute count of group, excluding missing values.
 
@@ -767,8 +768,6 @@ class SeriesGroupBy(GroupBy):
 class DataFrameGroupBy(GroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
-
-    _block_agg_axis = 1
 
     _agg_see_also_doc = dedent(
         """
@@ -944,19 +943,21 @@ class DataFrameGroupBy(GroupBy):
 
                 yield label, values
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
         new_items, new_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
         return self._wrap_agged_blocks(new_items, new_blocks)
 
-    _block_agg_axis = 0
-
-    def _cython_agg_blocks(self, how, alt=None, numeric_only=True, min_count=-1):
+    def _cython_agg_blocks(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
         # TODO: the actual managing of mgr_locs is a PITA
         # here, it should happen via BlockManager.combine
 
-        data, agg_axis = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -971,7 +972,7 @@ class DataFrameGroupBy(GroupBy):
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
-                    block.values, how, axis=agg_axis, min_count=min_count
+                    block.values, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1000,12 +1001,13 @@ class DataFrameGroupBy(GroupBy):
                     # continue and exclude the block
                     deleted_items.append(locs)
                     continue
-
-                # unwrap DataFrame to get array
-                assert len(result._data.blocks) == 1
-                result = result._data.blocks[0].values
-                if result.ndim == 1 and isinstance(result, np.ndarray):
-                    result = result.reshape(1, -1)
+                else:
+                    result = cast(DataFrame, result)
+                    # unwrap DataFrame to get array
+                    assert len(result._data.blocks) == 1
+                    result = result._data.blocks[0].values
+                    if isinstance(result, np.ndarray) and result.ndim == 1:
+                        result = result.reshape(1, -1)
 
             finally:
                 assert not isinstance(result, DataFrame)
@@ -1081,11 +1083,11 @@ class DataFrameGroupBy(GroupBy):
 
         return self._wrap_frame_output(result, obj)
 
-    def _aggregate_item_by_item(self, func, *args, **kwargs):
+    def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = OrderedDict()
+        result = OrderedDict()  # type: dict
         cannot_agg = []
         errors = None
         for item in obj:
@@ -1291,12 +1293,12 @@ class DataFrameGroupBy(GroupBy):
             # values are not series or array-like but scalars
             else:
                 # only coerce dates if we find at least 1 datetime
-                coerce = any(isinstance(x, Timestamp) for x in values)
+                should_coerce = any(isinstance(x, Timestamp) for x in values)
                 # self._selection_name not passed through to Series as the
                 # result should not take the name of original selection
                 # of columns
                 return Series(values, index=key_index)._convert(
-                    datetime=True, coerce=coerce
+                    datetime=True, coerce=should_coerce
                 )
 
         else:
@@ -1391,7 +1393,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._transform_fast(result, obj, func)
 
-    def _transform_fast(self, result, obj, func_nm):
+    def _transform_fast(self, result: DataFrame, obj: DataFrame, func_nm) -> DataFrame:
         """
         Fast transform path for aggregations
         """
@@ -1451,7 +1453,7 @@ class DataFrameGroupBy(GroupBy):
 
         return path, res
 
-    def _transform_item_by_item(self, obj, wrapper):
+    def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
         # iterate through columns
         output = {}
         inds = []
@@ -1536,7 +1538,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._apply_filter(indices, dropna)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
@@ -1571,7 +1573,7 @@ class DataFrameGroupBy(GroupBy):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_frame_output(self, result, obj):
+    def _wrap_frame_output(self, result, obj) -> DataFrame:
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
@@ -1582,9 +1584,9 @@ class DataFrameGroupBy(GroupBy):
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data, 1
+            return obj.T._data
         else:
-            return obj._data, 1
+            return obj._data
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
@@ -1622,7 +1624,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
+    def _wrap_transformed_output(self, output, names=None) -> DataFrame:
         return DataFrame(output, index=self.obj.index)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -1670,7 +1672,7 @@ class DataFrameGroupBy(GroupBy):
         DataFrame
             Count of values within each group.
         """
-        data, _ = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
@@ -1687,7 +1689,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True):
         """
         Return DataFrame with number of distinct observations per group for
         each column.
@@ -1756,7 +1758,7 @@ class DataFrameGroupBy(GroupBy):
     boxplot = boxplot_frame_groupby
 
 
-def _is_multi_agg_with_relabel(**kwargs):
+def _is_multi_agg_with_relabel(**kwargs) -> bool:
     """
     Check whether kwargs passed to .agg look like multi-agg with relabeling.
 
@@ -1778,7 +1780,9 @@ def _is_multi_agg_with_relabel(**kwargs):
     >>> _is_multi_agg_with_relabel()
     False
     """
-    return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and kwargs
+    return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and (
+        len(kwargs) > 0
+    )
 
 
 def _normalize_keyword_aggregation(kwargs):
