@@ -164,8 +164,8 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Returns
     -------
-        tuple
-            1-d indexer ordered by groups, group counts
+    tuple
+        1-d indexer ordered by groups, group counts
 
     Notes
     -----
