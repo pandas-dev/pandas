@@ -5056,7 +5056,8 @@ class NDFrame(PandasObject, SelectionMixin):
             n = 1
         elif frac is not None and frac > 1 and not replace:
             raise ValueError(
-                "Replace has to be set to `True` when upsampling the population `frac` > 1"
+                "Replace has to be set to `True` when "
+                "upsampling the population `frac` > 1"
             )
         elif n is not None and frac is None and n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
