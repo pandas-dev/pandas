@@ -587,6 +587,14 @@ class TestSeriesMap:
         expected = Series(["stuff", "blank", "blank"], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
+    def test_map_dict_na_key(self):
+        # https://github.com/pandas-dev/pandas/issues/17648
+        # Checks that np.nan key is appropriately mapped
+        s = Series([1, 2, np.nan])
+        expected = Series(["a", "b", "c"])
+        result = s.map({1: "a", 2: "b", np.nan: "c"})
+        tm.assert_series_equal(result, expected)
+
     def test_map_dict_subclass_with_missing(self):
         """
         Test Series.map with a dictionary subclass that defines __missing__,

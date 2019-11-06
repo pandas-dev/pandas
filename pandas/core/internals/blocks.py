@@ -1283,6 +1283,10 @@ class Block(PandasObject):
     def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods, possibly upcast """
 
+        if not lib.is_scalar(fill_value):
+            # We could go further and require e.g. self._can_hold_element(fv)
+            raise ValueError("fill_value must be a scalar")
+
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
         new_values, fill_value = maybe_upcast(self.values, fill_value)

@@ -31,7 +31,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import _factorize_from_iterables
+from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -440,7 +440,7 @@ class MultiIndex(Index):
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError("all arrays must be same length")
 
-        codes, levels = _factorize_from_iterables(arrays)
+        codes, levels = factorize_from_iterables(arrays)
         if names is _no_default_names:
             names = [getattr(arr, "name", None) for arr in arrays]
 
@@ -562,7 +562,7 @@ class MultiIndex(Index):
         elif is_iterator(iterables):
             iterables = list(iterables)
 
-        codes, levels = _factorize_from_iterables(iterables)
+        codes, levels = factorize_from_iterables(iterables)
         if names is _no_default_names:
             names = [getattr(it, "name", None) for it in iterables]
 
@@ -737,19 +737,18 @@ class MultiIndex(Index):
 
     def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
         """
-        Set new levels on MultiIndex. Defaults to returning
-        new index.
+        Set new levels on MultiIndex. Defaults to returning new index.
 
         Parameters
         ----------
         levels : sequence or list of sequence
-            new level(s) to apply
+            New level(s) to apply.
         level : int, level name, or sequence of int/level names (default None)
-            level(s) to set (None for all levels)
+            Level(s) to set (None for all levels).
         inplace : bool
-            if True, mutates in place
+            If True, mutates in place.
         verify_integrity : bool (default True)
-            if True, checks that levels and codes are compatible
+            If True, checks that levels and codes are compatible.
 
         Returns
         -------
@@ -2180,7 +2179,9 @@ class MultiIndex(Index):
             mask = indexer == -1
             if mask.any():
                 if errors != "ignore":
-                    raise ValueError("codes %s not contained in axis" % codes[mask])
+                    raise ValueError(
+                        "codes {codes} not contained in axis".format(codes=codes[mask])
+                    )
         except Exception:
             pass
 

@@ -242,8 +242,8 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
@@ -333,7 +333,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -601,7 +601,7 @@ timedelta}, default 'raise'
     @property
     def dayofweek(self):
         """
-        Return day of whe week.
+        Return day of the week.
         """
         return self.weekday()
 

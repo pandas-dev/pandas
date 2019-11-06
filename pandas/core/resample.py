@@ -361,8 +361,6 @@ class Resampler(_GroupBy):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except AssertionError:
-            raise
         except DataError:
             # we have a non-reducing function; try to evaluate
             result = grouped.apply(how, *args, **kwargs)
@@ -1450,7 +1448,7 @@ class TimeGrouper(Grouper):
         raise TypeError(
             "Only valid with DatetimeIndex, "
             "TimedeltaIndex or PeriodIndex, "
-            "but got an instance of %r" % type(ax).__name__
+            "but got an instance of '{typ}'".format(typ=type(ax).__name__)
         )
 
     def _get_grouper(self, obj, validate=True):
@@ -1463,7 +1461,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         if len(ax) == 0:
@@ -1539,7 +1537,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         if not len(ax):
@@ -1564,7 +1562,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         freq = self.freq
@@ -1586,7 +1584,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         memb = ax.asfreq(self.freq, how=self.convention)
