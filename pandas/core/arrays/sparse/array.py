@@ -1581,11 +1581,6 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
         indices = mask.nonzero()[0].astype(np.int32)
 
     index = _make_index(length, indices, kind)
-
-    if mask.dtype == object:
-        # numpy 1.18 requires that we do this explicitly
-        mask = mask.astype(bool)
-
     sparsified_values = arr[mask]
     if dtype is not None:
         sparsified_values = astype_nansafe(sparsified_values, dtype=dtype)
