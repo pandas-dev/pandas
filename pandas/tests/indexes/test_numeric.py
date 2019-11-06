@@ -1189,7 +1189,7 @@ def test_range_float_union_dtype():
     tm.assert_index_equal(result, expected)
 
 
-def test_uint_index_not_converted_to_float64():
+def test_uint_index_does_not_convert_to_float64():
     # https://github.com/pandas-dev/pandas/issues/28279
     bug = pd.Series(
         [0, 1, 2, 3, 4],
