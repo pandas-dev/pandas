@@ -25,8 +25,6 @@ class UnsortedIndexError(KeyError):
     """
     Error raised when attempting to get a slice of a MultiIndex,
     and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
     """
 
 
@@ -176,7 +174,7 @@ class AbstractMethodError(NotImplementedError):
         self.methodtype = methodtype
         self.class_instance = class_instance
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:

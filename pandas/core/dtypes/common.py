@@ -45,7 +45,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_re_compilable,
     is_scalar,
     is_sequence,
-    is_string_like,
 )
 
 from pandas._typing import ArrayLike
@@ -152,7 +151,7 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     ----------
     arr : array-like
           The array whose data type we want to enforce.
-    copy: boolean
+    copy: bool
           Whether to copy the original array or reuse
           it in place, if possible.
 
@@ -1383,8 +1382,8 @@ def is_numeric_v_string_like(a, b):
     is_a_string_array = is_a_array and is_string_like_dtype(a)
     is_b_string_array = is_b_array and is_string_like_dtype(b)
 
-    is_a_scalar_string_like = not is_a_array and is_string_like(a)
-    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
+    is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
     return (
         (is_a_numeric_array and is_b_scalar_string_like)

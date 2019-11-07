@@ -3,7 +3,6 @@ from itertools import permutations
 import struct
 
 import numpy as np
-from numpy import nan
 from numpy.random import RandomState
 import pytest
 
@@ -27,44 +26,7 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
-
-
-class TestMatch:
-    def test_ints(self):
-        values = np.array([0, 2, 1])
-        to_match = np.array([0, 1, 2, 2, 0, 1, 3, 0])
-
-        result = algos.match(to_match, values)
-        expected = np.array([0, 2, 1, 1, 0, 2, -1, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(to_match, values, np.nan))
-        expected = Series(np.array([0, 2, 1, 1, 0, 2, np.nan, 0]))
-        tm.assert_series_equal(result, expected)
-
-        s = Series(np.arange(5), dtype=np.float32)
-        result = algos.match(s, [2, 4])
-        expected = np.array([-1, -1, 0, -1, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(s, [2, 4], np.nan))
-        expected = Series(np.array([np.nan, np.nan, 0, np.nan, 1]))
-        tm.assert_series_equal(result, expected)
-
-    def test_strings(self):
-        values = ["foo", "bar", "baz"]
-        to_match = ["bar", "foo", "qux", "foo", "bar", "baz", "qux"]
-
-        result = algos.match(to_match, values)
-        expected = np.array([1, 0, -1, 0, 1, 2, -1], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = Series(algos.match(to_match, values, np.nan))
-        expected = Series(np.array([1, 0, np.nan, 0, 1, 2, np.nan]))
-        tm.assert_series_equal(result, expected)
 
 
 class TestFactorize:
@@ -346,7 +308,7 @@ class TestFactorize:
         labels, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
             expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
-            expected_uniques = safe_sort(uniques)
+            expected_uniques = algos.safe_sort(uniques)
         else:
             expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
             expected_uniques = uniques
@@ -768,7 +730,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self):
+            def __eq__(self, other):
                 return False
 
             def __hash__(self):
@@ -1620,14 +1582,14 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d_float64(arr)
+            result = libalgos.rank_1d(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
-            exp[mask] = nan
-            assert_almost_equal(result, exp)
+            exp[mask] = np.nan
+            tm.assert_almost_equal(result, exp)
 
-        _check(np.array([nan, nan, 5.0, 5.0, 5.0, nan, 1, 2, 3, nan]))
-        _check(np.array([4.0, nan, 5.0, 5.0, 5.0, nan, 1, 2, 4.0, nan]))
+        _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
+        _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
     def test_basic(self):
         exp = np.array([1, 2], dtype=np.float64)

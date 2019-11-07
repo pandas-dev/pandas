@@ -263,6 +263,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
+    _deprecations = PandasObject._deprecations | frozenset(["get_values"])
 
     def __init__(
         self,
@@ -1514,7 +1515,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{self}\nFill: {fill}\n{index}".format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),

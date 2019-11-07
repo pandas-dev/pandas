@@ -456,6 +456,14 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
+    def test_nested_flattening_consistent(self):
+        # see gh-21537
+        df1 = json_normalize([{"A": {"B": 1}}])
+        df2 = json_normalize({"dummy": [{"A": {"B": 1}}]}, "dummy")
+
+        # They should be the same.
+        tm.assert_frame_equal(df1, df2)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -545,7 +553,7 @@ class TestNestedToRecord:
 
     def test_nonetype_top_level_bottom_level(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {
@@ -577,7 +585,7 @@ class TestNestedToRecord:
 
     def test_nonetype_multiple_levels(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {

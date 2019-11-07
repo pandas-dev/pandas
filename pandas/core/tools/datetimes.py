@@ -601,9 +601,6 @@ def to_datetime(
 
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil behavior).
-
-        .. versionadded:: 0.16.1
-
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
@@ -637,7 +634,7 @@ def to_datetime(
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
-    origin : scalar, default is 'unix'
+    origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
 
@@ -647,8 +644,6 @@ def to_datetime(
           at noon on January 1, 4713 BC.
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
-
-        .. versionadded:: 0.20.0
     cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate

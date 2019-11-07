@@ -188,7 +188,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
+def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -220,9 +220,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
         can strip the hyphen by specifying `sep='-'`
-
-        .. versionadded:: 0.20.0
-
     suffix : str, default '\\d+'
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
@@ -230,8 +227,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         suffixes, for example, if your wide variables are of the form
         A-one, B-two,.., and you have an unrelated column A-rating, you can
         ignore the last one by specifying `suffix='(!?one|two)'`
-
-        .. versionadded:: 0.20.0
 
         .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.
@@ -424,7 +419,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
-    def melt_stub(df, stub, i, j, value_vars, sep):
+    def melt_stub(df, stub, i, j, value_vars, sep: str):
         newdf = melt(
             df,
             id_vars=i,
@@ -461,8 +456,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r"\d+"):
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
-    melted = melted[0].join(melted[1:], how="outer")
+    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
+    melted = _melted[0].join(_melted[1:], how="outer")
 
     if len(i) == 1:
         new = df[id_vars].set_index(i).join(melted)
