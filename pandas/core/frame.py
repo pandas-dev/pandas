@@ -2436,7 +2436,7 @@ class DataFrame(NDFrame):
         exceeds_info_cols = col_count > max_cols
 
         def _verbose_repr():
-            lines.append("Data columns (total %d columns):" % len(self.columns))
+            lines.append("Data columns (total {} columns):".format(len(self.columns)))
 
             id_head = " # "
             column_head = "Column"
