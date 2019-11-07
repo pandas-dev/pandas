@@ -39,9 +39,9 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMix
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.window.common import (
+    WindowGroupByMixin,
     _doc_template,
     _flex_binary_moment,
-    _GroupByMixin,
     _offset,
     _require_min_periods,
     _shared_docs,
@@ -1917,7 +1917,7 @@ class Rolling(_Rolling_and_Expanding):
 Rolling.__doc__ = Window.__doc__
 
 
-class RollingGroupby(_GroupByMixin, Rolling):
+class RollingGroupby(WindowGroupByMixin, Rolling):
     """
     Provide a rolling groupby implementation.
     """
