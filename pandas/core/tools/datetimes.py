@@ -655,7 +655,7 @@ def to_datetime(
 
     Returns
     -------
-    datetime 
+    datetime
         If parsing succeeded.
         Return type depends on input:
 

@@ -130,8 +130,7 @@ _read_excel_doc = (
         Additional strings to recognize as NA/NaN. If dict passed, specific
         per-column NA values. By default the following values are interpreted
         as NaN: '"""
-        + fill("', '".join(sorted(_NA_VALUES)), 70,
-        subsequent_indent="        ") + """'.
+        + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="        ") + """'.
     keep_default_na : bool, default True
         Whether or not to include the default NaN values when parsing the data.
         Depending on whether `na_values` is passed in, the behavior is as follows:
