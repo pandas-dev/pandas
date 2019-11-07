@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -1120,9 +1119,9 @@ class _MergeOperation:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
-            elif is_datetimelike(lk) and not is_datetimelike(rk):
+            elif needs_i8_conversion(lk) and not needs_i8_conversion(rk):
                 raise ValueError(msg)
-            elif not is_datetimelike(lk) and is_datetimelike(rk):
+            elif not needs_i8_conversion(lk) and needs_i8_conversion(rk):
                 raise ValueError(msg)
             elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
@@ -1637,7 +1636,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetimelike(lt):
+            if needs_i8_conversion(lt):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
