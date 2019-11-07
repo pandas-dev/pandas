@@ -26,9 +26,7 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 class TestFactorize:
@@ -310,7 +308,7 @@ class TestFactorize:
         labels, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
             expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
-            expected_uniques = safe_sort(uniques)
+            expected_uniques = algos.safe_sort(uniques)
         else:
             expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
             expected_uniques = uniques
@@ -1588,7 +1586,7 @@ class TestRank:
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
-            assert_almost_equal(result, exp)
+            tm.assert_almost_equal(result, exp)
 
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
