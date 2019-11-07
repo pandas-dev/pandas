@@ -4968,7 +4968,6 @@ class NDFrame(PandasObject, SelectionMixin):
         dog          4          0                  2
         fish         0          0                  8
 
-
         An upsample sample of the ``DataFrame`` with replacement:
         Note that `replace` parameter has to be `True` for `frac` parameter > 1.
 
