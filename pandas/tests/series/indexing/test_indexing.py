@@ -391,6 +391,22 @@ def test_setslice(datetime_series):
     assert sl.index.is_unique is True
 
 
+def test_2d_to_1d_assignment_raises():
+    x = np.random.randn(2, 2)
+    y = pd.Series(range(2))
+
+    msg = (
+        r"shape mismatch: value array of shape \(2,2\) could not be"
+        r" broadcast to indexing result of shape \(2,\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        y.loc[range(2)] = x
+
+    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2\)"
+    with pytest.raises(ValueError, match=msg):
+        y.loc[:] = x
+
+
 # FutureWarning from NumPy about [slice(None, 5).
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(datetime_series):
