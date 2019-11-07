@@ -2732,38 +2732,6 @@ class DataFrame(NDFrame):
     T = property(transpose)
 
     # ----------------------------------------------------------------------
-    # Picklability
-
-    # legacy pickle formats
-    def _unpickle_frame_compat(self, state):  # pragma: no cover
-        if len(state) == 2:  # pragma: no cover
-            series, idx = state
-            columns = sorted(series)
-        else:
-            series, cols, idx = state
-            columns = com._unpickle_array(cols)
-
-        index = com._unpickle_array(idx)
-        self._data = self._init_dict(series, index, columns, None)
-
-    def _unpickle_matrix_compat(self, state):  # pragma: no cover
-        # old unpickling
-        (vals, idx, cols), object_state = state
-
-        index = com._unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols), copy=False)
-
-        if object_state is not None:
-            ovals, _, ocols = object_state
-            objects = DataFrame(
-                ovals, index=index, columns=com._unpickle_array(ocols), copy=False
-            )
-
-            dm = dm.join(objects)
-
-        self._data = dm._data
-
-    # ----------------------------------------------------------------------
     # Indexing Methods
 
     def _ixs(self, i: int, axis: int = 0):
