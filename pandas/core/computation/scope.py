@@ -9,7 +9,7 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import Mapping
+from typing import Mapping, Tuple
 
 import numpy as np
 
@@ -113,7 +113,7 @@ class Scope:
         level: int,
         global_dict=None,
         local_dict=None,
-        resolvers: tuple = (),
+        resolvers: Tuple = (),
         target=None,
     ):
         self.level = level + 1
