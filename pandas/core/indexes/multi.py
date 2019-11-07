@@ -2210,6 +2210,7 @@ class MultiIndex(Index):
         codes : array-like
             Must be a list of tuples
         level : int or level name, default None
+        errors : str, default 'raise'
 
         Returns
         -------
@@ -2218,18 +2219,11 @@ class MultiIndex(Index):
         if level is not None:
             return self._drop_from_level(codes, level)
 
-        try:
-            if not isinstance(codes, (np.ndarray, Index)):
+        if not isinstance(codes, (np.ndarray, Index)):
+            try:
                 codes = com.index_labels_to_array(codes)
-            indexer = self.get_indexer(codes)
-            mask = indexer == -1
-            if mask.any():
-                if errors != "ignore":
-                    raise ValueError(
-                        "codes {codes} not contained in axis".format(codes=codes[mask])
-                    )
-        except Exception:
-            pass
+            except ValueError:
+                pass
 
         inds = []
         for level_codes in codes:
