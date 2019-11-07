@@ -1,5 +1,5 @@
 numpy>=1.15
-python-dateutil>=2.6.1
+python-dateutil>=2.6.1,<=2.8.0
 pytz
 asv
 cython>=0.29.13
