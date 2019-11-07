@@ -106,7 +106,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -120,7 +120,7 @@ class BaseGrouper:
         for key, (i, group) in zip(keys, splitter):
             yield key, group
 
-    def _get_splitter(self, data, axis=0):
+    def _get_splitter(self, data: NDFrame, axis: int = 0) -> "DataSplitter":
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -142,7 +142,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data, axis: int = 0):
+    def apply(self, f, data: NDFrame, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -157,7 +157,7 @@ class BaseGrouper:
 
         elif (
             com.get_callable_name(f) not in base.plotting_methods
-            and hasattr(splitter, "fast_apply")
+            and splitter.fast_apply is not None
             and axis == 0
             # with MultiIndex, apply_frame_axis0 would raise InvalidApply
             # TODO: can we make this check prettier?
@@ -292,7 +292,7 @@ class BaseGrouper:
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
@@ -607,7 +607,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj, func):
+    def _aggregate_series_fast(self, obj: Series, func):
         # At this point we have already checked that obj.index is not a MultiIndex
         #  and that obj is backed by an ndarray, not ExtensionArray
         func = self._is_builtin_func(func)
@@ -623,7 +623,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj, func):
+    def _aggregate_series_pure_python(self, obj: Series, func):
 
         group_index, _, ngroups = self.group_info
 
@@ -682,7 +682,12 @@ class BinGrouper(BaseGrouper):
     """
 
     def __init__(
-        self, bins, binlabels, filter_empty=False, mutated=False, indexer=None
+        self,
+        bins,
+        binlabels,
+        filter_empty: bool = False,
+        mutated: bool = False,
+        indexer=None,
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
@@ -825,7 +830,9 @@ def _is_indexed_like(obj, axes) -> bool:
 
 
 class DataSplitter:
-    def __init__(self, data, labels, ngroups, axis: int = 0):
+    fast_apply = None
+
+    def __init__(self, data: NDFrame, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
         self.ngroups = ngroups
@@ -856,7 +863,7 @@ class DataSplitter:
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self):
+    def _get_sorted_data(self) -> NDFrame:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice):
@@ -864,7 +871,7 @@ class DataSplitter:
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         return sdata._get_values(slice_obj)
 
 
@@ -876,14 +883,14 @@ class FrameSplitter(DataSplitter):
         sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data: NDFrame, *args, **kwargs):
+def get_splitter(data: NDFrame, *args, **kwargs) -> DataSplitter:
     if isinstance(data, Series):
         klass = SeriesSplitter  # type: Type[DataSplitter]
     else:
