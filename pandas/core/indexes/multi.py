@@ -1981,11 +1981,11 @@ class MultiIndex(Index):
         return result
 
     @property
-    def nlevels(self):
+    def nlevels(self) -> int:
         """
         Integer number of levels in this MultiIndex.
         """
-        return len(self.levels)
+        return len(self._levels)
 
     @property
     def levshape(self):
