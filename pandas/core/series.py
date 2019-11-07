@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_string_like,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -4538,7 +4537,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # passed as second argument (while the first is the same)
             maybe_sep = args[1]
 
-            if not (is_string_like(maybe_sep) and len(maybe_sep) == 1):
+            if not (isinstance(maybe_sep, str) and len(maybe_sep) == 1):
                 # old signature
                 warnings.warn(
                     "The signature of `Series.to_csv` was aligned "
