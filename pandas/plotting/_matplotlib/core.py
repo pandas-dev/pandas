@@ -1257,9 +1257,9 @@ class AreaPlot(LinePlot):
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
         line_kwds.pop("label")
-        
+
         # need to replace "step" argument with equivalent "drawstyle"
-        if "step" in line_kwds:            
+        if "step" in line_kwds:
             line_kwds["drawstyle"] = "steps-" + line_kwds["step"]
             line_kwds.pop("step")
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
