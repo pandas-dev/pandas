@@ -8,13 +8,13 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "va
 class FrameOps:
 
     params = [ops, ["float", "int"], [0, 1], [True, False]]
-    param_names = ["op", "dtype", "axis", "use_bottleneck"]
+    param_names = ["op", "dtype", "axis"]
 
-    def setup(self, op, dtype, axis, use_bottleneck):
+    def setup(self, op, dtype, axis):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
         self.df_func = getattr(df, op)
 
-    def time_op(self, op, dtype, axis, use_bottleneck):
+    def time_op(self, op, dtype, axis):
         self.df_func(axis=axis)
 
 
@@ -43,11 +43,11 @@ class SeriesOps:
     params = [ops, ["float", "int"], [True, False]]
     param_names = ["op", "dtype"]
 
-    def setup(self, op, dtype, use_bottleneck):
+    def setup(self, op, dtype):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
         self.s_func = getattr(s, op)
 
-    def time_op(self, op, dtype, use_bottleneck):
+    def time_op(self, op, dtype):
         self.s_func()
 
 
@@ -92,7 +92,7 @@ class Correlation:
     params = [["spearman", "kendall", "pearson"], [True, False]]
     param_names = ["method"]
 
-    def setup(self, method, use_bottleneck):
+    def setup(self, method):
         self.df = pd.DataFrame(np.random.randn(500, 15))
         self.df2 = pd.DataFrame(np.random.randn(500, 15))
         self.df_wide = pd.DataFrame(np.random.randn(500, 100))
@@ -100,25 +100,25 @@ class Correlation:
         self.s = pd.Series(np.random.randn(500))
         self.s2 = pd.Series(np.random.randn(500))
 
-    def time_corr(self, method, use_bottleneck):
+    def time_corr(self, method):
         self.df.corr(method=method)
 
-    def time_corr_wide(self, method, use_bottleneck):
+    def time_corr_wide(self, method):
         self.df_wide.corr(method=method)
 
-    def time_corr_wide_nans(self, method, use_bottleneck):
+    def time_corr_wide_nans(self, method):
         self.df_wide_nans.corr(method=method)
 
-    def peakmem_corr_wide(self, method, use_bottleneck):
+    def peakmem_corr_wide(self, method):
         self.df_wide.corr(method=method)
 
-    def time_corr_series(self, method, use_bottleneck):
+    def time_corr_series(self, method):
         self.s.corr(self.s2, method=method)
 
-    def time_corrwith_cols(self, method, use_bottleneck):
+    def time_corrwith_cols(self, method):
         self.df.corrwith(self.df2, method=method)
 
-    def time_corrwith_rows(self, method, use_bottleneck):
+    def time_corrwith_rows(self, method):
         self.df.corrwith(self.df2, axis=1, method=method)
 
 
@@ -127,11 +127,11 @@ class Covariance:
     params = [[True, False]]
     param_names = []
 
-    def setup(self, use_bottleneck):
+    def setup(self):
         self.s = pd.Series(np.random.randn(100000))
         self.s2 = pd.Series(np.random.randn(100000))
 
-    def time_cov_series(self, use_bottleneck):
+    def time_cov_series(self):
         self.s.cov(self.s2)
 
 
