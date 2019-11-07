@@ -815,6 +815,19 @@ class TestDataFrameDataTypes:
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_df_where_with_category(self):
+        # GH 16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, True], [False, True, True]])
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        expected = df.A.where(mask[:, 0])
+        result = df.A.where(mask[:, 0], other=None)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "dtype", [{100: "float64", 200: "uint64"}, "category", "float64"]
     )
