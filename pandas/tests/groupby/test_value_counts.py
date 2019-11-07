@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
 import pandas.util.testing as tm
 
 
@@ -79,3 +79,31 @@ def test_series_groupby_value_counts(
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
     tm.assert_series_equal(left.sort_index(), right.sort_index())
+
+
+def test_series_groupby_value_counts_with_grouper():
+    # GH28479
+    df = DataFrame(
+        {
+            "Timestamp": [
+                1565083561,
+                1565083561 + 86400,
+                1565083561 + 86500,
+                1565083561 + 86400 * 2,
+                1565083561 + 86400 * 3,
+                1565083561 + 86500 * 3,
+                1565083561 + 86400 * 4,
+            ],
+            "Food": ["apple", "apple", "banana", "banana", "orange", "orange", "pear"],
+        }
+    ).drop([3])
+
+    df["Datetime"] = to_datetime(df["Timestamp"].apply(lambda t: str(t)), unit="s")
+    dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
+
+    # have to sort on index because of unstable sort on values xref GH9212
+    result = dfg["Food"].value_counts().sort_index()
+    expected = dfg["Food"].apply(Series.value_counts).sort_index()
+    expected.index.names = result.index.names
+
+    tm.assert_series_equal(result, expected)
