@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Type
+from typing import Dict, List, Tuple, Type
 
 import numpy as np
 import pytest
@@ -31,6 +31,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthBegin,
     BMonthEnd,
@@ -90,6 +91,7 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
+_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
@@ -741,7 +743,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             BDay(),
@@ -2629,7 +2631,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CDay(),
@@ -2876,7 +2878,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -3025,7 +3027,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthBegin(),
