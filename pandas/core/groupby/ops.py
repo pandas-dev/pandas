@@ -90,11 +90,15 @@ class BaseGrouper:
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self.groupings = list(groupings)  # type: List[grouper.Grouping]
+        self._groupings = list(groupings)  # type: List[grouper.Grouping]
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+
+    @property
+    def groupings(self) -> List["grouper.Grouping"]:
+        return self._groupings
 
     @property
     def shape(self):
