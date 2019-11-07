@@ -19,7 +19,7 @@ import sys
 
 import yaml
 
-EXCLUDE = {"python=3"}
+EXCLUDE = {"python"}
 RENAME = {"pytables": "tables", "pyqt": "pyqt5", "dask-core": "dask"}
 
 
@@ -33,15 +33,15 @@ def conda_package_to_pip(package):
     - A package requiring a specific version, in conda is defined with a single
       equal (e.g. ``pandas=1.0``) and in pip with two (e.g. ``pandas==1.0``)
     """
-    if package in EXCLUDE:
-        return
-
     package = re.sub("(?<=[^<>])=", "==", package).strip()
+
     for compare in ("<=", ">=", "=="):
         if compare not in package:
             continue
 
         pkg, version = package.split(compare)
+        if pkg in EXCLUDE:
+            return
 
         if pkg in RENAME:
             return "".join((RENAME[pkg], compare, version))
