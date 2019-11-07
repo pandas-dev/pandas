@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Optional, Tuple
+from typing import Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -134,7 +134,7 @@ class Grouper:
         """
 
         self._set_grouper(obj)
-        self.grouper, exclusions, self.obj = _get_grouper(
+        self.grouper, exclusions, self.obj = get_grouper(
             self.obj,
             [self.key],
             axis=self.axis,
@@ -429,7 +429,7 @@ class Grouping:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
-def _get_grouper(
+def get_grouper(
     obj: NDFrame,
     key=None,
     axis: int = 0,
@@ -438,9 +438,9 @@ def _get_grouper(
     observed=False,
     mutated=False,
     validate=True,
-):
+) -> Tuple[BaseGrouper, List[Hashable], NDFrame]:
     """
-    create and return a BaseGrouper, which is an internal
+    Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
     This may be composed of multiple Grouping objects, indicating
     multiple groupers
@@ -456,9 +456,9 @@ def _get_grouper(
     a BaseGrouper.
 
     If observed & we have a categorical grouper, only show the observed
-    values
+    values.
 
-    If validate, then check for key/level overlaps
+    If validate, then check for key/level overlaps.
 
     """
     group_axis = obj._get_axis(axis)
@@ -517,7 +517,7 @@ def _get_grouper(
         if key.key is None:
             return grouper, [], obj
         else:
-            return grouper, {key.key}, obj
+            return grouper, [key.key], obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, BaseGrouper):
@@ -530,10 +530,8 @@ def _get_grouper(
     # unhashable elements of `key`. Any unhashable elements implies that
     # they wanted a list of keys.
     # https://github.com/pandas-dev/pandas/issues/18314
-    is_tuple = isinstance(key, tuple)
-    all_hashable = is_tuple and is_hashable(key)
-
-    if is_tuple:
+    if isinstance(key, tuple):
+        all_hashable = is_hashable(key)
         if (
             all_hashable and key not in obj and set(key).issubset(obj)
         ) or not all_hashable:
@@ -573,7 +571,7 @@ def _get_grouper(
             all_in_columns_index = all(
                 g in obj.columns or g in obj.index.names for g in keys
             )
-        elif isinstance(obj, Series):
+        else:  # Series
             all_in_columns_index = all(g in obj.index.names for g in keys)
 
         if not all_in_columns_index:
@@ -586,8 +584,8 @@ def _get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings = []
-    exclusions = []
+    groupings = []  # type: List[Grouping]
+    exclusions = []  # type: List[Hashable]
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
