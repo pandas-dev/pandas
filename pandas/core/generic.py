@@ -2089,18 +2089,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 self._unpickle_series_compat(state)
-        elif isinstance(state[0], dict):
-            if len(state) == 5:
-                self._unpickle_sparse_frame_compat(state)
-            else:
-                self._unpickle_frame_compat(state)
-        elif len(state) == 4:
-            self._unpickle_panel_compat(state)
         elif len(state) == 2:
             self._unpickle_series_compat(state)
-        else:  # pragma: no cover
-            # old pickling format, for compatibility
-            self._unpickle_matrix_compat(state)
 
         self._item_cache = {}
 

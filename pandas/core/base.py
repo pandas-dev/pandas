@@ -21,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
     is_extension_type,
     is_list_like,
@@ -1172,7 +1171,7 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
@@ -1194,7 +1193,7 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):
             return iter(self._values)
