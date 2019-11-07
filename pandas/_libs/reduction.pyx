@@ -170,10 +170,6 @@ cdef class Reducer:
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
-        except Exception as err:
-            if hasattr(err, 'args'):
-                err.args = err.args + (i,)
-            raise
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
