@@ -899,10 +899,21 @@ b  2""",
         output = {}
         for name, obj in self._iterate_slices():
             try:
-                result, counts = self.grouper.agg_series(obj, f)
+                # if this function is invalid for this dtype, we will ignore it.
+                func(obj[:0])
             except TypeError:
                 continue
-            else:
+            except AssertionError:
+                raise
+            except Exception:
+                # Our function depends on having a non-empty argument
+                #  See test_groupby_agg_err_catching
+                pass
+
+            result, counts = self.grouper.agg_series(obj, f)
+            if result is not None:
+                # TODO: only 3 test cases get None here, do something
+                #  in those cases
                 output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
