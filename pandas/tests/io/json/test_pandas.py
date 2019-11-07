@@ -594,7 +594,7 @@ class TestPandasContainer:
                 self.hexed = hexed
                 self.binary = bytes.fromhex(hexed)
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return self.hexed
 
         hexed = "574b4454ba8c5eb4f98a8f45"

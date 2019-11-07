@@ -2048,7 +2048,7 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         String representation.
         """

@@ -2107,7 +2107,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))

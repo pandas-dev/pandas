@@ -591,7 +591,7 @@ class TestFancy(Base):
             def __init__(self, value):
                 self.value = value
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "[{0}]".format(self.value)
 
             __repr__ = __str__
