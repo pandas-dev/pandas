@@ -438,7 +438,8 @@ class Generic:
         # GH27451
         df = pd.DataFrame({"A": list("abc")})
         msg = (
-            "Replace has to be set to `True` when upsampling the population `frac` > 1"
+            "Replace has to be set to `True` when "
+            "upsampling the population `frac` > 1."
         )
         with pytest.raises(TypeError, match=msg):
             df.sample(frac=2, replace=False)
