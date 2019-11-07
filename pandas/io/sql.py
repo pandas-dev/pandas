@@ -496,7 +496,7 @@ def to_sql(
 
         .. versionadded:: 0.24.0
     """
-    if if_exists not in ("fail", "replace", "append"):
+    if if_exists not in ("fail", "replace", "append"): #TODO: add upserts
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -650,12 +650,34 @@ class SQLTable(PandasObject):
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
+            elif self.if_exists == "upsert_delete":
+                # execute delete from db statement, then
+                pass
+            elif self.if_exists == "upsert_ignore":
+                # clear rows out of dataframe
+                pass
             else:
                 raise ValueError(
                     "'{0}' is not valid for if_exists".format(self.if_exists)
                 )
         else:
             self._execute_create()
+
+    def _upsert_delete_processing(self):
+        from sqlalchemy import tuple_
+        #get pkeys
+        primary_keys = self._get_primary_key_columns()
+        # get pkey values from table
+
+        #generate delete statement
+        delete_statement = self.table.delete().where(
+            tuple_(
+                *(self.table.c[col] for col in primary_keys)
+            ).in_(
+               #PKEY VALUES FORM TABLE HERE
+            )
+        )
+
 
     def _execute_insert(self, conn, keys, data_iter):
         """Execute SQL statement inserting data
@@ -691,28 +713,87 @@ class SQLTable(PandasObject):
         """Execute an SQL UPSERT, and in cases of key clashes,
         keep records in the Database, and ignore incoming records.
         """
-        incoming_pkey_values = list(zip(*[self.frame[key] for key in primary_keys]))
-        existing_pkey_values = self._primary_key_iterator(primary_keys=primary_keys)
+        # TODO: DATYPE CHECKING?
 
+        existing_pkey_values = self._database_column_iterator(columns=primary_keys)
 
+        # Creating temp frame accounts for cases where self.frame.index is also to be added
+        # to database
+        temp_frame = self._generate_temp_dataframe()
+
+        # Only get columns corresponding to primary keys, and index for deletion
+        incoming_pkey_iterator = zip(
+            zip(*[temp_frame[col] for col in primary_keys]),
+            [temp_frame.index]
+        )
+
+        # Turn incoming self.frame data into same format at db read
+        dict_of_pkey_values = dict(incoming_pkey_iterator)
+
+        # Loop to delete values from self.frame if they already exist in database
         for pkey_value in existing_pkey_values:
-            # stop iterating over query results if all incoming values are exhausted
-            if len(incoming_pkey_values) == 0:
-                break # OR return?
-            elif pkey_value in incoming_pkey_values:
-                incoming_pkey_values.remove(pkey_value)
-
-        temp_frame = self.frame.reset_index()
-        # WHAT IF INDEX IS NOT NONE?
-        ipv = zip(*[temp_frame[col] for col in ['index'] + primary_keys])
-        dov = {tuple(val for val in vals): idx for idx, *vals in ipv}
-        for pkey_value in existing_pkey_values:
-            if len(dov) == 0:
+            # Break loop if self.frame is empty
+            if self.frame.empty:
                 break
-            elif dov[pkey_value] is not None:
-               del dov[pkey_value]
+            elif pkey_value in dict_of_pkey_values:
+                self.frame.drop(index=dict_of_pkey_values[pkey_value], inplace=True)
 
-    def insert_data(self):
+    def _database_column_iterator(self, columns):
+        """
+        This method gets all values for specified columns, returning them via
+        a lazy generator
+
+        Parameters
+        ----------
+        self: SQLTable
+            Table from which data is to be returned
+        columns: List[str]
+            Names of columns to be returned
+
+        Returns
+        -------
+        generator Object
+        """
+        from sqlalchemy import select
+        statement = select([self.table.c[key] for key in columns])
+        result = self.pd_sql.execute(statement)
+        return self.pd_sql._query_iterator(result=result, chunksize=chunksize, columns=columns)
+
+    def _get_primary_key_columns(self):
+        """
+        Upsert workflows require knowledge of what is already in the database
+        this method reflects the meta object and gets a list of primary keys
+
+        Returns
+        -------
+        List[str] - list of primary key column names
+        """
+        # reflect MetaData object and assign contents of db to self.table attribute
+        self.pd_sql.meta.reflect(only=[self.name], views=True)
+        self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
+
+        primary_keys = [
+            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
+        ]
+
+        # For the time being, this method is defensive and will break if no pkeys are found
+        # If desired this default behaviour could be changed so that in cases where no pkeys
+        # are found, it could default to a normal insert
+        if len(primary_keys) == 0:
+            raise ValueError(
+                f"No primary keys found for table {self.name}"
+            )
+        return primary_keys
+
+    def _generate_temp_dataframe(self):
+        """
+
+        Returns
+        -------
+        DataFrame object
+        """
+        # Originally from insert_data() method, but needed in more places
+        # so abstracted, to keep code DRY.
         if self.index is not None:
             temp = self.frame.copy()
             temp.index.names = self.index
@@ -723,6 +804,10 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
+        return temp
+
+    def insert_data(self):
+        temp = self._generate_temp_dataframe()
         # TODO: column_names by list comprehension?
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
@@ -752,59 +837,6 @@ class SQLTable(PandasObject):
                 data_list[col_loc] = col
 
         return column_names, data_list
-
-    def _primary_key_iterator(self, primary_keys):
-        """
-        This static method gets all values for specified columns, returning them via
-        a lazy generator
-
-        Parameters
-        ----------
-        self: SQLTable
-            Table from which data is to be returned
-        primary_keys: List[str]
-            Names of columns to be returned
-
-        Returns
-        -------
-        generator Object
-        """
-        from sqlalchemy import select
-        statement = select([self.table.c[key] for key in primary_keys])
-        result = self.pd_sql.execute(statement)
-        while True:
-            data = result.fetchone()
-            if not data:
-                result.close()
-                break
-            else:
-                yield data
-
-    def _get_primary_key_columns(self):
-        """
-        Upsert workflows require knowledge of what is already in the database
-        this method reflects the meta object and gets primary key a list of primary keys
-
-        Returns
-        -------
-        List[str] - list of primary key column names
-        """
-        # reflect MetaData object and assign contents of db to self.table attribute
-        self.pd_sql.meta.reflect(only=[self.name], views=True)
-        self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
-
-        primary_keys = [
-            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
-        ]
-
-        # For the time being, this method is defensive and will break if no pkeys are found
-        # If desired this default behaviour could be changed so that in cases where no pkeys
-        # are found, it could default to a normal insert
-        if len(primary_keys) == 0:
-            raise ValueError(
-                f"No primary keys found for table {self.name}"
-            )
-        return primary_keys
 
     def insert(self, chunksize=None, method=None):
         # set insert method
