@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -106,7 +107,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data: NDFrame, axis: int = 0):
+    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -120,7 +121,7 @@ class BaseGrouper:
         for key, (i, group) in zip(keys, splitter):
             yield key, group
 
-    def _get_splitter(self, data: NDFrame, axis: int = 0) -> "DataSplitter":
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -142,13 +143,13 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: NDFrame, axis: int = 0):
+    def apply(self, f, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata = splitter._get_sorted_data()
+        sdata = splitter._get_sorted_data()  # type: FrameOrSeries
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
@@ -157,7 +158,7 @@ class BaseGrouper:
 
         elif (
             com.get_callable_name(f) not in base.plotting_methods
-            and splitter.fast_apply is not None
+            and isinstance(splitter, FrameSplitter)
             and axis == 0
             # with MultiIndex, apply_frame_axis0 would raise InvalidApply
             # TODO: can we make this check prettier?
@@ -720,7 +721,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: NDFrame, axis: int = 0):
+    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -827,9 +828,7 @@ def _is_indexed_like(obj, axes) -> bool:
 
 
 class DataSplitter:
-    fast_apply = None
-
-    def __init__(self, data: NDFrame, labels, ngroups: int, axis: int = 0):
+    def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
         self.ngroups = ngroups
@@ -860,10 +859,10 @@ class DataSplitter:
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self) -> NDFrame:
+    def _get_sorted_data(self) -> FrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata: NDFrame, slice_obj: slice) -> NDFrame:
+    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
 
 
@@ -887,7 +886,7 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data: NDFrame, *args, **kwargs) -> DataSplitter:
+def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
     if isinstance(data, Series):
         klass = SeriesSplitter  # type: Type[DataSplitter]
     else:
