@@ -41,7 +41,8 @@ from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
+from pandas.core.groupby import base
+from pandas.core.groupby.grouper import Grouping
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -79,7 +80,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: "Sequence[grouper.Grouping]",
+        groupings: Sequence[Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -89,7 +90,7 @@ class BaseGrouper:
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self.groupings = groupings  # type: Sequence[grouper.Grouping]
+        self.groupings = list(groupings)  # type: List[Grouping]
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -788,9 +789,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels.name]
 
     @property
-    def groupings(self):
-        from pandas.core.groupby.grouper import Grouping
-
+    def groupings(self) -> List[Grouping]:
         return [
             Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
@@ -866,7 +865,7 @@ class DataSplitter:
     def _get_sorted_data(self) -> NDFrame:
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata: NDFrame, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
 
 
