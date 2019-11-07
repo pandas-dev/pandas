@@ -767,7 +767,7 @@ b  2""",
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
 
-    def _cumcount_array(self, ascending=True):
+    def _cumcount_array(self, ascending: bool = True):
         """
         Parameters
         ----------
@@ -799,7 +799,7 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _try_cast(self, result, obj, numeric_only=False):
+    def _try_cast(self, result, obj, numeric_only: bool = False):
         """
         Try to cast the result to our obj original type,
         we may have roundtripped through object in the mean-time.
@@ -839,7 +839,7 @@ b  2""",
 
         return result
 
-    def _transform_should_cast(self, func_nm):
+    def _transform_should_cast(self, func_nm: str) -> bool:
         """
         Parameters
         ----------
@@ -855,7 +855,7 @@ b  2""",
             func_nm not in base.cython_cast_blacklist
         )
 
-    def _cython_transform(self, how, numeric_only=True, **kwargs):
+    def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output = collections.OrderedDict()
         names = []  # type: List[Hashable]
         for idx, (name, obj) in enumerate(self._iterate_slices()):
@@ -888,10 +888,12 @@ b  2""",
     ):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
         output = collections.OrderedDict()
         names = []  # type: List[Hashable]
 
@@ -937,10 +939,21 @@ b  2""",
 
         for idx, (name, obj) in enumerate(self._iterate_slices()):
             try:
-                result, counts = self.grouper.agg_series(obj, f)
+                # if this function is invalid for this dtype, we will ignore it.
+                func(obj[:0])
             except TypeError:
                 continue
-            else:
+            except AssertionError:
+                raise
+            except Exception:
+                # Our function depends on having a non-empty argument
+                #  See test_groupby_agg_err_catching
+                pass
+
+            result, counts = self.grouper.agg_series(obj, f)
+            if result is not None:
+                # TODO: only 3 test cases get None here, do something
+                #  in those cases
                 output[idx] = self._try_cast(result, obj, numeric_only=True)
                 names.append(name)
 
@@ -962,7 +975,7 @@ b  2""",
         columns = Index(names)
         return self._wrap_aggregated_output(output, columns)
 
-    def _concat_objects(self, keys, values, not_indexed_same=False):
+    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1022,10 +1035,7 @@ b  2""",
             values = reset_identity(values)
             result = concat(values, axis=self.axis)
 
-        if (
-            isinstance(result, Series)
-            and getattr(self, "_selection_name", None) is not None
-        ):
+        if isinstance(result, Series) and self._selection_name is not None:
 
             result.name = self._selection_name
 
@@ -1146,7 +1156,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def any(self, skipna=True):
+    def any(self, skipna: bool = True):
         """
         Return True if any value in the group is truthful, else False.
 
@@ -1163,7 +1173,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def all(self, skipna=True):
+    def all(self, skipna: bool = True):
         """
         Return True if all values in the group are truthful, else False.
 
@@ -1263,7 +1273,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -1286,7 +1296,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values.
 
@@ -1314,7 +1324,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof=1):
+    def sem(self, ddof: int = 1):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -1355,7 +1365,13 @@ class GroupBy(_GroupBy):
         Add numeric operations to the GroupBy generically.
         """
 
-        def groupby_function(name, alias, npfunc, numeric_only=True, min_count=-1):
+        def groupby_function(
+            name: str,
+            alias: str,
+            npfunc,
+            numeric_only: bool = True,
+            min_count: int = -1,
+        ):
 
             _local_template = """
             Compute %(f)s of group values.
@@ -1445,7 +1461,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def ohlc(self):
+    def ohlc(self) -> DataFrame:
         """
         Compute sum of values, excluding missing values.
 
@@ -1857,7 +1873,7 @@ class GroupBy(_GroupBy):
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    def quantile(self, q=0.5, interpolation: str = "linear"):
         """
         Return group values at the given quantile, a la numpy.percentile.
 
@@ -1970,7 +1986,7 @@ class GroupBy(_GroupBy):
             return result.take(indices)
 
     @Substitution(name="groupby")
-    def ngroup(self, ascending=True):
+    def ngroup(self, ascending: bool = True):
         """
         Number each group from 0 to the number of groups - 1.
 
@@ -2039,7 +2055,7 @@ class GroupBy(_GroupBy):
             return result
 
     @Substitution(name="groupby")
-    def cumcount(self, ascending=True):
+    def cumcount(self, ascending: bool = True):
         """
         Number each item in each group from 0 to the length of that group - 1.
 
@@ -2100,7 +2116,12 @@ class GroupBy(_GroupBy):
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def rank(
-        self, method="average", ascending=True, na_option="keep", pct=False, axis=0
+        self,
+        method: str = "average",
+        ascending: bool = True,
+        na_option: str = "keep",
+        pct: bool = False,
+        axis: int = 0,
     ):
         """
         Provide the rank of values within each group.
@@ -2373,7 +2394,7 @@ class GroupBy(_GroupBy):
                 )
             )
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.labels)
+        fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
