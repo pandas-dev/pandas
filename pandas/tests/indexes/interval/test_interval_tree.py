@@ -154,14 +154,14 @@ class TestIntervalTree:
             (np.array([0, 2, np.nan]), np.array([1, 3, np.nan]), False),
         ],
     )
-    @pytest.mark.parametrize("order", map(list, permutations(range(3))))
+    @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
         tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
         assert result is expected
 
-    @pytest.mark.parametrize("order", map(list, permutations(range(3))))
+    @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping_endpoints(self, closed, order):
         """shared endpoints are marked as overlapping"""
         # GH 23309
