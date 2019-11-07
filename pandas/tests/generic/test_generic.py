@@ -442,7 +442,7 @@ class Generic:
             "Replace has to be set to `True` when "
             "upsampling the population `frac` > 1."
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.sample(frac=2, replace=False)
 
     def test_size_compat(self):
