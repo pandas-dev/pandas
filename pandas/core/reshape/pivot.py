@@ -625,7 +625,9 @@ def _normalize(table, normalize: Union[bool, Axis], margins: bool, margins_name=
         if (margins_name not in table.iloc[-1, :].name) | (
             margins_name != table.iloc[:, -1].name
         ):
-            raise ValueError("{} not in pivoted DataFrame".format(margins_name))
+            raise ValueError(
+                "{mname} not in pivoted DataFrame".format(mname=margins_name)
+            )
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
 

@@ -10,7 +10,7 @@ from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestiLoc(Base):

@@ -59,7 +59,7 @@ def hash_pandas_object(
     obj,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key=None,
+    hash_key: str = _default_hash_key,
     categorize: bool = True,
 ):
     """
@@ -71,7 +71,7 @@ def hash_pandas_object(
         include the index in the hash (if Series/DataFrame)
     encoding : str, default 'utf8'
         encoding for data & key when strings
-    hash_key : str, default '_default_hash_key'
+    hash_key : str, default _default_hash_key
         hash_key for string key to encode
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
@@ -82,9 +82,6 @@ def hash_pandas_object(
     Series of uint64, same length as the object
     """
     from pandas import Series
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
@@ -141,7 +138,7 @@ def hash_pandas_object(
     return h
 
 
-def hash_tuples(vals, encoding="utf8", hash_key=None):
+def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     """
     Hash an MultiIndex / list-of-tuples efficiently
 
@@ -149,7 +146,7 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     ----------
     vals : MultiIndex, list-of-tuples, or single tuple
     encoding : str, default 'utf8'
-    hash_key : str, default '_default_hash_key'
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -184,7 +181,7 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     return h
 
 
-def hash_tuple(val, encoding: str = "utf8", hash_key=None):
+def hash_tuple(val, encoding: str = "utf8", hash_key: str = _default_hash_key):
     """
     Hash a single tuple efficiently
 
@@ -192,7 +189,7 @@ def hash_tuple(val, encoding: str = "utf8", hash_key=None):
     ----------
     val : single tuple
     encoding : str, default 'utf8'
-    hash_key : str, default '_default_hash_key'
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -214,8 +211,8 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     Parameters
     ----------
     c : Categorical
-    encoding : str, default 'utf8'
-    hash_key : str, default '_default_hash_key'
+    encoding : str
+    hash_key : str
 
     Returns
     -------
@@ -244,7 +241,12 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     return result
 
 
-def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = True):
+def hash_array(
+    vals,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+):
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -253,7 +255,7 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     vals : ndarray, Categorical
     encoding : str, default 'utf8'
         encoding for data & key when strings
-    hash_key : str, default '_default_hash_key'
+    hash_key : str, default _default_hash_key
         hash_key for string key to encode
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
@@ -267,9 +269,6 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask
@@ -321,9 +320,17 @@ def hash_array(vals, encoding: str = "utf8", hash_key=None, categorize: bool = T
     return vals
 
 
-def _hash_scalar(val, encoding: str = "utf8", hash_key=None):
+def _hash_scalar(
+    val, encoding: str = "utf8", hash_key: str = _default_hash_key
+) -> np.ndarray:
     """
-    Hash scalar value
+    Hash scalar value.
+
+    Parameters
+    ----------
+    val : scalar
+    encoding : str, default "utf8"
+    hash_key : str, default _default_hash_key
 
     Returns
     -------

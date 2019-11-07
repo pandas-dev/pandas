@@ -84,6 +84,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
+from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats import format as fmt
@@ -3226,7 +3227,7 @@ class NDFrame(PandasObject, SelectionMixin):
             and mode is 'zip' or inferred as 'zip', other entries passed as
             additional compression options.
 
-            .. versionchanged:: 0.25.0
+            .. versionchanged:: 1.0.0
 
                May now be a dict with key 'method' as compression mode
                and other entries as additional compression options if
@@ -5161,8 +5162,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "transform"
     ] = """
-    Call ``func`` on self producing a %(klass)s with transformed values
-    and that has the same axis length as self.
+    Call ``func`` on self producing a %(klass)s with transformed values.
+
+    Produced %(klass)s will have same axis length as self.
 
     Parameters
     ----------
@@ -8749,8 +8751,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs[
         "align"
     ] = """
-        Align two objects on their axes with the
-        specified join method for each axis Index.
+        Align two objects on their axes with the specified join method.
+
+        Join method is specified for each axis Index.
 
         Parameters
         ----------
@@ -9973,9 +9976,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generate descriptive statistics that summarize the central tendency,
-        dispersion and shape of a dataset's distribution, excluding
-        ``NaN`` values.
+        Generate descriptive statistics.
+
+        Descriptive statistics include those that summarize the central
+        tendency, dispersion and shape of a
+        dataset's distribution, excluding ``NaN`` values.
 
         Analyzes both numeric and object series, as well
         as ``DataFrame`` column sets of mixed data types. The output
@@ -10657,7 +10662,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased skew over requested axis\nNormalized by N-1.",
+            "Return unbiased skew over requested axis.\n\nNormalized by N-1.",
             nanops.nanskew,
         )
         cls.kurt = _make_stat_function(
@@ -10666,8 +10671,9 @@ class NDFrame(PandasObject, SelectionMixin):
             name,
             name2,
             axis_descr,
-            "Return unbiased kurtosis over requested axis using Fisher's "
-            "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
+            "Return unbiased kurtosis over requested axis.\n\n"
+            "Kurtosis obtained using Fisher's definition of\n"
+            "kurtosis (kurtosis of normal == 0.0). Normalized "
             "by N-1.",
             nanops.nankurt,
         )
@@ -10873,27 +10879,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         idx_first_valid : type of index
         """
-        assert how in ["first", "last"]
 
-        if len(self) == 0:  # early stop
+        idxpos = find_valid_index(self._values, how)
+        if idxpos is None:
             return None
-        is_valid = ~self.isna()
-
-        if self.ndim == 2:
-            is_valid = is_valid.any(1)  # reduce axis 1
-
-        if how == "first":
-            idxpos = is_valid.values[::].argmax()
-
-        if how == "last":
-            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
-
-        chk_notna = is_valid.iat[idxpos]
-        idx = self.index[idxpos]
-
-        if not chk_notna:
-            return None
-        return idx
+        return self.index[idxpos]
 
     @Appender(
         _shared_docs["valid_index"] % {"position": "first", "klass": "Series/DataFrame"}

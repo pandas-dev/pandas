@@ -377,6 +377,15 @@ class TestSeriesDtypes:
             result = s.astype("category")
             tm.assert_series_equal(result, expected)
 
+    def test_astype_bool_missing_to_categorical(self):
+        # GH-19182
+        s = Series([True, False, np.nan])
+        assert s.dtypes == np.object_
+
+        result = s.astype(CategoricalDtype(categories=[True, False]))
+        expected = Series(Categorical([True, False, np.nan], categories=[True, False]))
+        tm.assert_series_equal(result, expected)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))
@@ -518,3 +527,13 @@ class TestSeriesDtypes:
         result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_reindex_astype_order_consistency(self):
+        # GH 17444
+        s = Series([1, 2, 3], index=[2, 0, 1])
+        new_index = [0, 1, 2]
+        temp_dtype = "category"
+        new_dtype = str
+        s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
+        s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
+        tm.assert_series_equal(s1, s2)

@@ -1,5 +1,5 @@
 from pandas.api import types
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 from .test_api import Base
 

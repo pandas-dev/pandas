@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError
+from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
-class Resampler(_GroupBy):
+class Resampler(_GroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -361,8 +361,6 @@ class Resampler(_GroupBy):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except AssertionError:
-            raise
         except DataError:
             # we have a non-reducing function; try to evaluate
             result = grouped.apply(how, *args, **kwargs)
@@ -444,7 +442,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -859,7 +857,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1246,11 +1244,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         Parameters
         ----------
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
-            method for upsampling
+            Method for upsampling.
         limit : int, default None
-            Maximum size gap to fill when reindexing
+            Maximum size gap to fill when reindexing.
         fill_value : scalar, default None
-            Value to use for missing values
+            Value to use for missing values.
 
         See Also
         --------
@@ -1457,7 +1455,7 @@ class TimeGrouper(Grouper):
         raise TypeError(
             "Only valid with DatetimeIndex, "
             "TimedeltaIndex or PeriodIndex, "
-            "but got an instance of %r" % type(ax).__name__
+            "but got an instance of '{typ}'".format(typ=type(ax).__name__)
         )
 
     def _get_grouper(self, obj, validate=True):
@@ -1470,7 +1468,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         if len(ax) == 0:
@@ -1546,7 +1544,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         if not len(ax):
@@ -1571,7 +1569,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         freq = self.freq
@@ -1593,7 +1591,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
-                "an instance of %r" % type(ax).__name__
+                "an instance of {typ}".format(typ=type(ax).__name__)
             )
 
         # error: "PeriodIndex" has no attribute "asfreq"

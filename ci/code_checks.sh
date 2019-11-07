@@ -120,9 +120,15 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
-    invgrep -R --include="*.py*" -E "from collections.abc import " pandas
-    invgrep -R --include="*.py*" -E "from numpy import nan " pandas
+    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+
+    # Checks for test suite
+    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG

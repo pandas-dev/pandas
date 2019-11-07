@@ -220,7 +220,7 @@ class SelectionMixin:
             return self.obj[self._selection]
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         return self._selected_obj.ndim
 
     @cache_readonly
@@ -354,7 +354,7 @@ class SelectionMixin:
 
             obj = self._selected_obj
 
-            def nested_renaming_depr(level=4):
+            def nested_renaming_depr(level: int = 4):
                 # deprecation of nested renaming
                 # GH 15931
                 msg = textwrap.dedent(
@@ -503,11 +503,11 @@ class SelectionMixin:
 
             # combine results
 
-            def is_any_series():
+            def is_any_series() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCSeries) for r in result.values())
 
-            def is_any_frame():
+            def is_any_frame() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame) for r in result.values())
 
@@ -584,7 +584,7 @@ class SelectionMixin:
                 try:
                     new_res = colg.aggregate(a)
 
-                except (TypeError, DataError):
+                except TypeError:
                     pass
                 else:
                     results.append(new_res)
@@ -601,9 +601,16 @@ class SelectionMixin:
                     new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
-                except ValueError:
+                except ValueError as err:
                     # cannot aggregate
-                    continue
+                    if "Must produce aggregated value" in str(err):
+                        # raised directly in _aggregate_named
+                        pass
+                    elif "no results" in str(err):
+                        # raised direcly in _aggregate_multiple_funcs
+                        pass
+                    else:
+                        raise
                 else:
                     results.append(new_res)
                     keys.append(col)
@@ -626,6 +633,23 @@ class SelectionMixin:
                 raise ValueError("cannot combine transform and aggregation operations")
             return result
 
+    def _get_cython_func(self, arg: str) -> Optional[str]:
+        """
+        if we define an internal function for this argument, return it
+        """
+        return self._cython_table.get(arg)
+
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return self._builtin_table.get(arg, arg)
+
+
+class ShallowMixin:
+    _attributes = []  # type: List[str]
+
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
         """
         return a new object with the replacement attributes
@@ -640,19 +664,6 @@ class SelectionMixin:
             if attr not in kwargs:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
-
-    def _get_cython_func(self, arg: str) -> Optional[str]:
-        """
-        if we define an internal function for this argument, return it
-        """
-        return self._cython_table.get(arg)
-
-    def _is_builtin_func(self, arg):
-        """
-        if we define an builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return self._builtin_table.get(arg, arg)
 
 
 class IndexOpsMixin:
@@ -1081,7 +1092,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1104,7 +1115,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1145,7 +1156,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1494,7 +1505,7 @@ class IndexOpsMixin:
         ----------
         deep : bool
             Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+            `object` dtypes for system-level memory consumption.
 
         Returns
         -------

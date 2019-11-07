@@ -464,8 +464,8 @@ def wide_to_long(
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    melted_ = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
-    melted = melted_[0].join(melted_[1:], how="outer")
+    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
+    melted = _melted[0].join(_melted[1:], how="outer")
 
     if len(i) == 1:
         new = df[id_vars].set_index(i).join(melted)

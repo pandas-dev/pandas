@@ -170,6 +170,12 @@ class TestSeriesApply:
         expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
+    def test_apply_empty_integer_series_with_datetime_index(self):
+        # GH 21245
+        s = pd.Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+        result = s.apply(lambda x: x)
+        tm.assert_series_equal(result, s)
+
 
 class TestSeriesAggregate:
     def test_transform(self, string_series):
@@ -579,6 +585,14 @@ class TestSeriesMap:
         default_dict[1] = "stuff"
         result = s.map(default_dict)
         expected = Series(["stuff", "blank", "blank"], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_dict_na_key(self):
+        # https://github.com/pandas-dev/pandas/issues/17648
+        # Checks that np.nan key is appropriately mapped
+        s = Series([1, 2, np.nan])
+        expected = Series(["a", "b", "c"])
+        result = s.map({1: "a", 2: "b", np.nan: "c"})
         tm.assert_series_equal(result, expected)
 
     def test_map_dict_subclass_with_missing(self):

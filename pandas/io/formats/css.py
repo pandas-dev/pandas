@@ -12,7 +12,7 @@ class CSSWarning(UserWarning):
     pass
 
 
-def _side_expander(prop_fmt):
+def _side_expander(prop_fmt: str):
     def expand(self, prop, value):
         tokens = value.split()
         try:
