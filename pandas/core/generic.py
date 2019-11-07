@@ -4933,7 +4933,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
-        
+
         Notes
         -----
         If `frac` > 1, `replacement` should be set to `True`
