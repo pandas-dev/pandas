@@ -1,9 +1,6 @@
 """ pickle compat """
-from io import BytesIO
 import pickle
 import warnings
-
-from numpy.lib.format import read_array
 
 from pandas.compat import PY36, pickle_compat as pc
 
@@ -164,12 +161,3 @@ def read_pickle(path, compression="infer"):
         f.close()
         for _f in fh:
             _f.close()
-
-
-# compat with sparse pickle / unpickle
-
-
-def _unpickle_array(bytes):
-    arr = read_array(BytesIO(bytes))
-
-    return arr
