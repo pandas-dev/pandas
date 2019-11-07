@@ -1674,11 +1674,11 @@ def is_extension_type(arr):
     """
     Check whether an array-like is of a pandas extension class instance.
 
+    .. deprecated:: 1.0.0
+
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
     to it like scipy sparse matrices), and datetime-like arrays.
-
-    .. deprecated:: 1.0.0
 
     Parameters
     ----------
