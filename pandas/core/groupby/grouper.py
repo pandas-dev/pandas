@@ -372,8 +372,8 @@ class Grouping:
 
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
-    def __repr__(self):
-        return "Grouping({0})".format(self.name)
+    def __repr__(self) -> str:
+        return "Grouping({name})".format(name=self.name)
 
     def __iter__(self):
         return iter(self.indices)
@@ -434,10 +434,10 @@ def _get_grouper(
     key=None,
     axis: int = 0,
     level=None,
-    sort=True,
-    observed=False,
-    mutated=False,
-    validate=True,
+    sort: bool = True,
+    observed: bool = False,
+    mutated: bool = False,
+    validate: bool = True,
 ):
     """
     create and return a BaseGrouper, which is an internal
