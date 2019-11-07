@@ -8,8 +8,7 @@ import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
 import pandas.util.testing as tm
 
-from pandas.io.clipboard import clipboard_get, clipboard_set
-from pandas.io.clipboard.exceptions import PyperclipException
+from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
 
 try:
     DataFrame({"A": [1, 2]}).to_clipboard()

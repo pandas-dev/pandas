@@ -397,6 +397,7 @@ I/O
 - Bug in :meth:`pandas.io.formats.style.Styler` formatting for floating values not displaying decimals correctly (:issue:`13257`)
 - Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
+- Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 
 Plotting
 ^^^^^^^^
