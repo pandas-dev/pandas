@@ -815,6 +815,29 @@ class TestDataFrameDataTypes:
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_df_where_change_dtype(self):
+        # GH 16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, True], [False, True, True]])
+
+        result = df.where(mask)
+        expected = DataFrame([[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"))
+
+        tm.assert_frame_equal(result, expected)
+
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        result = df.where(mask)
+        A = pd.Categorical([0, np.nan], categories=[0, 3])
+        B = pd.Categorical([np.nan, 4], categories=[1, 4])
+        C = pd.Categorical([2, 5], categories=[2, 5])
+        expected = DataFrame({"A": A, "B": B, "C": C})
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
     def test_df_where_with_category(self, kwargs):
         # GH 16979
@@ -827,6 +850,7 @@ class TestDataFrameDataTypes:
 
         result = df.A.where(mask[:, 0], **kwargs)
         expected = Series(pd.Categorical([0, np.nan], categories=[0, 3]), name="A")
+
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
