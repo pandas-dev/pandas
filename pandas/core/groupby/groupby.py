@@ -402,7 +402,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __len__(self):
         return len(self.groups)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 

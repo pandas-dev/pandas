@@ -105,10 +105,10 @@ class FrozenList(PandasObject, list):
             )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
@@ -148,7 +148,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for this object.
         """

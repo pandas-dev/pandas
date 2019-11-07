@@ -55,7 +55,7 @@ class PandasObject(DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular object.
         """

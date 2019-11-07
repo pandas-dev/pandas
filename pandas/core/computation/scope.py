@@ -139,7 +139,7 @@ class Scope:
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
         unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"

@@ -621,7 +621,7 @@ class TestUltraJSONTests:
             def recursive_attr(self):
                 return _TestObject("recursive_attr")
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return str(self.val)
 
         msg = "Maximum recursion level reached"

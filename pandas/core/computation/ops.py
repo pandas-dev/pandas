@@ -82,7 +82,7 @@ class Term:
     def local_name(self):
         return self.name.replace(_LOCAL_TAG, "")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing(self.name)
 
     def __call__(self, *args, **kwargs):
@@ -182,7 +182,7 @@ class Constant(Term):
     def name(self):
         return self.value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # in python 2 str() of float
         # can truncate shorter than repr()
         return repr(self.name)
@@ -204,7 +204,7 @@ class Op:
     def __iter__(self):
         return iter(self.operands)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Print a generic n-ary operator and its operands using infix notation.
         """
@@ -557,7 +557,7 @@ class UnaryOp(Op):
         operand = self.operand(env)
         return self.func(operand)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing("{0}({1})".format(self.op, self.operand))
 
     @property
@@ -582,7 +582,7 @@ class MathCall(Op):
         with np.errstate(all="ignore"):
             return self.func.func(*operands)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         operands = map(str, self.operands)
         return pprint_thing("{0}({1})".format(self.op, ",".join(operands)))
 

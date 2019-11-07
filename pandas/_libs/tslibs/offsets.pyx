@@ -422,7 +422,7 @@ class _BaseOffset:
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         className = getattr(self, '_outputName', type(self).__name__)
 
         if abs(self.n) != 1:

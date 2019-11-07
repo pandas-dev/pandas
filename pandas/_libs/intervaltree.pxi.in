@@ -195,7 +195,7 @@ cdef class IntervalTree(IntervalMixin):
         return (result.to_array().astype('intp'),
                 missing.to_array().astype('intp'))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ('<IntervalTree[{dtype},{closed}]: '
                 '{n_elements} elements>'.format(
                     dtype=self.dtype, closed=self.closed,
@@ -394,7 +394,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
             else:
                 result.extend(self.center_left_indices)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.is_leaf_node:
             return ('<{{dtype_title}}Closed{{closed_title}}IntervalNode: '
                     '%s elements (terminal)>' % self.n_elements)

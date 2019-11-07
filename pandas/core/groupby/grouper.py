@@ -210,7 +210,7 @@ class Grouper:
     def groups(self):
         return self.grouper.groups
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         attrs_list = (
             "{}={!r}".format(attr_name, getattr(self, attr_name))
             for attr_name in self._attributes
@@ -372,7 +372,7 @@ class Grouping:
 
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Grouping({0})".format(self.name)
 
     def __iter__(self):

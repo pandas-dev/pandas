@@ -259,10 +259,10 @@ cdef class _NaT(datetime):
         """
         return self.to_datetime64()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'NaT'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'NaT'
 
     def isoformat(self, sep='T'):

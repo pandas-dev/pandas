@@ -1142,10 +1142,10 @@ cdef class _Timedelta(timedelta):
 
         return fmt.format(**comp_dict)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Timedelta('{val}')".format(val=self._repr_base(format='long'))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._repr_base(format='long')
 
     def __bool__(self):

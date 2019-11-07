@@ -913,7 +913,7 @@ class ExtensionArray:
     # Printing
     # ------------------------------------------------------------------------
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         from pandas.io.formats.printing import format_object_summary
 
         template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"

@@ -53,7 +53,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -63,7 +63,7 @@ cdef class BlockPlacement:
 
         return '%s(%r)' % (self.__class__.__name__, v)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def __len__(self):

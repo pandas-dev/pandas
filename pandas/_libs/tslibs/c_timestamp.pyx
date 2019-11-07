@@ -124,7 +124,7 @@ cdef class _Timestamp(datetime):
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         stamp = self._repr_base
         zone = None
 

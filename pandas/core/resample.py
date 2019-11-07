@@ -86,7 +86,7 @@ class Resampler(_GroupBy, ShallowMixin):
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
         """

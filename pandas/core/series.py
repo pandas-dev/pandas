@@ -1555,7 +1555,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.
         """

@@ -38,7 +38,7 @@ class _DeprecatedModule:
         deprmodule = self._import_deprmod()
         return dir(deprmodule)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         deprmodule = self._import_deprmod()
         return repr(deprmodule)
 
