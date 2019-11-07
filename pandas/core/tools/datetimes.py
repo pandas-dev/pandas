@@ -2,6 +2,11 @@ from collections import abc
 from datetime import datetime, time
 from functools import partial
 from typing import Optional, TypeVar, Union
+- [ ] closes #xxxx
+- [ ] tests added / passed
+- [ ] passes `black pandas`
+- [ ] passes `git diff upstream/master -u -- "*.py" | flake8 --diff`
+- [ ] whatsnew entry
 
 import numpy as np
 

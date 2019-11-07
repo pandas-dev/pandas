@@ -178,7 +178,7 @@ def merge_ordered(
     """
     Perform merge with optional filling/interpolation.
 
-    Designed for ordered data like time series data. Optionally 
+    Designed for ordered data like time series data. Optionally
     perform group-wise merge (see examples).
 
     Parameters
@@ -221,7 +221,7 @@ def merge_ordered(
     Returns
     -------
     DataFrame
-        The merged DataFrame The output type will the be same as 
+        The merged DataFrame The output type will the be same as
         'left', if it is a subclass of DataFrame.
 
     See Also
