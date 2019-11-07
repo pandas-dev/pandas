@@ -83,6 +83,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
+from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats import format as fmt
@@ -10870,27 +10871,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         idx_first_valid : type of index
         """
-        assert how in ["first", "last"]
 
-        if len(self) == 0:  # early stop
+        idxpos = find_valid_index(self._values, how)
+        if idxpos is None:
             return None
-        is_valid = ~self.isna()
-
-        if self.ndim == 2:
-            is_valid = is_valid.any(1)  # reduce axis 1
-
-        if how == "first":
-            idxpos = is_valid.values[::].argmax()
-
-        if how == "last":
-            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
-
-        chk_notna = is_valid.iat[idxpos]
-        idx = self.index[idxpos]
-
-        if not chk_notna:
-            return None
-        return idx
+        return self.index[idxpos]
 
     @Appender(
         _shared_docs["valid_index"] % {"position": "first", "klass": "Series/DataFrame"}
