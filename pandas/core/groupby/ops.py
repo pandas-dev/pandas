@@ -526,7 +526,7 @@ class BaseGrouper:
 
         names: Optional[List[str]]
         if how in self._name_functions:
-            names = self._name_functions[how]()  # type: Optional[List[str]]
+            names = self._name_functions[how]()
         else:
             names = None
 
@@ -887,7 +887,7 @@ class FrameSplitter(DataSplitter):
 def get_splitter(data: NDFrame, *args, **kwargs) -> DataSplitter:
     klass: Type[DataSplitter]
     if isinstance(data, Series):
-        klass = SeriesSplitter  # type: Type[DataSplitter]
+        klass = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter

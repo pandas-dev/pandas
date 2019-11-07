@@ -2505,9 +2505,7 @@ def groupby(obj: NDFrame, by, **kwds) -> GroupBy:
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
-        klass = (
-            SeriesGroupBy
-        )  # type: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+        klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
         from pandas.core.groupby.generic import DataFrameGroupBy
 

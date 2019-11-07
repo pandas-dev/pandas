@@ -5,7 +5,7 @@ import warnings
 
 from numpy.lib.format import read_array
 
-from pandas.compat import PY36, pickle_compat as pc
+from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import _get_handle, _stringify_path
 
@@ -143,9 +143,7 @@ def read_pickle(path, compression="infer"):
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
 
-    excs_to_catch = (AttributeError, ImportError)
-    if PY36:
-        excs_to_catch += (ModuleNotFoundError,)
+    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError)
 
     try:
         with warnings.catch_warnings(record=True):
