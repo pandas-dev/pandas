@@ -372,6 +372,8 @@ class SeriesGroupBy(GroupBy):
         element. The exception is operations that expand dimensions, like ohlc.
         """
         assert len(output) == len(columns)
+        assert list(output.keys()) == sorted(output.keys())
+
         if len(output) > 1:
             result = DataFrame(output, index=index)  # type: Union[Series, DataFrame]
             result.columns = columns
@@ -403,6 +405,8 @@ class SeriesGroupBy(GroupBy):
         In the vast majority of cases output and columns will only contain one
         element. The exception is operations that expand dimensions, like ohlc.
         """
+        assert list(output.keys()) == sorted(output.keys())
+
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, columns=columns
         )
@@ -430,6 +434,8 @@ class SeriesGroupBy(GroupBy):
         output and columns should only contain one element. These are containers
         for generic compatability with the DataFrameGroupBy class.
         """
+        assert list(output.keys()) == sorted(output.keys())
+
         result = self._wrap_series_output(
             output=output, index=self.obj.index, columns=columns
         )
@@ -1690,6 +1696,8 @@ class DataFrameGroupBy(GroupBy):
         -------
         DataFrame
         """
+        assert list(output.keys()) == sorted(output.keys())
+
         result = DataFrame(output)
         result.columns = columns
 
@@ -1723,6 +1731,7 @@ class DataFrameGroupBy(GroupBy):
         -------
         DataFrame
         """
+        assert list(output.keys()) == sorted(output.keys())
 
         result = DataFrame(output)
         result.columns = columns

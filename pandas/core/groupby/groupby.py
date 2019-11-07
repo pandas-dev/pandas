@@ -856,8 +856,8 @@ b  2""",
         )
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
-        output = collections.OrderedDict()
-        names = []  # type: List[Hashable]
+        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
+        names = []  # type: List[Optional[Hashable]]
         for idx, (name, obj) in enumerate(self._iterate_slices()):
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -894,7 +894,7 @@ b  2""",
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output = collections.OrderedDict()
+        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
         names = []  # type: List[Hashable]
 
         # Ideally we would be able to enumerate self._iterate_slices and use
@@ -927,14 +927,15 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output, names)
+        columns = Index(names)
+        return self._wrap_aggregated_output(output, columns)
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = self._is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output = collections.OrderedDict()
+        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
         names = []  # type: List[Hashable]
 
         for idx, (name, obj) in enumerate(self._iterate_slices()):
