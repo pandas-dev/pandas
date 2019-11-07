@@ -441,7 +441,7 @@ class Resampler(_GroupBy, ShallowMixin):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -856,7 +856,7 @@ class Resampler(_GroupBy, ShallowMixin):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1237,11 +1237,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         Parameters
         ----------
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
-            method for upsampling
+            Method for upsampling.
         limit : int, default None
-            Maximum size gap to fill when reindexing
+            Maximum size gap to fill when reindexing.
         fill_value : scalar, default None
-            Value to use for missing values
+            Value to use for missing values.
 
         See Also
         --------
