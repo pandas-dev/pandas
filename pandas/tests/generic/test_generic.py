@@ -436,6 +436,7 @@ class Generic:
 
     def test_sample_upsampling_without_replacement(self):
         # GH27451
+
         df = pd.DataFrame({"A": list("abc")})
         msg = (
             "Replace has to be set to `True` when "
