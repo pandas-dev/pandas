@@ -1679,6 +1679,8 @@ def is_extension_type(arr):
     classes represented within the pandas library and not ones external
     to it like scipy sparse matrices), and datetime-like arrays.
 
+    .. deprecated:: 1.0.0
+
     Parameters
     ----------
     arr : array-like
@@ -1717,6 +1719,12 @@ def is_extension_type(arr):
     >>> is_extension_type(s)
     True
     """
+    warnings.warn(
+        "'is_extension_type' is deprecated and will be removed in a future "
+        "version.  Use 'is_extension_array_dtype' instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     if is_categorical(arr):
         return True

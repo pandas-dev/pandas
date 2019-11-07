@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetimelike,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -1268,7 +1267,7 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype):
                 values = self._values
             else:
                 values = self.values
@@ -1279,7 +1278,8 @@ class IndexOpsMixin:
             return new_values
 
         # we must convert to python types
-        if is_extension_type(self.dtype):
+        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+            # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
                 raise NotImplementedError
