@@ -4936,7 +4936,6 @@ class NDFrame(PandasObject, SelectionMixin):
         
         Notes
         -----
-
         If `frac` > 1, `replacement` should be set to `True`
 
         Examples

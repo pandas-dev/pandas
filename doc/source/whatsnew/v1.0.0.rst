@@ -334,6 +334,7 @@ Numeric
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 - Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
 - Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
+-
 
 Conversion
 ^^^^^^^^^^
