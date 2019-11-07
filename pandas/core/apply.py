@@ -13,8 +13,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.io.formats.printing import pprint_thing
-
 
 def frame_apply(
     obj,
@@ -293,20 +291,9 @@ class FrameApply:
                 res_index = res_index.take(successes)
 
         else:
-            try:
-                for i, v in enumerate(series_gen):
-                    results[i] = self.f(v)
-                    keys.append(v.name)
-            except Exception as err:
-                if hasattr(err, "args"):
-
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        err.args = err.args + (
-                            "occurred at index %s" % pprint_thing(k),
-                        )
-                raise
+            for i, v in enumerate(series_gen):
+                results[i] = self.f(v)
+                keys.append(v.name)
 
         self.results = results
         self.res_index = res_index
