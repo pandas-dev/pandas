@@ -621,8 +621,8 @@ def assert_index_equal(
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.codes[level]
-        filled = take_1d(unique.values, labels, fill_value=unique._na_value)
+        level_codes = index.codes[level]
+        filled = take_1d(unique.values, level_codes, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
