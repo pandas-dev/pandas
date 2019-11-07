@@ -415,7 +415,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 return True
             return hash(self) == hash(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str_type:
         tpl = "CategoricalDtype(categories={}ordered={})"
         if self.categories is None:
             data = "None, "
@@ -752,7 +752,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
@@ -889,7 +889,7 @@ class PeriodDtype(PandasExtensionDtype):
                 pass
         raise TypeError("could not construct PeriodDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return self.name
 
     @property
@@ -1068,7 +1068,7 @@ class IntervalDtype(PandasExtensionDtype):
     def type(self):
         return Interval
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
