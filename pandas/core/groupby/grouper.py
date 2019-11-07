@@ -26,7 +26,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
@@ -430,7 +429,7 @@ class Grouping:
 
 
 def get_grouper(
-    obj: NDFrame,
+    obj: FrameOrSeries,
     key=None,
     axis: int = 0,
     level=None,
@@ -438,7 +437,7 @@ def get_grouper(
     observed=False,
     mutated=False,
     validate=True,
-) -> Tuple[BaseGrouper, List[Hashable], NDFrame]:
+) -> Tuple[BaseGrouper, List[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -571,7 +570,8 @@ def get_grouper(
             all_in_columns_index = all(
                 g in obj.columns or g in obj.index.names for g in keys
             )
-        else:  # Series
+        else:
+            assert isinstance(obj, Series)
             all_in_columns_index = all(g in obj.index.names for g in keys)
 
         if not all_in_columns_index:
