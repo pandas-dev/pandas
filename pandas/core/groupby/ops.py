@@ -159,26 +159,25 @@ class BaseGrouper:
             com.get_callable_name(f) not in base.plotting_methods
             and hasattr(splitter, "fast_apply")
             and axis == 0
-            # with MultiIndex, apply_frame_axis0 would raise InvalidApply
-            # TODO: can we make this check prettier?
-            and not sdata.index._has_complex_internals
+            # apply_frame_axis0 doesn't allow MultiIndex
+            and not isinstance(sdata.index, MultiIndex)
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
 
-                # If the fast apply path could be used we can return here.
-                # Otherwise we need to fall back to the slow implementation.
-                if len(result_values) == len(group_keys):
-                    return group_keys, result_values, mutated
-
             except libreduction.InvalidApply as err:
-                # Cannot fast apply on MultiIndex (_has_complex_internals).
-                # This Exception is also raised if `f` triggers an exception
+                # This Exception is raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 if "Let this error raise above us" not in str(err):
                     # TODO: can we infer anything about whether this is
                     #  worth-retrying in pure-python?
                     raise
+
+            else:
+                # If the fast apply path could be used we can return here.
+                # Otherwise we need to fall back to the slow implementation.
+                if len(result_values) == len(group_keys):
+                    return group_keys, result_values, mutated
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
@@ -590,7 +589,7 @@ class BaseGrouper:
             # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif obj.index._has_complex_internals:
+        elif isinstance(obj.index, MultiIndex):
             # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
