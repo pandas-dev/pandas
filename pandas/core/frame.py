@@ -5848,13 +5848,13 @@ class DataFrame(NDFrame):
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
             If dict is passed, the key is column to aggregate and value
-            is function or list of functions
+            is function or list of functions.
         fill_value : scalar, default None
-            Value to replace missing values with
+            Value to replace missing values with.
         margins : bool, default False
-            Add all row / columns (e.g. for subtotal / grand totals)
+            Add all row / columns (e.g. for subtotal / grand totals).
         dropna : bool, default True
-            Do not include columns whose entries are all NaN
+            Do not include columns whose entries are all NaN.
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
@@ -5868,6 +5868,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+            An Excel style pivot table.
 
         See Also
         --------

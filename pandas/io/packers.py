@@ -191,7 +191,7 @@ def read_msgpack(path_or_buf, encoding="utf-8", iterator=False, **kwargs):
         ``StringIO``.
     encoding : Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
-               (default is False)
+               (default is False).
 
     Returns
     -------

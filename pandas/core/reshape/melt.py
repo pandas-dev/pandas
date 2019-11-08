@@ -206,12 +206,12 @@ def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
     Parameters
     ----------
     df : DataFrame
-        The wide-format DataFrame
+        The wide-format DataFrame.
     stubnames : str or list-like
         The stub name(s). The wide format variables are assumed to
         start with the stub names.
     i : str or list-like
-        Column(s) to use as id variable(s)
+        Column(s) to use as id variable(s).
     j : str
         The name of the sub-observation variable. What you wish to name your
         suffix in the long format.
@@ -219,14 +219,14 @@ def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hyphen by specifying `sep='-'`
+        can strip the hyphen by specifying `sep='-'`.
     suffix : str, default '\\d+'
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
         suffixes, for example, if your wide variables are of the form
         A-one, B-two,.., and you have an unrelated column A-rating, you can
-        ignore the last one by specifying `suffix='(!?one|two)'`
+        ignore the last one by specifying `suffix='(!?one|two)'`.
 
         .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.
@@ -360,7 +360,7 @@ def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
 
     >>> stubnames = sorted(
     ...     set([match[0] for match in df.columns.str.findall(
-    ...         r'[A-B]\(.*\)').values if match != [] ])
+    ...         r'[A-B]\(.*\)').values if match != []])
     ... )
     >>> list(stubnames)
     ['A(weekly)', 'B(weekly)']

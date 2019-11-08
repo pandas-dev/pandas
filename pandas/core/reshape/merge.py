@@ -175,9 +175,10 @@ def merge_ordered(
     how="outer",
 ):
     """
-    Perform merge with optional filling/interpolation designed for ordered
-    data like time series data. Optionally perform group-wise merge (see
-    examples).
+    Perform merge with optional filling/interpolation.
+
+    Designed for ordered data like time series data. Optionally
+    perform group-wise merge (see examples).
 
     Parameters
     ----------
@@ -188,18 +189,18 @@ def merge_ordered(
     left_on : label or list, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
-        the join key instead of columns
+        the join key instead of columns.
     right_on : label or list, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
-        left_on docs
+        left_on docs.
     left_by : column name or list of column names
         Group left DataFrame by group columns and merge piece by piece with
-        right DataFrame
+        right DataFrame.
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
-        left DataFrame
+        left DataFrame.
     fill_method : {'ffill', None}, default None
-        Interpolation method for data
+        Interpolation method for data.
     suffixes : Sequence, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
@@ -213,13 +214,13 @@ def merge_ordered(
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
         * outer: use union of keys from both frames (SQL: full outer join)
-        * inner: use intersection of keys from both frames (SQL: inner join)
+        * inner: use intersection of keys from both frames (SQL: inner join).
 
     Returns
     -------
-    merged : DataFrame
-        The output type will the be same as 'left', if it is a subclass
-        of DataFrame.
+    DataFrame
+        The merged DataFrame output type will the be same as
+        'left', if it is a subclass of DataFrame.
 
     See Also
     --------
@@ -228,14 +229,20 @@ def merge_ordered(
 
     Examples
     --------
-    >>> A                      >>> B
-          key  lvalue group        key  rvalue
-    0   a       1     a        0     b       1
-    1   c       2     a        1     c       2
-    2   e       3     a        2     d       3
+    >>> A
+          key  lvalue group
+    0   a       1     a
+    1   c       2     a
+    2   e       3     a
     3   a       1     b
     4   c       2     b
     5   e       3     b
+
+    >>> B
+        Key  rvalue
+    0     b       1
+    1     c       2
+    2     d       3
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
       group key  lvalue  rvalue

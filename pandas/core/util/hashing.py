@@ -67,11 +67,11 @@ def hash_pandas_object(
     Parameters
     ----------
     index : bool, default True
-        include the index in the hash (if Series/DataFrame)
+        Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
-        encoding for data & key when strings
+        Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
-        hash_key for string key to encode
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
@@ -253,9 +253,9 @@ def hash_array(
     ----------
     vals : ndarray, Categorical
     encoding : str, default 'utf8'
-        encoding for data & key when strings
+        Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
-        hash_key for string key to encode
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
