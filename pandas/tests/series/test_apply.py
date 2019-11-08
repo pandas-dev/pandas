@@ -4,8 +4,6 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
