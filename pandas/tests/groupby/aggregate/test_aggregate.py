@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, concat
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
@@ -361,9 +361,7 @@ class TestNamedAggregationSeries:
         tm.assert_frame_equal(result, expected)
 
         result = gr.agg(b="min", a="sum")
-        # sort for 35 and earlier
-        if compat.PY36:
-            expected = expected[["b", "a"]]
+        expected = expected[["b", "a"]]
         tm.assert_frame_equal(result, expected)
 
     def test_no_args_raises(self):
@@ -425,8 +423,6 @@ class TestNamedAggregationDataFrame:
             index=pd.Index(["a", "b"], name="group"),
             columns=["b_min", "a_min", "a_mean", "a_max", "b_max", "a_98"],
         )
-        if not compat.PY36:
-            expected = expected[["a_98", "a_max", "a_mean", "a_min", "b_max", "b_min"]]
         tm.assert_frame_equal(result, expected)
 
     def test_agg_relabel_non_identifier(self):

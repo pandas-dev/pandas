@@ -11,7 +11,6 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -1616,11 +1615,7 @@ class TestIndex(Base):
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
-            # Messages vary across versions
-            if PY36:
-                msg = "not supported between"
-            else:
-                msg = "unorderable types"
+            msg = "not supported between"
         else:
             msg = "invalid key"
 
@@ -2444,21 +2439,13 @@ class TestMixedIntIndex(Base):
 
     def test_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                index.argsort()
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                index.argsort()
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            index.argsort()
 
     def test_numpy_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                np.argsort(index)
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                np.argsort(index)
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            np.argsort(index)
 
     def test_copy_name(self):
         # Check that "name" argument passed at initialization is honoured
