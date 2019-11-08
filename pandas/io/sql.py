@@ -496,7 +496,7 @@ def to_sql(
 
         .. versionadded:: 0.24.0
     """
-    if if_exists not in ("fail", "replace", "append"): #TODO: add upserts
+    if if_exists not in ("fail", "replace", "append", "upsert_ignore", "upsert_delete"): #TODO: add upserts
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -651,7 +651,6 @@ class SQLTable(PandasObject):
             elif self.if_exists == "append":
                 pass
             elif self.if_exists == "upsert_delete":
-                # execute delete from db statement, then
                 pass
             elif self.if_exists == "upsert_ignore":
                 # clear rows out of dataframe
@@ -665,19 +664,73 @@ class SQLTable(PandasObject):
 
     def _upsert_delete_processing(self):
         from sqlalchemy import tuple_
-        #get pkeys
-        primary_keys = self._get_primary_key_columns()
-        # get pkey values from table
-
-        #generate delete statement
+        # Primary key data
+        primary_keys, primary_key_values = self._get_primary_key_data()
+        # Generate delete statement
         delete_statement = self.table.delete().where(
             tuple_(
                 *(self.table.c[col] for col in primary_keys)
             ).in_(
-               #PKEY VALUES FORM TABLE HERE
+                primary_key_values
             )
         )
+        return delete_statement
 
+    def _upsert_ignore_processing(self):
+        from sqlalchemy import tuple_, select
+        # Primary key data
+        primary_keys, primary_key_values = self._get_primary_key_data()
+
+        # Fetch matching pkey values from database
+        columns_to_fetch = [self.table.c[key] for key in primary_keys]
+
+        select_statement = select(columns_to_fetch).where(
+            tuple_(*columns_to_fetch).in_(primary_key_values)
+        )
+
+        result = self.pd_sql.execute(select_statement)
+
+        pkeys_from_database = _wrap_result(data=result, columns=primary_keys)
+
+        # Delete rows from self.frame where primary keys match
+        self.frame = self._get_index_formatted_dataframe()
+
+        to_be_deleted_mask = self.frame[primary_keys].isin(
+            pkeys_from_database[primary_keys]
+        ).all(1)
+
+        self.frame.drop(self.frame[to_be_deleted_mask].index, inplace=True)
+
+    def _get_primary_key_data(self):
+        """
+        Upsert workflows require knowledge of what is already in the database
+        this method reflects the meta object and gets a list of primary keys
+
+        Returns
+        -------
+        primary_keys, primary_key_values : Tuple[List[str], Iterable]
+            - primary_keys : List of primary key column names
+            - primary_key_values : Iterable of dataframe rows corresponding to primary_key columns
+        """
+
+        # reflect MetaData object and assign contents of db to self.table attribute
+        self.pd_sql.meta.reflect(only=[self.name], views=True)
+        self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
+
+        primary_keys = [
+            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
+        ]
+
+        # For the time being, this method is defensive and will break if no pkeys are found
+        # If desired this default behaviour could be changed so that in cases where no pkeys
+        # are found, it could default to a normal insert
+        if len(primary_keys) == 0:
+            raise ValueError(
+                f"No primary keys found for table {self.name}"
+            )
+
+        primary_key_values = zip(*[self.frame[key] for key in primary_keys])
+        return primary_keys, primary_key_values
 
     def _execute_insert(self, conn, keys, data_iter):
         """Execute SQL statement inserting data
@@ -703,111 +756,41 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(data))
 
-    def _execute_upsert_update(self, conn, keys, data_iter, primary_keys):
-        """Execute an SQL UPSERT, and in cases of key clashes,
-        overwrite records in the Database with incoming records.
+    def _get_index_formatted_dataframe(self):
         """
-        pass
-
-    def _execute_upsert_ignore(self, conn, keys, data_iter, primary_keys):
-        """Execute an SQL UPSERT, and in cases of key clashes,
-        keep records in the Database, and ignore incoming records.
-        """
-        # TODO: DATYPE CHECKING?
-
-        existing_pkey_values = self._database_column_iterator(columns=primary_keys)
-
-        # Creating temp frame accounts for cases where self.frame.index is also to be added
-        # to database
-        temp_frame = self._generate_temp_dataframe()
-
-        # Only get columns corresponding to primary keys, and index for deletion
-        incoming_pkey_iterator = zip(
-            zip(*[temp_frame[col] for col in primary_keys]),
-            [temp_frame.index]
-        )
-
-        # Turn incoming self.frame data into same format at db read
-        dict_of_pkey_values = dict(incoming_pkey_iterator)
-
-        # Loop to delete values from self.frame if they already exist in database
-        for pkey_value in existing_pkey_values:
-            # Break loop if self.frame is empty
-            if self.frame.empty:
-                break
-            elif pkey_value in dict_of_pkey_values:
-                self.frame.drop(index=dict_of_pkey_values[pkey_value], inplace=True)
-
-    def _database_column_iterator(self, columns):
-        """
-        This method gets all values for specified columns, returning them via
-        a lazy generator
-
-        Parameters
-        ----------
-        self: SQLTable
-            Table from which data is to be returned
-        columns: List[str]
-            Names of columns to be returned
-
-        Returns
-        -------
-        generator Object
-        """
-        from sqlalchemy import select
-        statement = select([self.table.c[key] for key in columns])
-        result = self.pd_sql.execute(statement)
-        return self.pd_sql._query_iterator(result=result, chunksize=chunksize, columns=columns)
-
-    def _get_primary_key_columns(self):
-        """
-        Upsert workflows require knowledge of what is already in the database
-        this method reflects the meta object and gets a list of primary keys
-
-        Returns
-        -------
-        List[str] - list of primary key column names
-        """
-        # reflect MetaData object and assign contents of db to self.table attribute
-        self.pd_sql.meta.reflect(only=[self.name], views=True)
-        self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
-
-        primary_keys = [
-            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
-        ]
-
-        # For the time being, this method is defensive and will break if no pkeys are found
-        # If desired this default behaviour could be changed so that in cases where no pkeys
-        # are found, it could default to a normal insert
-        if len(primary_keys) == 0:
-            raise ValueError(
-                f"No primary keys found for table {self.name}"
-            )
-        return primary_keys
-
-    def _generate_temp_dataframe(self):
-        """
+        Method that checks whether the dataframe index is also to be added to the
+        database table.  If it is, it takes care of formatting the incoming dataframe
+        accordingly
 
         Returns
         -------
         DataFrame object
         """
-        # Originally from insert_data() method, but needed in more places
-        # so abstracted, to keep code DRY.
+
+        # Originally this functionality formed the first step of the insert_data() method,
+        # however it will be useful to have in other places, so to keep code DRY it has been moved here.
+
         if self.index is not None:
-            temp = self.frame.copy()
-            temp.index.names = self.index
-            try:
-                temp.reset_index(inplace=True)
-            except ValueError as err:
-                raise ValueError("duplicate name in index/columns: {0}".format(err))
+            # The following check ensures that the method can be called multiple times,
+            # without the dataframe getting wrongfully formatted
+            if all(idx in self.frame.columns for idx in self.index):
+                temp = self.frame
+            else:
+                temp = self.frame.copy()
+                temp.index.names = self.index
+                try:
+                    temp.reset_index(inplace=True)
+                except ValueError as err:
+                    raise ValueError("duplicate name in index/columns: {0}".format(err))
         else:
             temp = self.frame
 
         return temp
 
     def insert_data(self):
-        temp = self._generate_temp_dataframe()
+
+        temp = self._get_index_formatted_dataframe()
+
         # TODO: column_names by list comprehension?
         column_names = list(map(str, temp.columns))
         ncols = len(column_names)
@@ -839,22 +822,28 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(self, chunksize=None, method=None):
+        if self.if_exists == "upsert_ignore":
+            self._upsert_ignore_processing()
+            self._insert(chunksize=chunksize, method=method)
+        elif self.if_exists == "upsert_delete":
+            delete_statement = self._upsert_delete_processing()
+            with self.pd_sql.run_transaction() as trans:
+                trans.execute(delete_statement)
+                self._insert(chunksize=chunksize, method=method)
+        else:
+            self._insert(chunksize=chunksize, method=method)
+
+    def _insert(self, chunksize=None, method=None):
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
         elif method == "multi":
             exec_insert = self._execute_insert_multi
-        elif method == "upsert_update":
-            raise NotImplementedError
-        elif method == "upsert_ignore":
-            raise NotImplementedError
         elif callable(method):
             exec_insert = partial(method, self)
         else:
             raise ValueError("Invalid parameter `method`: {}".format(method))
 
-        # Need to pre-process data for upsert here
-        # for upsert ignore - delete records from self.frame directly
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
