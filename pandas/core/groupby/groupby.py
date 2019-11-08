@@ -14,7 +14,17 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
+from typing import (
+    FrozenSet,
+    Generic,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -41,6 +51,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import FrameOrSeries
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
@@ -336,13 +347,13 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
-class _GroupBy(PandasObject, SelectionMixin):
+class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
     _apply_whitelist = frozenset()  # type: FrozenSet[str]
 
     def __init__(
         self,
-        obj: NDFrame,
+        obj: FrameOrSeries,
         keys=None,
         axis: int = 0,
         level=None,
@@ -391,7 +402,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                 mutated=self.mutated,
             )
 
-        self.obj = obj
+        self.obj = obj  # type: FrameOrSeries
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
@@ -1662,7 +1673,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def nth(self, n: Union[int, List[int]], dropna: Optional[str] = None) -> DataFrame:
+    def nth(
+        self, n: Union[int, List[int]], dropna: Optional[str] = None
+    ) -> FrameOrSeries:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.

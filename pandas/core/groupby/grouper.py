@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, Union
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
@@ -249,7 +249,7 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: Optional[FrameOrSeries] = None,
+        obj: Optional[Union[DataFrame, Series]] = None,
         name=None,
         level=None,
         sort: bool = True,
@@ -570,8 +570,7 @@ def get_grouper(
             all_in_columns_index = all(
                 g in obj.columns or g in obj.index.names for g in keys
             )
-        else:
-            assert isinstance(obj, Series)
+        elif isinstance(obj, Series):
             all_in_columns_index = all(g in obj.index.names for g in keys)
 
         if not all_in_columns_index:
