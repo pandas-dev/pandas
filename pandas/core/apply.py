@@ -1,8 +1,10 @@
 import inspect
+from typing import TYPE_CHECKING, Iterator, Type
 
 import numpy as np
 
 from pandas._libs import reduction as libreduction
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -13,14 +15,17 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series, Index
+
 
 def frame_apply(
-    obj,
+    obj: "DataFrame",
     func,
     axis=0,
-    raw=False,
+    raw: bool = False,
     result_type=None,
-    ignore_failures=False,
+    ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
@@ -28,7 +33,7 @@ def frame_apply(
 
     axis = obj._get_axis_number(axis)
     if axis == 0:
-        klass = FrameRowApply
+        klass = FrameRowApply  # type: Type[FrameApply]
     elif axis == 1:
         klass = FrameColumnApply
 
@@ -44,7 +49,38 @@ def frame_apply(
 
 
 class FrameApply:
-    def __init__(self, obj, func, raw, result_type, ignore_failures, args, kwds):
+
+    # ---------------------------------------------------------------
+    # Abstract Methods
+
+    @property
+    def axis(self) -> int:
+        raise AbstractMethodError(self)
+
+    @property
+    def result_index(self) -> "Index":
+        raise AbstractMethodError(self)
+
+    @property
+    def result_columns(self) -> "Index":
+        raise AbstractMethodError(self)
+
+    @property
+    def series_generator(self) -> Iterator["Series"]:
+        raise AbstractMethodError(self)
+
+    # ---------------------------------------------------------------
+
+    def __init__(
+        self,
+        obj: "DataFrame",
+        func,
+        raw: bool,
+        result_type,
+        ignore_failures: bool,
+        args,
+        kwds,
+    ):
         self.obj = obj
         self.raw = raw
         self.ignore_failures = ignore_failures
@@ -76,11 +112,11 @@ class FrameApply:
         self.res_columns = None
 
     @property
-    def columns(self):
+    def columns(self) -> "Index":
         return self.obj.columns
 
     @property
-    def index(self):
+    def index(self) -> "Index":
         return self.obj.index
 
     @cache_readonly
@@ -88,11 +124,11 @@ class FrameApply:
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self):
+    def dtypes(self) -> "Index":
         return self.obj.dtypes
 
     @property
-    def agg_axis(self):
+    def agg_axis(self) -> "Index":
         return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
@@ -325,11 +361,11 @@ class FrameRowApply(FrameApply):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.columns
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.index
 
     def wrap_results_for_axis(self):
@@ -364,11 +400,11 @@ class FrameColumnApply(FrameApply):
         )
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.index
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.columns
 
     def wrap_results_for_axis(self):
@@ -392,7 +428,7 @@ class FrameColumnApply(FrameApply):
 
         return result
 
-    def infer_to_same_shape(self):
+    def infer_to_same_shape(self) -> "DataFrame":
         """ infer the results to the same shape as the input object """
         results = self.results
 
