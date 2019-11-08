@@ -26,6 +26,22 @@ _doc_template = """
 """
 
 
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
 class WindowGroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
@@ -40,21 +56,6 @@ class WindowGroupByMixin(GroupByMixin):
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
-
-    def _dispatch(name: str, *args, **kwargs):
-        """
-        Dispatch to apply.
-        """
-
-        def outer(self, *args, **kwargs):
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return getattr(x, name)(*args, **kwargs)
-
-            return self._groupby.apply(f)
-
-        outer.__name__ = name
-        return outer
 
     count = _dispatch("count")
     corr = _dispatch("corr", other=None, pairwise=None)
