@@ -649,11 +649,11 @@ class Index(IndexOpsMixin, PandasObject):
     # Array-Like Methods
 
     # ndarray compat
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Return the length of the Index.
         """
-        return len(self._data)
+        return len(self._data)  # type: ignore
 
     def __array__(self, dtype=None):
         """

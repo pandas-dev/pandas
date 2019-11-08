@@ -1217,7 +1217,7 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.codes[0])
 
     def _get_names(self):

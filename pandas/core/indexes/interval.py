@@ -468,7 +468,7 @@ class IntervalIndex(IntervalMixin, Index):
             warnings.simplefilter("ignore")
             return self.left.itemsize + self.right.itemsize
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.left)
 
     @cache_readonly

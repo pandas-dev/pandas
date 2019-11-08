@@ -322,7 +322,7 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
     def __repr__(self) -> str:
