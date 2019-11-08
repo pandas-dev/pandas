@@ -171,3 +171,17 @@ def test_arrow_array():
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
     assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip():
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", "c"], dtype="string")
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "string"
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    tm.assert_frame_equal(result, df)

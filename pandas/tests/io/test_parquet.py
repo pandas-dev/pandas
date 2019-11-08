@@ -515,7 +515,7 @@ class TestParquetPyArrow(Base):
             }
         )
         if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
-            expected = df.assign(b=df.b.astype("object"))
+            expected = df
         else:
             # de-serialized as plain int / object
             expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))

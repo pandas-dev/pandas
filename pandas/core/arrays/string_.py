@@ -85,6 +85,22 @@ class StringDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return "StringDtype"
 
+    def __from_arrow__(self, array):
+        """Construct StringArray from passed pyarrow Array"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            str_arr = StringArray(np.array(arr))
+            results.append(str_arr)
+
+        return StringArray._concat_same_type(results)
+
 
 class StringArray(PandasArray):
     """
