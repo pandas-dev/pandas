@@ -7,8 +7,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -1384,10 +1382,8 @@ class TestDataFrameNamedAggregate:
 
         # test on same column with different methods
         result = df.agg(foo=("B", "sum"), bar=("B", "min"))
-        if PY36:
-            expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
-        else:
-            expected = pd.DataFrame({"B": [1, 10]}, index=pd.Index(["bar", "foo"]))
+        expected = pd.DataFrame({"B": [10, 1]}, index=pd.Index(["foo", "bar"]))
+
         tm.assert_frame_equal(result, expected)
 
         # test on multiple columns with multiple methods
@@ -1407,22 +1403,14 @@ class TestDataFrameNamedAggregate:
             },
             index=pd.Index(["foo", "bar", "cat", "dat", "f", "g"]),
         )
-        if PY36:
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # test on partial, functools or more complex cases
         result = df.agg(foo=("A", np.mean), bar=("A", "mean"), cat=("A", min))
         expected = pd.DataFrame(
             {"A": [1.5, 1.5, 1.0]}, index=pd.Index(["foo", "bar", "cat"])
         )
-        if PY36:
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.agg(
             foo=("A", min),
@@ -1439,11 +1427,7 @@ class TestDataFrameNamedAggregate:
             },
             index=pd.Index(["foo", "bar", "cat", "dat", "f"]),
         )
-        if PY36:
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_namedtuple(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -1453,14 +1437,10 @@ class TestDataFrameNamedAggregate:
             cat=pd.NamedAgg(column="B", aggfunc="count"),
             fft=pd.NamedAgg("B", aggfunc="max"),
         )
-        if PY36:
-            expected = pd.DataFrame(
-                {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
-            )
-        else:
-            expected = pd.DataFrame(
-                {"B": [1, 2, 2, 3]}, index=pd.Index(["bar", "cat", "fft", "foo"])
-            )
+
+        expected = pd.DataFrame(
+            {"B": [3, 1, 2, 2]}, index=pd.Index(["foo", "bar", "cat", "fft"])
+        )
         tm.assert_frame_equal(result, expected)
 
         result = df.agg(
@@ -1472,11 +1452,7 @@ class TestDataFrameNamedAggregate:
             {"A": [0.0, np.nan, 1.0], "B": [np.nan, 2.0, np.nan]},
             index=pd.Index(["foo", "bar", "cat"]),
         )
-        if PY36:
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.xfail(reason="PY35"):
-                tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_raises(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
