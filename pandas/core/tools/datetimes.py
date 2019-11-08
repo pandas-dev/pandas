@@ -580,7 +580,6 @@ def to_datetime(
     arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like
         The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        Behaves as:
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
         - If 'ignore', then invalid parsing will return the input.
