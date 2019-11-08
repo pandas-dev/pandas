@@ -1051,12 +1051,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow as pa
 
-        # TODO better conversion to arrow type, handle missing values
-        subtype = str(self.dtype.subtype)
-        if subtype == "datetime64[ns]":
-            subtype = pyarrow.timestamp("ns")
-        else:
-            subtype = pyarrow.type_for_alias(subtype)
+        try:
+            subtype = pa.from_numpy_dtype(self.dtype.subtype)
+        except TypeError:
+            raise TypeError(
+                "Conversion to arrow with subtype '{}' "
+                "is not supported".format(self.dtype.subtype)
+            )
         interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pa.StructArray.from_arrays(
             [
@@ -1065,6 +1066,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ],
             names=["left", "right"],
         )
+        mask = self.isna()
+        if mask.any():
+            # if there are missing values, set validity bitmap also on the array level
+            null_bitmap = pa.array(~mask).buffers()[1]
+            storage_array = pa.StructArray.from_buffers(
+                storage_array.type,
+                len(storage_array),
+                [null_bitmap],
+                children=[storage_array.field(0), storage_array.field(1)],
+            )
 
         if type is not None:
             if type.equals(interval_type.storage_type):

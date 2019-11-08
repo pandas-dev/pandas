@@ -190,15 +190,14 @@ def test_arrow_array_missing():
     assert result.storage.field("left").equals(left)
     assert result.storage.field("right").equals(right)
 
-    # TODO implement setting the missing values bitmap on the array level
-    # # structarray itself also has missing values on the array level
-    # vals = [
-    #     {"left": 0.0, "right": 1.0},
-    #     {"left": None, "right": None},
-    #     {"left": 2.0, "right": 3.0},
-    # ]
-    # expected = pa.StructArray.from_pandas(vals, mask=np.array([False, True, False]))
-    # assert result.storage.equals(expected)
+    # structarray itself also has missing values on the array level
+    vals = [
+        {"left": 0.0, "right": 1.0},
+        {"left": None, "right": None},
+        {"left": 2.0, "right": 3.0},
+    ]
+    expected = pa.StructArray.from_pandas(vals, mask=np.array([False, True, False]))
+    assert result.storage.equals(expected)
 
 
 @pyarrow_skip
