@@ -212,7 +212,6 @@ def merge_ordered(
 
         .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
-        Behavior:
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
         * outer: use union of keys from both frames (SQL: full outer join)
@@ -221,7 +220,7 @@ def merge_ordered(
     Returns
     -------
     DataFrame
-        The merged DataFrame The output type will the be same as
+        The merged DataFrame output type will the be same as
         'left', if it is a subclass of DataFrame.
 
     See Also

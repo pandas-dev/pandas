@@ -604,7 +604,6 @@ def to_datetime(
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
     box : bool, default True
-        Behaves as:
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
 
