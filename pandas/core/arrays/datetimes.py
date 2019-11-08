@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_type,
+    is_extension_array_dtype,
     is_float_dtype,
     is_object_dtype,
     is_period_dtype,
@@ -2131,7 +2131,7 @@ def maybe_convert_dtype(data, copy):
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
 
-    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+    elif is_extension_array_dtype(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)

@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_extension_type, is_list_like
+from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
@@ -103,7 +103,7 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_type(id_data):
+        if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
             id_data = np.tile(id_data.values, K)

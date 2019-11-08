@@ -18,7 +18,6 @@ class TestTypes(Base):
         "is_datetime64_ns_dtype",
         "is_datetime64tz_dtype",
         "is_dtype_equal",
-        "is_extension_type",
         "is_float",
         "is_float_dtype",
         "is_int64_dtype",
@@ -51,7 +50,7 @@ class TestTypes(Base):
         "infer_dtype",
         "is_extension_array_dtype",
     ]
-    deprecated = ["is_period", "is_datetimetz"]
+    deprecated = ["is_period", "is_datetimetz", "is_extension_type"]
     dtypes = ["CategoricalDtype", "DatetimeTZDtype", "PeriodDtype", "IntervalDtype"]
 
     def test_types(self):
