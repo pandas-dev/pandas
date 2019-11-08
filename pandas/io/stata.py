@@ -862,10 +862,10 @@ class StataMissingValue:
         lambda self: self._value, doc="The binary representation of the missing value."
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 

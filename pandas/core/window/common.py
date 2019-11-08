@@ -26,7 +26,23 @@ _doc_template = """
 """
 
 
-class _GroupByMixin(GroupByMixin):
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
+class WindowGroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
     """
@@ -43,9 +59,9 @@ class _GroupByMixin(GroupByMixin):
         # error: Too many arguments for "__init__" of "object"
         super().__init__(obj, *args, **kwargs)  # type: ignore
 
-    count = GroupByMixin._dispatch("count")
-    corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
-    cov = GroupByMixin._dispatch("cov", other=None, pairwise=None)
+    count = _dispatch("count")
+    corr = _dispatch("corr", other=None, pairwise=None)
+    cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self, func, name=None, window=None, center=None, check_minp=None, **kwargs
@@ -55,6 +71,7 @@ class _GroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
 
+        # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
 

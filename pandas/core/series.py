@@ -25,10 +25,8 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetimelike,
     is_dict_like,
     is_extension_array_dtype,
-    is_extension_type,
     is_integer,
     is_iterator,
     is_list_like,
@@ -168,6 +166,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
+    name : str, optional
+        The name to give to the Series.
     copy : bool, default False
         Copy input data.
     """
@@ -1555,7 +1555,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.
         """
@@ -2095,8 +2095,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         *args, **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            Additional arguments and keywords have no effect but might be
+            accepted for compatability with NumPy.
 
         Returns
         -------
@@ -2165,8 +2165,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         *args, **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2886,7 +2886,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        if is_datetimelike(this) and not is_datetimelike(other):
+        if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
 
         return this.where(notna(this), other)
@@ -3531,8 +3531,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
+        i, j : int, str
+            Level of the indices to be swapped. Can pass level name as string.
         copy : bool, default True
             Whether to copy underlying data.
 
@@ -3958,7 +3958,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return f(self)
 
             # row-wise access
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+                # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
                 values = self.astype(object).values
@@ -4087,14 +4088,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-        copy : bool, default True
-            Whether to copy underlying data.
-        inplace : bool, default False
-            Whether to return a new Series. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
+
+        **kwargs
+            Additional keyword arguments passed to the function. Only the
+            "inplace" keyword is used.
 
         Returns
         -------

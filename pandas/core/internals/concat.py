@@ -121,7 +121,7 @@ class JoinUnit:
         self.indexers = indexers
         self.shape = shape
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{name}({block!r}, {indexers})".format(
             name=self.__class__.__name__, block=self.block, indexers=self.indexers
         )

@@ -2215,12 +2215,12 @@ cdef class _Period:
     def freqstr(self):
         return self.freq.freqstr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation for a particular DataFrame
         """

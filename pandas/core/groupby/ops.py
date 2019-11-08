@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Any, Dict, List, Optional, Sequence, Type
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -216,11 +216,11 @@ class BaseGrouper:
             return get_indexer_dict(codes_list, keys)
 
     @property
-    def codes(self):
+    def codes(self) -> List[np.ndarray]:
         return [ping.codes for ping in self.groupings]
 
     @property
-    def levels(self):
+    def levels(self) -> List[Index]:
         return [ping.group_index for ping in self.groupings]
 
     @property
@@ -264,7 +264,7 @@ class BaseGrouper:
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
-    def codes_info(self):
+    def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
         codes, _, _ = self.group_info
         if self.indexer is not None:
@@ -272,8 +272,8 @@ class BaseGrouper:
             codes = codes[sorter]
         return codes
 
-    def _get_compressed_codes(self):
-        all_codes = [ping.codes for ping in self.groupings]
+    def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
+        all_codes = self.codes
         if len(all_codes) > 1:
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
@@ -286,9 +286,9 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def recons_codes(self):
+    def reconstructed_codes(self) -> List[np.ndarray]:
+        codes = self.codes
         comp_ids, obs_ids, _ = self.group_info
-        codes = (ping.codes for ping in self.groupings)
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
@@ -296,7 +296,7 @@ class BaseGrouper:
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
-        codes = self.recons_codes
+        codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
@@ -308,7 +308,7 @@ class BaseGrouper:
             return [self.groupings[0].result_index]
 
         name_list = []
-        for ping, codes in zip(self.groupings, self.recons_codes):
+        for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
             levels = ping.result_index.take(codes)
 
@@ -767,6 +767,11 @@ class BinGrouper(BaseGrouper):
             obs_group_ids.astype("int64", copy=False),
             ngroups,
         )
+
+    @cache_readonly
+    def reconstructed_codes(self) -> List[np.ndarray]:
+        # get unique result indices, and prepend 0 as groupby starts from the first
+        return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
     @cache_readonly
     def result_index(self):

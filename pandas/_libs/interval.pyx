@@ -377,7 +377,7 @@ cdef class Interval(IntervalMixin):
 
         return left, right
 
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         left, right = self._repr_base()
         name = type(self).__name__
@@ -385,7 +385,7 @@ cdef class Interval(IntervalMixin):
             name=name, left=left, right=right, closed=self.closed)
         return repr_str
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         left, right = self._repr_base()
         start_symbol = '[' if self.closed_left else '('

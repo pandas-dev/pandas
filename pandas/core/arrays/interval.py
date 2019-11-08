@@ -864,7 +864,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return summary
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         template = (
             "{class_name}"
             "{data}\n"
