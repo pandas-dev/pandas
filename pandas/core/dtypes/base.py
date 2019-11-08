@@ -64,13 +64,15 @@ class ExtensionDtype:
        of ``__eq__``.
 
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
-    can be implemented: this method receives a pyarrow Array as only argument
-    and is expected to return the appropriate pandas ExtensionArray for this
-    dtype and the passed values::
+    can be implemented: this method receives a pyarrow Array or ChunkedArray
+    as only argument and is expected to return the appropriate pandas
+    ExtensionArray for this dtype and the passed values::
 
         class ExtensionDtype:
 
-            def __from_arrow__(self, array: pyarrow.Array) -> ExtensionArray:
+            def __from_arrow__(
+                self, array: pyarrow.Array/ChunkedArray
+            ) -> ExtensionArray:
                 ...
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
