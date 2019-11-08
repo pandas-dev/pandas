@@ -10,8 +10,8 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
+from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
-from pandas.core.groupby.helper import _make_unique, _maybe_mangle_lambdas
 import pandas.util.testing as tm
 
 
@@ -495,6 +495,33 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
 
+def myfunc(s):
+    return np.percentile(s, q=0.90)
+
+
+@pytest.mark.parametrize("func", [lambda s: np.percentile(s, q=0.90), myfunc])
+def test_lambda_named_agg(func):
+    # see gh-28467
+    animals = DataFrame(
+        {
+            "kind": ["cat", "dog", "cat", "dog"],
+            "height": [9.1, 6.0, 9.5, 34.0],
+            "weight": [7.9, 7.5, 9.9, 198.0],
+        }
+    )
+
+    result = animals.groupby("kind").agg(
+        mean_height=("height", "mean"), perc90=("height", func)
+    )
+    expected = DataFrame(
+        [[9.3, 9.1036], [20.0, 6.252]],
+        columns=["mean_height", "perc90"],
+        index=Index(["cat", "dog"], name="kind"),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
 class TestLambdaMangling:
     def test_maybe_mangle_lambdas_passthrough(self):
         assert _maybe_mangle_lambdas("mean") == "mean"
@@ -571,10 +598,7 @@ class TestLambdaMangling:
             }
         )
 
-        # sort for 35 and earlier
         columns = ["height_sqr_min", "height_max", "weight_max"]
-        if compat.PY35:
-            columns = ["height_max", "height_sqr_min", "weight_max"]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],
@@ -613,7 +637,6 @@ class TestLambdaMangling:
                 "weight": [7.9, 7.5, 9.9, 198.0],
             }
         )
-        # sort for 35 and earlier
         columns = [
             "height_sqr_min",
             "height_max",
@@ -621,14 +644,6 @@ class TestLambdaMangling:
             "height_max_2",
             "weight_min",
         ]
-        if compat.PY35:
-            columns = [
-                "height_max",
-                "height_max_2",
-                "height_sqr_min",
-                "weight_max",
-                "weight_min",
-            ]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],

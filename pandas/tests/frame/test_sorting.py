@@ -16,7 +16,6 @@ from pandas import (
 )
 from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameSorting:
@@ -29,30 +28,30 @@ class TestDataFrameSorting:
         sorted_df = frame.sort_values(by="A")
         indexer = frame["A"].argsort().values
         expected = frame.loc[frame.index[indexer]]
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by="A", ascending=False)
         indexer = indexer[::-1]
         expected = frame.loc[frame.index[indexer]]
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by="A", ascending=False)
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # GH4839
         sorted_df = frame.sort_values(by=["A"], ascending=[False])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # multiple bys
         sorted_df = frame.sort_values(by=["B", "C"])
         expected = frame.loc[[2, 1, 3]]
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=["B", "C"], ascending=False)
-        assert_frame_equal(sorted_df, expected[::-1])
+        tm.assert_frame_equal(sorted_df, expected[::-1])
 
         sorted_df = frame.sort_values(by=["B", "A"], ascending=[True, False])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
@@ -61,22 +60,22 @@ class TestDataFrameSorting:
         # by row (axis=1): GH 10806
         sorted_df = frame.sort_values(by=3, axis=1)
         expected = frame
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=3, axis=1, ascending=False)
         expected = frame.reindex(columns=["C", "B", "A"])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=[1, 2], axis="columns")
         expected = frame.reindex(columns=["B", "A", "C"])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=[True, False])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=False)
         expected = frame.reindex(columns=["C", "B", "A"])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         msg = r"Length of ascending \(5\) != length of by \(2\)"
         with pytest.raises(ValueError, match=msg):
@@ -90,22 +89,22 @@ class TestDataFrameSorting:
         sorted_df = frame.copy()
         sorted_df.sort_values(by="A", inplace=True)
         expected = frame.sort_values(by="A")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
         sorted_df.sort_values(by=1, axis=1, inplace=True)
         expected = frame.sort_values(by=1, axis=1)
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
         sorted_df.sort_values(by="A", ascending=False, inplace=True)
         expected = frame.sort_values(by="A", ascending=False)
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
         sorted_df.sort_values(by=["A", "B"], ascending=False, inplace=True)
         expected = frame.sort_values(by=["A", "B"], ascending=False)
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_nan(self):
         # GH3917
@@ -118,18 +117,18 @@ class TestDataFrameSorting:
             index=[2, 0, 3, 1, 6, 4, 5],
         )
         sorted_df = df.sort_values(["A"], na_position="first")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         expected = DataFrame(
             {"A": [nan, 8, 6, 4, 2, 1, 1], "B": [5, 4, 5, 5, nan, 9, 2]},
             index=[2, 5, 4, 6, 1, 0, 3],
         )
         sorted_df = df.sort_values(["A"], na_position="first", ascending=False)
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         expected = df.reindex(columns=["B", "A"])
         sorted_df = df.sort_values(by=1, axis=1, na_position="first")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # na_position='last', order
         expected = DataFrame(
@@ -137,7 +136,7 @@ class TestDataFrameSorting:
             index=[3, 0, 1, 6, 4, 5, 2],
         )
         sorted_df = df.sort_values(["A", "B"])
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # na_position='first', order
         expected = DataFrame(
@@ -145,7 +144,7 @@ class TestDataFrameSorting:
             index=[2, 3, 0, 1, 6, 4, 5],
         )
         sorted_df = df.sort_values(["A", "B"], na_position="first")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # na_position='first', not order
         expected = DataFrame(
@@ -153,7 +152,7 @@ class TestDataFrameSorting:
             index=[2, 0, 3, 1, 6, 4, 5],
         )
         sorted_df = df.sort_values(["A", "B"], ascending=[1, 0], na_position="first")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # na_position='last', not order
         expected = DataFrame(
@@ -161,7 +160,7 @@ class TestDataFrameSorting:
             index=[5, 4, 6, 1, 3, 0, 2],
         )
         sorted_df = df.sort_values(["A", "B"], ascending=[0, 1], na_position="last")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # Test DataFrame with nan label
         df = DataFrame(
@@ -175,7 +174,7 @@ class TestDataFrameSorting:
             {"A": [1, 2, nan, 1, 6, 8, 4], "B": [9, nan, 5, 2, 5, 4, 5]},
             index=[1, 2, 3, 4, 5, 6, nan],
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # NaN label, ascending=True, na_position='first'
         sorted_df = df.sort_index(na_position="first")
@@ -183,7 +182,7 @@ class TestDataFrameSorting:
             {"A": [4, 1, 2, nan, 1, 6, 8], "B": [5, 9, nan, 5, 2, 5, 4]},
             index=[nan, 1, 2, 3, 4, 5, 6],
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # NaN label, ascending=False, na_position='last'
         sorted_df = df.sort_index(kind="quicksort", ascending=False)
@@ -191,7 +190,7 @@ class TestDataFrameSorting:
             {"A": [8, 6, 1, nan, 2, 1, 4], "B": [4, 5, 2, 5, nan, 9, 5]},
             index=[6, 5, 4, 3, 2, 1, nan],
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         # NaN label, ascending=False, na_position='first'
         sorted_df = df.sort_index(
@@ -201,7 +200,7 @@ class TestDataFrameSorting:
             {"A": [4, 8, 6, 1, nan, 2, 1], "B": [5, 4, 5, 2, 5, nan, 9]},
             index=[nan, 6, 5, 4, 3, 2, 1],
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
     def test_stable_descending_sort(self):
         # GH #6399
@@ -210,7 +209,7 @@ class TestDataFrameSorting:
             columns=["sort_col", "order"],
         )
         sorted_df = df.sort_values(by="sort_col", kind="mergesort", ascending=False)
-        assert_frame_equal(df, sorted_df)
+        tm.assert_frame_equal(df, sorted_df)
 
     def test_stable_descending_multicolumn_sort(self):
         nan = np.nan
@@ -223,7 +222,7 @@ class TestDataFrameSorting:
         sorted_df = df.sort_values(
             ["A", "B"], ascending=[0, 1], na_position="first", kind="mergesort"
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
         expected = DataFrame(
             {"A": [nan, 8, 6, 4, 2, 1, 1], "B": [5, 4, 5, 5, nan, 9, 2]},
@@ -232,7 +231,7 @@ class TestDataFrameSorting:
         sorted_df = df.sort_values(
             ["A", "B"], ascending=[0, 0], na_position="first", kind="mergesort"
         )
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_multi_index(self):
         # GH 25775, testing that sorting by index works with a multi-index.
@@ -253,7 +252,7 @@ class TestDataFrameSorting:
         df = DataFrame({"x": pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
         expected = df.copy()
         sorted_df = df.sort_values("x", kind="mergesort")
-        assert_frame_equal(sorted_df, expected)
+        tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_datetimes(self):
 
@@ -283,16 +282,16 @@ class TestDataFrameSorting:
 
         df1 = df.sort_values(by="A")
         df2 = df.sort_values(by=["A"])
-        assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df2)
 
         df1 = df.sort_values(by="B")
         df2 = df.sort_values(by=["B"])
-        assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df2)
 
         df1 = df.sort_values(by="B")
 
         df2 = df.sort_values(by=["C", "B"])
-        assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df2)
 
     def test_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
@@ -325,14 +324,14 @@ class TestDataFrameSorting:
         # NaT is not a "na" for int64 columns, so na_position must not
         # influence the result:
         df_sorted = df.sort_values(["int", "float"], na_position="last")
-        assert_frame_equal(df_sorted, df_reversed)
+        tm.assert_frame_equal(df_sorted, df_reversed)
 
         df_sorted = df.sort_values(["int", "float"], na_position="first")
-        assert_frame_equal(df_sorted, df_reversed)
+        tm.assert_frame_equal(df_sorted, df_reversed)
 
         # reverse sorting order
         df_sorted = df.sort_values(["int", "float"], ascending=False)
-        assert_frame_equal(df_sorted, df)
+        tm.assert_frame_equal(df_sorted, df)
 
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
@@ -348,14 +347,14 @@ class TestDataFrameSorting:
         )
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="first")
-        assert_frame_equal(df_sorted, df_reversed)
+        tm.assert_frame_equal(df_sorted, df_reversed)
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="last")
-        assert_frame_equal(df_sorted, df)
+        tm.assert_frame_equal(df_sorted, df)
 
         # Ascending should not affect the results.
         df_sorted = df.sort_values(["datetime", "float"], ascending=False)
-        assert_frame_equal(df_sorted, df)
+        tm.assert_frame_equal(df_sorted, df)
 
     def test_sort_nat(self):
 
@@ -392,7 +391,7 @@ class TestDataFrameSortIndexKinds:
         result = frame.sort_values(by=["A", "B"])
         indexer = np.lexsort((frame["B"], frame["A"]))
         expected = frame.take(indexer)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # use .sort_values #9816
         with tm.assert_produces_warning(FutureWarning):
@@ -402,7 +401,7 @@ class TestDataFrameSortIndexKinds:
             (frame["B"].rank(ascending=False), frame["A"].rank(ascending=False))
         )
         expected = frame.take(indexer)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # use .sort_values #9816
         with tm.assert_produces_warning(FutureWarning):
@@ -410,7 +409,7 @@ class TestDataFrameSortIndexKinds:
         result = frame.sort_values(by=["B", "A"])
         indexer = np.lexsort((frame["A"], frame["B"]))
         expected = frame.take(indexer)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_inplace(self):
         frame = DataFrame(
@@ -423,25 +422,25 @@ class TestDataFrameSortIndexKinds:
         df = unordered.copy()
         df.sort_index(inplace=True)
         expected = frame
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
         assert a_id != id(df["A"])
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)
         expected = frame[::-1]
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # axis=1
         unordered = frame.loc[:, ["D", "B", "C", "A"]]
         df = unordered.copy()
         df.sort_index(axis=1, inplace=True)
         expected = frame
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         df = unordered.copy()
         df.sort_index(axis=1, ascending=False, inplace=True)
         expected = frame.iloc[:, ::-1]
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_sort_index_different_sortorder(self):
         A = np.arange(20).repeat(5)
@@ -460,18 +459,18 @@ class TestDataFrameSortIndexKinds:
 
         ex_indexer = np.lexsort((df.B.max() - df.B, df.A))
         expected = df.take(ex_indexer)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # test with multiindex, too
         idf = df.set_index(["A", "B"])
 
         result = idf.sort_index(ascending=[1, 0])
         expected = idf.take(ex_indexer)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # also, Series!
         result = idf["C"].sort_index(ascending=[1, 0])
-        assert_series_equal(result, expected["C"])
+        tm.assert_series_equal(result, expected["C"])
 
     def test_sort_index_duplicates(self):
 
@@ -524,7 +523,7 @@ class TestDataFrameSortIndexKinds:
         with tm.assert_produces_warning(FutureWarning):
             df.sort_index(by=("a", 1))
         result = df.sort_values(by=("a", 1))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
@@ -532,25 +531,25 @@ class TestDataFrameSortIndexKinds:
 
         result = df.sort_index(level="A", sort_remaining=False)
         expected = df
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.sort_index(level=["A", "B"], sort_remaining=False)
         expected = df
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # Error thrown by sort_index when
         # first index is sorted last (#26053)
         result = df.sort_index(level=["C", "B", "A"])
         expected = df.iloc[[1, 0]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.sort_index(level=["B", "C", "A"])
         expected = df.iloc[[1, 0]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.sort_index(level=["C", "A"])
         expected = df.iloc[[1, 0]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
 
@@ -563,11 +562,11 @@ class TestDataFrameSortIndexKinds:
 
         result = df.sort_index()
         expected = df.iloc[[4, 0, 1, 5, 2, 3]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.sort_index(ascending=False)
         expected = df.iloc[[2, 3, 0, 1, 5, 4]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index(self):
         # GH13496
@@ -582,20 +581,20 @@ class TestDataFrameSortIndexKinds:
         unordered = frame.loc[[3, 2, 4, 1]]
         result = unordered.sort_index(axis=0)
         expected = frame
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = unordered.sort_index(ascending=False)
         expected = frame[::-1]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # axis=1 : sort columns by column names
         unordered = frame.iloc[:, [2, 1, 3, 0]]
         result = unordered.sort_index(axis=1)
-        assert_frame_equal(result, frame)
+        tm.assert_frame_equal(result, frame)
 
         result = unordered.sort_index(axis=1, ascending=False)
         expected = frame.iloc[:, ::-1]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("level", ["A", 0])  # GH 21052
     def test_sort_index_multiindex(self, level):
@@ -612,7 +611,7 @@ class TestDataFrameSortIndexKinds:
         )
         expected = pd.DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
         result = df.sort_index(level=level)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sort_remaining=False
         expected_mi = MultiIndex.from_tuples(
@@ -620,7 +619,7 @@ class TestDataFrameSortIndexKinds:
         )
         expected = pd.DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
         result = df.sort_index(level=level, sort_remaining=False)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_intervalindex(self):
         # this is a de-facto sort via unstack
@@ -672,7 +671,7 @@ class TestDataFrameSortIndexKinds:
             index=na_indices + category_indices,
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sort ascending with na last
         result = df.sort_values(
@@ -687,7 +686,7 @@ class TestDataFrameSortIndexKinds:
             index=category_indices + na_indices,
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sort descending with na first
         result = df.sort_values(
@@ -704,7 +703,7 @@ class TestDataFrameSortIndexKinds:
             index=reversed_na_indices + reversed_category_indices,
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sort descending with na last
         result = df.sort_values(
@@ -721,7 +720,7 @@ class TestDataFrameSortIndexKinds:
             index=reversed_category_indices + reversed_na_indices,
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_na_position_with_categories_raises(self):
         df = pd.DataFrame(
@@ -736,3 +735,26 @@ class TestDataFrameSortIndexKinds:
 
         with pytest.raises(ValueError):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
+
+    def test_sort_multicolumn_uint64(self):
+        # GH9918
+        # uint64 multicolumn sort
+
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([18446637057563306014, 1162265347240853609]),
+                "b": pd.Series([1, 2]),
+            }
+        )
+        df["a"] = df["a"].astype(np.uint64)
+        result = df.sort_values(["a", "b"])
+
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([18446637057563306014, 1162265347240853609]),
+                "b": pd.Series([1, 2]),
+            },
+            index=pd.Index([1, 0]),
+        )
+
+        tm.assert_frame_equal(result, expected)

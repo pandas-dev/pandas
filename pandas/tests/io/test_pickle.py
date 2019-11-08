@@ -377,3 +377,14 @@ class TestProtocol:
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
+
+
+def test_unicode_decode_error():
+    # pickle file written with py27, should be readable without raising
+    #  UnicodeDecodeError, see GH#28645
+    path = os.path.join(os.path.dirname(__file__), "data", "test_py27.pkl")
+    df = pd.read_pickle(path)
+
+    # just test the columns are correct since the values are random
+    excols = pd.Index(["a", "b", "c"])
+    tm.assert_index_equal(df.columns, excols)

@@ -29,7 +29,6 @@ from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
 NGROUPS = 8
@@ -128,12 +127,24 @@ class TestMerge:
         df_a = pd.DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
         result = pd.merge(df_empty, df_a, left_index=True, right_index=True)
         expected = pd.DataFrame({"a": []}, index=[], dtype="int64")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_common(self):
         joined = merge(self.df, self.df2)
         exp = merge(self.df, self.df2, on=["key1", "key2"])
         tm.assert_frame_equal(joined, exp)
+
+    def test_merge_non_string_columns(self):
+        # https://github.com/pandas-dev/pandas/issues/17962
+        # Checks that method runs for non string column names
+        left = pd.DataFrame(
+            {0: [1, 0, 1, 0], 1: [0, 1, 0, 0], 2: [0, 0, 2, 0], 3: [1, 0, 0, 3]}
+        )
+
+        right = left.astype(float)
+        expected = left
+        result = pd.merge(left, right)
+        tm.assert_frame_equal(expected, result)
 
     def test_merge_index_as_on_arg(self):
         # GH14355
@@ -142,7 +153,7 @@ class TestMerge:
         right = self.df2.set_index("key1")
         result = merge(left, right, on="key1")
         expected = merge(self.df, self.df2, on="key1").set_index("key1")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame(
@@ -156,7 +167,7 @@ class TestMerge:
         merged2 = merge(
             right, left, right_on="key", left_index=True, how="right", sort=False
         )
-        assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
+        tm.assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
 
         merged1 = merge(
             left, right, left_on="key", right_index=True, how="left", sort=True
@@ -164,7 +175,7 @@ class TestMerge:
         merged2 = merge(
             right, left, right_on="key", left_index=True, how="right", sort=True
         )
-        assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
+        tm.assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
 
     def test_merge_index_singlekey_inner(self):
         left = DataFrame(
@@ -175,11 +186,11 @@ class TestMerge:
         # inner join
         result = merge(left, right, left_on="key", right_index=True, how="inner")
         expected = left.join(right, on="key").loc[result.index]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = merge(right, left, right_on="key", left_index=True, how="inner")
         expected = left.join(right, on="key").loc[result.index]
-        assert_frame_equal(result, expected.loc[:, result.columns])
+        tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_merge_misspecified(self):
         msg = "Must pass right_on or right_index=True"
@@ -296,7 +307,7 @@ class TestMerge:
             },
             columns=["value", "key", "rvalue"],
         )
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
     def test_merge_join_key_dtype_cast(self):
         # #8596
@@ -331,7 +342,7 @@ class TestMerge:
         merged = merge(left, right, left_on="key", right_on=key, how="outer")
         merged2 = merge(right, left, left_on=key, right_on="key", how="outer")
 
-        assert_series_equal(merged["key"], merged2["key"])
+        tm.assert_series_equal(merged["key"], merged2["key"])
         assert merged["key"].notna().all()
         assert merged2["key"].notna().all()
 
@@ -406,10 +417,10 @@ class TestMerge:
         right = DataFrame({"key": []})
 
         result = merge(left, right, on="key", how="left")
-        assert_frame_equal(result, left)
+        tm.assert_frame_equal(result, left)
 
         result = merge(right, left, on="key", how="right")
-        assert_frame_equal(result, left)
+        tm.assert_frame_equal(result, left)
 
     @pytest.mark.parametrize(
         "kwarg",
@@ -540,7 +551,7 @@ class TestMerge:
             columns=["value_x", "key", "value_y"],
         )
         actual = df_empty.merge(df, on="key")
-        assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(actual, expected)
 
     def test_merge_all_na_column(self, series_of_dtype, series_of_dtype_all_na):
         # GH 25183
@@ -561,7 +572,7 @@ class TestMerge:
             columns=["key", "value_x", "value_y"],
         )
         actual = df_left.merge(df_right, on="key")
-        assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
         # GH#2098, TODO: anything to do?
@@ -589,7 +600,7 @@ class TestMerge:
 
         result = df.merge(new, on="var3", sort=False)
         exp = merge(df, new, on="var3", sort=False)
-        assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, exp)
 
         assert (df.var3.unique() == result.var3.unique()).all()
 
@@ -610,7 +621,7 @@ class TestMerge:
             .set_index(None)
             .reset_index()[["i1", "i2", "i1_", "i3"]]
         )
-        assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
@@ -623,7 +634,7 @@ class TestMerge:
                 "i3": {0: 0.69999999999999996, 1: np.nan},
             }
         )[["i1", "i2", "i1_", "i3"]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_type(self):
         class NotADataFrame(DataFrame):
@@ -650,7 +661,7 @@ class TestMerge:
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         td = np.timedelta64(300000000)
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
@@ -663,7 +674,7 @@ class TestMerge:
                 "0r": Series([td, pd.NaT], index=list("AB")),
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_other_datetime_unit(self):
         # GH 13389
@@ -729,7 +740,7 @@ class TestMerge:
             }
         )
         expected.columns = ["key", "foo", "foo", "bar", "bar"]
-        assert_frame_equal(merge(df, df2), expected)
+        tm.assert_frame_equal(merge(df, df2), expected)
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
@@ -761,7 +772,7 @@ class TestMerge:
             }
         )
         result = pd.merge(left, right, on="key", how="outer")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         left = pd.DataFrame(
             {
@@ -785,7 +796,7 @@ class TestMerge:
             }
         )
         result = pd.merge(left, right, on="key", how="outer")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "datetime64[ns, US/Eastern]"
         assert result["value_y"].dtype == "datetime64[ns, US/Eastern]"
 
@@ -844,7 +855,7 @@ class TestMerge:
                 "value_y": [np.nan] * 4 + [2] * 3,
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_non_unique_period_index(self):
         # GH #16871
@@ -878,7 +889,7 @@ class TestMerge:
             }
         )
         result = pd.merge(left, right, on="key", how="outer")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         left = pd.DataFrame(
             {"key": [1, 2], "value": pd.period_range("20151010", periods=2, freq="D")}
@@ -897,7 +908,7 @@ class TestMerge:
             }
         )
         result = pd.merge(left, right, on="key", how="outer")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "Period[D]"
         assert result["value_y"].dtype == "Period[D]"
 
@@ -950,13 +961,13 @@ class TestMerge:
         ]
 
         test = merge(df1, df2, on="col1", how="outer", indicator=True)
-        assert_frame_equal(test, df_result)
+        tm.assert_frame_equal(test, df_result)
         test = df1.merge(df2, on="col1", how="outer", indicator=True)
-        assert_frame_equal(test, df_result)
+        tm.assert_frame_equal(test, df_result)
 
         # No side effects
-        assert_frame_equal(df1, df1_copy)
-        assert_frame_equal(df2, df2_copy)
+        tm.assert_frame_equal(df1, df1_copy)
+        tm.assert_frame_equal(df2, df2_copy)
 
         # Check with custom name
         df_result_custom_name = df_result
@@ -967,11 +978,11 @@ class TestMerge:
         test_custom_name = merge(
             df1, df2, on="col1", how="outer", indicator="custom_name"
         )
-        assert_frame_equal(test_custom_name, df_result_custom_name)
+        tm.assert_frame_equal(test_custom_name, df_result_custom_name)
         test_custom_name = df1.merge(
             df2, on="col1", how="outer", indicator="custom_name"
         )
-        assert_frame_equal(test_custom_name, df_result_custom_name)
+        tm.assert_frame_equal(test_custom_name, df_result_custom_name)
 
         # Check only accepts strings and booleans
         msg = "indicator option can only accept boolean or string arguments"
@@ -1043,9 +1054,9 @@ class TestMerge:
         )
 
         test5 = merge(df3, df4, on=["col1", "col2"], how="outer", indicator=True)
-        assert_frame_equal(test5, hand_coded_result)
+        tm.assert_frame_equal(test5, hand_coded_result)
         test5 = df3.merge(df4, on=["col1", "col2"], how="outer", indicator=True)
-        assert_frame_equal(test5, hand_coded_result)
+        tm.assert_frame_equal(test5, hand_coded_result)
 
     def test_validation(self):
         left = DataFrame(
@@ -1066,8 +1077,8 @@ class TestMerge:
         right_copy = right.copy()
 
         result = merge(left, right, left_index=True, right_index=True, validate="1:1")
-        assert_frame_equal(left, left_copy)
-        assert_frame_equal(right, right_copy)
+        tm.assert_frame_equal(left, left_copy)
+        tm.assert_frame_equal(right, right_copy)
 
         # make sure merge still correct
         expected = DataFrame(
@@ -1084,7 +1095,7 @@ class TestMerge:
         result = merge(
             left, right, left_index=True, right_index=True, validate="one_to_one"
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         expected_2 = DataFrame(
             {
@@ -1096,12 +1107,12 @@ class TestMerge:
         )
 
         result = merge(left, right, on="a", validate="1:1")
-        assert_frame_equal(left, left_copy)
-        assert_frame_equal(right, right_copy)
-        assert_frame_equal(result, expected_2)
+        tm.assert_frame_equal(left, left_copy)
+        tm.assert_frame_equal(right, right_copy)
+        tm.assert_frame_equal(result, expected_2)
 
         result = merge(left, right, on="a", validate="one_to_one")
-        assert_frame_equal(result, expected_2)
+        tm.assert_frame_equal(result, expected_2)
 
         # One index, one column
         expected_3 = DataFrame(
@@ -1122,7 +1133,7 @@ class TestMerge:
             right_on="a",
             validate="one_to_one",
         )
-        assert_frame_equal(result, expected_3)
+        tm.assert_frame_equal(result, expected_3)
 
         # Dups on right
         right_w_dups = right.append(pd.DataFrame({"a": ["e"], "c": ["moo"]}, index=[4]))
@@ -1231,7 +1242,7 @@ class TestMerge:
             merge(left, right, on="a", validate="1:1")
 
         result = merge(left, right, on=["a", "b"], validate="1:1")
-        assert_frame_equal(result, expected_multi)
+        tm.assert_frame_equal(result, expected_multi)
 
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
@@ -1293,7 +1304,7 @@ class TestMerge:
             columns=["a", "key", "b"],
         )
         expected.set_index(expected_index, inplace=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
         # Note: the expected output here is probably incorrect.
@@ -1354,7 +1365,7 @@ def _check_merge(x, y):
         expected = expected.set_index("index")
 
         # TODO check_names on merge?
-        assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected, check_names=False)
 
 
 class TestMergeDtypes:
@@ -1432,10 +1443,10 @@ class TestMergeDtypes:
         expected = DataFrame(exp_vals)
 
         result = A.merge(B, left_on="X", right_on="Y")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = B.merge(A, left_on="Y", right_on="X")
-        assert_frame_equal(result, expected[["Y", "X"]])
+        tm.assert_frame_equal(result, expected[["Y", "X"]])
 
     def test_merge_key_dtype_cast(self):
         # GH 17044
@@ -1459,18 +1470,18 @@ class TestMergeDtypes:
 
         with tm.assert_produces_warning(UserWarning):
             result = A.merge(B, left_on="X", right_on="Y")
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(UserWarning):
             result = B.merge(A, left_on="Y", right_on="X")
-            assert_frame_equal(result, expected[["Y", "X"]])
+            tm.assert_frame_equal(result, expected[["Y", "X"]])
 
         # test no warning if float has NaNs
         B = DataFrame({"Y": [np.nan, np.nan, 3.0]})
 
         with tm.assert_produces_warning(None):
             result = B.merge(A, left_on="Y", right_on="X")
-            assert_frame_equal(result, expected[["Y", "X"]])
+            tm.assert_frame_equal(result, expected[["Y", "X"]])
 
     def test_merge_incompat_infer_boolean_object(self):
         # GH21119: bool + object bool merge OK
@@ -1479,9 +1490,9 @@ class TestMergeDtypes:
 
         expected = DataFrame({"key": [True, False]}, dtype=object)
         result = pd.merge(df1, df2, on="key")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         result = pd.merge(df2, df1, on="key")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # with missing value
         df1 = DataFrame({"key": Series([True, False, np.nan], dtype=object)})
@@ -1489,9 +1500,9 @@ class TestMergeDtypes:
 
         expected = DataFrame({"key": [True, False]}, dtype=object)
         result = pd.merge(df1, df2, on="key")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         result = pd.merge(df2, df1, on="key")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df1_vals, df2_vals",
@@ -1600,7 +1611,7 @@ class TestMergeCategorical:
             [CategoricalDtype(), np.dtype("O"), np.dtype("O")],
             index=["X", "Y_x", "Y_y"],
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_basic(self, left, right):
         # we have matching Categorical dtypes in X
@@ -1611,7 +1622,7 @@ class TestMergeCategorical:
             [CategoricalDtype(), np.dtype("O"), np.dtype("int64")],
             index=["X", "Y", "Z"],
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_merge_categorical(self):
         # GH 9426
@@ -1679,7 +1690,7 @@ class TestMergeCategorical:
                 "Right": ["A1", "B1", "C1"],
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_other_columns(self, left, right):
         # non-merge columns should preserve if possible
@@ -1691,7 +1702,7 @@ class TestMergeCategorical:
             [CategoricalDtype(), np.dtype("O"), CategoricalDtype()],
             index=["X", "Y", "Z"],
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # categories are preserved
         assert left.X.values.is_dtype_equal(merged.X.values)
@@ -1720,7 +1731,7 @@ class TestMergeCategorical:
         expected = Series(
             [np.dtype("O"), np.dtype("O"), np.dtype("int64")], index=["X", "Y", "Z"]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_self_join_multiple_categories(self):
         # GH 16767
@@ -1760,7 +1771,7 @@ class TestMergeCategorical:
         # self-join should equal ourselves
         result = pd.merge(df, df, on=list(df.columns))
 
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     def test_dtype_on_categorical_dates(self):
         # GH 16900
@@ -1785,13 +1796,13 @@ class TestMergeCategorical:
             columns=["date", "num2", "num4"],
         )
         result_outer = pd.merge(df, df2, how="outer", on=["date"])
-        assert_frame_equal(result_outer, expected_outer)
+        tm.assert_frame_equal(result_outer, expected_outer)
 
         expected_inner = pd.DataFrame(
             [[pd.Timestamp("2001-01-01"), 1.1, 1.3]], columns=["date", "num2", "num4"]
         )
         result_inner = pd.merge(df, df2, how="inner", on=["date"])
-        assert_frame_equal(result_inner, expected_inner)
+        tm.assert_frame_equal(result_inner, expected_inner)
 
     @pytest.mark.parametrize("ordered", [True, False])
     @pytest.mark.parametrize(
@@ -1815,7 +1826,7 @@ class TestMergeCategorical:
             {"id": [2, 4], "cat": expected_categories, "num": [1, 9]}
         )
         expected["cat"] = expected["cat"].astype(CDT(categories, ordered=ordered))
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
 
     def test_merge_on_int_array(self):
         # GH 23020
@@ -1824,7 +1835,7 @@ class TestMergeCategorical:
         expected = pd.DataFrame(
             {"A": pd.Series([1, 2, np.nan], dtype="Int64"), "B_x": 1, "B_y": 1}
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.fixture
@@ -1915,7 +1926,7 @@ def test_merge_index_types(index):
     expected = DataFrame(
         OrderedDict([("left_data", [1, 2]), ("right_data", [1.0, 2.0])]), index=index
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -2111,7 +2122,7 @@ def test_merge_on_cat_and_ext_array():
     result = pd.merge(left, right, how="inner", on="a")
     expected = right.copy()
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_multiindex_columns():

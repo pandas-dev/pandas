@@ -20,11 +20,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
 from pandas.core.base import _shared_docs
+import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
@@ -997,28 +997,28 @@ PeriodIndex._add_datetimelike_methods()
 
 def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
-    Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency.
+    Return a fixed frequency PeriodIndex.
+
+    The day (calendar) is the default frequency.
 
     Parameters
     ----------
     start : str or period-like, default None
-        Left bound for generating periods
+        Left bound for generating periods.
     end : str or period-like, default None
-        Right bound for generating periods
+        Right bound for generating periods.
     periods : int, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
-
     name : str, default None
-        Name of the resulting PeriodIndex
+        Name of the resulting PeriodIndex.
 
     Returns
     -------
-    prng : PeriodIndex
+    PeriodIndex
 
     Notes
     -----
