@@ -8,8 +8,6 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-import pandas.compat as compat
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -331,7 +329,6 @@ def extract_index(data):
         have_raw_arrays = False
         have_series = False
         have_dicts = False
-        have_ordered = False
 
         for val in data:
             if isinstance(val, ABCSeries):
@@ -339,8 +336,6 @@ def extract_index(data):
                 indexes.append(val.index)
             elif isinstance(val, dict):
                 have_dicts = True
-                if isinstance(val, OrderedDict):
-                    have_ordered = True
                 indexes.append(list(val.keys()))
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
@@ -352,7 +347,7 @@ def extract_index(data):
         if have_series:
             index = _union_indexes(indexes)
         elif have_dicts:
-            index = _union_indexes(indexes, sort=not (compat.PY36 or have_ordered))
+            index = _union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -550,7 +545,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        types = (dict, OrderedDict) if PY36 else OrderedDict
+        types = (dict, OrderedDict)
         sort = not any(isinstance(d, types) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 

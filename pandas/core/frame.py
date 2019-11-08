@@ -34,7 +34,6 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -3548,21 +3547,8 @@ class DataFrame(NDFrame):
         """
         data = self.copy()
 
-        # >= 3.6 preserve order of kwargs
-        if PY36:
-            for k, v in kwargs.items():
-                data[k] = com.apply_if_callable(v, data)
-        else:
-            # <= 3.5: do all calculations first...
-            results = OrderedDict()
-            for k, v in kwargs.items():
-                results[k] = com.apply_if_callable(v, data)
-
-            # <= 3.5 and earlier
-            results = sorted(results.items())
-            # ... and then assign
-            for k, v in results:
-                data[k] = v
+        for k, v in kwargs.items():
+            data[k] = com.apply_if_callable(v, data)
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):

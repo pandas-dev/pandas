@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1278,11 +1277,7 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     boolean
         Whether or not the exception raised is an unorderable exception.
     """
-
-    if PY36:
-        return "'>' not supported between instances of" in str(e)
-
-    return "unorderable" in str(e)
+    return "'>' not supported between instances of" in str(e)
 
 
 def is_numeric_v_string_like(a, b):
