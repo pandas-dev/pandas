@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_extension_type,
     is_integer,
     is_iterator,
     is_list_like,
@@ -3957,7 +3956,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return f(self)
 
             # row-wise access
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+                # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
                 values = self.astype(object).values
