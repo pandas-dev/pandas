@@ -333,6 +333,7 @@ Numeric
 - :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 - Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
+- Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
 -
 
 Conversion
@@ -396,6 +397,7 @@ I/O
 - Bug in :meth:`pandas.io.formats.style.Styler` formatting for floating values not displaying decimals correctly (:issue:`13257`)
 - Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
+- Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 
 Plotting
 ^^^^^^^^
@@ -409,6 +411,7 @@ Plotting
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
+- :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -453,6 +456,7 @@ Other
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+- :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)

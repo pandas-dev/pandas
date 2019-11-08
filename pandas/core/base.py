@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, FrozenSet, Optional
+from typing import Dict, FrozenSet, List, Optional
 import warnings
 
 import numpy as np
@@ -21,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
     is_extension_type,
     is_list_like,
@@ -55,7 +54,7 @@ class PandasObject(DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular object.
         """
@@ -207,7 +206,7 @@ class SelectionMixin:
             return self.obj[self._selection]
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         return self._selected_obj.ndim
 
     @cache_readonly
@@ -339,7 +338,7 @@ class SelectionMixin:
 
             obj = self._selected_obj
 
-            def nested_renaming_depr(level=4):
+            def nested_renaming_depr(level: int = 4):
                 # deprecation of nested renaming
                 # GH 15931
                 msg = textwrap.dedent(
@@ -488,11 +487,11 @@ class SelectionMixin:
 
             # combine results
 
-            def is_any_series():
+            def is_any_series() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCSeries) for r in result.values())
 
-            def is_any_frame():
+            def is_any_frame() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame) for r in result.values())
 
@@ -569,7 +568,7 @@ class SelectionMixin:
                 try:
                     new_res = colg.aggregate(a)
 
-                except (TypeError, DataError):
+                except TypeError:
                     pass
                 else:
                     results.append(new_res)
@@ -618,6 +617,23 @@ class SelectionMixin:
                 raise ValueError("cannot combine transform and aggregation operations")
             return result
 
+    def _get_cython_func(self, arg: str) -> Optional[str]:
+        """
+        if we define an internal function for this argument, return it
+        """
+        return self._cython_table.get(arg)
+
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return self._builtin_table.get(arg, arg)
+
+
+class ShallowMixin:
+    _attributes = []  # type: List[str]
+
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
         """
         return a new object with the replacement attributes
@@ -632,19 +648,6 @@ class SelectionMixin:
             if attr not in kwargs:
                 kwargs[attr] = getattr(self, attr)
         return obj_type(obj, **kwargs)
-
-    def _get_cython_func(self, arg: str) -> Optional[str]:
-        """
-        if we define an internal function for this argument, return it
-        """
-        return self._cython_table.get(arg)
-
-    def _is_builtin_func(self, arg):
-        """
-        if we define an builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return self._builtin_table.get(arg, arg)
 
 
 class IndexOpsMixin:
@@ -1168,7 +1171,7 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
@@ -1190,7 +1193,7 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):
             return iter(self._values)

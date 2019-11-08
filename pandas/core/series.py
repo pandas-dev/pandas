@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetimelike,
     is_dict_like,
     is_extension_array_dtype,
     is_extension_type,
@@ -34,7 +33,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_string_like,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1556,7 +1554,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.
         """
@@ -2887,7 +2885,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        if is_datetimelike(this) and not is_datetimelike(other):
+        if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
 
         return this.where(notna(this), other)
@@ -4539,7 +4537,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # passed as second argument (while the first is the same)
             maybe_sep = args[1]
 
-            if not (is_string_like(maybe_sep) and len(maybe_sep) == 1):
+            if not (isinstance(maybe_sep, str) and len(maybe_sep) == 1):
                 # old signature
                 warnings.warn(
                     "The signature of `Series.to_csv` was aligned "
