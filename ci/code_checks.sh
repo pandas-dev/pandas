@@ -120,9 +120,15 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
-    invgrep -R --include="*.py*" -E "from collections.abc import " pandas
-    # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
+    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+
+    # Checks for test suite
+    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG
@@ -171,10 +177,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
     MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
@@ -208,7 +210,7 @@ import sys
 import pandas
 
 blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
-             'lxml', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
+             'lxml', 'matplotlib', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
 
 # GH#28227 for some of these check for top-level modules, while others are
@@ -266,13 +268,17 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests arrays/string_.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA01, SA02, SA03, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA01,SA02,SA03,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

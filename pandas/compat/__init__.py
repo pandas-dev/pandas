@@ -12,7 +12,6 @@ import struct
 import sys
 import warnings
 
-PY35 = sys.version_info[:2] == (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
@@ -35,16 +34,6 @@ def set_function_name(f, name, cls):
     f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
     f.__module__ = cls.__module__
     return f
-
-
-def raise_with_traceback(exc, traceback=Ellipsis):
-    """
-    Raise exception with existing traceback.
-    If traceback is not passed, uses sys.exc_info() to get traceback.
-    """
-    if traceback == Ellipsis:
-        _, _, traceback = sys.exc_info()
-    raise exc.with_traceback(traceback)
 
 
 # https://github.com/pandas-dev/pandas/pull/9123

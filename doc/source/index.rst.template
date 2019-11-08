@@ -40,10 +40,8 @@ See the :ref:`overview` for more detail about what's in the library.
 {% endif %}
 {% if not single_doc %}
     What's New in 1.0.0 <whatsnew/v1.0.0>
-    install
     getting_started/index
     user_guide/index
-    ecosystem
     {% endif -%}
     {% if include_api -%}
     reference/index
@@ -54,9 +52,9 @@ See the :ref:`overview` for more detail about what's in the library.
 {% endif %}
 
 * :doc:`whatsnew/v1.0.0`
-* :doc:`install`
 * :doc:`getting_started/index`
 
+  * :doc:`getting_started/install`
   * :doc:`getting_started/overview`
   * :doc:`getting_started/10min`
   * :doc:`getting_started/basics`

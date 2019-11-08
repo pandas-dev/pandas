@@ -51,7 +51,7 @@ cdef class IntIndex(SparseIndex):
         args = (self.length, self.indices)
         return IntIndex, args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = 'IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
@@ -341,7 +341,7 @@ cdef class BlockIndex(SparseIndex):
         args = (self.length, self.blocs, self.blengths)
         return BlockIndex, args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = 'BlockIndex\n'
         output += 'Block locations: %s\n' % repr(self.blocs)
         output += 'Block lengths: %s' % repr(self.blengths)
@@ -597,7 +597,7 @@ cdef class BlockIndex(SparseIndex):
 
         result = np.empty(other.npoints, dtype=np.float64)
 
-        for 0 <= i < other.nblocks:
+        for i in range(other.nblocks):
             ocur = olocs[i]
             ocurlen = olens[i]
 
@@ -745,9 +745,6 @@ cdef class BlockUnion(BlockMerge):
             ynblocks = self.x.nblocks
 
         nend = xend[xi]
-
-        # print 'here xi=%d, yi=%d, mode=%d, nend=%d' % (self.xi, self.yi,
-        #                                                mode, nend)
 
         # done with y?
         if yi == ynblocks:

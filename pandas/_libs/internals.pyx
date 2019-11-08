@@ -53,7 +53,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -63,7 +63,7 @@ cdef class BlockPlacement:
 
         return '%s(%r)' % (self.__class__.__name__, v)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def __len__(self):
@@ -284,7 +284,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     return start, stop, step, length
 
 
-def slice_getitem(slice slc not None, ind):
+cdef slice_getitem(slice slc, ind):
     cdef:
         Py_ssize_t s_start, s_stop, s_step, s_len
         Py_ssize_t ind_start, ind_stop, ind_step, ind_len
@@ -319,7 +319,7 @@ def slice_getitem(slice slc not None, ind):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(int64_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d
@@ -441,24 +441,21 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, blk_count, group=True):
+def get_blkno_placements(blknos, group=True):
     """
 
     Parameters
     ----------
     blknos : array of int64
-    blk_count : int
     group : bool
 
     Returns
     -------
     iterator
         yield (BlockPlacement, blkno)
-
     """
 
     blknos = ensure_int64(blknos)
 
-    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)

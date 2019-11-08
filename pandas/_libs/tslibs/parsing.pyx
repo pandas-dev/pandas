@@ -92,7 +92,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     At the beginning function tries to parse date in MM/DD/YYYY format, but
     if month > 12 - in DD/MM/YYYY (`dayfirst == False`).
     With `dayfirst == True` function makes an attempt to parse date in
-    DD/MM/YYYY, if an attemp is wrong - in DD/MM/YYYY
+    DD/MM/YYYY, if an attempt is wrong - in DD/MM/YYYY
 
     Note
     ----
@@ -233,7 +233,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
     return dt
 
 
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -252,10 +252,8 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    if not isinstance(arg, (str, unicode)):
-        # Note: cython recognizes `unicode` in both py2/py3, optimizes
-        # this check into a C call.
-        return arg
+    if not isinstance(arg, str):
+        raise TypeError("parse_time_string argument must be str")
 
     if getattr(freq, "_typ", None) == "dateoffset":
         freq = freq.rule_code
@@ -370,7 +368,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         int year, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    assert isinstance(date_string, (str, unicode))
+    assert isinstance(date_string, str)
 
     # len(date_string) == 0
     # should be NaT???
@@ -517,7 +515,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
                 tzdata = tzinfos.get(res.tzname)
             if isinstance(tzdata, datetime.tzinfo):
                 tzinfo = tzdata
-            elif isinstance(tzdata, (str, unicode)):
+            elif isinstance(tzdata, str):
                 tzinfo = _dateutil_tzstr(tzdata)
             elif isinstance(tzdata, int):
                 tzinfo = tzoffset(res.tzname, tzdata)
@@ -583,7 +581,7 @@ def try_parse_dates(object[:] values, parser=None,
                 else:
                     result[i] = parse_date(values[i])
         except Exception:
-            # failed
+            # Since parser is user-defined, we can't guess what it might raise
             return values
     else:
         parse_date = parser
@@ -732,7 +730,7 @@ class _timelex:
         stream = self.stream.replace('\x00', '')
 
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
-        # TODO: change the punctuation block to punc+ (doesnt match existing)
+        # TODO: change the punctuation block to punc+ (does not match existing)
         # TODO: can we merge the two digit patterns?
         tokens = re.findall('\s|'
                             '(?<![\.\d])\d+\.\d+(?![\.\d])'
@@ -989,12 +987,12 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
                                                       keep_trivial_numbers)
             PyArray_ITER_NEXT(it)
     else:
-        # create fixed size list - more effecient memory allocation
+        # create fixed size list - more efficient memory allocation
         list_to_join = [None] * col_count
         iters = np.zeros(col_count, dtype=object)
 
         # create memoryview of iters ndarray, that will contain some
-        # flatiter's for each array in `date_cols` - more effecient indexing
+        # flatiter's for each array in `date_cols` - more efficient indexing
         iters_view = iters
         for col_idx, array in enumerate(date_cols):
             iters_view[col_idx] = PyArray_IterNew(array)

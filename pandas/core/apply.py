@@ -1,5 +1,4 @@
 import inspect
-import warnings
 
 import numpy as np
 
@@ -8,22 +7,18 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
 from pandas.core.dtypes.generic import ABCSeries
-
-from pandas.io.formats.printing import pprint_thing
 
 
 def frame_apply(
     obj,
     func,
     axis=0,
-    broadcast=None,
     raw=False,
-    reduce=None,
     result_type=None,
     ignore_failures=False,
     args=None,
@@ -40,9 +35,7 @@ def frame_apply(
     return klass(
         obj,
         func,
-        broadcast=broadcast,
         raw=raw,
-        reduce=reduce,
         result_type=result_type,
         ignore_failures=ignore_failures,
         args=args,
@@ -51,18 +44,7 @@ def frame_apply(
 
 
 class FrameApply:
-    def __init__(
-        self,
-        obj,
-        func,
-        broadcast,
-        raw,
-        reduce,
-        result_type,
-        ignore_failures,
-        args,
-        kwds,
-    ):
+    def __init__(self, obj, func, raw, result_type, ignore_failures, args, kwds):
         self.obj = obj
         self.raw = raw
         self.ignore_failures = ignore_failures
@@ -74,34 +56,6 @@ class FrameApply:
                 "invalid value for result_type, must be one "
                 "of {None, 'reduce', 'broadcast', 'expand'}"
             )
-
-        if broadcast is not None:
-            warnings.warn(
-                "The broadcast argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='broadcast' to broadcast the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if broadcast:
-                result_type = "broadcast"
-
-        if reduce is not None:
-            warnings.warn(
-                "The reduce argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='reduce' to try to reduce the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if reduce:
-
-                if result_type is not None:
-                    raise ValueError("cannot pass both reduce=True and result_type")
-
-                result_type = "reduce"
 
         self.result_type = result_type
 
@@ -223,10 +177,12 @@ class FrameApply:
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-
         try:
             result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except Exception:
+        except ValueError as err:
+            if "Function does not reduce" not in str(err):
+                # catch only ValueError raised intentionally in libreduction
+                raise
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -272,25 +228,39 @@ class FrameApply:
         # as demonstrated in gh-12244
         if (
             self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_type).any()
+            and not self.dtypes.apply(is_extension_array_dtype).any()
+            # Disallow complex_internals since libreduction shortcut
+            #  cannot handle MultiIndex
+            and not self.agg_axis._has_complex_internals
         ):
-
-            # Create a dummy Series from an empty array
-            from pandas import Series
 
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
             empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
+
+            # Preserve subclass for e.g. test_subclassed_apply
+            dummy = self.obj._constructor_sliced(
+                empty_arr, index=index, dtype=values.dtype
+            )
 
             try:
                 result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-                return self.obj._constructor_sliced(result, index=labels)
-            except Exception:
+            except ValueError as err:
+                if "Function does not reduce" not in str(err):
+                    # catch only ValueError raised intentionally in libreduction
+                    raise
+            except TypeError:
+                # e.g. test_apply_ignore_failures we just ignore
+                if not self.ignore_failures:
+                    raise
+            except ZeroDivisionError:
+                # reached via numexpr; fall back to python implementation
                 pass
+            else:
+                return self.obj._constructor_sliced(result, index=labels)
 
         # compute the result using the series generator
         self.apply_series_generator()
@@ -321,18 +291,9 @@ class FrameApply:
                 res_index = res_index.take(successes)
 
         else:
-            try:
-                for i, v in enumerate(series_gen):
-                    results[i] = self.f(v)
-                    keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
-
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
-                raise
+            for i, v in enumerate(series_gen):
+                results[i] = self.f(v)
+                keys.append(v.name)
 
         self.results = results
         self.res_index = res_index
@@ -378,15 +339,11 @@ class FrameRowApply(FrameApply):
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
-            try:
+            if len(result.index) == len(self.res_columns):
                 result.index = self.res_columns
-            except ValueError:
-                pass
 
-        try:
+        if len(result.columns) == len(self.res_index):
             result.columns = self.res_index
-        except ValueError:
-            pass
 
         return result
 
