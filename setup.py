@@ -811,7 +811,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     classifiers=CLASSIFIERS,
     platforms="any",
-    python_requires=">=3.6",
+    python_requires=">=3.6.1",
     extras_require={
         "test": [
             # sync with setup.cfg minversion & install.rst

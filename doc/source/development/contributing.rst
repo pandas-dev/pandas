@@ -236,7 +236,7 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least Python 3.6 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
 **Unix**/**Mac OS**
 
