@@ -143,7 +143,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj: NDFrame, sort: bool = False):
+    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -435,6 +435,9 @@ def get_grouper(
     axis: int = 0,
     level=None,
     sort: bool = True,
+    observed: bool = False,
+    mutated: bool = False,
+    validate: bool = True,
 ) -> Tuple[BaseGrouper, List[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
