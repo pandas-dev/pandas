@@ -163,7 +163,7 @@ class FrameApply:
 
         # broadcasting
         if self.result_type == "broadcast":
-            return self.apply_broadcast()
+            return self.apply_broadcast(self.obj)
 
         # one axis empty
         elif not all(self.obj.shape):
@@ -227,7 +227,7 @@ class FrameApply:
         else:
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
-    def apply_broadcast(self, target):
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
         result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
@@ -353,8 +353,8 @@ class FrameApply:
 class FrameRowApply(FrameApply):
     axis = 0
 
-    def apply_broadcast(self):
-        return super().apply_broadcast(self.obj)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):
@@ -387,8 +387,8 @@ class FrameRowApply(FrameApply):
 class FrameColumnApply(FrameApply):
     axis = 1
 
-    def apply_broadcast(self):
-        result = super().apply_broadcast(self.obj.T)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        result = super().apply_broadcast(target.T)
         return result.T
 
     @property
