@@ -370,23 +370,11 @@ class TestTimeSeries:
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
-    @pytest.mark.parametrize("n_1", ["", "1", "15", "70"])
-    @pytest.mark.parametrize("offset_1", ["D", "BM"])
-    @pytest.mark.parametrize("n_2", ["", "1", "3", "70"])
-    @pytest.mark.parametrize("offset_2", ["D", "BM"])
-    def test_pct_change_with_duplicate_axis(self, n_1, offset_1, n_2, offset_2):
+    def test_pct_change_with_duplicate_axis(self):
         # GH 28664
-
-        freq_1 = n_1 + offset_1
-        freq_2 = n_2 + offset_2
-
-        s = Series([1, 2, 3, 4, 5] * 3, date_range("2019-09", periods=15, freq=freq_1))
-
-        result = s.pct_change(freq=freq_2)
-        expected = s / s.shift(freq=freq_2) - 1
-        expected = expected[expected.index.isin(s.index) & ~expected.index.duplicated()]
-
-        assert_series_equal(result, expected)
+        Series(range(70), date_range("2019", periods=70, freq="D")).pct_change(
+            freq="BM"
+        )
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
