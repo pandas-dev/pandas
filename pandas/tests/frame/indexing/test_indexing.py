@@ -2628,14 +2628,17 @@ class TestDataFrameIndexing:
         # GH 20991
         tuple_1 = tuple([1, 2])
         tuple_2 = tuple([1])
-        df = DataFrame([[tuple_1], [tuple_2]], columns=["A"]).set_index("A")
+        idx = pd.Index([tuple_1, tuple_2], name="A", tupleize_cols=False)
+        df = DataFrame(index=idx)
 
-        result = df.loc[[df.index[0]]]
-        expected = DataFrame([[tuple_1]], columns=["A"]).set_index("A")
+        result = df.loc[[tuple_1]]
+        idx_1 = pd.Index([tuple_1], name="A", tupleize_cols=False)
+        expected = DataFrame(index=idx_1)
         tm.assert_frame_equal(result, expected)
 
-        result = df.loc[[df.index[1]]]
-        expected = DataFrame([[tuple_2]], columns=["A"]).set_index("A")
+        result = df.loc[[tuple_2]]
+        idx_2 = pd.Index([tuple_2], name="A", tupleize_cols=False)
+        expected = DataFrame(index=idx_2)
         tm.assert_frame_equal(result, expected)
 
     def test_boolean_indexing(self):
