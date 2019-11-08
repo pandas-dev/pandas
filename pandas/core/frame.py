@@ -6594,6 +6594,7 @@ class DataFrame(NDFrame):
             _maybe_mangle_lambdas,
             _normalize_keyword_aggregation,
         )
+
         axis = self._get_axis_number(axis)
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
