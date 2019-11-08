@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -47,6 +47,9 @@ import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 @Substitution("\nleft : DataFrame")
@@ -537,11 +540,17 @@ def merge_asof(
 # TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
     """
-    Perform a database (SQL) merge operation between two DataFrame objects
-    using either columns as keys or their row indexes
+    Perform a database (SQL) merge operation between two DataFrame or Series
+    objects using either columns as keys or their row indexes
     """
 
     _merge_type = "merge"
+
+    indicator_name: Optional[str]
+    left: "DataFrame"
+    right: "DataFrame"
+    orig_left: "DataFrame"
+    orig_right: "DataFrame"
 
     def __init__(
         self,
@@ -560,10 +569,8 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-        left = _validate_operand(left)
-        right = _validate_operand(right)
-        self.left = self.orig_left = left
-        self.right = self.orig_right = right
+        self.left = self.orig_left = _validate_operand(left)
+        self.right = self.orig_right = _validate_operand(right)
         self.how = how
         self.axis = axis
 
@@ -581,7 +588,7 @@ class _MergeOperation:
         self.indicator = indicator
 
         if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator  # type: Optional[str]
+            self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = "_merge" if self.indicator else None
         else:
@@ -663,8 +670,8 @@ class _MergeOperation:
         return result
 
     def _indicator_pre_merge(
-        self, left: ABCDataFrame, right: ABCDataFrame
-    ) -> Tuple[ABCDataFrame, ABCDataFrame]:
+        self, left: "DataFrame", right: "DataFrame"
+    ) -> Tuple["DataFrame", "DataFrame"]:
 
         columns = left.columns.union(right.columns)
 
@@ -1985,7 +1992,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> ABCDataFrame:
+def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):
