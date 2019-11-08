@@ -27,7 +27,6 @@ from pandas import (
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesDatetimeValues:
@@ -345,6 +344,39 @@ class TestSeriesDatetimeValues:
         expected = Series([2017, 2017, 2018, 2018], name="foo")
         tm.assert_series_equal(result, expected)
 
+    def test_dt_tz_localize_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_localize(tz)
+        expected = datetimes.dt.tz_localize(tz)
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_tz_convert_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_convert(tz)
+        expected = datetimes.dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("accessor", ["year", "month", "day"])
+    def test_dt_other_accessors_categorical(self, accessor):
+        # GH 27952
+        datetimes = pd.Series(
+            ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = getattr(categorical.dt, accessor)
+        expected = getattr(datetimes.dt, accessor)
+        tm.assert_series_equal(result, expected)
+
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range("20130101", periods=5, freq="D"))
@@ -587,11 +619,11 @@ class TestSeriesDatetimeValues:
 
         result = s[s.between(s[3], s[17])]
         expected = s[3:18].dropna()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s[s.between(s[3], s[17], inclusive=False)]
         expected = s[5:16].dropna()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_date_tz(self):
         # GH11757
@@ -601,8 +633,8 @@ class TestSeriesDatetimeValues:
         )
         s = Series(rng)
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
-        assert_series_equal(s.dt.date, expected)
-        assert_series_equal(s.apply(lambda x: x.date()), expected)
+        tm.assert_series_equal(s.dt.date, expected)
+        tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
 
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series

@@ -426,3 +426,55 @@ def test_array_ufunc_series_defer():
 
     tm.assert_series_equal(r1, expected)
     tm.assert_series_equal(r2, expected)
+
+
+def test_groupby_agg():
+    # Ensure that the result of agg is inferred to be decimal dtype
+    # https://github.com/pandas-dev/pandas/issues/29141
+
+    data = make_data()[:5]
+    df = pd.DataFrame(
+        {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
+    )
+
+    # single key, selected column
+    expected = pd.Series(to_decimal([data[0], data[3]]))
+    result = df.groupby("id1")["decimals"].agg(lambda x: x.iloc[0])
+    tm.assert_series_equal(result, expected, check_names=False)
+    result = df["decimals"].groupby(df["id1"]).agg(lambda x: x.iloc[0])
+    tm.assert_series_equal(result, expected, check_names=False)
+
+    # multiple keys, selected column
+    expected = pd.Series(
+        to_decimal([data[0], data[1], data[3]]),
+        index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 1)]),
+    )
+    result = df.groupby(["id1", "id2"])["decimals"].agg(lambda x: x.iloc[0])
+    tm.assert_series_equal(result, expected, check_names=False)
+    result = df["decimals"].groupby([df["id1"], df["id2"]]).agg(lambda x: x.iloc[0])
+    tm.assert_series_equal(result, expected, check_names=False)
+
+    # multiple columns
+    expected = pd.DataFrame({"id2": [0, 1], "decimals": to_decimal([data[0], data[3]])})
+    result = df.groupby("id1").agg(lambda x: x.iloc[0])
+    tm.assert_frame_equal(result, expected, check_names=False)
+
+
+def test_groupby_agg_ea_method(monkeypatch):
+    # Ensure that the result of agg is inferred to be decimal dtype
+    # https://github.com/pandas-dev/pandas/issues/29141
+
+    def DecimalArray__my_sum(self):
+        return np.sum(np.array(self))
+
+    monkeypatch.setattr(DecimalArray, "my_sum", DecimalArray__my_sum, raising=False)
+
+    data = make_data()[:5]
+    df = pd.DataFrame({"id": [0, 0, 0, 1, 1], "decimals": DecimalArray(data)})
+    expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))
+
+    result = df.groupby("id")["decimals"].agg(lambda x: x.values.my_sum())
+    tm.assert_series_equal(result, expected, check_names=False)
+    s = pd.Series(DecimalArray(data))
+    result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
+    tm.assert_series_equal(result, expected, check_names=False)

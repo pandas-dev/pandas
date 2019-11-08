@@ -3,15 +3,6 @@
 .. currentmodule:: pandas
 
 
-{{ header }}
-
-.. ipython:: python
-   :suppress:
-
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
-
 ===============================
 IO tools (text, CSV, HDF5, ...)
 ===============================
@@ -137,7 +128,8 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from io import StringIO, BytesIO
+     import pandas as pd
+     from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -163,9 +155,6 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use `str` or `object` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-
-  .. versionadded:: 0.20.0 support for the Python parser.
-
 engine : {``'c'``, ``'python'``}
   Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
@@ -363,6 +352,7 @@ columns:
 
 .. ipython:: python
 
+    import numpy as np
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -417,10 +407,6 @@ However, if you wanted for all the data to be coerced, no matter the type, then
 using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
-  .. versionadded:: 0.20.0 support for the Python parser.
-
-     The ``dtype`` option is supported by the 'python' engine.
-
 .. note::
    In some cases, reading in abnormal data with columns containing mixed dtypes
    will result in an inconsistent dataset. If you rely on pandas to infer the
@@ -447,7 +433,6 @@ worth trying.
    :suppress:
 
    import os
-
    os.remove('foo.csv')
 
 .. _io.categorical:
@@ -616,8 +601,6 @@ Filtering columns (``usecols``)
 The ``usecols`` argument allows you to select any subset of the columns in a
 file, either using the column names, position numbers or a callable:
 
-.. versionadded:: 0.20.0 support for callable `usecols` arguments
-
 .. ipython:: python
 
     data = 'a,b,c,d\n1,2,3,foo\n4,5,6,bar\n7,8,9,baz'
@@ -757,6 +740,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
+   from io import BytesIO
    data = (b'word,length\n'
            b'Tr\xc3\xa4umen,7\n'
            b'Gr\xc3\xbc\xc3\x9fe,5')
@@ -1446,8 +1430,6 @@ is whitespace).
 
    df = pd.read_fwf('bar.csv', header=None, index_col=0)
    df
-
-.. versionadded:: 0.20.0
 
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
 parsed columns to be different from the inferred type.
@@ -2220,8 +2202,6 @@ For line-delimited json files, pandas can also return an iterator which reads in
 
 Table schema
 ''''''''''''
-
-.. versionadded:: 0.20.0
 
 `Table Schema`_ is a spec for describing tabular datasets as a JSON
 object. The JSON includes information on the field names, types, and
@@ -3071,8 +3051,6 @@ missing data to recover integer dtype:
 Dtype specifications
 ++++++++++++++++++++
 
-.. versionadded:: 0.20
-
 As an alternative to converters, the type for an entire column can
 be specified using the `dtype` keyword, which takes a dictionary
 mapping column names to types.  To interpret data with
@@ -3344,8 +3322,6 @@ any pickled pandas object (or any other pickled object) from file:
 
 Compressed pickle files
 '''''''''''''''''''''''
-
-.. versionadded:: 0.20.0
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
@@ -4323,8 +4299,6 @@ control compression: ``complevel`` and ``complib``.
              - `bzip2 <http://bzip.org/>`_: Good compression rates.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
-             .. versionadded:: 0.20.2
-
                 Support for alternative blosc compressors:
 
                 - `blosc:blosclz <http://www.blosc.org/>`_ This is the
@@ -4651,8 +4625,6 @@ Performance
 Feather
 -------
 
-.. versionadded:: 0.20.0
-
 Feather provides binary columnar serialization for data frames. It is designed to make reading and writing data
 frames efficient, and to make sharing data across data analysis languages easy.
 
@@ -4706,7 +4678,6 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4785,7 +4756,6 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4860,7 +4830,6 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow',
@@ -5628,10 +5597,10 @@ Given the next test set:
 
 .. code-block:: python
 
-   from numpy.random import randn
+   import os
 
    sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
 
    def test_sql_write(df):

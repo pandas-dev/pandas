@@ -9,12 +9,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython.list cimport PyList_New
-from cpython.object cimport (PyObject_Str, PyObject_RichCompareBool, Py_EQ,
-                             Py_SIZE)
+from cpython.object cimport PyObject_RichCompareBool, Py_EQ
 from cpython.ref cimport Py_INCREF
 from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
-from cpython.unicode cimport PyUnicode_Join
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -128,7 +125,7 @@ def is_scalar(val: object) -> bool:
         - Interval
         - DateOffset
         - Fraction
-        - Number
+        - Number.
 
     Returns
     -------
@@ -701,8 +698,7 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(const int64_t[:] label,
-                     const int64_t[:] starts):
+def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -871,9 +867,10 @@ def is_list_like(obj: object, allow_sets: bool = True):
 
     Parameters
     ----------
-    obj : The object to check
-    allow_sets : boolean, default True
-        If this parameter is False, sets will not be considered list-like
+    obj : object
+        The object to check.
+    allow_sets : bool, default True
+        If this parameter is False, sets will not be considered list-like.
 
         .. versionadded:: 0.24.0
 
@@ -1680,6 +1677,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+# TODO: only non-here use is in test
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -1723,6 +1721,7 @@ cdef class AnyTimedeltaValidator(TimedeltaValidator):
         return is_timedelta(value)
 
 
+# TODO: only non-here use is in test
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
     cdef:
@@ -2171,8 +2170,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
-                   bint convert=1):
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 

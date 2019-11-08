@@ -12,7 +12,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
 from pandas.io.excel import (
     ExcelFile,
@@ -29,7 +28,7 @@ def path(ext):
     """
     Fixture to open file for use in each test case.
     """
-    with ensure_clean(ext) as file_path:
+    with tm.ensure_clean(ext) as file_path:
         yield file_path
 
 
@@ -64,7 +63,7 @@ class TestRoundTrip:
         filename = "no_header"
         df = pd.DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
-        with ensure_clean(ext) as path:
+        with tm.ensure_clean(ext) as path:
             df.to_excel(path, filename, index=False, header=False)
             result = pd.read_excel(path, filename, usecols=[0], header=header)
 
@@ -80,7 +79,7 @@ class TestRoundTrip:
         filename = "with_header"
         df = pd.DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
-        with ensure_clean(ext) as path:
+        with tm.ensure_clean(ext) as path:
             df.to_excel(path, "with_header", index=False, header=True)
             result = pd.read_excel(path, filename, usecols=[0], header=header)
 
@@ -93,7 +92,7 @@ class TestRoundTrip:
         # keyword argument names
         refdf = pd.DataFrame([[1, "foo"], [2, "bar"], [3, "baz"]], columns=["a", "b"])
 
-        with ensure_clean(ext) as pth:
+        with tm.ensure_clean(ext) as pth:
             with ExcelWriter(pth) as writer:
                 refdf.to_excel(writer, "Data_no_head", header=False, index=False)
                 refdf.to_excel(writer, "Data_with_head", index=False)
@@ -127,7 +126,7 @@ class TestRoundTrip:
         dfs = [tdf(s) for s in sheets]
         dfs = dict(zip(sheets, dfs))
 
-        with ensure_clean(ext) as pth:
+        with tm.ensure_clean(ext) as pth:
             with ExcelWriter(pth) as ew:
                 for sheetname, df in dfs.items():
                     df.to_excel(ew, sheetname)
@@ -140,7 +139,7 @@ class TestRoundTrip:
     @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
         # see gh-12453
-        with ensure_clean(ext) as path:
+        with tm.ensure_clean(ext) as path:
             df = DataFrame(
                 {
                     ("One", "x"): {0: 1},
@@ -194,7 +193,7 @@ class TestRoundTrip:
         self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
     ):
         # see gh-4679
-        with ensure_clean(ext) as pth:
+        with tm.ensure_clean(ext) as pth:
             if c_idx_levels == 1 and c_idx_names:
                 pytest.skip(
                     "Column index name cannot be serialized unless it's a MultiIndex"
@@ -204,7 +203,9 @@ class TestRoundTrip:
             # unnamed levels, not Nones.
             check_names = r_idx_names or r_idx_levels <= 1
 
-            df = mkdf(5, 5, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels)
+            df = tm.makeCustomDataframe(
+                5, 5, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+            )
             df.to_excel(pth)
 
             act = pd.read_excel(
@@ -243,7 +244,7 @@ class TestRoundTrip:
         df2 = df.copy()
         df2["date_strings"] = df2["date_strings"].dt.strftime("%m/%d/%Y")
 
-        with ensure_clean(ext) as pth:
+        with tm.ensure_clean(ext) as pth:
             df2.to_excel(pth)
 
             res = pd.read_excel(pth, index_col=0)
@@ -581,7 +582,7 @@ class TestExcelWriter:
             columns=["X", "Y"],
         )
 
-        with ensure_clean(ext) as filename2:
+        with tm.ensure_clean(ext) as filename2:
             writer1 = ExcelWriter(path)
             writer2 = ExcelWriter(
                 filename2,
@@ -778,13 +779,13 @@ class TestExcelWriter:
             columns=["X\u0193", "Y", "Z"],
         )
 
-        with ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
+        with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
             result = pd.read_excel(filename, "TestSheet", encoding="utf8", index_col=0)
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, ext, path):
-        with ensure_clean("\u0192u." + ext) as filename:
+        with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
             except UnicodeEncodeError:
@@ -932,12 +933,10 @@ class TestExcelWriter:
         nrows = 5
         ncols = 3
 
-        from pandas.util.testing import makeCustomDataframe as mkdf
-
         # ensure limited functionality in 0.10
         # override of gh-2370 until sorted out in 0.11
 
-        df = mkdf(
+        df = tm.makeCustomDataframe(
             nrows, ncols, r_idx_nlevels=r_idx_nlevels, c_idx_nlevels=c_idx_nlevels
         )
 
@@ -1216,7 +1215,7 @@ class TestExcelWriterEngineTests:
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
-        with ensure_clean(ext) as path:
+        with tm.ensure_clean(ext) as path:
             writer = ExcelWriter(path)
             if ext == ".xlsx" and td.safe_import("xlsxwriter"):
                 # xlsxwriter has preference over openpyxl if both installed
