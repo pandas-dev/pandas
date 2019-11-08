@@ -843,6 +843,7 @@ class TestDataFrameDataTypes:
         # GH 16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
         mask = np.array([[True, False, True], [False, True, True]])
+
         # change type to category
         df.A = df.A.astype("category")
         df.B = df.B.astype("category")
