@@ -8,7 +8,6 @@ import pytest
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -54,14 +53,12 @@ class TestExpressions:
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
         for test_flex in [True, False]:
             for arith in operations:
-
-                operator_name = arith
-
+                # TODO: share with run_binary
                 if test_flex:
                     op = lambda x, y: getattr(x, arith)(y)
                     op.__name__ = arith
                 else:
-                    op = getattr(operator, operator_name)
+                    op = getattr(operator, arith)
                 expr.set_use_numexpr(False)
                 expected = op(df, other)
                 expr.set_use_numexpr(True)
@@ -87,13 +84,14 @@ class TestExpressions:
         for test_flex in [True, False]:
             for arith in operations:
                 if test_flex:
-                    op = lambda x, y: getattr(df, arith)(y)
+                    op = lambda x, y: getattr(x, arith)(y)
                     op.__name__ = arith
                 else:
                     op = getattr(operator, arith)
                 expr.set_use_numexpr(False)
                 expected = op(df, other)
                 expr.set_use_numexpr(True)
+
                 expr.get_test_result()
                 result = op(df, other)
                 used_numexpr = expr.get_test_result()
@@ -167,29 +165,29 @@ class TestExpressions:
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
     )
-    def test_binary_ops(self, opname, op_str):
+    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    def test_binary_ops(self, opname, op_str, left, right):
         def testit():
 
-            for f, f2 in [(self.frame, self.frame2), (self.mixed, self.mixed2)]:
+            if opname == "pow":
+                # TODO: get this working
+                return
 
-                if opname == "pow":
-                    continue
+            op = getattr(operator, opname)
 
-                op = getattr(operator, opname)
+            result = expr._can_use_numexpr(op, op_str, left, left, "evaluate")
+            assert result != left._is_mixed_type
 
-                result = expr._can_use_numexpr(op, op_str, f, f, "evaluate")
-                assert result != f._is_mixed_type
+            result = expr.evaluate(op, op_str, left, left, use_numexpr=True)
+            expected = expr.evaluate(op, op_str, left, left, use_numexpr=False)
 
-                result = expr.evaluate(op, op_str, f, f, use_numexpr=True)
-                expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
+            if isinstance(result, DataFrame):
+                tm.assert_frame_equal(result, expected)
+            else:
+                tm.assert_numpy_array_equal(result, expected.values)
 
-                if isinstance(result, DataFrame):
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    tm.assert_numpy_array_equal(result, expected.values)
-
-                result = expr._can_use_numexpr(op, op_str, f2, f2, "evaluate")
-                assert not result
+            result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
+            assert not result
 
         expr.set_use_numexpr(False)
         testit()
@@ -210,30 +208,26 @@ class TestExpressions:
             ("ne", "!="),
         ],
     )
-    def test_comparison_ops(self, opname, op_str):
+    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    def test_comparison_ops(self, opname, op_str, left, right):
         def testit():
-            for f, f2 in [(self.frame, self.frame2), (self.mixed, self.mixed2)]:
+            f12 = left + 1
+            f22 = right + 1
 
-                f11 = f
-                f12 = f + 1
+            op = getattr(operator, opname)
 
-                f21 = f2
-                f22 = f2 + 1
+            result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
+            assert result != left._is_mixed_type
 
-                op = getattr(operator, opname)
+            result = expr.evaluate(op, op_str, left, f12, use_numexpr=True)
+            expected = expr.evaluate(op, op_str, left, f12, use_numexpr=False)
+            if isinstance(result, DataFrame):
+                tm.assert_frame_equal(result, expected)
+            else:
+                tm.assert_numpy_array_equal(result, expected.values)
 
-                result = expr._can_use_numexpr(op, op_str, f11, f12, "evaluate")
-                assert result != f11._is_mixed_type
-
-                result = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
-                expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
-                if isinstance(result, DataFrame):
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    tm.assert_numpy_array_equal(result, expected.values)
-
-                result = expr._can_use_numexpr(op, op_str, f21, f22, "evaluate")
-                assert not result
+            result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
+            assert not result
 
         expr.set_use_numexpr(False)
         testit()
@@ -244,15 +238,14 @@ class TestExpressions:
         testit()
 
     @pytest.mark.parametrize("cond", [True, False])
-    def test_where(self, cond):
+    @pytest.mark.parametrize("df", [_frame, _frame2, _mixed, _mixed2])
+    def test_where(self, cond, df):
         def testit():
-            for f in [self.frame, self.frame2, self.mixed, self.mixed2]:
-
-                c = np.empty(f.shape, dtype=np.bool_)
-                c.fill(cond)
-                result = expr.where(c, f.values, f.values + 1)
-                expected = np.where(c, f.values, f.values + 1)
-                tm.assert_numpy_array_equal(result, expected)
+            c = np.empty(df.shape, dtype=np.bool_)
+            c.fill(cond)
+            result = expr.where(c, df.values, df.values + 1)
+            expected = np.where(c, df.values, df.values + 1)
+            tm.assert_numpy_array_equal(result, expected)
 
         expr.set_use_numexpr(False)
         testit()
@@ -263,7 +256,7 @@ class TestExpressions:
         testit()
 
     @pytest.mark.parametrize(
-        "op_str,opname", list(zip(["/", "//", "**"], ["truediv", "floordiv", "pow"]))
+        "op_str,opname", [("/", "truediv"), ("//", "floordiv"), ("**", "pow")]
     )
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
@@ -291,7 +284,7 @@ class TestExpressions:
             f(df, True)
 
     @pytest.mark.parametrize(
-        "op_str,opname", list(zip(["+", "*", "-"], ["add", "mul", "sub"]))
+        "op_str,opname", [("+", "add"), ("*", "mul"), ("-", "sub")]
     )
     def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
         n = 10
@@ -362,7 +355,7 @@ class TestExpressions:
     def test_bool_ops_column_name_dtype(self, test_input, expected):
         # GH 22383 - .ne fails if columns containing column name 'dtype'
         result = test_input.loc[:, ["a", "dtype"]].ne(test_input.loc[:, ["a", "dtype"]])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "arith", ("add", "sub", "mul", "mod", "truediv", "floordiv")
@@ -388,4 +381,4 @@ class TestExpressions:
         expr.set_use_numexpr(True)
 
         result = op_func(other, axis=axis)
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)

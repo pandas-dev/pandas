@@ -257,7 +257,7 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
-cache_dates : boolean, default True
+cache_dates : bool, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -2929,7 +2929,7 @@ class PythonParser(ParserBase):
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
 
-                if "NULL byte" in msg:
+                if "NULL byte" in msg or "line contains NUL" in msg:
                     msg = (
                         "NULL byte detected. This byte "
                         "cannot be processed in Python's "
