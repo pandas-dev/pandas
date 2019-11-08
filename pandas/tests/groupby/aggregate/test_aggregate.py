@@ -628,10 +628,7 @@ class TestLambdaMangling:
             }
         )
 
-        # sort for 35 and earlier
         columns = ["height_sqr_min", "height_max", "weight_max"]
-        if compat.PY35:
-            columns = ["height_max", "height_sqr_min", "weight_max"]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],
@@ -670,7 +667,6 @@ class TestLambdaMangling:
                 "weight": [7.9, 7.5, 9.9, 198.0],
             }
         )
-        # sort for 35 and earlier
         columns = [
             "height_sqr_min",
             "height_max",
@@ -678,14 +674,6 @@ class TestLambdaMangling:
             "height_max_2",
             "weight_min",
         ]
-        if compat.PY35:
-            columns = [
-                "height_max",
-                "height_max_2",
-                "height_sqr_min",
-                "weight_max",
-                "weight_min",
-            ]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],
