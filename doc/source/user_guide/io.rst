@@ -5595,6 +5595,7 @@ Given the next test set:
 
 
    import numpy as np
+   import os
 
    sz = 1000000
    np.random.seed(42)
