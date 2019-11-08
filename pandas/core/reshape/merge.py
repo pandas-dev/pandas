@@ -549,8 +549,6 @@ class _MergeOperation:
     indicator_name: Optional[str]
     left: "DataFrame"
     right: "DataFrame"
-    orig_left: "DataFrame"
-    orig_right: "DataFrame"
 
     def __init__(
         self,
@@ -569,8 +567,10 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-        self.left = self.orig_left = _validate_operand(left)
-        self.right = self.orig_right = _validate_operand(right)
+        _left = _validate_operand(left)
+        _right = _validate_operand(right)
+        self.left = self.orig_left = _validate_operand(_left)
+        self.right = self.orig_right = _validate_operand(_right)
         self.how = how
         self.axis = axis
 
@@ -608,11 +608,11 @@ class _MergeOperation:
             )
 
         # warn user when merging between different levels
-        if left.columns.nlevels != right.columns.nlevels:
+        if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels can give an unintended "
                 "result ({left} levels on the left, {right} on the right)"
-            ).format(left=left.columns.nlevels, right=right.columns.nlevels)
+            ).format(left=_left.columns.nlevels, right=_right.columns.nlevels)
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
