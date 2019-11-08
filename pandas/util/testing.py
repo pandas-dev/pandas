@@ -877,14 +877,14 @@ def assert_interval_array_equal(
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
-    _check_isinstance(left, right, IntervalArray)
-
     assert_index_equal(
         left.left, right.left, exact=exact, obj="{obj}.left".format(obj=obj)
     )
     assert_index_equal(
         left.right, right.right, exact=exact, obj="{obj}.left".format(obj=obj)
     )
+    left = cast(IntervalArray, left)
+    right = cast(IntervalArray, right)
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -1203,8 +1203,8 @@ def assert_series_equal(
             )
     elif is_interval_dtype(left) or is_interval_dtype(left):
         # must cast to interval dtype to keep mypy happy
-        left_array = IntervalArray(left.array)
-        right_array = IntervalArray(right.array)
+        left_array = cast(IntervalArray, left.array)
+        right_array = cast(IntervalArray, right.array)
         assert_interval_array_equal(left_array, right_array)
     elif is_extension_array_dtype(left.dtype) and is_datetime64tz_dtype(left.dtype):
         # .values is an ndarray, but ._values is the ExtensionArray.
@@ -1439,32 +1439,31 @@ def assert_equal(
     __tracebackhide__ = True
 
     if isinstance(left, Index):
-        _check_isinstance(left, right, Index)
-        right = Index(right)
+        right = cast(Index, right)
         assert_index_equal(left, right, **kwargs)
     elif isinstance(left, Series):
-        assert isinstance(right, Series)
+        right = cast(Series, right)
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, DataFrame):
-        assert isinstance(right, DataFrame)
+        right = cast(DataFrame, right)
         assert_frame_equal(left, right, **kwargs)
     elif isinstance(left, IntervalArray):
-        assert isinstance(right, IntervalArray)
+        right = cast(IntervalArray, right)
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
-        assert isinstance(right, PeriodArray)
+        right = cast(PeriodArray, right)
         assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, DatetimeArray):
-        assert isinstance(right, DatetimeArray)
+        right = cast(DatetimeArray, right)
         assert_datetime_array_equal(left, right, **kwargs)
     elif isinstance(left, TimedeltaArray):
-        assert isinstance(right, TimedeltaArray)
+        right = cast(TimedeltaArray, cast)
         assert_timedelta_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
-        assert isinstance(right, ExtensionArray)
+        right = cast(ExtensionArray, right)
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
-        assert isinstance(right, np.ndarray)
+        right = cast(np.ndarray, right)
         assert_numpy_array_equal(left, right, **kwargs)
     elif isinstance(left, str):
         assert kwargs == {}
