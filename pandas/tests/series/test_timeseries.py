@@ -372,9 +372,13 @@ class TestTimeSeries:
 
     def test_pct_change_with_duplicate_axis(self):
         # GH 28664
-        Series(range(70), date_range("2019", periods=70, freq="D")).pct_change(
-            freq="BM"
-        )
+        original_idx = date_range("2019-11-14", periods=3, freq="D")
+        s = Series(range(3), original_idx)
+
+        result = s.pct_change(freq="B")
+        expected = s.asfreq("B").pct_change().reindex(original_idx)
+
+        tm.assert_series_equal(result, expected)
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
