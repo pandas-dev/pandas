@@ -124,7 +124,7 @@ class FrameApply:
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self) -> "Index":
+    def dtypes(self) -> "Series":
         return self.obj.dtypes
 
     @property
