@@ -1791,7 +1791,7 @@ class MultiIndex(Index):
         return Index(self.values, tupleize_cols=False)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return False
 
     def is_lexsorted(self):

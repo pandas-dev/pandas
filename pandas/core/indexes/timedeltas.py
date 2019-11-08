@@ -606,7 +606,7 @@ class TimedeltaIndex(
         return "timedelta64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):

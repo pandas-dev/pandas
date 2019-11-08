@@ -133,7 +133,7 @@ class NumericIndex(Index):
         return result.rename(name)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
         Checks that all the labels are datetime objects
         """

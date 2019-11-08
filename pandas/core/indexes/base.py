@@ -1800,14 +1800,14 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["integer", "mixed-integer"]
 
     @cache_readonly
-    def inferred_type(self) -> str:
+    def inferred_type(self):
         """
         Return a string of the type inferred from the values.
         """
         return lib.infer_dtype(self, skipna=False)
 
     @cache_readonly
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------
