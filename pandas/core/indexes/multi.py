@@ -1322,7 +1322,7 @@ class MultiIndex(Index):
         return MultiIndex.from_tuples
 
     @cache_readonly
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "mixed"
 
     def _get_level_number(self, level):

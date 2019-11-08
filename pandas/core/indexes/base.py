@@ -1800,7 +1800,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["integer", "mixed-integer"]
 
     @cache_readonly
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """
         Return a string of the type inferred from the values.
         """

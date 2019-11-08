@@ -227,7 +227,7 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.int64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``Int64Index``"""
         return "integer"
 
@@ -282,7 +282,7 @@ class UInt64Index(IntegerIndex):
     _default_dtype = np.uint64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``UInt64Index``"""
         return "integer"
 
@@ -355,7 +355,7 @@ class Float64Index(NumericIndex):
     _default_dtype = np.float64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'floating' for ``Float64Index``"""
         return "floating"
 

@@ -602,7 +602,7 @@ class TimedeltaIndex(
         return typ == self.inferred_type or typ == "timedelta"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "timedelta64"
 
     @property
