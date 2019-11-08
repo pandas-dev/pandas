@@ -17,7 +17,6 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -494,7 +493,7 @@ def _infer_fill_value(val):
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
-    if is_datetimelike(val):
+    if needs_i8_conversion(val):
         return np.array("NaT", dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)

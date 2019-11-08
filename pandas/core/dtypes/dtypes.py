@@ -1,6 +1,6 @@
 """ define extension dtypes """
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -351,7 +351,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._ordered = ordered if ordered is not ordered_sentinel else None
         self._ordered_from_sentinel = ordered is ordered_sentinel
 
-    def __setstate__(self, state: Dict[str_type, Any]) -> None:
+    def __setstate__(self, state: MutableMapping[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -415,7 +415,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 return True
             return hash(self) == hash(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str_type:
         tpl = "CategoricalDtype(categories={}ordered={})"
         if self.categories is None:
             data = "None, "
@@ -752,7 +752,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
@@ -793,7 +793,7 @@ class PeriodDtype(PandasExtensionDtype):
     Parameters
     ----------
     freq : str or DateOffset
-        The frequency of this PeriodDtype
+        The frequency of this PeriodDtype.
 
     Attributes
     ----------
@@ -889,7 +889,7 @@ class PeriodDtype(PandasExtensionDtype):
                 pass
         raise TypeError("could not construct PeriodDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return self.name
 
     @property
@@ -1068,7 +1068,7 @@ class IntervalDtype(PandasExtensionDtype):
     def type(self):
         return Interval
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)

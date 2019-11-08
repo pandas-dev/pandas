@@ -278,7 +278,7 @@ cdef class TextReader:
         object true_values, false_values
         object handle
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        int64_t parser_start
+        uint64_t parser_start
         list clocks
         char *c_encoding
         kh_str_starts_t *false_set
@@ -710,11 +710,11 @@ cdef class TextReader:
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
+            Py_ssize_t i, start, field_count, passed_count, unnamed_count
             char *word
             object name, old_name
             int status
-            int64_t hr, data_line
+            uint64_t hr, data_line
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -1015,12 +1015,14 @@ cdef class TextReader:
         else:
             end = min(start + rows, self.parser.lines)
 
+        # FIXME: dont leave commented-out
         # # skip footer
         # if footer > 0:
         #     end -= footer
 
         num_cols = -1
-        for i in range(self.parser.lines):
+        # Py_ssize_t cast prevents build warning
+        for i in range(<Py_ssize_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols

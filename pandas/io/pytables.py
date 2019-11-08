@@ -543,7 +543,7 @@ class HDFStore:
     def __len__(self):
         return len(self.groups())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{type}\nFile path: {path}\n".format(
             type=type(self), path=pprint_thing(self._path)
         )
@@ -1024,10 +1024,10 @@ class HDFStore:
             table(t) : table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
-                       / selecting subsets of the data
+                       / selecting subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
-        data_columns :  list of columns, or True, default None
+        data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
@@ -1725,7 +1725,7 @@ class IndexCol:
         self.table = table
         return self
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         temp = tuple(
             map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind))
         )
@@ -2052,7 +2052,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         temp = tuple(
             map(
                 pprint_thing, (self.name, self.cname, self.dtype, self.kind, self.shape)
@@ -2518,7 +2518,7 @@ class Fixed:
     def format_type(self):
         return "fixed"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -3213,7 +3213,7 @@ class Table(Fixed):
     def format_type(self):
         return "table"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(

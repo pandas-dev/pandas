@@ -862,10 +862,10 @@ class StataMissingValue:
         lambda self: self._value, doc="The binary representation of the missing value."
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 
@@ -2730,7 +2730,7 @@ class StataStrLWriter:
         Modifies the DataFrame in-place.
 
         The DataFrame returned encodes the (v,o) values as uint64s. The
-        encoding depends on teh dta version, and can be expressed as
+        encoding depends on the dta version, and can be expressed as
 
         enc = v + o * 2 ** (o_size * 8)
 

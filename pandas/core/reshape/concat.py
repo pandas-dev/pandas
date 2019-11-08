@@ -7,11 +7,11 @@ import warnings
 import numpy as np
 
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core import common as com
 from pandas.core.arrays.categorical import (
-    _factorize_from_iterable,
-    _factorize_from_iterables,
+    factorize_from_iterable,
+    factorize_from_iterables,
 )
+import pandas.core.common as com
 from pandas.core.generic import NDFrame
 from pandas.core.index import (
     _all_indexes_same,
@@ -29,15 +29,15 @@ from pandas.core.internals import concatenate_block_managers
 def concat(
     objs,
     axis=0,
-    join="outer",
+    join: str = "outer",
     join_axes=None,
-    ignore_index=False,
+    ignore_index: bool = False,
     keys=None,
     levels=None,
     names=None,
-    verify_integrity=False,
+    verify_integrity: bool = False,
     sort=None,
-    copy=True,
+    copy: bool = True,
 ):
     """
     Concatenate pandas objects along a particular axis with optional set logic
@@ -265,14 +265,14 @@ class _Concatenator:
         self,
         objs,
         axis=0,
-        join="outer",
+        join: str = "outer",
         join_axes=None,
         keys=None,
         levels=None,
         names=None,
-        ignore_index=False,
-        verify_integrity=False,
-        copy=True,
+        ignore_index: bool = False,
+        verify_integrity: bool = False,
+        copy: bool = True,
         sort=False,
     ):
         if isinstance(objs, (NDFrame, str)):
@@ -324,8 +324,8 @@ class _Concatenator:
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
-                    "cannot concatenate object of type '{}';"
-                    " only Series and DataFrame objs are valid".format(type(obj))
+                    "cannot concatenate object of type '{typ}';"
+                    " only Series and DataFrame objs are valid".format(typ=type(obj))
                 )
                 raise TypeError(msg)
 
@@ -478,7 +478,7 @@ class _Concatenator:
                 self, method="concat"
             )
 
-    def _get_result_dim(self):
+    def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
             return 2
         else:
@@ -580,7 +580,7 @@ class _Concatenator:
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index):
+    def _maybe_check_integrity(self, concat_index: Index):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
@@ -590,11 +590,11 @@ class _Concatenator:
                 )
 
 
-def _concat_indexes(indexes):
+def _concat_indexes(indexes) -> Index:
     return indexes[0].append(indexes[1:])
 
 
-def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
 
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
@@ -604,7 +604,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            _, levels = _factorize_from_iterables(zipped)
+            _, levels = factorize_from_iterables(zipped)
         else:
             levels = [ensure_index(x) for x in levels]
     else:
@@ -645,7 +645,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             codes_list.extend(concat_index.codes)
         else:
-            codes, categories = _factorize_from_iterable(concat_index)
+            codes, categories = factorize_from_iterable(concat_index)
             levels.append(categories)
             codes_list.append(codes)
 
@@ -715,7 +715,6 @@ def _get_series_result_type(result, objs=None):
     """
     # TODO: See if we can just inline with _constructor_expanddim
     # now that sparse is removed.
-    from pandas import DataFrame
 
     # concat Series with axis 1
     if isinstance(result, dict):

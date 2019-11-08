@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, lib
+from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -36,15 +35,15 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
+from pandas import Categorical, Index, MultiIndex
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
-import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
 
 
@@ -359,12 +358,10 @@ def merge_asof(
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., strictly less-than / strictly greater-than)
+          (i.e., strictly less-than / strictly greater-than).
 
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -1122,9 +1119,9 @@ class _MergeOperation:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
-            elif is_datetimelike(lk) and not is_datetimelike(rk):
+            elif needs_i8_conversion(lk) and not needs_i8_conversion(rk):
                 raise ValueError(msg)
-            elif not is_datetimelike(lk) and is_datetimelike(rk):
+            elif not needs_i8_conversion(lk) and needs_i8_conversion(rk):
                 raise ValueError(msg)
             elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
@@ -1207,7 +1204,7 @@ class _MergeOperation:
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
-    def _validate(self, validate):
+    def _validate(self, validate: str):
 
         # Check uniqueness of each
         if self.left_index:
@@ -1303,7 +1300,12 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
-    left, right, dropped_level_names, join_index, lindexer, rindexer
+    left: MultiIndex,
+    right: MultiIndex,
+    dropped_level_names,
+    join_index,
+    lindexer,
+    rindexer,
 ):
     """
     *this is an internal non-public method*
@@ -1341,7 +1343,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index):
+    def _convert_to_mulitindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1634,7 +1636,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetimelike(lt):
+            if needs_i8_conversion(lt):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1689,13 +1691,13 @@ class _AsOfMerge(_OrderedMerge):
         msg_missings = "Merge keys contain null values on {side} side"
 
         if not Index(left_values).is_monotonic:
-            if isnull(left_values).any():
+            if isna(left_values).any():
                 raise ValueError(msg_missings.format(side="left"))
             else:
                 raise ValueError(msg_sorted.format(side="left"))
 
         if not Index(right_values).is_monotonic:
-            if isnull(right_values).any():
+            if isna(right_values).any():
                 raise ValueError(msg_missings.format(side="right"))
             else:
                 raise ValueError(msg_sorted.format(side="right"))
@@ -1914,7 +1916,7 @@ def _sort_labels(uniques, left, right):
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
@@ -1951,20 +1953,20 @@ def _get_join_keys(llab, rlab, shape, sort):
     return _get_join_keys(llab, rlab, shape, sort)
 
 
-def _should_fill(lname, rname):
+def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 
 
-def _any(x):
+def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, ABCDataFrame):
         return obj
-    elif isinstance(obj, Series):
+    elif isinstance(obj, ABCSeries):
         if obj.name is None:
             raise ValueError("Cannot merge a Series without a name")
         else:

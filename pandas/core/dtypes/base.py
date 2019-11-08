@@ -71,7 +71,7 @@ class ExtensionDtype:
 
     _metadata = ()  # type: Tuple[str, ...]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def __eq__(self, other):

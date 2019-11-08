@@ -704,46 +704,6 @@ class TestnanopsDataFrame:
             self.check_bool(nanops._has_infs, val.astype("f4"), correct)
             self.check_bool(nanops._has_infs, val.astype("f2"), correct)
 
-    def test__isfinite(self):
-        pairs = [
-            ("arr_complex", False),
-            ("arr_int", False),
-            ("arr_bool", False),
-            ("arr_str", False),
-            ("arr_utf", False),
-            ("arr_complex", False),
-            ("arr_complex_nan", True),
-            ("arr_nan_nanj", True),
-            ("arr_nan_infj", True),
-            ("arr_complex_nan_infj", True),
-        ]
-        pairs_float = [
-            ("arr_float", False),
-            ("arr_nan", True),
-            ("arr_float_nan", True),
-            ("arr_nan_nan", True),
-            ("arr_float_inf", True),
-            ("arr_inf", True),
-            ("arr_nan_inf", True),
-            ("arr_float_nan_inf", True),
-            ("arr_nan_nan_inf", True),
-        ]
-
-        func1 = lambda x: np.any(nanops._isfinite(x).ravel())
-
-        # TODO: unused?
-        # func2 = lambda x: np.any(nanops._isfinite(x).values.ravel())
-
-        for arr, correct in pairs:
-            val = getattr(self, arr)
-            self.check_bool(func1, val, correct)
-
-        for arr, correct in pairs_float:
-            val = getattr(self, arr)
-            self.check_bool(func1, val, correct)
-            self.check_bool(func1, val.astype("f4"), correct)
-            self.check_bool(func1, val.astype("f2"), correct)
-
     def test__bn_ok_dtype(self):
         assert nanops._bn_ok_dtype(self.arr_float.dtype, "test")
         assert nanops._bn_ok_dtype(self.arr_complex.dtype, "test")
