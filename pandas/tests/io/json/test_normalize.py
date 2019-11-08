@@ -701,7 +701,7 @@ class TestNestedToRecord:
         assert output == expected
 
     def test_deprecated_import(self):
-        with tm.assert_produces_warning(FutureWarning) as w:
+        with tm.assert_produces_warning(FutureWarning):
             from pandas.io.json import json_normalize
             recs = [
                 {"a": 1, "b": 2, "c": 3},
