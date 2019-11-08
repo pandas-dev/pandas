@@ -3,15 +3,6 @@
 .. currentmodule:: pandas
 
 
-{{ header }}
-
-.. ipython:: python
-   :suppress:
-
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
-
 ===============================
 IO tools (text, CSV, HDF5, ...)
 ===============================
@@ -137,7 +128,8 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from io import StringIO, BytesIO
+     import pandas as pd
+     from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -360,6 +352,7 @@ columns:
 
 .. ipython:: python
 
+    import numpy as np
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -440,7 +433,6 @@ worth trying.
    :suppress:
 
    import os
-
    os.remove('foo.csv')
 
 .. _io.categorical:
@@ -748,6 +740,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
+   from io import BytesIO
    data = (b'word,length\n'
            b'Tr\xc3\xa4umen,7\n'
            b'Gr\xc3\xbc\xc3\x9fe,5')
@@ -4685,7 +4678,6 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4764,7 +4756,6 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4839,7 +4830,6 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow',
@@ -5607,10 +5597,10 @@ Given the next test set:
 
 .. code-block:: python
 
-   from numpy.random import randn
+   import os
 
    sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
 
    def test_sql_write(df):

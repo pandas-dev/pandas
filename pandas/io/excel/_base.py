@@ -552,9 +552,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
     date_format : str, default None
-        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
-        Format string for datetime objects written into Excel files
+        Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).

@@ -325,7 +325,7 @@ class BlockManager(PandasObject):
     def __len__(self):
         return len(self.items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -432,7 +432,7 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = getattr(obj, "_info_axis_number", 0)
+                    axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
             applied = getattr(b, f)(**kwargs)
@@ -1276,7 +1276,6 @@ class BlockManager(PandasObject):
         Returns
         -------
         new_blocks : list of Block
-
         """
 
         allow_fill = fill_tuple is not None

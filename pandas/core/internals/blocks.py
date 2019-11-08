@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, writers
+from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -268,7 +268,7 @@ class Block(PandasObject):
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -393,10 +393,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            if not is_integer(limit):
-                raise ValueError("Limit must be an integer")
-            if limit < 1:
-                raise ValueError("Limit must be greater than 0")
+            limit = libalgos._validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
