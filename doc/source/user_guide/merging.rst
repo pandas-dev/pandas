@@ -881,7 +881,7 @@ The merged result:
 .. note::
 
    The category dtypes must be *exactly* the same, meaning the same categories and the ordered attribute.
-   Otherwise the result will coerce to ``object`` dtype.
+   Otherwise the result will coerce to the categories' dtype.
 
 .. note::
 
