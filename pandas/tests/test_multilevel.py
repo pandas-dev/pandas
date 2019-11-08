@@ -1533,6 +1533,20 @@ Thur,Lunch,Yes,51.51,17"""
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
+    @pytest.mark.parametrize("d", [4, "d"])
+    def test_empty_frame_groupby_dtypes_consistency(self, d):
+        # GH 20888
+        group_keys = ["a", "b", "c"]
+        df = DataFrame({"a": [1], "b": [2], "c": [3], "d": [d]})
+
+        g = df[df.a == 2].groupby(group_keys)
+        result = g.first().index
+        expected = MultiIndex(
+            levels=[[1], [2], [3]], codes=[[], [], []], names=["a", "b", "c"]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_multiindex_na_repr(self):
         # only an issue with long columns
         df3 = DataFrame(
