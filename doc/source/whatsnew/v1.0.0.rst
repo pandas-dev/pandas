@@ -3,6 +3,10 @@
 What's new in 1.0.0 (??)
 ------------------------
 
+.. warning::
+
+   Starting with the 1.x series of releases, pandas only supports Python 3.6.1 and higher.
+
 New Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -36,10 +40,6 @@ See :ref:`policies.version` for more.
 
 .. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
 .. _SemVer: https://semver.org
-
-.. warning::
-
-   The minimum supported Python version will be bumped to 3.6 in a future release.
 
 {{ header }}
 
