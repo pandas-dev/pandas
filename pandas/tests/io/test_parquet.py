@@ -514,13 +514,19 @@ class TestParquetPyArrow(Base):
                 "b": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        # currently de-serialized as plain int / object
-        expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df.assign(b=df.b.astype("object"))
+        else:
+            # de-serialized as plain int / object
+            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
         check_round_trip(df, pa, expected=expected)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        # if missing values in integer, currently de-serialized as float
-        expected = df.assign(a=df.a.astype("float64"))
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # if missing values in integer, currently de-serialized as float
+            expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
 
