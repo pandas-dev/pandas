@@ -993,7 +993,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
-              times
+              times.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
 default 'raise'
@@ -1007,11 +1007,12 @@ default 'raise'
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         errors : {'raise', 'coerce'}, default None
+            The method to handle errors:
 
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
               valid in the specified time zone (e.g. due to a transition from
@@ -1871,7 +1872,7 @@ def sequence_to_dt64ns(
     dayfirst : bool, default False
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
-        See pandas._libs.tslibs.conversion.tz_localize_to_utc
+        See pandas._libs.tslibs.conversion.tz_localize_to_utc.
     int_as_wall_time : bool, default False
         Whether to treat ints as wall time in specified timezone, or as
         nanosecond-precision UNIX epoch (wall time in UTC).
@@ -2015,7 +2016,7 @@ def objects_to_datetime64ns(
     dayfirst : bool
     yearfirst : bool
     utc : bool, default False
-        Whether to convert timezone-aware timestamps to UTC
+        Whether to convert timezone-aware timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the

@@ -120,6 +120,9 @@ plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
 import pandas as pd"""
 
+# nbsphinx do not use requirejs (breaks bootstrap)
+nbsphinx_requirejs_path = ""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
 
@@ -215,7 +218,7 @@ html_theme = "pandas_sphinx_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+html_logo = "../../web/pandas/static/img/pandas.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -375,7 +378,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        r"Wes McKinney\n\& PyData Development Team",
+        "Wes McKinney and the Pandas Development Team",
         "manual",
     )
 ]
@@ -605,11 +608,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:
@@ -628,11 +627,11 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/{}{}".format(
             fn, linespec
         )
     else:
-        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
+        return "http://github.com/pandas-dev/pandas/blob/v{}/pandas/{}{}".format(
             pandas.__version__, fn, linespec
         )
 

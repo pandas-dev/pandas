@@ -8,7 +8,7 @@ from pandas.plotting._core import _get_plot_backend
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
-    Helper function to convert DataFrame and Series to matplotlib.table
+    Helper function to convert DataFrame and Series to matplotlib.table.
 
     Parameters
     ----------
@@ -30,9 +30,9 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register(explicit=True):
+def register():
     """
-    Register Pandas Formatters and Converters with matplotlib
+    Register Pandas Formatters and Converters with matplotlib.
 
     This function modifies the global ``matplotlib.units.registry``
     dictionary. Pandas adds custom converters for
@@ -49,12 +49,12 @@ def register(explicit=True):
     deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
-    plot_backend.register(explicit=explicit)
+    plot_backend.register()
 
 
 def deregister():
     """
-    Remove pandas' formatters and converters
+    Remove pandas' formatters and converters.
 
     Removes the custom converters added by :func:`register`. This
     attempts to set the state of the registry back to the state before
@@ -353,8 +353,6 @@ def parallel_coordinates(
         Options to be passed to axvline method for vertical lines.
     sort_labels : bool, default False
         Sort class_column labels, useful when assigning colors.
-
-        .. versionadded:: 0.20.0
     **kwargs
         Options to pass to matplotlib plotting method.
 

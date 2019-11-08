@@ -229,7 +229,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )
@@ -295,7 +295,7 @@ class JointFilterBinOp(FilterBinOp):
 
 
 class ConditionBinOp(BinOp):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing("[Condition : [{cond}]]".format(cond=self.condition))
 
     def invert(self):
@@ -545,7 +545,7 @@ class Expr(expr.Expr):
             )
             self.terms = self.parse()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)
