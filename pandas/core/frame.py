@@ -99,11 +99,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.generic import (
-    _is_multi_agg_with_relabel,
-    _maybe_mangle_lambdas,
-    _normalize_keyword_aggregation,
-)
 from pandas.core.index import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -6594,6 +6589,11 @@ class DataFrame(NDFrame):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, axis=0, *args, **kwargs):
+        from pandas.core.groupby.generic import (
+            _is_multi_agg_with_relabel,
+            _maybe_mangle_lambdas,
+            _normalize_keyword_aggregation,
+        )
         axis = self._get_axis_number(axis)
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
