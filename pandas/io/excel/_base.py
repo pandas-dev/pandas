@@ -79,8 +79,6 @@ index_col : int, list of int, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 usecols : int, str, list-like, or callable default None
-    Return a subset of the columns.
-
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
@@ -97,6 +95,8 @@ usecols : int, str, list-like, or callable default None
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
+
+    Returns a subset of the columns according to behavior above.
 
       .. versionadded:: 0.24.0
 

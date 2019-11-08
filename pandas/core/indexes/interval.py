@@ -1407,24 +1407,24 @@ def interval_range(
     Parameters
     ----------
     start : numeric or datetime-like, default None
-        Left bound for generating intervals
+        Left bound for generating intervals.
     end : numeric or datetime-like, default None
-        Right bound for generating intervals
+        Right bound for generating intervals.
     periods : int, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : numeric, str, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
         for numeric and 'D' for datetime-like.
     name : str, default None
-        Name of the resulting IntervalIndex
+        Name of the resulting IntervalIndex.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
 
     Returns
     -------
-    rng : IntervalIndex
+    IntervalIndex
 
     See Also
     --------
