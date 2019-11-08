@@ -1,5 +1,7 @@
 from datetime import date, datetime, timedelta
+from distutils.version import StrictVersion
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -10,7 +12,6 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat import PY35
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
@@ -1546,10 +1547,8 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    # xpassing on MacPython with strict=False
-    # https://travis-ci.org/MacPython/pandas-wheels/jobs/574706922
-    PY35,
-    reason="Parsing as Period('0007-01-01', 'D') for reasons unknown",
+    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
+    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
     strict=False,
 )
 def test_small_year_parsing():

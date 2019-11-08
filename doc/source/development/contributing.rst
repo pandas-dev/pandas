@@ -236,7 +236,7 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least python3.5 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
 **Unix**/**Mac OS**
 
@@ -847,29 +847,6 @@ The limitation here is that while a human can reasonably understand that ``is_nu
 
 With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
 
-Syntax Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
-
-.. code-block:: python
-
-   primes = []  # type: List[int]
-
-Whereas this is **NOT** allowed:
-
-.. code-block:: python
-
-   primes: List[int] = []  # not supported in Python 3.5!
-
-Note that function signatures can always be annotated per :pep:`3107`:
-
-.. code-block:: python
-
-   def sum_of_primes(primes: List[int] = []) -> int:
-       ...
-
-
 Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -1296,7 +1273,7 @@ environment by::
 
 or, to use a specific Python interpreter,::
 
-    asv run -e -E existing:python3.5
+    asv run -e -E existing:python3.6
 
 This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.

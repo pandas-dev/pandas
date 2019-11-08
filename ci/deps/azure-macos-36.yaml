@@ -14,7 +14,7 @@ dependencies:
   - openpyxl
   - pyarrow
   - pytables
-  - python=3.5.*
+  - python=3.6.*
   - python-dateutil==2.6.1
   - pytz
   - xarray
