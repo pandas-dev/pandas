@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
-    is_datetimelike,
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
@@ -48,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
@@ -655,7 +655,7 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = self.grouper.recons_codes
+        codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
@@ -1287,7 +1287,7 @@ class DataFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
+                if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
                     result = _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)
