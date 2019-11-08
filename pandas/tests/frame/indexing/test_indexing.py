@@ -2624,21 +2624,15 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    def test_index_single_double_tuples(self):
+    @pytest.mark.parametrize("tpl", [tuple([1]), tuple([1, 2])])
+    def test_index_single_double_tuples(self, tpl):
         # GH 20991
-        tuple_1 = tuple([1, 2])
-        tuple_2 = tuple([1])
-        idx = pd.Index([tuple_1, tuple_2], name="A", tupleize_cols=False)
+        idx = pd.Index([tuple([1]), tuple([1, 2])], name="A", tupleize_cols=False)
         df = DataFrame(index=idx)
 
-        result = df.loc[[tuple_1]]
-        idx_1 = pd.Index([tuple_1], name="A", tupleize_cols=False)
-        expected = DataFrame(index=idx_1)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.loc[[tuple_2]]
-        idx_2 = pd.Index([tuple_2], name="A", tupleize_cols=False)
-        expected = DataFrame(index=idx_2)
+        result = df.loc[[tpl]]
+        idx = pd.Index([tpl], name="A", tupleize_cols=False)
+        expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
     def test_boolean_indexing(self):
