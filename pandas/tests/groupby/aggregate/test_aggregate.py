@@ -494,6 +494,68 @@ class TestNamedAggregationDataFrame:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_agg_relabel_multiindex_column(self):
+        # GH 29422, add tests for multiindex column cases
+        df = pd.DataFrame(
+            {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+        )
+        df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+        idx = pd.Index(["a", "b"], name=("x", "group"))
+
+        result = df.groupby(("x", "group")).agg(a_max=(("y", "A"), "max"))
+        expected = pd.DataFrame({"a_max": [1, 3]}, index=idx)
+        tm.assert_frame_equal(result, expected)
+
+        # multiple columns, and different agg methods
+        result = df.groupby(("x", "group")).agg(
+            a_max=(("y", "A"), "max"),
+            a_min=(("y", "A"), np.min),
+            b_mean=(("y", "B"), "mean"),
+        )
+        expected = pd.DataFrame(
+            {"a_max": [1, 3], "a_min": [0, 2], "b_mean": [6, 7]}, index=idx
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # multiple colums, with lamdba being used
+        result = df.groupby(("x", "group")).agg(
+            a_max=(("y", "A"), lambda x: max(x)),
+            a_const=(("y", "A"), lambda x: 1),
+            b_mean=(("y", "B"), "mean"),
+        )
+        expected = pd.DataFrame(
+            {"a_max": [1, 3], "a_const": [1, 1], "b_mean": [6, 7]}, index=idx
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_agg_relabel_multiindex_raises(self):
+        # GH 29422, add tests for raises senarios in multiindex column cases
+        df = pd.DataFrame(
+            {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+        )
+        df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+
+        with pytest.raises(KeyError, match="does not exist"):
+            df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
+
+        with pytest.raises(SpecificationError, match="Function names"):
+            df.groupby(("x", "group")).agg(a=(("y", "A"), "min"), b=(("y", "A"), "min"))
+
+    def test_namedagg_multiindex_column(self):
+        # GH 29422, add tests for namedagg in multiindex column cases
+        df = pd.DataFrame(
+            {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+        )
+        df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+        idx = pd.Index(["a", "b"], name=("x", "group"))
+
+        result = df.groupby(("x", "group")).agg(
+            a_max=pd.NamedAgg(("y", "A"), "max"),
+            b_mean=pd.NamedAgg(("y", "B"), np.mean),
+        )
+        expected = pd.DataFrame({"a_max": [1, 3], "b_mean": [6, 7]}, index=idx)
+        tm.assert_frame_equal(result, expected)
+
 
 def myfunc(s):
     return np.percentile(s, q=0.90)
