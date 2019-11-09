@@ -1472,10 +1472,11 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.eq : Compare two DataFrame objects of the same shape and
             return a DataFrame where each element is True if the respective
             element in each DataFrame is equal, False otherwise.
-        assert_series_equal : Return True if left and right Series are equal,
-            False otherwise.
-        assert_frame_equal : Return True if left and right DataFrames are
-            equal, False otherwise.
+        testing.assert_series_equal : Raises an AssertionError if left and
+            right are not equal. Provides an easy interface to ignore
+            inequality in dtypes, indexes and precision among others.
+        testing.assert_frame_equal : Like assert_series_equal, but targets
+            DataFrames.
         numpy.array_equal : Return True if two arrays have the same shape
             and elements, False otherwise.
 
