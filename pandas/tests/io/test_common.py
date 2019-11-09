@@ -218,7 +218,7 @@ bar2,12,13,14,15
                 "tables",
                 ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
             ),
-            (pd.read_stata, "os", ("io", "data", "stata10_115.dta")),
+            (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
             (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
             (pd.read_msgpack, "os", ("io", "msgpack", "data", "frame.mp")),
