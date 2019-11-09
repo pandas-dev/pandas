@@ -47,6 +47,10 @@ from pandas.core.internals import _transform_index, concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 
+class DefaultNA:
+    pass
+
+
 @Substitution("\nleft : DataFrame")
 @Appender(_merge_doc, indents=0)
 def merge(
@@ -63,6 +67,7 @@ def merge(
     copy=True,
     indicator=False,
     validate=None,
+    index_na_value=DefaultNA(),
 ):
     op = _MergeOperation(
         left,
@@ -78,6 +83,7 @@ def merge(
         copy=copy,
         indicator=indicator,
         validate=validate,
+        index_na_value=index_na_value,
     )
     return op.get_result()
 
@@ -555,6 +561,7 @@ class _MergeOperation:
         copy=True,
         indicator=False,
         validate=None,
+        index_na_value=DefaultNA(),
     ):
         left = validate_operand(left)
         right = validate_operand(right)
@@ -622,6 +629,10 @@ class _MergeOperation:
         # are in fact unique.
         if validate is not None:
             self._validate(validate)
+
+        # if a join requires NA values to be placed in the index
+        # use this value or default NA which may involve a type promotion
+        self.index_na_value = index_na_value
 
     def get_result(self):
         if self.indicator:
@@ -902,7 +913,11 @@ class _MergeOperation:
             # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                if isinstance(self.index_na_value, DefaultNA):
+                    fill_value = na_value_for_dtype(index.dtype, compat=False)
+                else:
+                    fill_value = self.index_na_value
+
                 index = index.append(Index([fill_value]))
         return index.take(indexer)
 

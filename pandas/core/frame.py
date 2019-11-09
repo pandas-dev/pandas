@@ -230,6 +230,12 @@ validate : str, optional
 
     .. versionadded:: 0.21.0
 
+index_na_value : value, optional
+    If a join requires NA values to be placed in the index use this value or
+    accept the default NA for the dtype which may involve a type promotion
+
+    .. versionadded:: 0.25.2
+
 Returns
 -------
 DataFrame

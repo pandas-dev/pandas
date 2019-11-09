@@ -1,0 +1,6 @@
+
+Reshaping
+^^^^^^^^^
+
+- Added new option to allow user to specify NA value for certain joins when missing keys when not using left_index when how='right', or right_index when how='left' causing dtype promotion (:issue:`28220`).
+

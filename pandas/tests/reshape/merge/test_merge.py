@@ -2153,3 +2153,178 @@ def test_merge_multiindex_columns():
     expected["id"] = ""
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.fixture(
+    params=[
+        dict(domain=pd.Index(["A", "B", "C"])),
+        dict(domain=CategoricalIndex(["A", "B", "C"])),
+        dict(domain=DatetimeIndex(["2001-01-01", "2002-02-02", "2003-03-03"])),
+        dict(domain=Float64Index([1, 2, 3])),
+        dict(domain=Int64Index([1, 2, 3])),
+        dict(domain=IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)])),
+        dict(domain=TimedeltaIndex(["1d", "2d", "3d"])),
+    ]
+)
+def fix_GH_28220_(request):
+    class Data:
+        def __init__(self):
+            self.domain = request.param["domain"]
+            self.X = pd.DataFrame({"count": [1, 2]}, index=self.domain.take([0, 1]))
+            self.Y = pd.DataFrame(
+                {"name": self.domain.take([0, 2]), "value": [100, 200]}
+            )
+            self.Z = pd.DataFrame(
+                {"name": self.domain.take([0, 0, 2]), "value": [100, 200, 300]}
+            )
+            self.E = pd.DataFrame(columns=["name", "value"])
+
+            assert isinstance(self.X.index, type(self.domain))
+
+    return Data()
+
+
+@pytest.mark.parametrize(
+    "how,expected",
+    [
+        ("left", ([0, -255], [0, 1, -255], [0, 1])),
+        ("inner", ([0], [0, 1], [])),
+        ("outer", ([0, -255, 1], [0, 1, -255, 2], [0, 1])),
+    ],
+)
+def test_left_index_merge_with_missing_by_right_on(fix_GH_28220_, how, expected):
+
+    # GH 28220
+    (e1, e2, e3) = map(lambda x: pd.Index(x), expected)
+    e3 = fix_GH_28220_.domain.take(e3)
+
+    r1 = pd.merge(
+        fix_GH_28220_.X,
+        fix_GH_28220_.Y,
+        left_index=True,
+        right_on=["name"],
+        how=how,
+        index_na_value=-255,
+    )
+    tm.assert_index_equal(r1.index, e1)
+
+    r2 = pd.merge(
+        fix_GH_28220_.X,
+        fix_GH_28220_.Z,
+        left_index=True,
+        right_on=["name"],
+        how=how,
+        index_na_value=-255,
+    )
+    tm.assert_index_equal(r2.index, e2)
+
+    r3 = pd.merge(
+        fix_GH_28220_.X,
+        fix_GH_28220_.E,
+        left_index=True,
+        right_on=["name"],
+        how=how,
+        index_na_value=-255,
+    )
+
+    # special case when result is empty, dtype is object
+    if r3.empty:
+        e3 = pd.Index([], dtype=object, name=e3.name)
+
+    tm.assert_index_equal(r3.index, e3)
+
+
+@pytest.mark.parametrize(
+    "how,expected",
+    [
+        ("right", ([0, -255], [0, 0, -255], [0, 1, 2])),
+        ("inner", ([0], [0, 0], [])),
+        ("outer", ([0, 1, -255], [0, 0, 1, -255], [0, 1])),
+    ],
+)
+def test_left_on_merge_with_missing_by_right_index(fix_GH_28220_, how, expected):
+
+    # GH 28220
+    (e1, e2, e3) = map(lambda x: pd.Index(x), expected)
+
+    r1 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.Y.set_index("name"),
+        left_on=["index"],
+        right_index=True,
+        how=how,
+        index_na_value=-255,
+    )
+    tm.assert_index_equal(r1.index, e1)
+
+    r2 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.Z.set_index("name"),
+        left_on=["index"],
+        right_index=True,
+        how=how,
+        index_na_value=-255,
+    )
+    tm.assert_index_equal(r2.index, e2)
+
+    r3 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.E.set_index("name"),
+        left_on=["index"],
+        right_index=True,
+        how=how,
+        index_na_value=-255,
+    )
+
+    # special case when result is empty, dtype is object
+    if r3.empty:
+        e3 = pd.Index([], dtype=object, name=e3.name)
+
+    tm.assert_index_equal(r3.index, e3)
+
+
+@pytest.mark.parametrize(
+    "how,expected",
+    [
+        ("left", ([0, 1], [0, 1, 2], [0, 1])),
+        ("right", ([0, 1], [0, 1, 2], [0, 2])),
+        ("inner", ([0], [0, 1], [])),
+        ("outer", ([0, 1, 2], [0, 1, 2, 3], [0, 1])),
+    ],
+)
+def test_left_on_merge_with_missing_by_right_on(fix_GH_28220_, how, expected):
+
+    # GH 28220
+    (e1, e2, e3) = map(lambda x: pd.Index(x), expected)
+
+    r1 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.Y,
+        left_on=["index"],
+        right_on=["name"],
+        how=how,
+    )
+    tm.assert_index_equal(r1.index, e1)
+
+    r2 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.Z,
+        left_on=["index"],
+        right_on=["name"],
+        how=how,
+    )
+    tm.assert_index_equal(r2.index, e2)
+
+    r3 = pd.merge(
+        fix_GH_28220_.X.reset_index(),
+        fix_GH_28220_.E,
+        left_on=["index"],
+        right_on=["name"],
+        how=how,
+    )
+
+    # special case when result is empty, dtype is object
+    if r3.empty:
+        e3 = pd.Index([], dtype=object, name=e3.name)
+
+    tm.assert_index_equal(r3.index, e3)
