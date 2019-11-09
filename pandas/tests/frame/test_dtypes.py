@@ -1222,7 +1222,7 @@ class TestDataFrameDatetimeWithTZ:
         tm.assert_frame_equal(result, expected)
 
     def test_temp_64_nan(self):
-        result = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        result = DataFrame([[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"))
         expected = DataFrame(
             [[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"), dtype=np.int64
         )
