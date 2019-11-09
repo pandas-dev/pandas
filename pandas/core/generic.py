@@ -3604,7 +3604,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
-                    inds, = loc.nonzero()
+                    (inds,) = loc.nonzero()
                     return self.take(inds, axis=axis)
                 else:
                     return self.take(loc, axis=axis)
