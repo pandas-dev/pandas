@@ -507,19 +507,6 @@ class TestSeriesDtypes:
         assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 
     @pytest.mark.parametrize(
-        "data",
-        [
-            pd.period_range("2000", periods=4),
-            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
-        ],
-    )
-    def test_values_compatibility(self, data):
-        # https://github.com/pandas-dev/pandas/issues/23995
-        result = pd.Series(data).values
-        expected = np.array(data.astype(object))
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "data, uniques, dtype",
         [
             ([1, 2, 2], [1, 2], "int8"),
@@ -544,4 +531,17 @@ class TestSeriesDtypes:
         result = Series(data, dtype=dtype).unique()
         expected = np.array(uniques, dtype=dtype)
 
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            pd.period_range("2000", periods=4),
+            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
+        ],
+    )
+    def test_values_compatibility(self, data):
+        # https://github.com/pandas-dev/pandas/issues/23995
+        result = pd.Series(data).values
+        expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
