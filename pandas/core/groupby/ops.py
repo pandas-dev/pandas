@@ -585,7 +585,6 @@ class BaseGrouper:
     def agg_series(self, obj: Series, func):
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            # 2019-11-09: 3 tests get here with len(obj) == 0
             return self._aggregate_series_pure_python(obj, func)
 
         elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
@@ -801,7 +800,6 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj: Series, func):
-        # 2019-11-09: 3 tests get here with len(obj) == 0
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None
