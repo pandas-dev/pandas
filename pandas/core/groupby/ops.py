@@ -583,6 +583,9 @@ class BaseGrouper:
         return result
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
@@ -608,8 +611,10 @@ class BaseGrouper:
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
-        # At this point we have already checked that obj.index is not a MultiIndex
-        #  and that obj is backed by an ndarray, not ExtensionArray
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - ngroups != 0
         func = self._is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
@@ -797,6 +802,9 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None

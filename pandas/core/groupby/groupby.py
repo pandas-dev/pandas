@@ -898,6 +898,11 @@ b  2""",
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
         for name, obj in self._iterate_slices():
+            if self.grouper.ngroups == 0:
+                # agg_series below assumes ngroups > 0
+                #  3 test cases get here
+                continue
+
             try:
                 # if this function is invalid for this dtype, we will ignore it.
                 func(obj[:0])
@@ -911,10 +916,8 @@ b  2""",
                 pass
 
             result, counts = self.grouper.agg_series(obj, f)
-            if result is not None:
-                # TODO: only 3 test cases get None here, do something
-                #  in those cases
-                output[name] = self._try_cast(result, obj, numeric_only=True)
+            assert result is not None
+            output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
