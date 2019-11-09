@@ -208,8 +208,8 @@ bar2,12,13,14,15
     @pytest.mark.parametrize(
         "reader, module, path",
         [
-            (pd.read_csv, "os", ("io", "data", "csv", "iris.csv")),
-            (pd.read_table, "os", ("io", "data", "csv", "iris.csv")),
+            (pd.read_csv, "os", ("data", "iris.csv")),
+            (pd.read_table, "os", ("data", "iris.csv")),
             (
                 pd.read_fwf,
                 "os",

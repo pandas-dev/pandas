@@ -206,13 +206,13 @@ def test_legacy_sparse_warning(datapath):
     ...              compression="gzip")
 
     >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
     ...             compression="gzip")
     """
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
         )
 
     with tm.assert_produces_warning(FutureWarning):
