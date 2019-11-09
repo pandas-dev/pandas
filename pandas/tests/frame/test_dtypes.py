@@ -815,6 +815,16 @@ class TestDataFrameDataTypes:
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype", [{100: "float64", 200: "uint64"}, "category", "float64"]
+    )
+    def test_astype_column_metadata(self, dtype):
+        # GH 19920
+        columns = pd.UInt64Index([100, 200, 300], name="foo")
+        df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
+        df = df.astype(dtype)
+        tm.assert_index_equal(df.columns, columns)
+
     def test_df_where_change_dtype(self):
         # GH 16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
@@ -839,16 +849,6 @@ class TestDataFrameDataTypes:
         expected = DataFrame({"A": A, "B": B, "C": C})
 
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype", [{100: "float64", 200: "uint64"}, "category", "float64"]
-    )
-    def test_astype_column_metadata(self, dtype):
-        # GH 19920
-        columns = pd.UInt64Index([100, 200, 300], name="foo")
-        df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
-        df = df.astype(dtype)
-        tm.assert_index_equal(df.columns, columns)
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
