@@ -43,10 +43,11 @@ cdef class Reducer:
     """
     cdef:
         Py_ssize_t increment, chunksize, nresults
-        object arr, dummy, f, labels, typ, ityp, index
+        object dummy, f, labels, typ, ityp, index
+        ndarray arr
 
-    def __init__(self, object arr, object f, axis=1, dummy=None, labels=None):
-        n, k = arr.shape
+    def __init__(self, ndarray arr, object f, axis=1, dummy=None, labels=None):
+        n, k = (<object>arr).shape
 
         if axis == 0:
             if not arr.flags.f_contiguous:
@@ -103,7 +104,7 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            bint has_labels, has_ndarray_labels
+            bint has_labels
             object res, name, labels, index
             object cached_typ = None
 
@@ -113,17 +114,13 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
-        has_ndarray_labels = util.is_array(labels)
         has_index = self.index is not None
         incr = self.increment
 
         try:
             for i in range(self.nresults):
 
-                if has_ndarray_labels:
-                    name = labels[i]
-                elif has_labels:
-                    # labels is an ExtensionArray
+                if has_labels:
                     name = labels[i]
                 else:
                     name = None
@@ -188,11 +185,10 @@ cdef class SeriesBinGrouper:
         Py_ssize_t nresults, ngroups
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index
+        ndarray arr, index, dummy_arr, dummy_index
         object values, f, bins, typ, ityp, name
 
     def __init__(self, object series, object f, object bins, object dummy):
-        n = len(series)
 
         assert dummy is not None  # always obj[:0]
 
@@ -314,12 +310,11 @@ cdef class SeriesGrouper:
         Py_ssize_t nresults, ngroups
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index
+        ndarray arr, index, dummy_arr, dummy_index
         object f, labels, values, typ, ityp, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
-        n = len(series)
 
         # in practice we always pass either obj[:0] or the
         #  safer obj._get_values(slice(None, 0))
@@ -460,14 +455,13 @@ cdef class Slider:
         Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
-    def __init__(self, object values, object buf):
-        assert (values.ndim == 1)
+    def __init__(self, ndarray values, ndarray buf):
+        assert values.ndim == 1
+        assert values.dtype == buf.dtype
 
-        if util.is_array(values) and not values.flags.contiguous:
-            # e.g. Categorical has no `flags` attribute
+        if not values.flags.contiguous:
             values = values.copy()
 
-        assert (values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
         self.stride = values.strides[0]
