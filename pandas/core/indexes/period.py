@@ -20,11 +20,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
 from pandas.core.base import _shared_docs
+import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
@@ -457,11 +457,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 self.get_loc(key)
                 return True
-            except (ValueError, TypeError, KeyError):
+            except (TypeError, KeyError):
                 # TypeError can be reached if we pass a tuple that is not hashable
-                # ValueError can be reached if pass a 2-tuple and parse_time_string
-                #  raises with the wrong number of return values
-                #  TODO: the latter is a bug in parse_time_string
                 return False
 
     @cache_readonly
@@ -608,7 +605,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         try:
             return com.maybe_box(self, super().get_value(s, key), series, key)
         except (KeyError, IndexError):
-            try:
+            if isinstance(key, str):
                 asdt, parsed, reso = parse_time_string(key, self.freq)
                 grp = resolution.Resolution.get_freq_group(reso)
                 freqn = resolution.get_freq_group(self.freq)
@@ -634,8 +631,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     )
                 else:
                     raise KeyError(key)
-            except TypeError:
-                pass
 
             period = Period(key, self.freq)
             key = period.value if isna(period) else period.ordinal
@@ -1002,28 +997,28 @@ PeriodIndex._add_datetimelike_methods()
 
 def period_range(start=None, end=None, periods=None, freq=None, name=None):
     """
-    Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency.
+    Return a fixed frequency PeriodIndex.
+
+    The day (calendar) is the default frequency.
 
     Parameters
     ----------
     start : str or period-like, default None
-        Left bound for generating periods
+        Left bound for generating periods.
     end : str or period-like, default None
-        Right bound for generating periods
+        Right bound for generating periods.
     periods : int, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
-
     name : str, default None
-        Name of the resulting PeriodIndex
+        Name of the resulting PeriodIndex.
 
     Returns
     -------
-    prng : PeriodIndex
+    PeriodIndex
 
     Notes
     -----

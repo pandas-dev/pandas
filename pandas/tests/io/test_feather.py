@@ -6,7 +6,6 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, ensure_clean
 
 from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 
@@ -25,7 +24,7 @@ class TestFeather:
         # on writing
 
         with pytest.raises(exc):
-            with ensure_clean() as path:
+            with tm.ensure_clean() as path:
                 to_feather(df, path)
 
     def check_round_trip(self, df, expected=None, **kwargs):
@@ -33,11 +32,11 @@ class TestFeather:
         if expected is None:
             expected = df
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             to_feather(df, path)
 
             result = read_feather(path, **kwargs)
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_error(self):
 

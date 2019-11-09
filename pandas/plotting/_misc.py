@@ -30,7 +30,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register(explicit=True):
+def register():
     """
     Register Pandas Formatters and Converters with matplotlib.
 
@@ -49,7 +49,7 @@ def register(explicit=True):
     deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend("matplotlib")
-    plot_backend.register(explicit=explicit)
+    plot_backend.register()
 
 
 def deregister():
@@ -168,7 +168,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     colormap : str or :class:`matplotlib.colors.Colormap`, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
-    kwds : optional
+    **kwds
         Options to pass to matplotlib scatter plotting method.
 
     Returns
@@ -283,7 +283,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    **kwds :
+    **kwds
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -353,8 +353,6 @@ def parallel_coordinates(
         Options to be passed to axvline method for vertical lines.
     sort_labels : bool, default False
         Sort class_column labels, useful when assigning colors.
-
-        .. versionadded:: 0.20.0
     **kwargs
         Options to pass to matplotlib plotting method.
 
@@ -398,7 +396,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     series : Time series
     lag : lag of the scatter plot, default 1
     ax : Matplotlib axis object, optional
-    kwds : Matplotlib scatter method keyword arguments, optional
+    **kwds
+        Matplotlib scatter method keyword arguments.
 
     Returns
     -------

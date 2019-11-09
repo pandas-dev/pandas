@@ -152,11 +152,11 @@ class TimedeltaIndex(
     def _join_i8_wrapper(joinf, **kwargs):
         return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="m8[ns]", **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
+    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
+    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
     _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique_int64, with_indexers=False
+        libjoin.left_join_indexer_unique, with_indexers=False
     )
 
     _engine_type = libindex.TimedeltaEngine
@@ -528,7 +528,7 @@ class TimedeltaIndex(
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
-        if _is_convertible_to_td(key):
+        if _is_convertible_to_td(key) or key is NaT:
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
@@ -550,7 +550,6 @@ class TimedeltaIndex(
         """
         If label is a string, cast it to timedelta according to resolution.
 
-
         Parameters
         ----------
         label : object
@@ -559,8 +558,7 @@ class TimedeltaIndex(
 
         Returns
         -------
-        label :  object
-
+        label : object
         """
         assert kind in ["ix", "loc", "getitem", None]
 

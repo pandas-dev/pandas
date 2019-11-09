@@ -27,6 +27,13 @@ _int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
+cdef enum InterpolationEnumType:
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOWER,
+    INTERPOLATION_HIGHER,
+    INTERPOLATION_NEAREST,
+    INTERPOLATION_MIDPOINT
+
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
@@ -146,7 +153,8 @@ def group_cumprod_float64(float64_t[:, :] out,
                           int ngroups,
                           bint is_datetimelike,
                           bint skipna=True):
-    """Cumulative product of columns of `values`, in row groups `labels`.
+    """
+    Cumulative product of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -203,7 +211,8 @@ def group_cumsum(numeric[:, :] out,
                  int ngroups,
                  is_datetimelike,
                  bint skipna=True):
-    """Cumulative sum of columns of `values`, in row groups `labels`.
+    """
+    Cumulative sum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -314,7 +323,8 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
                          int64_t limit):
-    """Indexes how to fill values forwards or backwards within a group
+    """
+    Indexes how to fill values forwards or backwards within a group.
 
     Parameters
     ----------
@@ -455,7 +465,7 @@ def _group_add(complexfloating_t[:, :] out,
     if len(values) != len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros((len(out), out.shape[1]), dtype=np.int64)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -507,12 +517,13 @@ def _group_prod(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        floating[:, :] prodx, nobs
+        floating[:, :] prodx
+        int64_t[:, :] nobs
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     prodx = np.ones_like(out)
 
     N, K = (<object>values).shape
@@ -555,14 +566,15 @@ def _group_var(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
-        floating[:, :] nobs, mean
+        floating[:, :] mean
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     mean = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -610,14 +622,15 @@ def _group_mean(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        floating[:, :] sumx, nobs
+        floating[:, :] sumx
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
 
     N, K = (<object>values).shape
@@ -760,6 +773,9 @@ def group_quantile(ndarray[float64_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
+            if lab == -1:  # NA group label
+                continue
+
             counts[lab] += 1
             if not mask[i]:
                 non_na_counts[lab] += 1
@@ -827,6 +843,9 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 
     elif rank_t is int64_t:
         return is_datetimelike and val == NPY_NAT
+    elif rank_t is uint64_t:
+        # There is no NA value for uint64
+        return False
     else:
         return val != val
 
@@ -920,18 +939,12 @@ def group_last(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
-group_last_float64 = group_last["float64_t"]
-group_last_float32 = group_last["float32_t"]
-group_last_int64 = group_last["int64_t"]
-group_last_object = group_last["object"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               rank_t[:, :] values,
-              const int64_t[:] labels, int64_t rank,
+              const int64_t[:] labels, int64_t rank=1,
               Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
@@ -1017,19 +1030,14 @@ def group_nth(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
-group_nth_float64 = group_nth["float64_t"]
-group_nth_float32 = group_nth["float32_t"]
-group_nth_int64 = group_nth["int64_t"]
-group_nth_object = group_nth["object"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank(float64_t[:, :] out,
                rank_t[:, :] values,
                const int64_t[:] labels,
-               bint is_datetimelike, object ties_method,
-               bint ascending, bint pct, object na_option):
+               int ngroups,
+               bint is_datetimelike, object ties_method="average",
+               bint ascending=True, bint pct=False, object na_option="keep"):
     """
     Provides the rank of values within each group.
 
@@ -1039,6 +1047,9 @@ def group_rank(float64_t[:, :] out,
     values : array of rank_t values to be ranked
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
+    ngroups : int
+        This parameter is not used, is needed to match signatures of other
+        groupby functions.
     is_datetimelike : bool, default False
         unused in this method but provided for call compatibility with other
         Cython transformations
@@ -1210,14 +1221,6 @@ def group_rank(float64_t[:, :] out,
                     out[i, 0] = out[i, 0] / grp_sizes[i, 0]
 
 
-group_rank_float64 = group_rank["float64_t"]
-group_rank_float32 = group_rank["float32_t"]
-group_rank_int64 = group_rank["int64_t"]
-group_rank_uint64 = group_rank["uint64_t"]
-# Note: we do not have a group_rank_object because that would require a
-#  not-nogil implementation, see GH#19560
-
-
 # ----------------------------------------------------------------------
 # group_min, group_max
 # ----------------------------------------------------------------------
@@ -1243,15 +1246,16 @@ def group_max(groupby_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] maxx, nobs
+        ndarray[groupby_t, ndim=2] maxx
         bint runtime_error = False
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     maxx = np.empty_like(out)
     if groupby_t is int64_t:
@@ -1291,7 +1295,8 @@ def group_max(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
 
@@ -1314,15 +1319,16 @@ def group_min(groupby_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] minx, nobs
+        ndarray[groupby_t, ndim=2] minx
         bint runtime_error = False
+        int64_t[:, :] nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros_like(out)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     minx = np.empty_like(out)
     if groupby_t is int64_t:
@@ -1361,7 +1367,8 @@ def group_min(groupby_t[:, :] out,
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
-                    out[i, j] = nan_val
+                    else:
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
 
