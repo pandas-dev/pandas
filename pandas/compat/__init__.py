@@ -38,9 +38,9 @@ def set_function_name(f, name, cls):
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
-def is_platform_little_endian() -> bool:
+def is_platform_little_endian():
     """
-    Checks if the running platform is little endian.
+    Checking if the running platform is little endian.
 
     Returns
     -------
@@ -50,9 +50,9 @@ def is_platform_little_endian() -> bool:
     return sys.byteorder == "little"
 
 
-def is_platform_windows() -> bool:
+def is_platform_windows():
     """
-    Checks if the running platform is windows.
+    Checking if the running platform is windows.
 
     Returns
     -------
@@ -62,9 +62,9 @@ def is_platform_windows() -> bool:
     return sys.platform == "win32" or sys.platform == "cygwin"
 
 
-def is_platform_linux() -> bool:
+def is_platform_linux():
     """
-    Checks if the running platform is linux.
+    Checking if the running platform is linux.
 
     Returns
     -------
@@ -74,9 +74,9 @@ def is_platform_linux() -> bool:
     return sys.platform == "linux2"
 
 
-def is_platform_mac() -> bool:
+def is_platform_mac():
     """
-    Checks if the running platform is mac.
+    Checking if the running platform is mac.
 
     Returns
     -------
@@ -86,9 +86,9 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def is_platform_32bit() -> bool:
+def is_platform_32bit():
     """
-    Checks if the running platform is 32-bit.
+    Checking if the running platform is 32-bit.
 
     Returns
     -------
@@ -121,6 +121,8 @@ def _import_lzma():
 
 def _get_lzma_file(lzma):
     """
+    Attempting to get the lzma.LZMAFile method.
+
     Returns
     -------
     method
