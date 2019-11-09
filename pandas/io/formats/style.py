@@ -18,7 +18,7 @@ from pandas._config import get_option
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_float, is_string_like
+from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
@@ -1524,7 +1524,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
 
 def _maybe_wrap_formatter(formatter, na_rep):
-    if is_string_like(formatter):
+    if isinstance(formatter, str):
         formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
         formatter_func = formatter
@@ -1537,7 +1537,7 @@ def _maybe_wrap_formatter(formatter, na_rep):
 
     if na_rep is None:
         return formatter_func
-    elif is_string_like(na_rep):
+    elif isinstance(na_rep, str):
         return lambda x: na_rep if pd.isna(x) else formatter_func(x)
     else:
         msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)

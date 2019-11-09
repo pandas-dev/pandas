@@ -815,6 +815,22 @@ class TestDataFrameDataTypes:
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    def test_df_where_with_category(self, kwargs):
+        # GH 16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, True], [False, True, True]])
+
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        result = df.A.where(mask[:, 0], **kwargs)
+        expected = Series(pd.Categorical([0, np.nan], categories=[0, 3]), name="A")
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "dtype", [{100: "float64", 200: "uint64"}, "category", "float64"]
     )
@@ -1062,6 +1078,18 @@ class TestDataFrameDataTypes:
         # may change from object in the future
         expected = np.array([[1, 1], [2, 2]], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_str_to_small_float_conversion_type(self):
+        # GH 20388
+        np.random.seed(13)
+        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+        result = pd.DataFrame(col_data, columns=["A"])
+        expected = pd.DataFrame(col_data, columns=["A"], dtype=object)
+        tm.assert_frame_equal(result, expected)
+        # change the dtype of the elements from object to float one by one
+        result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ:

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series, array, concat, merge
+from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
 from pandas.core.sorting import (
     decons_group_index,
@@ -13,7 +14,6 @@ from pandas.core.sorting import (
     is_int64_overflow_possible,
     lexsort_indexer,
     nargsort,
-    safe_sort,
 )
 import pandas.util.testing as tm
 
