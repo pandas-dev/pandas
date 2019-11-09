@@ -518,3 +518,30 @@ class TestSeriesDtypes:
         result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, uniques, dtype",
+        [
+            ([1, 2, 2], [1, 2], "int8"),
+            ([1, 2, 2], [1, 2], "int16"),
+            ([1, 2, 2], [1, 2], "int32"),
+            ([1, 2, 2], [1, 2], "int64"),
+            ([1, 2, 2], [1, 2], "uint8"),
+            ([1, 2, 2], [1, 2], "uint16"),
+            ([1, 2, 2], [1, 2], "uint32"),
+            ([1, 2, 2], [1, 2], "uint64"),
+            ([1, 2, 2], [1.0, 2.0], "float16"),
+            ([1, 2, 2], [1.0, 2.0], "float32"),
+            ([1, 2, 2], [1.0, 2.0], "float64"),
+            ([1, 2, 2], [1.0, 2.0], "complex64"),
+            ([1, 2, 2], [1.0, 2.0], "complex128"),
+            ([True, True, False], [True, False], "bool"),
+            (["A", "A", "B"], ["A", "B"], "object"),
+        ],
+    )
+    def test_unique_preserve_dtype(self, data, uniques, dtype):
+        # GH 15442
+        result = Series(data, dtype=dtype).unique()
+        expected = np.array(uniques, dtype=dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
