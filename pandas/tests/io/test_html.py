@@ -594,7 +594,7 @@ class TestReadHtml:
 
         df = self.read_html(self.banklist_data, "Metcalf", attrs={"id": "table"})[0]
         ground_truth = read_csv(
-            datapath("io", "data", "banklist.csv"),
+            datapath("io", "data", "csv", "banklist.csv"),
             converters={"Updated Date": Timestamp, "Closing Date": Timestamp},
         )
         assert df.shape == ground_truth.shape

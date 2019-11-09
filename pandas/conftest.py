@@ -384,7 +384,7 @@ def iris(datapath):
     """
     The iris dataset as a DataFrame.
     """
-    return pd.read_csv(datapath("data", "iris.csv"))
+    return pd.read_csv(datapath("data", "csv", "iris.csv"))
 
 
 @pytest.fixture(params=["nlargest", "nsmallest"])
