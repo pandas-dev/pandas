@@ -502,8 +502,9 @@ class TestReaders:
         if read_ext == ".ods":  # TODO: remove once on master
             pytest.skip()
 
+        # TODO: alimcmaster1 - revert to master
         url = (
-            "https://raw.github.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/alimcmaster1/pandas/mcmali-tests-dir-struct/"
             "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
