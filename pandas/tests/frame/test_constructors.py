@@ -1424,6 +1424,20 @@ class TestDataFrameConstructors:
                 dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
             )
 
+    @pytest.mark.parametrize(
+        "keys, values",
+        [([("a",), ("a",)], [1, 2]), ([("a",), ("b",)], [1, 2]), ([("a", "b")], [1])],
+    )
+    def test_constructor_from_dict_tuples(self, keys, values):
+        data_dict = {key: value for key, value in zip(keys, values)}
+        df = DataFrame.from_dict([data_dict])
+
+        result = df.columns
+        keys = list(OrderedDict.fromkeys(keys))
+        expected = Index(keys, dtype="object", tupleize_cols=False)
+
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=["a", "b", "c"], name="x")
         df = DataFrame(a)
