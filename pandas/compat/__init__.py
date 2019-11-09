@@ -121,12 +121,12 @@ def _import_lzma():
 
 def _get_lzma_file(lzma):
     """
-    Attempting to get the lzma.LZMAFile method.
+    Attempting to get the lzma.LZMAFile class.
 
     Returns
     -------
-    method
-        The lzma.LZMAFile method.
+    class
+        The lzma.LZMAFile class.
 
     Raises
     ------
