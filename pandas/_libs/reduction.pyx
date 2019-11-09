@@ -325,6 +325,10 @@ cdef class SeriesGrouper:
         #  safer obj._get_values(slice(None, 0))
         assert dummy is not None
 
+        if len(series) == 0:
+            # get_result would never assign `result`
+            raise ValueError("SeriesGrouper requires non-empty `series`")
+
         self.labels = labels
         self.f = f
 
@@ -428,7 +432,9 @@ cdef class SeriesGrouper:
             vslider.reset()
 
         if result is None:
-            raise ValueError("No result.")
+            # This should no longer be reachable since we check for empty
+            #  series in the constructor.
+            raise AssertionError("`result` has not been assigned.")
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)

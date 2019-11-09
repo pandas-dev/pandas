@@ -25,6 +25,15 @@ def test_series_grouper():
     tm.assert_almost_equal(counts, exp_counts)
 
 
+def test_series_grouper_requires_nonempty():
+    obj = Series(np.random.randn(10))
+    dummy = obj[:0]
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+
+    with pytest.raises(ValueError, match="requires non-empty"):
+        libreduction.SeriesGrouper(dummy, np.mean, labels, 2, dummy)
+
+
 def test_series_bin_grouper():
     obj = Series(np.random.randn(10))
     dummy = obj[:0]
