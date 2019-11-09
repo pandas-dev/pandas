@@ -37,7 +37,7 @@ def set_function_name(f, name, cls):
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
-def is_platform_little_endian():
+def is_platform_little_endian() -> bool:
     """
     Checking if the running platform is little endian.
 
@@ -49,7 +49,7 @@ def is_platform_little_endian():
     return sys.byteorder == "little"
 
 
-def is_platform_windows():
+def is_platform_windows() -> bool:
     """
     Checking if the running platform is windows.
 
@@ -61,7 +61,7 @@ def is_platform_windows():
     return sys.platform == "win32" or sys.platform == "cygwin"
 
 
-def is_platform_linux():
+def is_platform_linux() -> bool:
     """
     Checking if the running platform is linux.
 
@@ -73,7 +73,7 @@ def is_platform_linux():
     return sys.platform == "linux2"
 
 
-def is_platform_mac():
+def is_platform_mac() -> bool:
     """
     Checking if the running platform is mac.
 
@@ -85,7 +85,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-def is_platform_32bit():
+def is_platform_32bit() -> bool:
     """
     Checking if the running platform is 32-bit.
 
