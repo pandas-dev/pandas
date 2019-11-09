@@ -1923,7 +1923,7 @@ class CParserWrapper(ParserBase):
                     self.index_names,
                     self.col_names,
                     passed_names,
-                ) = self._extract_multi_indexer_columns(  # noqa: E501
+                ) = self._extract_multi_indexer_columns(
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2317,7 +2317,7 @@ class PythonParser(ParserBase):
                 self.index_names,
                 self.col_names,
                 _,
-            ) = self._extract_multi_indexer_columns(  # noqa: E501
+            ) = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
