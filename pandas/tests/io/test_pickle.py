@@ -218,7 +218,8 @@ def test_legacy_sparse_warning(datapath):
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
 
