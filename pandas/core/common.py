@@ -214,10 +214,6 @@ def try_sort(iterable):
         return listed
 
 
-def dict_keys_to_ordered_list(mapping):
-    return list(mapping.keys())
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):

@@ -233,7 +233,7 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-        keys = com.dict_keys_to_ordered_list(data)
+        keys = list(data.keys())
         columns = data_names = Index(keys)
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
@@ -526,7 +526,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     """Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
-    - for OrderedDict and (on Python>=3.6) dicts, the column names match
+    - for OrderedDict and dicts, the column names match
       the key insertion-order from the first record to the last.
     - For other kinds of dict-likes, the keys are lexically sorted.
 

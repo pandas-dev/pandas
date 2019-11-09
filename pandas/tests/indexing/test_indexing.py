@@ -221,7 +221,7 @@ class TestFancy(Base):
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
-        tm.assert_frame_equal(df, expected, check_like=False)
+        tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(

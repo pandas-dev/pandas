@@ -8,7 +8,6 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -190,9 +189,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []  # type: List[str]
     _is_copy = None
     _data = None  # type: BlockManager
-
-    if TYPE_CHECKING:
-        _attrs = {}  # type: Dict[Hashable, Any]
+    _attrs = {}  # type: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
     # Constructors

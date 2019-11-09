@@ -1264,7 +1264,7 @@ class TestConcatenate:
             "qux": DataFrame(np.random.randn(4, 3)),
         }
 
-        sorted_keys = com.dict_keys_to_ordered_list(frames)
+        sorted_keys = list(frames.keys())
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)

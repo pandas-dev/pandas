@@ -380,7 +380,7 @@ class TestJSONNormalize:
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected, check_like=False)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -522,7 +522,7 @@ class TestNestedToRecord:
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected, check_like=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
