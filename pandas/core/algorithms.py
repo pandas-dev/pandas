@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_datetime64_ns_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -834,7 +833,7 @@ def mode(values, dropna: bool = True) -> ABCSeries:
             return Series(values.values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
-    if dropna and is_datetimelike(values):
+    if dropna and needs_i8_conversion(values.dtype):
         mask = values.isnull()
         values = values[~mask]
 

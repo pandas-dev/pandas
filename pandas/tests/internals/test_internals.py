@@ -1185,10 +1185,10 @@ class DummyElement:
     def __array__(self):
         return np.array(self.value, dtype=self.dtype)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "DummyElement({}, {})".format(self.value, self.dtype)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def astype(self, dtype, copy=False):

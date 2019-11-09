@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -268,7 +267,7 @@ class Block(PandasObject):
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -1282,10 +1281,6 @@ class Block(PandasObject):
 
     def shift(self, periods, axis=0, fill_value=None):
         """ shift the block by periods, possibly upcast """
-
-        if not lib.is_scalar(fill_value):
-            # We could go further and require e.g. self._can_hold_element(fv)
-            raise ValueError("fill_value must be a scalar")
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -2609,10 +2604,6 @@ class ObjectBlock(Block):
                 value.dtype.type,
                 (np.integer, np.floating, np.complexfloating, np.datetime64, np.bool_),
             )
-            or
-            # TODO(ExtensionArray): remove is_extension_type
-            # when all extension arrays have been ported.
-            is_extension_type(value)
             or is_extension_array_dtype(value)
         )
 
@@ -3172,7 +3163,7 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_type(v.dtype) and is_object_dtype(dtype):
+    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
         v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
