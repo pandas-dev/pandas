@@ -504,7 +504,8 @@ class TestReaders:
 
         # TODO: alimcmaster1 - revert to master
         url = (
-            "https://raw.githubusercontent.com/alimcmaster1/pandas/mcmali-tests-dir-struct/"
+            "https://raw.githubusercontent.com/alimcmaster1"
+            "/pandas/mcmali-tests-dir-struct/"
             "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
