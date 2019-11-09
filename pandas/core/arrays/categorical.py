@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetimelike,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -37,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -1533,7 +1533,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
-        if is_datetimelike(self.categories):
+        if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
@@ -2048,7 +2048,7 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         String representation.
         """

@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
-    is_datetimelike,
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
@@ -48,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
@@ -655,16 +655,17 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
+        codes = self.grouper.reconstructed_codes
+        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:
-            mask = labels[-1] != -1
+            mask = codes[-1] != -1
             if mask.all():
                 dropna = False
             else:
-                out, labels = out[mask], [label[mask] for label in labels]
+                out, codes = out[mask], [level_codes[mask] for level_codes in codes]
 
         if normalize:
             out = out.astype("float")
@@ -680,11 +681,11 @@ class SeriesGroupBy(GroupBy):
         if sort and bins is None:
             cat = ids[inc][mask] if dropna else ids[inc]
             sorter = np.lexsort((out if ascending else -out, cat))
-            out, labels[-1] = out[sorter], labels[-1][sorter]
+            out, codes[-1] = out[sorter], codes[-1][sorter]
 
         if bins is None:
             mi = MultiIndex(
-                levels=levels, codes=labels, names=names, verify_integrity=False
+                levels=levels, codes=codes, names=names, verify_integrity=False
             )
 
             if is_integer_dtype(out):
@@ -694,14 +695,14 @@ class SeriesGroupBy(GroupBy):
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype="bool")
-        for lab in labels[:-1]:
-            diff |= np.r_[True, lab[1:] != lab[:-1]]
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
         ncat, nbin = diff.sum(), len(levels[-1])
 
         left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
 
-        right = [diff.cumsum() - 1, labels[-1]]
+        right = [diff.cumsum() - 1, codes[-1]]
 
         _, idx = _get_join_indexers(left, right, sort=False, how="left")
         out = np.where(idx != -1, out[idx], 0)
@@ -711,7 +712,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
+
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
         codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
@@ -758,7 +762,7 @@ class SeriesGroupBy(GroupBy):
                 )
             )
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.labels)
+        fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
@@ -1283,7 +1287,7 @@ class DataFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
+                if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
                     result = _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)

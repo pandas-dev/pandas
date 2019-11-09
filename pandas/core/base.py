@@ -21,9 +21,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -55,7 +53,7 @@ class PandasObject(DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular object.
         """
@@ -635,20 +633,19 @@ class SelectionMixin:
 class ShallowMixin:
     _attributes = []  # type: List[str]
 
-    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
+    def _shallow_copy(self, obj=None, **kwargs):
         """
         return a new object with the replacement attributes
         """
         if obj is None:
             obj = self._selected_obj.copy()
-        if obj_type is None:
-            obj_type = self._constructor
-        if isinstance(obj, obj_type):
+
+        if isinstance(obj, self._constructor):
             obj = obj.obj
         for attr in self._attributes:
             if attr not in kwargs:
                 kwargs[attr] = getattr(self, attr)
-        return obj_type(obj, **kwargs)
+        return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:
@@ -1172,7 +1169,7 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
@@ -1194,7 +1191,7 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):
             return iter(self._values)
@@ -1268,7 +1265,7 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype):
                 values = self._values
             else:
                 values = self.values
@@ -1279,7 +1276,8 @@ class IndexOpsMixin:
             return new_values
 
         # we must convert to python types
-        if is_extension_type(self.dtype):
+        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+            # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
                 raise NotImplementedError

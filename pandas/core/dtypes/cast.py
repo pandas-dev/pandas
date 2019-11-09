@@ -27,10 +27,8 @@ from .common import (
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
     is_float,
     is_float_dtype,
     is_integer,
@@ -274,7 +272,7 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
         # in np.place:
         #   NaN -> NaT
         #   integer or integer array -> date-like array
-        if is_datetimelike(result.dtype):
+        if result.dtype.kind in ["m", "M"]:
             if is_scalar(other):
                 if isna(other):
                     other = result.dtype.type("nat")
@@ -633,7 +631,7 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     if not is_list_like(arr):
         arr = [arr]
 
-    if pandas_dtype and is_extension_type(arr):
+    if pandas_dtype and is_extension_array_dtype(arr):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
@@ -695,7 +693,7 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
         # We allow arbitrary fill values for object dtype
         raise ValueError("fill_value must be a scalar")
 
-    if is_extension_type(values):
+    if is_extension_array_dtype(values):
         if copy:
             values = values.copy()
     else:

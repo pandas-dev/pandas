@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
     is_numeric_v_string_like,
     is_scalar,
@@ -325,7 +324,7 @@ class BlockManager(PandasObject):
     def __len__(self):
         return len(self.items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -1034,11 +1033,7 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        # TODO(EA): Remove an is_extension_ when all extension types satisfy
-        # the interface
-        value_is_extension_type = is_extension_type(value) or is_extension_array_dtype(
-            value
-        )
+        value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:

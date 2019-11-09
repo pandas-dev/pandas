@@ -45,7 +45,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_re_compilable,
     is_scalar,
     is_sequence,
-    is_string_like,
 )
 
 from pandas._typing import ArrayLike
@@ -800,54 +799,6 @@ def is_datetime_arraylike(arr):
     return getattr(arr, "inferred_type", None) == "datetime"
 
 
-def is_datetimelike(arr):
-    """
-    Check whether an array-like is a datetime-like array-like.
-
-    Acceptable datetime-like objects are (but not limited to) datetime
-    indices, periodic indices, and timedelta indices.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime-like array-like.
-
-    Examples
-    --------
-    >>> is_datetimelike([1, 2, 3])
-    False
-    >>> is_datetimelike(pd.Index([1, 2, 3]))
-    False
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3]))
-    True
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-    >>> is_datetimelike(pd.PeriodIndex([], freq="A"))
-    True
-    >>> is_datetimelike(np.array([], dtype=np.datetime64))
-    True
-    >>> is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    True
-    >>>
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimelike(s)
-    True
-    """
-
-    return (
-        is_datetime64_dtype(arr)
-        or is_datetime64tz_dtype(arr)
-        or is_timedelta64_dtype(arr)
-        or isinstance(arr, ABCPeriodIndex)
-    )
-
-
 def is_dtype_equal(source, target):
     """
     Check if two dtypes are equal.
@@ -1383,8 +1334,8 @@ def is_numeric_v_string_like(a, b):
     is_a_string_array = is_a_array and is_string_like_dtype(a)
     is_b_string_array = is_b_array and is_string_like_dtype(b)
 
-    is_a_scalar_string_like = not is_a_array and is_string_like(a)
-    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
+    is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
     return (
         (is_a_numeric_array and is_b_scalar_string_like)
@@ -1447,9 +1398,8 @@ def is_datetimelike_v_numeric(a, b):
         """
         return is_integer_dtype(x) or is_float_dtype(x)
 
-    is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_numeric(b)) or (
-        is_datetimelike(b) and is_numeric(a)
+    return (needs_i8_conversion(a) and is_numeric(b)) or (
+        needs_i8_conversion(b) and is_numeric(a)
     )
 
 
@@ -1675,6 +1625,8 @@ def is_extension_type(arr):
     """
     Check whether an array-like is of a pandas extension class instance.
 
+    .. deprecated:: 1.0.0
+
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
     to it like scipy sparse matrices), and datetime-like arrays.
@@ -1717,6 +1669,12 @@ def is_extension_type(arr):
     >>> is_extension_type(s)
     True
     """
+    warnings.warn(
+        "'is_extension_type' is deprecated and will be removed in a future "
+        "version.  Use 'is_extension_array_dtype' instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     if is_categorical(arr):
         return True
