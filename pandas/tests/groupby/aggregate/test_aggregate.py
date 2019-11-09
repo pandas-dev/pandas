@@ -513,7 +513,7 @@ class TestNamedAggregationDataFrame:
             b_mean=(("y", "B"), "mean"),
         )
         expected = pd.DataFrame(
-            {"a_max": [1, 3], "a_min": [0, 2], "b_mean": [6, 7]}, index=idx
+            {"a_max": [1, 3], "a_min": [0, 2], "b_mean": [5.5, 7.5]}, index=idx
         )
         tm.assert_frame_equal(result, expected)
 
@@ -524,7 +524,7 @@ class TestNamedAggregationDataFrame:
             b_mean=(("y", "B"), "mean"),
         )
         expected = pd.DataFrame(
-            {"a_max": [1, 3], "a_const": [1, 1], "b_mean": [6, 7]}, index=idx
+            {"a_max": [1, 3], "a_const": [1, 1], "b_mean": [5.5, 7.5]}, index=idx
         )
         tm.assert_frame_equal(result, expected)
 
@@ -553,7 +553,7 @@ class TestNamedAggregationDataFrame:
             a_max=pd.NamedAgg(("y", "A"), "max"),
             b_mean=pd.NamedAgg(("y", "B"), np.mean),
         )
-        expected = pd.DataFrame({"a_max": [1, 3], "b_mean": [6, 7]}, index=idx)
+        expected = pd.DataFrame({"a_max": [1, 3], "b_mean": [5.5, 7.5]}, index=idx)
         tm.assert_frame_equal(result, expected)
 
 
