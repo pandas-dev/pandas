@@ -58,7 +58,7 @@ def test_datapath_missing(datapath):
 
 
 def test_datapath(datapath):
-    args = ("data", "csv", "iris.csv")
+    args = ("data", "io", "csv", "iris.csv")
 
     result = datapath(*args)
     expected = os.path.join(os.path.dirname(os.path.dirname(__file__)), *args)
