@@ -121,3 +121,4 @@ doc/source/savefig/
 # pyenv files
 .python-version
 
+vendor/

@@ -496,7 +496,13 @@ def to_sql(
 
         .. versionadded:: 0.24.0
     """
-    if if_exists not in ("fail", "replace", "append", "upsert_ignore", "upsert_delete"): #TODO: add upserts
+    if if_exists not in (
+        "fail",
+        "replace",
+        "append",
+        "upsert_ignore",
+        "upsert_delete",
+    ):  # TODO: add upserts
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -653,7 +659,6 @@ class SQLTable(PandasObject):
             elif self.if_exists == "upsert_delete":
                 pass
             elif self.if_exists == "upsert_ignore":
-                # clear rows out of dataframe
                 pass
             else:
                 raise ValueError(
@@ -664,20 +669,18 @@ class SQLTable(PandasObject):
 
     def _upsert_delete_processing(self):
         from sqlalchemy import tuple_
+
         # Primary key data
         primary_keys, primary_key_values = self._get_primary_key_data()
         # Generate delete statement
         delete_statement = self.table.delete().where(
-            tuple_(
-                *(self.table.c[col] for col in primary_keys)
-            ).in_(
-                primary_key_values
-            )
+            tuple_(*(self.table.c[col] for col in primary_keys)).in_(primary_key_values)
         )
         return delete_statement
 
     def _upsert_ignore_processing(self):
         from sqlalchemy import tuple_, select
+
         # Primary key data
         primary_keys, primary_key_values = self._get_primary_key_data()
 
@@ -695,9 +698,9 @@ class SQLTable(PandasObject):
         # Delete rows from self.frame where primary keys match
         self.frame = self._get_index_formatted_dataframe()
 
-        to_be_deleted_mask = self.frame[primary_keys].isin(
-            pkeys_from_database[primary_keys]
-        ).all(1)
+        to_be_deleted_mask = (
+            self.frame[primary_keys].isin(pkeys_from_database[primary_keys]).all(1)
+        )
 
         self.frame.drop(self.frame[to_be_deleted_mask].index, inplace=True)
 
@@ -710,7 +713,8 @@ class SQLTable(PandasObject):
         -------
         primary_keys, primary_key_values : Tuple[List[str], Iterable]
             - primary_keys : List of primary key column names
-            - primary_key_values : Iterable of dataframe rows corresponding to primary_key columns
+            - primary_key_values : Iterable of dataframe rows
+                corresponding to primary_key columns
         """
 
         # reflect MetaData object and assign contents of db to self.table attribute
@@ -718,16 +722,16 @@ class SQLTable(PandasObject):
         self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
 
         primary_keys = [
-            str(primary_key.name) for primary_key in self.table.primary_key.columns.values()
+            str(primary_key.name)
+            for primary_key in self.table.primary_key.columns.values()
         ]
 
-        # For the time being, this method is defensive and will break if no pkeys are found
-        # If desired this default behaviour could be changed so that in cases where no pkeys
-        # are found, it could default to a normal insert
+        # For the time being, this method is defensive and will break if
+        # no pkeys are found. If desired this default behaviour could be
+        # changed so that in cases where no pkeys are found,
+        # it could default to a normal insert
         if len(primary_keys) == 0:
-            raise ValueError(
-                f"No primary keys found for table {self.name}"
-            )
+            raise ValueError(f"No primary keys found for table {self.name}")
 
         primary_key_values = zip(*[self.frame[key] for key in primary_keys])
         return primary_keys, primary_key_values
@@ -767,8 +771,8 @@ class SQLTable(PandasObject):
         DataFrame object
         """
 
-        # Originally this functionality formed the first step of the insert_data() method,
-        # however it will be useful to have in other places, so to keep code DRY it has been moved here.
+        # Originally this functionality formed the first step of the insert_data method.
+        # It will be useful to have in other places, so moved here to keep code DRY.
 
         if self.index is not None:
             # The following check ensures that the method can be called multiple times,
