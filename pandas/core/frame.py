@@ -9,7 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from io import StringIO
 import itertools
 import sys
@@ -1880,8 +1880,6 @@ class DataFrame(NDFrame):
           `from_items` is deprecated and will be removed in a future version.
           Use :meth:`DataFrame.from_dict(dict(items)) <DataFrame.from_dict>`
           instead.
-          :meth:`DataFrame.from_dict(OrderedDict(items)) <DataFrame.from_dict>`
-          may be used to preserve the key order.
 
         Convert (key, value) pairs to DataFrame. The keys will be the axis
         index (usually the columns, but depends on the specified
@@ -1906,9 +1904,7 @@ class DataFrame(NDFrame):
 
         warnings.warn(
             "from_items is deprecated. Please use "
-            "DataFrame.from_dict(dict(items), ...) instead. "
-            "DataFrame.from_dict(OrderedDict(items)) may be used to "
-            "preserve the key order.",
+            "DataFrame.from_dict(dict(items), ...) instead. ",
             FutureWarning,
             stacklevel=2,
         )
@@ -3551,7 +3547,7 @@ class DataFrame(NDFrame):
                 data[k] = com.apply_if_callable(v, data)
         else:
             # <= 3.5: do all calculations first...
-            results = OrderedDict()
+            results = {}
             for k, v in kwargs.items():
                 results[k] = com.apply_if_callable(v, data)
 
@@ -8340,10 +8336,10 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data = {}
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, OrderedDict())
+            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
 
