@@ -26,7 +26,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -349,12 +348,12 @@ class _GroupBy(PandasObject, SelectionMixin):
         grouper=None,
         exclusions=None,
         selection=None,
-        as_index=True,
-        sort=True,
-        group_keys=True,
-        squeeze=False,
-        observed=False,
-        **kwargs
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+        mutated: bool = False,
     ):
 
         self._selection = selection
@@ -376,7 +375,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.group_keys = group_keys
         self.squeeze = squeeze
         self.observed = observed
-        self.mutated = kwargs.pop("mutated", False)
+        self.mutated = mutated
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -395,9 +394,6 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
-
-        # we accept no other args
-        validate_kwargs("group", kwargs, {})
 
     def __len__(self) -> int:
         return len(self.groups)

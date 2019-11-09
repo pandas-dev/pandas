@@ -7830,7 +7830,7 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        **kwargs
+        mutated=False,
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7875,10 +7875,8 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-
-        **kwargs
-            Optional, only accepts keyword argument 'mutated' and is passed
-            to groupby.
+        mutated : bool, False
+            `mutated` is passed to groupby.
 
         Returns
         -------
@@ -7956,7 +7954,7 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            **kwargs
+            mutated=mutated,
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):

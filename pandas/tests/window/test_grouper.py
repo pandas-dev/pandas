@@ -13,7 +13,7 @@ class TestGrouperGrouping:
 
     def test_mutated(self):
 
-        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             self.frame.groupby("A", foo=1)
 
