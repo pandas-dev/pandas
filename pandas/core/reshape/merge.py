@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, lib
+from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -36,9 +35,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
+from pandas import Categorical, Index, MultiIndex
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -175,9 +175,10 @@ def merge_ordered(
     how="outer",
 ):
     """
-    Perform merge with optional filling/interpolation designed for ordered
-    data like time series data. Optionally perform group-wise merge (see
-    examples).
+    Perform merge with optional filling/interpolation.
+
+    Designed for ordered data like time series data. Optionally
+    perform group-wise merge (see examples).
 
     Parameters
     ----------
@@ -188,18 +189,18 @@ def merge_ordered(
     left_on : label or list, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
-        the join key instead of columns
+        the join key instead of columns.
     right_on : label or list, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
-        left_on docs
+        left_on docs.
     left_by : column name or list of column names
         Group left DataFrame by group columns and merge piece by piece with
-        right DataFrame
+        right DataFrame.
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
-        left DataFrame
+        left DataFrame.
     fill_method : {'ffill', None}, default None
-        Interpolation method for data
+        Interpolation method for data.
     suffixes : Sequence, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
@@ -213,13 +214,13 @@ def merge_ordered(
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
         * outer: use union of keys from both frames (SQL: full outer join)
-        * inner: use intersection of keys from both frames (SQL: inner join)
+        * inner: use intersection of keys from both frames (SQL: inner join).
 
     Returns
     -------
-    merged : DataFrame
-        The output type will the be same as 'left', if it is a subclass
-        of DataFrame.
+    DataFrame
+        The merged DataFrame output type will the be same as
+        'left', if it is a subclass of DataFrame.
 
     See Also
     --------
@@ -228,14 +229,20 @@ def merge_ordered(
 
     Examples
     --------
-    >>> A                      >>> B
-          key  lvalue group        key  rvalue
-    0   a       1     a        0     b       1
-    1   c       2     a        1     c       2
-    2   e       3     a        2     d       3
+    >>> A
+          key  lvalue group
+    0   a       1     a
+    1   c       2     a
+    2   e       3     a
     3   a       1     b
     4   c       2     b
     5   e       3     b
+
+    >>> B
+        Key  rvalue
+    0     b       1
+    1     c       2
+    2     d       3
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
       group key  lvalue  rvalue
@@ -1119,9 +1126,9 @@ class _MergeOperation:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
-            elif is_datetimelike(lk) and not is_datetimelike(rk):
+            elif needs_i8_conversion(lk) and not needs_i8_conversion(rk):
                 raise ValueError(msg)
-            elif not is_datetimelike(lk) and is_datetimelike(rk):
+            elif not needs_i8_conversion(lk) and needs_i8_conversion(rk):
                 raise ValueError(msg)
             elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
@@ -1204,7 +1211,7 @@ class _MergeOperation:
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
-    def _validate(self, validate):
+    def _validate(self, validate: str):
 
         # Check uniqueness of each
         if self.left_index:
@@ -1300,7 +1307,12 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
-    left, right, dropped_level_names, join_index, lindexer, rindexer
+    left: MultiIndex,
+    right: MultiIndex,
+    dropped_level_names,
+    join_index,
+    lindexer,
+    rindexer,
 ):
     """
     *this is an internal non-public method*
@@ -1338,7 +1350,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index):
+    def _convert_to_mulitindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1631,7 +1643,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetimelike(lt):
+            if needs_i8_conversion(lt):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1686,13 +1698,13 @@ class _AsOfMerge(_OrderedMerge):
         msg_missings = "Merge keys contain null values on {side} side"
 
         if not Index(left_values).is_monotonic:
-            if isnull(left_values).any():
+            if isna(left_values).any():
                 raise ValueError(msg_missings.format(side="left"))
             else:
                 raise ValueError(msg_sorted.format(side="left"))
 
         if not Index(right_values).is_monotonic:
-            if isnull(right_values).any():
+            if isna(right_values).any():
                 raise ValueError(msg_missings.format(side="right"))
             else:
                 raise ValueError(msg_sorted.format(side="right"))
@@ -1948,20 +1960,20 @@ def _get_join_keys(llab, rlab, shape, sort):
     return _get_join_keys(llab, rlab, shape, sort)
 
 
-def _should_fill(lname, rname):
+def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 
 
-def _any(x):
+def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
 def validate_operand(obj):
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, ABCDataFrame):
         return obj
-    elif isinstance(obj, Series):
+    elif isinstance(obj, ABCSeries):
         if obj.name is None:
             raise ValueError("Cannot merge a Series without a name")
         else:

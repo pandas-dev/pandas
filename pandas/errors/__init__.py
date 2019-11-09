@@ -174,7 +174,7 @@ class AbstractMethodError(NotImplementedError):
         self.methodtype = methodtype
         self.class_instance = class_instance
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:

@@ -69,8 +69,8 @@ def _check_minp(win, minp, N, floor=None) -> int:
     if not util.is_integer_object(minp):
         raise ValueError("min_periods must be an integer")
     if minp > win:
-        raise ValueError("min_periods (%d) must be <= "
-                         "window (%d)" % (minp, win))
+        raise ValueError("min_periods (minp) must be <= "
+                         "window (win)".format(minp=minp, win=win))
     elif minp > N:
         minp = N + 1
     elif minp < 0:
@@ -1750,6 +1750,226 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
                     output[in_i] = NaN
 
     return np.asarray(output)
+
+
+# ----------------------------------------------------------------------
+# Rolling var for weighted window
+
+
+cdef inline float64_t calc_weighted_var(float64_t t,
+                                        float64_t sum_w,
+                                        Py_ssize_t win_n,
+                                        unsigned int ddof,
+                                        float64_t nobs,
+                                        int64_t minp) nogil:
+    """
+    Calculate weighted variance for a window using West's method.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
+
+    Parameters
+    ----------
+    t: float64_t
+        sum of weighted squared differences
+    sum_w: float64_t
+        sum of weights
+    win_n: Py_ssize_t
+        window size
+    ddof: unsigned int
+        delta degrees of freedom
+    nobs: float64_t
+        number of observations
+    minp: int64_t
+        minimum number of observations
+
+    Returns
+    -------
+    result : float64_t
+        weighted variance of the window
+    """
+
+    cdef:
+        float64_t result
+
+    # Variance is unchanged if no observation is added or removed
+    if (nobs >= minp) and (nobs > ddof):
+
+        # pathological case
+        if nobs == 1:
+            result = 0
+        else:
+            result = t * win_n / ((win_n - ddof) * sum_w)
+            if result < 0:
+                result = 0
+    else:
+        result = NaN
+
+    return result
+
+
+cdef inline void add_weighted_var(float64_t val,
+                                  float64_t w,
+                                  float64_t *t,
+                                  float64_t *sum_w,
+                                  float64_t *mean,
+                                  float64_t *nobs) nogil:
+    """
+    Update weighted mean, sum of weights and sum of weighted squared
+    differences to include value and weight pair in weighted variance
+    calculation using West's method.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
+
+    Parameters
+    ----------
+    val: float64_t
+        window values
+    w: float64_t
+        window weights
+    t: float64_t
+        sum of weighted squared differences
+    sum_w: float64_t
+        sum of weights
+    mean: float64_t
+        weighted mean
+    nobs: float64_t
+        number of observations
+    """
+
+    cdef:
+        float64_t temp, q, r
+
+    if isnan(val):
+        return
+
+    nobs[0] = nobs[0] + 1
+
+    q = val - mean[0]
+    temp = sum_w[0] + w
+    r = q * w / temp
+
+    mean[0] = mean[0] + r
+    t[0] = t[0] + r * sum_w[0] * q
+    sum_w[0] = temp
+
+
+cdef inline void remove_weighted_var(float64_t val,
+                                     float64_t w,
+                                     float64_t *t,
+                                     float64_t *sum_w,
+                                     float64_t *mean,
+                                     float64_t *nobs) nogil:
+    """
+    Update weighted mean, sum of weights and sum of weighted squared
+    differences to remove value and weight pair from weighted variance
+    calculation using West's method.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
+
+    Parameters
+    ----------
+    val: float64_t
+        window values
+    w: float64_t
+        window weights
+    t: float64_t
+        sum of weighted squared differences
+    sum_w: float64_t
+        sum of weights
+    mean: float64_t
+        weighted mean
+    nobs: float64_t
+        number of observations
+    """
+
+    cdef:
+        float64_t temp, q, r
+
+    if notnan(val):
+        nobs[0] = nobs[0] - 1
+
+        if nobs[0]:
+            q = val - mean[0]
+            temp = sum_w[0] - w
+            r = q * w / temp
+
+            mean[0] = mean[0] - r
+            t[0] = t[0] - r * sum_w[0] * q
+            sum_w[0] = temp
+
+        else:
+            t[0] = 0
+            sum_w[0] = 0
+            mean[0] = 0
+
+
+def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
+                      int64_t minp, unsigned int ddof):
+    """
+    Calculates weighted rolling variance using West's online algorithm.
+
+    Paper: https://dl.acm.org/citation.cfm?id=359153
+
+    Parameters
+    ----------
+    values: float64_t[:]
+        values to roll window over
+    weights: float64_t[:]
+        array of weights whose lenght is window size
+    minp: int64_t
+        minimum number of observations to calculate
+        variance of a window
+    ddof: unsigned int
+         the divisor used in variance calculations
+         is the window size - ddof
+
+    Returns
+    -------
+    output: float64_t[:]
+        weighted variances of windows
+    """
+
+    cdef:
+        float64_t t = 0, sum_w = 0, mean = 0, nobs = 0
+        float64_t val, pre_val, w, pre_w
+        Py_ssize_t i, n, win_n
+        float64_t[:] output
+
+    n = len(values)
+    win_n = len(weights)
+    output = np.empty(n, dtype=float)
+
+    with nogil:
+
+        for i in range(win_n):
+            add_weighted_var(values[i], weights[i], &t,
+                             &sum_w, &mean, &nobs)
+
+            output[i] = calc_weighted_var(t, sum_w, win_n,
+                                          ddof, nobs, minp)
+
+        for i in range(win_n, n):
+            val = values[i]
+            pre_val = values[i - win_n]
+
+            w = weights[i % win_n]
+            pre_w = weights[(i - win_n) % win_n]
+
+            if notnan(val):
+                if pre_val == pre_val:
+                    remove_weighted_var(pre_val, pre_w, &t,
+                                        &sum_w, &mean, &nobs)
+
+                add_weighted_var(val, w, &t, &sum_w, &mean, &nobs)
+
+            elif pre_val == pre_val:
+                remove_weighted_var(pre_val, pre_w, &t,
+                                    &sum_w, &mean, &nobs)
+
+            output[i] = calc_weighted_var(t, sum_w, win_n,
+                                          ddof, nobs, minp)
+
+    return output
 
 
 # ----------------------------------------------------------------------

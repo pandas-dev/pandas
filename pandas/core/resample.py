@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError
+from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
-class Resampler(_GroupBy):
+class Resampler(_GroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -86,7 +86,7 @@ class Resampler(_GroupBy):
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
         """
@@ -441,7 +441,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -856,7 +856,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1237,11 +1237,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         Parameters
         ----------
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
-            method for upsampling
+            Method for upsampling.
         limit : int, default None
-            Maximum size gap to fill when reindexing
+            Maximum size gap to fill when reindexing.
         fill_value : scalar, default None
-            Value to use for missing values
+            Value to use for missing values.
 
         See Also
         --------

@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.5.3 and above, 3.6, 3.7, and 3.8.
+Officially Python 3.6.1 and above, 3.7, and 3.8.
 
 Installing pandas
 -----------------
@@ -140,7 +140,7 @@ Installing with ActivePython
 Installation instructions for
 `ActivePython <https://www.activestate.com/activepython>`__ can be found
 `here <https://www.activestate.com/activepython/downloads>`__. Versions
-2.7 and 3.5 include pandas.
+2.7, 3.5 and 3.6 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
