@@ -15,6 +15,7 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64,
+    is_bool_dtype,
     is_dtype_equal,
     is_float,
     is_integer,
@@ -163,6 +164,20 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def asi8(self):
         return self._data.asi8
 
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc.
+        """
+        result = lib.item_from_zerodim(result)
+        if is_bool_dtype(result) or lib.is_scalar(result):
+            return result
+
+        attrs = self._get_attributes_dict()
+        if not is_period_dtype(self) and attrs["freq"]:
+            # no need to infer if freq is None
+            attrs["freq"] = "infer"
+        return Index(result, **attrs)
+
     # ------------------------------------------------------------------------
 
     def equals(self, other):
@@ -177,7 +192,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
+                # e.g.
+                #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
+                #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
+                #  OverflowError -> Index([very_large_timedeltas])
                 return False
 
         if not is_dtype_equal(self.dtype, other.dtype):

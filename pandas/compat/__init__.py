@@ -10,9 +10,11 @@ Other items:
 import platform
 import struct
 import sys
+import warnings
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
+PY38 = sys.version_info >= (3, 8)
 PYPY = platform.python_implementation() == "PyPy"
 
 
@@ -32,16 +34,6 @@ def set_function_name(f, name, cls):
     f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
     f.__module__ = cls.__module__
     return f
-
-
-def raise_with_traceback(exc, traceback=Ellipsis):
-    """
-    Raise exception with existing traceback.
-    If traceback is not passed, uses sys.exc_info() to get traceback.
-    """
-    if traceback == Ellipsis:
-        _, _, traceback = sys.exc_info()
-    raise exc.with_traceback(traceback)
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
@@ -64,3 +56,32 @@ def is_platform_mac():
 
 def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64
+
+
+def _import_lzma():
+    """Attempts to import lzma, warning the user when lzma is not available.
+    """
+    try:
+        import lzma
+
+        return lzma
+    except ImportError:
+        msg = (
+            "Could not import the lzma module. "
+            "Your installed Python is incomplete. "
+            "Attempting to use lzma compression will result in a RuntimeError."
+        )
+        warnings.warn(msg)
+
+
+def _get_lzma_file(lzma):
+    """Returns the lzma method LZMAFile when the module was correctly imported.
+    Otherwise, raises a RuntimeError.
+    """
+    if lzma is None:
+        raise RuntimeError(
+            "lzma module not available. "
+            "A Python re-install with the proper "
+            "dependencies might be required to solve this issue."
+        )
+    return lzma.LZMAFile

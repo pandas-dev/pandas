@@ -1,5 +1,7 @@
 from datetime import date, datetime, timedelta
+from distutils.version import StrictVersion
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -14,7 +16,6 @@ from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
-import pandas.core.indexes.period as period
 import pandas.util.testing as tm
 
 
@@ -941,7 +942,7 @@ class TestComparisons:
         assert self.january1 == self.january2
 
     def test_equal_Raises_Value(self):
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             self.january1 == self.day
 
     def test_notEqual(self):
@@ -952,7 +953,7 @@ class TestComparisons:
         assert self.february > self.january1
 
     def test_greater_Raises_Value(self):
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             self.january1 > self.day
 
     def test_greater_Raises_Type(self):
@@ -963,7 +964,7 @@ class TestComparisons:
         assert self.january1 >= self.january2
 
     def test_greaterEqual_Raises_Value(self):
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             self.january1 >= self.day
 
         with pytest.raises(TypeError):
@@ -973,7 +974,7 @@ class TestComparisons:
         assert self.january1 <= self.january2
 
     def test_smallerEqual_Raises_Value(self):
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             self.january1 <= self.day
 
     def test_smallerEqual_Raises_Type(self):
@@ -984,7 +985,7 @@ class TestComparisons:
         assert self.january1 < self.february
 
     def test_smaller_Raises_Value(self):
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             self.january1 < self.day
 
     def test_smaller_Raises_Type(self):
@@ -1025,7 +1026,7 @@ class TestArithmetic:
         result = left - right
         assert result == 4 * right.freq
 
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             left - Period("2007-01", freq="M")
 
     def test_add_integer(self):
@@ -1096,16 +1097,16 @@ class TestArithmetic:
         assert per2 - per1 == 14 * off
 
         msg = r"Input has different freq=M from Period\(freq=D\)"
-        with pytest.raises(period.IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             per1 - Period("2011-02", freq="M")
 
     @pytest.mark.parametrize("n", [1, 2, 3, 4])
     def test_sub_n_gt_1_ticks(self, tick_classes, n):
         # GH 23878
-        p1 = pd.Period("19910905", freq=tick_classes(n))
-        p2 = pd.Period("19920406", freq=tick_classes(n))
+        p1 = Period("19910905", freq=tick_classes(n))
+        p2 = Period("19920406", freq=tick_classes(n))
 
-        expected = pd.Period(str(p2), freq=p2.freq.base) - pd.Period(
+        expected = Period(str(p2), freq=p2.freq.base) - Period(
             str(p1), freq=p1.freq.base
         )
 
@@ -1116,10 +1117,10 @@ class TestArithmetic:
     @pytest.mark.parametrize(
         "offset, kwd_name",
         [
-            (pd.offsets.YearEnd, "month"),
-            (pd.offsets.QuarterEnd, "startingMonth"),
-            (pd.offsets.MonthEnd, None),
-            (pd.offsets.Week, "weekday"),
+            (offsets.YearEnd, "month"),
+            (offsets.QuarterEnd, "startingMonth"),
+            (offsets.MonthEnd, None),
+            (offsets.Week, "weekday"),
         ],
     )
     def test_sub_n_gt_1_offsets(self, offset, kwd_name, n, normalize):
@@ -1127,12 +1128,10 @@ class TestArithmetic:
         kwds = {kwd_name: 3} if kwd_name is not None else {}
         p1_d = "19910905"
         p2_d = "19920406"
-        p1 = pd.Period(p1_d, freq=offset(n, normalize, **kwds))
-        p2 = pd.Period(p2_d, freq=offset(n, normalize, **kwds))
+        p1 = Period(p1_d, freq=offset(n, normalize, **kwds))
+        p2 = Period(p2_d, freq=offset(n, normalize, **kwds))
 
-        expected = pd.Period(p2_d, freq=p2.freq.base) - pd.Period(
-            p1_d, freq=p1.freq.base
-        )
+        expected = Period(p2_d, freq=p2.freq.base) - Period(p1_d, freq=p1.freq.base)
 
         assert (p2 - p1) == expected
 
@@ -1151,14 +1150,14 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
                     with pytest.raises(TypeError):
                         o + p
                 else:
-                    with pytest.raises(period.IncompatibleFrequency):
+                    with pytest.raises(IncompatibleFrequency):
                         o + p
 
         for freq in ["M", "2M", "3M"]:
@@ -1178,14 +1177,14 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
                     with pytest.raises(TypeError):
                         o + p
                 else:
-                    with pytest.raises(period.IncompatibleFrequency):
+                    with pytest.raises(IncompatibleFrequency):
                         o + p
 
         # freq is Tick
@@ -1225,14 +1224,14 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
                     with pytest.raises(TypeError):
                         o + p
                 else:
-                    with pytest.raises(period.IncompatibleFrequency):
+                    with pytest.raises(IncompatibleFrequency):
                         o + p
 
         for freq in ["H", "2H", "3H"]:
@@ -1271,14 +1270,14 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
                     with pytest.raises(TypeError):
                         o + p
                 else:
-                    with pytest.raises(period.IncompatibleFrequency):
+                    with pytest.raises(IncompatibleFrequency):
                         o + p
 
     def test_add_offset_nat(self):
@@ -1297,23 +1296,13 @@ class TestArithmetic:
                 timedelta(365),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         for freq in ["M", "2M", "3M"]:
             p = Period("NaT", freq=freq)
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1323,12 +1312,7 @@ class TestArithmetic:
                 timedelta(365),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
@@ -1342,12 +1326,7 @@ class TestArithmetic:
                 timedelta(hours=48),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1357,12 +1336,7 @@ class TestArithmetic:
                 timedelta(hours=23),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
         for freq in ["H", "2H", "3H"]:
             p = Period("NaT", freq=freq)
@@ -1375,9 +1349,7 @@ class TestArithmetic:
                 timedelta(days=4, minutes=180),
             ]:
                 assert p + o is NaT
-
-                if not isinstance(o, np.timedelta64):
-                    assert o + p is NaT
+                assert o + p is NaT
 
             for o in [
                 offsets.YearBegin(2),
@@ -1387,12 +1359,7 @@ class TestArithmetic:
                 timedelta(hours=23, minutes=30),
             ]:
                 assert p + o is NaT
-
-                if isinstance(o, np.timedelta64):
-                    with pytest.raises(TypeError):
-                        o + p
-                else:
-                    assert o + p is NaT
+                assert o + p is NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1407,7 +1374,7 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p - o
 
         for freq in ["M", "2M", "3M"]:
@@ -1422,7 +1389,7 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p - o
 
         # freq is Tick
@@ -1442,7 +1409,7 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p - o
 
         for freq in ["H", "2H", "3H"]:
@@ -1465,7 +1432,7 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                with pytest.raises(period.IncompatibleFrequency):
+                with pytest.raises(IncompatibleFrequency):
                     p - o
 
     def test_sub_offset_nat(self):
@@ -1561,10 +1528,10 @@ class TestArithmetic:
         assert result == exp
 
         msg = r"Input cannot be converted to Period\(freq=D\)"
-        with pytest.raises(period.IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             p + offsets.Hour(2)
 
-        with pytest.raises(period.IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             p - offsets.Hour(2)
 
 
@@ -1579,8 +1546,11 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-# TODO: This doesn't fail on all systems; track down which
-@pytest.mark.xfail(reason="Parses as Jan 1, 0007 on some systems", strict=False)
+@pytest.mark.xfail(
+    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
+    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
+    strict=False,
+)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1

@@ -235,21 +235,46 @@ class TestFrameFlexComparisons:
         rs = df.le(df)
         assert not rs.loc[0, 0]
 
+    def test_bool_flex_frame_complex_dtype(self):
         # complex
         arr = np.array([np.nan, 1, 6, np.nan])
         arr2 = np.array([2j, np.nan, 7, None])
         df = pd.DataFrame({"a": arr})
         df2 = pd.DataFrame({"a": arr2})
-        rs = df.gt(df2)
-        assert not rs.values.any()
+
+        msg = "|".join(
+            [
+                "'>' not supported between instances of '.*' and 'complex'",
+                r"unorderable types: .*complex\(\)",  # PY35
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            # inequalities are not well-defined for complex numbers
+            df.gt(df2)
+        with pytest.raises(TypeError, match=msg):
+            # regression test that we get the same behavior for Series
+            df["a"].gt(df2["a"])
+        with pytest.raises(TypeError, match=msg):
+            # Check that we match numpy behavior here
+            df.values > df2.values
+
         rs = df.ne(df2)
         assert rs.values.all()
 
         arr3 = np.array([2j, np.nan, None])
         df3 = pd.DataFrame({"a": arr3})
-        rs = df3.gt(2j)
-        assert not rs.values.any()
 
+        with pytest.raises(TypeError, match=msg):
+            # inequalities are not well-defined for complex numbers
+            df3.gt(2j)
+        with pytest.raises(TypeError, match=msg):
+            # regression test that we get the same behavior for Series
+            df3["a"].gt(2j)
+        with pytest.raises(TypeError, match=msg):
+            # Check that we match numpy behavior here
+            df3.values > 2j
+
+    def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
         df1 = pd.DataFrame({"col": ["foo", np.nan, "bar"]})
         df2 = pd.DataFrame({"col": ["foo", datetime.now(), "bar"]})
@@ -457,6 +482,16 @@ class TestFrameFlexArithmetic:
 
 
 class TestFrameArithmetic:
+    def test_td64_op_nat_casting(self):
+        # Make sure we don't accidentally treat timedelta64(NaT) as datetime64
+        #  when calling dispatch_to_series in DataFrame arithmetic
+        ser = pd.Series(["NaT", "NaT"], dtype="timedelta64[ns]")
+        df = pd.DataFrame([[1, 2], [3, 4]])
+
+        result = df * ser
+        expected = pd.DataFrame({0: ser, 1: ser})
+        tm.assert_frame_equal(result, expected)
+
     def test_df_add_2d_array_rowlike_broadcasts(self):
         # GH#23000
         arr = np.arange(6).reshape(3, 2)
@@ -653,3 +688,34 @@ class TestFrameArithmetic:
         result = getattr(df, op)(num)
         expected = pd.DataFrame([[getattr(n, op)(num) for n in data]], columns=ind)
         tm.assert_frame_equal(result, expected)
+
+
+def test_frame_with_zero_len_series_corner_cases():
+    # GH#28600
+    # easy all-float case
+    df = pd.DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "B"])
+    ser = pd.Series(dtype=np.float64)
+
+    result = df + ser
+    expected = pd.DataFrame(df.values * np.nan, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+    result = df == ser
+    expected = pd.DataFrame(False, index=df.index, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+    # non-float case should not raise on comparison
+    df2 = pd.DataFrame(df.values.view("M8[ns]"), columns=df.columns)
+    result = df2 == ser
+    expected = pd.DataFrame(False, index=df.index, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_zero_len_frame_with_series_corner_cases():
+    # GH#28600
+    df = pd.DataFrame(columns=["A", "B"], dtype=np.float64)
+    ser = pd.Series([1, 2], index=["A", "B"])
+
+    result = df + ser
+    expected = df
+    tm.assert_frame_equal(result, expected)

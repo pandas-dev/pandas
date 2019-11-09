@@ -67,30 +67,6 @@ def is_number(obj):
     return isinstance(obj, (Number, np.number))
 
 
-def is_string_like(obj):
-    """
-    Check if the object is a string.
-
-    Parameters
-    ----------
-    obj : The object to check
-
-    Examples
-    --------
-    >>> is_string_like("foo")
-    True
-    >>> is_string_like(1)
-    False
-
-    Returns
-    -------
-    is_str_like : bool
-        Whether `obj` is a string or not.
-    """
-
-    return isinstance(obj, str)
-
-
 def _iterable_not_string(obj):
     """
     Check if the object is an iterable but not a string.
@@ -161,8 +137,6 @@ def is_file_like(obj):
 
     Note: file-like objects must be iterable, but
     iterable objects need not be file-like.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -280,8 +254,6 @@ def is_nested_list_like(obj):
     """
     Check if the object is list-like, and that all of its elements
     are also list-like.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------

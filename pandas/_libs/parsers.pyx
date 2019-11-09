@@ -2,7 +2,6 @@
 # See LICENSE for the license
 import bz2
 import gzip
-import lzma
 import os
 import sys
 import time
@@ -18,12 +17,11 @@ from libc.string cimport strncpy, strlen, strcasecmp
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString,
-                      PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch,
-                      PyUnicode_Decode)
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
 
 
 cdef extern from "Python.h":
@@ -59,8 +57,11 @@ from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
+from pandas.compat import _import_lzma, _get_lzma_file
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
+
+lzma = _import_lzma()
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -277,7 +278,7 @@ cdef class TextReader:
         object true_values, false_values
         object handle
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        int64_t parser_start
+        uint64_t parser_start
         list clocks
         char *c_encoding
         kh_str_starts_t *false_set
@@ -565,10 +566,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
@@ -645,9 +644,9 @@ cdef class TextReader:
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = lzma.LZMAFile(source, 'rb')
+                    source = _get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = lzma.LZMAFile(filename=source)
+                    source = _get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
@@ -711,11 +710,11 @@ cdef class TextReader:
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
+            Py_ssize_t i, start, field_count, passed_count, unnamed_count
             char *word
             object name, old_name
             int status
-            int64_t hr, data_line
+            uint64_t hr, data_line
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -1016,12 +1015,14 @@ cdef class TextReader:
         else:
             end = min(start + rows, self.parser.lines)
 
+        # FIXME: dont leave commented-out
         # # skip footer
         # if footer > 0:
         #     end -= footer
 
         num_cols = -1
-        for i in range(self.parser.lines):
+        # Py_ssize_t cast prevents build warning
+        for i in range(<Py_ssize_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
@@ -1691,6 +1692,10 @@ cdef:
     char* cposinf = b'+inf'
     char* cneginf = b'-inf'
 
+    char* cinfty = b'Infinity'
+    char* cposinfty = b'+Infinity'
+    char* cneginfty = b'-Infinity'
+
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
@@ -1770,9 +1775,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif strcasecmp(word, cneginf) == 0:
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1791,9 +1799,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0 or
+                        strcasecmp(word, cinfty) == 0 or
+                        strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1
@@ -2240,7 +2251,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 def _maybe_encode(values):
     if values is None:
         return []
-    return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
+    return [x.encode('utf-8') if isinstance(x, str) else x for x in values]
 
 
 def sanitize_objects(ndarray[object] values, set na_values,

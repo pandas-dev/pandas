@@ -1,5 +1,6 @@
 import numpy as np
-from pandas import DataFrame, date_range, HDFStore, read_hdf
+
+from pandas import DataFrame, HDFStore, date_range, read_hdf
 import pandas.util.testing as tm
 
 from ..pandas_vb_common import BaseIO
@@ -87,11 +88,11 @@ class HDFStoreDataFrame(BaseIO):
 
     def time_query_store_table_wide(self):
         self.store.select(
-            "table_wide", where="index > self.start_wide and " "index < self.stop_wide"
+            "table_wide", where="index > self.start_wide and index < self.stop_wide"
         )
 
     def time_query_store_table(self):
-        self.store.select("table", where="index > self.start and " "index < self.stop")
+        self.store.select("table", where="index > self.start and index < self.stop")
 
     def time_store_repr(self):
         repr(self.store)
@@ -127,4 +128,4 @@ class HDF(BaseIO):
         self.df.to_hdf(self.fname, "df", format=format)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

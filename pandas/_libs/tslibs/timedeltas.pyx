@@ -4,7 +4,7 @@ import warnings
 
 import cython
 
-from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
+from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
@@ -228,8 +228,13 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i])
-    except:
+            if values[i] is NaT:
+                # we allow this check in the fast-path because NaT is a C-object
+                #  so this is an inexpensive check
+                iresult[i] = NPY_NAT
+            else:
+                result[i] = parse_timedelta_string(values[i])
+    except (TypeError, ValueError):
         unit = parse_timedelta_unit(unit)
         for i in range(n):
             try:
@@ -309,7 +314,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cdef inline parse_timedelta_string(object ts):
+cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -1137,10 +1142,10 @@ cdef class _Timedelta(timedelta):
 
         return fmt.format(**comp_dict)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Timedelta('{val}')".format(val=self._repr_base(format='long'))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._repr_base(format='long')
 
     def __bool__(self):
@@ -1150,9 +1155,7 @@ cdef class _Timedelta(timedelta):
         """
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
-
-        .. versionadded:: 0.20.0
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
         Returns
         -------
@@ -1210,14 +1213,20 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, string, or integer
-    unit : str, optional
-        Denote the unit of the input, if input is an integer. Default 'ns'.
+    unit : str, default 'ns'
+        Denote the unit of the input, if input is an integer.
+
         Possible values:
-        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
-        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
-        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
+
+        * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
+        * 'days' or 'day'
+        * 'hours', 'hour', 'hr', or 'h'
+        * 'minutes', 'minute', 'min', or 'm'
+        * 'seconds', 'second', or 'sec'
+        * 'milliseconds', 'millisecond', 'millis', or 'milli'
+        * 'microseconds', 'microsecond', 'micros', or 'micro'
+        * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
+
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, hours, weeks}.
@@ -1280,7 +1289,8 @@ class Timedelta(_Timedelta):
         else:
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+                "float, timedelta or convertible, not {typ}"
+                .format(typ=type(value).__name__))
 
         if is_timedelta64_object(value):
             value = value.view('i8')
@@ -1313,11 +1323,12 @@ class Timedelta(_Timedelta):
 
     def round(self, freq):
         """
-        Round the Timedelta to the specified resolution
+        Round the Timedelta to the specified resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
+        freq : str
+            Frequency string indicating the rounding resolution.
 
         Returns
         -------
@@ -1331,21 +1342,23 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        Return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
+        freq : str
+            Frequency string indicating the flooring resolution.
         """
         return self._round(freq, np.floor)
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        Return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
+        freq : str
+            Frequency string indicating the ceiling resolution.
         """
         return self._round(freq, np.ceil)
 

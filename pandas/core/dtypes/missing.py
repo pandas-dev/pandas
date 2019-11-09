@@ -17,7 +17,6 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -128,11 +127,14 @@ isnull = isna
 
 
 def _isna_new(obj):
+
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(
         obj,
         (
@@ -171,6 +173,8 @@ def _isna_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
+    elif isinstance(obj, type):
+        return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
@@ -441,8 +445,14 @@ def array_equivalent(left, right, strict_nan=False):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if left_value != right_value:
-                    return False
+                try:
+                    if np.any(left_value != right_value):
+                        return False
+                except TypeError as err:
+                    if "Cannot compare tz-naive" in str(err):
+                        # tzawareness compat failure, see GH#28507
+                        return False
+                    raise
         return True
 
     # NaNs can occur in float and complex arrays.
@@ -483,7 +493,7 @@ def _infer_fill_value(val):
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
-    if is_datetimelike(val):
+    if needs_i8_conversion(val):
         return np.array("NaT", dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
@@ -510,7 +520,7 @@ def na_value_for_dtype(dtype, compat=True):
     Parameters
     ----------
     dtype : string / dtype
-    compat : boolean, default True
+    compat : bool, default True
 
     Returns
     -------

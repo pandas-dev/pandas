@@ -1047,3 +1047,23 @@ class TestTimestampConversion:
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
         assert ts.to_datetime64() == ts.to_numpy()
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize(
+    "lh,rh",
+    [
+        (SubDatetime(2000, 1, 1), Timedelta(hours=1)),
+        (Timedelta(hours=1), SubDatetime(2000, 1, 1)),
+    ],
+)
+def test_dt_subclass_add_timedelta(lh, rh):
+    # GH#25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
+    result = lh + rh
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected

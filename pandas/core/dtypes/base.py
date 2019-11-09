@@ -63,6 +63,18 @@ class ExtensionDtype:
        Added ``_metadata``, ``__hash__``, and changed the default definition
        of ``__eq__``.
 
+    For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
+    can be implemented: this method receives a pyarrow Array or ChunkedArray
+    as only argument and is expected to return the appropriate pandas
+    ExtensionArray for this dtype and the passed values::
+
+        class ExtensionDtype:
+
+            def __from_arrow__(
+                self, array: pyarrow.Array/ChunkedArray
+            ) -> ExtensionArray:
+                ...
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -71,7 +83,7 @@ class ExtensionDtype:
 
     _metadata = ()  # type: Tuple[str, ...]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def __eq__(self, other):

@@ -11,7 +11,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_integer,
     is_integer_dtype,
     is_numeric_v_string_like,
     is_scalar,
@@ -129,6 +128,43 @@ def clean_interp_method(method, **kwargs):
     return method
 
 
+def find_valid_index(values, how: str):
+    """
+    Retrieves the index of the first valid value.
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+    how : {'first', 'last'}
+        Use this parameter to change between the first or last valid index.
+
+    Returns
+    -------
+    int or None
+    """
+    assert how in ["first", "last"]
+
+    if len(values) == 0:  # early stop
+        return None
+
+    is_valid = ~isna(values)
+
+    if values.ndim == 2:
+        is_valid = is_valid.any(1)  # reduce axis 1
+
+    if how == "first":
+        idxpos = is_valid[::].argmax()
+
+    if how == "last":
+        idxpos = len(values) - 1 - is_valid[::-1].argmax()
+
+    chk_notna = is_valid[idxpos]
+
+    if not chk_notna:
+        return None
+    return idxpos
+
+
 def interpolate_1d(
     xvalues,
     yvalues,
@@ -191,22 +227,12 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    if limit is None:
-        # limit = len(xvalues)
-        pass
-    elif not is_integer(limit):
-        raise ValueError("Limit must be an integer")
-    elif limit < 1:
-        raise ValueError("Limit must be greater than 0")
-
-    from pandas import Series
-
-    ys = Series(yvalues)
+    limit = algos._validate_limit(nobs=None, limit=limit)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(ys.first_valid_index()))
-    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
+    start_nans = set(range(find_valid_index(yvalues, "first")))
+    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -420,7 +446,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     ----------
     xi : array_like
         A sorted list of x-coordinates, of length N.
-    yi :  array_like
+    yi : array_like
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
@@ -463,6 +489,7 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
+    orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
@@ -489,6 +516,10 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         values = values[0]
+
+    if orig_values.dtype.kind == "M":
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
 
     return values
 

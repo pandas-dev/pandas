@@ -19,9 +19,13 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_re,
     is_scalar,
-    is_string_like,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCMultiIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
@@ -52,13 +56,16 @@ def cat_core(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
+    if sep == "":
+        # no need to interleave sep if it is empty
+        return np.sum(list_of_columns, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     return np.sum(list_with_sep, axis=0)
@@ -77,12 +84,12 @@ def cat_safe(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
     try:
         result = cat_core(list_of_columns, sep)
@@ -115,8 +122,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
@@ -127,6 +134,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
@@ -483,28 +491,25 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     ----------
     pat : str or compiled regex
         String can be a character sequence or regular expression.
-
-        .. versionadded:: 0.20.0
-            `pat` also accepts a compiled regex.
-
     repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
-
-        .. versionadded:: 0.20.0
-            `repl` also accepts a callable.
-
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None
+        Determines if replace is case sensitive:
+
         - If True, case sensitive (the default if `pat` is a string)
         - Set to False for case insensitive
-        - Cannot be set if `pat` is a compiled regex
+        - Cannot be set if `pat` is a compiled regex.
+
     flags : int, default 0 (no flags)
-        - re module flags, e.g. re.IGNORECASE
-        - Cannot be set if `pat` is a compiled regex
+        Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
+        regex.
     regex : bool, default True
+        Determines if assumes the passed-in pattern is a regular expression:
+
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
@@ -595,7 +600,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
-    if not (is_string_like(repl) or callable(repl)):
+    if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)
@@ -705,7 +710,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     case : bool, default True
         If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE.
+        Regex module flags, e.g. re.IGNORECASE.
     na : default NaN
         Fill value for missing values.
 
@@ -753,6 +758,16 @@ def _groups_or_na_fun(regex):
             return empty_row
 
     return f
+
+
+def _result_dtype(arr):
+    # workaround #27953
+    # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
+    # when the list of values is empty.
+    if arr.dtype.name == "string":
+        return "string"
+    else:
+        return object
 
 
 def _str_extract_noexpand(arr, pat, flags=0):
@@ -809,11 +824,12 @@ def _str_extract_frame(arr, pat, flags=0):
         result_index = arr.index
     except AttributeError:
         result_index = None
+    dtype = _result_dtype(arr)
     return DataFrame(
         [groups_or_na(val) for val in arr],
         columns=columns,
         index=result_index,
-        dtype=object,
+        dtype=dtype,
     )
 
 
@@ -1011,8 +1027,11 @@ def str_extractall(arr, pat, flags=0):
     from pandas import MultiIndex
 
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
+    dtype = _result_dtype(arr)
 
-    result = arr._constructor_expanddim(match_list, index=index, columns=columns)
+    result = arr._constructor_expanddim(
+        match_list, index=index, columns=columns, dtype=dtype
+    )
     return result
 
 
@@ -1065,7 +1084,7 @@ def str_get_dummies(arr, sep="|"):
 
     for i, t in enumerate(tags):
         pat = sep + t + sep
-        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
+        dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
     return dummies, tags
 
 
@@ -1316,7 +1335,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='right')``.
     Series.str.center : Fills boths sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
-    Series.str.zfill :  Pad strings in the Series/Index by prepending '0'
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
 
     Examples
@@ -1432,6 +1451,12 @@ def str_slice(arr, start=None, stop=None, step=None):
     0        oala
     1          ox
     2    hameleon
+    dtype: object
+
+    >>> s.str.slice(start=-1)
+    0           a
+    1           x
+    2           n
     dtype: object
 
     >>> s.str.slice(stop=2)
@@ -1653,7 +1678,7 @@ def str_translate(arr, table):
     Parameters
     ----------
     table : dict
-        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        Table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
         None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
@@ -1844,11 +1869,18 @@ def forbid_nonstring_types(forbidden, name=None):
     return _forbid_nonstring_types
 
 
-def _noarg_wrapper(f, name=None, docstring=None, forbidden_types=["bytes"], **kargs):
+def _noarg_wrapper(
+    f,
+    name=None,
+    docstring=None,
+    forbidden_types=["bytes"],
+    returns_string=True,
+    **kargs
+):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
         result = _na_map(f, self._parent, **kargs)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
     if docstring is not None:
@@ -1860,22 +1892,28 @@ def _noarg_wrapper(f, name=None, docstring=None, forbidden_types=["bytes"], **ka
 
 
 def _pat_wrapper(
-    f, flags=False, na=False, name=None, forbidden_types=["bytes"], **kwargs
+    f,
+    flags=False,
+    na=False,
+    name=None,
+    forbidden_types=["bytes"],
+    returns_string=True,
+    **kwargs
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
         result = f(self._parent, pat)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper2(self, pat, flags=0, **kwargs):
         result = f(self._parent, pat, flags=flags, **kwargs)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=returns_string)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -1912,6 +1950,7 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
+        self._is_string = data.dtype.name == "string"
 
         # .values.categories works for both Series/Index
         self._parent = data.values.categories if self._is_categorical else data
@@ -1942,6 +1981,8 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
+        from pandas import StringDtype
+
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -1953,8 +1994,15 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # missing values obfuscate type inference -> skip
-        inferred_dtype = lib.infer_dtype(values, skipna=True)
+        # explicitly allow StringDtype
+        if isinstance(values.dtype, StringDtype):
+            return "string"
+
+        try:
+            inferred_dtype = lib.infer_dtype(values, skipna=True)
+        except ValueError:
+            # GH#27571 mostly occurs with ExtensionArray
+            inferred_dtype = None
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")
@@ -1975,7 +2023,13 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(
-        self, result, use_codes=True, name=None, expand=None, fill_value=np.nan
+        self,
+        result,
+        use_codes=True,
+        name=None,
+        expand=None,
+        fill_value=np.nan,
+        returns_string=True,
     ):
 
         from pandas import Index, Series, MultiIndex
@@ -1994,6 +2048,15 @@ class StringMethods(NoNewAttributesMixin):
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):
             return result
         assert result.ndim < 3
+
+        # We can be wrapping a string / object / categorical result, in which
+        # case we'll want to return the same dtype as the input.
+        # Or we can be wrapping a numeric output, in which case we don't want
+        # to return a StringArray.
+        if self._is_string and returns_string:
+            dtype = "string"
+        else:
+            dtype = None
 
         if expand is None:
             # infer from ndim if expand is not specified
@@ -2052,13 +2115,14 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             if expand:
                 cons = self._orig._constructor_expanddim
-                return cons(result, columns=name, index=index)
+                result = cons(result, columns=name, index=index, dtype=dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                return cons(result, name=name, index=index)
+                result = cons(result, name=name, index=index, dtype=dtype)
+            return result
 
-    def _get_series_list(self, others, ignore_index=False):
+    def _get_series_list(self, others):
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
         into a list of Series (elements without an index must match the length
@@ -2066,122 +2130,57 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, Index, DataFrame, np.ndarray, list-like or list-like
-            of objects that are Series, Index or np.ndarray (1-dim)
-        ignore_index : boolean, default False
-            Determines whether to forcefully align others with index of caller
+        others : Series, DataFrame, np.ndarray, list-like or list-like of
+            Objects that are either Series, Index or np.ndarray (1-dim).
 
         Returns
         -------
-        tuple : (others transformed into list of Series,
-                 boolean whether FutureWarning should be raised)
+        list of Series
+            Others transformed into list of Series.
         """
-
-        # Once str.cat defaults to alignment, this function can be simplified;
-        # will not need `ignore_index` and the second boolean output anymore
-
         from pandas import Series, DataFrame
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
 
-        err_msg = (
-            "others must be Series, Index, DataFrame, np.ndarray or "
-            "list-like (either containing only strings or containing "
-            "only objects of type Series/Index/list-like/np.ndarray)"
-        )
-
         # Generally speaking, all objects without an index inherit the index
         # `idx` of the calling Series/Index - i.e. must have matching length.
-        # Objects with an index (i.e. Series/Index/DataFrame) keep their own
-        # index, *unless* ignore_index is set to True.
+        # Objects with an index (i.e. Series/Index/DataFrame) keep their own.
         if isinstance(others, ABCSeries):
-            warn = not others.index.equals(idx)
-            # only reconstruct Series when absolutely necessary
-            los = [
-                Series(others.values, index=idx) if ignore_index and warn else others
-            ]
-            return (los, warn)
+            return [others]
         elif isinstance(others, ABCIndexClass):
-            warn = not others.equals(idx)
-            los = [Series(others.values, index=(idx if ignore_index else others))]
-            return (los, warn)
-        elif isinstance(others, DataFrame):
-            warn = not others.index.equals(idx)
-            if ignore_index and warn:
-                # without copy, this could change "others"
-                # that was passed to str.cat
-                others = others.copy()
-                others.index = idx
-            return ([others[x] for x in others], warn)
+            return [Series(others.values, index=others)]
+        elif isinstance(others, ABCDataFrame):
+            return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
-            return ([others[x] for x in others], False)
+            return [others[x] for x in others]
         elif is_list_like(others, allow_sets=False):
             others = list(others)  # ensure iterators do not get read twice etc
 
             # in case of list-like `others`, all elements must be
-            # either one-dimensional list-likes or scalars
-            if all(is_list_like(x, allow_sets=False) for x in others):
+            # either Series/Index/np.ndarray (1-dim)...
+            if all(
+                isinstance(x, (ABCSeries, ABCIndexClass))
+                or (isinstance(x, np.ndarray) and x.ndim == 1)
+                for x in others
+            ):
                 los = []
-                join_warn = False
-                depr_warn = False
-                # iterate through list and append list of series for each
-                # element (which we check to be one-dimensional and non-nested)
-                while others:
-                    nxt = others.pop(0)  # nxt is guaranteed list-like by above
-
-                    # GH 21950 - DeprecationWarning
-                    # only allowing Series/Index/np.ndarray[1-dim] will greatly
-                    # simply this function post-deprecation.
-                    if not (
-                        isinstance(nxt, (Series, ABCIndexClass))
-                        or (isinstance(nxt, np.ndarray) and nxt.ndim == 1)
-                    ):
-                        depr_warn = True
-
-                    if not isinstance(
-                        nxt, (DataFrame, Series, ABCIndexClass, np.ndarray)
-                    ):
-                        # safety for non-persistent list-likes (e.g. iterators)
-                        # do not map indexed/typed objects; info needed below
-                        nxt = list(nxt)
-
-                    # known types for which we can avoid deep inspection
-                    no_deep = (
-                        isinstance(nxt, np.ndarray) and nxt.ndim == 1
-                    ) or isinstance(nxt, (Series, ABCIndexClass))
-                    # nested list-likes are forbidden:
-                    # -> elements of nxt must not be list-like
-                    is_legal = (no_deep and nxt.dtype == object) or all(
-                        not is_list_like(x) for x in nxt
-                    )
-
-                    # DataFrame is false positive of is_legal
-                    # because "x in df" returns column names
-                    if not is_legal or isinstance(nxt, DataFrame):
-                        raise TypeError(err_msg)
-
-                    nxt, wnx = self._get_series_list(nxt, ignore_index=ignore_index)
-                    los = los + nxt
-                    join_warn = join_warn or wnx
-
-                if depr_warn:
-                    warnings.warn(
-                        "list-likes other than Series, Index, or "
-                        "np.ndarray WITHIN another list-like are "
-                        "deprecated and will be removed in a future "
-                        "version.",
-                        FutureWarning,
-                        stacklevel=4,
-                    )
-                return (los, join_warn)
+                while others:  # iterate through list and append each element
+                    los = los + self._get_series_list(others.pop(0))
+                return los
+            # ... or just strings
             elif all(not is_list_like(x) for x in others):
-                return ([Series(others, index=idx)], False)
-        raise TypeError(err_msg)
+                return [Series(others, index=idx)]
+        raise TypeError(
+            "others must be Series, Index, DataFrame, np.ndarrary "
+            "or list-like (either containing only strings or "
+            "containing only objects of type Series/Index/"
+            "np.ndarray[1-dim])"
+        )
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
-    def cat(self, others=None, sep=None, na_rep=None, join=None):
+    def cat(self, others=None, sep=None, na_rep=None, join="left"):
         """
         Concatenate strings in the Series/Index with given separator.
 
@@ -2215,16 +2214,15 @@ class StringMethods(NoNewAttributesMixin):
             - If `na_rep` is None, and `others` is not None, a row containing a
               missing value in any of the columns (before concatenation) will
               have a missing value in the result.
-        join : {'left', 'right', 'outer', 'inner'}, default None
+        join : {'left', 'right', 'outer', 'inner'}, default 'left'
             Determines the join-style between the calling Series/Index and any
             Series/Index/DataFrame in `others` (objects without an index need
-            to match the length of the calling Series/Index). If None,
-            alignment is disabled, but this option will be removed in a future
-            version of pandas and replaced with a default of `'left'`. To
-            disable alignment, use `.values` on any Series/Index/DataFrame in
-            `others`.
+            to match the length of the calling Series/Index). To disable
+            alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+                Changed default of `join` from None to `'left'`.
 
         Returns
         -------
@@ -2340,38 +2338,13 @@ class StringMethods(NoNewAttributesMixin):
 
         try:
             # turn anything in "others" into lists of Series
-            others, warn = self._get_series_list(others, ignore_index=(join is None))
+            others = self._get_series_list(others)
         except ValueError:  # do not catch TypeError raised by _get_series_list
-            if join is None:
-                raise ValueError(
-                    "All arrays must be same length, except "
-                    "those having an index if `join` is not None"
-                )
-            else:
-                raise ValueError(
-                    "If `others` contains arrays or lists (or "
-                    "other list-likes without an index), these "
-                    "must all be of the same length as the "
-                    "calling Series/Index."
-                )
-
-        if join is None and warn:
-            warnings.warn(
-                "A future version of pandas will perform index "
-                "alignment when `others` is a Series/Index/"
-                "DataFrame (or a list-like containing one). To "
-                "disable alignment (the behavior before v.0.23) and "
-                "silence this warning, use `.values` on any Series/"
-                "Index/DataFrame in `others`. To enable alignment "
-                "and silence this warning, pass `join='left'|"
-                "'outer'|'inner'|'right'`. The future default will "
-                "be `join='left'`.",
-                FutureWarning,
-                stacklevel=3,
+            raise ValueError(
+                "If `others` contains arrays or lists (or other "
+                "list-likes without an index), these must all be "
+                "of the same length as the calling Series/Index."
             )
-
-        # if join is None, _get_series_list already force-aligned indexes
-        join = "left" if join is None else join
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):
@@ -2413,9 +2386,12 @@ class StringMethods(NoNewAttributesMixin):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            result = Series(
-                result, dtype=object, index=data.index, name=self._orig.name
-            )
+            if is_categorical_dtype(self._orig.dtype):
+                # We need to infer the new categories.
+                dtype = None
+            else:
+                dtype = self._orig.dtype
+            result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
         return result
 
     _shared_docs[
@@ -2554,13 +2530,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     _shared_docs[
         "str_partition"
@@ -2578,7 +2554,7 @@ class StringMethods(NoNewAttributesMixin):
         String to split on.
     pat : str, default whitespace
         .. deprecated:: 0.24.0
-           Use ``sep`` instead
+           Use ``sep`` instead.
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2661,7 +2637,7 @@ class StringMethods(NoNewAttributesMixin):
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(
         _shared_docs["str_partition"]
@@ -2677,7 +2653,7 @@ class StringMethods(NoNewAttributesMixin):
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
-        return self._wrap_result(result, expand=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @copy(str_get)
     def get(self, i):
@@ -2696,13 +2672,13 @@ class StringMethods(NoNewAttributesMixin):
         result = str_contains(
             self._parent, pat, case=case, flags=flags, na=na, regex=regex
         )
-        return self._wrap_result(result, fill_value=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_match)
     @forbid_nonstring_types(["bytes"])
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
-        return self._wrap_result(result, fill_value=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @copy(str_replace)
     @forbid_nonstring_types(["bytes"])
@@ -2734,13 +2710,13 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with ``fillchar``
+        with ``fillchar``.
     fillchar : str
-        Additional character for filling, default is whitespace
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    filled : Series/Index of objects
+    filled : Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
@@ -2776,7 +2752,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/Index of objects
+        Series/Index of objects.
 
         See Also
         --------
@@ -2837,13 +2813,14 @@ class StringMethods(NoNewAttributesMixin):
     def decode(self, encoding, errors="strict"):
         # need to allow bytes here
         result = str_decode(self._parent, encoding, errors)
-        return self._wrap_result(result)
+        # TODO: Not sure how to handle this.
+        return self._wrap_result(result, returns_string=False)
 
     @copy(str_encode)
     @forbid_nonstring_types(["bytes"])
     def encode(self, encoding, errors="strict"):
         result = str_encode(self._parent, encoding, errors)
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
         "str_strip"
@@ -2863,7 +2840,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -2944,7 +2921,11 @@ class StringMethods(NoNewAttributesMixin):
         data = self._orig.astype(str) if self._is_categorical else self._parent
         result, name = str_get_dummies(data, sep)
         return self._wrap_result(
-            result, use_codes=(not self._is_categorical), name=name, expand=True
+            result,
+            use_codes=(not self._is_categorical),
+            name=name,
+            expand=True,
+            returns_string=False,
         )
 
     @copy(str_translate)
@@ -2953,10 +2934,16 @@ class StringMethods(NoNewAttributesMixin):
         result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
-    count = _pat_wrapper(str_count, flags=True, name="count")
-    startswith = _pat_wrapper(str_startswith, na=True, name="startswith")
-    endswith = _pat_wrapper(str_endswith, na=True, name="endswith")
-    findall = _pat_wrapper(str_findall, flags=True, name="findall")
+    count = _pat_wrapper(str_count, flags=True, name="count", returns_string=False)
+    startswith = _pat_wrapper(
+        str_startswith, na=True, name="startswith", returns_string=False
+    )
+    endswith = _pat_wrapper(
+        str_endswith, na=True, name="endswith", returns_string=False
+    )
+    findall = _pat_wrapper(
+        str_findall, flags=True, name="findall", returns_string=False
+    )
 
     @copy(str_extract)
     @forbid_nonstring_types(["bytes"])
@@ -2978,15 +2965,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of integer values
+    Series or Index of int.
 
     See Also
     --------
@@ -3004,7 +2991,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def find(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side="left")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @Appender(
         _shared_docs["find"]
@@ -3017,7 +3004,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._parent, sub, start=start, end=end, side="right")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
     def normalize(self, form):
@@ -3029,7 +3016,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         form : {'NFC', 'NFKC', 'NFD', 'NFKD'}
-            Unicode form
+            Unicode form.
 
         Returns
         -------
@@ -3052,15 +3039,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -3079,7 +3066,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def index(self, sub, start=0, end=None):
         result = str_index(self._parent, sub, start=start, end=end, side="left")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     @Appender(
         _shared_docs["index"]
@@ -3093,7 +3080,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._parent, sub, start=start, end=end, side="right")
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
         "len"
@@ -3142,7 +3129,11 @@ class StringMethods(NoNewAttributesMixin):
     dtype: float64
     """
     len = _noarg_wrapper(
-        len, docstring=_shared_docs["len"], forbidden_types=None, dtype=int
+        len,
+        docstring=_shared_docs["len"],
+        forbidden_types=None,
+        dtype=int,
+        returns_string=False,
     )
 
     _shared_docs[
@@ -3154,7 +3145,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -3414,46 +3405,55 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
+        returns_string=False,
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
+        returns_string=False,
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
+        returns_string=False,
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
+        returns_string=False,
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
+        returns_string=False,
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
+        returns_string=False,
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
+        returns_string=False,
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
+        returns_string=False,
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
+        returns_string=False,
     )
 
     @classmethod

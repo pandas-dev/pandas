@@ -45,7 +45,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_re_compilable,
     is_scalar,
     is_sequence,
-    is_string_like,
 )
 
 from pandas._typing import ArrayLike
@@ -152,7 +151,7 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     ----------
     arr : array-like
           The array whose data type we want to enforce.
-    copy: boolean
+    copy: bool
           Whether to copy the original array or reuse
           it in place, if possible.
 
@@ -273,8 +272,6 @@ def is_sparse(arr):
 
     See Also
     --------
-    DataFrame.to_sparse : Convert DataFrame to a SparseDataFrame.
-    Series.to_sparse : Convert Series to SparseSeries.
     Series.to_dense : Return dense representation of a Series.
 
     Examples
@@ -283,7 +280,7 @@ def is_sparse(arr):
 
     >>> is_sparse(pd.SparseArray([0, 0, 1, 0]))
     True
-    >>> is_sparse(pd.SparseSeries([0, 0, 1, 0]))
+    >>> is_sparse(pd.Series(pd.SparseArray([0, 0, 1, 0])))
     True
 
     Returns `False` if the parameter is not sparse.
@@ -300,14 +297,6 @@ def is_sparse(arr):
     False
 
     Returns `False` if the parameter has more than one dimension.
-
-    >>> df = pd.SparseDataFrame([389., 24., 80.5, np.nan],
-                                columns=['max_speed'],
-                                index=['falcon', 'parrot', 'lion', 'monkey'])
-    >>> is_sparse(df)
-    False
-    >>> is_sparse(df.max_speed)
-    True
     """
     from pandas.core.arrays.sparse import SparseDtype
 
@@ -339,8 +328,6 @@ def is_scipy_sparse(arr):
     >>> is_scipy_sparse(bsr_matrix([1, 2, 3]))
     True
     >>> is_scipy_sparse(pd.SparseArray([1, 2, 3]))
-    False
-    >>> is_scipy_sparse(pd.SparseSeries([1, 2, 3]))
     False
     """
 
@@ -812,54 +799,6 @@ def is_datetime_arraylike(arr):
     return getattr(arr, "inferred_type", None) == "datetime"
 
 
-def is_datetimelike(arr):
-    """
-    Check whether an array-like is a datetime-like array-like.
-
-    Acceptable datetime-like objects are (but not limited to) datetime
-    indices, periodic indices, and timedelta indices.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime-like array-like.
-
-    Examples
-    --------
-    >>> is_datetimelike([1, 2, 3])
-    False
-    >>> is_datetimelike(pd.Index([1, 2, 3]))
-    False
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3]))
-    True
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-    >>> is_datetimelike(pd.PeriodIndex([], freq="A"))
-    True
-    >>> is_datetimelike(np.array([], dtype=np.datetime64))
-    True
-    >>> is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    True
-    >>>
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimelike(s)
-    True
-    """
-
-    return (
-        is_datetime64_dtype(arr)
-        or is_datetime64tz_dtype(arr)
-        or is_timedelta64_dtype(arr)
-        or isinstance(arr, ABCPeriodIndex)
-    )
-
-
 def is_dtype_equal(source, target):
     """
     Check if two dtypes are equal.
@@ -900,7 +839,8 @@ def is_dtype_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype) -> bool:
-    """Check whether the provided array or dtype is of an integer dtype.
+    """
+    Check whether the provided array or dtype is of an integer dtype.
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
@@ -1394,8 +1334,8 @@ def is_numeric_v_string_like(a, b):
     is_a_string_array = is_a_array and is_string_like_dtype(a)
     is_b_string_array = is_b_array and is_string_like_dtype(b)
 
-    is_a_scalar_string_like = not is_a_array and is_string_like(a)
-    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
+    is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
     return (
         (is_a_numeric_array and is_b_scalar_string_like)
@@ -1458,9 +1398,8 @@ def is_datetimelike_v_numeric(a, b):
         """
         return is_integer_dtype(x) or is_float_dtype(x)
 
-    is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_numeric(b)) or (
-        is_datetimelike(b) and is_numeric(a)
+    return (needs_i8_conversion(a) and is_numeric(b)) or (
+        needs_i8_conversion(b) and is_numeric(a)
     )
 
 
@@ -1686,6 +1625,8 @@ def is_extension_type(arr):
     """
     Check whether an array-like is of a pandas extension class instance.
 
+    .. deprecated:: 1.0.0
+
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
     to it like scipy sparse matrices), and datetime-like arrays.
@@ -1715,9 +1656,6 @@ def is_extension_type(arr):
     True
     >>> is_extension_type(pd.SparseArray([1, 2, 3]))
     True
-    >>> is_extension_type(pd.SparseSeries([1, 2, 3]))
-    True
-    >>>
     >>> from scipy.sparse import bsr_matrix
     >>> is_extension_type(bsr_matrix([1, 2, 3]))
     False
@@ -1731,6 +1669,12 @@ def is_extension_type(arr):
     >>> is_extension_type(s)
     True
     """
+    warnings.warn(
+        "'is_extension_type' is deprecated and will be removed in a future "
+        "version.  Use 'is_extension_array_dtype' instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     if is_categorical(arr):
         return True
@@ -2049,10 +1993,8 @@ def pandas_dtype(dtype):
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except Exception:
-        # we don't want to force a repr of the non-string
-        if not isinstance(dtype, str):
-            raise TypeError("data type not understood")
+    except SyntaxError:
+        # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError("data type '{}' not understood".format(dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.

@@ -210,7 +210,7 @@ as an attribute:
      See `here for an explanation of valid identifiers
      <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
-   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
+   - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed, but ``s['min']`` is possible.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
      ``major_axis``, ``minor_axis``, ``items``.
@@ -540,7 +540,7 @@ The ``callable`` must be a function with one argument (the calling Series or Dat
                       columns=list('ABCD'))
    df1
 
-   df1.loc[lambda df: df.A > 0, :]
+   df1.loc[lambda df: df['A'] > 0, :]
    df1.loc[:, lambda df: ['A', 'B']]
 
    df1.iloc[:, lambda df: [0, 1]]
@@ -552,7 +552,7 @@ You can use callable indexing in ``Series``.
 
 .. ipython:: python
 
-   df1.A.loc[lambda s: s > 0]
+   df1['A'].loc[lambda s: s > 0]
 
 Using these methods / indexers, you can chain data selection operations
 without using a temporary variable.
@@ -561,7 +561,7 @@ without using a temporary variable.
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
    (bb.groupby(['year', 'team']).sum()
-      .loc[lambda df: df.r > 100])
+      .loc[lambda df: df['r'] > 100])
 
 .. _indexing.deprecate_ix:
 
@@ -871,9 +871,9 @@ Boolean indexing
 Another common operation is the use of boolean vectors to filter the data.
 The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
-evaluate an expression such as ``df.A > 2 & df.B < 3`` as
-``df.A > (2 & df.B) < 3``, while the desired evaluation order is
-``(df.A > 2) & (df.B < 3)``.
+evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
+``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
+``(df['A > 2) & (df['B'] < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
@@ -1134,7 +1134,7 @@ between the values of columns ``a`` and ``c``. For example:
    df
 
    # pure python
-   df[(df.a < df.b) & (df.b < df.c)]
+   df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
    # query
    df.query('(a < b) & (b < c)')
@@ -1241,7 +1241,7 @@ Full numpy-like syntax:
    df = pd.DataFrame(np.random.randint(n, size=(n, 3)), columns=list('abc'))
    df
    df.query('(a < b) & (b < c)')
-   df[(df.a < df.b) & (df.b < df.c)]
+   df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
 Slightly nicer by removing the parentheses (by binding making comparison
 operators bind tighter than ``&`` and ``|``).
@@ -1279,12 +1279,12 @@ The ``in`` and ``not in`` operators
    df.query('a in b')
 
    # How you'd do it in pure Python
-   df[df.a.isin(df.b)]
+   df[df['a'].isin(df['b'])]
 
    df.query('a not in b')
 
    # pure Python
-   df[~df.a.isin(df.b)]
+   df[~df['a'].isin(df['b'])]
 
 
 You can combine this with other expressions for very succinct queries:
@@ -1297,7 +1297,7 @@ You can combine this with other expressions for very succinct queries:
    df.query('a in b and c < d')
 
    # pure Python
-   df[df.b.isin(df.a) & (df.c < df.d)]
+   df[df['b'].isin(df['a']) & (df['c'] < df['d'])]
 
 
 .. note::
@@ -1326,7 +1326,7 @@ to ``in``/``not in``.
    df.query('b == ["a", "b", "c"]')
 
    # pure Python
-   df[df.b.isin(["a", "b", "c"])]
+   df[df['b'].isin(["a", "b", "c"])]
 
    df.query('c == [1, 2]')
 
@@ -1338,7 +1338,7 @@ to ``in``/``not in``.
    df.query('[1, 2] not in c')
 
    # pure Python
-   df[df.c.isin([1, 2])]
+   df[df['c'].isin([1, 2])]
 
 
 Boolean operators
@@ -1352,7 +1352,7 @@ You can negate boolean expressions with the word ``not`` or the ``~`` operator.
    df['bools'] = np.random.rand(len(df)) > 0.5
    df.query('~bools')
    df.query('not bools')
-   df.query('not bools') == df[~df.bools]
+   df.query('not bools') == df[~df['bools']]
 
 Of course, expressions can be arbitrarily complex too:
 
@@ -1362,7 +1362,10 @@ Of course, expressions can be arbitrarily complex too:
    shorter = df.query('a < b < c and (not bools) or bools > 2')
 
    # equivalent in pure Python
-   longer = df[(df.a < df.b) & (df.b < df.c) & (~df.bools) | (df.bools > 2)]
+   longer = df[(df['a'] < df['b'])
+               & (df['b'] < df['c'])
+               & (~df['bools'])
+               | (df['bools'] > 2)]
 
    shorter
    longer
@@ -1835,14 +1838,14 @@ chained indexing expression, you can set the :ref:`option <options>`
 
    # This will show the SettingWithCopyWarning
    # but the frame values will be set
-   dfb['c'][dfb.a.str.startswith('o')] = 42
+   dfb['c'][dfb['a'].str.startswith('o')] = 42
 
 This however is operating on a copy and will not work.
 
 ::
 
    >>> pd.set_option('mode.chained_assignment','warn')
-   >>> dfb[dfb.a.str.startswith('o')]['c'] = 42
+   >>> dfb[dfb['a'].str.startswith('o')]['c'] = 42
    Traceback (most recent call last)
         ...
    SettingWithCopyWarning:

@@ -16,3 +16,5 @@ Development
     internals
     extending
     developer
+    policies
+    roadmap
