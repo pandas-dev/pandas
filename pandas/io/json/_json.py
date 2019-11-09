@@ -587,10 +587,8 @@ def read_json(
 
     result = json_reader.read()
     if should_close:
-        try:
-            filepath_or_buffer.close()
-        except:  # noqa: flake8
-            pass
+        filepath_or_buffer.close()
+
     return result
 
 
@@ -972,10 +970,8 @@ class Parser:
         for date_unit in date_units:
             try:
                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            except ValueError:
+            except (ValueError, OverflowError):
                 continue
-            except Exception:
-                break
             return new_data, True
         return data, False
 

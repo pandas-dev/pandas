@@ -125,10 +125,7 @@ class PyArrowImpl(BaseImpl):
             path, columns=columns, **kwargs
         ).to_pandas()
         if should_close:
-            try:
-                path.close()
-            except:  # noqa: flake8
-                pass
+            path.close()
 
         return result
 

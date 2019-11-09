@@ -651,10 +651,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(target, PeriodIndex):
             target = target.asi8
+            self_index = self._int64index
+        else:
+            self_index = self
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
-        return Index.get_indexer(self._int64index, target, method, limit, tolerance)
+        return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):

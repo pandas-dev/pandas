@@ -677,6 +677,32 @@ class TestPivotTable:
             pv = pd.pivot(df, index="p1", columns="p2", values="data1")
         tm.assert_frame_equal(pv, expected)
 
+    def test_pivot_periods_with_margins(self):
+        # GH 28323
+        df = DataFrame(
+            {
+                "a": [1, 1, 2, 2],
+                "b": [
+                    pd.Period("2019Q1"),
+                    pd.Period("2019Q2"),
+                    pd.Period("2019Q1"),
+                    pd.Period("2019Q2"),
+                ],
+                "x": 1.0,
+            }
+        )
+
+        expected = DataFrame(
+            data=1.0,
+            index=pd.Index([1, 2, "All"], name="a"),
+            columns=pd.Index(
+                [pd.Period("2019Q1"), pd.Period("2019Q2"), "All"], name="b"
+            ),
+        )
+
+        result = df.pivot_table(index="a", columns="b", values="x", margins=True)
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -1631,7 +1657,7 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_margins_casted_to_float(self, observed):
-        # GH #24893
+        # GH 24893
         df = pd.DataFrame(
             {
                 "A": [2, 4, 6, 8],
@@ -1646,7 +1672,6 @@ class TestPivotTable:
             {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
             index=pd.Index(["X", "Y", "All"], name="D"),
         )
-        table = result
         tm.assert_frame_equal(result, expected)
 
     def test_categorical_aggfunc(self, observed):

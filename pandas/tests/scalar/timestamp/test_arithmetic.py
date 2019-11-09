@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import NullFrequencyError
+
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
 
@@ -65,6 +67,20 @@ class TestTimestampArithmetic:
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
+
+    def test_rsub_dtscalars(self, tz_naive_fixture):
+        # In particular, check that datetime64 - Timestamp works GH#28286
+        td = Timedelta(1235345642000)
+        ts = Timestamp.now(tz_naive_fixture)
+        other = ts + td
+
+        assert other - ts == td
+        assert other.to_pydatetime() - ts == td
+        if tz_naive_fixture is None:
+            assert other.to_datetime64() - ts == td
+        else:
+            with pytest.raises(TypeError, match="subtraction must have"):
+                other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
         dt = datetime(2013, 10, 12)
@@ -163,12 +179,12 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_no_freq_raises(self, ts, other):
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             ts + other
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             other + ts
 
-        with pytest.raises(ValueError, match="without freq"):
+        with pytest.raises(NullFrequencyError, match="without freq"):
             ts - other
         with pytest.raises(TypeError):
             other - ts

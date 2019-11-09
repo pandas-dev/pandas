@@ -98,13 +98,7 @@ def _valid_locales(locales, normalize):
 
 
 def _default_locale_getter():
-    try:
-        raw_locales = subprocess.check_output(["locale -a"], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)(
-            "{exception}, the 'locale -a' command cannot be found "
-            "on your system".format(exception=e)
-        )
+    raw_locales = subprocess.check_output(["locale -a"], shell=True)
     return raw_locales
 
 
@@ -139,7 +133,9 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
     """
     try:
         raw_locales = locale_getter()
-    except Exception:
+    except subprocess.CalledProcessError:
+        # Raised on (some? all?) Windows platforms because Note: "locale -a"
+        #  is not defined
         return None
 
     try:

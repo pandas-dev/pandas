@@ -413,14 +413,7 @@ def sanitize_array(data, index, dtype=None, copy=False, raise_cast_failure=False
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-            except Exception:
-                if raise_cast_failure:  # pragma: no cover
-                    raise
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = lib.maybe_convert_objects(subarr)
-
+            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
 
