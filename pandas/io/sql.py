@@ -695,14 +695,15 @@ class SQLTable(PandasObject):
 
         pkeys_from_database = _wrap_result(data=result, columns=primary_keys)
 
-        # Delete rows from self.frame where primary keys match
-        self.frame = self._get_index_formatted_dataframe()
-
+        # Get temporary dataframe so as not to delete values from main df
+        temp = self._get_index_formatted_dataframe()
+        # Delete rows from dataframe where primary keys match
         to_be_deleted_mask = (
-            self.frame[primary_keys].isin(pkeys_from_database[primary_keys]).all(1)
+            temp[primary_keys].isin(pkeys_from_database[primary_keys]).all(1)
         )
+        temp.drop(self.frame[to_be_deleted_mask].index, inplace=True)
 
-        self.frame.drop(self.frame[to_be_deleted_mask].index, inplace=True)
+        return temp
 
     def _get_primary_key_data(self):
         """
@@ -778,7 +779,7 @@ class SQLTable(PandasObject):
             # The following check ensures that the method can be called multiple times,
             # without the dataframe getting wrongfully formatted
             if all(idx in self.frame.columns for idx in self.index):
-                temp = self.frame
+                temp = self.frame.copy()
             else:
                 temp = self.frame.copy()
                 temp.index.names = self.index
@@ -787,19 +788,16 @@ class SQLTable(PandasObject):
                 except ValueError as err:
                     raise ValueError("duplicate name in index/columns: {0}".format(err))
         else:
-            temp = self.frame
+            temp = self.frame.copy()
 
         return temp
 
-    def insert_data(self):
-
-        temp = self._get_index_formatted_dataframe()
-
-        # TODO: column_names by list comprehension?
-        column_names = list(map(str, temp.columns))
+    @staticmethod
+    def insert_data(data):
+        column_names = list(map(str, data.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
-        blocks = temp._data.blocks
+        blocks = data._data.blocks
 
         for b in blocks:
             if b.is_datetime:
@@ -827,17 +825,19 @@ class SQLTable(PandasObject):
 
     def insert(self, chunksize=None, method=None):
         if self.if_exists == "upsert_ignore":
-            self._upsert_ignore_processing()
-            self._insert(chunksize=chunksize, method=method)
+            data = self._upsert_ignore_processing()
+            self._insert(data=data, chunksize=chunksize, method=method)
         elif self.if_exists == "upsert_delete":
             delete_statement = self._upsert_delete_processing()
+            # nested transaction to ensure delete is
+            # rolled back in case of poor data
             with self.pd_sql.run_transaction() as trans:
                 trans.execute(delete_statement)
                 self._insert(chunksize=chunksize, method=method)
         else:
             self._insert(chunksize=chunksize, method=method)
 
-    def _insert(self, chunksize=None, method=None):
+    def _insert(self, data=None, chunksize=None, method=None):
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -848,9 +848,10 @@ class SQLTable(PandasObject):
         else:
             raise ValueError("Invalid parameter `method`: {}".format(method))
 
-        keys, data_list = self.insert_data()
+        data_to_add = data if data is not None else self.frame
+        keys, data_list = self.insert_data(data=data_to_add)
 
-        nrows = len(self.frame)
+        nrows = len(data)
 
         if nrows == 0:
             return
