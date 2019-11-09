@@ -15,7 +15,3 @@ repos:
     hooks:
     -   id: isort
         language: python_venv
--   repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.2
-    hooks:
-    -   id: seed-isort-config

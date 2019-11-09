@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
-import http.client
 import os
 import re
 from shutil import rmtree
@@ -2275,11 +2274,17 @@ _network_errno_vals = (
 # But some tests (test_data yahoo) contact incredibly flakey
 # servers.
 
-# and conditionally raise on these exception types
-_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
+# and conditionally raise on exception types in _get_default_network_errors
 
 
-def can_connect(url, error_classes=_network_error_classes):
+def _get_default_network_errors():
+    # Lazy import for http.client because it imports many things from the stdlib
+    import http.client
+
+    return (IOError, http.client.HTTPException, TimeoutError)
+
+
+def can_connect(url, error_classes=None):
     """Try to connect to the given url. True if succeeds, False if IOError
     raised
 
@@ -2294,6 +2299,10 @@ def can_connect(url, error_classes=_network_error_classes):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
+
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
+
     try:
         with urlopen(url):
             pass
@@ -2309,7 +2318,7 @@ def network(
     url="http://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
-    error_classes=_network_error_classes,
+    error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,
 ):
@@ -2396,6 +2405,9 @@ def network(
     Errors not related to networking will always be raised.
     """
     from pytest import skip
+
+    if error_classes is None:
+        error_classes = _get_default_network_errors()
 
     t.network = True
 

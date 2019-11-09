@@ -145,6 +145,7 @@ def test_geopandas_coordinate_indexer():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module("pyarrow")  # noqa

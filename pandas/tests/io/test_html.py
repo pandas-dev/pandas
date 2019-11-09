@@ -4,6 +4,7 @@ from io import BytesIO, StringIO
 import os
 import re
 import threading
+from urllib.error import URLError
 
 import numpy as np
 from numpy.random import rand
@@ -17,7 +18,7 @@ from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
 
-from pandas.io.common import URLError, file_path_to_url
+from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 

@@ -561,9 +561,9 @@ class TestMultiplicationDivision:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul, operator.floordiv])
-    def test_mul_int_identity(self, op, numeric_idx, box):
+    def test_mul_int_identity(self, op, numeric_idx, box_with_array):
         idx = numeric_idx
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(idx, box_with_array)
 
         result = op(idx, 1)
         tm.assert_equal(result, idx)
@@ -615,8 +615,9 @@ class TestMultiplicationDivision:
             idx * np.array([1, 2])
 
     @pytest.mark.parametrize("op", [operator.pow, ops.rpow])
-    def test_pow_float(self, op, numeric_idx, box):
+    def test_pow_float(self, op, numeric_idx, box_with_array):
         # test power calculations both ways, GH#14973
+        box = box_with_array
         idx = numeric_idx
         expected = pd.Float64Index(op(idx.values, 2.0))
 
@@ -626,8 +627,9 @@ class TestMultiplicationDivision:
         result = op(idx, 2.0)
         tm.assert_equal(result, expected)
 
-    def test_modulo(self, numeric_idx, box):
+    def test_modulo(self, numeric_idx, box_with_array):
         # GH#9244
+        box = box_with_array
         idx = numeric_idx
         expected = Index(idx.values % 2)
 
@@ -1041,7 +1043,8 @@ class TestObjectDtypeEquivalence:
     # Tests that arithmetic operations match operations executed elementwise
 
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_numarr_with_dtype_add_nan(self, dtype, box):
+    def test_numarr_with_dtype_add_nan(self, dtype, box_with_array):
+        box = box_with_array
         ser = pd.Series([1, 2, 3], dtype=dtype)
         expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
 
@@ -1055,7 +1058,8 @@ class TestObjectDtypeEquivalence:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_numarr_with_dtype_add_int(self, dtype, box):
+    def test_numarr_with_dtype_add_int(self, dtype, box_with_array):
+        box = box_with_array
         ser = pd.Series([1, 2, 3], dtype=dtype)
         expected = pd.Series([2, 3, 4], dtype=dtype)
 

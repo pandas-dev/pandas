@@ -102,7 +102,7 @@ def _skip_if_no_scipy():
     )
 
 
-def skip_if_installed(package: str,) -> Callable:
+def skip_if_installed(package: str) -> Callable:
     """
     Skip a test if a package is installed.
 
