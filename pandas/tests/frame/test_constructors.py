@@ -1425,21 +1425,19 @@ class TestDataFrameConstructors:
             )
 
     @pytest.mark.parametrize(
-        "data_dict",
+        "data_dict, keys",
         [
-            [{("a",): 1}, {("a",): 2}],
-            [OrderedDict([(("a",), 1), (("b",), 2)])],
-            [{("a", "b"): 1}],
+            ([{("a",): 1}, {("a",): 2}], [("a",)]),
+            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)]),
+            ([{("a", "b"): 1}], [("a", "b")]),
         ],
     )
-    def test_constructor_from_dict_tuples(self, data_dict):
+    def test_constructor_from_dict_tuples(self, data_dict, keys):
         # GH 16769
         df = DataFrame.from_dict(data_dict)
 
         result = df.columns
-        all_columns = [key for sub_dict in data_dict for key in sub_dict.keys()]
-        columns = list(OrderedDict.fromkeys(all_columns))
-        expected = Index(columns, dtype="object", tupleize_cols=False)
+        expected = Index(keys, dtype="object", tupleize_cols=False)
 
         tm.assert_index_equal(result, expected)
 
