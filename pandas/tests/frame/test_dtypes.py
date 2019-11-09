@@ -815,6 +815,31 @@ class TestDataFrameDataTypes:
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_df_where_change_dtype(self):
+        # GH 16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, False], [False, False, True]])
+
+        result = df.where(mask)
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [np.nan, np.nan, 5]], columns=list("ABC")
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        result = df.where(mask)
+        A = pd.Categorical([0, np.nan], categories=[0, 3])
+        B = pd.Categorical([np.nan, np.nan], categories=[1, 4])
+        C = pd.Categorical([np.nan, 5], categories=[2, 5])
+        expected = DataFrame({"A": A, "B": B, "C": C})
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "dtype", [{100: "float64", 200: "uint64"}, "category", "float64"]
     )
@@ -1199,53 +1224,3 @@ class TestDataFrameDatetimeWithTZ:
             assert (
                 "2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00"
             ) in result
-
-    def test_temp_32(self):
-        result = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
-        expected = DataFrame(
-            np.arange(2 * 3).reshape(2, 3), columns=list("ABC"), dtype=np.int32
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_temp_64(self):
-        result = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
-        expected = DataFrame(
-            np.arange(2 * 3).reshape(2, 3), columns=list("ABC"), dtype=np.int64
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_temp_32_nan(self):
-        result = DataFrame([[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"))
-        expected = DataFrame(
-            [[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"), dtype=np.int32
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_temp_64_nan(self):
-        result = DataFrame([[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"))
-        expected = DataFrame(
-            [[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"), dtype=np.int64
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_temp_32_mask(self):
-        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
-        mask = np.array([[True, False, True], [False, True, True]])
-
-        result = df.where(mask)
-        expected = DataFrame(
-            [[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"), dtype=np.int32
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_temp_64_mask(self):
-        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
-        mask = np.array([[True, False, True], [False, True, True]])
-
-        result = df.where(mask)
-        expected = DataFrame(
-            [[0, np.nan, 2], [np.nan, 4, 5]], columns=list("ABC"), dtype=np.int64
-        )
-
-        tm.assert_frame_equal(result, expected)
