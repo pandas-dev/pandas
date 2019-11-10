@@ -763,9 +763,9 @@ class TestDataFrameDataTypes:
             df["A"].astype(cls)
 
     def test_singlerow_slice_categoricaldtype_gives_series(self):
-        df = pd.DataFrame({'x': pd.Categorical('a b c d e'.split())})
+        df = pd.DataFrame({"x": pd.Categorical("a b c d e".split())})
         raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
-        expected = pd.Series(raw_cat,  index=['x'], name=0, dtype='category')
+        expected = pd.Series(raw_cat, index=["x"], name=0, dtype="category")
         tm.assert_series_equal(df.iloc[0], expected)
 
     @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
