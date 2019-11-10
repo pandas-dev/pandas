@@ -83,6 +83,28 @@ df_test["name"] = df_test["name"].apply(lambda x: x + "_TEST")
 engine.execute(
     "create table charterers(id text primary key, name text, energy integer)"
 )
+def create_test_df(df):
+    df2 = df.head().copy()
+    df2['name'] = df2['name'].apply(lambda x: x + '_NEW')
+    return df2
+
+def read_table(table):
+    with engine.connect() as conn:
+        result = conn.execute(f'select * from {table}')
+        return result.fetchall()
+
+def clear_table(table):
+    with engine.connect() as conn:
+        conn.execute(f'delete from {table}')
+
+def top_up_table(table):
+    df.to_sql(table, con=engine, if_exists='append', index=False)
+    return read_table()
+
+def reset_table(table):
+    clear_table(table)
+    top_up_table(table)
+
 df.to_sql(table_name, index=False, if_exists="append", con=engine)
 
 db = SQLDatabase(engine, schema=None, meta=None)
