@@ -1203,6 +1203,6 @@ def test_uint_index_does_not_convert_to_float64():
     )
 
     result = series.loc[[7606741985629028552, 17876870360202815256]].index
-    expected = UInt64Index([7606741985629028552, 17876870360202815256], dtype='uint64')
+    expected = UInt64Index([7606741985629028552, 17876870360202815256], dtype="uint64")
 
     assert tm.assert_index_equal(result, expected)
