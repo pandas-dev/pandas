@@ -12,7 +12,6 @@ import struct
 import sys
 import warnings
 
-PY35 = sys.version_info[:2] == (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
@@ -29,7 +28,7 @@ PYPY = platform.python_implementation() == "PyPy"
 
 def set_function_name(f, name, cls):
     """
-    Bind the name/qualname attributes of the function
+    Bind the name/qualname attributes of the function.
     """
     f.__name__ = name
     f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
@@ -38,29 +37,73 @@ def set_function_name(f, name, cls):
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
-def is_platform_little_endian():
-    """ am I little endian """
+def is_platform_little_endian() -> bool:
+    """
+    Checking if the running platform is little endian.
+
+    Returns
+    -------
+    bool
+        True if the running platform is little endian.
+    """
     return sys.byteorder == "little"
 
 
-def is_platform_windows():
+def is_platform_windows() -> bool:
+    """
+    Checking if the running platform is windows.
+
+    Returns
+    -------
+    bool
+        True if the running platform is windows.
+    """
     return sys.platform == "win32" or sys.platform == "cygwin"
 
 
-def is_platform_linux():
+def is_platform_linux() -> bool:
+    """
+    Checking if the running platform is linux.
+
+    Returns
+    -------
+    bool
+        True if the running platform is linux.
+    """
     return sys.platform == "linux2"
 
 
-def is_platform_mac():
+def is_platform_mac() -> bool:
+    """
+    Checking if the running platform is mac.
+
+    Returns
+    -------
+    bool
+        True if the running platform is mac.
+    """
     return sys.platform == "darwin"
 
 
-def is_platform_32bit():
+def is_platform_32bit() -> bool:
+    """
+    Checking if the running platform is 32-bit.
+
+    Returns
+    -------
+    bool
+        True if the running platform is 32-bit.
+    """
     return struct.calcsize("P") * 8 < 64
 
 
 def _import_lzma():
-    """Attempts to import lzma, warning the user when lzma is not available.
+    """
+    Attempts to import the lzma module.
+
+    Warns
+    -----
+    When the lzma module is not available.
     """
     try:
         import lzma
@@ -76,8 +119,18 @@ def _import_lzma():
 
 
 def _get_lzma_file(lzma):
-    """Returns the lzma method LZMAFile when the module was correctly imported.
-    Otherwise, raises a RuntimeError.
+    """
+    Attempting to get the lzma.LZMAFile class.
+
+    Returns
+    -------
+    class
+        The lzma.LZMAFile class.
+
+    Raises
+    ------
+    RuntimeError
+        If the module lzma was not imported correctly, or didn't exist.
     """
     if lzma is None:
         raise RuntimeError(

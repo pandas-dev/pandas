@@ -379,9 +379,9 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.mutated = kwargs.pop("mutated", False)
 
         if grouper is None:
-            from pandas.core.groupby.grouper import _get_grouper
+            from pandas.core.groupby.grouper import get_grouper
 
-            grouper, exclusions, obj = _get_grouper(
+            grouper, exclusions, obj = get_grouper(
                 obj,
                 keys,
                 axis=axis,
@@ -402,7 +402,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __len__(self):
         return len(self.groups)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 
@@ -1802,9 +1802,9 @@ class GroupBy(_GroupBy):
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import _get_grouper
+            from pandas.core.groupby.grouper import get_grouper
 
-            grouper, _, _ = _get_grouper(
+            grouper, _, _ = get_grouper(
                 dropped,
                 key=self.keys,
                 axis=self.axis,

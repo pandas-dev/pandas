@@ -183,7 +183,7 @@ class Holiday:
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         info = ""
         if self.year is not None:
             info += "year={year}, ".format(year=self.year)

@@ -551,8 +551,8 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError:
             raise ValueError(
-                "Invalid unary operator {0!r}, valid operators "
-                "are {1}".format(op, _unary_ops_syms)
+                "Invalid unary operator {op!r}, valid operators "
+                "are {syms}".format(op=op, syms=_unary_ops_syms)
             )
 
     def __call__(self, env):

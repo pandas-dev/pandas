@@ -3,15 +3,6 @@
 .. currentmodule:: pandas
 
 
-{{ header }}
-
-.. ipython:: python
-   :suppress:
-
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
-
 ===============================
 IO tools (text, CSV, HDF5, ...)
 ===============================
@@ -137,7 +128,8 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from io import StringIO, BytesIO
+     import pandas as pd
+     from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -360,6 +352,7 @@ columns:
 
 .. ipython:: python
 
+    import numpy as np
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -440,7 +433,6 @@ worth trying.
    :suppress:
 
    import os
-
    os.remove('foo.csv')
 
 .. _io.categorical:
@@ -748,6 +740,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
+   from io import BytesIO
    data = (b'word,length\n'
            b'Tr\xc3\xa4umen,7\n'
            b'Gr\xc3\xbc\xc3\x9fe,5')
@@ -5583,7 +5576,7 @@ Performance considerations
 --------------------------
 
 This is an informal comparison of various IO methods, using pandas
-0.20.3. Timings are machine dependent and small differences should be
+0.24.2. Timings are machine dependent and small differences should be
 ignored.
 
 .. code-block:: ipython
@@ -5604,11 +5597,18 @@ Given the next test set:
 
 .. code-block:: python
 
-   from numpy.random import randn
+
+
+   import numpy as np
+
+   import os
 
    sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
+   sz = 1000000
+   np.random.seed(42)
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -5617,151 +5617,152 @@ Given the next test set:
        df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
 
-
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
        pd.read_sql_query("select * from test_table", sql_db)
        sql_db.close()
 
-
    def test_hdf_fixed_write(df):
        df.to_hdf('test_fixed.hdf', 'test', mode='w')
-
 
    def test_hdf_fixed_read():
        pd.read_hdf('test_fixed.hdf', 'test')
 
-
    def test_hdf_fixed_write_compress(df):
        df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
-
 
    def test_hdf_fixed_read_compress():
        pd.read_hdf('test_fixed_compress.hdf', 'test')
 
-
    def test_hdf_table_write(df):
        df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
 
-
    def test_hdf_table_read():
        pd.read_hdf('test_table.hdf', 'test')
-
 
    def test_hdf_table_write_compress(df):
        df.to_hdf('test_table_compress.hdf', 'test', mode='w',
                  complib='blosc', format='table')
 
-
    def test_hdf_table_read_compress():
        pd.read_hdf('test_table_compress.hdf', 'test')
-
 
    def test_csv_write(df):
        df.to_csv('test.csv', mode='w')
 
-
    def test_csv_read():
        pd.read_csv('test.csv', index_col=0)
-
 
    def test_feather_write(df):
        df.to_feather('test.feather')
 
-
    def test_feather_read():
        pd.read_feather('test.feather')
-
 
    def test_pickle_write(df):
        df.to_pickle('test.pkl')
 
-
    def test_pickle_read():
        pd.read_pickle('test.pkl')
-
 
    def test_pickle_write_compress(df):
        df.to_pickle('test.pkl.compress', compression='xz')
 
-
    def test_pickle_read_compress():
        pd.read_pickle('test.pkl.compress', compression='xz')
 
-When writing, the top-three functions in terms of speed are are
-``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
+   def test_parquet_write(df):
+       df.to_parquet('test.parquet')
+
+   def test_parquet_read():
+       pd.read_parquet('test.parquet')
+
+When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
-   In [14]: %timeit test_sql_write(df)
-   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [4]: %timeit test_sql_write(df)
+   3.29 s ± 43.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [15]: %timeit test_hdf_fixed_write(df)
-   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [5]: %timeit test_hdf_fixed_write(df)
+   19.4 ms ± 560 µs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [26]: %timeit test_hdf_fixed_write_compress(df)
-   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [6]: %timeit test_hdf_fixed_write_compress(df)
+   19.6 ms ± 308 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [16]: %timeit test_hdf_table_write(df)
-   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [7]: %timeit test_hdf_table_write(df)
+   449 ms ± 5.61 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [27]: %timeit test_hdf_table_write_compress(df)
-   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [8]: %timeit test_hdf_table_write_compress(df)
+   448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [17]: %timeit test_csv_write(df)
-   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [9]: %timeit test_csv_write(df)
+   3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [30]: %timeit test_feather_write(df)
-   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [10]: %timeit test_feather_write(df)
+   9.75 ms ± 117 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [31]: %timeit test_pickle_write(df)
-   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [11]: %timeit test_pickle_write(df)
+   30.1 ms ± 229 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [32]: %timeit test_pickle_write_compress(df)
-   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [12]: %timeit test_pickle_write_compress(df)
+   4.29 s ± 15.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [13]: %timeit test_parquet_write(df)
+   67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
+
 .. code-block:: ipython
 
-   In [18]: %timeit test_sql_read()
-   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [14]: %timeit test_sql_read()
+   1.77 s ± 17.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [19]: %timeit test_hdf_fixed_read()
-   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [15]: %timeit test_hdf_fixed_read()
+   19.4 ms ± 436 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [28]: %timeit test_hdf_fixed_read_compress()
-   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [16]: %timeit test_hdf_fixed_read_compress()
+   19.5 ms ± 222 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [20]: %timeit test_hdf_table_read()
-   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [17]: %timeit test_hdf_table_read()
+   38.6 ms ± 857 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [29]: %timeit test_hdf_table_read_compress()
-   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [18]: %timeit test_hdf_table_read_compress()
+   38.8 ms ± 1.49 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [22]: %timeit test_csv_read()
-   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [19]: %timeit test_csv_read()
+   452 ms ± 9.04 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [33]: %timeit test_feather_read()
-   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [20]: %timeit test_feather_read()
+   12.4 ms ± 99.7 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [34]: %timeit test_pickle_read()
-   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [21]: %timeit test_pickle_read()
+   18.4 ms ± 191 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [35]: %timeit test_pickle_read_compress()
-   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [22]: %timeit test_pickle_read_compress()
+   915 ms ± 7.48 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
+   In [23]: %timeit test_parquet_read()
+   24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+
+For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
 Space on disk (in bytes)
 
 .. code-block:: none
 
-    34816000 Aug 21 18:00 test.sql
-    24009240 Aug 21 18:00 test_fixed.hdf
-     7919610 Aug 21 18:00 test_fixed_compress.hdf
-    24458892 Aug 21 18:00 test_table.hdf
-     8657116 Aug 21 18:00 test_table_compress.hdf
-    28520770 Aug 21 18:00 test.csv
-    16000248 Aug 21 18:00 test.feather
-    16000848 Aug 21 18:00 test.pkl
-     7554108 Aug 21 18:00 test.pkl.compress
+    29519500 Oct 10 06:45 test.csv
+    16000248 Oct 10 06:45 test.feather
+    8281983  Oct 10 06:49 test.parquet
+    16000857 Oct 10 06:47 test.pkl
+    7552144  Oct 10 06:48 test.pkl.compress
+    34816000 Oct 10 06:42 test.sql
+    24009288 Oct 10 06:43 test_fixed.hdf
+    24009288 Oct 10 06:43 test_fixed_compress.hdf
+    24458940 Oct 10 06:44 test_table.hdf
+    24458940 Oct 10 06:44 test_table_compress.hdf
+
+
+

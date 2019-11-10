@@ -1472,10 +1472,11 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.eq : Compare two DataFrame objects of the same shape and
             return a DataFrame where each element is True if the respective
             element in each DataFrame is equal, False otherwise.
-        assert_series_equal : Return True if left and right Series are equal,
-            False otherwise.
-        assert_frame_equal : Return True if left and right DataFrames are
-            equal, False otherwise.
+        testing.assert_series_equal : Raises an AssertionError if left and
+            right are not equal. Provides an easy interface to ignore
+            inequality in dtypes, indexes and precision among others.
+        testing.assert_frame_equal : Like assert_series_equal, but targets
+            DataFrames.
         numpy.array_equal : Return True if two arrays have the same shape
             and elements, False otherwise.
 
@@ -2089,25 +2090,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 self._unpickle_series_compat(state)
-        elif isinstance(state[0], dict):
-            if len(state) == 5:
-                self._unpickle_sparse_frame_compat(state)
-            else:
-                self._unpickle_frame_compat(state)
-        elif len(state) == 4:
-            self._unpickle_panel_compat(state)
         elif len(state) == 2:
             self._unpickle_series_compat(state)
-        else:  # pragma: no cover
-            # old pickling format, for compatibility
-            self._unpickle_matrix_compat(state)
 
         self._item_cache = {}
 
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
@@ -4934,6 +4925,10 @@ class NDFrame(PandasObject, SelectionMixin):
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
 
+        Notes
+        -----
+        If `frac` > 1, `replacement` should be set to `True`.
+
         Examples
         --------
         >>> df = pd.DataFrame({'num_legs': [2, 4, 8, 0],
@@ -4963,6 +4958,20 @@ class NDFrame(PandasObject, SelectionMixin):
               num_legs  num_wings  num_specimen_seen
         dog          4          0                  2
         fish         0          0                  8
+
+        An upsample sample of the ``DataFrame`` with replacement:
+        Note that `replace` parameter has to be `True` for `frac` parameter > 1.
+
+        >>> df.sample(frac=2, replace=True, random_state=1)
+                num_legs  num_wings  num_specimen_seen
+        dog            4          0                  2
+        fish           0          0                  8
+        falcon         2          2                 10
+        falcon         2          2                 10
+        fish           0          0                  8
+        dog            4          0                  2
+        fish           0          0                  8
+        dog            4          0                  2
 
         Using a DataFrame column as weights. Rows with larger value in the
         `num_specimen_seen` column are more likely to be sampled.
@@ -5039,6 +5048,11 @@ class NDFrame(PandasObject, SelectionMixin):
         # If no frac or n, default to n=1.
         if n is None and frac is None:
             n = 1
+        elif frac is not None and frac > 1 and not replace:
+            raise ValueError(
+                "Replace has to be set to `True` when "
+                "upsampling the population `frac` > 1."
+            )
         elif n is not None and frac is None and n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
         elif n is None and frac is not None:
