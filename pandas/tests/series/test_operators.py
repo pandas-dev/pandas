@@ -557,6 +557,14 @@ class TestSeriesComparisons:
         with pytest.raises(TypeError):
             b > a
 
+    def test_strings_to_numbers_comparisons_raises(self):
+        # GH 11565
+        df = DataFrame(
+            {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
+        )
+        with pytest.raises(TypeError):
+            df > 0
+
     def test_comparison_tuples(self):
         # GH11339
         # comparisons vs tuple
