@@ -583,9 +583,14 @@ class DataFrameFormatter(TableFormatter):
                     f" number of DataFrame columns ({len(frame.columns)})"
                 )
             )
+        self.col_space = (
+            col_space
+            if isinstance(col_space, int) or isinstance(col_space, str)
+            else None
+        )
         self.na_rep = na_rep
         self.decimal = decimal
-        self.col_space = col_space
+        self.specific_col_space = col_space
         self.header = header
         self.index = index
         self.line_width = line_width
