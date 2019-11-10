@@ -496,7 +496,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = "'%s'" % freq
+                    freq = f"'{freq}'"
                 attrs.append(("freq", freq))
         return attrs
 
@@ -686,17 +686,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         formatter = self._formatter_func
         if len(self) > 0:
-            index_summary = ", %s to %s" % (formatter(self[0]), formatter(self[-1]))
+            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
         else:
             index_summary = ""
 
         if name is None:
             name = type(self).__name__
-        result = "%s: %s entries%s" % (
-            printing.pprint_thing(name),
-            len(self),
-            index_summary,
-        )
+        result = f"{printing.pprint_thing(name)}: {len(self)} entries{index_summary}"
         if self.freq:
             result += "\nFreq: %s" % self.freqstr
 

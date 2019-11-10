@@ -87,7 +87,7 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
-        message += " (%s)" % ctypes.WinError()
+        message += f" ({ctypes.WinError()})"
         super().__init__(message)
 
 
@@ -599,10 +599,7 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
-        raise ValueError(
-            "Argument must be one of %s"
-            % (", ".join([repr(_) for _ in clipboard_types.keys()]))
-        )
+        raise ValueError(f"Argument must be one of {', '.join([repr(_) for _ in clipboard_types.keys()])}")
 
     # Sets pyperclip's copy() and paste() functions:
     copy, paste = clipboard_types[clipboard]()

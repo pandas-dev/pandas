@@ -426,10 +426,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise TypeError(
-                            "arguments are mutually exclusive "
-                            "for [%s,%s]" % (a, alias)
-                        )
+                        raise TypeError(f"arguments are mutually exclusive for [{a},{alias}]")
                     continue
                 if alias in kwargs:
                     kwargs[a] = kwargs.pop(alias)
@@ -760,7 +757,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # we must have unique axes
         if len(axes) != len(set(axes)):
-            raise ValueError("Must specify %s unique axes" % self._AXIS_LEN)
+            raise ValueError(f"Must specify {self._AXIS_LEN} unique axes")
 
         new_axes = self._construct_axes_dict_from(
             self, [self._get_axis(x) for x in axes_names]
@@ -2101,7 +2098,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
-        return "%s(%s)" % (self.__class__.__name__, prepr)
+        return f"{self.__class__.__name__}({prepr})"
 
     def _repr_latex_(self):
         """
@@ -6362,7 +6359,7 @@ class NDFrame(PandasObject, SelectionMixin):
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
-                raise ValueError("invalid fill value with a %s" % type(value))
+                raise ValueError(f"invalid fill value with a {type(value)}")
 
         if inplace:
             self._update_inplace(new_data)
@@ -6798,11 +6795,7 @@ class NDFrame(PandasObject, SelectionMixin):
             elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
                 if is_list_like(value):
                     if len(to_replace) != len(value):
-                        raise ValueError(
-                            "Replacement lists must match "
-                            "in length. Expecting %d got %d "
-                            % (len(to_replace), len(value))
-                        )
+                        raise ValueError(f"Replacement lists must match in length. Expecting {len(to_replace)} got {len(value)} ")
 
                     new_data = self._data.replace_list(
                         src_list=to_replace,
@@ -8881,7 +8874,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 fill_axis=fill_axis,
             )
         else:  # pragma: no cover
-            raise TypeError("unsupported type: %s" % type(other))
+            raise TypeError(f"unsupported type: {type(other)}")
 
     def _align_frame(
         self,
@@ -9525,10 +9518,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
-                msg = "Given freq %s does not match PeriodIndex freq %s" % (
-                    freq.rule_code,
-                    orig_freq.rule_code,
-                )
+                msg = (f"Given freq {freq.rule_code} does not match PeriodIndex freq {orig_freq.rule_code}")
                 raise ValueError(msg)
         else:
             new_data = self._data.copy()
@@ -9675,7 +9665,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if before is not None and after is not None:
             if before > after:
-                raise ValueError("Truncate: %s must be after %s" % (after, before))
+                raise ValueError(f"Truncate: {after} must be after {before}")
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
@@ -9720,9 +9710,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if not hasattr(ax, "tz_convert"):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
-                    raise TypeError(
-                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
-                    )
+                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex or PeriodIndex")
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:
@@ -9884,9 +9872,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if not hasattr(ax, "tz_localize"):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
-                    raise TypeError(
-                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
-                    )
+                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex or PeriodIndex")
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:

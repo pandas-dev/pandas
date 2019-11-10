@@ -1328,23 +1328,17 @@ class MultiIndex(Index):
     def _get_level_number(self, level):
         count = self.names.count(level)
         if (count > 1) and not is_integer(level):
-            raise ValueError(
-                "The name %s occurs multiple times, use a level number" % level
-            )
+            raise ValueError(f"The name {level} occurs multiple times, use a level number")
         try:
             level = self.names.index(level)
         except ValueError:
             if not is_integer(level):
-                raise KeyError("Level %s not found" % str(level))
+                raise KeyError(f"Level {str(level)} not found")
             elif level < 0:
                 level += self.nlevels
                 if level < 0:
                     orig_level = level - self.nlevels
-                    raise IndexError(
-                        "Too many levels: Index has only %d "
-                        "levels, %d is not a valid level number"
-                        % (self.nlevels, orig_level)
-                    )
+                    raise IndexError(f"Too many levels: Index has only {self.nlevels} levels, {orig_level} is not a valid level number")
             # Note: levels are zero-based
             elif level >= self.nlevels:
                 raise IndexError(
@@ -2290,10 +2284,7 @@ class MultiIndex(Index):
         """
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
-            raise AssertionError(
-                "Length of order must be same as "
-                "number of levels (%d), got %d" % (self.nlevels, len(order))
-            )
+            raise AssertionError(f"Length of order must be same as number of levels ({self.nlevels}), got {len(order)}")
         new_levels = [self.levels[i] for i in order]
         new_codes = [self.codes[i] for i in order]
         new_names = [self.names[i] for i in order]
@@ -2603,10 +2594,7 @@ class MultiIndex(Index):
 
     def _partial_tup_index(self, tup, side="left"):
         if len(tup) > self.lexsort_depth:
-            raise UnsortedIndexError(
-                "Key length (%d) was greater than MultiIndex"
-                " lexsort depth (%d)" % (len(tup), self.lexsort_depth)
-            )
+            raise UnsortedIndexError(f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth ({self.lexsort_depth})")
 
         n = len(tup)
         start, end = 0, len(self)
@@ -2616,7 +2604,7 @@ class MultiIndex(Index):
 
             if lab not in lev:
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
-                    raise TypeError("Level type mismatch: %s" % lab)
+                    raise TypeError(f"Level type mismatch: {lab}")
 
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)

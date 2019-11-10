@@ -357,7 +357,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
-        attrs.append(("dtype", "'%s'" % self.dtype.name))
+        attrs.append(('dtype', f"'{self.dtype.name}'"))
         max_seq_items = get_option("display.max_seq_items") or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
