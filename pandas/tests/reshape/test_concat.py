@@ -27,7 +27,6 @@ from pandas import (
     isna,
     read_csv,
 )
-import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 import pandas.util.testing as tm
 
