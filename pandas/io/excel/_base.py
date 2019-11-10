@@ -542,7 +542,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx.  
+    Default is to use xlwt for xls, openpyxl for xlsx.
     See DataFrame.to_excel for typical usage.
 
     Parameters
