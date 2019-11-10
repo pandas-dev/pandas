@@ -43,6 +43,20 @@ class TestSeriesLogicalOps:
         expected = s_tft
         tm.assert_series_equal(res, expected)
 
+    @pytest.mark.parametrize(
+        "A, B, C",
+        [
+            ([True, False, np.nan], [True, False, True], [True, False, False]),
+            ([True, False, True], [True, False, np.nan], [True, False, True]),
+        ],
+    )
+    def test_logical_operators_nans(self, A, B, C):
+        # GH 13896
+        result = Series(A) | Series(B)
+        expected = Series(C)
+
+        tm.assert_series_equal(result, expected)
+
     def test_logical_operators_int_dtype_with_int_dtype(self):
         # GH#9016: support bitwise op for integer types
 

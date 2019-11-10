@@ -218,6 +218,20 @@ class TestDataFrameLogicalOperators:
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "A, B, C",
+        [
+            ([True, False, np.nan], [True, False, True], [True, False, False]),
+            ([True, False, True], [True, False, np.nan], [True, False, True]),
+        ],
+    )
+    def test_logical_operators_nans(self, A, B, C):
+        # GH 13896
+        result = DataFrame(A) | DataFrame(B)
+        expected = DataFrame(C)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameOperators:
     @pytest.mark.parametrize(
