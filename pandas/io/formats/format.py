@@ -535,7 +535,7 @@ class DataFrameFormatter(TableFormatter):
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[Union[str, int, Dict, List]] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -574,6 +574,16 @@ class DataFrameFormatter(TableFormatter):
                     "Formatters length({flen}) should match"
                     " DataFrame number of columns({dlen})"
                 ).format(flen=len(formatters), dlen=len(frame.columns))
+            )
+
+        if isinstance(col_space, list) and len(col_space) != len(frame.columns):
+            raise ValueError(
+                (
+                    "Length of col_space list ({clen}) should match"
+                    " number of DataFrame columns ({dlen})".format(
+                        clen=len(col_space), dlen=len(frame.columns)
+                    )
+                )
             )
         self.na_rep = na_rep
         self.decimal = decimal

@@ -54,8 +54,31 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
-        if isinstance(self.fmt.col_space, int):
-            self.fmt.col_space = "{colspace}px".format(colspace=self.fmt.col_space)
+        if isinstance(self.fmt.col_space, dict):
+            self.fmt.col_space = {
+                column: self._convert_to_px(value)
+                for column, value in self.fmt.col_space.items()
+            }
+        elif isinstance(self.fmt.col_space, list):
+            self.fmt.col_space = dict(
+                zip(
+                    self.frame.columns,
+                    [self._convert_to_px(value) for value in self.fmt.col_space],
+                )
+            )
+        elif isinstance(self.fmt.col_space, int) or isinstance(self.fmt.col_space, str):
+            self.fmt.col_space = {
+                column: self._convert_to_px(self.fmt.col_space)
+                for column in self.frame.columns
+            }
+        else:
+            self.fmt.col_space = {}
+
+    @staticmethod
+    def _convert_to_px(value: Union[int, str]) -> str:
+        if isinstance(value, int):
+            return f"{value}px"
+        return value
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -121,9 +144,11 @@ class HTMLFormatter(TableFormatter):
         -------
         A written <th> cell.
         """
-        if header and self.fmt.col_space is not None:
+        if header and self.fmt.col_space is not None and self.fmt.col_space.get(s):
             tags = tags or ""
-            tags += 'style="min-width: {colspace};"'.format(colspace=self.fmt.col_space)
+            tags += 'style="min-width: {colspace};"'.format(
+                colspace=self.fmt.col_space.get(s)
+            )
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
