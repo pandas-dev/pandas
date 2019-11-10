@@ -599,7 +599,10 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
-        raise ValueError(f"Argument must be one of {', '.join([repr(_) for _ in clipboard_types.keys()])}")
+        raise ValueError(
+            f"Argument must be one of"
+            f" {', '.join([repr(_) for _ in clipboard_types.keys()])}"
+        )
 
     # Sets pyperclip's copy() and paste() functions:
     copy, paste = clipboard_types[clipboard]()

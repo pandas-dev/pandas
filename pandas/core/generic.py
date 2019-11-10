@@ -426,7 +426,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise TypeError(f"arguments are mutually exclusive for [{a},{alias}]")
+                        raise TypeError(
+                            f"arguments are mutually exclusive for [{a},{alias}]"
+                        )
                     continue
                 if alias in kwargs:
                     kwargs[a] = kwargs.pop(alias)
@@ -2057,7 +2059,7 @@ class NDFrame(PandasObject, SelectionMixin):
             _typ=self._typ,
             _metadata=self._metadata,
             attrs=self.attrs,
-            **meta
+            **meta,
         )
 
     def __setstate__(self, state):
@@ -6795,7 +6797,10 @@ class NDFrame(PandasObject, SelectionMixin):
             elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
                 if is_list_like(value):
                     if len(to_replace) != len(value):
-                        raise ValueError(f"Replacement lists must match in length. Expecting {len(to_replace)} got {len(value)} ")
+                        raise ValueError(
+                            f"Replacement lists must match in length."
+                            f" Expecting {len(to_replace)} got {len(value)} "
+                        )
 
                     new_data = self._data.replace_list(
                         src_list=to_replace,
@@ -7048,7 +7053,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -7122,7 +7127,7 @@ class NDFrame(PandasObject, SelectionMixin):
             limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
         if inplace:
@@ -7822,7 +7827,7 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7948,7 +7953,7 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            **kwargs
+            **kwargs,
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):
@@ -9518,7 +9523,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
-                msg = (f"Given freq {freq.rule_code} does not match PeriodIndex freq {orig_freq.rule_code}")
+                msg = f"Given freq {freq.rule_code} does not match" \
+                      f" PeriodIndex freq {orig_freq.rule_code}"
                 raise ValueError(msg)
         else:
             new_data = self._data.copy()
@@ -9710,7 +9716,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if not hasattr(ax, "tz_convert"):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
-                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex or PeriodIndex")
+                    raise TypeError(
+                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
+                    )
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:
@@ -9872,7 +9880,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if not hasattr(ax, "tz_localize"):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
-                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex or PeriodIndex")
+                    raise TypeError(
+                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
+                    )
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:
@@ -11568,7 +11578,7 @@ def _make_min_count_stat_function(
         level=None,
         numeric_only=None,
         min_count=0,
-        **kwargs
+        **kwargs,
     ):
         if name == "sum":
             nv.validate_sum(tuple(), kwargs)

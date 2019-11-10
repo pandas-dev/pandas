@@ -2083,7 +2083,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
-            **kwargs
+            **kwargs,
         )
         writer.write_file()
 
@@ -2107,7 +2107,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Write a DataFrame to the binary parquet format.
@@ -2187,7 +2187,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(
@@ -2846,7 +2846,9 @@ class DataFrame(NDFrame):
                 stacklevel=3,
             )
         elif len(key) != len(self.index):
-            raise ValueError(f"Item wrong length {len(key)} instead of {len(self.index)}.")
+            raise ValueError(
+                f"Item wrong length {len(key)} instead of {len(self.index)}."
+            )
 
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
@@ -2955,7 +2957,9 @@ class DataFrame(NDFrame):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
             if len(key) != len(self.index):
-                raise ValueError(f"Item wrong length {len(key)} instead of {len(self.index)}!")
+                raise ValueError(
+                    f"Item wrong length {len(key)} instead of {len(self.index)}!"
+                )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
@@ -4125,7 +4129,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         return super().fillna(
             value=value,
@@ -4134,7 +4138,7 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -4551,7 +4555,10 @@ class DataFrame(NDFrame):
 
         if not drop:
             if isinstance(self.index, ABCMultiIndex):
-                names = [(n if n is not None else f"level_{i}") for i, n in enumerate(self.index.names)]
+                names = [
+                    (n if n is not None else f"level_{i}")
+                    for i, n in enumerate(self.index.names)
+                ]
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = "index" if "index" not in self else "level_0"
@@ -4869,7 +4876,9 @@ class DataFrame(NDFrame):
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
-            raise ValueError(f"Length of ascending ({len(ascending)}) != length of by ({len(by)})")
+            raise ValueError(
+                f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
+            )
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
@@ -6575,7 +6584,7 @@ class DataFrame(NDFrame):
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs
+        **_shared_doc_kwargs,
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):

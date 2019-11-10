@@ -265,7 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        **kwargs
+        **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -961,7 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
-        prepr = f",{space}".join(f'{k}={v}' for k, v in attrs)
+        prepr = f",{space}".join(f"{k}={v}" for k, v in attrs)
 
         # no data provided, just attributes
         if data is None:
@@ -1471,7 +1471,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(level, int):
             if level < 0 and level != -1:
-                raise IndexError(f"Too many levels: Index has only 1 level, {level} is not a valid level number")
+                raise IndexError(
+                    f"Too many levels: Index has only 1 level,"
+                    f" {level} is not a valid level number"
+                )
             elif level > 0:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, not %d" % (level + 1)
@@ -5064,7 +5067,10 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["ix", "loc", "getitem", None]
 
         if side not in ("left", "right"):
-            raise ValueError(f"Invalid value for side kwarg, must be either 'left' or 'right': {side}")
+            raise ValueError(
+                f"Invalid value for side kwarg, must be either"
+                f" 'left' or 'right': {side}"
+            )
 
         original_label = label
 
