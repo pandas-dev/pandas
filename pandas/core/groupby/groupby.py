@@ -900,7 +900,6 @@ b  2""",
         for name, obj in self._iterate_slices():
             if self.grouper.ngroups == 0:
                 # agg_series below assumes ngroups > 0
-                #  3 test cases get here
                 continue
 
             try:
