@@ -379,7 +379,7 @@ cdef class Interval(IntervalMixin):
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = f'{name}({left}, {right}, closed={self.closed})'
+        repr_str = f'{name}({left!r}, {right!r}, closed={self.closed!r})'
         return repr_str
 
     def __str__(self) -> str:
