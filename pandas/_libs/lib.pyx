@@ -1497,7 +1497,7 @@ cdef class Validator:
 
     cdef bint is_value_typed(self, object value) except -1:
         raise NotImplementedError(f'{type(self).__name__} child class '
-                f'must define is_value_typed')
+                                  f'must define is_value_typed')
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or util.is_nan(value)
@@ -1634,7 +1634,7 @@ cdef class TemporalValidator(Validator):
 
     cdef bint is_valid_null(self, object value) except -1:
         raise NotImplementedError(f'{type(self).__name__} child class '
-                f'must define is_valid_null')
+                                  f'must define is_valid_null')
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:

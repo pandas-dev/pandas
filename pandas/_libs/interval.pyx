@@ -526,7 +526,7 @@ def intervals_to_interval_bounds(ndarray intervals,
 
         if not isinstance(interval, Interval):
             raise TypeError(f"type {type(interval)} with value "
-                    f"{interval} is not an interval")
+                            f"{interval} is not an interval")
 
         left[i] = interval.left
         right[i] = interval.right

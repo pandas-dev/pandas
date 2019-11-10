@@ -48,7 +48,7 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     kb = <uint8_t *>k
     if len(k) != 16:
         raise ValueError(f"key should be a 16-byte string encoded, "
-                f"got {k} (len {len(k)})")
+                         f"got {k} (len {len(k)})")
 
     n = len(arr)
 
