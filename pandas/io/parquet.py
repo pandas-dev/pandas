@@ -269,6 +269,9 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
+        A file URL can also be a path to a directory that contains multiple
+        partitioned parquet files. A directory path could be:
+        ``file://localhost/path/to/tables``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
