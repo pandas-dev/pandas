@@ -512,8 +512,8 @@ class TestMultiIndexSlicers:
         # test single level indexing on single index column data frame
         df2 = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
         result = df2.loc(axis=1)["a"]
-        expected = pd.Series([0, 3, 6], dtype="int64", name="a")
-        tm.assert_series_equal(result, expected)
+        expected = pd.Series([0, 3, 6], name="a")
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     def test_per_axis_per_level_setitem(self):
 
