@@ -725,6 +725,7 @@ class TestDataFrameDataTypes:
         tm.assert_frame_equal(result, expected)
 
     def test_wrong_length_cat_dtype_raises(self):
+        # GH29523
         cat = pd.Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
         df = pd.DataFrame({"bar": range(10)})
         err = "Length of values does not match length of index"
