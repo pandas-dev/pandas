@@ -180,7 +180,26 @@ cdef class Reducer:
         return result
 
 
-cdef class SeriesBinGrouper:
+cdef class _BaseGrouper:
+    cdef _check_dummy(self, dummy):
+        # both values and index must be an ndarray!
+
+        values = dummy.values
+        # GH 23683: datetimetz types are equivalent to datetime types here
+        if (dummy.dtype != self.arr.dtype
+                and values.dtype != self.arr.dtype):
+            raise ValueError('Dummy array must be same dtype')
+        if util.is_array(values) and not values.flags.contiguous:
+            # e.g. Categorical has no `flags` attribute
+            values = values.copy()
+        index = dummy.index.values
+        if not index.flags.contiguous:
+            index = index.copy()
+
+        return values, index
+
+
+cdef class SeriesBinGrouper(_BaseGrouper):
     """
     Performs grouping operation according to bin edges, rather than labels
     """
@@ -216,21 +235,6 @@ cdef class SeriesBinGrouper:
             self.ngroups = len(bins)
         else:
             self.ngroups = len(bins) + 1
-
-    cdef _check_dummy(self, dummy):
-        # both values and index must be an ndarray!
-
-        values = dummy.values
-        if values.dtype != self.arr.dtype:
-            raise ValueError('Dummy array must be same dtype')
-        if util.is_array(values) and not values.flags.contiguous:
-            # e.g. Categorical has no `flags` attribute
-            values = values.copy()
-        index = dummy.index.values
-        if not index.flags.contiguous:
-            index = index.copy()
-
-        return values, index
 
     def get_result(self):
         cdef:
@@ -305,7 +309,7 @@ cdef class SeriesBinGrouper:
         return result, counts
 
 
-cdef class SeriesGrouper:
+cdef class SeriesGrouper(_BaseGrouper):
     """
     Performs generic grouping operation while avoiding ndarray construction
     overhead
@@ -340,23 +344,6 @@ cdef class SeriesGrouper:
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.ngroups = ngroups
-
-    cdef _check_dummy(self, dummy):
-        # both values and index must be an ndarray!
-
-        values = dummy.values
-        # GH 23683: datetimetz types are equivalent to datetime types here
-        if (dummy.dtype != self.arr.dtype
-                and values.dtype != self.arr.dtype):
-            raise ValueError('Dummy array must be same dtype')
-        if util.is_array(values) and not values.flags.contiguous:
-            # e.g. Categorical has no `flags` attribute
-            values = values.copy()
-        index = dummy.index.values
-        if not index.flags.contiguous:
-            index = index.copy()
-
-        return values, index
 
     def get_result(self):
         cdef:
