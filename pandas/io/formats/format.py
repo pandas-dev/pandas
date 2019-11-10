@@ -579,10 +579,8 @@ class DataFrameFormatter(TableFormatter):
         if isinstance(col_space, list) and len(col_space) != len(frame.columns):
             raise ValueError(
                 (
-                    "Length of col_space list ({clen}) should match"
-                    " number of DataFrame columns ({dlen})".format(
-                        clen=len(col_space), dlen=len(frame.columns)
-                    )
+                    f"Length of col_space list ({len(col_space)}) should match"
+                    f" number of DataFrame columns ({len(frame.columns)})"
                 )
             )
         self.na_rep = na_rep
@@ -1447,7 +1445,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -1668,7 +1666,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, TimedeltaIndex],
         nat_rep: str = "NaT",
         box: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep

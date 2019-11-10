@@ -67,12 +67,10 @@ class HTMLFormatter(TableFormatter):
                 )
             )
         elif isinstance(self.fmt.col_space, int) or isinstance(self.fmt.col_space, str):
-            self.fmt.col_space = {"": self._convert_to_px(self.fmt.col_space)}
+            col_space = self._convert_to_px(self.fmt.col_space)
+            self.fmt.col_space = {"": col_space}
             self.fmt.col_space.update(
-                {
-                    column: self._convert_to_px(self.fmt.col_space)
-                    for column in self.frame.columns
-                }
+                {column: col_space for column in self.frame.columns}
             )
 
         else:
