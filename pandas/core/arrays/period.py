@@ -540,7 +540,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         how : str {'E', 'S'}
             Whether the elements should be aligned to the end
             or start within pa period.
-          
+
             * 'E', 'END', or 'FINISH' for end,
             * 'S', 'START', or 'BEGIN' for start.
 
