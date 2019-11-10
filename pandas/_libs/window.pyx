@@ -897,7 +897,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int
 
 # Moving maximum / minimum code taken from Bottleneck under the terms
 # of its Simplified BSD license
-# https://github.com/kwgoodman/bottleneck
+# https://github.com/pydata/bottleneck
 
 
 cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
