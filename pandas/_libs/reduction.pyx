@@ -431,10 +431,9 @@ cdef class SeriesGrouper:
             islider.reset()
             vslider.reset()
 
-        if result is None:
-            # This should no longer be reachable since we check for empty
-            #  series in the constructor.
-            raise AssertionError("`result` has not been assigned.")
+        # We check for empty series in the constructor, so should always
+        #  have result initialized by this point.
+        assert result is not None, "`result` has not been assigned."
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
