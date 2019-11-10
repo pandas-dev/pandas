@@ -446,8 +446,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
+            'S' otherwise.
         how : {'s', 'e', 'start', 'end'}
+            Whether to use the start or end of the time period being converted.
 
         Returns
         -------
