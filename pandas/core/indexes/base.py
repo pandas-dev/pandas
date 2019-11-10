@@ -4027,7 +4027,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
 
     @classmethod
-    def _coerce_to_ndarray(cls, data):
+    def _coerce_to_ndarray(cls, data, dtype=None):
         """
         Coerces data to ndarray.
 
@@ -4047,7 +4047,8 @@ class Index(IndexOpsMixin, PandasObject):
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
-            data = np.asarray(data)
+
+            data = np.asarray(data, dtype=dtype)
         return data
 
     def _coerce_scalar_to_index(self, item):
