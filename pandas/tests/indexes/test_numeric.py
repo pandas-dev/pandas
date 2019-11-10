@@ -1191,7 +1191,7 @@ def test_range_float_union_dtype():
 
 def test_uint_index_does_not_convert_to_float64():
     # https://github.com/pandas-dev/pandas/issues/28279
-    bug = pd.Series(
+    series = pd.Series(
         [0, 1, 2, 3, 4],
         index=[
             7606741985629028552,
@@ -1202,6 +1202,7 @@ def test_uint_index_does_not_convert_to_float64():
         ],
     )
 
-    assert isinstance(
-        bug.loc[[7606741985629028552, 17876870360202815256]].index, UInt64Index
-    )
+    result = series.loc[[7606741985629028552, 17876870360202815256]].index
+    expected = UInt64Index([7606741985629028552, 17876870360202815256], dtype='uint64')
+
+    assert tm.assert_index_equal(result, expected)
