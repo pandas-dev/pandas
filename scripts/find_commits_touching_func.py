@@ -119,8 +119,8 @@ def get_hits(defname, files=()):
 def get_commit_info(c, fmt, sep="\t"):
     r = sh.git(
         "log",
-        "--format={}".format(fmt),
-        "{}^..{}".format(c, c),
+        f"--format={fmt}",
+        f"{c}^..{c}",
         "-n",
         "1",
         _tty_out=False,
