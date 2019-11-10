@@ -522,7 +522,7 @@ class TestMultiIndexSlicers:
         df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
         result = df.loc(axis=1)["a"]
         expected = pd.Series([0, 3, 6], name="a")
-        tm.assert_series_equal(result, expected, check_dtype=False)
+        tm.assert_series_equal(result, expected)
 
     def test_per_axis_per_level_setitem(self):
 
