@@ -1783,7 +1783,7 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    mapped = [fkeys(index.levels[n], join_keys[n]) for n in range(len(index.levels))]
+    mapped = (fkeys(index.levels[n], join_keys[n]) for n in range(len(index.levels)))
     zipped = zip(*mapped)
     rcodes, lcodes, shape = [list(x) for x in zipped]
     if sort:
