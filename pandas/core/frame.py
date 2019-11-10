@@ -7306,7 +7306,7 @@ class DataFrame(NDFrame):
                 will have 1 along the diagonals and will be symmetric
                 regardless of the callable's behavior.
 
-                .. versionadded:: 0.24.0
+            .. versionadded:: 0.24.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
