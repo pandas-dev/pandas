@@ -871,7 +871,7 @@ class PeriodDtype(PandasExtensionDtype):
         raise ValueError("could not construct PeriodDtype")
 
     @classmethod
-    def construct_from_string(cls, string: str_type):
+    def construct_from_string(cls, string):
         """
         Strict construction from a string, raise a TypeError if not
         possible
