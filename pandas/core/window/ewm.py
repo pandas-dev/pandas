@@ -314,7 +314,7 @@ class EWM(_Rolling):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
         **kwargs
            Keyword arguments to be passed into func.
         """
