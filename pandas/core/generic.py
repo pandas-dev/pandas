@@ -9523,8 +9523,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
-                msg = f"Given freq {freq.rule_code} does not match" \
-                      f" PeriodIndex freq {orig_freq.rule_code}"
+                msg = (
+                    f"Given freq {freq.rule_code} does not match"
+                    f" PeriodIndex freq {orig_freq.rule_code}"
+                )
                 raise ValueError(msg)
         else:
             new_data = self._data.copy()
