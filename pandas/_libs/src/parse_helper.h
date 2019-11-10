@@ -94,12 +94,9 @@ parsingerror:
     return -1;
 }
 
-PANDAS_INLINE void lowercase(char *p) {
-    for (; *p; ++p) *p = tolower_ascii(*p);
-}
-
-PANDAS_INLINE void uppercase(char *p) {
-    for (; *p; ++p) *p = toupper_ascii(*p);
-}
+// Windows has separate alias for case insensitive compare
+#ifdef _WINDOWS
+#define strcasecmp stricmp
+#endif
 
 #endif  // PANDAS__LIBS_SRC_PARSE_HELPER_H_
