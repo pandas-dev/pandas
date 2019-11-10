@@ -137,11 +137,12 @@ _shared_doc_kwargs = dict(
             Name or list of names to sort by.
 
             - if `axis` is 0 or `'index'` then `by` may contain index
-              levels and/or column labels
+              levels and/or column labels.
             - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels
+              levels and/or index labels.
 
             .. versionchanged:: 0.23.0
+
                Allow specifying index or column level names.""",
     versionadded_to_excel="",
     optional_labels="""labels : array-like, optional
