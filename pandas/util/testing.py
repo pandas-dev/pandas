@@ -1457,7 +1457,7 @@ def assert_equal(
         right = cast(DatetimeArray, right)
         assert_datetime_array_equal(left, right, **kwargs)
     elif isinstance(left, TimedeltaArray):
-        right = cast(TimedeltaArray, cast)
+        right = cast(TimedeltaArray, right)
         assert_timedelta_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         right = cast(ExtensionArray, right)
