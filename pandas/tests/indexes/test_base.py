@@ -2821,3 +2821,10 @@ def test_shape_of_invalid_index():
 
     idx = pd.Index([0, 1, 2, 3])
     assert idx[:, None].shape == (4, 1)
+
+def test_index_construction_respects_dtype():
+    index_list = [7606741985629028552, 17876870360202815256]
+    expected = np.asarray(index_list, dtype='uint64')
+    result = np.asarray(UInt64Index(index_list, dtype='uint64'), dtype='uint64')
+
+    tm.assert_equal(expected, result)
