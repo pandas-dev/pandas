@@ -492,9 +492,10 @@ class TestMultiIndexSlicers:
         with pytest.raises(ValueError):
             df.loc(axis="foo")[:, :, ["C1", "C3"]]
 
-    def test_loc_axis_single_level_indexer(self):
+    def test_loc_axis_single_level_indexer_multiindex_col_df(self):
 
-        # test single level indexing on Multindex column dataframe
+        # GH29519
+        # test with single level multiple columns slice
         df1 = pd.DataFrame(
             np.arange(27).reshape(3, 9),
             columns=pd.MultiIndex.from_product(
@@ -503,15 +504,23 @@ class TestMultiIndexSlicers:
         )
         result = df1.loc(axis=1)["a1":"a2"]
         expected = df1.iloc[:, :-3]
+
         tm.assert_frame_equal(result, expected)
+
+        # GH29519
+        # test with single level single column slice
         result = df1.loc(axis=1)["a1"]
         expected = df1.iloc[:, :3]
         expected.columns = ["b1", "b2", "b3"]
+
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_ax_single_level_indexer_simple_df(self):
+
+        # GH29519
         # test single level indexing on single index column data frame
-        df2 = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
-        result = df2.loc(axis=1)["a"]
+        df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
+        result = df.loc(axis=1)["a"]
         expected = pd.Series([0, 3, 6], name="a")
         tm.assert_series_equal(result, expected, check_dtype=False)
 
