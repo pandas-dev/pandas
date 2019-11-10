@@ -657,8 +657,10 @@ class SQLTable(PandasObject):
             elif self.if_exists == "append":
                 pass
             elif self.if_exists == "upsert_delete":
+                # Pass here, upsert is handled in self.insert() method
                 pass
             elif self.if_exists == "upsert_ignore":
+                # Pass here, upsert is handled in self.insert() method
                 pass
             else:
                 raise ValueError(
@@ -668,6 +670,16 @@ class SQLTable(PandasObject):
             self._execute_create()
 
     def _upsert_delete_processing(self):
+        """
+        Upsert delete prioritizes incoming data over what is already in the DB.
+        This method generates the Delete statement which is to be executed
+        in the same transaction as the ensuing data insert.
+
+        Returns
+        ----------
+        delete_statement : sqlalchemy.sql.dml.Delete object
+            - Delete statement to be executed against DB
+        """
         from sqlalchemy import tuple_
 
         # Primary key data
@@ -679,29 +691,36 @@ class SQLTable(PandasObject):
         return delete_statement
 
     def _upsert_ignore_processing(self):
+        """
+        Upsert Ignore prioritizes data in DB over incoming data.
+        This method creates a copy of the incoming dataframe,
+        fetches matching data from DB, deletes matching data from copied frame,
+        and returns that frame to be inserted.
+
+        Returns
+        ----------
+        temp : DataFrame
+            - Filtered dataframe, with values that are already in DB removed.
+        """
         from sqlalchemy import tuple_, select
 
         # Primary key data
         primary_keys, primary_key_values = self._get_primary_key_data()
-
         # Fetch matching pkey values from database
         columns_to_fetch = [self.table.c[key] for key in primary_keys]
-
         select_statement = select(columns_to_fetch).where(
             tuple_(*columns_to_fetch).in_(primary_key_values)
         )
-
-        result = self.pd_sql.execute(select_statement)
-
-        pkeys_from_database = _wrap_result(data=result, columns=primary_keys)
-
+        pkeys_from_database = _wrap_result(
+            data=self.pd_sql.execute(select_statement), columns=primary_keys
+        )
         # Get temporary dataframe so as not to delete values from main df
         temp = self._get_index_formatted_dataframe()
         # Delete rows from dataframe where primary keys match
         to_be_deleted_mask = (
             temp[primary_keys].isin(pkeys_from_database[primary_keys]).all(1)
         )
-        temp.drop(self.frame[to_be_deleted_mask].index, inplace=True)
+        temp.drop(temp[to_be_deleted_mask].index, inplace=True)
 
         return temp
 
@@ -717,7 +736,6 @@ class SQLTable(PandasObject):
             - primary_key_values : Iterable of dataframe rows
                 corresponding to primary_key columns
         """
-
         # reflect MetaData object and assign contents of db to self.table attribute
         self.pd_sql.meta.reflect(only=[self.name], views=True)
         self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
@@ -734,7 +752,8 @@ class SQLTable(PandasObject):
         if len(primary_keys) == 0:
             raise ValueError(f"No primary keys found for table {self.name}")
 
-        primary_key_values = zip(*[self.frame[key] for key in primary_keys])
+        temp = self._get_index_formatted_dataframe()
+        primary_key_values = zip(*[temp[key] for key in primary_keys])
         return primary_keys, primary_key_values
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -774,21 +793,13 @@ class SQLTable(PandasObject):
 
         # Originally this functionality formed the first step of the insert_data method.
         # It will be useful to have in other places, so moved here to keep code DRY.
-
+        temp = self.frame.copy()
         if self.index is not None:
-            # The following check ensures that the method can be called multiple times,
-            # without the dataframe getting wrongfully formatted
-            if all(idx in self.frame.columns for idx in self.index):
-                temp = self.frame.copy()
-            else:
-                temp = self.frame.copy()
-                temp.index.names = self.index
-                try:
-                    temp.reset_index(inplace=True)
-                except ValueError as err:
-                    raise ValueError("duplicate name in index/columns: {0}".format(err))
-        else:
-            temp = self.frame.copy()
+            temp.index.names = self.index
+            try:
+                temp.reset_index(inplace=True)
+            except ValueError as err:
+                raise ValueError("duplicate name in index/columns: {0}".format(err))
 
         return temp
 
@@ -824,6 +835,9 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(self, chunksize=None, method=None):
+        """
+        Determines what data to pass to the underlying insert method.
+        """
         if self.if_exists == "upsert_ignore":
             data = self._upsert_ignore_processing()
             self._insert(data=data, chunksize=chunksize, method=method)
@@ -848,8 +862,10 @@ class SQLTable(PandasObject):
         else:
             raise ValueError("Invalid parameter `method`: {}".format(method))
 
-        data_to_add = data if data is not None else self.frame
-        keys, data_list = self.insert_data(data=data_to_add)
+        if data is None:
+            data = self._get_index_formatted_dataframe()
+
+        keys, data_list = self.insert_data(data=data)
 
         nrows = len(data)
 
