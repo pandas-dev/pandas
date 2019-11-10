@@ -196,6 +196,7 @@ class TestMergeMulti:
         tm.assert_frame_equal(merged_left_right, merge_right_left)
 
     def test_merge_multiple_cols_with_mixed_cols_index(self):
+        # GH29522
         s = pd.Series(
             range(6),
             pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
