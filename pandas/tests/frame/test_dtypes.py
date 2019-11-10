@@ -762,6 +762,15 @@ class TestDataFrameDataTypes:
         with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
 
+    def test_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH29521
+        df = pd.DataFrame({"x": pd.Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = pd.Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
     def test_astype_extension_dtypes(self, dtype):
         # GH 22578
