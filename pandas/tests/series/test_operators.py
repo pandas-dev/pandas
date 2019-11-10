@@ -44,16 +44,16 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(res, expected)
 
     @pytest.mark.parametrize(
-        "A, B, C",
+        "left, right, expected",
         [
             ([True, False, np.nan], [True, False, True], [True, False, False]),
             ([True, False, True], [True, False, np.nan], [True, False, True]),
         ],
     )
-    def test_logical_operators_nans(self, A, B, C):
+    def test_logical_operators_nans(self, left, right, expected):
         # GH 13896
-        result = Series(A) | Series(B)
-        expected = Series(C)
+        result = Series(left) | Series(right)
+        expected = Series(expected)
 
         tm.assert_series_equal(result, expected)
 
