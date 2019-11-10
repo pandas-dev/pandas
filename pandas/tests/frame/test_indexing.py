@@ -1944,7 +1944,7 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match=msg):
             res3._set_value("foobar", "baz", "sam")
 
-    def test_loc_indexing_preserves_index_dtype(self):
+    def test_loc_indexing_preserves_index_category_dtype(self):
         # GH 15166
         df = DataFrame(
             data=np.arange(2, 22, 2),
