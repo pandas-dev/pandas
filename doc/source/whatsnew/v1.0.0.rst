@@ -414,6 +414,7 @@ Plotting
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
+- Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
