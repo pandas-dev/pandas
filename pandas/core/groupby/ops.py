@@ -647,11 +647,9 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        if result is not None:
-            # if splitter is empty, result can be None, in which case
-            #  maybe_convert_objects would raise TypeError
-            result = lib.maybe_convert_objects(result, try_float=0)
-            # TODO: try_cast back to EA?
+        assert result is not None
+        result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
 
         return result, counts
 
