@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -49,7 +49,7 @@ from pandas.core.internals import _transform_index, concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import DataFrame, Series
 
 
 @Substitution("\nleft : DataFrame")
@@ -552,8 +552,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: FrameOrSeries,
-        right: FrameOrSeries,
+        left: "Union[Series, DataFrame]",
+        right: "Union[Series, DataFrame]",
         how: str = "inner",
         on=None,
         left_on=None,
