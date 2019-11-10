@@ -49,7 +49,7 @@ from pandas.core.internals import _transform_index, concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import DataFrame, Series  # noqa:F401
 
 
 @Substitution("\nleft : DataFrame")
@@ -552,8 +552,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: "Union[Series, DataFrame]",
-        right: "Union[Series, DataFrame]",
+        left: Union["Series", "DataFrame"],
+        right: Union["Series", "DataFrame"],
         how: str = "inner",
         on=None,
         left_on=None,
