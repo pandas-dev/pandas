@@ -353,6 +353,25 @@ class TestUnique:
 
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data, uniques, dtype_list",
+        [
+            ([1, 2, 2], [1, 2], np.sctypes["int"]),
+            ([1, 2, 2], [1, 2], np.sctypes["uint"]),
+            ([1, 2, 2], [1.0, 2.0], np.sctypes["float"]),
+            ([1, 2, 2], [1.0, 2.0], np.sctypes["complex"]),
+            ([True, True, False], [True, False], np.sctypes["others"]),  # bool, object
+        ],
+    )
+    def test_dtype_preservation(self, data, uniques, dtype_list):
+        # GH 15442
+        for dtype in dtype_list:
+            if dtype not in [bytes, str, np.void]:
+                result = Series(data, dtype=dtype).unique()
+                expected = np.array(uniques, dtype=dtype)
+
+                tm.assert_numpy_array_equal(result, expected)
+
     def test_datetime64_dtype_array_returned(self):
         # GH 9431
         expected = np_array_datetime64_compat(
