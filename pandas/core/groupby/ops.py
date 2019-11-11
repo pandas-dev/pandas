@@ -552,7 +552,7 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names = self._name_functions.get(how, None)  # type: Optional[List[str]]
+        names = self._name_functions.get(how, None)
 
         if swapped:
             result = result.swapaxes(0, axis)
