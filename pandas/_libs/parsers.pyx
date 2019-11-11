@@ -683,9 +683,9 @@ cdef class TextReader:
             if ptr == NULL:
                 if not os.path.exists(source):
                     raise FileNotFoundError(
-                            ENOENT,
-                            f'File {source} does not exist',
-                            source)
+                                ENOENT,
+                                f'File {source} does not exist',
+                                source)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
