@@ -546,10 +546,6 @@ class _MergeOperation:
 
     _merge_type = "merge"
 
-    indicator_name: Optional[str]
-    left: "DataFrame"
-    right: "DataFrame"
-
     def __init__(
         self,
         left: Union["Series", "DataFrame"],
@@ -569,8 +565,8 @@ class _MergeOperation:
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
-        self.left = self.orig_left = _validate_operand(_left)
-        self.right = self.orig_right = _validate_operand(_right)
+        self.left = self.orig_left = _validate_operand(_left)  # type: "DataFrame"
+        self.right = self.orig_right = _validate_operand(_right)  # type: "DataFrame"
         self.how = how
         self.axis = axis
 
@@ -588,7 +584,7 @@ class _MergeOperation:
         self.indicator = indicator
 
         if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator
+            self.indicator_name = self.indicator  # type: Optional[str]
         elif isinstance(self.indicator, bool):
             self.indicator_name = "_merge" if self.indicator else None
         else:
