@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -501,9 +501,9 @@ _shared_docs[
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
         An integer ndarray that's an indexer into `uniques`.
-        ``uniques.take(labels)`` will have the same values as `values`.
+        ``uniques.take(codes)`` will have the same values as `values`.
     uniques : ndarray, Index, or Categorical
         The unique valid values. When `values` is Categorical, `uniques`
         is a Categorical. When `values` is some other pandas object, an
@@ -525,27 +525,27 @@ _shared_docs[
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
-    With ``sort=True``, the `uniques` will be sorted, and `labels` will be
+    With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `labels` with `na_sentinel`
+    Missing values are indicated in `codes` with `na_sentinel`
     (``-1`` by default). Note that missing values are never
     included in `uniques`.
 
-    >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
@@ -555,8 +555,8 @@ _shared_docs[
     will differ. For Categoricals, a `Categorical` is returned.
 
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     [a, c]
@@ -569,8 +569,8 @@ _shared_docs[
     returned.
 
     >>> cat = pd.Series(['a', 'a', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
@@ -596,7 +596,7 @@ _shared_docs[
     sort=dedent(
         """\
     sort : bool, default False
-        Sort `uniques` and shuffle `labels` to maintain the
+        Sort `uniques` and shuffle `codes` to maintain the
         relationship.
     """
     ),
@@ -609,11 +609,17 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 @deprecate_kwarg(old_arg_name="order", new_arg_name=None)
-def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(
+    values,
+    sort: bool = False,
+    order=None,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
-    # 2.) factorizing labels and uniques
-    # 3.) Maybe boxing the output in an Index
+    # 2.) factorizing codes and uniques
+    # 3.) Maybe boxing the uniques in an Index
     #
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
@@ -624,7 +630,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
     if is_extension_array_dtype(values):
         values = extract_array(values)
-        labels, uniques = values.factorize(na_sentinel=na_sentinel)
+        codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
@@ -634,13 +640,13 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
         else:
             na_value = None
 
-        labels, uniques = _factorize_array(
+        codes, uniques = _factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
     if sort and len(uniques) > 0:
-        uniques, labels = safe_sort(
-            uniques, labels, na_sentinel=na_sentinel, assume_unique=True, verify=False
+        uniques, codes = safe_sort(
+            uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -653,7 +659,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
         uniques = Index(uniques)
 
-    return labels, uniques
+    return codes, uniques
 
 
 def value_counts(
