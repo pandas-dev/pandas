@@ -362,10 +362,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"], name="foo")
         dti = pd.date_range("20130101", periods=3, name="bar")
 
-        # TODO(wesm): unused?
-        # td = Timedelta('1 days')
-        # dt = Timestamp('20130101')
-
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", pd.NaT, "0 days"], name="foo")
         tm.assert_index_equal(result, expected)
@@ -896,11 +892,16 @@ class TestTimedeltaArraylikeAddSubOps:
         result = other + idx
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_sub_timestamp(self, box_with_array):
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("2012-01-01"),
+            Timestamp("2012-01-01").to_pydatetime(),
+            Timestamp("2012-01-01").to_datetime64(),
+        ],
+    )
+    def test_td64arr_add_sub_timestamp(self, ts, box_with_array):
         # GH#11925
-        ts = Timestamp("2012-01-01")
-        # TODO: parametrize over types of datetime scalar?
-
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3)
 
@@ -2028,10 +2029,10 @@ class TestTimedeltaArraylikeMulDivOps:
             dtype="timedelta64[ns]",
             name=exname,
         )
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
-        box = Series if (box is pd.Index or box is tm.to_array) else box
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = ser * tdi
         tm.assert_equal(result, expected)
@@ -2066,9 +2067,7 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = box
-        if box in [pd.Index, tm.to_array] and type(ser) is Series:
-            xbox = Series
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)

@@ -26,7 +26,9 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.indexes.datetimes import _to_M8
+from pandas.core.ops import roperator
 import pandas.util.testing as tm
 
 
@@ -2257,13 +2259,6 @@ class TestDatetimeIndexArithmetic:
 
         intervals = ["D", "h", "m", "s", "us"]
 
-        # TODO: unused
-        # npy16_mappings = {'D': 24 * 60 * 60 * 1000000,
-        #                   'h': 60 * 60 * 1000000,
-        #                   'm': 60 * 1000000,
-        #                   's': 1000000,
-        #                   'us': 1}
-
         def timedelta64(*args):
             # see casting notes in NumPy gh-12927
             return np.sum(list(starmap(np.timedelta64, zip(args, intervals))))
@@ -2406,82 +2401,30 @@ class TestDatetimeIndexArithmetic:
         result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
+    @pytest.mark.parametrize("other_box", [pd.Index, Series])
+    @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
     )
-    def test_dti_add_offset_index(self, tz_naive_fixture, names):
+    def test_dti_addsub_offset_arraylike(self, tz_naive_fixture, names, op, other_box):
         # GH#18849, GH#19744
+        box = pd.Index
+        from .test_timedelta64 import get_upcast_box
+
         tz = tz_naive_fixture
         dti = pd.date_range("2017-01-01", periods=2, tz=tz, name=names[0])
-        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)], name=names[1])
+        other = other_box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)], name=names[1])
 
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res = dti + other
+        xbox = get_upcast_box(box, other)
+
+        with tm.assert_produces_warning(PerformanceWarning, clear=[dtl]):
+            res = op(dti, other)
+
         expected = DatetimeIndex(
-            [dti[n] + other[n] for n in range(len(dti))], name=names[2], freq="infer"
+            [op(dti[n], other[n]) for n in range(len(dti))], name=names[2], freq="infer"
         )
-        tm.assert_index_equal(res, expected)
-
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res2 = other + dti
-        tm.assert_index_equal(res2, expected)
-
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
-    def test_dti_sub_offset_index(self, tz_naive_fixture, names):
-        # GH#18824, GH#19744
-        tz = tz_naive_fixture
-        dti = pd.date_range("2017-01-01", periods=2, tz=tz, name=names[0])
-        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)], name=names[1])
-
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res = dti - other
-        expected = DatetimeIndex(
-            [dti[n] - other[n] for n in range(len(dti))], name=names[2], freq="infer"
-        )
-        tm.assert_index_equal(res, expected)
-
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
-    def test_dti_with_offset_series(self, tz_naive_fixture, names):
-        # GH#18849
-        tz = tz_naive_fixture
-        dti = pd.date_range("2017-01-01", periods=2, tz=tz, name=names[0])
-        other = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)], name=names[1])
-
-        expected_add = Series(
-            [dti[n] + other[n] for n in range(len(dti))], name=names[2]
-        )
-
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res = dti + other
-        tm.assert_series_equal(res, expected_add)
-
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res2 = other + dti
-        tm.assert_series_equal(res2, expected_add)
-
-        expected_sub = Series(
-            [dti[n] - other[n] for n in range(len(dti))], name=names[2]
-        )
-
-        with tm.assert_produces_warning(
-            PerformanceWarning, clear=[pd.core.arrays.datetimelike]
-        ):
-            res3 = dti - other
-        tm.assert_series_equal(res3, expected_sub)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(res, expected)
 
 
 @pytest.mark.parametrize("years", [-1, 0, 1])
