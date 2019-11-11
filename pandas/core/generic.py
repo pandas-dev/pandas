@@ -19,6 +19,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     Union,
 )
 import warnings
@@ -89,6 +90,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -552,7 +554,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return getattr(self, self._stat_axis_name)
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int]:
         """
         Return a tuple of axis dimensions
         """
@@ -568,7 +570,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Return an int representing the number of axes / array dimensions.
 
@@ -591,7 +593,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._data.ndim
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return an int representing the number of elements in this object.
 
@@ -624,7 +626,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self,
+                 labels: Sequence[Any],
+                 axis=0,
+                 inplace=False) -> "NDFrame":
         """
         Assign desired index to given axis.
 
@@ -727,7 +732,7 @@ class NDFrame(PandasObject, SelectionMixin):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self, *args, **kwargs) -> "NDFrame":
         """
         Permute the dimensions of the %(klass)s
 
@@ -771,7 +776,10 @@ class NDFrame(PandasObject, SelectionMixin):
         nv.validate_transpose(tuple(), kwargs)
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
-    def swapaxes(self, axis1, axis2, copy=True):
+    def swapaxes(self,
+                 axis1: int,
+                 axis2: int,
+                 copy=True) -> "NDFrame":
         """
         Interchange axes and swap values axes appropriately.
 
@@ -796,7 +804,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_values, *new_axes).__finalize__(self)
 
-    def droplevel(self, level, axis=0):
+    def droplevel(self,
+                  level: Union[int, str, Sequence[Union[int, str]]],
+                  axis=0) -> "NDFrame":
         """
         Return DataFrame with requested index / column level(s) removed.
 
@@ -855,7 +865,8 @@ class NDFrame(PandasObject, SelectionMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self, item):
+    def pop(self,
+            item: str) -> "pd.Series":
         """
         Return item and drop from frame. Raise KeyError if not found.
 
@@ -905,7 +916,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def squeeze(self, axis=None):
+    def squeeze(self, axis=None) -> "NDFrame":
         """
         Squeeze 1 dimensional axis objects into scalars.
 
@@ -1016,7 +1027,7 @@ class NDFrame(PandasObject, SelectionMixin):
             )
         ]
 
-    def swaplevel(self, i=-2, j=-1, axis=0):
+    def swaplevel(self, i=-2, j=-1, axis=0) -> "NDFrame":
         """
         Swap levels i and j in a MultiIndex on a particular axis
 
@@ -1038,7 +1049,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    def rename(self, *args, **kwargs):
+    def rename(self, *args, **kwargs) -> "NDFrame":
         """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
@@ -1203,7 +1214,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return result.__finalize__(self)
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
-    def rename_axis(self, mapper=sentinel, **kwargs):
+    def rename_axis(self, mapper=sentinel, **kwargs) -> "NDFrame":
         """
         Set the name of the axis for the index or columns.
 
@@ -1373,7 +1384,10 @@ class NDFrame(PandasObject, SelectionMixin):
             if not inplace:
                 return result
 
-    def _set_axis_name(self, name, axis=0, inplace=False):
+    def _set_axis_name(self,
+                       name: Union[str, List[str]],
+                       axis=0,
+                       inplace=False) -> "NDFrame":
         """
         Set the name(s) of the axis.
 
@@ -1442,7 +1456,8 @@ class NDFrame(PandasObject, SelectionMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other):
+    def equals(self,
+               other: "NDFrame") -> bool:
         """
         Test whether two objects contain the same elements.
 
@@ -1581,7 +1596,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     __bool__ = __nonzero__
 
-    def bool(self):
+    def bool(self) -> bool:
         """
         Return the bool of a single element PandasObject.
 
@@ -1619,7 +1634,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # operations should utilize/extend these methods when possible so that we
     # have consistent precedence and validation logic throughout the library.
 
-    def _is_level_reference(self, key, axis=0):
+    def _is_level_reference(self,
+                            key: str,
+                            axis=0) -> bool:
         """
         Test whether a key is a level reference for a given axis.
 
@@ -1649,7 +1666,9 @@ class NDFrame(PandasObject, SelectionMixin):
             and not self._is_label_reference(key, axis=axis)
         )
 
-    def _is_label_reference(self, key, axis=0):
+    def _is_label_reference(self,
+                            key: str,
+                            axis=0) -> bool:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1678,7 +1697,9 @@ class NDFrame(PandasObject, SelectionMixin):
             and any(key in self.axes[ax] for ax in other_axes)
         )
 
-    def _is_label_or_level_reference(self, key, axis=0):
+    def _is_label_or_level_reference(self,
+                                     key: str,
+                                     axis=0) -> bool:
         """
         Test whether a key is a label or level reference for a given axis.
 
@@ -1702,7 +1723,9 @@ class NDFrame(PandasObject, SelectionMixin):
             key, axis=axis
         )
 
-    def _check_label_or_level_ambiguity(self, key, axis=0):
+    def _check_label_or_level_ambiguity(self,
+                                        key: str,
+                                        axis=0) -> None:
         """
         Check whether `key` is ambiguous.
 
@@ -1751,7 +1774,9 @@ class NDFrame(PandasObject, SelectionMixin):
             )
             raise ValueError(msg)
 
-    def _get_label_or_level_values(self, key, axis=0):
+    def _get_label_or_level_values(self,
+                                   key: str,
+                                   axis=0) -> np.ndarray:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1823,7 +1848,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return values
 
-    def _drop_labels_or_levels(self, keys, axis=0):
+    def _drop_labels_or_levels(self,
+                               keys: Union[str, List[str]],
+                               axis=0) -> "NDFrame":
         """
         Drop labels and/or levels for the given `axis`.
 
@@ -1959,7 +1986,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return key in self._info_axis
 
     @property
-    def empty(self):
+    def empty(self) -> bool:
         """
         Indicator whether DataFrame is empty.
 
@@ -2474,7 +2501,10 @@ class NDFrame(PandasObject, SelectionMixin):
             indent=indent,
         )
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(self,
+               path_or_buf: Union[str, FilePathOrBuffer],
+               key: str,
+               **kwargs) -> None:
         """
         Write the contained data to an HDF5 file using HDFStore.
 
@@ -2579,7 +2609,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
-    def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):
+    def to_msgpack(self,
+                   path_or_buf: Optional[FilePathOrBuffer] =None,
+                   encoding="utf-8",
+                   **kwargs) -> None:
         """
         Serialize object to input file path using msgpack format.
 
@@ -2775,7 +2808,10 @@ class NDFrame(PandasObject, SelectionMixin):
             method=method,
         )
 
-    def to_pickle(self, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
+    def to_pickle(self,
+                  path: str,
+                  compression="infer",
+                  protocol=pickle.HIGHEST_PROTOCOL) -> None:
         """
         Pickle (serialize) object to file.
 
@@ -2831,7 +2867,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         to_pickle(self, path, compression=compression, protocol=protocol)
 
-    def to_clipboard(self, excel=True, sep=None, **kwargs):
+    def to_clipboard(self, excel=True, sep=None, **kwargs) -> None:
         r"""
         Copy object to the system clipboard.
 
