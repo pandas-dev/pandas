@@ -21,25 +21,6 @@ _bias_template = """
             Arguments and keyword arguments to be passed into func.
 """
 
-_pairwise_template = """
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
-            If not supplied then will default to self and produce pairwise
-            output.
-        pairwise : bool, default None
-            If False then only matching columns between self and other will be
-            used and the output will be a DataFrame.
-            If True then all pairwise combinations will be calculated and the
-            output will be a MultiIndex DataFrame in the case of DataFrame
-            inputs. In the case of missing elements, only complete pairwise
-            observations will be used.
-        bias : bool, default False
-           Use a standard estimation bias correction.
-        **kwargs
-           Keyword arguments to be passed into func.
-"""
-
 
 class EWM(_Rolling):
     r"""
@@ -317,10 +298,26 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm")
     @Appender(_doc_template)
-    @Appender(_pairwise_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
         """
         Exponential weighted sample covariance.
+
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndex DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        bias : bool, default False
+            Use a standard estimation bias correction
+        **kwargs
+           Keyword arguments to be passed into func.
         """
         if other is None:
             other = self._selected_obj
@@ -348,10 +345,24 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm")
     @Appender(_doc_template)
-    @Appender(_pairwise_template)
     def corr(self, other=None, pairwise=None, **kwargs):
         """
         Exponential weighted sample correlation.
+
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndex DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        **kwargs
+           Keyword arguments to be passed into func.
         """
         if other is None:
             other = self._selected_obj

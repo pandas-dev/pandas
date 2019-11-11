@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pytest
 
@@ -307,24 +309,13 @@ def test_is_datetime_arraylike():
     assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
-def test_is_datetimelike():
-    assert not com.is_datetimelike([1, 2, 3])
-    assert not com.is_datetimelike(pd.Index([1, 2, 3]))
-
-    assert com.is_datetimelike(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetimelike(pd.PeriodIndex([], freq="A"))
-    assert com.is_datetimelike(np.array([], dtype=np.datetime64))
-    assert com.is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.is_datetimelike(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimelike(s)
+integer_dtypes = []  # type: List
 
 
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2])]
+    integer_dtypes
+    + [pd.Series([1, 2])]
     + ALL_INT_DTYPES
     + to_numpy_dtypes(ALL_INT_DTYPES)
     + ALL_EA_INT_DTYPES
@@ -350,9 +341,13 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
+signed_integer_dtypes = []  # type: List
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2])]
+    signed_integer_dtypes
+    + [pd.Series([1, 2])]
     + SIGNED_INT_DTYPES
     + to_numpy_dtypes(SIGNED_INT_DTYPES)
     + SIGNED_EA_INT_DTYPES
@@ -382,9 +377,13 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
+unsigned_integer_dtypes = []  # type: List
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2], dtype=np.uint32)]
+    unsigned_integer_dtypes
+    + [pd.Series([1, 2], dtype=np.uint32)]
     + UNSIGNED_INT_DTYPES
     + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
     + UNSIGNED_EA_INT_DTYPES
@@ -492,34 +491,6 @@ def test_is_datetime_or_timedelta_dtype():
     assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-
-
-def test_is_numeric_v_string_like():
-    assert not com.is_numeric_v_string_like(1, 1)
-    assert not com.is_numeric_v_string_like(1, "foo")
-    assert not com.is_numeric_v_string_like("foo", "foo")
-    assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
-    assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
-
-    assert com.is_numeric_v_string_like(np.array([1]), "foo")
-    assert com.is_numeric_v_string_like("foo", np.array([1]))
-    assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
-    assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
-
-
-def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_numeric(1, 1)
-    assert not com.is_datetimelike_v_numeric(dt, dt)
-    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
-    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
 
 
 def test_needs_i8_conversion():

@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 

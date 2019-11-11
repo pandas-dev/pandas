@@ -193,6 +193,8 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
+        import matplotlib.colors
+
         if "color" not in self.kwds and "colors" in self.kwds:
             warnings.warn(
                 (
@@ -234,13 +236,14 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                if re.match("^[a-z]+?", s) is not None:
-                    raise ValueError(
-                        "Cannot pass 'style' string with a color "
-                        "symbol and 'color' keyword argument. Please"
-                        " use one or the other or pass 'style' "
-                        "without a color symbol"
-                    )
+                for char in s:
+                    if char in matplotlib.colors.BASE_COLORS:
+                        raise ValueError(
+                            "Cannot pass 'style' string with a color "
+                            "symbol and 'color' keyword argument. Please"
+                            " use one or the other or pass 'style' "
+                            "without a color symbol"
+                        )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:

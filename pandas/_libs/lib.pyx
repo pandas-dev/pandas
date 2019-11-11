@@ -125,7 +125,7 @@ def is_scalar(val: object) -> bool:
         - Interval
         - DateOffset
         - Fraction
-        - Number
+        - Number.
 
     Returns
     -------
@@ -698,8 +698,7 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(const int64_t[:] label,
-                     const int64_t[:] starts):
+def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -868,9 +867,10 @@ def is_list_like(obj: object, allow_sets: bool = True):
 
     Parameters
     ----------
-    obj : The object to check
-    allow_sets : boolean, default True
-        If this parameter is False, sets will not be considered list-like
+    obj : object
+        The object to check.
+    allow_sets : bool, default True
+        If this parameter is False, sets will not be considered list-like.
 
         .. versionadded:: 0.24.0
 
@@ -1219,8 +1219,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
                 return value
 
             # its ndarray like but we can't handle
-            raise ValueError("cannot infer type for {typ}"
-                             .format(typ=type(value)))
+            raise ValueError(f"cannot infer type for {type(value)}")
 
     else:
         if not isinstance(value, list):
@@ -1497,9 +1496,8 @@ cdef class Validator:
         return self.is_valid(value) or self.is_valid_null(value)
 
     cdef bint is_value_typed(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_value_typed'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_value_typed')
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or util.is_nan(value)
@@ -1635,9 +1633,8 @@ cdef class TemporalValidator(Validator):
         return self.is_value_typed(value) or self.is_valid_null(value)
 
     cdef bint is_valid_null(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_valid_null'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_valid_null')
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
@@ -1677,6 +1674,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+# TODO: only non-here use is in test
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -1720,6 +1718,7 @@ cdef class AnyTimedeltaValidator(TimedeltaValidator):
         return is_timedelta(value)
 
 
+# TODO: only non-here use is in test
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
     cdef:
@@ -1924,7 +1923,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
+                    raise type(e)(str(e) + f" at position {i}")
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
 
@@ -2168,8 +2167,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
-                   bint convert=1):
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
