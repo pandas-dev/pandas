@@ -17,7 +17,6 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -463,12 +462,8 @@ def array_equivalent(left, right, strict_nan=False):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
-    # numpy will will not allow this type of datetimelike vs integer comparison
-    elif is_datetimelike_v_numeric(left, right):
-        return False
-
-    # M8/m8
-    elif needs_i8_conversion(left) and needs_i8_conversion(right):
+    elif needs_i8_conversion(left) or needs_i8_conversion(right):
+        # datetime64, timedelta64, Period
         if not is_dtype_equal(left.dtype, right.dtype):
             return False
 
