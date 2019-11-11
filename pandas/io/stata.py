@@ -139,7 +139,7 @@ Read a Stata dta file in 10,000 line chunks:
 )
 
 _data_method_doc = """
-Read observations from Stata file, converting them into a dataframe
+Read observations from Stata file, converting them into a dataframe.
 
 .. deprecated::
     This is a legacy method.  Use `read` in new code.

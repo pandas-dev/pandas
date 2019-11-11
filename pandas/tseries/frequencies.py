@@ -71,7 +71,7 @@ _name_to_offset_map = {
 def to_offset(freq):
     """
     Return DateOffset object from string or tuple representation
-    or datetime.timedelta object
+    or datetime.timedelta object.
 
     Parameters
     ----------
