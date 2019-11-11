@@ -1260,26 +1260,6 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
-def _is_unorderable_exception(e: TypeError) -> bool:
-    """
-    Check if the exception raised is an unorderable exception.
-
-    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
-    we need to condition based on Python version.
-
-    Parameters
-    ----------
-    e : Exception or sub-class
-        The exception object to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the exception raised is an unorderable exception.
-    """
-    return "'>' not supported between instances of" in str(e)
-
-
 def needs_i8_conversion(arr_or_dtype):
     """
     Check whether the array or dtype should be converted to int64.
