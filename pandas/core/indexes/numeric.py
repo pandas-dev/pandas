@@ -15,6 +15,8 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_scalar,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -45,7 +47,7 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
-
+        cls._validate_dtype(cls, dtype)
         if fastpath is not None:
             warnings.warn(
                 "The 'fastpath' keyword is deprecated, and will be "
@@ -71,6 +73,19 @@ class NumericIndex(Index):
         if name is None and hasattr(data, "name"):
             name = data.name
         return cls._simple_new(subarr, name=name)
+
+    def _validate_dtype(cls, dtype):
+        if not dtype:
+            return
+        if cls._typ == "int64index":
+            if not is_signed_integer_dtype(dtype):
+                raise ValueError("Incorrect `dtype` passed")
+        elif cls._typ == "uint64index":
+            if not is_unsigned_integer_dtype(dtype):
+                raise ValueError("Incorrect `dtype` passed")
+        elif cls._typ == "float64index":
+            if not is_float_dtype(dtype):
+                raise ValueError("Incorrect `dtype` passed")
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
