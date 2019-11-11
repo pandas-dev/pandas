@@ -698,7 +698,7 @@ class RangeIndex(Int64Index):
         # In this case return an empty range index.
         return RangeIndex(0, 0).rename(name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         return the length of the RangeIndex
         """

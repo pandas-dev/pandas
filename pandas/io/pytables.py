@@ -540,7 +540,7 @@ class HDFStore:
                 return True
         return False
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.groups())
 
     def __repr__(self) -> str:

@@ -366,7 +366,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "categorical"
 
     @property

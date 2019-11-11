@@ -288,7 +288,7 @@ class Block(PandasObject):
 
         return result
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
     def __getstate__(self):

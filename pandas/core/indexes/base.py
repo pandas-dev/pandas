@@ -649,10 +649,12 @@ class Index(IndexOpsMixin, PandasObject):
     # Array-Like Methods
 
     # ndarray compat
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Return the length of the Index.
         """
+        # Assertion needed for mypy, see GH#29475
+        assert self._data is not None
         return len(self._data)
 
     def __array__(self, dtype=None):
@@ -1807,7 +1809,7 @@ class Index(IndexOpsMixin, PandasObject):
         return lib.infer_dtype(self, skipna=False)
 
     @cache_readonly
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------

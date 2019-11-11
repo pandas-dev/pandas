@@ -837,7 +837,7 @@ class Expr:
     def __repr__(self) -> str:
         return printing.pprint_thing(self.terms)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.expr)
 
     def parse(self):
