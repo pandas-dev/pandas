@@ -113,8 +113,9 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
-        has_index = self.index is not None
-        incr = self.increment
+
+        result = _get_result_array(None, self.nresults, len(self.dummy))
+        it = <flatiter>PyArray_IterNew(result)
 
         try:
             for i in range(self.nresults):
@@ -131,26 +132,18 @@ cdef class Reducer:
                     if self.typ is not None:
 
                         # recreate with the index if supplied
-                        if has_index:
-
-                            cached_typ = self.typ(
-                                chunk, index=self.index, name=name)
-
-                        else:
-
-                            # use the passsed typ, sans index
-                            cached_typ = self.typ(chunk, name=name)
+                        cached_typ = self.typ(
+                            chunk, index=self.index, name=name)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
 
-                    if has_index:
-                        object.__setattr__(cached_typ, 'index', self.index)
-
+                    object.__setattr__(cached_typ, 'index', self.index)
                     object.__setattr__(
                         cached_typ._data._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
+
                 else:
                     res = self.f(chunk)
 
@@ -158,10 +151,9 @@ cdef class Reducer:
                         and util.is_array(res.values)):
                     res = res.values
                 if i == 0:
-                    result = _get_result_array(res,
-                                               self.nresults,
-                                               len(self.dummy))
-                    it = <flatiter>PyArray_IterNew(result)
+                    # On the first pass, we check the output shape to see
+                    #  if this looks like a reduction.
+                    _get_result_array(res, 0, len(self.dummy))
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
@@ -170,9 +162,7 @@ cdef class Reducer:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
-
+        result = maybe_convert_objects(result)
         return result
 
 
