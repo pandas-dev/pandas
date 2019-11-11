@@ -1,12 +1,14 @@
-from typing import Dict, Optional, Sequence, Type
+from typing import Dict, Hashable, Optional, Sequence, Type
 
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
+import pandas as pd
 from pandas._typing import Dtype
-from pandas.core.arrays import PandasArray
+import pandas.core.accessor as accessor
+from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 
 
@@ -101,20 +103,17 @@ class DictArray(PandasArray):
         raise NotImplementedError
 
 
-"""
-@register_series_accessor("dict")
-class DictAccessor:
-
+class DictAccessor(accessor.PandasDelegate):
     def __init__(self, obj: DictArray):
-        if not isinstance(obj, DictArray):
+        if not isinstance(obj.array, DictArray):
             raise AttributeError("Can only use .dict accessor with a DictArray")
-        self._obj = obj
+        self._obj = obj.array
 
     def __getitem__(self, key: Hashable):
         return pd.Series(x[key] for x in self._obj)
 
     def get(self, key: Hashable, default=np.nan):
+        # TODO: default should be positional only
         # TODO: justify np.nan - maybe because will coerce that way in
         # resulting Series construction?
-        return pd.Series(x.get(key, default=None) for x in self._obj)
-"""
+        return pd.Series(x.get(key, None) for x in self._obj)

@@ -54,6 +54,7 @@ from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.dict import DictAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
@@ -4759,6 +4760,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
+    dict = CachedAccessor("dict", DictAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
