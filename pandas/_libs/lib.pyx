@@ -1962,7 +1962,33 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint convert_to_nullable_integer=0):
     """
     Type inference function-- convert object array to proper dtype
+
+    Parameters
+    ----------
+    values : ndarray
+        Array of object elements to convert.
+    try_float : bool, default False
+        If an array-like object contains only float or NaN values is
+        encountered, whether to convert and return an array of float dtype.
+    safe : bool, default False
+        Whether to upcast numeric type (e.g. int cast to float). If set to
+        True, no upcasting will be performed.
+    convert_datetime : bool, default False
+        If an array-like object contains only datetime values or NaT is
+        encountered, whether to convert and return an array of M8[ns] dtype.
+    convert_timedelta : bool, default False
+        If an array-like object contains only timedelta values or NaT is
+        encountered, whether to convert and return an array of m8[ns] dtype.
+    convert_to_nullable_integer : bool, default False
+        If an array-like object contains only interger values (and NaN) is
+        encountered, whether to convert and return an IntegerArray.
+
+    Returns
+    -------
+    array : array of converted object values to more specific dtypes if
+    pplicable
     """
+
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
