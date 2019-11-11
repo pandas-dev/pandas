@@ -17,6 +17,7 @@ from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
+    _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
     is_categorical,
@@ -1227,8 +1228,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError("Can only tuple-index with a MultiIndex")
 
-            # unorderable exception
-            if "'>' not supported between instances of" in str(e):
+            # python 3 type errors should be raised
+            if _is_unorderable_exception(e):
                 raise IndexError(key)
 
             if com.is_bool_indexer(key):
