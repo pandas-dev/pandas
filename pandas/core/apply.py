@@ -1,10 +1,10 @@
+import abc
 import inspect
 from typing import TYPE_CHECKING, Iterator, Type
 
 import numpy as np
 
 from pandas._libs import reduction as libreduction
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -48,26 +48,25 @@ def frame_apply(
     )
 
 
-class FrameApply:
+class FrameApply(metaclass=abc.ABCMeta):
 
     # ---------------------------------------------------------------
     # Abstract Methods
+    axis: int
 
     @property
-    def axis(self) -> int:
-        raise AbstractMethodError(self)
-
-    @property
+    @abc.abstractmethod
     def result_index(self) -> "Index":
-        raise AbstractMethodError(self)
+        pass
 
     @property
+    @abc.abstractmethod
     def result_columns(self) -> "Index":
-        raise AbstractMethodError(self)
+        pass
 
-    @property
+    @abc.abstractmethod
     def series_generator(self) -> Iterator["Series"]:
-        raise AbstractMethodError(self)
+        pass
 
     # ---------------------------------------------------------------
 
