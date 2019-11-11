@@ -234,6 +234,7 @@ class TestTableOrient:
                 ),
             ]
         )
+
         assert result == expected
 
     def test_to_json(self):
@@ -323,6 +324,7 @@ class TestTableOrient:
             ),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
+
         assert result == expected
 
     def test_to_json_float_index(self):
@@ -352,6 +354,7 @@ class TestTableOrient:
                 ),
             ]
         )
+
         assert result == expected
 
     def test_to_json_period_index(self):
@@ -372,6 +375,7 @@ class TestTableOrient:
             OrderedDict([("index", "2016-02-01T00:00:00.000Z"), ("values", 1)]),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
+
         assert result == expected
 
     def test_to_json_categorical_index(self):
@@ -406,6 +410,7 @@ class TestTableOrient:
                 ),
             ]
         )
+
         assert result == expected
 
     def test_date_format_raises(self):
@@ -542,6 +547,7 @@ class TestTableOrient:
                 ),
             ]
         )
+
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -596,7 +602,8 @@ class TestTableOrient:
         )
         result = df.to_json(orient="table")
         js = json.loads(result)
-        assert js["schema"]["fields"][1]["name"] == 1451606400000
+        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
+        # TODO - below expectation is not correct; see GH 28256
         assert js["schema"]["fields"][2]["name"] == 10000
 
     @pytest.mark.parametrize(

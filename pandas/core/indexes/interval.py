@@ -121,7 +121,7 @@ def _get_interval_closed_bounds(interval):
 def _new_IntervalIndex(cls, d):
     """
     This is called upon unpickling, rather than the default which doesn't have
-    arguments and breaks __new__
+    arguments and breaks __new__.
     """
     return cls.from_arrays(**d)
 
@@ -250,7 +250,22 @@ class IntervalIndex(IntervalMixin, Index):
         return result
 
     @classmethod
-    @Appender(_interval_shared_docs["from_breaks"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_breaks"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_breaks(cls, breaks, closed="right", name=None, copy=False, dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -259,7 +274,22 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs["from_arrays"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_arrays"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_arrays(
         cls, left, right, closed="right", name=None, copy=False, dtype=None
     ):
@@ -270,7 +300,22 @@ class IntervalIndex(IntervalMixin, Index):
         return cls._simple_new(array, name=name)
 
     @classmethod
-    @Appender(_interval_shared_docs["from_tuples"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["from_tuples"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
+        IntervalIndex([(0, 1], (1, 2]],
+                       closed='right',
+                       dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def from_tuples(cls, data, closed="right", name=None, copy=False, dtype=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
@@ -347,7 +392,7 @@ class IntervalIndex(IntervalMixin, Index):
     def left(self):
         """
         Return the left endpoints of each Interval in the IntervalIndex as
-        an Index
+        an Index.
         """
         return self._data._left
 
@@ -355,7 +400,7 @@ class IntervalIndex(IntervalMixin, Index):
     def right(self):
         """
         Return the right endpoints of each Interval in the IntervalIndex as
-        an Index
+        an Index.
         """
         return self._data._right
 
@@ -363,11 +408,31 @@ class IntervalIndex(IntervalMixin, Index):
     def closed(self):
         """
         Whether the intervals are closed on the left-side, right-side, both or
-        neither
+        neither.
         """
         return self._data._closed
 
-    @Appender(_interval_shared_docs["set_closed"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["set_closed"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> index = pd.interval_range(0, 3)
+        >>> index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      closed='right',
+                      dtype='interval[int64]')
+        >>> index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
+                      closed='both',
+                      dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def set_closed(self, closed):
         if closed not in _VALID_CLOSED:
             msg = "invalid option for 'closed': {closed}"
@@ -381,7 +446,7 @@ class IntervalIndex(IntervalMixin, Index):
     def length(self):
         """
         Return an Index with entries denoting the length of each Interval in
-        the IntervalIndex
+        the IntervalIndex.
         """
         return self._data.length
 
@@ -472,7 +537,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def mid(self):
         """
-        Return the midpoint of each Interval in the IntervalIndex as an Index
+        Return the midpoint of each Interval in the IntervalIndex as an Index.
         """
         return self._data.mid
 
@@ -682,7 +747,7 @@ class IntervalIndex(IntervalMixin, Index):
         Returns
         -------
         key: scalar or list-like
-            The original key if no conversion occured, int if converted scalar,
+            The original key if no conversion occurred, int if converted scalar,
             Int64Index if converted list-like.
         """
         original = key
@@ -1096,12 +1161,8 @@ class IntervalIndex(IntervalMixin, Index):
         return header + list(self._format_native_types(**kwargs))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
-        """ actually format my specific types """
-        from pandas.io.formats.format import ExtensionArrayFormatter
-
-        return ExtensionArrayFormatter(
-            values=self, na_rep=na_rep, justify="all", leading_space=False
-        ).get_result()
+        # GH 28210: use base method but with different default na_rep
+        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _format_data(self, name=None):
 
@@ -1172,11 +1233,41 @@ class IntervalIndex(IntervalMixin, Index):
             and self.closed == other.closed
         )
 
-    @Appender(_interval_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["contains"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+                  closed='right',
+                  dtype='interval[int64]')
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
+        """
+            ),
+        )
+    )
     def contains(self, other):
         return self._data.contains(other)
 
-    @Appender(_interval_shared_docs["overlaps"] % _index_doc_kwargs)
+    @Appender(
+        _interval_shared_docs["overlaps"]
+        % dict(
+            klass="IntervalIndex",
+            examples=textwrap.dedent(
+                """\
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+        """
+            ),
+        )
+    )
     def overlaps(self, other):
         return self._data.overlaps(other)
 
@@ -1249,7 +1340,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         return self[mask]
 
-    def _setop(op_name, sort=None):
+    def _setop(op_name: str, sort=None):
         @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
@@ -1316,24 +1407,24 @@ def interval_range(
     Parameters
     ----------
     start : numeric or datetime-like, default None
-        Left bound for generating intervals
+        Left bound for generating intervals.
     end : numeric or datetime-like, default None
-        Right bound for generating intervals
-    periods : integer, default None
-        Number of periods to generate
-    freq : numeric, string, or DateOffset, default None
+        Right bound for generating intervals.
+    periods : int, default None
+        Number of periods to generate.
+    freq : numeric, str, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
         for numeric and 'D' for datetime-like.
-    name : string, default None
-        Name of the resulting IntervalIndex
+    name : str, default None
+        Name of the resulting IntervalIndex.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
 
     Returns
     -------
-    rng : IntervalIndex
+    IntervalIndex
 
     See Also
     --------

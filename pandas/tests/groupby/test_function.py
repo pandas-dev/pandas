@@ -1,4 +1,5 @@
 import builtins
+import datetime as dt
 from io import StringIO
 from itertools import product
 from string import ascii_lowercase
@@ -9,7 +10,16 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td, testing as tm
 
@@ -368,7 +378,7 @@ def test_median_empty_bins(observed):
 
 
 @pytest.mark.parametrize(
-    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64"]
+    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64", "uint64"]
 )
 @pytest.mark.parametrize(
     "method,data",
@@ -595,6 +605,51 @@ def test_nlargest():
         index=MultiIndex.from_arrays([list("aaabbb"), [2, 3, 1, 6, 5, 7]]),
     )
     tm.assert_series_equal(gb.nlargest(3, keep="last"), e)
+
+
+def test_nlargest_mi_grouper():
+    # see gh-21411
+    npr = np.random.RandomState(123456789)
+
+    dts = date_range("20180101", periods=10)
+    iterables = [dts, ["one", "two"]]
+
+    idx = MultiIndex.from_product(iterables, names=["first", "second"])
+    s = Series(npr.randn(20), index=idx)
+
+    result = s.groupby("first").nlargest(1)
+
+    exp_idx = MultiIndex.from_tuples(
+        [
+            (dts[0], dts[0], "one"),
+            (dts[1], dts[1], "one"),
+            (dts[2], dts[2], "one"),
+            (dts[3], dts[3], "two"),
+            (dts[4], dts[4], "one"),
+            (dts[5], dts[5], "one"),
+            (dts[6], dts[6], "one"),
+            (dts[7], dts[7], "one"),
+            (dts[8], dts[8], "two"),
+            (dts[9], dts[9], "one"),
+        ],
+        names=["first", "first", "second"],
+    )
+
+    exp_values = [
+        2.2129019979039612,
+        1.8417114045748335,
+        0.858963679564603,
+        1.3759151378258088,
+        0.9430284594687134,
+        0.5296914208183142,
+        0.8318045593815487,
+        -0.8476703342910327,
+        0.3804446884133735,
+        -0.8028845810770998,
+    ]
+
+    expected = Series(exp_values, index=exp_idx)
+    tm.assert_series_equal(result, expected, check_exact=False, check_less_precise=True)
 
 
 def test_nsmallest():
@@ -1015,6 +1070,42 @@ def test_nunique_with_timegrouper():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "key, data, dropna, expected",
+    [
+        (
+            ["x", "x", "x"],
+            [Timestamp("2019-01-01"), NaT, Timestamp("2019-01-01")],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            True,
+            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "y", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+        (
+            ["x", "x", "x", "x", "y"],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
+            False,
+            Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
+        ),
+    ],
+)
+def test_nunique_with_NaT(key, data, dropna, expected):
+    # GH 27951
+    df = pd.DataFrame({"key": key, "data": data})
+    result = df.groupby(["key"])["data"].nunique(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
 def test_nunique_preserves_column_level_names():
     # GH 23222
     test = pd.DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
@@ -1325,6 +1416,29 @@ def test_quantile_out_of_bounds_q_raises():
 
     with pytest.raises(ValueError, match="Got '-1.0' instead"):
         g.quantile(-1)
+
+
+def test_quantile_missing_group_values_no_segfaults():
+    # GH 28662
+    data = np.array([1.0, np.nan, 1.0])
+    df = pd.DataFrame(dict(key=data, val=range(3)))
+
+    # Random segfaults; would have been guaranteed in loop
+    grp = df.groupby("key")
+    for _ in range(100):
+        grp.quantile()
+
+
+def test_quantile_missing_group_values_correct_results():
+    # GH 28662
+    data = np.array([1.0, np.nan, 3.0, np.nan])
+    df = pd.DataFrame(dict(key=data, val=range(4)))
+
+    result = df.groupby("key").quantile()
+    expected = pd.DataFrame(
+        [1.0, 3.0], index=pd.Index([1.0, 3.0], name="key"), columns=["val"]
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 # pipe

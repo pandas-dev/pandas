@@ -89,10 +89,9 @@ def concat_compat(to_concat, axis=0):
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x):
-        try:
-            return x.shape[axis] > 0
-        except Exception:
+        if x.ndim <= axis:
             return True
+        return x.shape[axis] > 0
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
@@ -186,25 +185,24 @@ def concat_categorical(to_concat, axis=0):
 
 def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     """
-    Combine list-like of Categorical-like, unioning categories. All
-    categories must have the same dtype.
+    Combine list-like of Categorical-like, unioning categories.
+
+    All categories must have the same dtype.
 
     Parameters
     ----------
-    to_union : list-like of Categorical, CategoricalIndex,
-               or Series with dtype='category'
-    sort_categories : boolean, default False
+    to_union : list-like
+        Categorical, CategoricalIndex, or Series with dtype='category'.
+    sort_categories : bool, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order : boolean, default False
+    ignore_order : bool, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
-    result : Categorical
+    Categorical
 
     Raises
     ------

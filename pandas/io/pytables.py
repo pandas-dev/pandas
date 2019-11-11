@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_timedelta64_dtype,
 )
@@ -40,8 +40,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
-    SparseDataFrame,
-    SparseSeries,
     TimedeltaIndex,
     concat,
     isna,
@@ -173,12 +171,7 @@ use the format='fixed(f)|table(t)' keyword instead
 """
 
 # map object types
-_TYPE_MAP = {
-    Series: "series",
-    SparseSeries: "sparse_series",
-    DataFrame: "frame",
-    SparseDataFrame: "sparse_frame",
-}
+_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -186,9 +179,7 @@ _STORER_MAP = {
     "DataFrame": "LegacyFrameFixed",
     "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
-    "sparse_series": "SparseSeriesFixed",
     "frame": "FrameFixed",
-    "sparse_frame": "SparseFrameFixed",
 }
 
 # table class map
@@ -405,11 +396,12 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
     except (ValueError, TypeError, KeyError):
-        # if there is an error, close the store
-        try:
-            store.close()
-        except AttributeError:
-            pass
+        if not isinstance(path_or_buf, HDFStore):
+            # if there is an error, close the store if we opened it.
+            try:
+                store.close()
+            except AttributeError:
+                pass
 
         raise
 
@@ -551,7 +543,7 @@ class HDFStore:
     def __len__(self):
         return len(self.groups())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{type}\nFile path: {path}\n".format(
             type=type(self), path=pprint_thing(self._path)
         )
@@ -1032,10 +1024,10 @@ class HDFStore:
             table(t) : table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching
-                       / selecting subsets of the data
-        append       : boolean, default True, append the input data to the
-            existing
-        data_columns :  list of columns, or True, default None
+                       / selecting subsets of the data.
+        append       : bool, default True
+            Append the input data to the existing.
+        data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
@@ -1045,8 +1037,9 @@ class HDFStore:
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : boolean, default False, do not write an ALL nan row to
-            the store settable by the option 'io.hdf.dropna_table'
+        dropna       : bool, default False
+            Do not write an ALL nan row to the store settable
+            by the option 'io.hdf.dropna_table'.
 
         Notes
         -----
@@ -1732,7 +1725,7 @@ class IndexCol:
         self.table = table
         return self
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         temp = tuple(
             map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind))
         )
@@ -1791,7 +1784,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:  # noqa: E722
+        except Exception:
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -2059,7 +2052,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         temp = tuple(
             map(
                 pprint_thing, (self.name, self.cname, self.dtype, self.kind, self.shape)
@@ -2525,7 +2518,7 @@ class Fixed:
     def format_type(self):
         return "fixed"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -2834,7 +2827,7 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names)
         ):
             # write the level
-            if is_extension_type(lev):
+            if is_extension_array_dtype(lev):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -2902,7 +2895,12 @@ class GenericFixed(Fixed):
             kwargs["freq"] = node._v_attrs["freq"]
 
         if "tz" in node._v_attrs:
-            kwargs["tz"] = node._v_attrs["tz"]
+            if isinstance(node._v_attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = node._v_attrs["tz"]
 
         if kind in ("date", "datetime"):
             index = factory(
@@ -3073,83 +3071,6 @@ class SeriesFixed(GenericFixed):
         self.attrs.name = obj.name
 
 
-class SparseFixed(GenericFixed):
-    def validate_read(self, kwargs):
-        """
-        we don't support start, stop kwds in Sparse
-        """
-        kwargs = super().validate_read(kwargs)
-        if "start" in kwargs or "stop" in kwargs:
-            raise NotImplementedError(
-                "start and/or stop are not supported in fixed Sparse reading"
-            )
-        return kwargs
-
-
-class SparseSeriesFixed(SparseFixed):
-    pandas_kind = "sparse_series"
-    attributes = ["name", "fill_value", "kind"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index("index")
-        sp_values = self.read_array("sp_values")
-        sp_index = self.read_index("sp_index")
-        return SparseSeries(
-            sp_values,
-            index=index,
-            sparse_index=sp_index,
-            kind=self.kind or "block",
-            fill_value=self.fill_value,
-            name=self.name,
-        )
-
-    def write(self, obj, **kwargs):
-        super().write(obj, **kwargs)
-        self.write_index("index", obj.index)
-        self.write_index("sp_index", obj.sp_index)
-        self.write_array("sp_values", obj.sp_values)
-        self.attrs.name = obj.name
-        self.attrs.fill_value = obj.fill_value
-        self.attrs.kind = obj.kind
-
-
-class SparseFrameFixed(SparseFixed):
-    pandas_kind = "sparse_frame"
-    attributes = ["default_kind", "default_fill_value"]
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        columns = self.read_index("columns")
-        sdict = {}
-        for c in columns:
-            key = "sparse_series_{columns}".format(columns=c)
-            s = SparseSeriesFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[c] = s.read()
-        return SparseDataFrame(
-            sdict,
-            columns=columns,
-            default_kind=self.default_kind,
-            default_fill_value=self.default_fill_value,
-        )
-
-    def write(self, obj, **kwargs):
-        """ write it as a collection of individual sparse series """
-        super().write(obj, **kwargs)
-        for name, ss in obj.items():
-            key = "sparse_series_{name}".format(name=name)
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseSeriesFixed(self.parent, node)
-            s.write(ss)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index("columns", obj.columns)
-
-
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
     is_shape_reversed = False
@@ -3292,7 +3213,7 @@ class Table(Fixed):
     def format_type(self):
         return "table"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(

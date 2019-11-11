@@ -17,12 +17,11 @@ from libc.string cimport strncpy, strlen, strcasecmp
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString,
-                      PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch,
-                      PyUnicode_Decode)
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
+from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
 
 
 cdef extern from "Python.h":
@@ -279,7 +278,7 @@ cdef class TextReader:
         object true_values, false_values
         object handle
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        int64_t parser_start
+        uint64_t parser_start
         list clocks
         char *c_encoding
         kh_str_starts_t *false_set
@@ -567,10 +566,8 @@ cdef class TextReader:
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
         if self.handle is not None:
-            try:
-                self.handle.close()
-            except:
-                pass
+            self.handle.close()
+
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
@@ -640,19 +637,19 @@ cdef class TextReader:
                     source = zip_file.open(file_name)
 
                 elif len(zip_names) == 0:
-                    raise ValueError('Zero files found in compressed '
-                                     'zip file %s', source)
+                    raise ValueError(f'Zero files found in compressed '
+                                     f'zip file {source}')
                 else:
-                    raise ValueError('Multiple files found in compressed '
-                                     'zip file %s', str(zip_names))
+                    raise ValueError(f'Multiple files found in compressed '
+                                     f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
                     source = _get_lzma_file(lzma)(source, 'rb')
                 else:
                     source = _get_lzma_file(lzma)(filename=source)
             else:
-                raise ValueError('Unrecognized compression type: %s' %
-                                 self.compression)
+                raise ValueError(f'Unrecognized compression type: '
+                                 f'{self.compression}')
 
             if b'utf-16' in (self.encoding or b''):
                 # we need to read utf-16 through UTF8Recoder.
@@ -706,18 +703,18 @@ cdef class TextReader:
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
         else:
-            raise IOError('Expected file path name or file-like object,'
-                          ' got %s type' % type(source))
+            raise IOError(f'Expected file path name or file-like object, '
+                          f'got {type(source)} type')
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
+            Py_ssize_t i, start, field_count, passed_count, unnamed_count
             char *word
             object name, old_name
             int status
-            int64_t hr, data_line
+            uint64_t hr, data_line
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -747,8 +744,8 @@ cdef class TextReader:
                         msg = "[%s], len of %d," % (
                             ','.join(str(m) for m in msg), len(msg))
                     raise ParserError(
-                        'Passed header=%s but only %d lines in file'
-                        % (msg, self.parser.lines))
+                        f'Passed header={msg} but only '
+                        f'{self.parser.lines} lines in file')
 
                 else:
                     field_count = self.parser.line_fields[hr]
@@ -782,7 +779,7 @@ cdef class TextReader:
                     if not self.has_mi_columns and self.mangle_dupe_cols:
                         while count > 0:
                             counts[name] = count + 1
-                            name = '%s.%d' % (name, count)
+                            name = f'{name}.{count}'
                             count = counts.get(name, 0)
 
                     if old_name == '':
@@ -1018,12 +1015,14 @@ cdef class TextReader:
         else:
             end = min(start + rows, self.parser.lines)
 
+        # FIXME: dont leave commented-out
         # # skip footer
         # if footer > 0:
         #     end -= footer
 
         num_cols = -1
-        for i in range(self.parser.lines):
+        # Py_ssize_t cast prevents build warning
+        for i in range(<Py_ssize_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
@@ -1663,7 +1662,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         char *data
         ndarray result
 
-    result = np.empty(line_end - line_start, dtype='|S%d' % width)
+    result = np.empty(line_end - line_start, dtype=f'|S{width}')
     data = <char*>result.data
 
     with nogil:
@@ -1692,6 +1691,10 @@ cdef:
     char* cinf = b'inf'
     char* cposinf = b'+inf'
     char* cneginf = b'-inf'
+
+    char* cinfty = b'Infinity'
+    char* cposinfty = b'+Infinity'
+    char* cneginfty = b'-Infinity'
 
 
 cdef _try_double(parser_t *parser, int64_t col,
@@ -1772,9 +1775,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0 or
+                            strcasecmp(word, cinfty) == 0 or
+                            strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
-                    elif strcasecmp(word, cneginf) == 0:
+                    elif (strcasecmp(word, cneginf) == 0 or
+                            strcasecmp(word, cneginfty) == 0 ):
                         data[0] = NEGINF
                     else:
                         return 1
@@ -1793,9 +1799,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0 or
+                        strcasecmp(word, cinfty) == 0 or
+                        strcasecmp(word, cposinfty) == 0):
                     data[0] = INF
-                elif strcasecmp(word, cneginf) == 0:
+                elif (strcasecmp(word, cneginf) == 0 or
+                        strcasecmp(word, cneginfty) == 0):
                     data[0] = NEGINF
                 else:
                     return 1
@@ -2167,8 +2176,8 @@ def _concatenate_chunks(list chunks):
     if warning_columns:
         warning_names = ','.join(warning_columns)
         warning_message = " ".join([
-            "Columns (%s) have mixed types." % warning_names,
-            "Specify dtype option on import or set low_memory=False."
+            f"Columns ({warning_names}) have mixed types."
+            f"Specify dtype option on import or set low_memory=False."
           ])
         warnings.warn(warning_message, DtypeWarning, stacklevel=8)
     return result
@@ -2242,7 +2251,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 def _maybe_encode(values):
     if values is None:
         return []
-    return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
+    return [x.encode('utf-8') if isinstance(x, str) else x for x in values]
 
 
 def sanitize_objects(ndarray[object] values, set na_values,

@@ -2,7 +2,10 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+from typing import Iterable, Union
 import warnings
+
+import numpy as np
 
 from pandas.core.dtypes.common import is_bool
 
@@ -286,7 +289,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     # First fill with explicit values provided by the user...
     if arg_name in kwargs:
         if args:
-            msg = "{} got multiple values for argument " "'{}'".format(
+            msg = "{} got multiple values for argument '{}'".format(
                 method_name, arg_name
             )
             raise TypeError(msg)
@@ -315,7 +318,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     elif len(args) == 2:
         if "axis" in kwargs:
             # Unambiguously wrong
-            msg = "Cannot specify both 'axis' and any of 'index' " "or 'columns'"
+            msg = "Cannot specify both 'axis' and any of 'index' or 'columns'"
             raise TypeError(msg)
 
         msg = (
@@ -370,3 +373,35 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
         raise ValueError("Cannot specify both 'value' and 'method'.")
 
     return value, method
+
+
+def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
+    """
+    Validate percentiles (used by describe and quantile).
+
+    This function checks if the given float oriterable of floats is a valid percentile
+    otherwise raises a ValueError.
+
+    Parameters
+    ----------
+    q: float or iterable of floats
+        A single percentile or an iterable of percentiles.
+
+    Returns
+    -------
+    ndarray
+        An ndarray of the percentiles if valid.
+
+    Raises
+    ------
+    ValueError if percentiles are not in given interval([0, 1]).
+    """
+    msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
+    q_arr = np.asarray(q)
+    if q_arr.ndim == 0:
+        if not 0 <= q_arr <= 1:
+            raise ValueError(msg.format(q_arr / 100.0))
+    else:
+        if not all(0 <= qs <= 1 for qs in q_arr):
+            raise ValueError(msg.format(q_arr / 100.0))
+    return q_arr

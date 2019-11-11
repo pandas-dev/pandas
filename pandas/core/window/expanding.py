@@ -3,7 +3,7 @@ from textwrap import dedent
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.window.common import _doc_template, _GroupByMixin, _shared_docs
+from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
 from pandas.core.window.rolling import _Rolling_and_Expanding
 
 
@@ -181,13 +181,13 @@ class Expanding(_Rolling_and_Expanding):
     def median(self, **kwargs):
         return super().median(**kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
@@ -250,7 +250,7 @@ class Expanding(_Rolling_and_Expanding):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
-class ExpandingGroupby(_GroupByMixin, Expanding):
+class ExpandingGroupby(WindowGroupByMixin, Expanding):
     """
     Provide a expanding groupby implementation.
     """

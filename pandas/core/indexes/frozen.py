@@ -7,7 +7,6 @@ These are used for:
 - .levels & .codes (FrozenNDArray)
 
 """
-
 import warnings
 
 import numpy as np
@@ -31,7 +30,7 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other):
+    def union(self, other) -> "FrozenList":
         """
         Returns a FrozenList with other concatenated to the end of self.
 
@@ -49,7 +48,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other):
+    def difference(self, other) -> "FrozenList":
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -70,12 +69,7 @@ class FrozenList(PandasObject, list):
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
     __add__ = __iadd__ = union
 
-    # Python 2 compat
-    def __getslice__(self, i, j):
-        return self.__class__(super().__getslice__(i, j))
-
     def __getitem__(self, n):
-        # Python 3 compat
         if isinstance(n, slice):
             return self.__class__(super().__getitem__(n))
         return super().__getitem__(n)
@@ -106,13 +100,15 @@ class FrozenList(PandasObject, list):
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
         raise TypeError(
-            "'%s' does not support mutable operations." % self.__class__.__name__
+            "'{cls}' does not support mutable operations.".format(
+                cls=self.__class__.__name__
+            )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
@@ -137,7 +133,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." % self.__class__)
+        raise TypeError(
+            "'{cls}' does not support mutable operations.".format(cls=self.__class__)
+        )
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     put = itemset = fill = _disabled
@@ -150,7 +148,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for this object.
         """

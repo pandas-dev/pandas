@@ -1,6 +1,6 @@
 """ define extension dtypes """
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -23,7 +23,7 @@ str_type = str
 ordered_sentinel = object()  # type: object
 
 
-def register_extension_dtype(cls: Type[ExtensionDtype],) -> Type[ExtensionDtype]:
+def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -85,7 +85,7 @@ class Registry:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype] or string
+        dtype : Type[ExtensionDtype] or str
 
         Returns
         -------
@@ -351,7 +351,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._ordered = ordered if ordered is not ordered_sentinel else None
         self._ordered_from_sentinel = ordered is ordered_sentinel
 
-    def __setstate__(self, state: Dict[str_type, Any]) -> None:
+    def __setstate__(self, state: MutableMapping[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -415,7 +415,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 return True
             return hash(self) == hash(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str_type:
         tpl = "CategoricalDtype(categories={}ordered={})"
         if self.categories is None:
             data = "None, "
@@ -685,7 +685,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
             raise pytz.UnknownTimeZoneError(tz)
-        elif tz is None:
+        if tz is None:
             raise TypeError("A 'tz' is required.")
 
         self._unit = unit
@@ -737,19 +737,22 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         if isinstance(string, str):
             msg = "Could not construct DatetimeTZDtype from '{}'"
-            try:
-                match = cls._match.match(string)
-                if match:
-                    d = match.groupdict()
+            match = cls._match.match(string)
+            if match:
+                d = match.groupdict()
+                try:
                     return cls(unit=d["unit"], tz=d["tz"])
-            except Exception:
-                # TODO(py3): Change this pass to `raise TypeError(msg) from e`
-                pass
+                except (KeyError, TypeError, ValueError) as err:
+                    # KeyError if maybe_get_tz tries and fails to get a
+                    #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                    # TypeError if we pass a nonsense tz;
+                    # ValueError if we pass a unit other than "ns"
+                    raise TypeError(msg.format(string)) from err
             raise TypeError(msg.format(string))
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
@@ -790,7 +793,7 @@ class PeriodDtype(PandasExtensionDtype):
     Parameters
     ----------
     freq : str or DateOffset
-        The frequency of this PeriodDtype
+        The frequency of this PeriodDtype.
 
     Attributes
     ----------
@@ -886,7 +889,7 @@ class PeriodDtype(PandasExtensionDtype):
                 pass
         raise TypeError("could not construct PeriodDtype")
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         return self.name
 
     @property
@@ -1065,7 +1068,7 @@ class IntervalDtype(PandasExtensionDtype):
     def type(self):
         return Interval
 
-    def __str__(self):
+    def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)

@@ -135,9 +135,44 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-* Windows: https://devguide.python.org/setup/#windows-compiling
-* Mac: https://devguide.python.org/setup/#macos
-* Unix: https://devguide.python.org/setup/#unix-compiling
+**Windows**
+
+You will need `Build Tools for Visual Studio 2017
+<https://visualstudio.microsoft.com/downloads/>`_.
+
+.. warning::
+	You DO NOT need to install Visual Studio 2019.
+	You only need "Build Tools for Visual Studio 2019" found by
+	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+
+**Mac OS**
+
+Information about compiler installation can be found here:
+https://devguide.python.org/setup/#macos
+
+**Unix**
+
+Some Linux distributions will come with a pre-installed C compiler. To find out
+which compilers (and versions) are installed on your system::
+
+    # for Debian/Ubuntu:
+    dpkg --list | grep compiler
+    # for Red Hat/RHEL/CentOS/Fedora:
+    yum list installed | grep -i --color compiler
+
+`GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used
+compiler, which supports C and a number of other languages. If GCC is listed
+as an installed compiler nothing more is required. If no C compiler is
+installed (or you wish to install a newer version) you can install a compiler
+(GCC in the example code below) with::
+
+    # for recent Debian/Ubuntu:
+    sudo apt install build-essential
+    # for Red Had/RHEL/CentOS/Fedora
+    yum groupinstall "Development Tools"
+
+For other Linux distributions, consult your favourite search engine for
+compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -173,7 +208,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -201,14 +236,17 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least python3.5 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
-.. code-block:: none
+**Unix**/**Mac OS**
+
+.. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
@@ -216,8 +254,34 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+'~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
+%USERPROFILE% (cmd.exe) environment variable. Any parent directories
+should already exist.
+
+.. code-block:: powershell
+
+   # Create a virtual environment
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
+
+   # Activate the virtualenv. Use activate.bat for cmd.exe
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
 -----------------
@@ -418,7 +482,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 
@@ -583,7 +647,8 @@ from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
 each time you commit changes. You can skip these checks with
 ``git commit --no-verify``.
 
-This command will catch any stylistic errors in your changes specifically, but
+One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
@@ -782,29 +847,6 @@ The limitation here is that while a human can reasonably understand that ``is_nu
 
 With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
 
-Syntax Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
-
-.. code-block:: python
-
-   primes = []  # type: List[int]
-
-Whereas this is **NOT** allowed:
-
-.. code-block:: python
-
-   primes: List[int] = []  # not supported in Python 3.5!
-
-Note that function signatures can always be annotated per :pep:`3107`:
-
-.. code-block:: python
-
-   def sum_of_primes(primes: List[int] = []) -> int:
-       ...
-
-
 Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -914,10 +956,13 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+Please remember to add the Github Issue Number as a comment to a new test.
+E.g. "# brief comment, see GH#28907"
+
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+*pandas* existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
@@ -1159,8 +1204,6 @@ submitting a pull request.
 
 For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
-    .. versionadded:: 0.20.0
-
 Furthermore one can run
 
 .. code-block:: python
@@ -1230,7 +1273,7 @@ environment by::
 
 or, to use a specific Python interpreter,::
 
-    asv run -e -E existing:python3.5
+    asv run -e -E existing:python3.6
 
 This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.

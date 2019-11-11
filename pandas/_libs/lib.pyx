@@ -9,9 +9,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
-                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
-                      PyUnicode_Join, PyList_New)
+from cpython.object cimport PyObject_RichCompareBool, Py_EQ
+from cpython.ref cimport Py_INCREF
+from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -52,8 +52,7 @@ cimport pandas._libs.util as util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
@@ -126,7 +125,7 @@ def is_scalar(val: object) -> bool:
         - Interval
         - DateOffset
         - Fraction
-        - Number
+        - Number.
 
     Returns
     -------
@@ -135,8 +134,8 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
-    >>> dt = pd.datetime.datetime(2018, 10, 3)
-    >>> pd.is_scalar(dt)
+    >>> dt = datetime.datetime(2018, 10, 3)
+    >>> pd.api.types.is_scalar(dt)
     True
 
     >>> pd.api.types.is_scalar([2, 3])
@@ -235,7 +234,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
     if sort is None:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             # TODO: RuntimeWarning?
             pass
 
@@ -264,7 +263,7 @@ def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -304,7 +303,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
     if sort:
         try:
             uniques.sort()
-        except Exception:
+        except TypeError:
             pass
 
     return uniques
@@ -522,9 +521,18 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                (x is None or is_nan(x)) and (y is None or is_nan(y))):
-            return False
+        try:
+            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+                return False
+        except TypeError as err:
+            # Avoid raising TypeError on tzawareness mismatch
+            # TODO: This try/except can be removed if/when Timestamp
+            #  comparisons are change dto match datetime, see GH#28507
+            if "tz-naive and tz-aware" in str(err):
+                return False
+            raise
+
     return True
 
 
@@ -690,8 +698,7 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(const int64_t[:] label,
-                     const int64_t[:] starts):
+def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -771,8 +778,16 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray index, const int64_t[:] labels, list keys,
                  list sorted_labels):
+    """
+    Parameters
+    ----------
+    index : ndarray
+    labels : ndarray[int64]
+    keys : list
+    sorted_labels : list[ndarray[int64]]
+    """
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
         dict result = {}
@@ -792,8 +807,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
             if lab != -1:
                 tup = PyTuple_New(k)
                 for j in range(k):
-                    val = util.get_value_at(keys[j],
-                                            sorted_labels[j][i - 1])
+                    val = keys[j][sorted_labels[j][i - 1]]
                     PyTuple_SET_ITEM(tup, j, val)
                     Py_INCREF(val)
 
@@ -803,8 +817,7 @@ def indices_fast(object index, const int64_t[:] labels, list keys,
 
     tup = PyTuple_New(k)
     for j in range(k):
-        val = util.get_value_at(keys[j],
-                                sorted_labels[j][n - 1])
+        val = keys[j][sorted_labels[j][n - 1]]
         PyTuple_SET_ITEM(tup, j, val)
         Py_INCREF(val)
     result[tup] = index[start:]
@@ -854,9 +867,10 @@ def is_list_like(obj: object, allow_sets: bool = True):
 
     Parameters
     ----------
-    obj : The object to check
-    allow_sets : boolean, default True
-        If this parameter is False, sets will not be considered list-like
+    obj : object
+        The object to check.
+    allow_sets : bool, default True
+        If this parameter is False, sets will not be considered list-like.
 
         .. versionadded:: 0.24.0
 
@@ -1205,8 +1219,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
                 return value
 
             # its ndarray like but we can't handle
-            raise ValueError("cannot infer type for {typ}"
-                             .format(typ=type(value)))
+            raise ValueError(f"cannot infer type for {type(value)}")
 
     else:
         if not isinstance(value, list):
@@ -1410,7 +1423,7 @@ def infer_datetimelike_array(arr: object) -> object:
         try:
             array_to_datetime(objs, errors='raise')
             return 'datetime'
-        except:
+        except (ValueError, TypeError):
             pass
 
         # we are *not* going to infer from strings
@@ -1483,9 +1496,8 @@ cdef class Validator:
         return self.is_valid(value) or self.is_valid_null(value)
 
     cdef bint is_value_typed(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_value_typed'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_value_typed')
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or util.is_nan(value)
@@ -1621,9 +1633,8 @@ cdef class TemporalValidator(Validator):
         return self.is_value_typed(value) or self.is_valid_null(value)
 
     cdef bint is_valid_null(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_valid_null'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_valid_null')
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
@@ -1663,6 +1674,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+# TODO: only non-here use is in test
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -1706,6 +1718,7 @@ cdef class AnyTimedeltaValidator(TimedeltaValidator):
         return is_timedelta(value)
 
 
+# TODO: only non-here use is in test
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
     cdef:
@@ -1910,7 +1923,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
+                    raise type(e)(str(e) + f" at position {i}")
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
 
@@ -2055,7 +2068,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 floats[i] = float(val)
                 complexes[i] = complex(val)
                 seen.float_ = 1
-            except Exception:
+            except (ValueError, TypeError):
                 seen.object_ = 1
                 break
         else:
@@ -2154,8 +2167,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
-                   bint convert=1):
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -2335,7 +2347,8 @@ def to_object_array_tuples(rows: object):
             row = rows[i]
             for j in range(len(row)):
                 result[i, j] = row[j]
-    except Exception:
+    except TypeError:
+        # e.g. "Expected tuple, got list"
         # upcast any subclasses to tuple
         for i in range(n):
             row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])

@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
+from typing import Optional
 from uuid import uuid1
 
 import numpy as np
@@ -17,8 +18,7 @@ from pandas._config import get_option
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_float, is_string_like
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
@@ -54,14 +54,18 @@ class Styler:
     Parameters
     ----------
     data : Series or DataFrame
+        Data to be styled - either a Series or DataFrame.
     precision : int
-        precision to round floats to, defaults to pd.options.display.precision
+        Precision to round floats to, defaults to pd.options.display.precision.
     table_styles : list-like, default None
-        list of {selector: (attr, value)} dicts; see Notes
+        List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
-        a unique identifier to avoid CSS collisions; generated automatically
+        A unique identifier to avoid CSS collisions; generated automatically.
     caption : str, default None
-        caption to attach to the table
+        Caption to attach to the table.
+    table_attributes : str, default None
+        Items that show up in the opening ``<table>`` tag
+        in addition to automatic (by default) id.
     cell_ids : bool, default True
         If True, each cell will have an ``id`` attribute in their HTML tag.
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
@@ -76,7 +80,8 @@ class Styler:
 
     See Also
     --------
-    DataFrame.style
+    DataFrame.style : Return a Styler object containing methods for building
+        a styled HTML representation for the DataFrame.
 
     Notes
     -----
@@ -151,7 +156,8 @@ class Styler:
 
         def default_display_func(x):
             if is_float(x):
-                return "{:>.{precision}g}".format(x, precision=self.precision)
+                display_format = "{0:.{precision}f}".format(x, precision=self.precision)
+                return display_format
             else:
                 return x
 
@@ -485,8 +491,6 @@ class Styler:
             This is useful when you need to provide
             additional variables for a custom template.
 
-            .. versionadded:: 0.20
-
         Returns
         -------
         rendered : str
@@ -570,6 +574,7 @@ class Styler:
     def clear(self):
         """
         Reset the styler, removing any previously applied styles.
+
         Returns None.
         """
         self.ctx.clear()
@@ -628,8 +633,9 @@ class Styler:
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wise,
-        updating the HTML representation with the result.
+        Apply a function column-wise, row-wise, or table-wise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
@@ -637,16 +643,16 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``
+            column labels when ``axis=None``.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
-        kwargs : dict
-            pass along to ``func``
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
+        **kwargs : dict
+            Pass along to ``func``.
 
         Returns
         -------
@@ -687,18 +693,19 @@ class Styler:
 
     def applymap(self, func, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with the result.
+        Apply a function elementwise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar
+            ``func`` should take a scalar and return a scalar.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
-        kwargs : dict
-            pass along to ``func``
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
+        **kwargs : dict
+            Pass along to ``func``.
 
         Returns
         -------
@@ -715,25 +722,26 @@ class Styler:
 
     def where(self, cond, value, other=None, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with a style which is selected in
-        accordance with the return value of a function.
+        Apply a function elementwise.
+
+        Updates the HTML representation with a style which is
+        selected in accordance with the return value of a function.
 
         .. versionadded:: 0.21.0
 
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean
+            ``cond`` should take a scalar and return a boolean.
         value : str
-            applied when ``cond`` returns true
+            Applied when ``cond`` returns true.
         other : str
-            applied when ``cond`` returns false
+            Applied when ``cond`` returns false.
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
-        kwargs : dict
-            pass along to ``cond``
+            A valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice.
+        **kwargs : dict
+            Pass along to ``cond``.
 
         Returns
         -------
@@ -775,7 +783,7 @@ class Styler:
 
         Parameters
         ----------
-        attributes : string
+        attributes : str
 
         Returns
         -------
@@ -808,13 +816,14 @@ class Styler:
 
     def use(self, styles):
         """
-        Set the styles on the current Styler, possibly using styles
-        from ``Styler.export``.
+        Set the styles on the current Styler.
+
+        Possibly uses styles from ``Styler.export``.
 
         Parameters
         ----------
         styles : list
-            list of style functions
+            List of style functions.
 
         Returns
         -------
@@ -844,7 +853,7 @@ class Styler:
 
     def set_caption(self, caption):
         """
-        Set the caption on a Styler
+        Set the caption on a Styler.
 
         Parameters
         ----------
@@ -954,31 +963,47 @@ class Styler:
         axis=0,
         subset=None,
         text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ):
         """
-        Color the background in a gradient according to
-        the data in each column (optionally row).
+        Color the background in a gradient style.
 
-        Requires matplotlib.
+        The background color is determined according
+        to the data in each column (optionally row). Requires matplotlib.
 
         Parameters
         ----------
         cmap : str or colormap
-            matplotlib colormap
-        low, high : float
-            compress the range by these values.
+            Matplotlib colormap.
+        low : float
+            Compress the range by the low.
+        high : float
+            Compress the range by the high.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
-            luminance threshold for determining text color. Facilitates text
+            Luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
             0 = all text is dark colored, 1 = all text is light colored.
 
             .. versionadded:: 0.24.0
+
+        vmin : float, optional
+            Minimum data value that corresponds to colormap minimum value.
+            When None (default): the minimum value of the data will be used.
+
+            .. versionadded:: 1.0.0
+
+        vmax : float, optional
+            Maximum data value that corresponds to colormap maximum value.
+            When None (default): the maximum value of the data will be used.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -1006,11 +1031,21 @@ class Styler:
             low=low,
             high=high,
             text_color_threshold=text_color_threshold,
+            vmin=vmin,
+            vmax=vmax,
         )
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap="PuBu", low=0, high=0, text_color_threshold=0.408):
+    def _background_gradient(
+        s,
+        cmap="PuBu",
+        low=0,
+        high=0,
+        text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ):
         """
         Color background in a range according to the data.
         """
@@ -1022,14 +1057,14 @@ class Styler:
             raise ValueError(msg)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = s.values.min()
-            smax = s.values.max()
+            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
             rng = smax - smin
             # extend lower / upper bounds, compresses color range
             norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
             # matplotlib colors.Normalize modifies inplace?
             # https://github.com/matplotlib/matplotlib/issues/5427
-            rgbas = plt.cm.get_cmap(cmap)(norm(s.values))
+            rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
 
             def relative_luminance(rgba):
                 """
@@ -1071,15 +1106,14 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs):
         """
-        Convenience method for setting one or more non-data dependent
-        properties or each cell.
+        Method to set one or more non-data dependent properties or each cell.
 
         Parameters
         ----------
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to
-        kwargs : dict
-            property: value pairs to be set for each cell
+            A valid slice for ``data`` to limit the style application to.
+        **kwargs : dict
+            A dictionary of property, value pairs to be set for each cell.
 
         Returns
         -------
@@ -1101,12 +1135,8 @@ class Styler:
         Draw bar chart in dataframe cells.
         """
         # Get input value range.
-        smin = s.min() if vmin is None else vmin
-        if isinstance(smin, ABCSeries):
-            smin = smin.min()
-        smax = s.max() if vmax is None else vmax
-        if isinstance(smax, ABCSeries):
-            smax = smax.max()
+        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
         if align == "mid":
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1115,7 +1145,7 @@ class Styler:
             smax = max(abs(smin), abs(smax))
             smin = -smax
         # Transform to percent-range of linear-gradient
-        normed = width * (s.values - smin) / (smax - smin + 1e-12)
+        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
         zero = -width * smin / (smax - smin + 1e-12)
 
         def css_bar(start, end, color):
@@ -1173,7 +1203,7 @@ class Styler:
         subset : IndexSlice, optional
             A valid slice for `data` to limit the style application to.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         color : str or 2-tuple/list
@@ -1192,9 +1222,6 @@ class Styler:
             - 'mid' : the center of the cell is at (max-min)/2, or
               if values are all negative (positive) the zero is aligned
               at the right (left) of the cell.
-
-              .. versionadded:: 0.20.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -1249,10 +1276,10 @@ class Styler:
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
 
@@ -1269,10 +1296,10 @@ class Styler:
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to.
+            A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            apply to each column (``axis=0`` or ``'index'``), to each row
+            Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
 
@@ -1297,17 +1324,15 @@ class Styler:
         Highlight the min or max in a Series or DataFrame.
         """
         attr = "background-color: {0}".format(color)
+
+        if max_:
+            extrema = data == np.nanmax(data.to_numpy())
+        else:
+            extrema = data == np.nanmin(data.to_numpy())
+
         if data.ndim == 1:  # Series from .apply
-            if max_:
-                extrema = data == data.max()
-            else:
-                extrema = data == data.min()
             return [attr if v else "" for v in extrema]
         else:  # DataFrame from .tee
-            if max_:
-                extrema = data == data.max().max()
-            else:
-                extrema = data == data.min().min()
             return pd.DataFrame(
                 np.where(extrema, attr, ""), index=data.index, columns=data.columns
             )
@@ -1315,15 +1340,16 @@ class Styler:
     @classmethod
     def from_custom_template(cls, searchpath, name):
         """
-        Factory function for creating a subclass of ``Styler``
-        with a custom template and Jinja environment.
+        Factory function for creating a subclass of ``Styler``.
+
+        Uses a custom template and Jinja environment.
 
         Parameters
         ----------
         searchpath : str or list
-            Path or paths of directories containing the templates
+            Path or paths of directories containing the templates.
         name : str
-            Name of your custom template to use for rendering
+            Name of your custom template to use for rendering.
 
         Returns
         -------
@@ -1350,8 +1376,10 @@ class Styler:
             Function to apply to the Styler.  Alternatively, a
             ``(callable, keyword)`` tuple where ``keyword`` is a string
             indicating the keyword of ``callable`` that expects the Styler.
-        *args, **kwargs :
+        *args : optional
             Arguments passed to `func`.
+        **kwargs : optional
+            A dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
@@ -1460,7 +1488,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
 
 def _maybe_wrap_formatter(formatter):
-    if is_string_like(formatter):
+    if isinstance(formatter, str):
         return lambda x: formatter.format(x)
     elif callable(formatter):
         return formatter

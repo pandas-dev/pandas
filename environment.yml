@@ -1,11 +1,10 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
   # required
   - numpy>=1.15
-  - python=3
+  - python=3.7
   - python-dateutil>=2.6.1
   - pytz
 
@@ -13,28 +12,39 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.28.2
+  - cython>=0.29.13
 
   # code checks
-  - black
+  - black<=19.3b0
   - cpplint
   - flake8
   - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
-  - mypy
+  - mypy=0.720
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  # some styling is broken with sphinx >= 2 (https://github.com/pandas-dev/pandas/issues/26058)
-  - sphinx=1.8.5
+  - sphinx
   - numpydoc>=0.9.0
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
+  # Dask and its dependencies
+  - dask-core
+  - toolz>=0.7.3
+  - fsspec>=0.5.1
+  - partd>=0.3.10
+  - cloudpickle>=0.2.1
+
+  # web (jinja2 is also needed, but it's also an optional pandas dependency)
+  - markdown
+  - feedparser
+  - pyyaml
+  - requests
 
   # testing
   - boto3
@@ -43,7 +53,6 @@ dependencies:
   - moto  # mock S3
   - pytest>=4.0.2
   - pytest-cov
-  - pytest-mock
   - pytest-xdist
   - seaborn
   - statsmodels
@@ -70,7 +79,7 @@ dependencies:
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
   - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - pyarrow>=0.9.0  # pandas.read_paquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
   - python-snappy  # required by pyarrow
@@ -80,4 +89,7 @@ dependencies:
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss
+  - pip:
+    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master

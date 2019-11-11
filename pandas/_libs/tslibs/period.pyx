@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from cpython cimport (
+from cpython.object cimport (
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -1709,14 +1709,14 @@ cdef class _Period:
 
     def asfreq(self, freq, how='E'):
         """
-        Convert Period to desired frequency, either at the start or end of the
-        interval
+        Convert Period to desired frequency, at the start or end of the interval.
 
         Parameters
         ----------
-        freq : string
+        freq : str
+            The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan
+            Start or end of the timespan.
 
         Returns
         -------
@@ -1776,17 +1776,19 @@ cdef class _Period:
 
     def to_timestamp(self, freq=None, how='start', tz=None):
         """
-        Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period
+        Return the Timestamp representation of the Period.
+
+        Uses the target frequency specified at the part of the period specified
+        by `how`, which is either `Start` or `Finish`.
 
         Parameters
         ----------
-        freq : string or DateOffset
+        freq : str or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
-            longer and 'S' otherwise
+            longer and 'S' otherwise.
         how : str, default 'S' (start)
-            'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'
+            One of 'S', 'E'. Can be aliased as case insensitive
+            'Start', 'Finish', 'Begin', 'End'.
 
         Returns
         -------
@@ -2213,12 +2215,12 @@ cdef class _Period:
     def freqstr(self):
         return self.freq.freqstr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation for a particular DataFrame
         """
@@ -2242,7 +2244,7 @@ cdef class _Period:
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries)
+        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2380,21 +2382,30 @@ cdef class _Period:
 
 class Period(_Period):
     """
-    Represents a period of time
+    Represents a period of time.
 
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005')
+        The time period represented (e.g., '4Q2005').
     freq : str, default None
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
+    ordinal : int, default None
+        The period offset from the gregorian proleptic epoch.
     year : int, default None
+        Year value of the period.
     month : int, default 1
+        Month value of the period.
     quarter : int, default None
+        Quarter value of the period.
     day : int, default 1
+        Day value of the period.
     hour : int, default 0
+        Hour value of the period.
     minute : int, default 0
+        Minute value of the period.
     second : int, default 0
+        Second value of the period.
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
@@ -2448,7 +2459,10 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in nat_strings:
+        elif is_null_datetimelike(value) or (isinstance(value, str) and
+                                             value in nat_strings):
+            # explicit str check is necessary to avoid raising incorrectly
+            #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):
