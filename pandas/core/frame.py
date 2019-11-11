@@ -2083,7 +2083,7 @@ class DataFrame(NDFrame):
             data_label=data_label,
             write_index=write_index,
             variable_labels=variable_labels,
-            **kwargs,
+            **kwargs
         )
         writer.write_file()
 
@@ -2107,7 +2107,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
-        **kwargs,
+        **kwargs
     ):
         """
         Write a DataFrame to the binary parquet format.
@@ -2187,7 +2187,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
-            **kwargs,
+            **kwargs
         )
 
     @Substitution(
@@ -4129,7 +4129,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
+        **kwargs
     ):
         return super().fillna(
             value=value,
@@ -4138,7 +4138,7 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
+            **kwargs
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -6584,7 +6584,7 @@ class DataFrame(NDFrame):
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs,
+        **_shared_doc_kwargs
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
