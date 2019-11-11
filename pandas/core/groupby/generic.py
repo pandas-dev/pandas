@@ -1227,61 +1227,52 @@ class DataFrameGroupBy(GroupBy):
                         # GH 8467
                         return self._concat_objects(keys, values, not_indexed_same=True)
 
-                try:
-                    if self.axis == 0 and isinstance(v, ABCSeries):
-                        # GH6124 if the list of Series have a consistent name,
-                        # then propagate that name to the result.
-                        index = v.index.copy()
-                        if index.name is None:
-                            # Only propagate the series name to the result
-                            # if all series have a consistent name.  If the
-                            # series do not have a consistent name, do
-                            # nothing.
-                            names = {v.name for v in values}
-                            if len(names) == 1:
-                                index.name = list(names)[0]
+                if self.axis == 0 and isinstance(v, ABCSeries):
+                    # GH6124 if the list of Series have a consistent name,
+                    # then propagate that name to the result.
+                    index = v.index.copy()
+                    if index.name is None:
+                        # Only propagate the series name to the result
+                        # if all series have a consistent name.  If the
+                        # series do not have a consistent name, do
+                        # nothing.
+                        names = {v.name for v in values}
+                        if len(names) == 1:
+                            index.name = list(names)[0]
 
-                        # normally use vstack as its faster than concat
-                        # and if we have mi-columns
-                        if (
-                            isinstance(v.index, MultiIndex)
-                            or key_index is None
-                            or isinstance(key_index, MultiIndex)
-                        ):
-                            stacked_values = np.vstack([np.asarray(v) for v in values])
-                            result = DataFrame(
-                                stacked_values, index=key_index, columns=index
-                            )
-                        else:
-                            # GH5788 instead of stacking; concat gets the
-                            # dtypes correct
-                            from pandas.core.reshape.concat import concat
-
-                            result = concat(
-                                values,
-                                keys=key_index,
-                                names=key_index.names,
-                                axis=self.axis,
-                            ).unstack()
-                            result.columns = index
-                    elif isinstance(v, ABCSeries):
+                    # normally use vstack as its faster than concat
+                    # and if we have mi-columns
+                    if (
+                        isinstance(v.index, MultiIndex)
+                        or key_index is None
+                        or isinstance(key_index, MultiIndex)
+                    ):
                         stacked_values = np.vstack([np.asarray(v) for v in values])
                         result = DataFrame(
-                            stacked_values.T, index=v.index, columns=key_index
+                            stacked_values, index=key_index, columns=index
                         )
                     else:
-                        # GH#1738: values is list of arrays of unequal lengths
-                        #  fall through to the outer else clause
-                        # TODO: sure this is right?  we used to do this
-                        #  after raising AttributeError above
-                        return Series(
-                            values, index=key_index, name=self._selection_name
-                        )
+                        # GH5788 instead of stacking; concat gets the
+                        # dtypes correct
+                        from pandas.core.reshape.concat import concat
 
-                except ValueError:
-                    # TODO: not reached in tests; is this still needed?
-                    # GH1738: values is list of arrays of unequal lengths fall
-                    # through to the outer else clause
+                        result = concat(
+                            values,
+                            keys=key_index,
+                            names=key_index.names,
+                            axis=self.axis,
+                        ).unstack()
+                        result.columns = index
+                elif isinstance(v, ABCSeries):
+                    stacked_values = np.vstack([np.asarray(v) for v in values])
+                    result = DataFrame(
+                        stacked_values.T, index=v.index, columns=key_index
+                    )
+                else:
+                    # GH#1738: values is list of arrays of unequal lengths
+                    #  fall through to the outer else clause
+                    # TODO: sure this is right?  we used to do this
+                    #  after raising AttributeError above
                     return Series(values, index=key_index, name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates
