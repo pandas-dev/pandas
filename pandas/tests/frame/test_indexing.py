@@ -1955,8 +1955,6 @@ class TestDataFrameIndexing:
             ),
         )
 
-        result_1 = df.index.levels[0]
-        result_2 = df.loc[["a"]].index.levels[0]
         expected = pd.CategoricalIndex(
             ["a", "b"],
             categories=["a", "b"],
@@ -1964,8 +1962,12 @@ class TestDataFrameIndexing:
             name="Index1",
             dtype="category",
         )
-        tm.assert_index_equal(result_1, expected)
-        tm.assert_index_equal(result_2, expected)
+
+        result = df.index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+        result = df.loc[["a"]].index.levels[0]
+        tm.assert_index_equal(result, expected)
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
