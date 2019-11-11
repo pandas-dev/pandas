@@ -6,8 +6,18 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      ENV_FILE: environment.yml
+      PATH: $(HOME)/miniconda3/bin:$(PATH)
 
     steps:
+    - name: Print env
+      run: |
+        echo "ENV_FILE"
+        echo $ENV_FILE
+        echo "PATH"
+        echo $PATH
+
     - name: Checkout
       uses: actions/checkout@v1
 
