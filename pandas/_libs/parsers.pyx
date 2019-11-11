@@ -766,7 +766,7 @@ cdef class TextReader:
 
                     if name == '':
                         if self.has_mi_columns:
-                            name = (f'Unnamed: {i}_level_{level}')
+                            name = f'Unnamed: {i}_level_{level}'
                         else:
                             name = f'Unnamed: {i}'
                         unnamed_count += 1
