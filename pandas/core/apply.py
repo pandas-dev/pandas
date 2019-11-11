@@ -9,7 +9,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
@@ -264,7 +264,7 @@ class FrameApply:
         # as demonstrated in gh-12244
         if (
             self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_type).any()
+            and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
             and not self.agg_axis._has_complex_internals
