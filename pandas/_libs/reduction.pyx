@@ -18,14 +18,12 @@ cimport pandas._libs.util as util
 from pandas._libs.lib import maybe_convert_objects
 
 
-cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
+cdef _check_result_array(object obj, Py_ssize_t cnt):
 
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Function does not reduce')
-
-    return np.empty(size, dtype='O')
 
 
 cdef bint _is_sparse_array(object obj):
@@ -113,8 +111,10 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
+        has_index = self.index is not None
+        incr = self.increment
 
-        result = _get_result_array(None, self.nresults, len(self.dummy))
+        result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
 
         try:
@@ -132,18 +132,26 @@ cdef class Reducer:
                     if self.typ is not None:
 
                         # recreate with the index if supplied
-                        cached_typ = self.typ(
-                            chunk, index=self.index, name=name)
+                        if has_index:
+
+                            cached_typ = self.typ(
+                                chunk, index=self.index, name=name)
+
+                        else:
+
+                            # use the passsed typ, sans index
+                            cached_typ = self.typ(chunk, name=name)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
 
-                    object.__setattr__(cached_typ, 'index', self.index)
+                    if has_index:
+                        object.__setattr__(cached_typ, 'index', self.index)
+
                     object.__setattr__(
                         cached_typ._data._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
-
                 else:
                     res = self.f(chunk)
 
@@ -153,7 +161,7 @@ cdef class Reducer:
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
-                    _get_result_array(res, 0, len(self.dummy))
+                    _check_result_array(res, len(self.dummy))
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
@@ -248,6 +256,8 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
+        result = np.empty(self.ngroups, dtype='O')
+
         try:
             for i in range(self.ngroups):
                 group_size = counts[i]
@@ -274,10 +284,11 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 res = self.f(cached_typ)
                 res = _extract_result(res)
                 if not initialized:
+                    # On the first pass, we check the output shape to see
+                    #  if this looks like a reduction.
                     initialized = 1
-                    result = _get_result_array(res,
-                                               self.ngroups,
-                                               len(self.dummy_arr))
+                    _check_result_array(res, len(self.dummy_arr))
+
                 result[i] = res
 
                 islider.advance(group_size)
@@ -288,9 +299,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
             islider.reset()
             vslider.reset()
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
-
+        result = maybe_convert_objects(result)
         return result, counts
 
 
@@ -349,6 +358,8 @@ cdef class SeriesGrouper(_BaseGrouper):
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
+        result = np.empty(self.ngroups, dtype='O')
+
         try:
             for i in range(n):
                 group_size += 1
@@ -381,10 +392,10 @@ cdef class SeriesGrouper(_BaseGrouper):
                     res = self.f(cached_typ)
                     res = _extract_result(res)
                     if not initialized:
+                        # On the first pass, we check the output shape to see
+                        #  if this looks like a reduction.
                         initialized = 1
-                        result = _get_result_array(res,
-                                                   self.ngroups,
-                                                   len(self.dummy_arr))
+                        _check_result_array(res, len(self.dummy_arr))
 
                     result[lab] = res
                     counts[lab] = group_size
@@ -398,11 +409,10 @@ cdef class SeriesGrouper(_BaseGrouper):
             islider.reset()
             vslider.reset()
 
-        if result is None:
+        if not initialized:
             raise ValueError("No result.")
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
+        result = maybe_convert_objects(result)
 
         return result, counts
 
