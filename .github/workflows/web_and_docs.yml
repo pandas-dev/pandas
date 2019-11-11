@@ -13,7 +13,7 @@ jobs:
 
     - name: Setup environment and build pandas
       run: |
-        sudo apt-get install -y libc6-dev-i386
+        # sudo apt-get install -y libc6-dev-i386
         ci/setup_env.sh
 
     - name: Build website
@@ -33,6 +33,13 @@ jobs:
 
     - name: Merge website and docs
       run: |
-        mkdir -p to_deploy/docs
-        cp -r web/build/* to_deploy/
-        cp -r doc/build/html/* to_deploy/docs/
+        mkdir -p pandas_web/docs
+        cp -r web/build/* pandas_web/
+        cp -r doc/build/html/* pandas_web/docs/
+
+    - name: Create artifact
+      run: |
+        tar -czvf pandas_web.tar.gz pandas_web
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@master
