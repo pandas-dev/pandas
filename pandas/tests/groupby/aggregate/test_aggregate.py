@@ -495,7 +495,38 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
 
-def test_agg_relabel_multiindex_column():
+@pytest.mark.parametrize(
+    "agg_col1, agg_col2, agg_col3, agg_result1, agg_result2, agg_result3",
+    [
+        (
+            (("y", "A"), "max"),
+            (("y", "A"), np.min),
+            (("y", "B"), "mean"),
+            [1, 3],
+            [0, 2],
+            [5.5, 7.5],
+        ),
+        (
+            (("y", "A"), lambda x: max(x)),
+            (("y", "A"), lambda x: 1),
+            (("y", "B"), "mean"),
+            [1, 3],
+            [1, 1],
+            [5.5, 7.5],
+        ),
+        (
+            pd.NamedAgg(("y", "A"), "max"),
+            pd.NamedAgg(("y", "B"), np.mean),
+            pd.NamedAgg(("y", "A"), lambda x: 1),
+            [1, 3],
+            [5.5, 7.5],
+            [1, 1],
+        ),
+    ],
+)
+def test_agg_relabel_multiindex_column(
+    agg_col1, agg_col2, agg_col3, agg_result1, agg_result2, agg_result3
+):
     # GH 29422, add tests for multiindex column cases
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
@@ -507,31 +538,17 @@ def test_agg_relabel_multiindex_column():
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    # multiple columns, and different agg methods
     result = df.groupby(("x", "group")).agg(
-        a_max=(("y", "A"), "max"),
-        a_min=(("y", "A"), np.min),
-        b_mean=(("y", "B"), "mean"),
+        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
     )
     expected = DataFrame(
-        {"a_max": [1, 3], "a_min": [0, 2], "b_mean": [5.5, 7.5]}, index=idx
-    )
-    tm.assert_frame_equal(result, expected)
-
-    # multiple colums, with lamdba being used
-    result = df.groupby(("x", "group")).agg(
-        a_max=(("y", "A"), lambda x: max(x)),
-        a_const=(("y", "A"), lambda x: 1),
-        b_mean=(("y", "B"), "mean"),
-    )
-    expected = DataFrame(
-        {"a_max": [1, 3], "a_const": [1, 1], "b_mean": [5.5, 7.5]}, index=idx
+        {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_relabel_multiindex_raises():
-    # GH 29422, add tests for raises senarios in multiindex column cases
+def test_agg_relabel_multiindex_raises_not_exist():
+    # GH 29422, add test for raises senario when aggregate column does not exist
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
@@ -540,23 +557,16 @@ def test_agg_relabel_multiindex_raises():
     with pytest.raises(KeyError, match="does not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
 
-    with pytest.raises(SpecificationError, match="Function names"):
-        df.groupby(("x", "group")).agg(a=(("y", "A"), "min"), b=(("y", "A"), "min"))
 
-
-def test_named_agg_multiindex_column():
-    # GH 29422, add tests for namedagg in multiindex column cases
+def test_agg_relabel_multiindex_raises_duplicate():
+    # GH29422, add test for raises senario when getting duplicates
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
-    idx = pd.Index(["a", "b"], name=("x", "group"))
 
-    result = df.groupby(("x", "group")).agg(
-        a_max=pd.NamedAgg(("y", "A"), "max"), b_mean=pd.NamedAgg(("y", "B"), np.mean)
-    )
-    expected = DataFrame({"a_max": [1, 3], "b_mean": [5.5, 7.5]}, index=idx)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(SpecificationError, match="Function names"):
+        df.groupby(("x", "group")).agg(a=(("y", "A"), "min"), b=(("y", "A"), "min"))
 
 
 def myfunc(s):
