@@ -94,25 +94,9 @@ class Base:
     ]
 
     def _get_offset(self, klass, value=1, normalize=False):
+        print(klass)
         # create instance from offset class
-        if klass is FY5253:
-            klass = klass(
-                n=value,
-                startingMonth=1,
-                weekday=1,
-                variation="last",
-                normalize=normalize,
-            )
-        elif klass is FY5253Quarter:
-            klass = klass(
-                n=value,
-                startingMonth=1,
-                weekday=1,
-                qtr_with_extra_week=1,
-                variation="last",
-                normalize=normalize,
-            )
-        elif klass is LastWeekOfMonth:
+        if klass is LastWeekOfMonth:
             klass = klass(n=value, weekday=5, normalize=normalize)
         elif klass is WeekOfMonth:
             klass = klass(n=value, week=1, weekday=5, normalize=normalize)
@@ -132,12 +116,7 @@ class Base:
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
         try:
-            if self._offset in (BusinessHour, CustomBusinessHour):
-                # Using 10000 in BusinessHour fails in tz check because of DST
-                # difference
-                offset = self._get_offset(self._offset, value=100000)
-            else:
-                offset = self._get_offset(self._offset, value=10000)
+            offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp("20080101") + offset
             assert isinstance(result, datetime)
@@ -228,30 +207,16 @@ class TestCommon(Base):
     expecteds = {
         "Day": Timestamp("2011-01-02 09:00:00"),
         "DateOffset": Timestamp("2011-01-02 09:00:00"),
-        "BusinessDay": Timestamp("2011-01-03 09:00:00"),
-        "CustomBusinessDay": Timestamp("2011-01-03 09:00:00"),
-        "CustomBusinessMonthEnd": Timestamp("2011-01-31 09:00:00"),
-        "CustomBusinessMonthBegin": Timestamp("2011-01-03 09:00:00"),
         "MonthBegin": Timestamp("2011-02-01 09:00:00"),
-        "BusinessMonthBegin": Timestamp("2011-01-03 09:00:00"),
         "MonthEnd": Timestamp("2011-01-31 09:00:00"),
         "SemiMonthEnd": Timestamp("2011-01-15 09:00:00"),
         "SemiMonthBegin": Timestamp("2011-01-15 09:00:00"),
-        "BusinessMonthEnd": Timestamp("2011-01-31 09:00:00"),
         "YearBegin": Timestamp("2012-01-01 09:00:00"),
-        "BYearBegin": Timestamp("2011-01-03 09:00:00"),
         "YearEnd": Timestamp("2011-12-31 09:00:00"),
-        "BYearEnd": Timestamp("2011-12-30 09:00:00"),
         "QuarterBegin": Timestamp("2011-03-01 09:00:00"),
-        "BQuarterBegin": Timestamp("2011-03-01 09:00:00"),
         "QuarterEnd": Timestamp("2011-03-31 09:00:00"),
-        "BQuarterEnd": Timestamp("2011-03-31 09:00:00"),
-        "BusinessHour": Timestamp("2011-01-03 10:00:00"),
-        "CustomBusinessHour": Timestamp("2011-01-03 10:00:00"),
         "WeekOfMonth": Timestamp("2011-01-08 09:00:00"),
         "LastWeekOfMonth": Timestamp("2011-01-29 09:00:00"),
-        "FY5253Quarter": Timestamp("2011-01-25 09:00:00"),
-        "FY5253": Timestamp("2011-01-25 09:00:00"),
         "Week": Timestamp("2011-01-08 09:00:00"),
         "Easter": Timestamp("2011-04-24 09:00:00"),
         "Hour": Timestamp("2011-01-01 10:00:00"),
@@ -430,9 +395,6 @@ class TestCommon(Base):
         for n in no_changes:
             expecteds[n] = Timestamp("2011/01/01 09:00")
 
-        expecteds["BusinessHour"] = Timestamp("2011-01-03 09:00:00")
-        expecteds["CustomBusinessHour"] = Timestamp("2011-01-03 09:00:00")
-
         # but be changed when normalize=True
         norm_expected = expecteds.copy()
         for k in norm_expected:
@@ -466,27 +428,13 @@ class TestCommon(Base):
 
     def test_rollback(self, offset_types):
         expecteds = {
-            "BusinessDay": Timestamp("2010-12-31 09:00:00"),
-            "CustomBusinessDay": Timestamp("2010-12-31 09:00:00"),
-            "CustomBusinessMonthEnd": Timestamp("2010-12-31 09:00:00"),
-            "CustomBusinessMonthBegin": Timestamp("2010-12-01 09:00:00"),
-            "BusinessMonthBegin": Timestamp("2010-12-01 09:00:00"),
             "MonthEnd": Timestamp("2010-12-31 09:00:00"),
             "SemiMonthEnd": Timestamp("2010-12-31 09:00:00"),
-            "BusinessMonthEnd": Timestamp("2010-12-31 09:00:00"),
-            "BYearBegin": Timestamp("2010-01-01 09:00:00"),
             "YearEnd": Timestamp("2010-12-31 09:00:00"),
-            "BYearEnd": Timestamp("2010-12-31 09:00:00"),
             "QuarterBegin": Timestamp("2010-12-01 09:00:00"),
-            "BQuarterBegin": Timestamp("2010-12-01 09:00:00"),
             "QuarterEnd": Timestamp("2010-12-31 09:00:00"),
-            "BQuarterEnd": Timestamp("2010-12-31 09:00:00"),
-            "BusinessHour": Timestamp("2010-12-31 17:00:00"),
-            "CustomBusinessHour": Timestamp("2010-12-31 17:00:00"),
             "WeekOfMonth": Timestamp("2010-12-11 09:00:00"),
             "LastWeekOfMonth": Timestamp("2010-12-25 09:00:00"),
-            "FY5253Quarter": Timestamp("2010-10-26 09:00:00"),
-            "FY5253": Timestamp("2010-01-26 09:00:00"),
             "Easter": Timestamp("2010-04-04 09:00:00"),
         }
 
@@ -551,10 +499,6 @@ class TestCommon(Base):
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
 
-        if offset_types in (BusinessHour, CustomBusinessHour):
-            # In default BusinessHour (9:00-17:00), normalized time
-            # cannot be in business hour range
-            return
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.onOffset(date)
 
@@ -1720,21 +1664,13 @@ class TestDST:
     offset_classes = {
         MonthBegin: ["11/2/2012", "12/1/2012"],
         MonthEnd: ["11/2/2012", "11/30/2012"],
-        BMonthBegin: ["11/2/2012", "12/3/2012"],
-        BMonthEnd: ["11/2/2012", "11/30/2012"],
-        CBMonthBegin: ["11/2/2012", "12/3/2012"],
-        CBMonthEnd: ["11/2/2012", "11/30/2012"],
         SemiMonthBegin: ["11/2/2012", "11/15/2012"],
         SemiMonthEnd: ["11/2/2012", "11/15/2012"],
         Week: ["11/2/2012", "11/9/2012"],
         YearBegin: ["11/2/2012", "1/1/2013"],
         YearEnd: ["11/2/2012", "12/31/2012"],
-        BYearBegin: ["11/2/2012", "1/1/2013"],
-        BYearEnd: ["11/2/2012", "12/31/2012"],
         QuarterBegin: ["11/2/2012", "12/1/2012"],
         QuarterEnd: ["11/2/2012", "12/31/2012"],
-        BQuarterBegin: ["11/2/2012", "12/3/2012"],
-        BQuarterEnd: ["11/2/2012", "12/31/2012"],
         Day: ["11/4/2012", "11/4/2012 23:00"],
     }.items()
 
@@ -1794,9 +1730,6 @@ def test_validate_n_error():
 
     with pytest.raises(TypeError):
         MonthBegin(n=timedelta(1))
-
-    with pytest.raises(TypeError):
-        BDay(n=np.array([1, 2], dtype=np.int64))
 
 
 def test_require_integers(offset_types):

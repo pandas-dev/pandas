@@ -4,7 +4,7 @@ import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=[getattr(offsets, o) for o in offsets.__all__])
-def offset_types(request):
+def date_offset_types(request):
     """
     Fixture for all the datetime offsets available for a time series.
     """
