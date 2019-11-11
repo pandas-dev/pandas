@@ -92,8 +92,7 @@ cdef class Reducer:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length {length}'
-                                 .format(length=self.chunksize))
+                raise ValueError(f'Dummy array must be length {self.chunksize}')
 
         return dummy, typ, index, ityp
 

@@ -753,8 +753,7 @@ def group_quantile(ndarray[float64_t] out,
     assert values.shape[0] == N
 
     if not (0 <= q <= 1):
-        raise ValueError("'q' must be between 0 and 1. Got"
-                         " '{}' instead".format(q))
+        raise ValueError(f"'q' must be between 0 and 1. Got '{q}' instead")
 
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
