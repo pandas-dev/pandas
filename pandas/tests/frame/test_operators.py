@@ -530,13 +530,33 @@ class TestDataFrameOperators:
         test_comp(operator.ge)
         test_comp(operator.le)
 
-    def test_strings_to_numbers_comparisons_raises(self):
+    @pytest.mark.parametrize("op", ["lt", "le", "gt", "ge", "eq", "ne"])
+    def test_strings_to_numbers_comparisons(self, op):
         # GH 11565
         df = DataFrame(
             {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
         )
-        with pytest.raises(TypeError):
-            df > 0
+
+        f = getattr(operator, op)
+        if op == "eq":
+            result = f(df, 0)
+            expected = DataFrame(
+                {x: {y: False for y in ["x", "y", "z"]} for x in ["a", "b", "c"]}
+            )
+
+            tm.assert_frame_equal(result, expected)
+
+        elif op == "ne":
+            result = f(df, 0)
+            expected = DataFrame(
+                {x: {y: True for y in ["x", "y", "z"]} for x in ["a", "b", "c"]}
+            )
+
+            tm.assert_frame_equal(result, expected)
+
+        else:
+            with pytest.raises(TypeError):
+                f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
