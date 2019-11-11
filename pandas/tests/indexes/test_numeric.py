@@ -176,7 +176,11 @@ class TestFloat64Index(Numeric):
         ],
     )
     def test_invalid_dtype(self, index, dtype):
-        with pytest.raises(ValueError):
+        # GH 29539
+        with pytest.raises(
+            ValueError,
+            match=r"Incorrect `dtype` passed: expected .*, received {}".format(dtype),
+        ):
             index([1, 2, 3], dtype=dtype)
 
     def test_constructor_invalid(self):

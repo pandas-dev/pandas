@@ -75,17 +75,28 @@ class NumericIndex(Index):
         return cls._simple_new(subarr, name=name)
 
     def _validate_dtype(cls, dtype):
-        if not dtype:
+        if dtype is None:
             return
-        if cls._typ == "int64index":
-            if not is_signed_integer_dtype(dtype):
-                raise ValueError("Incorrect `dtype` passed")
-        elif cls._typ == "uint64index":
-            if not is_unsigned_integer_dtype(dtype):
-                raise ValueError("Incorrect `dtype` passed")
-        elif cls._typ == "float64index":
-            if not is_float_dtype(dtype):
-                raise ValueError("Incorrect `dtype` passed")
+        if cls._typ == "int64index" and not is_signed_integer_dtype(dtype):
+            raise ValueError(
+                "Incorrect `dtype` passed: expected signed integer, received {}".format(
+                    dtype
+                )
+            )
+        elif cls._typ == "uint64index" and not is_unsigned_integer_dtype(dtype):
+            raise ValueError(
+                "Incorrect `dtype` passed: expected unsigned integer"
+                ", received {}".format(dtype)
+            )
+        elif (
+            cls._typ == "float64index"
+            and not is_float_dtype(dtype)
+            and not is_integer_dtype(dtype)
+        ):
+            raise ValueError(
+                "Incorrect `dtype` passed: expected float or integer"
+                ", received {}".format(dtype)
+            )
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
