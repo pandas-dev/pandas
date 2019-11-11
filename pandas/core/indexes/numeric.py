@@ -57,7 +57,7 @@ class NumericIndex(Index):
                 return cls._simple_new(data, name=name)
 
         # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data, dtype=dtype)
+        data = cls._coerce_to_ndarray(data, dtype=cls._default_dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
