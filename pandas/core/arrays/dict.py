@@ -1,12 +1,14 @@
-from typing import Dict, Hashable, Optional, Sequence, Type
+from typing import Any, Dict, Hashable, Optional, Sequence, Type
 
 import numpy as np
+
+from pandas._libs import lib
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
-from pandas._typing import Dtype
+from pandas._typing import Axis, Dtype
 import pandas.core.accessor as accessor
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
@@ -99,7 +101,20 @@ class DictArray(PandasArray):
         result[result.isna()] = np.nan
         return result
 
-    def _reduce(self, name, axis=0, **kwargs):
+    def __setitem__(self, key: Hashable, value: Any):
+        def check_value(value):
+            if not (pd.isnull(value) or isinstance(value, dict)):
+                raise TypeError(f"Cannot set non-dict value {value} into DictArray")
+
+        if lib.is_scalar(value):
+            check_value(value)
+        else:
+            for val in value:
+                check_value(val)
+
+        super().__setitem__(key, value)
+
+    def _reduce(self, name: str, axis: Axis = 0, **kwargs):
         raise NotImplementedError
 
 

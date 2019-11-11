@@ -13,10 +13,10 @@ def test_none_to_nan():
 
 def test_setitem_validates():
     a = pd.arrays.DictArray._from_sequence([{"a": 1}, {"a": 2}])
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError, match="Cannot set non-dict value"):
         a[0] = "not_a_dict"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError, match="Cannot set non-dict value"):
         a[:] = np.array([1, 2])
 
 
