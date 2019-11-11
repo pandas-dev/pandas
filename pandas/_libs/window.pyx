@@ -69,8 +69,8 @@ def _check_minp(win, minp, N, floor=None) -> int:
     if not util.is_integer_object(minp):
         raise ValueError("min_periods must be an integer")
     if minp > win:
-        raise ValueError("min_periods (minp) must be <= "
-                         "window (win)".format(minp=minp, win=win))
+        raise ValueError(f"min_periods (minp) must be <= "
+                         f"window (win)")
     elif minp > N:
         minp = N + 1
     elif minp < 0:
@@ -1162,7 +1162,7 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
 
 # Moving maximum / minimum code taken from Bottleneck under the terms
 # of its Simplified BSD license
-# https://github.com/kwgoodman/bottleneck
+# https://github.com/pydata/bottleneck
 
 
 cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
@@ -1476,13 +1476,12 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
         int ret = 0
 
     if quantile <= 0.0 or quantile >= 1.0:
-        raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
+        raise ValueError(f"quantile value {quantile} not in [0, 1]")
 
     try:
         interpolation_type = interpolation_types[interpolation]
     except KeyError:
-        raise ValueError("Interpolation '{interp}' is not supported"
-                         .format(interp=interpolation))
+        raise ValueError(f"Interpolation '{interpolation}' is not supported")
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -2077,8 +2076,8 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
-        raise ValueError("arrays are of different lengths "
-                         "({N} and {len_y})".format(N=N, len_y=len(input_y)))
+        raise ValueError(f"arrays are of different lengths "
+                         f"({N} and {len(input_y)})")
 
     output = np.empty(N, dtype=float)
     if N == 0:
