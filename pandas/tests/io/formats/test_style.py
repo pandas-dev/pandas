@@ -376,6 +376,25 @@ class TestStyler:
 
         (df.style.applymap(color_negative_red, subset=idx[:, idx["b", "d"]]).render())
 
+    def test_applymap_subset_multiindex_code(self):
+        # https://github.com/pandas-dev/pandas/issues/25858
+        # Checks styler.applymap works with multindex when codes are provided
+        codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
+        columns = pd.MultiIndex(
+            levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
+        )
+        df = DataFrame(
+            [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
+        )
+        pct_subset = pd.IndexSlice[:, pd.IndexSlice[:, "%":"%"]]
+
+        def color_negative_red(val):
+            color = "red" if val < 0 else "black"
+            return "color: %s" % color
+
+        df.loc[pct_subset]
+        df.style.applymap(color_negative_red, subset=pct_subset)
+
     def test_where_with_one_style(self):
         # GH 17474
         def f(x):
@@ -1647,6 +1666,23 @@ class TestStylerMatplotlibDep:
         assert result[(0, 1)] == mid
         assert result[(1, 0)] == mid
         assert result[(1, 1)] == high
+
+    def test_background_gradient_vmin_vmax(self):
+        # GH 12145
+        df = pd.DataFrame(range(5))
+        ctx = df.style.background_gradient(vmin=1, vmax=3)._compute().ctx
+        assert ctx[(0, 0)] == ctx[(1, 0)]
+        assert ctx[(4, 0)] == ctx[(3, 0)]
+
+    def test_background_gradient_int64(self):
+        # GH 28869
+        df1 = pd.Series(range(3)).to_frame()
+        df2 = pd.Series(range(3), dtype="Int64").to_frame()
+        ctx1 = df1.style.background_gradient()._compute().ctx
+        ctx2 = df2.style.background_gradient()._compute().ctx
+        assert ctx2[(0, 0)] == ctx1[(0, 0)]
+        assert ctx2[(1, 0)] == ctx1[(1, 0)]
+        assert ctx2[(2, 0)] == ctx1[(2, 0)]
 
 
 def test_block_names():

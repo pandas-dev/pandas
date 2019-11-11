@@ -120,7 +120,7 @@ class JoinUnit:
         self.indexers = indexers
         self.shape = shape
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{name}({block!r}, {indexers})".format(
             name=self.__class__.__name__, block=self.block, indexers=self.indexers
         )
@@ -244,7 +244,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
         # Concatenating join units along ax0 is handled in _merge_blocks.
         raise AssertionError("Concatenating join units along axis0")
 
-    empty_dtype, upcasted_na = get_empty_dtype_and_na(join_units)
+    empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)
 
     to_concat = [
         ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
@@ -268,7 +268,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
     return concat_values
 
 
-def get_empty_dtype_and_na(join_units):
+def _get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -284,7 +284,7 @@ def get_empty_dtype_and_na(join_units):
         if blk is None:
             return np.float64, np.nan
 
-    if is_uniform_reindex(join_units):
+    if _is_uniform_reindex(join_units):
         # FIXME: integrate property
         empty_dtype = join_units[0].block.dtype
         upcasted_na = join_units[0].block.fill_value
@@ -398,7 +398,7 @@ def is_uniform_join_units(join_units):
     )
 
 
-def is_uniform_reindex(join_units):
+def _is_uniform_reindex(join_units) -> bool:
     return (
         # TODO: should this be ju.block._can_hold_na?
         all(ju.block and ju.block.is_extension for ju in join_units)
@@ -406,7 +406,7 @@ def is_uniform_reindex(join_units):
     )
 
 
-def trim_join_unit(join_unit, length):
+def _trim_join_unit(join_unit, length):
     """
     Reduce join_unit's shape along item axis to length.
 
@@ -486,9 +486,9 @@ def combine_concat_plans(plans, concat_axis):
                 for i, (plc, unit) in enumerate(next_items):
                     yielded_units[i] = unit
                     if len(plc) > min_len:
-                        # trim_join_unit updates unit in place, so only
+                        # _trim_join_unit updates unit in place, so only
                         # placement needs to be sliced to skip min_len.
-                        next_items[i] = (plc[min_len:], trim_join_unit(unit, min_len))
+                        next_items[i] = (plc[min_len:], _trim_join_unit(unit, min_len))
                     else:
                         yielded_placement = plc
                         next_items[i] = _next_or_none(plans[i])

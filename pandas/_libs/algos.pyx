@@ -84,8 +84,8 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
     Returns
     -------
-    result : ndarray[int64_t]
-        result is sorted
+    ndarray[int64_t]
+        An ordered ndarray[int64_t]
     """
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -150,9 +150,10 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 @cython.wraparound(False)
 def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
-    compute a 1-d indexer that is an ordering of the passed index,
-    ordered by the groups. This is a reverse of the label
-    factorization process.
+    Compute a 1-d indexer.
+
+    The indexer is an ordering of the passed index,
+    ordered by the groups.
 
     Parameters
     ----------
@@ -161,7 +162,14 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     ngroups: int64
         number of groups
 
-    return a tuple of (1-d indexer ordered by groups, group counts)
+    Returns
+    -------
+    tuple
+        1-d indexer ordered by groups, group counts
+
+    Notes
+    -----
+    This is a reverse of the label factorization process.
     """
 
     cdef:
@@ -379,13 +387,39 @@ ctypedef fused algos_t:
     uint8_t
 
 
+def _validate_limit(nobs: int, limit=None) -> int:
+    """
+    Check that the `limit` argument is a positive integer.
+
+    Parameters
+    ----------
+    nobs : int
+    limit : object
+
+    Returns
+    -------
+    int
+        The limit.
+    """
+    if limit is None:
+        lim = nobs
+    else:
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
+        lim = limit
+
+    return lim
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
-        algos_t cur, next
+        algos_t cur, next_val
         int lim, fill_count = 0
 
     nleft = len(old)
@@ -393,14 +427,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
         return indexer
@@ -426,9 +453,9 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
                 j += 1
             break
 
-        next = old[i + 1]
+        next_val = old[i + 1]
 
-        while j < nright and cur <= new[j] < next:
+        while j < nright and cur <= new[j] < next_val:
             if new[j] == cur:
                 indexer[j] = i
             elif fill_count < lim:
@@ -438,16 +465,14 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
         fill_count = 0
         i += 1
-        cur = next
+        cur = next_val
 
     return indexer
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values,
-                const uint8_t[:] mask,
-                limit=None):
+def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -459,14 +484,7 @@ def pad_inplace(algos_t[:] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     val = values[0]
     for i in range(N):
@@ -482,9 +500,7 @@ def pad_inplace(algos_t[:] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(algos_t[:, :] values,
-                   const uint8_t[:, :] mask,
-                   limit=None):
+def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
@@ -496,14 +512,7 @@ def pad_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -559,14 +568,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
         return indexer
@@ -612,9 +614,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(algos_t[:] values,
-                     const uint8_t[:] mask,
-                     limit=None):
+def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -626,14 +626,7 @@ def backfill_inplace(algos_t[:] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     val = values[N - 1]
     for i in range(N - 1, -1, -1):
@@ -663,14 +656,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
+    lim = _validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -692,7 +678,8 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
-    is_monotonic_inc, is_monotonic_dec, is_unique
+    tuple
+        is_monotonic_inc, is_monotonic_dec, is_unique
     """
     cdef:
         Py_ssize_t i, n
@@ -1171,6 +1158,77 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         return ranks.T
     else:
         return ranks
+
+
+ctypedef fused diff_t:
+    float64_t
+    float32_t
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+ctypedef fused out_t:
+    float32_t
+    float64_t
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def diff_2d(ndarray[diff_t, ndim=2] arr,
+            ndarray[out_t, ndim=2] out,
+            Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy, start, stop
+        bint f_contig = arr.flags.f_contiguous
+
+    # Disable for unsupported dtype combinations,
+    #  see https://github.com/cython/cython/issues/2646
+    if (out_t is float32_t
+            and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
+        raise NotImplementedError
+    elif (out_t is float64_t
+          and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
+        raise NotImplementedError
+    else:
+        # We put this inside an indented else block to avoid cython build
+        #  warnings about unreachable code
+        sx, sy = (<object>arr).shape
+        with nogil:
+            if f_contig:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
+                    for j in range(sy):
+                        for i in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                else:
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
+                    for j in range(start, stop):
+                        for i in range(sx):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
+            else:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
+                    for i in range(start, stop):
+                        for j in range(sy):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                else:
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
+                    for i in range(sx):
+                        for j in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
 # generated from template

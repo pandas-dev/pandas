@@ -322,6 +322,7 @@ class Generic:
             self._compare(
                 o.sample(n=4, random_state=seed), o.sample(n=4, random_state=seed)
             )
+
             self._compare(
                 o.sample(frac=0.7, random_state=seed),
                 o.sample(frac=0.7, random_state=seed),
@@ -335,6 +336,15 @@ class Generic:
             self._compare(
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
+            )
+
+            self._compare(
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
             )
 
             os1, os2 = [], []
@@ -423,6 +433,17 @@ class Generic:
         weights_with_None = [None] * 10
         weights_with_None[5] = 0.5
         self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
+
+    def test_sample_upsampling_without_replacement(self):
+        # GH27451
+
+        df = pd.DataFrame({"A": list("abc")})
+        msg = (
+            "Replace has to be set to `True` when "
+            "upsampling the population `frac` > 1."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.sample(frac=2, replace=False)
 
     def test_size_compat(self):
         # GH8846
