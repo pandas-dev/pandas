@@ -1438,7 +1438,7 @@ class _Rolling_and_Expanding(_Rolling):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
-    **kwargs:
+    **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
 

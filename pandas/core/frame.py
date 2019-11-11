@@ -2639,12 +2639,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        copy : bool, default False
-            If True, the underlying data is copied. Otherwise (default), no
-            copy is made if possible.
         *args, **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with numpy.
 
         Returns
         -------
@@ -3234,7 +3231,7 @@ class DataFrame(NDFrame):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
-        kwargs : dict
+        **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
             :meth:`~pandas.DataFrame.query`.
@@ -5186,8 +5183,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
 
         Returns
         -------
@@ -6277,7 +6274,6 @@ class DataFrame(NDFrame):
     %(versionadded)s
     Parameters
     ----------
-    frame : DataFrame
     id_vars : tuple, list, or ndarray, optional
         Column(s) to use as identifier variables.
     value_vars : tuple, list, or ndarray, optional
