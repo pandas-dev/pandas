@@ -260,9 +260,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
     copy : bool, default False
-        copy the data
+        Copy the data.
     dtype : dtype or None, default None
-        If None, dtype will be inferred
+        If None, dtype will be inferred.
 
         .. versionadded:: 0.23.0
 
@@ -383,16 +383,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     Parameters
     ----------
     data : array-like (1-dimensional)
-        Array of tuples
+        Array of tuples.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
     copy : bool, default False
-        by-default copy the data, this is compat only and ignored
+        By-default copy the data, this is compat only and ignored.
     dtype : dtype or None, default None
-        If None, dtype will be inferred
+        If None, dtype will be inferred.
 
-        ..versionadded:: 0.23.0
+        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -860,7 +860,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return summary
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         template = (
             "{class_name}"
             "{data}\n"

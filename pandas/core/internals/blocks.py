@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, writers
+from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -268,7 +267,7 @@ class Block(PandasObject):
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -393,10 +392,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            if not is_integer(limit):
-                raise ValueError("Limit must be an integer")
-            if limit < 1:
-                raise ValueError("Limit must be greater than 0")
+            limit = libalgos._validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -2608,10 +2604,6 @@ class ObjectBlock(Block):
                 value.dtype.type,
                 (np.integer, np.floating, np.complexfloating, np.datetime64, np.bool_),
             )
-            or
-            # TODO(ExtensionArray): remove is_extension_type
-            # when all extension arrays have been ported.
-            is_extension_type(value)
             or is_extension_array_dtype(value)
         )
 
@@ -3171,7 +3163,7 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_type(v.dtype) and is_object_dtype(dtype):
+    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
         v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
