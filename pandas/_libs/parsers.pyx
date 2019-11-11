@@ -843,9 +843,10 @@ cdef class TextReader:
 
             passed_count = len(header[0])
 
-            if passed_count > field_count:
-                raise ParserError(f'Column names have {passed_count} fields, '
-                                  f'data has {field_count} fields')
+            # if passed_count > field_count:
+            #    raise ParserError('Column names have %d fields, '
+            #                      'data has %d fields'
+            #                      % (passed_count, field_count))
 
             if (self.has_usecols and self.allow_leading_cols and
                     not callable(self.usecols)):
