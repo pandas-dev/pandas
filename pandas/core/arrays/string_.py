@@ -96,7 +96,8 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            str_arr = StringArray(np.array(arr))
+            # using _from_sequence to ensure None is convered to np.nan
+            str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
         return StringArray._concat_same_type(results)
