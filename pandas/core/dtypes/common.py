@@ -1264,9 +1264,6 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     """
     Check if the exception raised is an unorderable exception.
 
-    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
-    we need to condition based on Python version.
-
     Parameters
     ----------
     e : Exception or sub-class
@@ -1274,7 +1271,7 @@ def _is_unorderable_exception(e: TypeError) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the exception raised is an unorderable exception.
     """
     return "'>' not supported between instances of" in str(e)
