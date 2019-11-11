@@ -944,6 +944,11 @@ class TestUInt64Index(NumericInt):
         res = Index(np.array([-1, 2 ** 63], dtype=object))
         tm.assert_index_equal(res, idx)
 
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = pd.UInt64Index([1, 2**63 + 1])
+        res = pd.UInt64Index(np.array([1, 2**63 + 1], dtype="uint64"))
+        tm.assert_index_equal(res, idx)
+
     def test_get_indexer(self, index_large):
         target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
         indexer = index_large.get_indexer(target)
@@ -1187,3 +1192,13 @@ def test_range_float_union_dtype():
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
+
+
+def test_index_construction_respects_dtype():
+    # https://github.com/pandas-dev/pandas/issues/29526
+    index_list = [1, 2**63 + 1]
+
+    result = UInt64Index(index_list)
+    expected = UInt64Index(np.array(index_list, dtype="uint64"))
+
+    tm.assert_equal(expected, result)
