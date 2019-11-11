@@ -6,6 +6,7 @@ from .base import (  # noqa: F401
 )
 from .categorical import Categorical  # noqa: F401
 from .datetimes import DatetimeArray  # noqa: F401
+from .dict import DictArray  # noqa: F401
 from .integer import IntegerArray, integer_array  # noqa: F401
 from .interval import IntervalArray  # noqa: F401
 from .numpy_ import PandasArray, PandasDtype  # noqa: F401
