@@ -1219,8 +1219,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
                 return value
 
             # its ndarray like but we can't handle
-            raise ValueError("cannot infer type for {typ}"
-                             .format(typ=type(value)))
+            raise ValueError(f"cannot infer type for {type(value)}")
 
     else:
         if not isinstance(value, list):
@@ -1497,9 +1496,8 @@ cdef class Validator:
         return self.is_valid(value) or self.is_valid_null(value)
 
     cdef bint is_value_typed(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_value_typed'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_value_typed')
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or util.is_nan(value)
@@ -1635,9 +1633,8 @@ cdef class TemporalValidator(Validator):
         return self.is_value_typed(value) or self.is_valid_null(value)
 
     cdef bint is_valid_null(self, object value) except -1:
-        raise NotImplementedError(
-            '{typ} child class must define is_valid_null'
-            .format(typ=type(self).__name__))
+        raise NotImplementedError(f'{type(self).__name__} child class '
+                                  f'must define is_valid_null')
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
@@ -1926,7 +1923,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
+                    raise type(e)(str(e) + f" at position {i}")
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
 

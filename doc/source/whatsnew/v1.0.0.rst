@@ -3,6 +3,10 @@
 What's new in 1.0.0 (??)
 ------------------------
 
+.. warning::
+
+   Starting with the 1.x series of releases, pandas only supports Python 3.6.1 and higher.
+
 New Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -36,10 +40,6 @@ See :ref:`policies.version` for more.
 
 .. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
 .. _SemVer: https://semver.org
-
-.. warning::
-
-   The minimum supported Python version will be bumped to 3.6 in a future release.
 
 {{ header }}
 
@@ -110,6 +110,7 @@ Other enhancements
   (depending on the presence of missing data) or object dtype column. (:issue:`28368`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
+- Implemented :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` functions (:issue:`26597`)
 - Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
@@ -216,7 +217,8 @@ Deprecations
 - ``Index.set_value`` has been deprecated. For a given index ``idx``, array ``arr``,
   value in ``idx`` of ``idx_val`` and a new value of ``val``, ``idx.set_value(arr, idx_val, val)``
   is equivalent to ``arr[idx.get_loc(idx_val)] = val``, which should be used instead (:issue:`28621`).
--
+- :func:`is_extension_type` is deprecated, :func:`is_extension_array_dtype` should be used instead (:issue:`29457`)
+
 
 .. _whatsnew_1000.prior_deprecations:
 
@@ -415,6 +417,7 @@ Plotting
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
+- Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
