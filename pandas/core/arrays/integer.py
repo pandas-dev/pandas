@@ -86,12 +86,13 @@ class _IntegerDtype(ExtensionDtype):
         return IntegerArray
 
     def __from_arrow__(self, array):
-        """Construct IntegerArray from passed pyarrow Array"""
+        """Construct IntegerArray from passed pyarrow Array/ChunkedArray"""
         import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
+            # pyarrow.ChunkedArray
             chunks = array.chunks
 
         results = []

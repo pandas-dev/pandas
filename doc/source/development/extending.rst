@@ -251,6 +251,50 @@ To use a test, subclass it:
 See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
+.. _extending.extension.arrow:
+
+Compatibility with Apache Arrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An ``ExtensionArray`` can support conversion to / from ``pyarrow`` arrays
+(and thus support for example serialization to the Parquet file format)
+by implementing two methods: ``ExtensionArray.__arrow_array__`` and
+``ExtensionDtype.__from_arrow__``.
+
+The ``ExtensionArray.__arrow_array__`` ensures that ``pyarrow`` knowns how
+to convert the specific extension array into a ``pyarrow.Array`` (also when
+included as a column in a pandas DataFrame):
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray):
+        ...
+
+        def __arrow_array__(self, type=None):
+            # convert the underlying array values to a pyarrow Array
+            import pyarrow
+            return pyarrow.array(..., type=type)
+
+The ``ExtensionDtype.__from_arrow__`` method then controls the conversion
+back from pyarrow to a pandas ExtensionArray. This method receives a pyarrow
+``Array`` or ``ChunkedArray`` as only argument and is expected to return the
+appropriate pandas ``ExtensionArray`` for this dtype and the passed values:
+
+.. code-block:: python
+
+    class ExtensionDtype:
+        ...
+
+        def __from_arrow__(
+            self, array: pyarrow.Array/ChunkedArray
+        ) -> ExtensionArray:
+            ...
+
+See more in the `Arrow documentation <https://arrow.apache.org/docs/python/extending_types.html>`__.
+
+Those methods have been implemented for the nullable integer and string extension
+dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
+
 .. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py

@@ -86,12 +86,13 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(self, array):
-        """Construct StringArray from passed pyarrow Array"""
+        """Construct StringArray from passed pyarrow Array/ChunkedArray"""
         import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
+            # pyarrow.ChunkedArray
             chunks = array.chunks
 
         results = []
