@@ -66,7 +66,7 @@ cdef class BlockPlacement:
     def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
