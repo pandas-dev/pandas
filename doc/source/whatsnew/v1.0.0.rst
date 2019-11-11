@@ -215,7 +215,8 @@ Deprecations
   value in ``idx`` of ``idx_val`` and a new value of ``val``, ``idx.set_value(arr, idx_val, val)``
   is equivalent to ``arr[idx.get_loc(idx_val)] = val``, which should be used instead (:issue:`28621`).
 - :func:`is_extension_type` is deprecated, :func:`is_extension_array_dtype` should be used instead (:issue:`29457`)
-
+- :meth:`DataFrame.groupby` and :meth:`Series.groupby` accepted a ``mutated`` parameter, which is actually
+  an implementation detail. It has been deprecated in the public interface (:issue:`29511`).
 
 .. _whatsnew_1000.prior_deprecations:
 

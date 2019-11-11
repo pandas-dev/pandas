@@ -62,7 +62,7 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
+    get_groupby,
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -997,7 +997,7 @@ class DataFrameGroupBy(GroupBy):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = groupby(obj, self.grouper)
+                s = get_groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:

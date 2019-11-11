@@ -2486,18 +2486,42 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj: NDFrame, by, **kwds):
+def get_groupby(
+    obj: NDFrame,
+    by=None,
+    axis: int = 0,
+    level=None,
+    grouper=None,
+    exclusions=None,
+    selection=None,
+    as_index: bool = True,
+    sort: bool = True,
+    group_keys: bool = True,
+    squeeze: bool = False,
+    observed: bool = False,
+    mutated: bool = False,
+):
+    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
+
     if isinstance(obj, Series):
-        from pandas.core.groupby.generic import SeriesGroupBy
-
-        klass = (
-            SeriesGroupBy
-        )  # type: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+        klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        from pandas.core.groupby.generic import DataFrameGroupBy
-
         klass = DataFrameGroupBy
     else:
         raise TypeError("invalid type: {obj}".format(obj=obj))
 
-    return klass(obj, by, **kwds)
+    return klass(
+        obj=obj,
+        keys=by,
+        axis=axis,
+        level=level,
+        grouper=grouper,
+        exclusions=exclusions,
+        selection=selection,
+        as_index=as_index,
+        sort=sort,
+        group_keys=group_keys,
+        squeeze=squeeze,
+        observed=observed,
+        mutated=mutated,
+    )

@@ -7875,8 +7875,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-        mutated : bool, False
-            `mutated` is passed to groupby.
+        mutated : bool, default False
+            .. deprecated:: 1.0
+               This is an internal parameter and will be removed from the public
+               interface in the future
 
         Returns
         -------
@@ -7939,12 +7941,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Captive      210.0
         Wild         185.0
         """
-        from pandas.core.groupby.groupby import groupby
+        from pandas.core.groupby.groupby import get_groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
-        return groupby(
+
+        if mutated is not False:
+            warnings.warn(
+                "Parameter 'mutated' is deprecated", FutureWarning, stacklevel=2
+            )
+
+        return get_groupby(
             self,
             by=by,
             axis=axis,
