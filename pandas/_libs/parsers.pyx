@@ -740,7 +740,8 @@ cdef class TextReader:
                           self.parser.lines < hr):
                     msg = self.orig_header
                     if isinstance(msg, list):
-                        msg = f"[{','.join(str(m) for m in msg)}], len of {len(msg)},"
+                        joined = ','.join(str(m) for m in msg)
+                        msg = f"[{joined}], len of {len(msg)},"
                     raise ParserError(
                         f'Passed header={msg} but only '
                         f'{self.parser.lines} lines in file')
