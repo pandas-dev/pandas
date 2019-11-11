@@ -717,8 +717,11 @@ class SQLTable(PandasObject):
         # Get temporary dataframe so as not to delete values from main df
         temp = self._get_index_formatted_dataframe()
         # Delete rows from dataframe where primary keys match
+        # Method requires tuples, to account for cases where indexes do not match
         to_be_deleted_mask = (
-            temp[primary_keys].isin(pkeys_from_database[primary_keys]).all(1)
+            temp[primary_keys].apply(tuple, 1).isin(
+                pkeys_from_database[primary_keys].apply(tuple, 1)
+            )
         )
         temp.drop(temp[to_be_deleted_mask].index, inplace=True)
 
