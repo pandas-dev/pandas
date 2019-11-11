@@ -690,11 +690,11 @@ class ExtensionArray:
         Parameters
         ----------
         na_sentinel : int, default -1
-            Value to use in the `labels` array to indicate missing values.
+            Value to use in the `codes` array to indicate missing values.
 
         Returns
         -------
-        labels : ndarray
+        codes : ndarray
             An integer NumPy array that's an indexer into the original
             ExtensionArray.
         uniques : ExtensionArray
@@ -724,12 +724,12 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        labels, uniques = _factorize_array(
+        codes, uniques = _factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
         uniques = self._from_factorized(uniques, self)
-        return labels, uniques
+        return codes, uniques
 
     _extension_array_shared_docs[
         "repeat"
