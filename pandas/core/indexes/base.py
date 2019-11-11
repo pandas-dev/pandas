@@ -4040,16 +4040,17 @@ class Index(IndexOpsMixin, PandasObject):
             When the data passed in is a scalar.
         """
 
-        if not isinstance(data, (np.ndarray, Index)):
-            if data is None or is_scalar(data):
-                raise cls._scalar_data_error(data)
+        if isinstance(data, (np.ndarray, Index)):
+            return data
 
-            # other iterable of some kind
-            if not isinstance(data, (ABCSeries, list, tuple)):
-                data = list(data)
+        if is_scalar(data):
+            raise cls._scalar_data_error(data)
 
-            data = np.asarray(data, dtype=dtype)
-        return data
+        # other iterable of some kind
+        if not isinstance(data, (ABCSeries, list, tuple)):
+            data = list(data)
+
+        return np.asarray(data, dtype=dtype)
 
     def _coerce_scalar_to_index(self, item):
         """
