@@ -108,7 +108,7 @@ cpdef assert_almost_equal(a, b,
         return assert_dict_equal(a, b)
 
     if isinstance(a, str) or isinstance(b, str):
-        assert a == b, "%r != %r" % (a, b)
+        assert a == b, f"{a} != {b}"
         return True
 
     a_is_ndarray = isinstance(a, np.ndarray)
@@ -128,16 +128,15 @@ cpdef assert_almost_equal(a, b,
             assert_class_equal(a, b, obj=obj)
 
         assert has_length(a) and has_length(b), (
-            "Can't compare objects without length, one or both is invalid: "
-            "(%r, %r)" % (a, b))
+            f"Can't compare objects without length, one or both is invalid: "
+            f"({a}, {b})")
 
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
                 from pandas.util.testing import raise_assert_detail
                 raise_assert_detail(
-                    obj, '{0} shapes are different'.format(obj),
-                    a.shape, b.shape)
+                    obj, f'{obj} shapes are different', a.shape, b.shape)
 
             if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
                 from pandas.util.testing import assert_attr_equal
@@ -158,8 +157,7 @@ cpdef assert_almost_equal(a, b,
             else:
                 r = None
 
-            raise_assert_detail(obj, '{0} length are different'.format(obj),
-                                na, nb, r)
+            raise_assert_detail(obj, f'{obj} length are different', na, nb, r)
 
         for i in xrange(len(a)):
             try:
@@ -171,8 +169,8 @@ cpdef assert_almost_equal(a, b,
 
         if is_unequal:
             from pandas.util.testing import raise_assert_detail
-            msg = '{0} values are different ({1} %)'.format(
-                obj, np.round(diff * 100.0 / na, 5))
+            msg = (f'{obj} values are different '
+                   f'({np.round(diff * 100.0 / na, 5)} %)')
             raise_assert_detail(obj, msg, lobj, robj)
 
         return True
@@ -214,4 +212,4 @@ cpdef assert_almost_equal(a, b,
                                'with decimal %d' % (fb, fa, decimal))
         return True
 
-    raise AssertionError("{0} != {1}".format(a, b))
+    raise AssertionError(f"{a} != {b}")

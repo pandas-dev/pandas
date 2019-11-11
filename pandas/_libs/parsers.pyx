@@ -637,19 +637,19 @@ cdef class TextReader:
                     source = zip_file.open(file_name)
 
                 elif len(zip_names) == 0:
-                    raise ValueError('Zero files found in compressed '
-                                     'zip file %s', source)
+                    raise ValueError(f'Zero files found in compressed '
+                                     f'zip file {source}')
                 else:
-                    raise ValueError('Multiple files found in compressed '
-                                     'zip file %s', str(zip_names))
+                    raise ValueError(f'Multiple files found in compressed '
+                                     f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
                     source = _get_lzma_file(lzma)(source, 'rb')
                 else:
                     source = _get_lzma_file(lzma)(filename=source)
             else:
-                raise ValueError('Unrecognized compression type: %s' %
-                                 self.compression)
+                raise ValueError(f'Unrecognized compression type: '
+                                 f'{self.compression}')
 
             if b'utf-16' in (self.encoding or b''):
                 # we need to read utf-16 through UTF8Recoder.
@@ -703,8 +703,8 @@ cdef class TextReader:
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
         else:
-            raise IOError('Expected file path name or file-like object,'
-                          ' got %s type' % type(source))
+            raise IOError(f'Expected file path name or file-like object, '
+                          f'got {type(source)} type')
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]
@@ -744,8 +744,8 @@ cdef class TextReader:
                         msg = "[%s], len of %d," % (
                             ','.join(str(m) for m in msg), len(msg))
                     raise ParserError(
-                        'Passed header=%s but only %d lines in file'
-                        % (msg, self.parser.lines))
+                        f'Passed header={msg} but only '
+                        f'{self.parser.lines} lines in file')
 
                 else:
                     field_count = self.parser.line_fields[hr]
@@ -779,7 +779,7 @@ cdef class TextReader:
                     if not self.has_mi_columns and self.mangle_dupe_cols:
                         while count > 0:
                             counts[name] = count + 1
-                            name = '%s.%d' % (name, count)
+                            name = f'{name}.{count}'
                             count = counts.get(name, 0)
 
                     if old_name == '':
@@ -1662,7 +1662,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         char *data
         ndarray result
 
-    result = np.empty(line_end - line_start, dtype='|S%d' % width)
+    result = np.empty(line_end - line_start, dtype=f'|S{width}')
     data = <char*>result.data
 
     with nogil:
@@ -2176,8 +2176,8 @@ def _concatenate_chunks(list chunks):
     if warning_columns:
         warning_names = ','.join(warning_columns)
         warning_message = " ".join([
-            "Columns (%s) have mixed types." % warning_names,
-            "Specify dtype option on import or set low_memory=False."
+            f"Columns ({warning_names}) have mixed types."
+            f"Specify dtype option on import or set low_memory=False."
           ])
         warnings.warn(warning_message, DtypeWarning, stacklevel=8)
     return result
