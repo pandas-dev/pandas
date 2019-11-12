@@ -1518,7 +1518,7 @@ class IndexOpsMixin:
         sort=textwrap.dedent(
             """\
             sort : bool, default False
-                Sort `uniques` and shuffle `labels` to maintain the
+                Sort `uniques` and shuffle `codes` to maintain the
                 relationship.
             """
         ),

@@ -602,11 +602,11 @@ class TimedeltaIndex(
         return typ == self.inferred_type or typ == "timedelta"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "timedelta64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):

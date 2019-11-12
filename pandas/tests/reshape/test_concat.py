@@ -1879,7 +1879,7 @@ class TestConcatenate:
         tm.assert_frame_equal(concat(deque((df1, df2)), ignore_index=True), expected)
 
         class CustomIterator1:
-            def __len__(self):
+            def __len__(self) -> int:
                 return 2
 
             def __getitem__(self, index):
