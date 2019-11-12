@@ -530,6 +530,16 @@ class TestDataFrameOperators:
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
+        # GH 11565
+        df = DataFrame(
+            {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
+        )
+
+        f = getattr(operator, compare_operators_no_eq_ne)
+        with pytest.raises(TypeError):
+            f(df, 0)
+
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
         missing_df.iloc[0]["A"] = np.nan
