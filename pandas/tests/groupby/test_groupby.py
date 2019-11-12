@@ -953,13 +953,6 @@ def test_no_mutate_but_looks_like():
     tm.assert_series_equal(result1, result2)
 
 
-def test_mutated_deprecated():
-    # GH-29511
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-        df.groupby("key", mutated=True)
-
-
 def test_groupby_series_indexed_differently():
     s1 = Series(
         [5.0, -9.0, 4.0, 100.0, -5.0, 55.0, 6.7],

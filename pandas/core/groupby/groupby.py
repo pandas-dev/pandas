@@ -2501,11 +2501,16 @@ def get_groupby(
     observed: bool = False,
     mutated: bool = False,
 ):
-    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
 
     if isinstance(obj, Series):
-        klass = SeriesGroupBy
+        from pandas.core.groupby.generic import SeriesGroupBy
+
+        klass = (
+            SeriesGroupBy
+        )  # type: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
     elif isinstance(obj, DataFrame):
+        from pandas.core.groupby.generic import DataFrameGroupBy
+
         klass = DataFrameGroupBy
     else:
         raise TypeError("invalid type: {obj}".format(obj=obj))

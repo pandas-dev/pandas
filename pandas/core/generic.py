@@ -7830,7 +7830,6 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        mutated=False,
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7875,10 +7874,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-        mutated : bool, default False
-            .. deprecated:: 1.0
-               This is an internal parameter and will be removed from the public
-               interface in the future
 
         Returns
         -------
@@ -7947,11 +7942,6 @@ class NDFrame(PandasObject, SelectionMixin):
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        if mutated is not False:
-            warnings.warn(
-                "Parameter 'mutated' is deprecated", FutureWarning, stacklevel=2
-            )
-
         return get_groupby(
             self,
             by=by,
@@ -7962,7 +7952,6 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            mutated=mutated,
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):
