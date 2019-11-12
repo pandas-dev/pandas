@@ -192,6 +192,23 @@ cdef class _BaseGrouper:
 
         return values, index
 
+    cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
+                                    Slider islider, Slider vslider, object name):
+        if cached_typ is None:
+            cached_ityp = self.ityp(islider.buf)
+            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=name)
+        else:
+            # See the comment in indexes/base.py about _index_data.
+            # We need this for EA-backed indexes that have a reference
+            # to a 1-d ndarray like datetime / timedelta / period.
+            object.__setattr__(cached_ityp, '_index_data', islider.buf)
+            cached_ityp._engine.clear_mapping()
+            object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ, '_index', cached_ityp)
+            object.__setattr__(cached_typ, 'name', name)
+
+        return cached_typ, cached_ityp
+
 
 cdef class SeriesBinGrouper(_BaseGrouper):
     """
@@ -265,20 +282,8 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 islider.set_length(group_size)
                 vslider.set_length(group_size)
 
-                if cached_typ is None:
-                    cached_ityp = self.ityp(islider.buf)
-                    cached_typ = self.typ(vslider.buf, index=cached_ityp,
-                                          name=name)
-                else:
-                    # See the comment in indexes/base.py about _index_data.
-                    # We need this for EA-backed indexes that have a reference
-                    # to a 1-d ndarray like datetime / timedelta / period.
-                    object.__setattr__(cached_ityp, '_index_data', islider.buf)
-                    cached_ityp._engine.clear_mapping()
-                    object.__setattr__(
-                        cached_typ._data._block, 'values', vslider.buf)
-                    object.__setattr__(cached_typ, '_index', cached_ityp)
-                    object.__setattr__(cached_typ, 'name', name)
+                cached_typ, cached_ityp = self._update_cached_objs(
+                    cached_typ, cached_ityp, islider, vslider, name)
 
                 cached_ityp._engine.clear_mapping()
                 res = self.f(cached_typ)
@@ -321,6 +326,10 @@ cdef class SeriesGrouper(_BaseGrouper):
         # in practice we always pass either obj[:0] or the
         #  safer obj._get_values(slice(None, 0))
         assert dummy is not None
+
+        if len(series) == 0:
+            # get_result would never assign `result`
+            raise ValueError("SeriesGrouper requires non-empty `series`")
 
         self.labels = labels
         self.f = f
@@ -376,17 +385,8 @@ cdef class SeriesGrouper(_BaseGrouper):
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 
-                    if cached_typ is None:
-                        cached_ityp = self.ityp(islider.buf)
-                        cached_typ = self.typ(vslider.buf, index=cached_ityp,
-                                              name=name)
-                    else:
-                        object.__setattr__(cached_ityp, '_data', islider.buf)
-                        cached_ityp._engine.clear_mapping()
-                        object.__setattr__(
-                            cached_typ._data._block, 'values', vslider.buf)
-                        object.__setattr__(cached_typ, '_index', cached_ityp)
-                        object.__setattr__(cached_typ, 'name', name)
+                    cached_typ, cached_ityp = self._update_cached_objs(
+                        cached_typ, cached_ityp, islider, vslider, name)
 
                     cached_ityp._engine.clear_mapping()
                     res = self.f(cached_typ)
@@ -409,8 +409,9 @@ cdef class SeriesGrouper(_BaseGrouper):
             islider.reset()
             vslider.reset()
 
-        if not initialized:
-            raise ValueError("No result.")
+        # We check for empty series in the constructor, so should always
+        #  have result initialized by this point.
+        assert initialized, "`result` has not been initialized."
 
         result = maybe_convert_objects(result)
 

@@ -569,7 +569,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Return an int representing the number of axes / array dimensions.
 
@@ -1952,7 +1952,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def iteritems(self):
         return self.items()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
 
