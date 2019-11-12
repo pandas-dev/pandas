@@ -1,4 +1,4 @@
-name: Web and docs
+name: pandas
 
 on:
   push:
@@ -6,15 +6,103 @@ on:
   pull_request:
     branches: master
 
+env:
+  ENV_FILE: environment.yml
+  # PATH: $HOME/miniconda3/bin:$PATH
+  TEST_ENV: path:${{ env['PATH'] }}
+
 jobs:
-  build:
-
+  checks:
+    name: Checks
     runs-on: ubuntu-latest
-    env:
-      ENV_FILE: environment.yml
-      # PATH: $HOME/miniconda3/bin:$PATH
-
     steps:
+
+    - name: Test env
+      run: echo $TEST_ENV
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Looking for unwanted patterns
+      run: ci/code_checks.sh patterns
+      if: true
+
+    - name: Setup environment and build pandas
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        # sudo apt-get install -y libc6-dev-i386
+        ci/setup_env.sh
+      if: true
+
+    - name: Linting
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh lint
+      if: true
+
+    - name: Dependencies consistency
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh dependencies
+      if: true
+
+    - name: Checks on imported code
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh code
+      if: true
+
+    - name: Running doctests
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh doctests
+      if: true
+
+    - name: Docstring validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh docstrings
+      if: true
+
+    - name: Typing validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh docstrings
+      if: true
+
+    - name: Testing docstring validation script
+      run: |
+        source activate pandas-dev
+        pytest --capture=no --strict scripts
+      if: true
+
+    - name: Running benchmarks
+      run: |
+        source activate pandas-dev
+        cd asv_bench
+        asv check -E existing
+        git remote add upstream https://github.com/pandas-dev/pandas.git
+        git fetch upstream
+        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+            asv machine --yes
+            ASV_OUTPUT="$(asv dev)"
+            if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
+                echo "##vso[task.logissue type=error]Benchmarks run with errors"
+                echo "$ASV_OUTPUT"
+                exit 1
+            else
+                echo "Benchmarks run without errors"
+            fi
+        else
+            echo "Benchmarks did not run, no changes detected"
+        fi
+      if: true
+
+  web_and_docs:
+    name: Web and docs
+    runs-on: ubuntu-latest
+    steps:
+
     - name: Checkout
       uses: actions/checkout@v1
 
