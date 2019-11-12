@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
-from typing import Optional
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence, Tuple
 from uuid import uuid1
 
 import numpy as np
@@ -131,10 +131,10 @@ class Styler:
         caption=None,
         table_attributes=None,
         cell_ids=True,
-        na_rep=None,
+        na_rep: Optional[str] = None,
     ):
-        self.ctx = defaultdict(list)
-        self._todo = []
+        self.ctx = defaultdict(list)  # type: DefaultDict[Tuple[int, int], List[str]]
+        self._todo = []  # type: List[Tuple[Callable, Tuple, Dict]]
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -155,7 +155,7 @@ class Styler:
         self.precision = precision
         self.table_attributes = table_attributes
         self.hidden_index = False
-        self.hidden_columns = []
+        self.hidden_columns = []  # type: Sequence[int]
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
@@ -170,7 +170,9 @@ class Styler:
             else:
                 return x
 
-        self._display_funcs = defaultdict(lambda: default_display_func)
+        self._display_funcs = defaultdict(
+            lambda: default_display_func
+        )  # type: DefaultDict[Tuple[int, int], Callable[[Any], str]]
 
     def _repr_html_(self):
         """
@@ -425,7 +427,7 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter, subset=None, na_rep=None):
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None):
         """
         Format the text display value of cells.
 
@@ -467,6 +469,7 @@ class Styler:
         >>> df.style.format({'c': str.upper})
         """
         if formatter is None:
+            assert self._display_funcs.default_factory is not None
             formatter = self._display_funcs.default_factory()
 
         if subset is None:
@@ -1523,7 +1526,7 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _maybe_wrap_formatter(formatter, na_rep):
+def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
     if isinstance(formatter, str):
         formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):

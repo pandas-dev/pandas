@@ -1072,6 +1072,12 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
+    @pytest.mark.xfail
+    def test_format_with_bad_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+        df.style.format(None, na_rep=-1)
+
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
