@@ -252,11 +252,11 @@ class ParallelReadCSV(BaseIO):
             "object": DataFrame(
                 "foo",
                 index=range(rows),
-                columns=["object%03d".format(i) for i in range(5)],
+                columns=[f"object%03d" for i in range(5)],
             ),
         }
 
-        self.fname = "__test_{}__.csv".format(dtype)
+        self.fname = f"__test_{dtype}__.csv"
         df = data[dtype]
         df.to_csv(self.fname)
 
