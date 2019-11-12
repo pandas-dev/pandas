@@ -604,7 +604,11 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # TODO: can we get a performant workaround for EAs backed by ndarray?
@@ -618,10 +622,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "No result." in str(err):
-                # raised in libreduction
-                pass
-            elif "Function does not reduce" in str(err):
+            if "Function does not reduce" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -632,6 +633,7 @@ class BaseGrouper:
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
+        #  - len(obj) > 0
         #  - ngroups != 0
         func = self._is_builtin_func(func)
 
