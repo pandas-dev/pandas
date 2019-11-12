@@ -9,7 +9,7 @@ on:
 env:
   ENV_FILE: environment.yml
   # PATH: $HOME/miniconda3/bin:$PATH
-  TEST_ENV: path:${{ env['PATH'] }}
+  TEST_ENV: path:${{ PATH }}
 
 jobs:
   checks:
