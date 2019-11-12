@@ -13,6 +13,7 @@ env:
 jobs:
   display_error:
     name: Show error
+    runs-on: ubuntu-latest
     steps:
       - name: Show errors
         run: |
@@ -23,6 +24,7 @@ jobs:
 
   write_comment:
     name: Comment
+    runs-on: ubuntu-latest
     steps:
 
       - name: Install dependencies
