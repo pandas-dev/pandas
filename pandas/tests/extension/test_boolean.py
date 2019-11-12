@@ -99,12 +99,59 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
-# class TestArithmeticOps(base.BaseArithmeticOpsTests):
-#    pass
+class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    def check_opname(self, s, op_name, other, exc=None):
+        # overwriting to indicate ops don't raise an error
+        super().check_opname(s, op_name, other, exc=None)
+
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+        if exc is None:
+            if op_name in ("__sub__", "__rsub__"):
+                # subtraction for bools raises TypeError
+                with pytest.raises(TypeError):
+                    op(s, other)
+
+                return
+
+            result = op(s, other)
+            expected = s.combine(other, op)
+
+            if op_name in (
+                "__floordiv__",
+                "__rfloordiv__",
+                "__pow__",
+                "__rpow__",
+                "__mod__",
+                "__rmod__",
+            ):
+                # combine keeps boolean type
+                expected = expected.astype("Int8")
+            elif op_name in ("__truediv__", "__rtruediv__"):
+                expected = expected.astype("float64")
+            if op_name == "__rpow__":
+                # for rpow, combine does not propagate NaN
+                expected[result.isna()] = np.nan
+            self.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(exc):
+                op(s, other)
+
+    def _check_divmod_op(self, s, op, other, exc=None):
+        # override to not raise an error
+        super()._check_divmod_op(s, op, other, None)
+
+    @pytest.mark.skip(reason="BooleanArray does not error on ops")
+    def test_error(self, data, all_arithmetic_operators):
+        # other specific errors tested in the boolean array specific tests
+        pass
 
 
-# class TestComparisonOps(base.BaseComparisonOpsTests):
-#     pass
+class TestComparisonOps(base.BaseComparisonOpsTests):
+    def check_opname(self, s, op_name, other, exc=None):
+        super().check_opname(s, op_name, other, exc=None)
+
+    def _compare_other(self, s, data, op_name, other):
+        self.check_opname(s, op_name, other)
 
 
 class TestReshaping(base.BaseReshapingTests):

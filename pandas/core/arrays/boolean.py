@@ -11,9 +11,11 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
     is_scalar,
 )
@@ -236,7 +238,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         return pa.array(self._data, mask=self._mask, type=type)
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number, bool)
+    _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
@@ -385,6 +387,12 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype("bool", copy=copy)
+        if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(
+                self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
+            )
         # coerce
         data = self._coerce_to_ndarray()
         return astype_nansafe(data, dtype, copy=None)
@@ -544,7 +552,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 mask = self._mask | mask
 
             result[mask] = op_name == "ne"
-            return result
+            return BooleanArray(result, np.zeros(len(result), dtype=bool), copy=False)
 
         name = "__{name}__".format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
@@ -598,8 +606,65 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             result[mask] = np.nan
             return result
 
-        return type(self)(result, mask, copy=False)
+        if is_bool_dtype(result):
+            return BooleanArray(result, mask, copy=False)
+
+        elif is_integer_dtype(result):
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(result, mask, copy=False)
+        else:
+            result[mask] = np.nan
+            return result
+
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        op_name = op.__name__
+
+        def boolean_arithmetic_method(self, other):
+
+            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
+            other = lib.item_from_zerodim(other)
+            mask = None
+
+            if isinstance(other, BooleanArray):
+                other, mask = other._data, other._mask
+
+            elif is_list_like(other):
+                other = np.asarray(other)
+                if other.ndim > 1:
+                    raise NotImplementedError(
+                        "can only perform ops with 1-d structures"
+                    )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
+
+            # nans propagate
+            if mask is None:
+                mask = self._mask
+            else:
+                mask = self._mask | mask
+
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
+
+            # divmod returns a tuple
+            if op_name == "divmod":
+                div, mod = result
+                return (
+                    self._maybe_mask_result(div, mask, other, "floordiv"),
+                    self._maybe_mask_result(mod, mask, other, "mod"),
+                )
+
+            return self._maybe_mask_result(result, mask, other, op_name)
+
+        name = "__{name}__".format(name=op_name)
+        return set_function_name(boolean_arithmetic_method, name, cls)
 
 
 BooleanArray._add_logical_ops()
 BooleanArray._add_comparison_ops()
+BooleanArray._add_arithmetic_ops()

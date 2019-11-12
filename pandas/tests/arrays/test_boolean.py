@@ -138,32 +138,64 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
 
-# @pytest.mark.parametrize("ufunc", [np.add])
-# def test_ufuncs_binary(ufunc):
-#     # two BooleanArrays
-#     a = pd.array([True, False, None], dtype="boolean")
-#     result = ufunc(a, a)
-#     expected = ufunc(a.astype(float)
-#     tm.assert_numpy_array_equal(result, expected)
+@pytest.mark.parametrize(
+    "ufunc", [np.add, np.logical_or, np.logical_and, np.logical_xor]
+)
+def test_ufuncs_binary(ufunc):
+    # two BooleanArrays
+    a = pd.array([True, False, None], dtype="boolean")
+    result = ufunc(a, a)
+    expected = pd.array(ufunc(a._data, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
 
-#     # # IntegerArray with numpy array
-#     # arr = np.array([1, 2, 3, 4])
-#     # result = ufunc(a, arr)
-#     # expected = integer_array(ufunc(a.astype(float), arr))
-#     # tm.assert_extension_array_equal(result, expected)
+    s = pd.Series(a)
+    result = ufunc(s, a)
+    expected = pd.Series(ufunc(a._data, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_series_equal(result, expected)
 
-#     # result = ufunc(arr, a)
-#     # expected = integer_array(ufunc(arr, a.astype(float)))
-#     # tm.assert_extension_array_equal(result, expected)
+    # Boolean with numpy array
+    arr = np.array([True, True, False])
+    result = ufunc(a, arr)
+    expected = pd.array(ufunc(a._data, arr), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
 
-#     # # IntegerArray with scalar
-#     # result = ufunc(a, 1)
-#     # expected = integer_array(ufunc(a.astype(float), 1))
-#     # tm.assert_extension_array_equal(result, expected)
+    result = ufunc(arr, a)
+    expected = pd.array(ufunc(arr, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
 
-#     # result = ufunc(1, a)
-#     # expected = integer_array(ufunc(1, a.astype(float)))
-#     # tm.assert_extension_array_equal(result, expected)
+    # BooleanArray with scalar
+    result = ufunc(a, True)
+    expected = pd.array(ufunc(a._data, True), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(True, a)
+    expected = pd.array(ufunc(True, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    # not handled types
+    with pytest.raises(TypeError):
+        ufunc(a, "test")
+
+
+@pytest.mark.parametrize("ufunc", [np.logical_not])
+def test_ufuncs_unary(ufunc):
+    a = pd.array([True, False, None], dtype="boolean")
+    result = ufunc(a)
+    expected = pd.array(ufunc(a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s)
+    expected = pd.Series(ufunc(a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("values", [[True, False], [True, None]])
@@ -231,7 +263,7 @@ class TestComparisonOps(BaseOpsUtil):
 
         # array
         result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other))
+        expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
         expected[data._mask] = op_name == "__ne__"
@@ -244,6 +276,7 @@ class TestComparisonOps(BaseOpsUtil):
 
         expected = pd.Series(data._data)
         expected = op(expected, other)
+        expected = expected.astype("boolean")
 
         # fill the nan locations
         expected[data._mask] = op_name == "__ne__"
@@ -262,6 +295,35 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
         other = pd.Series([True] * len(data))
         self._compare_other(data, op_name, other)
+
+
+class TestArithmeticOps(BaseOpsUtil):
+    def test_error(self, data, all_arithmetic_operators):
+        # invalid ops
+
+        op = all_arithmetic_operators
+        s = pd.Series(data)
+        ops = getattr(s, op)
+        opa = getattr(data, op)
+
+        # invalid scalars
+        with pytest.raises(TypeError):
+            ops("foo")
+        with pytest.raises(TypeError):
+            ops(pd.Timestamp("20180101"))
+
+        # invalid array-likes
+        if op not in ("__mul__", "__rmul__"):
+            # TODO(extension) numpy's mul with object array sees booleans as numbers
+            with pytest.raises(TypeError):
+                ops(pd.Series("foo", index=s.index))
+
+        # 2d
+        result = opa(pd.DataFrame({"A": s}))
+        assert result is NotImplemented
+
+        with pytest.raises(NotImplementedError):
+            opa(np.arange(len(s)).reshape(-1, len(s)))
 
 
 def test_indexing_boolean_mask():
