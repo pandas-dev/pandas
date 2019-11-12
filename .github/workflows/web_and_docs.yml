@@ -9,16 +9,12 @@ on:
 env:
   ENV_FILE: environment.yml
   # PATH: $HOME/miniconda3/bin:$PATH
-  TEST_ENV: ${{ GITHUB_ACTOR }}
 
 jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
     steps:
-
-    - name: Test env
-      run: echo $TEST_ENV
 
     - name: Checkout
       uses: actions/checkout@v1
