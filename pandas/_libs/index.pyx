@@ -109,7 +109,7 @@ cdef class IndexEngine:
             Py_ssize_t loc
 
         if is_definitely_invalid_key(val):
-            raise TypeError("'{val}' is an invalid key".format(val=val))
+            raise TypeError(f"'{val}' is an invalid key")
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
@@ -556,8 +556,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError(f"cannot set a Timestamp with a non-timestamp "
+                         f"{type(value).__name__}")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
@@ -573,8 +573,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError(f"cannot set a Timedelta with a non-timedelta "
+                         f"{type(value).__name__}")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
@@ -677,7 +677,7 @@ cdef class BaseMultiIndexCodesEngine:
             # Index._get_fill_indexer), sort (integer representations of) keys:
             order = np.argsort(lab_ints)
             lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+            indexer = (getattr(self._base, f'get_{method}_indexer')
                        (self, lab_ints, limit=limit))
             indexer = indexer[order]
         else:
@@ -687,7 +687,7 @@ cdef class BaseMultiIndexCodesEngine:
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
-            raise TypeError("'{key}' is an invalid key".format(key=key))
+            raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:

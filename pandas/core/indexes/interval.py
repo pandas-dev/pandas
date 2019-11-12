@@ -121,7 +121,7 @@ def _get_interval_closed_bounds(interval):
 def _new_IntervalIndex(cls, d):
     """
     This is called upon unpickling, rather than the default which doesn't have
-    arguments and breaks __new__
+    arguments and breaks __new__.
     """
     return cls.from_arrays(**d)
 
@@ -392,7 +392,7 @@ class IntervalIndex(IntervalMixin, Index):
     def left(self):
         """
         Return the left endpoints of each Interval in the IntervalIndex as
-        an Index
+        an Index.
         """
         return self._data._left
 
@@ -400,7 +400,7 @@ class IntervalIndex(IntervalMixin, Index):
     def right(self):
         """
         Return the right endpoints of each Interval in the IntervalIndex as
-        an Index
+        an Index.
         """
         return self._data._right
 
@@ -408,7 +408,7 @@ class IntervalIndex(IntervalMixin, Index):
     def closed(self):
         """
         Whether the intervals are closed on the left-side, right-side, both or
-        neither
+        neither.
         """
         return self._data._closed
 
@@ -446,7 +446,7 @@ class IntervalIndex(IntervalMixin, Index):
     def length(self):
         """
         Return an Index with entries denoting the length of each Interval in
-        the IntervalIndex
+        the IntervalIndex.
         """
         return self._data.length
 
@@ -468,7 +468,7 @@ class IntervalIndex(IntervalMixin, Index):
             warnings.simplefilter("ignore")
             return self.left.itemsize + self.right.itemsize
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.left)
 
     @cache_readonly
@@ -524,7 +524,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.dtype
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Return a string of the type inferred from the values"""
         return "interval"
 
@@ -537,7 +537,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def mid(self):
         """
-        Return the midpoint of each Interval in the IntervalIndex as an Index
+        Return the midpoint of each Interval in the IntervalIndex as an Index.
         """
         return self._data.mid
 
@@ -1357,7 +1357,7 @@ class IntervalIndex(IntervalMixin, Index):
         return func
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
         This is False even when left/right contain datetime-like objects,
         as the check is done on the Interval itself
