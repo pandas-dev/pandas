@@ -88,14 +88,9 @@ class NumericIndex(Index):
                 "Incorrect `dtype` passed: expected unsigned integer"
                 ", received {}".format(dtype)
             )
-        elif (
-            cls._typ == "float64index"
-            and not is_float_dtype(dtype)
-            and not is_integer_dtype(dtype)
-        ):
+        elif cls._typ == "float64index" and not is_float_dtype(dtype):
             raise ValueError(
-                "Incorrect `dtype` passed: expected float or integer"
-                ", received {}".format(dtype)
+                "Incorrect `dtype` passed: expected float, received {}".format(dtype)
             )
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
