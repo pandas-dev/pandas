@@ -18,7 +18,7 @@ jobs:
       - name: Show errors
         run: |
           echo "Normal output"
-          echo "##vso[task.logissue type=error]This is the error, should be highlighted"
+          echo "##[error]This is the error, should be highlighted"
           echo "More normal output"
           exit 1
 
@@ -35,7 +35,7 @@ jobs:
         run: |
           import os
           url = 'https://api.github.com/repos/{repo}/issues/comments/{pr_id}'
-          url = url.format(repo=os.env['GITHUB_REPOSITORY'], pr_id=11)
+          url = url.format(repo=os.environ['GITHUB_REPOSITORY'], pr_id=11)
           data = {'body': 'Comment generated from GitHub actions'}
           resp = requests.post(url, data=data)
           resp.raise_for_status()
