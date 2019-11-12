@@ -399,7 +399,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         # we accept no other args
         validate_kwargs("group", kwargs, {})
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.groups)
 
     def __repr__(self) -> str:
