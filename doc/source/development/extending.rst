@@ -280,14 +280,12 @@ back from pyarrow to a pandas ExtensionArray. This method receives a pyarrow
 ``Array`` or ``ChunkedArray`` as only argument and is expected to return the
 appropriate pandas ``ExtensionArray`` for this dtype and the passed values:
 
-.. code-block:: python
+.. code-block::
 
     class ExtensionDtype:
         ...
 
-        def __from_arrow__(
-            self, array: pyarrow.Array/ChunkedArray
-        ) -> ExtensionArray:
+        def __from_arrow__(self, array: pyarrow.Array/ChunkedArray) -> ExtensionArray:
             ...
 
 See more in the `Arrow documentation <https://arrow.apache.org/docs/python/extending_types.html>`__.
