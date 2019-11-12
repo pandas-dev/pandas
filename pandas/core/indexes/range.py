@@ -353,11 +353,11 @@ class RangeIndex(Int64Index):
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return False
 
     def __contains__(self, key: Union[int, np.integer]) -> bool:
