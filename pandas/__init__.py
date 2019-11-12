@@ -68,6 +68,7 @@ from pandas.core.api import (
     DatetimeTZDtype,
     StringDtype,
     # missing
+    NA,
     isna,
     isnull,
     notna,

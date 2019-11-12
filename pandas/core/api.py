@@ -45,6 +45,7 @@ from pandas.core.indexes.interval import Interval, interval_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
 from pandas.core.indexing import IndexSlice
+from pandas.core.na_scalar import NA
 from pandas.core.reshape.reshape import get_dummies
 from pandas.core.series import Series
 from pandas.core.tools.datetimes import to_datetime
