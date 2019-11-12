@@ -57,7 +57,7 @@ cdef class IntIndex(SparseIndex):
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.indices.nbytes
 
     def check_integrity(self):
@@ -348,7 +348,7 @@ cdef class BlockIndex(SparseIndex):
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.blocs.nbytes + self.blengths.nbytes
 
     @property

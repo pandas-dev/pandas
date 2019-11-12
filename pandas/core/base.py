@@ -711,7 +711,7 @@ class IndexOpsMixin:
         return self._values.shape
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
