@@ -1,6 +1,10 @@
 name: Web and docs
 
-on: [push, pull_request]
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
 
 jobs:
   build:
@@ -8,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENV_FILE: environment.yml
-      PATH: $(HOME)/miniconda3/bin:$(PATH)
+      PATH: $HOME/miniconda3/bin:$PATH
 
     steps:
     - name: Print env
