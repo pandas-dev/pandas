@@ -448,9 +448,11 @@ def isin(comps, values) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=None):
+def _factorize_array(
+    values, na_sentinel: int = -1, size_hint=None, na_value=None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Factorize an array-like to labels and uniques.
+    Factorize an array-like to codes and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
 
@@ -468,18 +470,16 @@ def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=Non
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
     uniques : ndarray
     """
     hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
-    uniques, labels = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value
-    )
+    uniques, codes = table.factorize(values, na_sentinel=na_sentinel, na_value=na_value)
 
-    labels = ensure_platform_int(labels)
-    return labels, uniques
+    codes = ensure_platform_int(codes)
+    return codes, uniques
 
 
 _shared_docs[
@@ -1924,33 +1924,34 @@ def diff(arr, n: int, axis: int = 0):
 #  this module.
 def safe_sort(
     values,
-    labels=None,
+    codes=None,
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-):
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
-    Sort ``values`` and reorder corresponding ``labels``.
-    ``values`` should be unique if ``labels`` is not None.
+    Sort ``values`` and reorder corresponding ``codes``.
+
+    ``values`` should be unique if ``codes`` is not None.
     Safe for use with mixed types (int, str), orders ints before strs.
 
     Parameters
     ----------
     values : list-like
-        Sequence; must be unique if ``labels`` is not None.
-    labels : list_like
+        Sequence; must be unique if ``codes`` is not None.
+    codes : list_like, optional
         Indices to ``values``. All out of bound indices are treated as
         "not found" and will be masked with ``na_sentinel``.
     na_sentinel : int, default -1
-        Value in ``labels`` to mark "not found".
-        Ignored when ``labels`` is None.
+        Value in ``codes`` to mark "not found".
+        Ignored when ``codes`` is None.
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
-        the calculation. Ignored when ``labels`` is None.
+        the calculation. Ignored when ``codes`` is None.
     verify : bool, default True
-        Check if labels are out of bound for the values and put out of bound
-        labels equal to na_sentinel. If ``verify=False``, it is assumed there
-        are no out of bound labels. Ignored when ``labels`` is None.
+        Check if codes are out of bound for the values and put out of bound
+        codes equal to na_sentinel. If ``verify=False``, it is assumed there
+        are no out of bound codes. Ignored when ``codes`` is None.
 
         .. versionadded:: 0.25.0
 
@@ -1958,17 +1959,17 @@ def safe_sort(
     -------
     ordered : ndarray
         Sorted ``values``
-    new_labels : ndarray
-        Reordered ``labels``; returned when ``labels`` is not None.
+    new_codes : ndarray
+        Reordered ``codes``; returned when ``codes`` is not None.
 
     Raises
     ------
     TypeError
-        * If ``values`` is not list-like or if ``labels`` is neither None
+        * If ``values`` is not list-like or if ``codes`` is neither None
         nor list-like
         * If ``values`` cannot be sorted
     ValueError
-        * If ``labels`` is not None and ``values`` contain duplicates.
+        * If ``codes`` is not None and ``values`` contain duplicates.
     """
     if not is_list_like(values):
         raise TypeError(
@@ -2002,22 +2003,22 @@ def safe_sort(
             # try this anyway
             ordered = sort_mixed(values)
 
-    # labels:
+    # codes:
 
-    if labels is None:
+    if codes is None:
         return ordered
 
-    if not is_list_like(labels):
+    if not is_list_like(codes):
         raise TypeError(
             "Only list-like objects or None are allowed to be"
-            "passed to safe_sort as labels"
+            "passed to safe_sort as codes"
         )
-    labels = ensure_platform_int(np.asarray(labels))
+    codes = ensure_platform_int(np.asarray(codes))
 
     from pandas import Index
 
     if not assume_unique and not Index(values).is_unique:
-        raise ValueError("values should be unique if labels is not None")
+        raise ValueError("values should be unique if codes is not None")
 
     if sorter is None:
         # mixed types
@@ -2029,9 +2030,9 @@ def safe_sort(
     if na_sentinel == -1:
         # take_1d is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_labels = take_1d(order2, labels, fill_value=-1)
+        new_codes = take_1d(order2, codes, fill_value=-1)
         if verify:
-            mask = (labels < -len(values)) | (labels >= len(values))
+            mask = (codes < -len(values)) | (codes >= len(values))
         else:
             mask = None
     else:
@@ -2039,13 +2040,13 @@ def safe_sort(
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `na_sentinel` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_labels = reverse_indexer.take(labels, mode="wrap")
+        new_codes = reverse_indexer.take(codes, mode="wrap")
 
-        mask = labels == na_sentinel
+        mask = codes == na_sentinel
         if verify:
-            mask = mask | (labels < -len(values)) | (labels >= len(values))
+            mask = mask | (codes < -len(values)) | (codes >= len(values))
 
     if mask is not None:
-        np.putmask(new_labels, mask, na_sentinel)
+        np.putmask(new_codes, mask, na_sentinel)
 
-    return ordered, ensure_platform_int(new_labels)
+    return ordered, ensure_platform_int(new_codes)
