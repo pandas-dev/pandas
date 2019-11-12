@@ -59,7 +59,6 @@ class TestGrouperGrouping:
         r = g.rolling(window=4)
 
         for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
-
             result = getattr(r, f)()
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
             tm.assert_frame_equal(result, expected)
@@ -69,9 +68,10 @@ class TestGrouperGrouping:
             expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
             tm.assert_frame_equal(result, expected)
 
-        result = r.quantile(0.5)
-        expected = g.apply(lambda x: x.rolling(4).quantile(0.5))
-        tm.assert_frame_equal(result, expected)
+        for f in ["linear", "lower", "higher", "midpoint", "nearest"]:
+            result = r.quantile(0.4, interpolation=f)
+            expected = g.apply(lambda x: x.rolling(4).quantile(0.4, interpolation=f))
+            tm.assert_frame_equal(result, expected)
 
     def test_rolling_corr_cov(self):
         g = self.frame.groupby("A")
@@ -141,9 +141,10 @@ class TestGrouperGrouping:
             expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
             tm.assert_frame_equal(result, expected)
 
-        result = r.quantile(0.5)
-        expected = g.apply(lambda x: x.expanding().quantile(0.5))
-        tm.assert_frame_equal(result, expected)
+        for f in ["linear", "lower", "higher", "midpoint", "nearest"]:
+            result = r.quantile(0.4, interpolation=f)
+            expected = g.apply(lambda x: x.expanding().quantile(0.4, interpolation=f))
+            tm.assert_frame_equal(result, expected)
 
     def test_expanding_corr_cov(self):
         g = self.frame.groupby("A")

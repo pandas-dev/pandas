@@ -1499,7 +1499,9 @@ class _Rolling_and_Expanding(_Rolling):
                     interpolation,
                 )
 
-        return self._apply(f, "quantile", quantile=quantile, **kwargs)
+        return self._apply(
+            f, "quantile", quantile=quantile, interpolation=interpolation, **kwargs
+        )
 
     _shared_docs[
         "cov"
