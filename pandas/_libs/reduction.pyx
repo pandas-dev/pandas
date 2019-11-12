@@ -625,7 +625,7 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex
-        assert frame.index.nlevels == 1
+        assert labels.nlevels == 1
 
         # pass as an ndarray/ExtensionArray
         labels = labels._values
