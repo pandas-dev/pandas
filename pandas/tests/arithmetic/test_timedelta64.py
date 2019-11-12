@@ -905,7 +905,7 @@ class TestTimedeltaArraylikeAddSubOps:
         ],
     )
     def test_td64arr_add_sub_datetimelike_scalar(self, ts, box_with_array):
-        # GH#11925
+        # GH#11925, GH#29558
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3)
 

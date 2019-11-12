@@ -318,7 +318,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-
+- Bug in subtracting a :class:`TimedeltaIndex` or :class:`TimedeltaArray` from a ``np.datetime64`` object (:issue:`29558`)
 -
 -
 
