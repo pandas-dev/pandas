@@ -686,7 +686,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether the object has a single dtype.
 

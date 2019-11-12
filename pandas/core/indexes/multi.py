@@ -675,7 +675,7 @@ class MultiIndex(Index):
         raise ValueError(msg)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """Whether the levels of a MultiIndex all have the same dtype.
 
         This looks at the dtypes of the levels.
