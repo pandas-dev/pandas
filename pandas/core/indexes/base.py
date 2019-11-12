@@ -230,7 +230,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data = None
+    _data: Union[ExtensionArray, np.ndarray]
     _id = None
     name = None
     _comparables = ["name"]
