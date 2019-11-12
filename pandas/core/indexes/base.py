@@ -1677,7 +1677,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return if the index is monotonic decreasing (only equal or
         decreasing) values.
