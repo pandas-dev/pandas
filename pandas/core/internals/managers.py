@@ -1924,7 +1924,9 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    result = op(a)
+    with np.errstate(all="ignore"):
+        # suppress FutureWarning about elementwise comparison
+        result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
