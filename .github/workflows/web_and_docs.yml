@@ -14,6 +14,7 @@ jobs:
       ENV_FILE: environment.yml
       # PATH: $HOME/miniconda3/bin:$PATH
 
+    steps:
     - name: Checkout
       uses: actions/checkout@v1
 
