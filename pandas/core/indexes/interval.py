@@ -558,7 +558,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._engine.is_monotonic_increasing
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
