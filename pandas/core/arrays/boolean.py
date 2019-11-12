@@ -210,16 +210,20 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self):
+    def _coerce_to_ndarray(self, force_bool=False):
         """
         coerce to an ndarary of object dtype
         """
-        if self.isna().any():
-            data = self._data.astype(object)
-            data[self._mask] = self._na_value
-            return data
-        else:
-            return self._data
+        if force_bool:
+            if not self.isna().any():
+                return self._data
+            else:
+                raise ValueError(
+                    "cannot convert to bool numpy array in presence of missing values"
+                )
+        data = self._data.astype(object)
+        data[self._mask] = self._na_value
+        return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
@@ -228,6 +232,11 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
+        if dtype is not None:
+            if is_bool_dtype(dtype):
+                return self._coerce_to_ndarray(force_bool=True)
+            arr = self._coerce_to_ndarray()
+            return arr.astype(dtype, copy=False)
         return self._coerce_to_ndarray()
 
     def __arrow_array__(self, type=None):
