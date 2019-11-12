@@ -1,4 +1,6 @@
+import abc
 import inspect
+from typing import TYPE_CHECKING, Iterator, Type
 
 import numpy as np
 
@@ -13,14 +15,17 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series, Index
+
 
 def frame_apply(
-    obj,
+    obj: "DataFrame",
     func,
     axis=0,
-    raw=False,
+    raw: bool = False,
     result_type=None,
-    ignore_failures=False,
+    ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
@@ -28,7 +33,7 @@ def frame_apply(
 
     axis = obj._get_axis_number(axis)
     if axis == 0:
-        klass = FrameRowApply
+        klass = FrameRowApply  # type: Type[FrameApply]
     elif axis == 1:
         klass = FrameColumnApply
 
@@ -43,8 +48,38 @@ def frame_apply(
     )
 
 
-class FrameApply:
-    def __init__(self, obj, func, raw, result_type, ignore_failures, args, kwds):
+class FrameApply(metaclass=abc.ABCMeta):
+
+    # ---------------------------------------------------------------
+    # Abstract Methods
+    axis: int
+
+    @property
+    @abc.abstractmethod
+    def result_index(self) -> "Index":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def result_columns(self) -> "Index":
+        pass
+
+    @abc.abstractmethod
+    def series_generator(self) -> Iterator["Series"]:
+        pass
+
+    # ---------------------------------------------------------------
+
+    def __init__(
+        self,
+        obj: "DataFrame",
+        func,
+        raw: bool,
+        result_type,
+        ignore_failures: bool,
+        args,
+        kwds,
+    ):
         self.obj = obj
         self.raw = raw
         self.ignore_failures = ignore_failures
@@ -76,11 +111,11 @@ class FrameApply:
         self.res_columns = None
 
     @property
-    def columns(self):
+    def columns(self) -> "Index":
         return self.obj.columns
 
     @property
-    def index(self):
+    def index(self) -> "Index":
         return self.obj.index
 
     @cache_readonly
@@ -88,11 +123,11 @@ class FrameApply:
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self):
+    def dtypes(self) -> "Series":
         return self.obj.dtypes
 
     @property
-    def agg_axis(self):
+    def agg_axis(self) -> "Index":
         return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
@@ -127,7 +162,7 @@ class FrameApply:
 
         # broadcasting
         if self.result_type == "broadcast":
-            return self.apply_broadcast()
+            return self.apply_broadcast(self.obj)
 
         # one axis empty
         elif not all(self.obj.shape):
@@ -191,7 +226,7 @@ class FrameApply:
         else:
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
-    def apply_broadcast(self, target):
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
         result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
@@ -317,19 +352,19 @@ class FrameApply:
 class FrameRowApply(FrameApply):
     axis = 0
 
-    def apply_broadcast(self):
-        return super().apply_broadcast(self.obj)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.columns
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.index
 
     def wrap_results_for_axis(self):
@@ -351,8 +386,8 @@ class FrameRowApply(FrameApply):
 class FrameColumnApply(FrameApply):
     axis = 1
 
-    def apply_broadcast(self):
-        result = super().apply_broadcast(self.obj.T)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        result = super().apply_broadcast(target.T)
         return result.T
 
     @property
@@ -364,11 +399,11 @@ class FrameColumnApply(FrameApply):
         )
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.index
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.columns
 
     def wrap_results_for_axis(self):
@@ -392,7 +427,7 @@ class FrameColumnApply(FrameApply):
 
         return result
 
-    def infer_to_same_shape(self):
+    def infer_to_same_shape(self) -> "DataFrame":
         """ infer the results to the same shape as the input object """
         results = self.results
 
