@@ -2,7 +2,7 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict, abc
+from collections import abc
 
 import numpy as np
 import numpy.ma as ma
@@ -545,7 +545,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        sort = not any(isinstance(d, (dict, OrderedDict)) for d in data)
+        sort = not any(isinstance(d, dict) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived
