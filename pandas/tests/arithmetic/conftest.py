@@ -59,7 +59,7 @@ zeros.extend([0, 0.0, -0.0])
 def zero(request):
     """
     Several types of scalar zeros and length 5 vectors of zeros.
- 
+
     This fixture can be used to check that numeric-dtype indexes handle
     division by any zero numeric-dtype.
 
