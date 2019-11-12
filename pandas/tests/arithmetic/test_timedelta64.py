@@ -362,6 +362,10 @@ class TestTimedelta64ArithmeticUnsorted:
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"], name="foo")
         dti = pd.date_range("20130101", periods=3, name="bar")
 
+        # TODO(wesm): unused?
+        # td = Timedelta('1 days')
+        # dt = Timestamp('20130101')
+
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", pd.NaT, "0 days"], name="foo")
         tm.assert_index_equal(result, expected)
@@ -2024,10 +2028,10 @@ class TestTimedeltaArraylikeMulDivOps:
             dtype="timedelta64[ns]",
             name=exname,
         )
-        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, xbox)
+        box = Series if (box is pd.Index or box is tm.to_array) else box
+        expected = tm.box_expected(expected, box)
 
         result = ser * tdi
         tm.assert_equal(result, expected)
@@ -2062,7 +2066,9 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = get_upcast_box(box, ser)
+        xbox = box
+        if box in [pd.Index, tm.to_array] and type(ser) is Series:
+            xbox = Series
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)

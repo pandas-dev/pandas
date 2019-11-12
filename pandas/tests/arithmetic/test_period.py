@@ -10,7 +10,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Period, PeriodIndex, Series, Timestamp, period_range
+from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
@@ -342,29 +342,28 @@ class TestPeriodIndexSeriesComparisonConsistency:
         idx = PeriodIndex(
             ["2011-01", "2011-02", "2011-03", "2011-04"], freq="M", name="idx"
         )
-        per = pd.Period("2011-03", freq="M")
 
-        f = lambda x: x == per
+        f = lambda x: x == pd.Period("2011-03", freq="M")
         exp = np.array([False, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: per == x
+        f = lambda x: pd.Period("2011-03", freq="M") == x
         self._check(idx, f, exp)
 
-        f = lambda x: x != per
+        f = lambda x: x != pd.Period("2011-03", freq="M")
         exp = np.array([True, True, False, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: per != x
+        f = lambda x: pd.Period("2011-03", freq="M") != x
         self._check(idx, f, exp)
 
-        f = lambda x: per >= x
+        f = lambda x: pd.Period("2011-03", freq="M") >= x
         exp = np.array([True, True, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x > per
+        f = lambda x: x > pd.Period("2011-03", freq="M")
         exp = np.array([False, False, False, True], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: per >= x
+        f = lambda x: pd.Period("2011-03", freq="M") >= x
         exp = np.array([True, True, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
@@ -372,12 +371,11 @@ class TestPeriodIndexSeriesComparisonConsistency:
         idx = PeriodIndex(
             ["2011-01", "NaT", "2011-03", "2011-04"], freq="M", name="idx"
         )
-        per = pd.Period("2011-03", freq="M")
 
-        f = lambda x: x == per
+        f = lambda x: x == pd.Period("2011-03", freq="M")
         exp = np.array([False, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: per == x
+        f = lambda x: pd.Period("2011-03", freq="M") == x
         self._check(idx, f, exp)
 
         f = lambda x: x == pd.NaT
@@ -386,10 +384,10 @@ class TestPeriodIndexSeriesComparisonConsistency:
         f = lambda x: pd.NaT == x
         self._check(idx, f, exp)
 
-        f = lambda x: x != per
+        f = lambda x: x != pd.Period("2011-03", freq="M")
         exp = np.array([True, True, False, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: per != x
+        f = lambda x: pd.Period("2011-03", freq="M") != x
         self._check(idx, f, exp)
 
         f = lambda x: x != pd.NaT
@@ -398,11 +396,11 @@ class TestPeriodIndexSeriesComparisonConsistency:
         f = lambda x: pd.NaT != x
         self._check(idx, f, exp)
 
-        f = lambda x: per >= x
+        f = lambda x: pd.Period("2011-03", freq="M") >= x
         exp = np.array([True, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x < per
+        f = lambda x: x < pd.Period("2011-03", freq="M")
         exp = np.array([True, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
@@ -1044,29 +1042,6 @@ class TestPeriodIndexArithmetic:
         result = parr - pi
         expected = pi - pi
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("lbox", [Series, pd.Index])
-    @pytest.mark.parametrize("rbox", [Series, pd.Index])
-    def test_period_add_timestamp_raises(self, rbox, lbox):
-        # GH#17983, see also scalar version of this test in tests.scalar.period
-        ts = Timestamp("2017")
-        per = Period("2017", freq="M")
-
-        # We may get a different message depending on which class raises
-        # the error.
-        msg = (
-            r"cannot add|unsupported operand|"
-            r"can only operate on a|incompatible type|"
-            r"ufunc add cannot use operands"
-        )
-        with pytest.raises(TypeError, match=msg):
-            lbox([ts]) + rbox([per])
-
-        with pytest.raises(TypeError, match=msg):
-            lbox([per]) + rbox([ts])
-
-        with pytest.raises(TypeError, match=msg):
-            lbox([per]) + rbox([per])
 
 
 class TestPeriodSeriesArithmetic:

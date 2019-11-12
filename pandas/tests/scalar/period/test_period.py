@@ -14,6 +14,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 
+import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
 import pandas.util.testing as tm
 
@@ -1061,22 +1062,31 @@ class TestArithmetic:
         with pytest.raises(TypeError, match=msg):
             per1 + per2
 
-    def test_period_add_timestamp_raises(self):
-        # GH#17983, see also boxed version of this test
-        #  in tests.arithmetic.test_period
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+    ids = ["identity", "Series", "Index"]
+
+    @pytest.mark.parametrize("lbox", boxes, ids=ids)
+    @pytest.mark.parametrize("rbox", boxes, ids=ids)
+    def test_add_timestamp_raises(self, rbox, lbox):
+        # GH#17983
         ts = Timestamp("2017")
         per = Period("2017", freq="M")
 
-        msg = "unsupported operand"
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (
+            r"cannot add|unsupported operand|"
+            r"can only operate on a|incompatible type|"
+            r"ufunc add cannot use operands"
+        )
+        with pytest.raises(TypeError, match=msg):
+            lbox(ts) + rbox(per)
 
         with pytest.raises(TypeError, match=msg):
-            ts + per
+            lbox(per) + rbox(ts)
 
         with pytest.raises(TypeError, match=msg):
-            per + ts
-
-        with pytest.raises(TypeError, match=msg):
-            per + per
+            lbox(per) + rbox(per)
 
     def test_sub(self):
         per1 = Period("2011-01-01", freq="D")
@@ -1274,7 +1284,6 @@ class TestArithmetic:
         # freq is DateOffset
         for freq in ["A", "2A", "3A"]:
             p = Period("NaT", freq=freq)
-            assert p is NaT
             for o in [offsets.YearEnd(2)]:
                 assert p + o is NaT
                 assert o + p is NaT
@@ -1291,7 +1300,6 @@ class TestArithmetic:
 
         for freq in ["M", "2M", "3M"]:
             p = Period("NaT", freq=freq)
-            assert p is NaT
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 assert p + o is NaT
                 assert o + p is NaT
@@ -1309,7 +1317,6 @@ class TestArithmetic:
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
             p = Period("NaT", freq=freq)
-            assert p is NaT
             for o in [
                 offsets.Day(5),
                 offsets.Hour(24),
@@ -1333,7 +1340,6 @@ class TestArithmetic:
 
         for freq in ["H", "2H", "3H"]:
             p = Period("NaT", freq=freq)
-            assert p is NaT
             for o in [
                 offsets.Day(2),
                 offsets.Hour(3),
