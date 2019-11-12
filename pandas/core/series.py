@@ -712,7 +712,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
         self._values.put(*args, **kwargs)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Return the length of the Series.
         """
