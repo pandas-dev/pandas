@@ -266,16 +266,25 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
         elif basic_format:
 
             dt64_to_dtstruct(val, &dts)
+<<<<<<< HEAD
+            res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
+                                                   dts.month,
+                                                   dts.day,
+                                                   dts.hour,
+                                                   dts.min,
+                                                   dts.sec)
+=======
             res = (f'{dts.year}-{dts.month}-{dts.day} '
-                  f'{dts.hour}-{dts.min}-{dts.sec}')
+                   f'{dts.hour}-{dts.min}-{dts.sec}')
+>>>>>>> 682006367cc018dec046cf607635a144bf1d24eb
 
             if show_ns:
                 ns = dts.ps // 1000
-                res += f'{ns + 1000 * dts.us}'
+                res += '.%.9d' % (ns + 1000 * dts.us)
             elif show_us:
-                res += f'{dts.us}'
+                res += '.%.6d' % dts.us
             elif show_ms:
-                res += f'{dts.us /1000}'
+                res += '.%.3d' % (dts.us / 1000)
 
             result[i] = res
 

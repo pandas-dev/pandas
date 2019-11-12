@@ -1508,6 +1508,7 @@ def is_extension_type(arr):
     Check whether an array-like is of a pandas extension class instance.
 
     .. deprecated:: 1.0.0
+        Use ``is_extension_array_dtype`` instead.
 
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
