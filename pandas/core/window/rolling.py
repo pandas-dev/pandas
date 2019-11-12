@@ -397,7 +397,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         if self.is_freq_type:
             return self._get_roll_func("{}_variable".format(func))
-        return partial(self._get_roll_func("{}_fixed".format(func)), win=self.window)
+        return partial(
+            self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
+        )
 
     def _get_window_indexer(self):
         """
@@ -414,6 +416,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
+        name: Optional[str] = None,
         **kwargs
     ):
         """
@@ -427,7 +430,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         center : bool
         require_min_periods : int
         floor: int
-        is_weighted: bool
+        is_weighted
+        name: str,
+            compatibility with groupby.rolling
         **kwargs
             additional arguments for rolling function and window function
 
@@ -1069,7 +1074,9 @@ class Window(_Window):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
         window_func = self._get_weighted_roll_func(window_func, _use_window)
-        return self._apply(window_func, center=self.center, is_weighted=True, **kwargs)
+        return self._apply(
+            window_func, center=self.center, is_weighted=True, name="sum", **kwargs
+        )
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
@@ -1077,7 +1084,9 @@ class Window(_Window):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
         window_func = self._get_weighted_roll_func(window_func, _use_window)
-        return self._apply(window_func, center=self.center, is_weighted=True, **kwargs)
+        return self._apply(
+            window_func, center=self.center, is_weighted=True, name="mean", **kwargs
+        )
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["var"])
@@ -1087,13 +1096,15 @@ class Window(_Window):
         window_func = partial(
             self._get_weighted_roll_func(window_func, _use_window), ddof=ddof
         )
-        return self._apply(window_func, center=self.center, is_weighted=True, **kwargs)
+        return self._apply(
+            window_func, center=self.center, is_weighted=True, name="var", **kwargs
+        )
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(ddof=ddof, **kwargs))
+        return _zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
 class _Rolling(_Window):
@@ -1208,6 +1219,7 @@ class _Rolling_and_Expanding(_Rolling):
         from pandas import Series
 
         kwargs.pop("_level", None)
+        kwargs.pop("floor", None)
         window = self._get_window()
         offset = _offset(window, self.center)
 
@@ -1245,7 +1257,10 @@ class _Rolling_and_Expanding(_Rolling):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_cython_func_type("roll_sum")
-        return self._apply(window_func, center=self.center, floor=0, **kwargs)
+        kwargs.pop("floor", None)
+        return self._apply(
+            window_func, center=self.center, floor=0, name="sum", **kwargs
+        )
 
     _shared_docs["max"] = dedent(
         """
@@ -1261,7 +1276,7 @@ class _Rolling_and_Expanding(_Rolling):
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
         window_func = self._get_cython_func_type("roll_max")
-        return self._apply(window_func, center=self.center, **kwargs)
+        return self._apply(window_func, center=self.center, name="max", **kwargs)
 
     _shared_docs["min"] = dedent(
         """
@@ -1303,12 +1318,12 @@ class _Rolling_and_Expanding(_Rolling):
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
         window_func = self._get_cython_func_type("roll_min")
-        return self._apply(window_func, center=self.center, **kwargs)
+        return self._apply(window_func, center=self.center, name="min", **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_cython_func_type("roll_mean")
-        return self._apply(window_func, center=self.center, **kwargs)
+        return self._apply(window_func, center=self.center, name="mean", **kwargs)
 
     _shared_docs["median"] = dedent(
         """
@@ -1350,24 +1365,26 @@ class _Rolling_and_Expanding(_Rolling):
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
         window_func = partial(window_func, win=self.window)
-        return self._apply(window_func, center=self.center, **kwargs)
+        return self._apply(window_func, center=self.center, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
+        kwargs.pop("require_min_periods", None)
         window_func = self._get_cython_func_type("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
             return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
         return self._apply(
-            zsqrt_func, center=self.center, require_min_periods=1, **kwargs
+            zsqrt_func, center=self.center, require_min_periods=1, name="std", **kwargs
         )
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
+        kwargs.pop("require_min_periods", None)
         window_func = partial(self._get_cython_func_type("roll_var"), ddof=ddof)
         return self._apply(
-            window_func, center=self.center, require_min_periods=1, **kwargs
+            window_func, center=self.center, require_min_periods=1, name="var", **kwargs
         )
 
     _shared_docs[
@@ -1383,8 +1400,13 @@ class _Rolling_and_Expanding(_Rolling):
 
     def skew(self, **kwargs):
         window_func = self._get_cython_func_type("roll_skew")
+        kwargs.pop("require_min_periods", None)
         return self._apply(
-            window_func, center=self.center, require_min_periods=3, **kwargs
+            window_func,
+            center=self.center,
+            require_min_periods=3,
+            name="skew",
+            **kwargs
         )
 
     _shared_docs["kurt"] = dedent(
@@ -1421,8 +1443,13 @@ class _Rolling_and_Expanding(_Rolling):
 
     def kurt(self, **kwargs):
         window_func = self._get_cython_func_type("roll_kurt")
+        kwargs.pop("require_min_periods", None)
         return self._apply(
-            window_func, center=self.center, require_min_periods=4, **kwargs
+            window_func,
+            center=self.center,
+            require_min_periods=4,
+            name="kurt",
+            **kwargs
         )
 
     _shared_docs["quantile"] = dedent(
@@ -1489,11 +1516,14 @@ class _Rolling_and_Expanding(_Rolling):
         else:
             window_func = partial(
                 self._get_roll_func("roll_quantile"),
+                win=self._get_window(),
                 quantile=quantile,
                 interpolation=interpolation,
             )
 
-        return self._apply(window_func, center=self.center, **kwargs)
+        # Pass through for groupby.rolling
+        kwargs["quantile"] = quantile
+        return self._apply(window_func, center=self.center, name="quantile", **kwargs)
 
     _shared_docs[
         "cov"
@@ -1849,7 +1879,7 @@ class Rolling(_Rolling_and_Expanding):
         # different impl for freq counting
         if self.is_freq_type:
             window_func = self._get_roll_func("roll_count")
-            return self._apply(window_func, center=self.center)
+            return self._apply(window_func, center=self.center, name="count")
 
         return super().count()
 
