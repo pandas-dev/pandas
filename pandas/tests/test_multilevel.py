@@ -358,6 +358,49 @@ class TestMultiLevel(Base):
         # test that int32 work
         self.ymd.astype(np.int32).unstack()
 
+    @pytest.mark.parametrize(
+        "result_rows,result_columns,index_product,expected_row",
+        [
+            (
+                [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
+                [u"ix1", u"ix2", u"col1", u"col2", u"col3", u"col4"],
+                2,
+                [None, None, 30.0, None],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
+                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                2,
+                [None, None, 30.0],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
+                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                None,
+                [None, None, 30.0],
+            ),
+        ],
+    )
+    def test_unstack_partial(
+        self, result_rows, result_columns, index_product, expected_row
+    ):
+        # check for regressions on this issue:
+        # https://github.com/pandas-dev/pandas/issues/19351
+        # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
+        # and the Index levels contain values that are not present in the subset
+        result = pd.DataFrame(result_rows, columns=result_columns).set_index(
+            [u"ix1", "ix2"]
+        )
+        result = result.iloc[1:2].unstack("ix2")
+        expected = pd.DataFrame(
+            [expected_row],
+            columns=pd.MultiIndex.from_product(
+                [result_columns[2:], [index_product]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples(
             [(0, "foo", 0), (0, "bar", 0), (1, "baz", 1), (1, "qux", 1)]
@@ -1489,6 +1532,20 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
+
+    @pytest.mark.parametrize("d", [4, "d"])
+    def test_empty_frame_groupby_dtypes_consistency(self, d):
+        # GH 20888
+        group_keys = ["a", "b", "c"]
+        df = DataFrame({"a": [1], "b": [2], "c": [3], "d": [d]})
+
+        g = df[df.a == 2].groupby(group_keys)
+        result = g.first().index
+        expected = MultiIndex(
+            levels=[[1], [2], [3]], codes=[[], [], []], names=["a", "b", "c"]
+        )
+
+        tm.assert_index_equal(result, expected)
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns

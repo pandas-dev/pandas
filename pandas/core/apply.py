@@ -7,13 +7,11 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
 from pandas.core.dtypes.generic import ABCSeries
-
-from pandas.io.formats.printing import pprint_thing
 
 
 def frame_apply(
@@ -230,7 +228,7 @@ class FrameApply:
         # as demonstrated in gh-12244
         if (
             self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_type).any()
+            and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
             and not self.agg_axis._has_complex_internals
@@ -293,20 +291,9 @@ class FrameApply:
                 res_index = res_index.take(successes)
 
         else:
-            try:
-                for i, v in enumerate(series_gen):
-                    results[i] = self.f(v)
-                    keys.append(v.name)
-            except Exception as err:
-                if hasattr(err, "args"):
-
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        err.args = err.args + (
-                            "occurred at index %s" % pprint_thing(k),
-                        )
-                raise
+            for i, v in enumerate(series_gen):
+                results[i] = self.f(v)
+                keys.append(v.name)
 
         self.results = results
         self.res_index = res_index

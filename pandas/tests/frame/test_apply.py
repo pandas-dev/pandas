@@ -423,12 +423,9 @@ class TestDataFrameApply:
                 row["D"] = 7
             return row
 
-        try:
+        msg = "'float' object has no attribute 'startswith'"
+        with pytest.raises(AttributeError, match=msg):
             data.apply(transform, axis=1)
-        except AttributeError as e:
-            assert len(e.args) == 2
-            assert e.args[1] == "occurred at index 4"
-            assert e.args[0] == "'float' object has no attribute 'startswith'"
 
     def test_apply_bug(self):
 

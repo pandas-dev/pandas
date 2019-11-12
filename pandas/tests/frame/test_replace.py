@@ -1313,3 +1313,30 @@ class TestDataFrameReplace:
             tm.assert_frame_equal(df, expected)
         df.replace(replace_dict, 3, inplace=True)
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "df, to_replace, exp",
+        [
+            (
+                {"col1": [1, 2, 3], "col2": [4, 5, 6]},
+                {4: 5, 5: 6, 6: 7},
+                {"col1": [1, 2, 3], "col2": [5, 6, 7]},
+            ),
+            (
+                {"col1": [1, 2, 3], "col2": ["4", "5", "6"]},
+                {"4": "5", "5": "6", "6": "7"},
+                {"col1": [1, 2, 3], "col2": ["5", "6", "7"]},
+            ),
+        ],
+    )
+    def test_replace_commutative(self, df, to_replace, exp):
+        # GH 16051
+        # DataFrame.replace() overwrites when values are non-numeric
+        # also added to data frame whilst issue was for series
+
+        df = pd.DataFrame(df)
+
+        expected = pd.DataFrame(exp)
+        result = df.replace(to_replace)
+
+        tm.assert_frame_equal(result, expected)

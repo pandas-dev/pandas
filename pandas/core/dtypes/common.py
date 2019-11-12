@@ -45,7 +45,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_re_compilable,
     is_scalar,
     is_sequence,
-    is_string_like,
 )
 
 from pandas._typing import ArrayLike
@@ -800,54 +799,6 @@ def is_datetime_arraylike(arr):
     return getattr(arr, "inferred_type", None) == "datetime"
 
 
-def is_datetimelike(arr):
-    """
-    Check whether an array-like is a datetime-like array-like.
-
-    Acceptable datetime-like objects are (but not limited to) datetime
-    indices, periodic indices, and timedelta indices.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime-like array-like.
-
-    Examples
-    --------
-    >>> is_datetimelike([1, 2, 3])
-    False
-    >>> is_datetimelike(pd.Index([1, 2, 3]))
-    False
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3]))
-    True
-    >>> is_datetimelike(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-    >>> is_datetimelike(pd.PeriodIndex([], freq="A"))
-    True
-    >>> is_datetimelike(np.array([], dtype=np.datetime64))
-    True
-    >>> is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    True
-    >>>
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimelike(s)
-    True
-    """
-
-    return (
-        is_datetime64_dtype(arr)
-        or is_datetime64tz_dtype(arr)
-        or is_timedelta64_dtype(arr)
-        or isinstance(arr, ABCPeriodIndex)
-    )
-
-
 def is_dtype_equal(source, target):
     """
     Check if two dtypes are equal.
@@ -1334,125 +1285,6 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     return "unorderable" in str(e)
 
 
-def is_numeric_v_string_like(a, b):
-    """
-    Check if we are comparing a string-like object to a numeric ndarray.
-
-    NumPy doesn't like to compare such objects, especially numeric arrays
-    and scalar string-likes.
-
-    Parameters
-    ----------
-    a : array-like, scalar
-        The first object to check.
-    b : array-like, scalar
-        The second object to check.
-
-    Returns
-    -------
-    boolean
-        Whether we return a comparing a string-like object to a numeric array.
-
-    Examples
-    --------
-    >>> is_numeric_v_string_like(1, 1)
-    False
-    >>> is_numeric_v_string_like("foo", "foo")
-    False
-    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
-    False
-    >>> is_numeric_v_string_like(np.array([1]), "foo")
-    True
-    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
-    True
-    >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
-    True
-    >>> is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
-    True
-    >>> is_numeric_v_string_like(np.array([1]), np.array([2]))
-    False
-    >>> is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
-    False
-    """
-
-    is_a_array = isinstance(a, np.ndarray)
-    is_b_array = isinstance(b, np.ndarray)
-
-    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
-    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
-    is_a_string_array = is_a_array and is_string_like_dtype(a)
-    is_b_string_array = is_b_array and is_string_like_dtype(b)
-
-    is_a_scalar_string_like = not is_a_array and is_string_like(a)
-    is_b_scalar_string_like = not is_b_array and is_string_like(b)
-
-    return (
-        (is_a_numeric_array and is_b_scalar_string_like)
-        or (is_b_numeric_array and is_a_scalar_string_like)
-        or (is_a_numeric_array and is_b_string_array)
-        or (is_b_numeric_array and is_a_string_array)
-    )
-
-
-def is_datetimelike_v_numeric(a, b):
-    """
-    Check if we are comparing a datetime-like object to a numeric object.
-
-    By "numeric," we mean an object that is either of an int or float dtype.
-
-    Parameters
-    ----------
-    a : array-like, scalar
-        The first object to check.
-    b : array-like, scalar
-        The second object to check.
-
-    Returns
-    -------
-    boolean
-        Whether we return a comparing a datetime-like to a numeric object.
-
-    Examples
-    --------
-    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
-    >>>
-    >>> is_datetimelike_v_numeric(1, 1)
-    False
-    >>> is_datetimelike_v_numeric(dt, dt)
-    False
-    >>> is_datetimelike_v_numeric(1, dt)
-    True
-    >>> is_datetimelike_v_numeric(dt, 1)  # symmetric check
-    True
-    >>> is_datetimelike_v_numeric(np.array([dt]), 1)
-    True
-    >>> is_datetimelike_v_numeric(np.array([1]), dt)
-    True
-    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-    True
-    >>> is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    False
-    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-    False
-    """
-
-    if not hasattr(a, "dtype"):
-        a = np.asarray(a)
-    if not hasattr(b, "dtype"):
-        b = np.asarray(b)
-
-    def is_numeric(x):
-        """
-        Check if an object has a numeric dtype (i.e. integer or float).
-        """
-        return is_integer_dtype(x) or is_float_dtype(x)
-
-    is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_numeric(b)) or (
-        is_datetimelike(b) and is_numeric(a)
-    )
-
-
 def needs_i8_conversion(arr_or_dtype):
     """
     Check whether the array or dtype should be converted to int64.
@@ -1675,6 +1507,9 @@ def is_extension_type(arr):
     """
     Check whether an array-like is of a pandas extension class instance.
 
+    .. deprecated:: 1.0.0
+        Use ``is_extension_array_dtype`` instead.
+
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
     to it like scipy sparse matrices), and datetime-like arrays.
@@ -1717,6 +1552,12 @@ def is_extension_type(arr):
     >>> is_extension_type(s)
     True
     """
+    warnings.warn(
+        "'is_extension_type' is deprecated and will be removed in a future "
+        "version.  Use 'is_extension_array_dtype' instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     if is_categorical(arr):
         return True
