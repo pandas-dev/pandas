@@ -9,7 +9,7 @@ on:
 env:
   ENV_FILE: environment.yml
   # PATH: $HOME/miniconda3/bin:$PATH
-  TEST_ENV: path:{{ env['PATH'] }}
+  TEST_ENV: ${{ env }}
 
 jobs:
   checks:
@@ -36,48 +36,56 @@ jobs:
 
     - name: Linting
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh lint
       if: true
 
     - name: Dependencies consistency
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh dependencies
       if: true
 
     - name: Checks on imported code
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh code
       if: true
 
     - name: Running doctests
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh doctests
       if: true
 
     - name: Docstring validation
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh docstrings
       if: true
 
     - name: Typing validation
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/code_checks.sh docstrings
       if: true
 
     - name: Testing docstring validation script
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         pytest --capture=no --strict scripts
       if: true
 
     - name: Running benchmarks
       run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         cd asv_bench
         asv check -E existing
