@@ -167,7 +167,7 @@ class Term:
         return self._name
 
     @property
-    def ndim(self) -> int:
+    def ndim(self):
         return self._value.ndim
 
 

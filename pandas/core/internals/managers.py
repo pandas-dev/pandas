@@ -166,7 +166,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self) -> int:
+    def ndim(self):
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
