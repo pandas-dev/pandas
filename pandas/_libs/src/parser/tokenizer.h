@@ -22,6 +22,7 @@ See LICENSE for the license
 
 #include "../headers/stdint.h"
 #include "../inline_helper.h"
+#include "../headers/portable.h"
 
 #include "khash.h"
 
