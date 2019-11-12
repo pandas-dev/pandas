@@ -50,7 +50,10 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+            with warnings.catch_warnings():
+                # suppress FutureWarning about elementwise comparison
+                warnings.simplefilter("always")
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
