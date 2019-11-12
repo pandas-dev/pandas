@@ -636,23 +636,13 @@ b  2""",
                     # TODO: is the above comment accurate?
                     raise
 
-            # related to : GH3688
-            # try item-by-item
-            # this can be called recursively, so need to raise
-            # ValueError
-            # if we don't have this method to indicated to aggregate to
-            # mark this column as an error
-            try:
-                result = self._aggregate_item_by_item(name, *args, **kwargs)
-                assert self.obj.ndim == 2
-                return result
-            except AttributeError:
-                # e.g. SparseArray has no flags attr
-                # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
-                #  occurs in idxmax() case
-                #  in tests.groupby.test_function.test_non_cython_api
-                assert self.obj.ndim == 1
+            if self.obj.ndim == 1:
+                # this can be called recursively, so need to raise ValueError
                 raise ValueError
+
+            # GH#3688 try to operate item-by-item
+            result = self._aggregate_item_by_item(name, *args, **kwargs)
+            return result
 
         wrapper.__name__ = name
         return wrapper
