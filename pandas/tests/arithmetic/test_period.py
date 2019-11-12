@@ -342,28 +342,29 @@ class TestPeriodIndexSeriesComparisonConsistency:
         idx = PeriodIndex(
             ["2011-01", "2011-02", "2011-03", "2011-04"], freq="M", name="idx"
         )
+        per = pd.Period("2011-03", freq="M")
 
-        f = lambda x: x == pd.Period("2011-03", freq="M")
+        f = lambda x: x == per
         exp = np.array([False, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: pd.Period("2011-03", freq="M") == x
+        f = lambda x: per == x
         self._check(idx, f, exp)
 
-        f = lambda x: x != pd.Period("2011-03", freq="M")
+        f = lambda x: x != per
         exp = np.array([True, True, False, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: pd.Period("2011-03", freq="M") != x
+        f = lambda x: per != x
         self._check(idx, f, exp)
 
-        f = lambda x: pd.Period("2011-03", freq="M") >= x
+        f = lambda x: per >= x
         exp = np.array([True, True, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x > pd.Period("2011-03", freq="M")
+        f = lambda x: x > per
         exp = np.array([False, False, False, True], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: pd.Period("2011-03", freq="M") >= x
+        f = lambda x: per >= x
         exp = np.array([True, True, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
@@ -371,11 +372,12 @@ class TestPeriodIndexSeriesComparisonConsistency:
         idx = PeriodIndex(
             ["2011-01", "NaT", "2011-03", "2011-04"], freq="M", name="idx"
         )
+        per = pd.Period("2011-03", freq="M")
 
-        f = lambda x: x == pd.Period("2011-03", freq="M")
+        f = lambda x: x == per
         exp = np.array([False, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: pd.Period("2011-03", freq="M") == x
+        f = lambda x: per == x
         self._check(idx, f, exp)
 
         f = lambda x: x == pd.NaT
@@ -384,10 +386,10 @@ class TestPeriodIndexSeriesComparisonConsistency:
         f = lambda x: pd.NaT == x
         self._check(idx, f, exp)
 
-        f = lambda x: x != pd.Period("2011-03", freq="M")
+        f = lambda x: x != per
         exp = np.array([True, True, False, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: pd.Period("2011-03", freq="M") != x
+        f = lambda x: per != x
         self._check(idx, f, exp)
 
         f = lambda x: x != pd.NaT
@@ -396,11 +398,11 @@ class TestPeriodIndexSeriesComparisonConsistency:
         f = lambda x: pd.NaT != x
         self._check(idx, f, exp)
 
-        f = lambda x: pd.Period("2011-03", freq="M") >= x
+        f = lambda x: per >= x
         exp = np.array([True, False, True, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x < pd.Period("2011-03", freq="M")
+        f = lambda x: x < per
         exp = np.array([True, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
