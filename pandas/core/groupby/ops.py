@@ -601,7 +601,14 @@ class BaseGrouper:
         return result
 
     def agg_series(self, obj: Series, func):
-        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # TODO: can we get a performant workaround for EAs backed by ndarray?
@@ -615,10 +622,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "No result." in str(err):
-                # raised in libreduction
-                pass
-            elif "Function does not reduce" in str(err):
+            if "Function does not reduce" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -626,8 +630,11 @@ class BaseGrouper:
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
-        # At this point we have already checked that obj.index is not a MultiIndex
-        #  and that obj is backed by an ndarray, not ExtensionArray
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - len(obj) > 0
+        #  - ngroups != 0
         func = self._is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
@@ -660,11 +667,9 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        if result is not None:
-            # if splitter is empty, result can be None, in which case
-            #  maybe_convert_objects would raise TypeError
-            result = lib.maybe_convert_objects(result, try_float=0)
-            # TODO: try_cast back to EA?
+        assert result is not None
+        result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
 
         return result, counts
 
@@ -815,6 +820,9 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None

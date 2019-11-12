@@ -896,11 +896,16 @@ class TestTimedeltaArraylikeAddSubOps:
         result = other + idx
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_sub_timestamp(self, box_with_array):
-        # GH#11925
-        ts = Timestamp("2012-01-01")
-        # TODO: parametrize over types of datetime scalar?
-
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("2012-01-01"),
+            Timestamp("2012-01-01").to_pydatetime(),
+            Timestamp("2012-01-01").to_datetime64(),
+        ],
+    )
+    def test_td64arr_add_sub_datetimelike_scalar(self, ts, box_with_array):
+        # GH#11925, GH#29558
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3)
 
