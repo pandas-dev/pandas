@@ -10,7 +10,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Period, PeriodIndex, Series, period_range
+from pandas import Period, PeriodIndex, Series, Timestamp, period_range
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
@@ -1044,6 +1044,29 @@ class TestPeriodIndexArithmetic:
         result = parr - pi
         expected = pi - pi
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("lbox", [Series, pd.Index])
+    @pytest.mark.parametrize("rbox", [Series, pd.Index])
+    def test_period_add_timestamp_raises(self, rbox, lbox):
+        # GH#17983, see also scalar version of this test in tests.scalar.period
+        ts = Timestamp("2017")
+        per = Period("2017", freq="M")
+
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (
+            r"cannot add|unsupported operand|"
+            r"can only operate on a|incompatible type|"
+            r"ufunc add cannot use operands"
+        )
+        with pytest.raises(TypeError, match=msg):
+            lbox([ts]) + rbox([per])
+
+        with pytest.raises(TypeError, match=msg):
+            lbox([per]) + rbox([ts])
+
+        with pytest.raises(TypeError, match=msg):
+            lbox([per]) + rbox([per])
 
 
 class TestPeriodSeriesArithmetic:
