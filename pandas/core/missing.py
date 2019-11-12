@@ -1,6 +1,8 @@
 """
 Routines for filling missing data.
 """
+import warnings
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -38,8 +40,9 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            with np.errstate(all="ignore"):
+            with warnings.catch_warnings():
                 # suppress FutureWarning about elementwise comparison
+                warnings.simplefilter("always")
                 mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must

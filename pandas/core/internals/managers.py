@@ -4,6 +4,7 @@ import itertools
 import operator
 import re
 from typing import List, Optional, Sequence, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -1924,8 +1925,9 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    with np.errstate(all="ignore"):
+    with warnings.catch_warnings():
         # suppress FutureWarning about elementwise comparison
+        warnings.simplefilter("always")
         result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
