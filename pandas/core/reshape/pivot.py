@@ -60,10 +60,8 @@ def pivot_table(
     values_passed = values is not None
     if values_passed:
         if is_list_like(values):
+            values_multi = True
             values = list(values)
-            
-            # fix bug where values=['c'] returns the whole table with multi-level columns, while values='c' doesn't
-            values_multi = len(values) != 1
         else:
             values_multi = False
             values = [values]
@@ -127,6 +125,11 @@ def pivot_table(
             else:
                 to_unstack.append(name)
         table = agged.unstack(to_unstack)
+
+    # Fixes GH #29080
+    # where groupby `nunique` returns the whole table
+    # instead of just the columns in values
+    table = table[values]
 
     if not dropna:
         if table.index.nlevels > 1:
@@ -622,7 +625,9 @@ def _normalize(table, normalize, margins, margins_name="All"):
         if (margins_name not in table.iloc[-1, :].name) | (
             margins_name != table.iloc[:, -1].name
         ):
-            raise ValueError("{} not in pivoted DataFrame".format(margins_name))
+            raise ValueError(
+                "{mname} not in pivoted DataFrame".format(mname=margins_name)
+            )
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
 
