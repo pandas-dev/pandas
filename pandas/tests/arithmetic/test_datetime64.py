@@ -2151,16 +2151,16 @@ class TestDatetimeIndexArithmetic:
         ids=lambda x: type(x).__name__,
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
-    def test_add_datetimelike_and_dti(self, addend, tz):
+    def test_add_datetimelike_and_dtarr(self, box_with_array, addend, tz):
         # GH#9631
         dti = DatetimeIndex(["2011-01-01", "2011-01-02"]).tz_localize(tz)
-        msg = (
-            "cannot add DatetimeArray and {0}".format(type(addend).__name__)
-        ).replace("DatetimeIndex", "DatetimeArray")
+        dtarr = tm.box_expected(dti, box_with_array)
+        msg = "cannot add DatetimeArray and"
+
         with pytest.raises(TypeError, match=msg):
-            dti + addend
+            dtarr + addend
         with pytest.raises(TypeError, match=msg):
-            addend + dti
+            addend + dtarr
 
     # -------------------------------------------------------------
 
