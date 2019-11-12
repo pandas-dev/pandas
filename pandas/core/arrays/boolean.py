@@ -582,8 +582,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if name in ["any", "all"]:
             pass
 
-        # if we have a preservable numeric op,
-        # provide coercion back to an integer type if possible
+        # if we have numeric op that would result in an int, coerce to int if possible
         elif name in ["sum", "min", "max", "prod"] and notna(result):
             int_result = int(result)
             if int_result == result:
