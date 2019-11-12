@@ -5,15 +5,13 @@ import numpy as np
 from pandas._libs import reduction as libreduction
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
 
 
 def frame_apply(
