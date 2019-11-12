@@ -25,7 +25,7 @@ def one(request):
     Several variants of integer value 1. The zero-dim integer array
     behaves like an integer.
 
-    This fixture is used to check that datetimelike indexes handle
+    This fixture can be used to check that datetimelike indexes handle
     addition and subtraction of integers and zero-dimensional arrays
     of integers.
 
@@ -58,11 +58,13 @@ zeros.extend([0, 0.0, -0.0])
 @pytest.fixture(params=zeros)
 def zero(request):
     """
-    Several types of scalar zeros and length 5 vectors of zeros. For
-    testing division by (or of) zero.
-
+    Several types of scalar zeros and length 5 vectors of zeros. 
+    
+    This fixture can be used to check that numeric-dtype indexes handle
+    division by any zero numeric-dtype.
+    
     Uses vector of length 5 for broadcasting with `numeric_idx` fixture,
-    which creates numerical Indexes vectors also of length 5.
+    which creates numeric-dtype vectors also of length 5.
 
     Examples
     --------
