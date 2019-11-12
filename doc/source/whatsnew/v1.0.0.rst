@@ -130,34 +130,39 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api_breaking.MultiIndex._names:
 
-``MultiIndex.levels`` do not hold level names any longer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Aviod using names from ``MultiIndex.levels``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A :class:`MultiIndex` previously stored the level names as attributes of each of its
-  :attr:`MultiIndex.levels`. From Pandas 1.0, the names are only accessed through
-  :attr:`MultiIndex.names` (which was also possible previously). This is done in order to
-  make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories` (:issue:`27242`:).
+As part of a larger refactor to :class:`MultiIndex` the level names are now
+stored separately from the levels (:issue:`27242`). We recommend using
+:attr:`MultiIndex.names` to access the names, and :meth:`Index.set_names`
+to update the names.
 
-*pandas 0.25.x*
-
-.. code-block:: ipython
-
-   In [1]: mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
-   Out[2]: mi
-   MultiIndex([(1, 'a'),
-               (1, 'b'),
-               (2, 'a'),
-               (2, 'b')],
-              names=['x', 'y'])
-   Out[3]: mi.levels[0].name
-   'x'
-
-*pandas 1.0.0*
+For backwards compatibility, you can still *access* the names via the levels.
 
 .. ipython:: python
 
    mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
    mi.levels[0].name
+
+However, it is no longer possible to *update* the names of the ``MultiIndex``
+via the name of the level. The following will **silently** fail to update the
+name of the ``MultiIndex``
+
+.. ipython:: python
+
+   mi.levels[0].name = "new name"
+   mi.names
+
+To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
+
+.. ipython:: python
+
+   mi2 = mi.set_names("new name", level=0)
+   mi2.names
+
+New repr for :class:`pandas.core.arrays.IntervalArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
