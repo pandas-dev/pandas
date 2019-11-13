@@ -930,6 +930,14 @@ class TestDataFrameCombineFirst:
         # it works!
         pd.concat([df1, df2_obj])
 
+    def test_combine_first_empty_dataframe(self):
+        df1 = pd.DataFrame(columns=["a"])
+        df2 = pd.DataFrame(columns=["b"])
+
+        exp = pd.DataFrame(columns=["a", "b"])
+        res = df1.combine_first(df2)
+        tm.assert_frame_equal(res, exp)
+
 
 class TestDataFrameUpdate:
     def test_update_nan(self):

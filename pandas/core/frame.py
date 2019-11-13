@@ -5415,14 +5415,20 @@ class DataFrame(NDFrame):
         this, other = self.align(other, copy=False)
         new_index = this.index
 
+        # sorts if possible
+        new_columns = this.columns.union(other.columns)
+
+        if other.empty and self.empty and len(new_columns) != len(this.columns):
+            for col in new_columns:
+                other[col] = None
+            return other.copy()
+
         if other.empty and len(new_index) == len(self.index):
             return self.copy()
 
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible
-        new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
