@@ -106,7 +106,7 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
-def get_freq_group(freq):
+def get_freq_group(freq) -> int:
     """
     Return frequency code group of given frequency str or offset.
 
@@ -189,7 +189,7 @@ class Resolution:
     _freq_reso_map = {v: k for k, v in _reso_freq_map.items()}
 
     @classmethod
-    def get_str(cls, reso):
+    def get_str(cls, reso) -> str:
         """
         Return resolution str against resolution code.
 
@@ -228,7 +228,7 @@ class Resolution:
         return get_freq_group(cls.get_freq(resostr))
 
     @classmethod
-    def get_freq(cls, resostr):
+    def get_freq(cls, resostr: str) -> str:
         """
         Return frequency str against resolution str.
 

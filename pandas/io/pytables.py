@@ -4842,7 +4842,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
     return data.reshape(shape)
 
 
-def _maybe_convert(values, val_kind, encoding, errors):
+def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         # conv = np.frompyfunc(conv, 1, 1)
@@ -4862,7 +4862,7 @@ def _get_converter(kind, encoding, errors):
         raise ValueError("invalid kind {kind}".format(kind=kind))
 
 
-def _need_convert(kind):
+def _need_convert(kind) -> bool:
     kind = _ensure_decoded(kind)
     if kind in ("datetime", "datetime64", "string"):
         return True

@@ -70,7 +70,7 @@ def write_csv_rows(list data, ndarray data_index,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def convert_json_to_lines(object arr):
+def convert_json_to_lines(arr: object) -> str:
     """
     replace comma separated json with line feeds, paying special attention
     to quotes & brackets
@@ -149,16 +149,13 @@ cpdef inline Py_ssize_t word_len(object val):
 @cython.wraparound(False)
 def string_array_replace_from_nan_rep(
         ndarray[object, ndim=1] arr, object nan_rep,
-        object replace=None):
+        object replace=np.nan):
     """
     Replace the values in the array with 'replacement' if
     they are 'nan_rep'. Return the same array.
     """
     cdef:
         Py_ssize_t length = len(arr), i = 0
-
-    if replace is None:
-        replace = np.nan
 
     for i in range(length):
         if arr[i] == nan_rep:
