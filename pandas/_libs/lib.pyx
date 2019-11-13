@@ -971,6 +971,7 @@ cdef class Seen:
         bint nat_             # seen nat
         bint bool_            # seen_bool
         bint null_            # seen_null
+        bint nan_             # seen_np.nan
         bint uint_            # seen_uint (unsigned integer)
         bint sint_            # seen_sint (signed integer)
         bint float_           # seen_float
@@ -995,6 +996,7 @@ cdef class Seen:
         self.nat_ = 0
         self.bool_ = 0
         self.null_ = 0
+        self.nan_ = 0
         self.uint_ = 0
         self.sint_ = 0
         self.float_ = 0
@@ -1953,10 +1955,37 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 @cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
-                          bint convert_timedelta=0):
+                          bint convert_timedelta=0,
+                          bint convert_to_nullable_integer=0):
     """
     Type inference function-- convert object array to proper dtype
+
+    Parameters
+    ----------
+    values : ndarray
+        Array of object elements to convert.
+    try_float : bool, default False
+        If an array-like object contains only float or NaN values is
+        encountered, whether to convert and return an array of float dtype.
+    safe : bool, default False
+        Whether to upcast numeric type (e.g. int cast to float). If set to
+        True, no upcasting will be performed.
+    convert_datetime : bool, default False
+        If an array-like object contains only datetime values or NaT is
+        encountered, whether to convert and return an array of M8[ns] dtype.
+    convert_timedelta : bool, default False
+        If an array-like object contains only timedelta values or NaT is
+        encountered, whether to convert and return an array of m8[ns] dtype.
+    convert_to_nullable_integer : bool, default False
+        If an array-like object contains only interger values (and NaN) is
+        encountered, whether to convert and return an IntegerArray.
+
+    Returns
+    -------
+    array : array of converted object values to more specific dtypes if
+    pplicable
     """
+
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -1977,6 +2006,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     ints = np.empty(n, dtype='i8')
     uints = np.empty(n, dtype='u8')
     bools = np.empty(n, dtype=np.uint8)
+    mask = np.full(n, False)
 
     if convert_datetime:
         datetimes = np.empty(n, dtype='M8[ns]')
@@ -1994,6 +2024,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if val is None:
             seen.null_ = 1
             floats[i] = complexes[i] = fnan
+            mask[i] = True
         elif val is NaT:
             seen.nat_ = 1
             if convert_datetime:
@@ -2003,6 +2034,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1
                 break
+        elif val is np.nan:
+            seen.nan_ = 1
+            mask[i] = True
+            floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
             seen.bool_ = 1
             bools[i] = val
@@ -2084,11 +2119,19 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     if not seen.object_:
         if not safe:
-            if seen.null_:
+            if seen.null_ or seen.nan_:
                 if seen.is_float_or_complex:
                     if seen.complex_:
                         return complexes
-                    elif seen.float_ or seen.int_:
+                    elif seen.float_:
+                        return floats
+                    elif seen.int_:
+                        if convert_to_nullable_integer:
+                            from pandas.core.arrays import IntegerArray
+                            return IntegerArray(ints, mask)
+                        else:
+                            return floats
+                    elif seen.nan_:
                         return floats
             else:
                 if not seen.bool_:
@@ -2127,7 +2170,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                     if seen.complex_:
                         if not seen.int_:
                             return complexes
-                    elif seen.float_:
+                    elif seen.float_ or seen.nan_:
                         if not seen.int_:
                             return floats
             else:
@@ -2151,7 +2194,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                         if seen.complex_:
                             if not seen.int_:
                                 return complexes
-                        elif seen.float_:
+                        elif seen.float_ or seen.nan_:
                             if not seen.int_:
                                 return floats
                         elif seen.int_:
