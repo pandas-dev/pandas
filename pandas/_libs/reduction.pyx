@@ -491,8 +491,8 @@ def apply_frame_axis0(object frame, object f, object names,
         object piece
         dict item_cache
 
-    if frame.index._has_complex_internals:
-        raise InvalidApply('Cannot modify frame index internals')
+    # We have already checked that we don't have a MultiIndex before calling
+    assert frame.index.nlevels == 1
 
     results = []
 
@@ -623,7 +623,7 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex
-        assert not labels._has_complex_internals
+        assert labels.nlevels == 1
 
         # pass as an ndarray/ExtensionArray
         labels = labels._values
