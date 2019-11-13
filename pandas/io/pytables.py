@@ -1767,7 +1767,9 @@ class IndexCol:
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(
+        self, values: np.ndarray, nan_rep, encoding, errors, start=None, stop=None
+    ):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
@@ -3340,7 +3342,7 @@ class Table(Fixed):
         return sum(len(a.values) for a in self.values_axes)
 
     @property
-    def is_transposed(self):
+    def is_transposed(self) -> bool:
         return False
 
     @property
@@ -3572,9 +3574,19 @@ class Table(Fixed):
                         )
                     v.create_index(**kw)
 
-    def read_axes(self, where, **kwargs):
-        """create and return the axes sniffed from the table: return boolean
-        for success
+    def read_axes(self, where, **kwargs) -> bool:
+        """
+        Create  the axes sniffed from the table.
+
+        Parameters
+        ----------
+        where : ???
+        **kwargs
+
+        Returns
+        -------
+        bool
+            Indicates success.
         """
 
         # validate the version
@@ -4340,7 +4352,7 @@ class AppendableFrameTable(AppendableTable):
     obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
-    def is_transposed(self):
+    def is_transposed(self) -> bool:
         return self.index_axes[0].axis == 1
 
     def get_object(self, obj):
@@ -4411,7 +4423,7 @@ class AppendableSeriesTable(AppendableFrameTable):
     storage_obj_type = DataFrame
 
     @property
-    def is_transposed(self):
+    def is_transposed(self) -> bool:
         return False
 
     def get_object(self, obj):
@@ -4842,7 +4854,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
     return data.reshape(shape)
 
 
-def _maybe_convert(values, val_kind, encoding, errors):
+def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         # conv = np.frompyfunc(conv, 1, 1)
