@@ -1567,6 +1567,7 @@ class TableIterator:
             iteration, default is False
         kwargs : the passed kwargs
         """
+
     chunksize: Optional[int]
 
     def __init__(
@@ -1748,14 +1749,14 @@ class IndexCol:
             )
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """ compare 2 col items """
         return all(
             getattr(self, a, None) == getattr(other, a, None)
             for a in ["name", "cname", "axis", "pos"]
         )
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     @property
@@ -3588,7 +3589,7 @@ class Table(Fixed):
 
     def read_axes(self, where, **kwargs) -> bool:
         """
-        Create  the axes sniffed from the table.
+        Create the axes sniffed from the table.
 
         Parameters
         ----------
@@ -4571,7 +4572,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj, axis, labels, other=None):
+def _reindex_axis(obj, axis: int, labels: Index, other=None):
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4586,7 +4587,7 @@ def _reindex_axis(obj, axis, labels, other=None):
     if other is not None:
         labels = ensure_index(other.unique()).intersection(labels, sort=False)
     if not labels.equals(ax):
-        slicer = [slice(None, None)] * obj.ndim
+        slicer = [slice(None, None)] * obj.ndim  # type: List[Union[slice, Index]]
         slicer[axis] = labels
         obj = obj.loc[tuple(slicer)]
     return obj
