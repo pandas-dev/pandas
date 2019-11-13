@@ -781,6 +781,22 @@ def test_categorical_no_compress():
     tm.assert_numpy_array_equal(result, exp)
 
 
+def test_groupby_empty_with_category():
+    # GH-9614
+    # test fix for when group by on None resulted in
+    # coercion of dtype categorical -> float
+    df = pd.DataFrame(
+        {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
+    )
+    result = df.groupby("A").first()["B"]
+    expected = pd.Series(
+        pd.Categorical([], categories=["test", "train"]),
+        index=pd.Series([], dtype="object", name="A"),
+        name="B",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_sort():
 
     # http://stackoverflow.com/questions/23814368/sorting-pandas-
