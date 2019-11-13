@@ -28,6 +28,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import Dtype
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs
@@ -47,7 +48,7 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
-        cls._validate_dtype(cls, dtype)
+        cls._validate_dtype(dtype)
         if fastpath is not None:
             warnings.warn(
                 "The 'fastpath' keyword is deprecated, and will be "
@@ -74,24 +75,21 @@ class NumericIndex(Index):
             name = data.name
         return cls._simple_new(subarr, name=name)
 
-    def _validate_dtype(cls, dtype):
+    @classmethod
+    def _validate_dtype(cls, dtype: Dtype) -> None:
         if dtype is None:
             return
-        if cls._typ == "int64index" and not is_signed_integer_dtype(dtype):
-            raise ValueError(
-                "Incorrect `dtype` passed: expected signed integer, received {}".format(
-                    dtype
-                )
-            )
-        elif cls._typ == "uint64index" and not is_unsigned_integer_dtype(dtype):
-            raise ValueError(
-                "Incorrect `dtype` passed: expected unsigned integer"
-                ", received {}".format(dtype)
-            )
-        elif cls._typ == "float64index" and not is_float_dtype(dtype):
-            raise ValueError(
-                "Incorrect `dtype` passed: expected float, received {}".format(dtype)
-            )
+        validation_metadata = {
+            "int64index": (is_signed_integer_dtype, "signed integer"),
+            "uint64index": (is_unsigned_integer_dtype, "unsigned integer"),
+            "float64index": (is_float_dtype, "float"),
+            "rangeindex": (is_signed_integer_dtype, "signed integer"),
+        }
+
+        validation_func, expected = validation_metadata[cls._typ]
+        if not validation_func(dtype):
+            msg = f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            raise ValueError(msg)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
