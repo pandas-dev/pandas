@@ -473,7 +473,15 @@ class TestDatetimeArray(SharedTests):
         arr = DatetimeArray(datetime_index)
 
         result = arr.strftime("%Y %b")
-        expected = np.array(datetime_index.strftime("%Y %b"))
+        expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime_nat(self):
+        # GH 29578
+        arr = DatetimeArray(DatetimeIndex(["2019-01-01", pd.NaT]))
+
+        result = arr.strftime("%Y-%m-%d")
+        expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -679,7 +687,15 @@ class TestPeriodArray(SharedTests):
         arr = PeriodArray(period_index)
 
         result = arr.strftime("%Y")
-        expected = np.array(period_index.strftime("%Y"))
+        expected = np.array([per.strftime("%Y") for per in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime_nat(self):
+        # GH 29578
+        arr = PeriodArray(PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"))
+
+        result = arr.strftime("%Y-%m-%d")
+        expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
 
