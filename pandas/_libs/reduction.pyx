@@ -193,7 +193,7 @@ cdef class _BaseGrouper:
                                     Slider islider, Slider vslider):
         if cached_typ is None:
             cached_ityp = self.ityp(islider.buf)
-            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=name)
+            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=self.name)
         else:
             # See the comment in indexes/base.py about _index_data.
             # We need this for EA-backed indexes that have a reference
