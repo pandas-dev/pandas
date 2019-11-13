@@ -63,7 +63,7 @@ up with a ``float64`` dtype Series:
    pd.Series([1, 2, np.nan])
 
 Operations involving an integer array will behave similar to NumPy arrays.
-Missing values will be propagated, and and the data will be coerced to another
+Missing values will be propagated, and the data will be coerced to another
 dtype if needed.
 
 .. ipython:: python
