@@ -5411,15 +5411,14 @@ class DataFrame(NDFrame):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
+        other_columns = other.columns
 
         this, other = self.align(other, copy=False)
         new_index = this.index
 
-        # sorts if possible
-        new_columns = this.columns.union(other.columns)
-
-        if other.empty and self.empty and len(new_columns) != len(this.columns):
-            for col in new_columns:
+        if other.empty and self.empty:
+            empty_columns = self.columns.union(other_columns)
+            for col in empty_columns:
                 other[col] = None
             return other.copy()
 
@@ -5429,6 +5428,8 @@ class DataFrame(NDFrame):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
+        # sorts if possible
+        new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
