@@ -341,7 +341,7 @@ class TestDataFrameAlterAxes:
                 self.name = name
                 self.color = color
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "<Thing {self.name!r}>".format(self=self)
 
             # necessary for pretty KeyError
@@ -380,7 +380,7 @@ class TestDataFrameAlterAxes:
 
         class Thing(frozenset):
             # need to stabilize repr for KeyError (due to random order in sets)
-            def __repr__(self):
+            def __repr__(self) -> str:
                 tmp = sorted(list(self))
                 # double curly brace prints one brace in format string
                 return "frozenset({{{}}})".format(", ".join(map(repr, tmp)))
@@ -418,7 +418,7 @@ class TestDataFrameAlterAxes:
                 self.name = name
                 self.color = color
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "<Thing {self.name!r}>".format(self=self)
 
         thing1 = Thing("One", "red")

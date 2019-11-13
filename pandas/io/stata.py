@@ -139,7 +139,7 @@ Read a Stata dta file in 10,000 line chunks:
 )
 
 _data_method_doc = """
-Read observations from Stata file, converting them into a dataframe
+Read observations from Stata file, converting them into a dataframe.
 
 .. deprecated::
     This is a legacy method.  Use `read` in new code.
@@ -862,10 +862,10 @@ class StataMissingValue:
         lambda self: self._value, doc="The binary representation of the missing value."
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 

@@ -37,7 +37,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -360,12 +359,12 @@ class _GroupBy(PandasObject, SelectionMixin):
         grouper=None,
         exclusions=None,
         selection=None,
-        as_index=True,
-        sort=True,
-        group_keys=True,
-        squeeze=False,
-        observed=False,
-        **kwargs
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+        mutated: bool = False,
     ):
 
         self._selection = selection
@@ -387,12 +386,12 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.group_keys = group_keys
         self.squeeze = squeeze
         self.observed = observed
-        self.mutated = kwargs.pop("mutated", False)
+        self.mutated = mutated
 
         if grouper is None:
-            from pandas.core.groupby.grouper import _get_grouper
+            from pandas.core.groupby.grouper import get_grouper
 
-            grouper, exclusions, obj = _get_grouper(
+            grouper, exclusions, obj = get_grouper(
                 obj,
                 keys,
                 axis=axis,
@@ -407,13 +406,10 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
 
-        # we accept no other args
-        validate_kwargs("group", kwargs, {})
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.groups)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 
@@ -647,23 +643,13 @@ b  2""",
                     # TODO: is the above comment accurate?
                     raise
 
-            # related to : GH3688
-            # try item-by-item
-            # this can be called recursively, so need to raise
-            # ValueError
-            # if we don't have this method to indicated to aggregate to
-            # mark this column as an error
-            try:
-                result = self._aggregate_item_by_item(name, *args, **kwargs)
-                assert self.obj.ndim == 2
-                return result
-            except AttributeError:
-                # e.g. SparseArray has no flags attr
-                # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
-                #  occurs in idxmax() case
-                #  in tests.groupby.test_function.test_non_cython_api
-                assert self.obj.ndim == 1
+            if self.obj.ndim == 1:
+                # this can be called recursively, so need to raise ValueError
                 raise ValueError
+
+            # GH#3688 try to operate item-by-item
+            result = self._aggregate_item_by_item(name, *args, **kwargs)
+            return result
 
         wrapper.__name__ = name
         return wrapper
@@ -939,6 +925,10 @@ b  2""",
         names = []  # type: List[Hashable]
 
         for idx, (name, obj) in enumerate(self._iterate_slices()):
+            if self.grouper.ngroups == 0:
+                # agg_series below assumes ngroups > 0
+                continue
+
             try:
                 # if this function is invalid for this dtype, we will ignore it.
                 func(obj[:0])
@@ -952,11 +942,8 @@ b  2""",
                 pass
 
             result, counts = self.grouper.agg_series(obj, f)
-            if result is not None:
-                # TODO: only 3 test cases get None here, do something
-                #  in those cases
-                output[idx] = self._try_cast(result, obj, numeric_only=True)
-                names.append(name)
+            assert result is not None
+            output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -1845,9 +1832,9 @@ class GroupBy(_GroupBy):
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import _get_grouper
+            from pandas.core.groupby.grouper import get_grouper
 
-            grouper, _, _ = _get_grouper(
+            grouper, _, _ = get_grouper(
                 dropped,
                 key=self.keys,
                 axis=self.axis,
@@ -2536,7 +2523,22 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj: NDFrame, by, **kwds):
+def get_groupby(
+    obj: NDFrame,
+    by=None,
+    axis: int = 0,
+    level=None,
+    grouper=None,
+    exclusions=None,
+    selection=None,
+    as_index: bool = True,
+    sort: bool = True,
+    group_keys: bool = True,
+    squeeze: bool = False,
+    observed: bool = False,
+    mutated: bool = False,
+):
+
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
@@ -2550,4 +2552,18 @@ def groupby(obj: NDFrame, by, **kwds):
     else:
         raise TypeError("invalid type: {obj}".format(obj=obj))
 
-    return klass(obj, by, **kwds)
+    return klass(
+        obj=obj,
+        keys=by,
+        axis=axis,
+        level=level,
+        grouper=grouper,
+        exclusions=exclusions,
+        selection=selection,
+        as_index=as_index,
+        sort=sort,
+        group_keys=group_keys,
+        squeeze=squeeze,
+        observed=observed,
+        mutated=mutated,
+    )

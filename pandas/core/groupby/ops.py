@@ -216,11 +216,11 @@ class BaseGrouper:
             return get_indexer_dict(codes_list, keys)
 
     @property
-    def codes(self):
+    def codes(self) -> List[np.ndarray]:
         return [ping.codes for ping in self.groupings]
 
     @property
-    def levels(self):
+    def levels(self) -> List[Index]:
         return [ping.group_index for ping in self.groupings]
 
     @property
@@ -264,7 +264,7 @@ class BaseGrouper:
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
-    def codes_info(self):
+    def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
         codes, _, _ = self.group_info
         if self.indexer is not None:
@@ -272,8 +272,8 @@ class BaseGrouper:
             codes = codes[sorter]
         return codes
 
-    def _get_compressed_codes(self):
-        all_codes = [ping.codes for ping in self.groupings]
+    def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
+        all_codes = self.codes
         if len(all_codes) > 1:
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
@@ -286,9 +286,9 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def recons_codes(self):
+    def reconstructed_codes(self) -> List[np.ndarray]:
+        codes = self.codes
         comp_ids, obs_ids, _ = self.group_info
-        codes = (ping.codes for ping in self.groupings)
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
@@ -296,7 +296,7 @@ class BaseGrouper:
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
-        codes = self.recons_codes
+        codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
@@ -308,7 +308,7 @@ class BaseGrouper:
             return [self.groupings[0].result_index]
 
         name_list = []
-        for ping, codes in zip(self.groupings, self.recons_codes):
+        for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
             levels = ping.result_index.take(codes)
 
@@ -343,7 +343,7 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": lambda *args: ["open", "high", "low", "close"]}
+    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
 
     def _is_builtin_func(self, arg):
         """
@@ -393,6 +393,40 @@ class BaseGrouper:
 
         return func
 
+    def _get_cython_func_and_vals(
+        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
+    ):
+        """
+        Find the appropriate cython function, casting if necessary.
+
+        Parameters
+        ----------
+        kind : sttr
+        how : srt
+        values : np.ndarray
+        is_numeric : bool
+
+        Returns
+        -------
+        func : callable
+        values : np.ndarray
+        """
+        try:
+            func = self._get_cython_function(kind, how, values, is_numeric)
+        except NotImplementedError:
+            if is_numeric:
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values, skipna=False) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
+                func = self._get_cython_function(kind, how, values, is_numeric)
+            else:
+                raise
+        return func, values
+
     def _cython_operation(
         self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
@@ -405,6 +439,13 @@ class BaseGrouper:
 
         assert kind in ["transform", "aggregate"]
         orig_values = values
+
+        if values.ndim > 2:
+            raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif values.ndim == 2:
+            # Note: it is *not* the case that axis is always 0 for 1-dim values,
+            #  as we can have 1D ExtensionArrays that we need to treat as 2D
+            assert axis == 1, axis
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
@@ -473,20 +514,7 @@ class BaseGrouper:
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        try:
-            func = self._get_cython_function(kind, how, values, is_numeric)
-        except NotImplementedError:
-            if is_numeric:
-                try:
-                    values = ensure_float64(values)
-                except TypeError:
-                    if lib.infer_dtype(values, skipna=False) == "complex":
-                        values = values.astype(complex)
-                    else:
-                        raise
-                func = self._get_cython_function(kind, how, values, is_numeric)
-            else:
-                raise
+        func, values = self._get_cython_func_and_vals(kind, how, values, is_numeric)
 
         if how == "rank":
             out_dtype = "float"
@@ -531,10 +559,7 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        if how in self._name_functions:
-            names = self._name_functions[how]()  # type: Optional[List[str]]
-        else:
-            names = None
+        names = self._name_functions.get(how, None)  # type: Optional[List[str]]
 
         if swapped:
             result = result.swapaxes(0, axis)
@@ -564,10 +589,7 @@ class BaseGrouper:
         is_datetimelike: bool,
         min_count: int = -1,
     ):
-        if values.ndim > 2:
-            # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        elif agg_func is libgroupby.group_nth:
+        if agg_func is libgroupby.group_nth:
             # different signature from the others
             # TODO: should we be using min_count instead of hard-coding it?
             agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
@@ -581,16 +603,19 @@ class BaseGrouper:
     ):
 
         comp_ids, _, ngroups = self.group_info
-        if values.ndim > 2:
-            # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        else:
-            transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+        transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         return result
 
     def agg_series(self, obj: Series, func):
-        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # TODO: can we get a performant workaround for EAs backed by ndarray?
@@ -604,10 +629,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "No result." in str(err):
-                # raised in libreduction
-                pass
-            elif "Function does not reduce" in str(err):
+            if "Function does not reduce" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -615,8 +637,11 @@ class BaseGrouper:
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
-        # At this point we have already checked that obj.index is not a MultiIndex
-        #  and that obj is backed by an ndarray, not ExtensionArray
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - len(obj) > 0
+        #  - ngroups != 0
         func = self._is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
@@ -649,11 +674,9 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        if result is not None:
-            # if splitter is empty, result can be None, in which case
-            #  maybe_convert_objects would raise TypeError
-            result = lib.maybe_convert_objects(result, try_float=0)
-            # TODO: try_cast back to EA?
+        assert result is not None
+        result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
 
         return result, counts
 
@@ -775,6 +798,11 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
+    def reconstructed_codes(self) -> List[np.ndarray]:
+        # get unique result indices, and prepend 0 as groupby starts from the first
+        return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
+
+    @cache_readonly
     def result_index(self):
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
@@ -799,6 +827,9 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None
