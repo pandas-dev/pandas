@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Generic, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -41,7 +41,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
@@ -861,7 +860,7 @@ def _is_indexed_like(obj, axes) -> bool:
 # Splitting / application
 
 
-class DataSplitter:
+class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
@@ -896,7 +895,7 @@ class DataSplitter:
     def _get_sorted_data(self) -> FrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
+    def _chop(self, sdata: FrameOrSeries, slice_obj: slice) -> FrameOrSeries:
         raise AbstractMethodError(self)
 
 
@@ -920,7 +919,7 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
+def get_splitter(data: FrameOrSeries, *args, **kwargs) -> "DataSplitter[FrameOrSeries]":
     klass: Type[DataSplitter]
     if isinstance(data, Series):
         klass = SeriesSplitter

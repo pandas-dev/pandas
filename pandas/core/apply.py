@@ -34,7 +34,7 @@ def frame_apply(
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
     if axis == 0:
-        klass = FrameRowApply  # type: Type[FrameApply]
+        klass = FrameRowApply
     elif axis == 1:
         klass = FrameColumnApply
 

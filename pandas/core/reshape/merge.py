@@ -585,7 +585,7 @@ class _MergeOperation:
 
         self.indicator_name: Optional[str]
         if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator  # type: Optional[str]
+            self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = "_merge" if self.indicator else None
         else:
