@@ -795,13 +795,13 @@ b  2""",
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
                 arr = extract_array(obj)
-                try:
+                if not is_datetime64tz_dtype(result.dtype):
+                    # arr may have already been cast back to tzaware in _try_cast
                     result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
                     result = result.astype(dtype)
-                except TypeError:
-                    # _try_cast was called at a point where the result
-                    # was already tz-aware
-                    pass
+                else:
+                    result = arr
+
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
