@@ -686,7 +686,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether the object has a single dtype.
 
@@ -711,7 +711,7 @@ class IndexOpsMixin:
         return self._values.shape
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
@@ -1467,7 +1467,7 @@ class IndexOpsMixin:
     is_monotonic_increasing = is_monotonic
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_decreasing.

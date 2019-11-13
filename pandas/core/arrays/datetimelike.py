@@ -179,7 +179,8 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        return self._format_native_types(date_format=date_format).astype(object)
+        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        return result.astype(object)
 
 
 class TimelikeOps:
@@ -1303,6 +1304,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self.dtype):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
+            if lib.is_scalar(other):
+                # i.e. np.datetime64 object
+                return Timestamp(other) - self
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
                 from pandas.core.arrays import DatetimeArray
