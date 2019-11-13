@@ -406,7 +406,7 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
         raise
 
 
-def _is_metadata_of(group, parent_group):
+def _is_metadata_of(group, parent_group) -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -660,7 +660,7 @@ class HDFStore:
         self._handle = None
 
     @property
-    def is_open(self):
+    def is_open(self) -> bool:
         """
         return a boolean indicating whether the file is open
         """
@@ -668,7 +668,7 @@ class HDFStore:
             return False
         return bool(self._handle.isopen)
 
-    def flush(self, fsync=False):
+    def flush(self, fsync: bool = False):
         """
         Force all buffered modifications to be written to disk.
 
@@ -1619,7 +1619,7 @@ class TableIterator:
         if self.auto_close:
             self.store.close()
 
-    def get_result(self, coordinates=False):
+    def get_result(self, coordinates: bool = False):
 
         #  return the actual iterator
         if self.chunksize is not None:
@@ -1747,12 +1747,12 @@ class IndexCol:
         return not self.__eq__(other)
 
     @property
-    def is_indexed(self):
+    def is_indexed(self) -> bool:
         """ return whether I am an indexed column """
         try:
             return getattr(self.table.cols, self.cname).is_indexed
         except AttributeError:
-            False
+            return False
 
     def copy(self):
         new_self = copy.copy(self)
@@ -1961,7 +1961,7 @@ class GenericIndexCol(IndexCol):
     """ an index which is not represented in the data of the table """
 
     @property
-    def is_indexed(self):
+    def is_indexed(self) -> bool:
         return False
 
     def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
@@ -2497,7 +2497,7 @@ class Fixed:
         self.set_version()
 
     @property
-    def is_old_version(self):
+    def is_old_version(self) -> bool:
         return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
 
     def set_version(self):
@@ -2515,7 +2515,7 @@ class Fixed:
         return _ensure_decoded(getattr(self.group._v_attrs, "pandas_type", None))
 
     @property
-    def format_type(self):
+    def format_type(self) -> str:
         return "fixed"
 
     def __repr__(self) -> str:
@@ -2590,7 +2590,7 @@ class Fixed:
         return self.group
 
     @property
-    def is_exists(self):
+    def is_exists(self) -> bool:
         return False
 
     @property
@@ -2647,7 +2647,7 @@ class GenericFixed(Fixed):
     attributes = []  # type: List[str]
 
     # indexer helpders
-    def _class_to_alias(self, cls):
+    def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
     def _alias_to_class(self, alias):
@@ -2700,7 +2700,7 @@ class GenericFixed(Fixed):
         return kwargs
 
     @property
-    def is_exists(self):
+    def is_exists(self) -> bool:
         return True
 
     def set_attrs(self):
@@ -2931,7 +2931,7 @@ class GenericFixed(Fixed):
         getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         getattr(self.group, key)._v_attrs.shape = value.shape
 
-    def _is_empty_array(self, shape):
+    def _is_empty_array(self, shape) -> bool:
         """Returns true if any axis is zero length."""
         return any(x == 0 for x in shape)
 
@@ -3210,7 +3210,7 @@ class Table(Fixed):
         return self.table_type.split("_")[0]
 
     @property
-    def format_type(self):
+    def format_type(self) -> str:
         return "table"
 
     def __repr__(self) -> str:
@@ -3309,7 +3309,7 @@ class Table(Fixed):
         return np.prod([i.cvalues.shape[0] for i in self.index_axes])
 
     @property
-    def is_exists(self):
+    def is_exists(self) -> bool:
         """ has this table been created """
         return "table" in self.group
 
@@ -4588,7 +4588,7 @@ def _get_tz(tz):
     return zone
 
 
-def _set_tz(values, tz, preserve_UTC=False, coerce=False):
+def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
     """
     coerce the values to a DatetimeIndex if tz is set
     preserve the input shape if possible
@@ -4597,7 +4597,7 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     ----------
     values : ndarray
     tz : string/pickled tz object
-    preserve_UTC : boolean,
+    preserve_UTC : bool,
         preserve the UTC of the result
     coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
     """
@@ -4862,7 +4862,7 @@ def _get_converter(kind, encoding, errors):
         raise ValueError("invalid kind {kind}".format(kind=kind))
 
 
-def _need_convert(kind):
+def _need_convert(kind) -> bool:
     kind = _ensure_decoded(kind)
     if kind in ("datetime", "datetime64", "string"):
         return True
