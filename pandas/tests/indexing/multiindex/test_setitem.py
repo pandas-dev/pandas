@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna
 import pandas.core.common as com
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestMultiIndexSetItem:

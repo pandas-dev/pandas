@@ -71,7 +71,7 @@ _name_to_offset_map = {
 def to_offset(freq):
     """
     Return DateOffset object from string or tuple representation
-    or datetime.timedelta object
+    or datetime.timedelta object.
 
     Parameters
     ----------
@@ -222,7 +222,7 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX)
+      if passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
 
     Returns

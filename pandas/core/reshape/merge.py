@@ -6,11 +6,12 @@ import copy
 import datetime
 from functools import partial
 import string
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, lib
+from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
@@ -24,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -36,16 +36,20 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
+from pandas import Categorical, Index, MultiIndex
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import _transform_index, concatenate_block_managers
-import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series  # noqa:F401
 
 
 @Substitution("\nleft : DataFrame")
@@ -53,16 +57,16 @@ from pandas.core.sorting import is_int64_overflow_possible
 def merge(
     left,
     right,
-    how="inner",
+    how: str = "inner",
     on=None,
     left_on=None,
     right_on=None,
-    left_index=False,
-    right_index=False,
-    sort=False,
+    left_index: bool = False,
+    right_index: bool = False,
+    sort: bool = False,
     suffixes=("_x", "_y"),
-    copy=True,
-    indicator=False,
+    copy: bool = True,
+    indicator: bool = False,
     validate=None,
 ):
     op = _MergeOperation(
@@ -87,7 +91,9 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(by, on, left, right, _merge_pieces, check_duplicates=True):
+def _groupby_and_merge(
+    by, on, left, right, _merge_pieces, check_duplicates: bool = True
+):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -173,12 +179,13 @@ def merge_ordered(
     right_by=None,
     fill_method=None,
     suffixes=("_x", "_y"),
-    how="outer",
+    how: str = "outer",
 ):
     """
-    Perform merge with optional filling/interpolation designed for ordered
-    data like time series data. Optionally perform group-wise merge (see
-    examples).
+    Perform merge with optional filling/interpolation.
+
+    Designed for ordered data like time series data. Optionally
+    perform group-wise merge (see examples).
 
     Parameters
     ----------
@@ -189,18 +196,18 @@ def merge_ordered(
     left_on : label or list, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
-        the join key instead of columns
+        the join key instead of columns.
     right_on : label or list, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
-        left_on docs
+        left_on docs.
     left_by : column name or list of column names
         Group left DataFrame by group columns and merge piece by piece with
-        right DataFrame
+        right DataFrame.
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
-        left DataFrame
+        left DataFrame.
     fill_method : {'ffill', None}, default None
-        Interpolation method for data
+        Interpolation method for data.
     suffixes : Sequence, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
@@ -214,13 +221,13 @@ def merge_ordered(
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
         * outer: use union of keys from both frames (SQL: full outer join)
-        * inner: use intersection of keys from both frames (SQL: inner join)
+        * inner: use intersection of keys from both frames (SQL: inner join).
 
     Returns
     -------
-    merged : DataFrame
-        The output type will the be same as 'left', if it is a subclass
-        of DataFrame.
+    DataFrame
+        The merged DataFrame output type will the be same as
+        'left', if it is a subclass of DataFrame.
 
     See Also
     --------
@@ -229,14 +236,20 @@ def merge_ordered(
 
     Examples
     --------
-    >>> A                      >>> B
-          key  lvalue group        key  rvalue
-    0   a       1     a        0     b       1
-    1   c       2     a        1     c       2
-    2   e       3     a        2     d       3
+    >>> A
+          key  lvalue group
+    0   a       1     a
+    1   c       2     a
+    2   e       3     a
     3   a       1     b
     4   c       2     b
     5   e       3     b
+
+    >>> B
+        Key  rvalue
+    0     b       1
+    1     c       2
+    2     d       3
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
       group key  lvalue  rvalue
@@ -292,14 +305,14 @@ def merge_asof(
     on=None,
     left_on=None,
     right_on=None,
-    left_index=False,
-    right_index=False,
+    left_index: bool = False,
+    right_index: bool = False,
     by=None,
     left_by=None,
     right_by=None,
     suffixes=("_x", "_y"),
     tolerance=None,
-    allow_exact_matches=True,
+    allow_exact_matches: bool = True,
     direction="backward",
 ):
     """
@@ -359,7 +372,7 @@ def merge_asof(
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., strictly less-than / strictly greater-than)
+          (i.e., strictly less-than / strictly greater-than).
 
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
@@ -527,33 +540,33 @@ def merge_asof(
 # TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
     """
-    Perform a database (SQL) merge operation between two DataFrame objects
-    using either columns as keys or their row indexes
+    Perform a database (SQL) merge operation between two DataFrame or Series
+    objects using either columns as keys or their row indexes
     """
 
     _merge_type = "merge"
 
     def __init__(
         self,
-        left,
-        right,
-        how="inner",
+        left: Union["Series", "DataFrame"],
+        right: Union["Series", "DataFrame"],
+        how: str = "inner",
         on=None,
         left_on=None,
         right_on=None,
         axis=1,
-        left_index=False,
-        right_index=False,
-        sort=True,
+        left_index: bool = False,
+        right_index: bool = False,
+        sort: bool = True,
         suffixes=("_x", "_y"),
-        copy=True,
-        indicator=False,
+        copy: bool = True,
+        indicator: bool = False,
         validate=None,
     ):
-        left = validate_operand(left)
-        right = validate_operand(right)
-        self.left = self.orig_left = left
-        self.right = self.orig_right = right
+        _left = _validate_operand(left)
+        _right = _validate_operand(right)
+        self.left = self.orig_left = _validate_operand(_left)  # type: "DataFrame"
+        self.right = self.orig_right = _validate_operand(_right)  # type: "DataFrame"
         self.how = how
         self.axis = axis
 
@@ -571,7 +584,7 @@ class _MergeOperation:
         self.indicator = indicator
 
         if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator
+            self.indicator_name = self.indicator  # type: Optional[str]
         elif isinstance(self.indicator, bool):
             self.indicator_name = "_merge" if self.indicator else None
         else:
@@ -591,11 +604,11 @@ class _MergeOperation:
             )
 
         # warn user when merging between different levels
-        if left.columns.nlevels != right.columns.nlevels:
+        if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels can give an unintended "
                 "result ({left} levels on the left, {right} on the right)"
-            ).format(left=left.columns.nlevels, right=right.columns.nlevels)
+            ).format(left=_left.columns.nlevels, right=_right.columns.nlevels)
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
@@ -652,7 +665,9 @@ class _MergeOperation:
 
         return result
 
-    def _indicator_pre_merge(self, left, right):
+    def _indicator_pre_merge(
+        self, left: "DataFrame", right: "DataFrame"
+    ) -> Tuple["DataFrame", "DataFrame"]:
 
         columns = left.columns.union(right.columns)
 
@@ -872,7 +887,12 @@ class _MergeOperation:
         return join_index, left_indexer, right_indexer
 
     def _create_join_index(
-        self, index, other_index, indexer, other_indexer, how="left"
+        self,
+        index: Index,
+        other_index: Index,
+        indexer,
+        other_indexer,
+        how: str = "left",
     ):
         """
         Create a join index by rearranging one index to match another
@@ -1120,9 +1140,9 @@ class _MergeOperation:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
-            elif is_datetimelike(lk) and not is_datetimelike(rk):
+            elif needs_i8_conversion(lk) and not needs_i8_conversion(rk):
                 raise ValueError(msg)
-            elif not is_datetimelike(lk) and is_datetimelike(rk):
+            elif not needs_i8_conversion(lk) and needs_i8_conversion(rk):
                 raise ValueError(msg)
             elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
@@ -1205,7 +1225,7 @@ class _MergeOperation:
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
-    def _validate(self, validate):
+    def _validate(self, validate: str):
 
         # Check uniqueness of each
         if self.left_index:
@@ -1257,7 +1277,9 @@ class _MergeOperation:
             raise ValueError("Not a valid argument for validate")
 
 
-def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs):
+def _get_join_indexers(
+    left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
+):
     """
 
     Parameters
@@ -1301,7 +1323,12 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how="inner", **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
-    left, right, dropped_level_names, join_index, lindexer, rindexer
+    left: MultiIndex,
+    right: MultiIndex,
+    dropped_level_names,
+    join_index,
+    lindexer,
+    rindexer,
 ):
     """
     *this is an internal non-public method*
@@ -1339,7 +1366,7 @@ def _restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_mulitindex(index):
+    def _convert_to_mulitindex(index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1399,13 +1426,13 @@ class _OrderedMerge(_MergeOperation):
         on=None,
         left_on=None,
         right_on=None,
-        left_index=False,
-        right_index=False,
+        left_index: bool = False,
+        right_index: bool = False,
         axis=1,
         suffixes=("_x", "_y"),
-        copy=True,
+        copy: bool = True,
         fill_method=None,
-        how="outer",
+        how: str = "outer",
     ):
 
         self.fill_method = fill_method
@@ -1497,18 +1524,18 @@ class _AsOfMerge(_OrderedMerge):
         on=None,
         left_on=None,
         right_on=None,
-        left_index=False,
-        right_index=False,
+        left_index: bool = False,
+        right_index: bool = False,
         by=None,
         left_by=None,
         right_by=None,
         axis=1,
         suffixes=("_x", "_y"),
-        copy=True,
+        copy: bool = True,
         fill_method=None,
-        how="asof",
+        how: str = "asof",
         tolerance=None,
-        allow_exact_matches=True,
+        allow_exact_matches: bool = True,
         direction="backward",
     ):
 
@@ -1632,7 +1659,7 @@ class _AsOfMerge(_OrderedMerge):
                 )
             )
 
-            if is_datetimelike(lt):
+            if needs_i8_conversion(lt):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1687,13 +1714,13 @@ class _AsOfMerge(_OrderedMerge):
         msg_missings = "Merge keys contain null values on {side} side"
 
         if not Index(left_values).is_monotonic:
-            if isnull(left_values).any():
+            if isna(left_values).any():
                 raise ValueError(msg_missings.format(side="left"))
             else:
                 raise ValueError(msg_sorted.format(side="left"))
 
         if not Index(right_values).is_monotonic:
-            if isnull(right_values).any():
+            if isna(right_values).any():
                 raise ValueError(msg_missings.format(side="right"))
             else:
                 raise ValueError(msg_sorted.format(side="right"))
@@ -1746,13 +1773,15 @@ class _AsOfMerge(_OrderedMerge):
             return func(left_values, right_values, self.allow_exact_matches, tolerance)
 
 
-def _get_multiindex_indexer(join_keys, index, sort):
+def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
 
     # bind `sort` argument
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rcodes, lcodes, shape = map(list, zip(*map(fkeys, index.levels, join_keys)))
+    mapped = (fkeys(index.levels[n], join_keys[n]) for n in range(len(index.levels)))
+    zipped = zip(*mapped)
+    rcodes, lcodes, shape = [list(x) for x in zipped]
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
@@ -1780,7 +1809,7 @@ def _get_multiindex_indexer(join_keys, index, sort):
     return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 
 
-def _get_single_indexer(join_key, index, sort=False):
+def _get_single_indexer(join_key, index, sort: bool = False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
@@ -1790,7 +1819,7 @@ def _get_single_indexer(join_key, index, sort=False):
     return left_indexer, right_indexer
 
 
-def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
+def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool = False):
     if len(join_keys) > 1:
         if not (
             (isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels)
@@ -1904,7 +1933,7 @@ def _factorize_keys(lk, rk, sort=True):
     return llab, rlab, count
 
 
-def _sort_labels(uniques, left, right):
+def _sort_labels(uniques: np.ndarray, left, right):
     if not isinstance(uniques, np.ndarray):
         # tuplesafe
         uniques = Index(uniques).values
@@ -1912,14 +1941,14 @@ def _sort_labels(uniques, left, right):
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
 
 
-def _get_join_keys(llab, rlab, shape, sort):
+def _get_join_keys(llab, rlab, shape, sort: bool):
 
     # how many levels can be done without overflow
     pred = lambda i: not is_int64_overflow_possible(shape[:i])
@@ -1949,20 +1978,20 @@ def _get_join_keys(llab, rlab, shape, sort):
     return _get_join_keys(llab, rlab, shape, sort)
 
 
-def _should_fill(lname, rname):
+def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 
 
-def _any(x):
+def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def validate_operand(obj):
-    if isinstance(obj, DataFrame):
+def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+    if isinstance(obj, ABCDataFrame):
         return obj
-    elif isinstance(obj, Series):
+    elif isinstance(obj, ABCSeries):
         if obj.name is None:
             raise ValueError("Cannot merge a Series without a name")
         else:
@@ -1974,7 +2003,7 @@ def validate_operand(obj):
         )
 
 
-def _items_overlap_with_suffix(left, lsuffix, right, rsuffix):
+def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
     """
     If two indices overlap, add suffixes to overlapping entries.
 
