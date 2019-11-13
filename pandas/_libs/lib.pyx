@@ -58,9 +58,8 @@ from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period, C_NA
 )
-
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -161,6 +160,7 @@ def is_scalar(val: object) -> bool:
             or PyTime_Check(val)
             # We differ from numpy, which claims that None is not scalar;
             # see np.isscalar
+            or val is C_NA
             or val is None
             or isinstance(val, (Fraction, Number))
             or util.is_period_object(val)

@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.core.na_scalar import NA
+from pandas._libs.missing import NA
+
+from pandas.core.dtypes.common import is_scalar
+
+import pandas as pd
+import pandas.util.testing as tm
 
 
 def test_singleton():
@@ -106,3 +111,18 @@ def test_logical_xor():
 
 def test_logical_not():
     assert ~NA is NA
+
+
+def test_is_scalar():
+    assert is_scalar(NA) is True
+
+
+def test_isna():
+    assert pd.isna(NA) is True
+    assert pd.notna(NA) is False
+
+
+def test_series_isna():
+    s = pd.Series([1, NA], dtype=object)
+    expected = pd.Series([False, True])
+    tm.assert_series_equal(s.isna(), expected)
