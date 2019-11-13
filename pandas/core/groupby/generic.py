@@ -28,7 +28,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -62,7 +61,7 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
+    get_groupby,
 )
 from pandas.core.index import Index, MultiIndex, _all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -233,10 +232,6 @@ class SeriesGroupBy(GroupBy):
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -888,6 +883,11 @@ class DataFrameGroupBy(GroupBy):
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
                 result = self._aggregate_frame(func, *args, **kwargs)
+
+            elif self.axis == 1:
+                # _aggregate_multiple_funcs does not allow self.axis == 1
+                result = self._aggregate_frame(func)
+
             else:
 
                 # try to treat as if we are passing a list
@@ -901,17 +901,11 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 except NotImplementedError as err:
-                    if "axis other than 0 is not supported" in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        pass
-                    elif "decimal does not support skipna=True" in str(err):
+                    if "decimal does not support skipna=True" in str(err):
                         # FIXME: kludge for DecimalArray tests
                         pass
                     else:
                         raise
-                    # FIXME: this is raised in a bunch of
-                    #  test_whitelist.test_regression_whitelist_methods tests,
-                    #  can be avoided
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
@@ -997,7 +991,7 @@ class DataFrameGroupBy(GroupBy):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = groupby(obj, self.grouper)
+                s = get_groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
@@ -1805,9 +1799,6 @@ def _normalize_keyword_aggregation(kwargs):
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to

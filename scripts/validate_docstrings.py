@@ -250,7 +250,7 @@ class Docstring:
         self.clean_doc = pydoc.getdoc(obj)
         self.doc = NumpyDocString(self.clean_doc)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.raw_doc)
 
     @staticmethod

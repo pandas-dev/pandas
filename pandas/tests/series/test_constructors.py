@@ -7,7 +7,6 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
@@ -1048,10 +1047,7 @@ class TestSeriesConstructors:
         # order by value
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
-        if PY36:
-            expected = Series([1, 0, 2], index=list("bac"))
-        else:
-            expected = Series([0, 1, 2], index=list("abc"))
+        expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float("nan")])

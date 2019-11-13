@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
+from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -89,11 +90,15 @@ class BaseGrouper:
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self.groupings = groupings  # type: Sequence[grouper.Grouping]
+        self._groupings = list(groupings)  # type: List[grouper.Grouping]
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+
+    @property
+    def groupings(self) -> List["grouper.Grouping"]:
+        return self._groupings
 
     @property
     def shape(self):
@@ -106,7 +111,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -120,7 +125,7 @@ class BaseGrouper:
         for key, (i, group) in zip(keys, splitter):
             yield key, group
 
-    def _get_splitter(self, data, axis=0):
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -142,13 +147,13 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data, axis: int = 0):
+    def apply(self, f, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata = splitter._get_sorted_data()
+        sdata = splitter._get_sorted_data()  # type: FrameOrSeries
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
@@ -157,28 +162,27 @@ class BaseGrouper:
 
         elif (
             com.get_callable_name(f) not in base.plotting_methods
-            and hasattr(splitter, "fast_apply")
+            and isinstance(splitter, FrameSplitter)
             and axis == 0
-            # with MultiIndex, apply_frame_axis0 would raise InvalidApply
-            # TODO: can we make this check prettier?
-            and not sdata.index._has_complex_internals
+            # apply_frame_axis0 doesn't allow MultiIndex
+            and not isinstance(sdata.index, MultiIndex)
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
 
-                # If the fast apply path could be used we can return here.
-                # Otherwise we need to fall back to the slow implementation.
-                if len(result_values) == len(group_keys):
-                    return group_keys, result_values, mutated
-
             except libreduction.InvalidApply as err:
-                # Cannot fast apply on MultiIndex (_has_complex_internals).
-                # This Exception is also raised if `f` triggers an exception
+                # This Exception is raised if `f` triggers an exception
                 # but it is preferable to raise the exception in Python.
                 if "Let this error raise above us" not in str(err):
                     # TODO: can we infer anything about whether this is
                     #  worth-retrying in pure-python?
                     raise
+
+            else:
+                # If the fast apply path could be used we can return here.
+                # Otherwise we need to fall back to the slow implementation.
+                if len(result_values) == len(group_keys):
+                    return group_keys, result_values, mutated
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
@@ -229,8 +233,7 @@ class BaseGrouper:
 
     def size(self) -> Series:
         """
-        Compute group sizes
-
+        Compute group sizes.
         """
         ids, _, ngroup = self.group_info
         ids = ensure_platform_int(ids)
@@ -292,7 +295,7 @@ class BaseGrouper:
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
@@ -601,33 +604,40 @@ class BaseGrouper:
         return result
 
     def agg_series(self, obj: Series, func):
-        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif obj.index._has_complex_internals:
+        elif isinstance(obj.index, MultiIndex):
             # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "No result." in str(err):
-                # raised in libreduction
-                pass
-            elif "Function does not reduce" in str(err):
+            if "Function does not reduce" in str(err):
                 # raised in libreduction
                 pass
             else:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj, func):
-        # At this point we have already checked that obj.index is not a MultiIndex
-        #  and that obj is backed by an ndarray, not ExtensionArray
+    def _aggregate_series_fast(self, obj: Series, func):
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - len(obj) > 0
+        #  - ngroups != 0
         func = self._is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
@@ -641,7 +651,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj, func):
+    def _aggregate_series_pure_python(self, obj: Series, func):
 
         group_index, _, ngroups = self.group_info
 
@@ -660,11 +670,9 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        if result is not None:
-            # if splitter is empty, result can be None, in which case
-            #  maybe_convert_objects would raise TypeError
-            result = lib.maybe_convert_objects(result, try_float=0)
-            # TODO: try_cast back to EA?
+        assert result is not None
+        result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
 
         return result, counts
 
@@ -700,7 +708,12 @@ class BinGrouper(BaseGrouper):
     """
 
     def __init__(
-        self, bins, binlabels, filter_empty=False, mutated=False, indexer=None
+        self,
+        bins,
+        binlabels,
+        filter_empty: bool = False,
+        mutated: bool = False,
+        indexer=None,
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
@@ -734,7 +747,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: NDFrame, axis: int = 0):
+    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -806,15 +819,16 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels.name]
 
     @property
-    def groupings(self):
-        from pandas.core.groupby.grouper import Grouping
-
+    def groupings(self) -> "List[grouper.Grouping]":
         return [
-            Grouping(lvl, lvl, in_axis=False, level=None, name=name)
+            grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
         ]
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None
@@ -848,7 +862,7 @@ def _is_indexed_like(obj, axes) -> bool:
 
 
 class DataSplitter:
-    def __init__(self, data, labels, ngroups, axis: int = 0):
+    def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
         self.ngroups = ngroups
@@ -879,15 +893,15 @@ class DataSplitter:
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self):
+    def _get_sorted_data(self) -> FrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         return sdata._get_values(slice_obj)
 
 
@@ -899,14 +913,14 @@ class FrameSplitter(DataSplitter):
         sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
-    def _chop(self, sdata, slice_obj: slice):
+    def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data: NDFrame, *args, **kwargs):
+def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
     if isinstance(data, Series):
         klass = SeriesSplitter  # type: Type[DataSplitter]
     else:
