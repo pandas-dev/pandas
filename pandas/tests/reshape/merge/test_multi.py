@@ -211,7 +211,7 @@ class TestMergeMulti:
                 "lev1": list("AAABBB"),
                 "lev2": [1, 2, 3, 1, 2, 3],
                 "col": [0] * 6,
-                "Amount": np.arange(6),
+                "Amount": range(6),
             }
         )
         tm.assert_frame_equal(result, expected)
