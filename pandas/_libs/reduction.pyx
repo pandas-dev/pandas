@@ -224,6 +224,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
     def __init__(self, object series, object f, object bins, object dummy):
 
         assert dummy is not None  # always obj[:0]
+        assert len(bins) > 0  # otherwise we get IndexError in get_result
 
         self.bins = bins
         self.f = f
