@@ -10,16 +10,14 @@ from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as 
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-
 from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_float_dtype,
-    is_complex_dtype,
     is_bool_dtype,
+    is_complex_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_object_dtype,
 )
-from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
 from pandas import (
@@ -32,6 +30,7 @@ from pandas import (
     Timestamp,
     compat,
 )
+from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
