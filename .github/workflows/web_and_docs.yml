@@ -8,38 +8,10 @@ on:
 
 env:
   ENV_FILE: environment.yml
+  # TODO: remove export PATH=... in each step once this works
   # PATH: $HOME/miniconda3/bin:$PATH
 
 jobs:
-  display_error:
-    name: Show error
-    runs-on: ubuntu-latest
-    steps:
-      - name: Show errors
-        run: |
-          echo "Normal output"
-          echo "##[error]This is the error, should be highlighted"
-          echo "More normal output"
-          exit 1
-
-  write_comment:
-    name: Comment
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Install dependencies
-        run: pip install requests
-
-      - name: Write the comment
-        shell: python
-        run: |
-          import os
-          url = 'https://api.github.com/repos/{repo}/issues/comments/{pr_id}'
-          url = url.format(repo=os.environ['GITHUB_REPOSITORY'], pr_id=11)
-          data = {'body': 'Comment generated from GitHub actions'}
-          resp = requests.post(url, data=data)
-          resp.raise_for_status()
-
   checks:
     name: Checks
     runs-on: ubuntu-latest
@@ -55,7 +27,6 @@ jobs:
     - name: Setup environment and build pandas
       run: |
         export PATH=$HOME/miniconda3/bin:$PATH
-        # sudo apt-get install -y libc6-dev-i386
         ci/setup_env.sh
       if: true
 
@@ -142,7 +113,6 @@ jobs:
     - name: Setup environment and build pandas
       run: |
         export PATH=$HOME/miniconda3/bin:$PATH
-        # sudo apt-get install -y libc6-dev-i386
         ci/setup_env.sh
 
     - name: Build website
