@@ -725,7 +725,7 @@ class HDFStore:
         columns=None,
         iterator=False,
         chunksize=None,
-        auto_close=False,
+        auto_close: bool = False,
         **kwargs,
     ):
         """
@@ -830,10 +830,11 @@ class HDFStore:
         stop=None,
         iterator=False,
         chunksize=None,
-        auto_close=False,
+        auto_close: bool = False,
         **kwargs,
     ):
-        """ Retrieve pandas objects from multiple tables
+        """
+        Retrieve pandas objects from multiple tables.
 
         Parameters
         ----------
@@ -845,6 +846,8 @@ class HDFStore:
         stop  : integer (defaults to None), row number to stop selection
         iterator : boolean, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
+        auto_close : bool, default False
+            Should automatically close the store when finished.
 
         Raises
         ------
@@ -1557,12 +1560,14 @@ class TableIterator:
         nrows : the rows to iterate on
         start : the passed start value (default is None)
         stop  : the passed stop value (default is None)
-        iterator : boolean, whether to use the default iterator
+        iterator : bool, default False
+            Whether to use the default iterator.
         chunksize : the passed chunking value (default is 50000)
         auto_close : boolean, automatically close the store at the end of
             iteration, default is False
         kwargs : the passed kwargs
         """
+    chunksize: Optional[int]
 
     def __init__(
         self,
@@ -1573,7 +1578,7 @@ class TableIterator:
         nrows,
         start=None,
         stop=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close=False,
     ):
