@@ -495,6 +495,107 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "agg_col1, agg_col2, agg_col3, agg_result1, agg_result2, agg_result3",
+    [
+        (
+            (("y", "A"), "max"),
+            (("y", "A"), np.min),
+            (("y", "B"), "mean"),
+            [1, 3],
+            [0, 2],
+            [5.5, 7.5],
+        ),
+        (
+            (("y", "A"), lambda x: max(x)),
+            (("y", "A"), lambda x: 1),
+            (("y", "B"), "mean"),
+            [1, 3],
+            [1, 1],
+            [5.5, 7.5],
+        ),
+        (
+            pd.NamedAgg(("y", "A"), "max"),
+            pd.NamedAgg(("y", "B"), np.mean),
+            pd.NamedAgg(("y", "A"), lambda x: 1),
+            [1, 3],
+            [5.5, 7.5],
+            [1, 1],
+        ),
+    ],
+)
+def test_agg_relabel_multiindex_column(
+    agg_col1, agg_col2, agg_col3, agg_result1, agg_result2, agg_result3
+):
+    # GH 29422, add tests for multiindex column cases
+    df = DataFrame(
+        {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+    )
+    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+    idx = pd.Index(["a", "b"], name=("x", "group"))
+
+    result = df.groupby(("x", "group")).agg(a_max=(("y", "A"), "max"))
+    expected = DataFrame({"a_max": [1, 3]}, index=idx)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(("x", "group")).agg(
+        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+    )
+    expected = DataFrame(
+        {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_multiindex_raises_not_exist():
+    # GH 29422, add test for raises senario when aggregate column does not exist
+    df = DataFrame(
+        {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+    )
+    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+
+    with pytest.raises(KeyError, match="does not exist"):
+        df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
+
+
+def test_agg_relabel_multiindex_raises_duplicate():
+    # GH29422, add test for raises senario when getting duplicates
+    df = DataFrame(
+        {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
+    )
+    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+
+    with pytest.raises(SpecificationError, match="Function names"):
+        df.groupby(("x", "group")).agg(a=(("y", "A"), "min"), b=(("y", "A"), "min"))
+
+
+def myfunc(s):
+    return np.percentile(s, q=0.90)
+
+
+@pytest.mark.parametrize("func", [lambda s: np.percentile(s, q=0.90), myfunc])
+def test_lambda_named_agg(func):
+    # see gh-28467
+    animals = DataFrame(
+        {
+            "kind": ["cat", "dog", "cat", "dog"],
+            "height": [9.1, 6.0, 9.5, 34.0],
+            "weight": [7.9, 7.5, 9.9, 198.0],
+        }
+    )
+
+    result = animals.groupby("kind").agg(
+        mean_height=("height", "mean"), perc90=("height", func)
+    )
+    expected = DataFrame(
+        [[9.3, 9.1036], [20.0, 6.252]],
+        columns=["mean_height", "perc90"],
+        index=Index(["cat", "dog"], name="kind"),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
 class TestLambdaMangling:
     def test_maybe_mangle_lambdas_passthrough(self):
         assert _maybe_mangle_lambdas("mean") == "mean"
@@ -571,10 +672,7 @@ class TestLambdaMangling:
             }
         )
 
-        # sort for 35 and earlier
         columns = ["height_sqr_min", "height_max", "weight_max"]
-        if compat.PY35:
-            columns = ["height_max", "height_sqr_min", "weight_max"]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],
@@ -613,7 +711,6 @@ class TestLambdaMangling:
                 "weight": [7.9, 7.5, 9.9, 198.0],
             }
         )
-        # sort for 35 and earlier
         columns = [
             "height_sqr_min",
             "height_max",
@@ -621,14 +718,6 @@ class TestLambdaMangling:
             "height_max_2",
             "weight_min",
         ]
-        if compat.PY35:
-            columns = [
-                "height_max",
-                "height_max_2",
-                "height_sqr_min",
-                "weight_max",
-                "weight_min",
-            ]
         expected = pd.DataFrame(
             {
                 "height_sqr_min": [82.81, 36.00],

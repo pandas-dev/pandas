@@ -6,6 +6,7 @@ whatsnew,whatsnew/index
 release,whatsnew/index
 
 # getting started
+install,getting_started/install
 10min,getting_started/10min
 basics,getting_started/basics
 comparison_with_r,getting_started/comparison/comparison_with_r

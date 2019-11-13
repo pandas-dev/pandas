@@ -113,16 +113,15 @@ class TestCategoricalAnalytics:
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        msg = r"Value\(s\) to be inserted must be in categories"
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match="cucumber"):
             cat.searchsorted("cucumber")
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match="cucumber"):
             ser.searchsorted("cucumber")
 
         # Searching for multiple values one of each is not from the Categorical
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match="cucumber"):
             cat.searchsorted(["bread", "cucumber"])
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match="cucumber"):
             ser.searchsorted(["bread", "cucumber"])
 
     def test_unique(self):

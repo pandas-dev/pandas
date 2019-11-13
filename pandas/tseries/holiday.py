@@ -183,7 +183,7 @@ class Holiday:
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         info = ""
         if self.year is not None:
             info += "year={year}, ".format(year=self.year)
@@ -346,7 +346,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
     rules = []  # type: List[Holiday]
     start_date = Timestamp(datetime(1970, 1, 1))
-    end_date = Timestamp(datetime(2030, 12, 31))
+    end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
     def __init__(self, name=None, rules=None):

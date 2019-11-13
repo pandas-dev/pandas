@@ -45,7 +45,7 @@ class _IntegerDtype(ExtensionDtype):
     type = None  # type: Type
     na_value = np.nan
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
         return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
 
@@ -95,7 +95,7 @@ def integer_array(values, dtype=None, copy=False):
     values : 1D list-like
     dtype : dtype, optional
         dtype to coerce
-    copy : boolean, default False
+    copy : bool, default False
 
     Returns
     -------
@@ -140,8 +140,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     ----------
     values : 1D list-like
     dtype : integer dtype
-    mask : boolean 1D array, optional
-    copy : boolean, default False
+    mask : bool 1D array, optional
+    copy : bool, default False
         if True, copy the input
 
     Returns
@@ -469,7 +469,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property
@@ -542,7 +542,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns

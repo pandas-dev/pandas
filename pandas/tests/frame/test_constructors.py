@@ -50,13 +50,13 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((x for x in [])),
+            lambda: DataFrame((_ for _ in [])),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
-            lambda: DataFrame(data=(x for x in [])),
+            lambda: DataFrame(data=(_ for _ in [])),
             lambda: DataFrame(data=range(0)),
         ],
     )
@@ -72,7 +72,7 @@ class TestDataFrameConstructors:
         [
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
-            ([(x for x in [])], RangeIndex(1), RangeIndex(0)),
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
         ],
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
@@ -423,6 +423,25 @@ class TestDataFrameConstructors:
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
         assert pd.isna(df).values.ravel().all()
+
+    def test_constructor_2d_index(self):
+        # GH 25416
+        # handling of 2d index in construction
+        df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.Int64Index([1, 2], dtype="int64"),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
@@ -1404,6 +1423,23 @@ class TestDataFrameConstructors:
             DataFrame.from_dict(
                 dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
             )
+
+    @pytest.mark.parametrize(
+        "data_dict, keys",
+        [
+            ([{("a",): 1}, {("a",): 2}], [("a",)]),
+            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)]),
+            ([{("a", "b"): 1}], [("a", "b")]),
+        ],
+    )
+    def test_constructor_from_dict_tuples(self, data_dict, keys):
+        # GH 16769
+        df = DataFrame.from_dict(data_dict)
+
+        result = df.columns
+        expected = Index(keys, dtype="object", tupleize_cols=False)
+
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=["a", "b", "c"], name="x")

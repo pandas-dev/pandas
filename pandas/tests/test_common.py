@@ -8,7 +8,8 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.core import common as com, ops
+from pandas.core import ops
+import pandas.core.common as com
 
 
 def test_get_callable_name():
