@@ -51,7 +51,7 @@ class RangeIndex(Int64Index):
     stop : int (default: 0)
     step : int (default: 1)
     name : object, optional
-        Name to be stored in the index
+        Name to be stored in the index.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
@@ -353,11 +353,11 @@ class RangeIndex(Int64Index):
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return False
 
     def __contains__(self, key: Union[int, np.integer]) -> bool:
@@ -380,14 +380,17 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs["get_indexer"])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        if not (method is None and tolerance is None and is_list_like(target)):
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+        if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
+            return super().get_indexer(
+                target, method=method, tolerance=tolerance, limit=limit
+            )
 
         if self.step > 0:
             start, stop, step = self.start, self.stop, self.step
         else:
-            # Work on reversed range for simplicity:
-            start, stop, step = (self.stop - self.step, self.start + 1, -self.step)
+            # GH 28678: work on reversed range for simplicity
+            reverse = self._range[::-1]
+            start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
         if not (is_integer_dtype(target_array) and target_array.ndim == 1):
@@ -695,7 +698,7 @@ class RangeIndex(Int64Index):
         # In this case return an empty range index.
         return RangeIndex(0, 0).rename(name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         return the length of the RangeIndex
         """

@@ -119,7 +119,7 @@ def _convert_expression(expr):
     """
     Convert an object to an expression.
 
-    Thus function converts an object to an expression (a unicode string) and
+    This function converts an object to an expression (a unicode string) and
     checks to make sure it isn't empty after conversion. This is used to
     convert operators to their string representation for recursive calls to
     :func:`~pandas.eval`.
@@ -198,14 +198,14 @@ def eval(
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
         <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
-    parser : string, default 'pandas', {'pandas', 'python'}
+    parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
         Python. Alternatively, you can parse an expression using the
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : string or None, default 'numexpr', {'python', 'numexpr'}
+    engine : {'python', 'numexpr'}, default 'numexpr'
 
         The engine used to evaluate the expression. Supported engines are
 
@@ -219,7 +219,7 @@ def eval(
         More backends may be available in the future.
 
     truediv : bool, optional
-        Whether to use true division, like in Python >= 3
+        Whether to use true division, like in Python >= 3.
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional

@@ -1,4 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
+from typing import Dict, List, Tuple, Type
 
 import numpy as np
 import pytest
@@ -30,6 +31,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthBegin,
     BMonthEnd,
@@ -89,10 +91,11 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
+_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
-    _offset = None
+    _offset = None  # type: Type[DateOffset]
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -669,7 +672,7 @@ class TestBusinessDay(Base):
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -740,7 +743,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             BDay(),
@@ -911,7 +914,7 @@ class TestBusinessHour(Base):
             BusinessHour(start=start, end=end)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2277,7 +2280,7 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start="14:00:05")
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2555,7 +2558,7 @@ class TestCustomBusinessDay(Base):
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2628,7 +2631,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CDay(),
@@ -2826,7 +2829,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2875,7 +2878,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -2975,7 +2978,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -3024,7 +3027,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthBegin(),

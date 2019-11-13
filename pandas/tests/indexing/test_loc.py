@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestLoc(Base):
@@ -711,6 +711,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = Series(df.loc[:, "expected"], name=unit)
         tm.assert_series_equal(df.loc[:, unit], expected)
 
+    def test_loc_modify_datetime(self):
+        # see gh-28837
+        df = DataFrame.from_dict(
+            {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
+        )
+
+        df["date_dt"] = pd.to_datetime(df["date"], unit="ms", cache=True)
+
+        df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
+        df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
+
+        expected = DataFrame(
+            [
+                [1485264372711, "2017-01-24 13:26:12.711", "2017-01-24 13:26:12.711"],
+                [1485265925110, "2017-01-24 13:52:05.110", "2017-01-24 13:52:05.110"],
+                [1540215845888, "2018-10-22 13:44:05.888", "2018-10-22 13:44:05.888"],
+                [1540282121025, "2018-10-23 08:08:41.025", "2018-10-23 08:08:41.025"],
+            ],
+            columns=["date", "date_dt", "date_dt_cp"],
+        )
+
+        columns = ["date_dt", "date_dt_cp"]
+        expected[columns] = expected[columns].apply(pd.to_datetime)
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_frame(self):
         df = self.frame_labels
 
@@ -981,9 +1007,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(5, 2)
+        df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
             df.loc[:, []], df.iloc[:, :0], check_index_type=True, check_column_type=True

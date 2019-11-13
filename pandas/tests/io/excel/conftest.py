@@ -7,6 +7,9 @@ from pandas.io.parsers import read_csv
 
 @pytest.fixture
 def frame(float_frame):
+    """
+    Returns the first ten items in fixture "float_frame".
+    """
     return float_frame[:10]
 
 
@@ -21,11 +24,12 @@ def merge_cells(request):
 
 
 @pytest.fixture
-def df_ref():
+def df_ref(datapath):
     """
     Obtain the reference data from read_csv with the Python engine.
     """
-    df_ref = read_csv("test1.csv", index_col=0, parse_dates=True, engine="python")
+    filepath = datapath("io", "data", "csv", "test1.csv")
+    df_ref = read_csv(filepath, index_col=0, parse_dates=True, engine="python")
     return df_ref
 
 

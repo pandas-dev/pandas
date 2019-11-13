@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 import gzip
 import os
-import re
 from shutil import rmtree
 import string
 import tempfile
@@ -23,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -294,7 +293,7 @@ def assert_almost_equal(
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default 'equiv'
+    check_dtype : bool or {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -585,7 +584,7 @@ def assert_index_equal(
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -594,14 +593,14 @@ def assert_index_equal(
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     __tracebackhide__ = True
 
@@ -622,8 +621,8 @@ def assert_index_equal(
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.codes[level]
-        filled = take_1d(unique.values, labels, fill_value=unique._na_value)
+        level_codes = index.codes[level]
+        filled = take_1d(unique.values, level_codes, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
@@ -860,7 +859,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool / string {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1089,7 +1088,7 @@ def assert_series_equal(
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
     check_series_type : bool, default True
@@ -1156,7 +1155,9 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal("dtype", left, right)
+            assert_attr_equal(
+                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
+            )
 
     if check_exact:
         assert_numpy_array_equal(
@@ -1175,7 +1176,7 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to " "{right}."
+                    "[datetimelike_compat=True] {left} is not equal to {right}."
                 ).format(left=left.values, right=right.values)
                 raise AssertionError(msg)
         else:
@@ -1251,10 +1252,10 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : bool or {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
@@ -1272,10 +1273,7 @@ def assert_frame_equal(
         check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
-        and `column` attributes of the DataFrame is identical, i.e.
-
-        * left.index.names == right.index.names
-        * left.columns.names == right.columns.names
+        and `column` attributes of the DataFrame is identical.
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1315,8 +1313,9 @@ def assert_frame_equal(
 
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
-    AssertionError: Attributes are different
     ...
+    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
@@ -1431,6 +1430,9 @@ def assert_equal(left, right, **kwargs):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
+    elif isinstance(left, str):
+        assert kwargs == {}
+        return left == right
     else:
         raise NotImplementedError(type(left))
 
@@ -1597,7 +1599,9 @@ def makeUnicodeIndex(k=10, name=None):
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x, k), name=name, **kwargs)
+    return CategoricalIndex(
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
+    )
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
@@ -1649,6 +1653,87 @@ def makePeriodIndex(k=10, name=None, **kwargs):
 
 def makeMultiIndex(k=10, names=None, **kwargs):
     return MultiIndex.from_product((("foo", "bar"), (1, 2)), names=names, **kwargs)
+
+
+_names = [
+    "Alice",
+    "Bob",
+    "Charlie",
+    "Dan",
+    "Edith",
+    "Frank",
+    "George",
+    "Hannah",
+    "Ingrid",
+    "Jerry",
+    "Kevin",
+    "Laura",
+    "Michael",
+    "Norbert",
+    "Oliver",
+    "Patricia",
+    "Quinn",
+    "Ray",
+    "Sarah",
+    "Tim",
+    "Ursula",
+    "Victor",
+    "Wendy",
+    "Xavier",
+    "Yvonne",
+    "Zelda",
+]
+
+
+def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
+    """
+    Make a DataFrame with a DatetimeIndex
+
+    Parameters
+    ----------
+    start : str or Timestamp, default "2000-01-01"
+        The start of the index. Passed to date_range with `freq`.
+    end : str or Timestamp, default "2000-12-31"
+        The end of the index. Passed to date_range with `freq`.
+    freq : str or Freq
+        The frequency to use for the DatetimeIndex
+    seed : int, optional
+        The random state seed.
+
+        * name : object dtype with string names
+        * id : int dtype with
+        * x, y : float dtype
+
+    Examples
+    --------
+    >>> _make_timeseries()
+                  id    name         x         y
+    timestamp
+    2000-01-01   982   Frank  0.031261  0.986727
+    2000-01-02  1025   Edith -0.086358 -0.032920
+    2000-01-03   982   Edith  0.473177  0.298654
+    2000-01-04  1009   Sarah  0.534344 -0.750377
+    2000-01-05   963   Zelda -0.271573  0.054424
+    ...          ...     ...       ...       ...
+    2000-12-27   980  Ingrid -0.132333 -0.422195
+    2000-12-28   972   Frank -0.376007 -0.298687
+    2000-12-29  1009  Ursula -0.865047 -0.503133
+    2000-12-30  1000  Hannah -0.063757 -0.507336
+    2000-12-31   972     Tim -0.869120  0.531685
+    """
+    index = pd.date_range(start=start, end=end, freq=freq, name="timestamp")
+    n = len(index)
+    state = np.random.RandomState(seed)
+    columns = {
+        "name": state.choice(_names, size=n),
+        "id": state.poisson(1000, size=n),
+        "x": state.rand(n) * 2 - 1,
+        "y": state.rand(n) * 2 - 1,
+    }
+    df = pd.DataFrame(columns, index=index, columns=sorted(columns))
+    if df.index[-1] == end:
+        df = df.iloc[:-1]
+    return df
 
 
 def all_index_generator(k=10):
@@ -2279,26 +2364,26 @@ def network(
                 skip()
         try:
             return t(*args, **kwargs)
-        except Exception as e:
-            errno = getattr(e, "errno", None)
+        except Exception as err:
+            errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(e.reason, "errno", None)
+                errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
                 skip(
                     "Skipping test due to known errno"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
-            e_str = str(e)
+            e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
                     "Skipping test because exception "
-                    "message is known and error {error}".format(error=e)
+                    "message is known and error {error}".format(error=err)
                 )
 
-            if not isinstance(e, error_classes):
+            if not isinstance(err, error_classes):
                 raise
 
             if raise_on_error or can_connect(url, error_classes):
@@ -2306,150 +2391,13 @@ def network(
             else:
                 skip(
                     "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=e)
+                    " and error {error}".format(error=err)
                 )
 
     return wrapper
 
 
 with_connectivity_check = network
-
-
-def assert_raises_regex(_exception, _regexp, _callable=None, *args, **kwargs):
-    r"""
-    Check that the specified Exception is raised and that the error message
-    matches a given regular expression pattern. This may be a regular
-    expression object or a string containing a regular expression suitable
-    for use by `re.search()`. This is a port of the `assertRaisesRegexp`
-    function from unittest in Python 2.7.
-
-    .. deprecated:: 0.24.0
-        Use `pytest.raises` instead.
-
-    Examples
-    --------
-    >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
-    >>> import re
-    >>> assert_raises_regex(ValueError, re.compile('literal'), int, 'XYZ')
-
-    If an exception of a different type is raised, it bubbles up.
-
-    >>> assert_raises_regex(TypeError, 'literal', int, 'XYZ')
-    Traceback (most recent call last):
-        ...
-    ValueError: invalid literal for int() with base 10: 'XYZ'
-    >>> dct = dict()
-    >>> assert_raises_regex(KeyError, 'pear', dct.__getitem__, 'apple')
-    Traceback (most recent call last):
-        ...
-    AssertionError: "pear" does not match "'apple'"
-
-    You can also use this in a with statement.
-
-    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
-    ...     1 + {}
-    >>> with assert_raises_regex(TypeError, 'banana'):
-    ...     'apple'[0] = 'b'
-    Traceback (most recent call last):
-        ...
-    AssertionError: "banana" does not match "'str' object does not support \
-item assignment"
-    """
-    warnings.warn(
-        (
-            "assert_raises_regex has been deprecated and will "
-            "be removed in the next release. Please use "
-            "`pytest.raises` instead."
-        ),
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
-    if _callable is not None:
-        with manager:
-            _callable(*args, **kwargs)
-    else:
-        return manager
-
-
-class _AssertRaisesContextmanager:
-    """
-    Context manager behind `assert_raises_regex`.
-    """
-
-    def __init__(self, exception, regexp=None):
-        """
-        Initialize an _AssertRaisesContextManager instance.
-
-        Parameters
-        ----------
-        exception : class
-            The expected Exception class.
-        regexp : str, default None
-            The regex to compare against the Exception message.
-        """
-
-        self.exception = exception
-
-        if regexp is not None and not hasattr(regexp, "search"):
-            regexp = re.compile(regexp, re.DOTALL)
-
-        self.regexp = regexp
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, trace_back):
-        expected = self.exception
-
-        if not exc_type:
-            exp_name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{name} not raised.".format(name=exp_name))
-
-        return self.exception_matches(exc_type, exc_value, trace_back)
-
-    def exception_matches(self, exc_type, exc_value, trace_back):
-        """
-        Check that the Exception raised matches the expected Exception
-        and expected error message regular expression.
-
-        Parameters
-        ----------
-        exc_type : class
-            The type of Exception raised.
-        exc_value : Exception
-            The instance of `exc_type` raised.
-        trace_back : stack trace object
-            The traceback object associated with `exc_value`.
-
-        Returns
-        -------
-        is_matched : bool
-            Whether or not the Exception raised matches the expected
-            Exception class and expected error message regular expression.
-
-        Raises
-        ------
-        AssertionError : The error message provided does not match
-                         the expected error message regular expression.
-        """
-
-        if issubclass(exc_type, self.exception):
-            if self.regexp is not None:
-                val = str(exc_value)
-
-                if not self.regexp.search(val):
-                    msg = '"{pat}" does not match "{val}"'.format(
-                        pat=self.regexp.pattern, val=val
-                    )
-                    e = AssertionError(msg)
-                    raise_with_traceback(e, trace_back)
-
-            return True
-        else:
-            # Failed, so allow Exception to bubble up.
-            return False
 
 
 @contextmanager
