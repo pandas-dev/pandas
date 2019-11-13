@@ -324,7 +324,7 @@ class Timestamp(_Timestamp):
 
         Function is not implemented. Use pd.to_datetime().
         """
-        raise NotImplementedError("Timestamp.strptime() is not implemented."
+        raise NotImplementedError("Timestamp.strptime() is not implmented."
                                   "Use to_datetime() to parse date strings.")
 
     @classmethod
@@ -604,7 +604,7 @@ timedelta}, default 'raise'
         """
         return self.weekday()
 
-    def day_name(self, locale=None) -> str:
+    def day_name(self, locale=None):
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -621,7 +621,7 @@ timedelta}, default 'raise'
         """
         return self._get_date_name_field('day_name', locale)
 
-    def month_name(self, locale=None) -> str:
+    def month_name(self, locale=None):
         """
         Return the month name of the Timestamp with specified locale.
 
@@ -639,7 +639,7 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self) -> str:
+    def weekday_name(self):
         """
         .. deprecated:: 0.23.0
             Use ``Timestamp.day_name()`` instead
@@ -689,7 +689,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self) -> bool:
+    def is_month_start(self):
         """
         Return True if date is first day of month.
         """
@@ -699,7 +699,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self) -> bool:
+    def is_month_end(self):
         """
         Return True if date is last day of month.
         """
@@ -709,7 +709,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self) -> bool:
+    def is_quarter_start(self):
         """
         Return True if date is first day of the quarter.
         """
@@ -719,7 +719,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self) -> bool:
+    def is_quarter_end(self):
         """
         Return True if date is last day of the quarter.
         """
@@ -729,7 +729,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self) -> bool:
+    def is_year_start(self):
         """
         Return True if date is first day of the year.
         """
@@ -739,7 +739,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self) -> bool:
+    def is_year_end(self):
         """
         Return True if date is last day of the year.
         """
@@ -749,7 +749,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self) -> bool:
+    def is_leap_year(self):
         """
         Return True if year is a leap year.
         """
@@ -992,7 +992,7 @@ default 'raise'
 
         return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
 
-    def isoformat(self, sep='T') -> str:
+    def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
         if self.nanosecond == 0:
             return base
@@ -1009,7 +1009,7 @@ default 'raise'
 
         return base1 + base2
 
-    def _has_time_component(self) -> bool:
+    def _has_time_component(self):
         """
         Returns if the Timestamp has a time component
         in addition to the date part

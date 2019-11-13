@@ -1738,7 +1738,7 @@ cdef class _Period:
         return Period(ordinal=ordinal, freq=freq)
 
     @property
-    def start_time(self) -> Timestamp:
+    def start_time(self):
         """
         Get the Timestamp for the start of the period.
 
@@ -1768,13 +1768,13 @@ cdef class _Period:
         return self.to_timestamp(how='S')
 
     @property
-    def end_time(self) -> Timestamp:
+    def end_time(self):
         # freq.n can't be negative or 0
         # ordinal = (self + self.freq.n).start_time.value - 1
         ordinal = (self + self.freq).start_time.value - 1
         return Timestamp(ordinal)
 
-    def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
+    def to_timestamp(self, freq=None, how='start', tz=None):
         """
         Return the Timestamp representation of the Period.
 
@@ -2204,7 +2204,7 @@ cdef class _Period:
         return self.days_in_month
 
     @property
-    def is_leap_year(self) -> bool:
+    def is_leap_year(self):
         return bool(is_leapyear(self.year))
 
     @classmethod
@@ -2237,8 +2237,8 @@ cdef class _Period:
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt) -> str:
-        r"""
+    def strftime(self, fmt):
+        """
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same
@@ -2416,8 +2416,7 @@ class Period(_Period):
         # ('T', 5) but may be passed in as a string like '5T'
 
         # ordinal is the period offset from the gregorian proleptic epoch
-        cdef:
-            _Period self
+        cdef _Period self
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)

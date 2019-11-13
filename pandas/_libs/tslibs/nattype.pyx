@@ -230,16 +230,16 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     @property
-    def asm8(self) -> np.datetime64:
+    def asm8(self):
         return np.datetime64(NPY_NAT, 'ns')
 
-    def to_datetime64(self) -> np.datetime64:
+    def to_datetime64(self):
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
         return np.datetime64('NaT', 'ns')
 
-    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+    def to_numpy(self, dtype=None, copy=False):
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -265,7 +265,7 @@ cdef class _NaT(datetime):
     def __str__(self) -> str:
         return 'NaT'
 
-    def isoformat(self, sep='T') -> str:
+    def isoformat(self, sep='T'):
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return 'NaT'
 
@@ -286,31 +286,31 @@ cdef class _NaT(datetime):
         return np.nan
 
     @property
-    def is_leap_year(self) -> bool:
+    def is_leap_year(self):
         return False
 
     @property
-    def is_month_start(self) -> bool:
+    def is_month_start(self):
         return False
 
     @property
-    def is_quarter_start(self) -> bool:
+    def is_quarter_start(self):
         return False
 
     @property
-    def is_year_start(self) -> bool:
+    def is_year_start(self):
         return False
 
     @property
-    def is_month_end(self) -> bool:
+    def is_month_end(self):
         return False
 
     @property
-    def is_quarter_end(self) -> bool:
+    def is_quarter_end(self):
         return False
 
     @property
-    def is_year_end(self) -> bool:
+    def is_year_end(self):
         return False
 
 
