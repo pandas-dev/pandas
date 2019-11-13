@@ -152,7 +152,7 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata = splitter._get_sorted_data()  # type: FrameOrSeries
+        sdata = splitter._get_sorted_data()
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
