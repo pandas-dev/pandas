@@ -92,7 +92,7 @@ def _ensure_str(name):
 Term = Expr
 
 
-def _ensure_term(where, scope_level):
+def _ensure_term(where, scope_level: int):
     """
     ensure that the where is a Term or a list of Term
     this makes sure that we are capturing the scope of variables
@@ -252,7 +252,7 @@ def to_hdf(
     complevel=None,
     complib=None,
     append=None,
-    **kwargs
+    **kwargs,
 ):
     """ store this object, close it if we opened it """
 
@@ -271,7 +271,7 @@ def to_hdf(
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
+def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
     """
     Read from the store, close it if we opened it.
 
@@ -340,8 +340,8 @@ def read_hdf(path_or_buf, key=None, mode="r", **kwargs):
 
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
-            "mode {0} is not allowed while performing a read. "
-            "Allowed modes are r, r+ and a.".format(mode)
+            f"mode {mode} is not allowed while performing a read. "
+            f"Allowed modes are r, r+ and a."
         )
     # grab the scope
     if "where" in kwargs:
@@ -577,7 +577,7 @@ class HDFStore:
 
     iteritems = items
 
-    def open(self, mode="a", **kwargs):
+    def open(self, mode: str = "a", **kwargs):
         """
         Open the file in the specified mode
 
@@ -615,19 +615,19 @@ class HDFStore:
 
         try:
             self._handle = tables.open_file(self._path, self._mode, **kwargs)
-        except (IOError) as e:  # pragma: no cover
-            if "can not be written" in str(e):
+        except IOError as err:  # pragma: no cover
+            if "can not be written" in str(err):
                 print("Opening {path} in read-only mode".format(path=self._path))
                 self._handle = tables.open_file(self._path, "r", **kwargs)
             else:
                 raise
 
-        except (ValueError) as e:
+        except ValueError as err:
 
             # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
             # to provide an updated message
-            if "FILE_OPEN_POLICY" in str(e):
-                e = ValueError(
+            if "FILE_OPEN_POLICY" in str(err):
+                err = ValueError(
                     "PyTables [{version}] no longer supports opening multiple "
                     "files\n"
                     "even in read-only mode on this HDF5 version "
@@ -641,14 +641,14 @@ class HDFStore:
                     )
                 )
 
-            raise e
+            raise err
 
-        except (Exception) as e:
+        except Exception as err:
 
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
-            if self._mode == "r" and "Unable to open/create file" in str(e):
-                raise IOError(str(e))
+            if self._mode == "r" and "Unable to open/create file" in str(err):
+                raise IOError(str(err))
             raise
 
     def close(self):
@@ -720,7 +720,7 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
@@ -825,7 +825,7 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close=False,
-        **kwargs
+        **kwargs,
     ):
         """ Retrieve pandas objects from multiple tables
 
@@ -860,7 +860,7 @@ class HDFStore:
                 stop=stop,
                 iterator=iterator,
                 chunksize=chunksize,
-                **kwargs
+                **kwargs,
             )
 
         if not isinstance(keys, (list, tuple)):
@@ -1478,7 +1478,7 @@ class HDFStore:
         append=False,
         complib=None,
         encoding=None,
-        **kwargs
+        **kwargs,
     ):
         group = self.get_node(key)
 
@@ -1676,7 +1676,7 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
-        **kwargs
+        **kwargs,
     ):
         self.values = values
         self.kind = kind
@@ -2042,7 +2042,7 @@ class DataCol(IndexCol):
         meta=None,
         metadata=None,
         block=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
@@ -2908,14 +2908,14 @@ class GenericFixed(Fixed):
                     data, kind, encoding=self.encoding, errors=self.errors
                 ),
                 dtype=object,
-                **kwargs
+                **kwargs,
             )
         else:
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
                 ),
-                **kwargs
+                **kwargs,
             )
 
         index.name = name
@@ -3654,7 +3654,7 @@ class Table(Fixed):
         nan_rep=None,
         data_columns=None,
         min_itemsize=None,
-        **kwargs
+        **kwargs,
     ):
         """ create and return the axes
         legacy tables create an indexable column, indexable index,
@@ -4104,7 +4104,7 @@ class AppendableTable(LegacyTable):
         chunksize=None,
         expectedrows=None,
         dropna=False,
-        **kwargs
+        **kwargs,
     ):
 
         if not append and self.is_exists:
