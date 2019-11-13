@@ -46,7 +46,7 @@ class TestPDApi(Base):
     deprecated_modules = []  # type: List[str]
 
     # misc
-    misc = ["IndexSlice", "NaT"]
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
     classes = [
