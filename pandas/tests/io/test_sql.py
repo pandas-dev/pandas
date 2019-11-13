@@ -200,6 +200,26 @@ SQL_STRINGS = {
                 SELECT * FROM iris
                 """
     },
+    "create_pkey_table": {
+        "sqlite": """CREATE TABLE pkey_table (
+                "A" Integer Primary Key,
+                "B" TEXT
+            )""",
+        "mysql": """CREATE TABLE pkey_table (
+                `A` INTEGER,
+                `B` TEXT,
+                PRIMARY KEY (A)
+            )""",
+        "posgresql": """CREATE TABLE pkey_table (
+                "A" INTEGER PRIMARY KEY,
+                "B" TEXT
+            )"""
+    },
+    "insert_pkey_table": {
+        "sqlite": """INSERT INTO pkey_table VALUES (?, ?)""",
+        "mysql": """INSERT INTO pkey_table VALUES (%s, %s)""",
+        "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
+    }
 }
 
 
@@ -306,6 +326,17 @@ class PandasSQLTest:
         assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
+    def _create_pkey_table(self):
+        self.drop_table("pkey_table")
+        self._get_exec().execute(SQL_STRINGS["create_pkey_table"][self.flavor])
+        ins = SQL_STRINGS["insert_pkey_table"][self.flavor]
+        data = [
+            (1, 'name1'),
+            (2, 'name2'),
+            (3, 'name3')
+        ]
+        self._get_exec().execute(ins, data)
+
     def _load_test1_data(self):
         columns = ["index", "A", "B", "C", "D"]
         data = [
@@ -365,7 +396,8 @@ class PandasSQLTest:
         ]
 
         self.test_frame3 = DataFrame(data, columns=columns)
-
+    
+    
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
         self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
@@ -401,6 +433,17 @@ class PandasSQLTest:
             self._get_exec().execute(
                 ins["query"], [d[field] for field in ins["fields"]]
             )
+    
+    def _load_pkey_table_data(self):
+        columns = ["A", "B"]
+        data = [
+            (1, 'new_name1'),
+            (2, 'new_name2'),
+            (4, 'name4'),
+            (5, 'name5')
+        ]
+
+        self.pkey_table_frame = DataFrame(data, columns=columns)
 
     def _count_rows(self, table_name):
         result = (
@@ -509,6 +552,81 @@ class PandasSQLTest:
         # Nuke table
         self.drop_table("test_frame1")
 
+    def _to_sql_upsert_ignore(self):
+        """
+        Original table: 3 rows
+        pkey_table_frame: 4 rows (2 duplicate  keys)
+        Expected after upsert:
+            - table len = 5
+            - Original database values for rows with duplicate keys
+            - dataframe has all original values
+        """
+        # Nuke
+        self.drop_table('pkey_table')
+        # Re-create original table
+        self._create_pkey_table()
+        # Original table exists and as 3 rows
+        assert self.pandasSQL.has_table("pkey_table")
+        assert self._count_rows("pkey_table") == 3
+        # Insert new dataframe
+        self.pandasSQL.to_sql(
+            self.pkey_table_frame,
+            "pkey_table",
+            if_exists="upsert_ignore",
+            index=False
+        ) 
+        # Check table len correct
+        assert self._count_rows("pkey_table") == 5
+        # Check original DB values maintained for duplicate keys
+        duplicate_keys = [1, 2]
+        duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
+        duplicate_val = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db = sorted([val[0] for val in duplicate_val])
+        expected = sorted(["name1", "name2"])
+        assert data_from_db == expected
+        # Finally, confirm that duplicate values are not removed from original df object
+        assert len(self.pkey_table_frame.index) == 4
+
+    def _to_sql_upsert_delete(self):
+        """
+        Original table: 3 rows
+        pkey_table_frame: 4 rows (2 duplicate keys)
+        Expected after upsert:
+            - table len = 5
+            - dataframe values for rows with duplicate keys
+        """
+         # Nuke
+        self.drop_table('pkey_table')
+        # Re-create original table
+        self._create_pkey_table()
+        # Original table exists and as 3 rows
+        assert self.pandasSQL.has_table("pkey_table")
+        assert self._count_rows("pkey_table") == 3
+        # Insert new dataframe
+        self.pandasSQL.to_sql(
+            self.pkey_table_frame,
+            "pkey_table",
+            if_exists="upsert_delete",
+            index=False
+        ) 
+        # Check table len correct
+        assert self._count_rows("pkey_table") == 5
+        # Check original DB values maintained for duplicate keys
+        duplicate_keys = [1, 2]
+        duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
+        duplicate_val = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db = sorted([val[0] for val in duplicate_val])
+        data_from_df = sorted(
+            list(
+                self.pkey_table_frame.loc[self.pkey_table_frame['A'].isin(duplicate_keys), 'B']
+                )
+            )
+        assert data_from_db == data_from_df
+
     def _roundtrip(self):
         self.drop_table("test_frame_roundtrip")
         self.pandasSQL.to_sql(self.test_frame1, "test_frame_roundtrip")
@@ -594,6 +712,7 @@ class _TestSQLApi(PandasSQLTest):
         self._load_test1_data()
         self._load_test2_data()
         self._load_test3_data()
+        self._load_pkey_table_data()
         self._load_raw_sql()
 
     def test_read_sql_iris(self):
@@ -1243,6 +1362,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def load_test_data_and_sql(self):
         self._load_raw_sql()
         self._load_test1_data()
+        self._load_pkey_table_data()
 
     @pytest.fixture(autouse=True)
     def setup_method(self, load_iris_data):
@@ -1300,6 +1420,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_to_sql_method_callable(self):
         self._to_sql_method_callable()
+
+    def test_to_sql_upsert_ignore(self):
+        self._to_sql_upsert_ignore()
+
+    def test_to_sql_upsert_delete(self):
+        self._to_sql_upsert_delete()
 
     def test_create_table(self):
         temp_conn = self.connect()
