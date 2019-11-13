@@ -464,6 +464,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx.freq = None
+        return new_idx
+
     # --------------------------------------------------------------------
     # Rendering Methods
 
