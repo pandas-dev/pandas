@@ -2935,13 +2935,13 @@ class CategoricalBlock(ExtensionBlock):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
-        if filter is None:
+        if filter is None:  # replace was called on a series
             result.values.replace(to_replace, value, inplace=True)
             if convert:
                 return result.convert(numeric=False, copy=not inplace)
             else:
                 return result
-        else:
+        else:  # replace was called on a DataFrame
             if not isna(value):
                 result.values.add_categories(value, inplace=True)
             return super(CategoricalBlock, result).replace(
