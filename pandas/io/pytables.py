@@ -466,7 +466,13 @@ class HDFStore:
     """
 
     def __init__(
-        self, path, mode=None, complevel=None, complib=None, fletcher32=False, **kwargs
+        self,
+        path,
+        mode=None,
+        complevel=None,
+        complib=None,
+        fletcher32: bool = False,
+        **kwargs,
     ):
 
         if "format" in kwargs:
@@ -1266,7 +1272,7 @@ class HDFStore:
         keys=None,
         complib=None,
         complevel=None,
-        fletcher32=False,
+        fletcher32: bool = False,
         overwrite=True,
     ):
         """ copy the existing store to a new file, upgrading in place
@@ -1302,7 +1308,7 @@ class HDFStore:
                 data = self.select(k)
                 if s.is_table:
 
-                    index = False
+                    index = False  # type: Union[bool, list]
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(
@@ -3337,7 +3343,7 @@ class Table(Fixed):
         return itertools.chain(self.index_axes, self.values_axes)
 
     @property
-    def ncols(self):
+    def ncols(self) -> int:
         """ the number of total columns in the values axes """
         return sum(len(a.values) for a in self.values_axes)
 
@@ -3380,7 +3386,7 @@ class Table(Fixed):
         """ return a list of my values cols """
         return [i.cname for i in self.values_axes]
 
-    def _get_metadata_path(self, key):
+    def _get_metadata_path(self, key) -> str:
         """ return the metadata pathname for this key """
         return "{group}/meta/{key}/meta".format(group=self.group._v_pathname, key=key)
 
@@ -3953,7 +3959,7 @@ class Table(Fixed):
         return obj
 
     def create_description(
-        self, complib=None, complevel=None, fletcher32=False, expectedrows=None
+        self, complib=None, complevel=None, fletcher32: bool = False, expectedrows=None
     ):
         """ create the description of the table from the axes & values """
 
