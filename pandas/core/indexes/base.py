@@ -653,8 +653,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the length of the Index.
         """
-        # Assertion needed for mypy, see GH#29475
-        assert self._data is not None
         return len(self._data)
 
     def __array__(self, dtype=None):
