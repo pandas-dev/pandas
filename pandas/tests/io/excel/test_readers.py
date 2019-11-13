@@ -81,7 +81,7 @@ class TestReaders:
             pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
     def test_usecols_int(self, read_ext, df_ref):
@@ -502,9 +502,11 @@ class TestReaders:
         if read_ext == ".ods":  # TODO: remove once on master
             pytest.skip()
 
+        # TODO: alimcmaster1 - revert to master
         url = (
-            "https://raw.github.com/pandas-dev/pandas/master/"
-            "pandas/tests/io/data/test1" + read_ext
+            "https://raw.githubusercontent.com/alimcmaster1"
+            "/pandas/mcmali-tests-dir-struct/"
+            "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
         local_table = pd.read_excel("test1" + read_ext)
@@ -527,7 +529,7 @@ class TestReaders:
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
-        localtable = os.path.join(datapath("io", "data"), "test1" + read_ext)
+        localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
 
         try:
@@ -828,7 +830,7 @@ class TestExcelFileRead:
             pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
     def test_excel_passes_na(self, read_ext):

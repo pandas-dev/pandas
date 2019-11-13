@@ -202,23 +202,25 @@ def test_legacy_sparse_warning(datapath):
     Generated with
 
     >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
-    >>> df.to_pickle("pandas/tests/io/data/sparseframe-0.20.3.pickle.gz",
+    >>> df.to_pickle("pandas/tests/io/data/pickle/sparseframe-0.20.3.pickle.gz",
     ...              compression="gzip")
 
     >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
     ...             compression="gzip")
     """
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseseries-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
 
@@ -382,7 +384,7 @@ class TestProtocol:
 def test_unicode_decode_error():
     # pickle file written with py27, should be readable without raising
     #  UnicodeDecodeError, see GH#28645
-    path = os.path.join(os.path.dirname(__file__), "data", "test_py27.pkl")
+    path = os.path.join(os.path.dirname(__file__), "data", "pickle", "test_py27.pkl")
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random
