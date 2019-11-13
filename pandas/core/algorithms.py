@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -448,9 +448,11 @@ def isin(comps, values) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=None):
+def _factorize_array(
+    values, na_sentinel: int = -1, size_hint=None, na_value=None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Factorize an array-like to labels and uniques.
+    Factorize an array-like to codes and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
 
@@ -468,18 +470,16 @@ def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=Non
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
     uniques : ndarray
     """
     hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
-    uniques, labels = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value
-    )
+    uniques, codes = table.factorize(values, na_sentinel=na_sentinel, na_value=na_value)
 
-    labels = ensure_platform_int(labels)
-    return labels, uniques
+    codes = ensure_platform_int(codes)
+    return codes, uniques
 
 
 _shared_docs[
@@ -501,9 +501,9 @@ _shared_docs[
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
         An integer ndarray that's an indexer into `uniques`.
-        ``uniques.take(labels)`` will have the same values as `values`.
+        ``uniques.take(codes)`` will have the same values as `values`.
     uniques : ndarray, Index, or Categorical
         The unique valid values. When `values` is Categorical, `uniques`
         is a Categorical. When `values` is some other pandas object, an
@@ -525,27 +525,27 @@ _shared_docs[
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
-    With ``sort=True``, the `uniques` will be sorted, and `labels` will be
+    With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `labels` with `na_sentinel`
+    Missing values are indicated in `codes` with `na_sentinel`
     (``-1`` by default). Note that missing values are never
     included in `uniques`.
 
-    >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
@@ -555,8 +555,8 @@ _shared_docs[
     will differ. For Categoricals, a `Categorical` is returned.
 
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     [a, c]
@@ -569,8 +569,8 @@ _shared_docs[
     returned.
 
     >>> cat = pd.Series(['a', 'a', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
@@ -596,7 +596,7 @@ _shared_docs[
     sort=dedent(
         """\
     sort : bool, default False
-        Sort `uniques` and shuffle `labels` to maintain the
+        Sort `uniques` and shuffle `codes` to maintain the
         relationship.
     """
     ),
@@ -609,11 +609,17 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 @deprecate_kwarg(old_arg_name="order", new_arg_name=None)
-def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(
+    values,
+    sort: bool = False,
+    order=None,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
-    # 2.) factorizing labels and uniques
-    # 3.) Maybe boxing the output in an Index
+    # 2.) factorizing codes and uniques
+    # 3.) Maybe boxing the uniques in an Index
     #
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
@@ -624,7 +630,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
     if is_extension_array_dtype(values):
         values = extract_array(values)
-        labels, uniques = values.factorize(na_sentinel=na_sentinel)
+        codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
@@ -634,13 +640,13 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
         else:
             na_value = None
 
-        labels, uniques = _factorize_array(
+        codes, uniques = _factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
     if sort and len(uniques) > 0:
-        uniques, labels = safe_sort(
-            uniques, labels, na_sentinel=na_sentinel, assume_unique=True, verify=False
+        uniques, codes = safe_sort(
+            uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -653,7 +659,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
         uniques = Index(uniques)
 
-    return labels, uniques
+    return codes, uniques
 
 
 def value_counts(
@@ -1918,33 +1924,34 @@ def diff(arr, n: int, axis: int = 0):
 #  this module.
 def safe_sort(
     values,
-    labels=None,
+    codes=None,
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-):
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
-    Sort ``values`` and reorder corresponding ``labels``.
-    ``values`` should be unique if ``labels`` is not None.
+    Sort ``values`` and reorder corresponding ``codes``.
+
+    ``values`` should be unique if ``codes`` is not None.
     Safe for use with mixed types (int, str), orders ints before strs.
 
     Parameters
     ----------
     values : list-like
-        Sequence; must be unique if ``labels`` is not None.
-    labels : list_like
+        Sequence; must be unique if ``codes`` is not None.
+    codes : list_like, optional
         Indices to ``values``. All out of bound indices are treated as
         "not found" and will be masked with ``na_sentinel``.
     na_sentinel : int, default -1
-        Value in ``labels`` to mark "not found".
-        Ignored when ``labels`` is None.
+        Value in ``codes`` to mark "not found".
+        Ignored when ``codes`` is None.
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
-        the calculation. Ignored when ``labels`` is None.
+        the calculation. Ignored when ``codes`` is None.
     verify : bool, default True
-        Check if labels are out of bound for the values and put out of bound
-        labels equal to na_sentinel. If ``verify=False``, it is assumed there
-        are no out of bound labels. Ignored when ``labels`` is None.
+        Check if codes are out of bound for the values and put out of bound
+        codes equal to na_sentinel. If ``verify=False``, it is assumed there
+        are no out of bound codes. Ignored when ``codes`` is None.
 
         .. versionadded:: 0.25.0
 
@@ -1952,17 +1959,17 @@ def safe_sort(
     -------
     ordered : ndarray
         Sorted ``values``
-    new_labels : ndarray
-        Reordered ``labels``; returned when ``labels`` is not None.
+    new_codes : ndarray
+        Reordered ``codes``; returned when ``codes`` is not None.
 
     Raises
     ------
     TypeError
-        * If ``values`` is not list-like or if ``labels`` is neither None
+        * If ``values`` is not list-like or if ``codes`` is neither None
         nor list-like
         * If ``values`` cannot be sorted
     ValueError
-        * If ``labels`` is not None and ``values`` contain duplicates.
+        * If ``codes`` is not None and ``values`` contain duplicates.
     """
     if not is_list_like(values):
         raise TypeError(
@@ -1996,22 +2003,22 @@ def safe_sort(
             # try this anyway
             ordered = sort_mixed(values)
 
-    # labels:
+    # codes:
 
-    if labels is None:
+    if codes is None:
         return ordered
 
-    if not is_list_like(labels):
+    if not is_list_like(codes):
         raise TypeError(
             "Only list-like objects or None are allowed to be"
-            "passed to safe_sort as labels"
+            "passed to safe_sort as codes"
         )
-    labels = ensure_platform_int(np.asarray(labels))
+    codes = ensure_platform_int(np.asarray(codes))
 
     from pandas import Index
 
     if not assume_unique and not Index(values).is_unique:
-        raise ValueError("values should be unique if labels is not None")
+        raise ValueError("values should be unique if codes is not None")
 
     if sorter is None:
         # mixed types
@@ -2023,9 +2030,9 @@ def safe_sort(
     if na_sentinel == -1:
         # take_1d is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_labels = take_1d(order2, labels, fill_value=-1)
+        new_codes = take_1d(order2, codes, fill_value=-1)
         if verify:
-            mask = (labels < -len(values)) | (labels >= len(values))
+            mask = (codes < -len(values)) | (codes >= len(values))
         else:
             mask = None
     else:
@@ -2033,13 +2040,13 @@ def safe_sort(
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `na_sentinel` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_labels = reverse_indexer.take(labels, mode="wrap")
+        new_codes = reverse_indexer.take(codes, mode="wrap")
 
-        mask = labels == na_sentinel
+        mask = codes == na_sentinel
         if verify:
-            mask = mask | (labels < -len(values)) | (labels >= len(values))
+            mask = mask | (codes < -len(values)) | (codes >= len(values))
 
     if mask is not None:
-        np.putmask(new_labels, mask, na_sentinel)
+        np.putmask(new_codes, mask, na_sentinel)
 
-    return ordered, ensure_platform_int(new_labels)
+    return ordered, ensure_platform_int(new_codes)

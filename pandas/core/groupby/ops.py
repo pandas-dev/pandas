@@ -342,7 +342,7 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": lambda *args: ["open", "high", "low", "close"]}
+    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
 
     def _is_builtin_func(self, arg):
         """
@@ -392,11 +392,52 @@ class BaseGrouper:
 
         return func
 
+    def _get_cython_func_and_vals(
+        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
+    ):
+        """
+        Find the appropriate cython function, casting if necessary.
+
+        Parameters
+        ----------
+        kind : sttr
+        how : srt
+        values : np.ndarray
+        is_numeric : bool
+
+        Returns
+        -------
+        func : callable
+        values : np.ndarray
+        """
+        try:
+            func = self._get_cython_function(kind, how, values, is_numeric)
+        except NotImplementedError:
+            if is_numeric:
+                try:
+                    values = ensure_float64(values)
+                except TypeError:
+                    if lib.infer_dtype(values, skipna=False) == "complex":
+                        values = values.astype(complex)
+                    else:
+                        raise
+                func = self._get_cython_function(kind, how, values, is_numeric)
+            else:
+                raise
+        return func, values
+
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ):
         assert kind in ["transform", "aggregate"]
         orig_values = values
+
+        if values.ndim > 2:
+            raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif values.ndim == 2:
+            # Note: it is *not* the case that axis is always 0 for 1-dim values,
+            #  as we can have 1D ExtensionArrays that we need to treat as 2D
+            assert axis == 1, axis
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
@@ -465,20 +506,7 @@ class BaseGrouper:
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        try:
-            func = self._get_cython_function(kind, how, values, is_numeric)
-        except NotImplementedError:
-            if is_numeric:
-                try:
-                    values = ensure_float64(values)
-                except TypeError:
-                    if lib.infer_dtype(values, skipna=False) == "complex":
-                        values = values.astype(complex)
-                    else:
-                        raise
-                func = self._get_cython_function(kind, how, values, is_numeric)
-            else:
-                raise
+        func, values = self._get_cython_func_and_vals(kind, how, values, is_numeric)
 
         if how == "rank":
             out_dtype = "float"
@@ -523,10 +551,7 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        if how in self._name_functions:
-            names = self._name_functions[how]()  # type: Optional[List[str]]
-        else:
-            names = None
+        names = self._name_functions.get(how, None)  # type: Optional[List[str]]
 
         if swapped:
             result = result.swapaxes(0, axis)
@@ -556,10 +581,7 @@ class BaseGrouper:
         is_datetimelike: bool,
         min_count: int = -1,
     ):
-        if values.ndim > 2:
-            # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        elif agg_func is libgroupby.group_nth:
+        if agg_func is libgroupby.group_nth:
             # different signature from the others
             # TODO: should we be using min_count instead of hard-coding it?
             agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
@@ -573,16 +595,19 @@ class BaseGrouper:
     ):
 
         comp_ids, _, ngroups = self.group_info
-        if values.ndim > 2:
-            # punting for now
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        else:
-            transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+        transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         return result
 
     def agg_series(self, obj: Series, func):
-        if is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            return self._aggregate_series_pure_python(obj, func)
+
+        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # TODO: can we get a performant workaround for EAs backed by ndarray?
@@ -596,10 +621,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "No result." in str(err):
-                # raised in libreduction
-                pass
-            elif "Function does not reduce" in str(err):
+            if "Function does not reduce" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -607,8 +629,11 @@ class BaseGrouper:
         return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
-        # At this point we have already checked that obj.index is not a MultiIndex
-        #  and that obj is backed by an ndarray, not ExtensionArray
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - len(obj) > 0
+        #  - ngroups != 0
         func = self._is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
@@ -641,11 +666,9 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        if result is not None:
-            # if splitter is empty, result can be None, in which case
-            #  maybe_convert_objects would raise TypeError
-            result = lib.maybe_convert_objects(result, try_float=0)
-            # TODO: try_cast back to EA?
+        assert result is not None
+        result = lib.maybe_convert_objects(result, try_float=0)
+        # TODO: try_cast back to EA?
 
         return result, counts
 
@@ -796,6 +819,9 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(self, obj: Series, func):
+        # Caller is responsible for checking ngroups != 0
+        assert self.ngroups != 0
+
         if is_extension_array_dtype(obj.dtype):
             # pre-empty SeriesBinGrouper from raising TypeError
             # TODO: watch out, this can return None

@@ -493,34 +493,6 @@ def test_is_datetime_or_timedelta_dtype():
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
 
 
-def test_is_numeric_v_string_like():
-    assert not com.is_numeric_v_string_like(1, 1)
-    assert not com.is_numeric_v_string_like(1, "foo")
-    assert not com.is_numeric_v_string_like("foo", "foo")
-    assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
-    assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
-
-    assert com.is_numeric_v_string_like(np.array([1]), "foo")
-    assert com.is_numeric_v_string_like("foo", np.array([1]))
-    assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
-    assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
-
-
-def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_numeric(1, 1)
-    assert not com.is_datetimelike_v_numeric(dt, dt)
-    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
-    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-
-
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
@@ -577,6 +549,7 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(pd.Index([True, False]))
 
 
+@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
@@ -599,6 +572,35 @@ def test_is_extension_type(check_scipy):
         import scipy.sparse
 
         assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
+
+
+def test_is_extension_type_deprecation():
+    with tm.assert_produces_warning(FutureWarning):
+        com.is_extension_type([1, 2, 3])
+
+
+@pytest.mark.parametrize(
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+)
+def test_is_extension_array_dtype(check_scipy):
+    assert not com.is_extension_array_dtype([1, 2, 3])
+    assert not com.is_extension_array_dtype(np.array([1, 2, 3]))
+    assert not com.is_extension_array_dtype(pd.DatetimeIndex([1, 2, 3]))
+
+    cat = pd.Categorical([1, 2, 3])
+    assert com.is_extension_array_dtype(cat)
+    assert com.is_extension_array_dtype(pd.Series(cat))
+    assert com.is_extension_array_dtype(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+    s = pd.Series([], dtype=dtype)
+    assert com.is_extension_array_dtype(s)
+
+    if check_scipy:
+        import scipy.sparse
+
+        assert not com.is_extension_array_dtype(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():
