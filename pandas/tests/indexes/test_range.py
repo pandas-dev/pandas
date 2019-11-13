@@ -110,7 +110,7 @@ class TestRangeIndex(Numeric):
         result = RangeIndex(index)
         tm.assert_index_equal(result, index, exact=True)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             RangeIndex(index, dtype="float64")
 
     def test_constructor_range(self):
@@ -140,7 +140,7 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             Index(range(1, 5, 2), dtype="float64")
         msg = r"^from_range\(\) got an unexpected keyword argument"
         with pytest.raises(TypeError, match=msg):
@@ -178,7 +178,7 @@ class TestRangeIndex(Numeric):
             RangeIndex(1.1, 10.2, 1.3)
 
         # invalid passed type
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             RangeIndex(1, 5, dtype="float64")
 
     @pytest.mark.parametrize(
