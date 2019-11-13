@@ -27,7 +27,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -78,7 +78,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     common ops mixin to support a unified interface datetimelike Index
     """
 
-    _data = None
+    _data: ExtensionArray
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -836,7 +836,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties = set()  # type: Set[str]
     name = None
-    _data = None
+    _data: ExtensionArray
 
     @property
     def _delegate_class(self):
