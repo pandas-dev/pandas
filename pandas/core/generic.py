@@ -8,7 +8,6 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -190,12 +189,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []  # type: List[str]
     _is_copy = None
     _data = None  # type: BlockManager
-
-    if TYPE_CHECKING:
-        # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
-        # We need the TYPE_CHECKING, because _attrs is not a class attribute
-        # and Py35 doesn't support the new syntax.
-        _attrs = {}  # type: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
     # Constructors

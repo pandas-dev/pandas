@@ -6,7 +6,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1262,7 +1261,6 @@ class TestExcelWriterEngineTests:
 
 @td.skip_if_no("xlrd")
 @td.skip_if_no("openpyxl")
-@pytest.mark.skipif(not PY36, reason="requires fspath")
 class TestFSPath:
     def test_excelfile_fspath(self):
         with tm.ensure_clean("foo.xlsx") as path:

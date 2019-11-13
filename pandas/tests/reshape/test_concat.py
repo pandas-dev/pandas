@@ -27,7 +27,6 @@ from pandas import (
     isna,
     read_csv,
 )
-import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 import pandas.util.testing as tm
 
@@ -1264,7 +1263,7 @@ class TestConcatenate:
             "qux": DataFrame(np.random.randn(4, 3)),
         }
 
-        sorted_keys = com.dict_keys_to_ordered_list(frames)
+        sorted_keys = list(frames.keys())
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)

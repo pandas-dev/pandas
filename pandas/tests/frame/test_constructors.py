@@ -8,7 +8,7 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -387,7 +387,6 @@ class TestDataFrameConstructors:
         result = DataFrame(data, index=idx, columns=cols)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="Insertion order for Python>=3.6")
     def test_constructor_dict_order_insertion(self):
         datetime_series = tm.makeTimeSeries(nper=30)
         datetime_series_short = tm.makeTimeSeries(nper=25)
@@ -397,18 +396,6 @@ class TestDataFrameConstructors:
         d = {"b": datetime_series_short, "a": datetime_series}
         frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list("ba"))
-        tm.assert_frame_equal(frame, expected)
-
-    @pytest.mark.skipif(PY36, reason="order by value for Python<3.6")
-    def test_constructor_dict_order_by_values(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
-
-        # GH19018
-        # initialization ordering: by value if python<3.6
-        d = {"b": datetime_series_short, "a": datetime_series}
-        frame = DataFrame(data=d)
-        expected = DataFrame(data=d, columns=list("ab"))
         tm.assert_frame_equal(frame, expected)
 
     def test_constructor_multi_index(self):
@@ -1373,7 +1360,7 @@ class TestDataFrameConstructors:
             }
         )
         result = DataFrame(data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series

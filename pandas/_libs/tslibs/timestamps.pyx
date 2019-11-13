@@ -36,7 +36,6 @@ from pandas._libs.tslibs.tzconversion import (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
@@ -982,9 +981,8 @@ default 'raise'
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
                       'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo}
-            if PY36:
-                kwargs['fold'] = fold
+                      'microsecond': dts.us, 'tzinfo': _tzinfo,
+                      'fold': fold}
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)

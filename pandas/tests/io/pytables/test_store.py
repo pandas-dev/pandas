@@ -9,7 +9,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
+from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -4711,7 +4711,6 @@ class TestHDFStore:
             result = pd.read_hdf(path, key="data", mode="r")
         tm.assert_series_equal(result, series)
 
-    @pytest.mark.skipif(not PY36, reason="Need python 3.6")
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
             with pd.HDFStore(path) as store:

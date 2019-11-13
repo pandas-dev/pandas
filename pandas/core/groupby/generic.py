@@ -28,7 +28,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -233,10 +232,6 @@ class SeriesGroupBy(GroupBy):
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -1804,9 +1799,6 @@ def _normalize_keyword_aggregation(kwargs):
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to

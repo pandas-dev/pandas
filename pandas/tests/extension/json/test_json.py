@@ -3,8 +3,6 @@ import operator
 
 import pytest
 
-from pandas.compat import PY36
-
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -180,9 +178,6 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 
 
 unhashable = pytest.mark.skip(reason="Unhashable")
-unstable = pytest.mark.skipif(
-    not PY36, reason="Dictionary order unstable"  # 3.6 or higher
-)
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -199,20 +194,16 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
-    @unstable
     def test_argsort(self, data_for_sorting):
         super().test_argsort(data_for_sorting)
 
-    @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
         super().test_argsort_missing(data_missing_for_sorting)
 
-    @unstable
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
         super().test_sort_values(data_for_sorting, ascending)
 
-    @unstable
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
         super().test_sort_values_missing(data_missing_for_sorting, ascending)
@@ -280,7 +271,6 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @unstable
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
