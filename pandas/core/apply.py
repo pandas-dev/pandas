@@ -118,8 +118,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     @property
     def res_index(self) -> "Index":
-        if self._res_index is None:
-            raise ValueError("_res_index has not yet been assigned")
+        assert self._res_index is not None
         return self._res_index
 
     @property
