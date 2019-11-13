@@ -548,6 +548,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
+
     if columns is None:
         gen = (list(x.keys()) for x in data)
         types = (dict, OrderedDict) if PY36 else OrderedDict
