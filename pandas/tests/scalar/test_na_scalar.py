@@ -32,7 +32,7 @@ def test_hashable():
 def test_arithmetic_ops(all_arithmetic_functions):
     op = all_arithmetic_functions
 
-    for other in [NA, 1, 1.0, "a", np.int64(1)]:
+    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
         if op.__name__ == "rmod" and isinstance(other, str):
             continue
         assert op(NA, other) is NA
@@ -40,7 +40,7 @@ def test_arithmetic_ops(all_arithmetic_functions):
 
 def test_comparison_ops():
 
-    for other in [NA, 1, 1.0, "a", np.int64(1)]:
+    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
         assert (NA == other) is NA
         assert (NA != other) is NA
         assert (NA > other) is NA
