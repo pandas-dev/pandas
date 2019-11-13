@@ -1953,7 +1953,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     take = take_nd
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The length of this Categorical.
         """

@@ -279,7 +279,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
             elif show_us:
                 res += '.%.6d' % dts.us
             elif show_ms:
-                res += '.%.3d' % (dts.us /1000)
+                res += '.%.3d' % (dts.us / 1000)
 
             result[i] = res
 

@@ -574,7 +574,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Return an int representing the number of axes / array dimensions.
 
@@ -1957,7 +1957,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def iteritems(self):
         return self.items()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
 
@@ -7838,7 +7838,6 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        **kwargs
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7883,10 +7882,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-
-        **kwargs
-            Optional, only accepts keyword argument 'mutated' and is passed
-            to groupby.
 
         Returns
         -------
@@ -7949,12 +7944,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Captive      210.0
         Wild         185.0
         """
-        from pandas.core.groupby.groupby import groupby
+        from pandas.core.groupby.groupby import get_groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
-        return groupby(
+
+        return get_groupby(
             self,
             by=by,
             axis=axis,
@@ -7964,7 +7960,6 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            **kwargs
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):
