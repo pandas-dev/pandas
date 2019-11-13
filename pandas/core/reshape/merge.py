@@ -563,10 +563,10 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-        _left = _validate_operand(left)
-        _right = _validate_operand(right)
-        self.left = self.orig_left = _validate_operand(_left)  # type: "DataFrame"
-        self.right = self.orig_right = _validate_operand(_right)  # type: "DataFrame"
+        _left: "DataFrame" = _validate_operand(left)
+        _right: "DataFrame" = _validate_operand(right)
+        self.left = self.orig_left = _left
+        self.right = self.orig_right = _right
         self.how = how
         self.axis = axis
 
