@@ -1422,7 +1422,7 @@ def date_range(
     normalize=False,
     name=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex.
@@ -1572,7 +1572,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
@@ -1588,7 +1588,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
@@ -1681,7 +1681,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
 
 

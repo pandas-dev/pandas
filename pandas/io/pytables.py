@@ -252,7 +252,7 @@ def to_hdf(
     complevel=None,
     complib=None,
     append=None,
-    **kwargs
+    **kwargs,
 ):
     """ store this object, close it if we opened it """
 
@@ -720,7 +720,7 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
@@ -825,7 +825,7 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close=False,
-        **kwargs
+        **kwargs,
     ):
         """ Retrieve pandas objects from multiple tables
 
@@ -860,7 +860,7 @@ class HDFStore:
                 stop=stop,
                 iterator=iterator,
                 chunksize=chunksize,
-                **kwargs
+                **kwargs,
             )
 
         if not isinstance(keys, (list, tuple)):
@@ -1478,7 +1478,7 @@ class HDFStore:
         append=False,
         complib=None,
         encoding=None,
-        **kwargs
+        **kwargs,
     ):
         group = self.get_node(key)
 
@@ -1676,7 +1676,7 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
-        **kwargs
+        **kwargs,
     ):
         self.values = values
         self.kind = kind
@@ -2042,7 +2042,7 @@ class DataCol(IndexCol):
         meta=None,
         metadata=None,
         block=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
@@ -2908,14 +2908,14 @@ class GenericFixed(Fixed):
                     data, kind, encoding=self.encoding, errors=self.errors
                 ),
                 dtype=object,
-                **kwargs
+                **kwargs,
             )
         else:
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
                 ),
-                **kwargs
+                **kwargs,
             )
 
         index.name = name
@@ -3654,7 +3654,7 @@ class Table(Fixed):
         nan_rep=None,
         data_columns=None,
         min_itemsize=None,
-        **kwargs
+        **kwargs,
     ):
         """ create and return the axes
         legacy tables create an indexable column, indexable index,
@@ -4104,7 +4104,7 @@ class AppendableTable(LegacyTable):
         chunksize=None,
         expectedrows=None,
         dropna=False,
-        **kwargs
+        **kwargs,
     ):
 
         if not append and self.is_exists:
