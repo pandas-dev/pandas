@@ -119,7 +119,7 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate=True):
+    def _get_grouper(self, obj, validate: bool = True):
         """
         Parameters
         ----------
@@ -143,17 +143,18 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj, sort=False):
+    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
 
         Parameters
         ----------
-        obj : the subject object
+        obj : Series or DataFrame
         sort : bool, default False
             whether the resulting grouper should be sorted
         """
+        assert obj is not None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -211,13 +212,13 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            "{}={!r}".format(attr_name, getattr(self, attr_name))
+            "{name}={val!r}".format(name=attr_name, val=getattr(self, attr_name))
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
-        return "{}({})".format(cls_name, attrs)
+        return "{cls}({attrs})".format(cls=cls_name, attrs=attrs)
 
 
 class Grouping:
@@ -372,7 +373,7 @@ class Grouping:
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
     def __repr__(self) -> str:
-        return "Grouping({0})".format(self.name)
+        return "Grouping({name})".format(name=self.name)
 
     def __iter__(self):
         return iter(self.indices)
@@ -433,10 +434,10 @@ def get_grouper(
     key=None,
     axis: int = 0,
     level=None,
-    sort=True,
-    observed=False,
-    mutated=False,
-    validate=True,
+    sort: bool = True,
+    observed: bool = False,
+    mutated: bool = False,
+    validate: bool = True,
 ) -> Tuple[BaseGrouper, List[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
@@ -670,7 +671,7 @@ def get_grouper(
     return grouper, exclusions, obj
 
 
-def _is_label_like(val):
+def _is_label_like(val) -> bool:
     return isinstance(val, (str, tuple)) or (val is not None and is_scalar(val))
 
 
