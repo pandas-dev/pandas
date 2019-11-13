@@ -1708,13 +1708,13 @@ class IndexCol:
 
         return self
 
-    def set_axis(self, axis):
+    def set_axis(self, axis: int):
         """ set the axis over which I index """
         self.axis = axis
 
         return self
 
-    def set_pos(self, pos):
+    def set_pos(self, pos: int):
         """ set the position of this column in the Table """
         self.pos = pos
         if pos is not None and self.typ is not None:
