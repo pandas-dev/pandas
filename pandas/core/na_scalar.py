@@ -39,8 +39,7 @@ class NAType:
         raise TypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
-        # TODO what should we use here to hash?
-        return 0
+        return id(self)
 
     # Binary arithmetic and comparison ops -> propagate
 
