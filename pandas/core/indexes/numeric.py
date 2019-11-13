@@ -36,10 +36,9 @@ _num_index_shared_docs = dict()
 
 class NumericIndex(Index):
     """
-    Provide numeric type operations
+    Provide numeric type operations.
 
-    This is an abstract class
-
+    This is an abstract class.
     """
 
     _is_numeric_dtype = True
@@ -87,7 +86,9 @@ class NumericIndex(Index):
         return super()._shallow_copy(values=values, **kwargs)
 
     def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
+        """
+        Convert value to be insertable to ndarray.
+        """
 
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
@@ -133,9 +134,9 @@ class NumericIndex(Index):
         return result.rename(name)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
-        Checks that all the labels are datetime objects
+        Checks that all the labels are datetime objects.
         """
         return False
 
@@ -169,7 +170,7 @@ _num_index_shared_docs[
 ] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s
+    of `Index` with purely %(ltype)s labels. %(extra)s.
 
     Parameters
     ----------
@@ -227,7 +228,7 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.int64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``Int64Index``"""
         return "integer"
 
@@ -282,7 +283,7 @@ class UInt64Index(IntegerIndex):
     _default_dtype = np.uint64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``UInt64Index``"""
         return "integer"
 
@@ -355,7 +356,7 @@ class Float64Index(NumericIndex):
     _default_dtype = np.float64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'floating' for ``Float64Index``"""
         return "floating"
 
@@ -412,7 +413,9 @@ class Float64Index(NumericIndex):
         return formatter.get_result_as_array()
 
     def get_value(self, series, key):
-        """ we always want to get an index value, never a value """
+        """
+        We always want to get an index value, never a value.
+        """
         if not is_scalar(key):
             raise InvalidIndexError
 
