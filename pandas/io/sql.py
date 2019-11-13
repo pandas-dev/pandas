@@ -466,10 +466,15 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+    if_exists : {'fail', 'replace', 'append', 'upsert_delete', 'upsert_ignore'},
+        default 'fail'.
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
+        - upsert_ignore: If table exists, perform an UPSERT (based on primary keys),
+                prioritising records already in the database over incoming duplicates.
+        - upsert_delete: If table exists, perform an UPSERT (based on primary keys),
+                prioritising incoming records over duplicates already in the database.
     index : boolean, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -502,7 +507,7 @@ def to_sql(
         "append",
         "upsert_ignore",
         "upsert_delete",
-    ):  # TODO: add upserts
+    ):  
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -719,8 +724,8 @@ class SQLTable(PandasObject):
         # Delete rows from dataframe where primary keys match
         # Method requires tuples, to account for cases where indexes do not match
         to_be_deleted_mask = (
-            temp[primary_keys].apply(tuple, 1).isin(
-                pkeys_from_database[primary_keys].apply(tuple, 1)
+            temp[primary_keys].apply(tuple, axis=1).isin(
+                pkeys_from_database[primary_keys].apply(tuple, axis=1)
             )
         )
         temp.drop(temp[to_be_deleted_mask].index, inplace=True)
