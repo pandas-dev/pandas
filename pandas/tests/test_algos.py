@@ -12,6 +12,15 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_float_dtype,
+    is_complex_dtype,
+    is_bool_dtype,
+    is_object_dtype,
+)
+from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -353,24 +362,34 @@ class TestUnique:
 
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "data, uniques, dtype_list",
-        [
-            ([1, 2, 2], [1, 2], np.sctypes["int"]),
-            ([1, 2, 2], [1, 2], np.sctypes["uint"]),
-            ([1, 2, 2], [1.0, 2.0], np.sctypes["float"]),
-            ([1, 2, 2], [1.0, 2.0], np.sctypes["complex"]),
-            ([True, True, False], [True, False], np.sctypes["others"]),  # bool, object
-        ],
-    )
-    def test_dtype_preservation(self, data, uniques, dtype_list):
+    def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
-        for dtype in dtype_list:
-            if dtype not in [bytes, str, np.void]:
-                result = Series(data, dtype=dtype).unique()
-                expected = np.array(uniques, dtype=dtype)
+        if any_numpy_dtype in (BYTES_DTYPES + STRING_DTYPES):
+            pytest.skip("skip string dtype")
+        elif is_integer_dtype(any_numpy_dtype):
+            data = [1, 2, 2]
+            uniques = [1, 2]
+        elif is_float_dtype(any_numpy_dtype):
+            data = [1, 2, 2]
+            uniques = [1.0, 2.0]
+        elif is_complex_dtype(any_numpy_dtype):
+            data = [complex(1, 0), complex(2, 0), complex(2, 0)]
+            uniques = [complex(1, 0), complex(2, 0)]
+        elif is_bool_dtype(any_numpy_dtype):
+            data = [True, True, False]
+            uniques = [True, False]
+        elif is_object_dtype(any_numpy_dtype):
+            data = ["A", "B", "B"]
+            uniques = ["A", "B"]
+        else:
+            # datetime64[ns]/M8[ns]/timedelta64[ns]/m8[ns] tested elsewhere
+            data = [1, 2, 2]
+            uniques = [1, 2]
 
-                tm.assert_numpy_array_equal(result, expected)
+        result = Series(data, dtype=any_numpy_dtype).unique()
+        expected = np.array(uniques, dtype=any_numpy_dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime64_dtype_array_returned(self):
         # GH 9431
