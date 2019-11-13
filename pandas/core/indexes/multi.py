@@ -675,7 +675,7 @@ class MultiIndex(Index):
         raise ValueError(msg)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """Whether the levels of a MultiIndex all have the same dtype.
 
         This looks at the dtypes of the levels.
@@ -1427,7 +1427,7 @@ class MultiIndex(Index):
             return Index(self.values).is_monotonic
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.

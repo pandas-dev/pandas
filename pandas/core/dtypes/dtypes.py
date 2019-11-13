@@ -416,12 +416,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return hash(self) == hash(other)
 
     def __repr__(self) -> str_type:
-        tpl = "CategoricalDtype(categories={}ordered={})"
+        tpl = "CategoricalDtype(categories={data}ordered={ordered})"
         if self.categories is None:
             data = "None, "
         else:
             data = self.categories._format_data(name=self.__class__.__name__)
-        return tpl.format(data, self._ordered)
+        return tpl.format(data=data, ordered=self._ordered)
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
@@ -719,7 +719,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return DatetimeArray
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str_type):
         """
         Construct a DatetimeTZDtype from a string.
 
@@ -736,7 +736,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         datetime64[ns, UTC]
         """
         if isinstance(string, str):
-            msg = "Could not construct DatetimeTZDtype from '{}'"
+            msg = "Could not construct DatetimeTZDtype from '{string}'"
             match = cls._match.match(string)
             if match:
                 d = match.groupdict()
@@ -747,8 +747,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     #  pytz timezone (actually pytz.UnknownTimeZoneError).
                     # TypeError if we pass a nonsense tz;
                     # ValueError if we pass a unit other than "ns"
-                    raise TypeError(msg.format(string)) from err
-            raise TypeError(msg.format(string))
+                    raise TypeError(msg.format(string=string)) from err
+            raise TypeError(msg.format(string=string))
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
@@ -756,11 +756,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
-    def name(self):
+    def name(self) -> str_type:
         """A string representation of the dtype."""
         return str(self)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # make myself hashable
         # TODO: update this.
         return hash(str(self))
@@ -893,14 +893,14 @@ class PeriodDtype(PandasExtensionDtype):
         return self.name
 
     @property
-    def name(self):
+    def name(self) -> str_type:
         return "period[{freq}]".format(freq=self.freq.freqstr)
 
     @property
     def na_value(self):
         return NaT
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # make myself hashable
         return hash(str(self))
 
@@ -917,7 +917,7 @@ class PeriodDtype(PandasExtensionDtype):
         self._freq = state["freq"]
 
     @classmethod
-    def is_dtype(cls, dtype):
+    def is_dtype(cls, dtype) -> bool:
         """
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
@@ -1073,7 +1073,7 @@ class IntervalDtype(PandasExtensionDtype):
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # make myself hashable
         return hash(str(self))
 
@@ -1097,7 +1097,7 @@ class IntervalDtype(PandasExtensionDtype):
         self._subtype = state["subtype"]
 
     @classmethod
-    def is_dtype(cls, dtype):
+    def is_dtype(cls, dtype) -> bool:
         """
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
