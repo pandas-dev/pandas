@@ -234,7 +234,7 @@ Use other libraries
 Pandas is just one library offering a DataFrame API. Because of its popularity,
 pandas' API has become something of a standard that other libraries implement.
 The pandas documentation maintains a list of libraries implementing a DataFrame API
-in :ref:`our ecosystem page <ecosystem.out-of-core>`.
+in `our ecosystem page </community/ecosystem.html#out-of-core>`__.
 
 For example, `Dask`_, a parallel computing library, has `dask.dataframe`_, a
 pandas-like API for working with larger than memory datasets in parallel. Dask

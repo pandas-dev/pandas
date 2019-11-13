@@ -14,7 +14,7 @@ We use the standard convention for referencing the matplotlib API:
    plt.close('all')
 
 We provide the basics in pandas to easily create decent looking plots.
-See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
+See the `ecosystem </community/ecosystem.html#visualization>`__ section for visualization
 libraries that go beyond the basics documented here.
 
 .. note::

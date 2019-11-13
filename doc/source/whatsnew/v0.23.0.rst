@@ -237,7 +237,7 @@ array are respected:
 
 For more, see the :ref:`extension types <extending.extension-types>`
 documentation. If you build an extension array, publicize it on our
-:ref:`ecosystem page <ecosystem.extensions>`.
+`ecosystem page </community/ecosystem.html#extension-data-types>`__.
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
 
