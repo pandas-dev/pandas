@@ -125,7 +125,7 @@ def isna(obj):
 isnull = isna
 
 
-def _isna_new(obj):
+def _isna_new(obj) -> bool:
 
     if is_scalar(obj):
         return libmissing.checknull(obj)
@@ -375,7 +375,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan):
+def _isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -392,7 +392,7 @@ def _isna_compat(arr, fill_value=np.nan):
     return True
 
 
-def array_equivalent(left, right, strict_nan: bool = False):
+def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
