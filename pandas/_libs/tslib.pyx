@@ -275,7 +275,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
             elif show_us:
                 res += f'.{dts.us:06d}'
             elif show_ms:
-                res += f'{dts.us / 1000:03d}'
+                res += f'.{dts.us / 1000:03d}'
 
             result[i] = res
 
