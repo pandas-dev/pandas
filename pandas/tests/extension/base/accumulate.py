@@ -21,7 +21,7 @@ class BaseAccumulateTests(BaseExtensionTests):
 
 
 class BaseNoAccumulateTests(BaseAccumulateTests):
-    """ we don't define any accumulation """
+    """ we don't define any accumulations """
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_numeric(self, data, all_numeric_accumulations, skipna):
