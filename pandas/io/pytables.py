@@ -1268,27 +1268,28 @@ class HDFStore:
         self,
         file,
         mode="w",
-        propindexes=True,
+        propindexes: bool = True,
         keys=None,
         complib=None,
         complevel=None,
         fletcher32: bool = False,
         overwrite=True,
     ):
-        """ copy the existing store to a new file, upgrading in place
+        """
+        Copy the existing store to a new file, updating in place.
 
-            Parameters
-            ----------
-            propindexes: restore indexes in copied file (defaults to True)
-            keys       : list of keys to include in the copy (defaults to all)
-            overwrite  : overwrite (remove and replace) existing nodes in the
-                new store (default is True)
-            mode, complib, complevel, fletcher32 same as in HDFStore.__init__
+        Parameters
+        ----------
+        propindexes: bool, default True
+            Restore indexes in copied file.
+        keys       : list of keys to include in the copy (defaults to all)
+        overwrite  : overwrite (remove and replace) existing nodes in the
+            new store (default is True)
+        mode, complib, complevel, fletcher32 same as in HDFStore.__init__
 
-            Returns
-            -------
-            open file handle of the new store
-
+        Returns
+        -------
+        open file handle of the new store
         """
         new_store = HDFStore(
             file, mode=mode, complib=complib, complevel=complevel, fletcher32=fletcher32
@@ -1323,7 +1324,7 @@ class HDFStore:
 
         return new_store
 
-    def info(self):
+    def info(self) -> str:
         """
         Print detailed information on the store.
 
