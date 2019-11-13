@@ -1252,7 +1252,8 @@ class _Rolling_and_Expanding(_Rolling):
             return window_func(values, begin, end, min_periods)
 
         # Why do we always pass center=False?
-        return self._apply(apply_func, center=False, floor=0)
+        # name=func for WindowGroupByMixin._apply
+        return self._apply(apply_func, center=False, floor=0, name=func)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)

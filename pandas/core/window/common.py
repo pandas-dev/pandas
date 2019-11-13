@@ -69,6 +69,7 @@ class WindowGroupByMixin(GroupByMixin):
         Dispatch to apply; we are stripping all of the _apply kwargs and
         performing the original function call on the grouped object.
         """
+        kwargs.pop('floor', None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
