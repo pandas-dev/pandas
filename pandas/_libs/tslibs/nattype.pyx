@@ -239,7 +239,7 @@ cdef class _NaT(datetime):
         """
         return np.datetime64('NaT', 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 

@@ -201,7 +201,7 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
