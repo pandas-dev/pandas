@@ -183,9 +183,6 @@ class BaseGrouper:
                 # Otherwise we need to fall back to the slow implementation.
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
-                    # TODO: in many/most cases where the lengths do not match,
-                    #  result_values is a single-element list whose element
-                    #  is listlike with matching length.
 
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
