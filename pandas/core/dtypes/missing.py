@@ -79,6 +79,9 @@ def isna(obj):
     >>> pd.isna('dog')
     False
 
+    >>> pd.isna(pd.NA)
+    True
+
     >>> pd.isna(np.nan)
     True
 
@@ -322,6 +325,9 @@ def notna(obj):
 
     >>> pd.notna('dog')
     True
+
+    >>> pd.notna(pd.NA)
+    False
 
     >>> pd.notna(np.nan)
     False
