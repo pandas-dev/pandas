@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1266,9 +1265,6 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     """
     Check if the exception raised is an unorderable exception.
 
-    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
-    we need to condition based on Python version.
-
     Parameters
     ----------
     e : Exception or sub-class
@@ -1276,14 +1272,10 @@ def _is_unorderable_exception(e: TypeError) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the exception raised is an unorderable exception.
     """
-
-    if PY36:
-        return "'>' not supported between instances of" in str(e)
-
-    return "unorderable" in str(e)
+    return "'>' not supported between instances of" in str(e)
 
 
 def needs_i8_conversion(arr_or_dtype) -> bool:
