@@ -118,6 +118,14 @@ echo
 echo "conda list pandas"
 conda list pandas
 
+echo "[git info]"
+set -v
+git log | head -n 50
+git tag
+git describe --tags --dirty --always --long
+set +v
+
+
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
@@ -133,9 +141,10 @@ echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 
 echo "[pandas version info]"
-git describe --tags --dirty --always --long
+set -v
 python -c "import pandas ; print(pandas.__version__)"
 python -c "import pandas ; print(pandas._version.get_versions())"
+set +v
 
 echo "[Install pandas]"
 python -m pip install --no-build-isolation -e .
