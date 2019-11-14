@@ -73,7 +73,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def wrap_results_for_axis(
-        self, results: ResType, res_index: Index
+        self, results: ResType, res_index: "Index"
     ) -> Union["Series", "DataFrame"]:
         pass
 
@@ -311,7 +311,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, Index]:
+    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
         series_gen = self.series_generator
         res_index = self.result_index
 
@@ -341,7 +341,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         return results, res_index
 
     def wrap_results(
-        self, results: ResType, res_index: Index
+        self, results: ResType, res_index: "Index"
     ) -> Union["Series", "DataFrame"]:
 
         # see if we can infer the results
@@ -374,7 +374,9 @@ class FrameRowApply(FrameApply):
     def result_columns(self) -> "Index":
         return self.index
 
-    def wrap_results_for_axis(self, results: ResType, res_index: Index) -> "DataFrame":
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: "Index"
+    ) -> "DataFrame":
         """ return the results for the rows """
 
         result = self.obj._constructor(data=results)
@@ -413,7 +415,7 @@ class FrameColumnApply(FrameApply):
         return self.columns
 
     def wrap_results_for_axis(
-        self, results: ResType, res_index: Index
+        self, results: ResType, res_index: "Index"
     ) -> Union["Series", "DataFrame"]:
         """ return the results for the columns """
         result: Union["Series", "DataFrame"]
@@ -435,7 +437,7 @@ class FrameColumnApply(FrameApply):
 
         return result
 
-    def infer_to_same_shape(self, results: ResType, res_index: Index) -> "DataFrame":
+    def infer_to_same_shape(self, results: ResType, res_index: "Index") -> "DataFrame":
         """ infer the results to the same shape as the input object """
 
         result = self.obj._constructor(data=results)
