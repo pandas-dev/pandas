@@ -177,10 +177,6 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
                 "full-revisionid": keywords["full"].strip(),
                 "dirty": False,
                 "error": None,
-                "why": "keywords1",
-                "r": r,
-                "ref": ref,
-                "tags": sorted(tags),
             }
     # no suitable tags, so version is "0+unknown", but full hex is still there
     if verbose:
@@ -190,7 +186,6 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         "full-revisionid": keywords["full"].strip(),
         "dirty": False,
         "error": "no suitable tags",
-        "why": "keywords2",
     }
 
 
@@ -413,13 +408,11 @@ def render(pieces, style):
             "full-revisionid": pieces.get("long"),
             "dirty": None,
             "error": pieces["error"],
-            "why": "render1",
         }
 
     if not style or style == "default":
         style = "pep440"  # the default
 
-    print("style", style, pieces)
     if style == "pep440":
         rendered = render_pep440(pieces)
     elif style == "pep440-pre":
@@ -455,7 +448,6 @@ def get_versions():
     try:
         return git_versions_from_keywords(get_keywords(), cfg.tag_prefix, verbose)
     except NotThisMethod:
-        print('not this method')
         pass
 
     try:
@@ -471,7 +463,6 @@ def get_versions():
             "full-revisionid": None,
             "dirty": None,
             "error": "unable to find root of source tree",
-            "why": "NameError",
         }
 
     try:
