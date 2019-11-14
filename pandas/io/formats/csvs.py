@@ -327,7 +327,7 @@ class CSVFormatter:
 
             self._save_chunk(start_i, end_i)
 
-    def _save_chunk(self, start_i, end_i):
+    def _save_chunk(self, start_i: int, end_i: int):
 
         data_index = self.data_index
 

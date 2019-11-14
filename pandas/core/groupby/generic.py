@@ -30,7 +30,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -235,10 +234,6 @@ class SeriesGroupBy(GroupBy):
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -264,10 +259,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError, AttributeError, IndexError):
-                # TODO: IndexError can be removed here following GH#29106
-                # TODO: AttributeError is caused by _index_data hijinx in
-                #  libreduction, can be removed after GH#29160
+            except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -1808,9 +1800,6 @@ def _normalize_keyword_aggregation(
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to

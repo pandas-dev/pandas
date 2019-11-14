@@ -236,7 +236,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data = None
+    _data: Union[ExtensionArray, np.ndarray]
     _id = None
     name = None
     _comparables = ["name"]
@@ -659,8 +659,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the length of the Index.
         """
-        # Assertion needed for mypy, see GH#29475
-        assert self._data is not None
         return len(self._data)
 
     def __array__(self, dtype=None):

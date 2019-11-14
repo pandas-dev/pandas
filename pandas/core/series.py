@@ -1,7 +1,6 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -13,7 +12,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -364,13 +362,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        elif not PY36 and not isinstance(data, OrderedDict) and data:
-            # Need the `and data` to avoid sorting Series(None, index=[...])
-            # since that isn't really dict-like
-            try:
-                s = s.sort_index()
-            except TypeError:
-                pass
         return s._data, s.index
 
     @classmethod

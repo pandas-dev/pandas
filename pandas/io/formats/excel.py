@@ -64,8 +64,9 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str):
-        """Convert CSS declarations to ExcelWriter style
+    def __call__(self, declarations_str: str):
+        """
+        Convert CSS declarations to ExcelWriter style.
 
         Parameters
         ----------
@@ -280,6 +281,7 @@ class CSSToExcelConverter:
                 if "text-shadow" in props
                 else None
             ),
+            # FIXME: dont leave commented-out
             # 'vertAlign':,
             # 'charset': ,
             # 'scheme': ,
@@ -666,7 +668,7 @@ class ExcelFormatter:
         for cell in self._generate_body(gcolidx):
             yield cell
 
-    def _generate_body(self, coloffset):
+    def _generate_body(self, coloffset: int):
         if self.styler is None:
             styles = None
         else:

@@ -60,7 +60,7 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s, regex=_RE_WHITESPACE):
+def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -68,8 +68,7 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     ----------
     s : str or unicode
         The string from which to remove extra whitespace.
-
-    regex : regex
+    regex : re.Pattern
         The regular expression to use to remove extra whitespace.
 
     Returns
@@ -256,7 +255,8 @@ class _HtmlFrameParser:
         raise AbstractMethodError(self)
 
     def _parse_td(self, obj):
-        """Return the td elements from a row element.
+        """
+        Return the td elements from a row element.
 
         Parameters
         ----------
@@ -605,7 +605,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         )
 
 
-def _build_xpath_expr(attrs):
+def _build_xpath_expr(attrs) -> str:
     """Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
@@ -815,7 +815,8 @@ _valid_parsers = {
 
 
 def _parser_dispatch(flavor):
-    """Choose the parser based on the input flavor.
+    """
+    Choose the parser based on the input flavor.
 
     Parameters
     ----------
@@ -855,7 +856,7 @@ def _parser_dispatch(flavor):
     return _valid_parsers[flavor]
 
 
-def _print_as_set(s):
+def _print_as_set(s) -> str:
     return "{" + "{arg}".format(arg=", ".join(pprint_thing(el) for el in s)) + "}"
 
 
