@@ -162,9 +162,9 @@ typedef struct parser_t {
     int64_t skip_footer;
     // pick one, depending on whether the converter requires GIL
     double (*double_converter_nogil)(const char *, char **,
-                                     char, char, char, int);
+                                     char, char, char, int, int *, int *);
     double (*double_converter_withgil)(const char *, char **,
-                                       char, char, char, int);
+                                       char, char, char, int, int *, int *);
 
     // error handling
     char *warn_msg;
