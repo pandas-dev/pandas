@@ -265,7 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        **kwargs
+        **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -4085,11 +4085,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_scalar(value):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
-
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks in MultiIndex
-        return False
 
     def _is_memory_usage_qualified(self):
         """

@@ -794,7 +794,7 @@ class Resampler(_GroupBy, ShallowMixin):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -808,7 +808,7 @@ class Resampler(_GroupBy, ShallowMixin):
             limit_direction=limit_direction,
             limit_area=limit_area,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def asfreq(self, fill_value=None):
@@ -1370,7 +1370,7 @@ class TimeGrouper(Grouper):
         kind=None,
         convention=None,
         base=0,
-        **kwargs
+        **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled

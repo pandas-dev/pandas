@@ -956,7 +956,7 @@ class MultiIndex(Index):
         codes=None,
         deep=False,
         _set_identity=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1020,7 +1020,7 @@ class MultiIndex(Index):
             return MultiIndex(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                **kwargs
+                **kwargs,
             )
         return self._shallow_copy(values, **kwargs)
 
@@ -1395,11 +1395,6 @@ class MultiIndex(Index):
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
-
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks
-        return True
 
     @cache_readonly
     def is_monotonic_increasing(self):

@@ -570,7 +570,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs
+        **kwargs,
     )
 
     # Post-process
