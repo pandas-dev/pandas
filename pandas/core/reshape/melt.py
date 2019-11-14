@@ -10,7 +10,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
-from pandas.core.frame import _shared_docs
+from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
@@ -21,13 +21,13 @@ from pandas.core.tools.numeric import to_numeric
     % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
 )
 def melt(
-    frame,
+    frame: DataFrame,
     id_vars=None,
     value_vars=None,
     var_name=None,
     value_name="value",
     col_level=None,
-):
+) -> DataFrame:
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -119,7 +119,7 @@ def melt(
     return frame._constructor(mdata, columns=mcolumns)
 
 
-def lreshape(data, groups, dropna=True, label=None):
+def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
 
@@ -412,14 +412,14 @@ def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
                 two  2.9
     """
 
-    def get_var_names(df, stub, sep, suffix):
+    def get_var_names(df, stub: str, sep: str, suffix):
         regex = r"^{stub}{sep}{suffix}$".format(
             stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
         )
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
-    def melt_stub(df, stub, i, j, value_vars, sep: str):
+    def melt_stub(df, stub: str, i, j, value_vars, sep: str):
         newdf = melt(
             df,
             id_vars=i,

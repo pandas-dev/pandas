@@ -107,7 +107,7 @@ def _get_distinct_objs(objs):
     return res
 
 
-def _get_combined_index(indexes, intersect=False, sort=False):
+def _get_combined_index(indexes, intersect: bool = False, sort=False) -> Index:
     """
     Return the union or intersection of indexes.
 

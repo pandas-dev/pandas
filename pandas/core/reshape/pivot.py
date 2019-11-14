@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Dict, Callable
+from typing import Callable, Dict, Tuple, Union
 
 import numpy as np
 
@@ -677,7 +677,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
     return table
 
 
-def _get_names(arrs, names, prefix="row"):
+def _get_names(arrs, names, prefix: str = "row"):
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

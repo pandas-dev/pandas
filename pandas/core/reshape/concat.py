@@ -520,7 +520,7 @@ class _Concatenator:
         new_axes[self.axis] = self._get_concat_axis()
         return new_axes
 
-    def _get_comb_axis(self, i):
+    def _get_comb_axis(self, i: int):
         data_axis = self.objs[0]._get_block_manager_axis(i)
         try:
             return _get_objs_combined_axis(
@@ -530,7 +530,7 @@ class _Concatenator:
             types = [type(x).__name__ for x in self.objs]
             raise TypeError("Cannot concatenate list of {types}".format(types=types))
 
-    def _get_concat_axis(self):
+    def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
         """
@@ -541,7 +541,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)
+                names = [None] * len(self.objs)  # type: list
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
