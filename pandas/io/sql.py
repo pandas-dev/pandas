@@ -662,10 +662,8 @@ class SQLTable(PandasObject):
             elif self.if_exists == "append":
                 pass
             elif self.if_exists == "upsert_delete":
-                # Pass here, upsert is handled in self.insert() method
                 pass
             elif self.if_exists == "upsert_ignore":
-                # Pass here, upsert is handled in self.insert() method
                 pass
             else:
                 raise ValueError(
@@ -676,14 +674,16 @@ class SQLTable(PandasObject):
 
     def _upsert_delete_processing(self):
         """
-        Upsert delete prioritizes incoming data over what is already in the DB.
-        This method generates the Delete statement which is to be executed
-        in the same transaction as the ensuing data insert.
+        Generate delete statement, to remove rows with clashing primary key from database.
+
+        `upsert_delete` prioritizes incoming data, over existing data in the DB.
+        This method generates the Delete statement for duplicate rows, 
+        which is to be executed in the same transaction as the ensuing data insert.
 
         Returns
         ----------
-        delete_statement : sqlalchemy.sql.dml.Delete object
-            - Delete statement to be executed against DB
+        sqlalchemy.sql.dml.Delete
+            Delete statement to be executed against DB
         """
         from sqlalchemy import tuple_
 
@@ -697,15 +697,17 @@ class SQLTable(PandasObject):
 
     def _upsert_ignore_processing(self):
         """
-        Upsert Ignore prioritizes data in DB over incoming data.
+        Delete clashing values from a copy of the incoming dataframe.
+
+        `upsert_ignore` prioritizes data in DB over incoming data.
         This method creates a copy of the incoming dataframe,
         fetches matching data from DB, deletes matching data from copied frame,
         and returns that frame to be inserted.
 
         Returns
         ----------
-        temp : DataFrame
-            - Filtered dataframe, with values that are already in DB removed.
+        DataFrame
+            Filtered dataframe, with values that are already in DB removed.
         """
         from sqlalchemy import tuple_, select
 
@@ -734,15 +736,19 @@ class SQLTable(PandasObject):
 
     def _get_primary_key_data(self):
         """
-        Upsert workflows require knowledge of what is already in the database
-        this method reflects the meta object and gets a list of primary keys
+        Get primary key names from database, and yield columns with same names from dataframe.
+
+        Upsert workflows require knowledge of what is already in the database.
+        This method reflects the meta object and gets a list of primary keys,
+        it then returns all columns from the incoming dataframe with names matching
+        these keys.
 
         Returns
         -------
-        primary_keys, primary_key_values : Tuple[List[str], Iterable]
-            - primary_keys : List of primary key column names
-            - primary_key_values : Iterable of dataframe rows
-                corresponding to primary_key columns
+        primary_keys : list of str 
+            Primary key names
+        primary_key_values : iterable
+            DataFrame rows, for columns corresponding to `primary_key` names
         """
         # reflect MetaData object and assign contents of db to self.table attribute
         self.pd_sql.meta.reflect(only=[self.name], views=True)
@@ -790,15 +796,16 @@ class SQLTable(PandasObject):
 
     def _get_index_formatted_dataframe(self):
         """
-        Method that checks whether the dataframe index is also to be added to the
-        database table.  If it is, it takes care of formatting the incoming dataframe
-        accordingly
+        Format index of incoming dataframe to be aligned with a database table.
+        
+        Copy original dataframe, and check whether the dataframe index 
+        is to be added to the database table.  
+        If it is, reset the index so that it becomes a normal column, else return 
 
         Returns
         -------
-        DataFrame object
+        DataFrame
         """
-
         # Originally this functionality formed the first step of the insert_data method.
         # It will be useful to have in other places, so moved here to keep code DRY.
         temp = self.frame.copy()
@@ -851,8 +858,7 @@ class SQLTable(PandasObject):
             self._insert(data=data, chunksize=chunksize, method=method)
         elif self.if_exists == "upsert_delete":
             delete_statement = self._upsert_delete_processing()
-            # nested transaction to ensure delete is
-            # rolled back in case of poor data
+            # nested transaction to ensure delete is rolled back in case of poor data
             with self.pd_sql.run_transaction() as trans:
                 trans.execute(delete_statement)
                 self._insert(chunksize=chunksize, method=method)
