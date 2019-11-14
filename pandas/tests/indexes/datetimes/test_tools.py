@@ -266,19 +266,45 @@ class TestTimeConversionFormats:
             [
                 "%Y-%m-%d %H:%M:%S%z",
                 ["2010-01-01 12:00:00+0100"] * 2,
-                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [
+                    pd.Timestamp(
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(60),  # type:ignore
+                    )
+                ]
+                * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100"] * 2,
-                [pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [
+                    pd.Timestamp(
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(60),  # type:ignore
+                    )
+                ]
+                * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100"],
                 [
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60)),
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(-60)),
+                    pd.Timestamp(
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(60),  # type:ignore
+                    ),
+                    pd.Timestamp(
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(-60),  # type:ignore
+                    ),
                 ],
             ],
             [
@@ -286,9 +312,17 @@ class TestTimeConversionFormats:
                 ["2010-01-01 12:00:00 Z", "2010-01-01 12:00:00 Z"],
                 [
                     pd.Timestamp(
-                        "2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(0),  # type:ignore
                     ),  # pytz coerces to UTC
-                    pd.Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)),
+                    pd.Timestamp(
+                        "2010-01-01 12:00:00",
+                        # https://github.com/python/typeshed/pull/3393
+                        # error: Module has no attribute "FixedOffset"
+                        tzinfo=pytz.FixedOffset(0),  # type:ignore
+                    ),
                 ],
             ],
         ],
@@ -2078,12 +2112,16 @@ class TestDatetimeParsingWrappers:
         [
             (
                 "2013-01-01 05:45+0545",
-                pytz.FixedOffset(345),
+                # https://github.com/python/typeshed/pull/3393
+                # error: Module has no attribute "FixedOffset"
+                pytz.FixedOffset(345),  # type:ignore
                 "Timestamp('2013-01-01 05:45:00+0545', tz='pytz.FixedOffset(345)')",
             ),
             (
                 "2013-01-01 05:30+0530",
-                pytz.FixedOffset(330),
+                # https://github.com/python/typeshed/pull/3393
+                # error: Module has no attribute "FixedOffset"
+                pytz.FixedOffset(330),  # type:ignore
                 "Timestamp('2013-01-01 05:30:00+0530', tz='pytz.FixedOffset(330)')",
             ),
         ],
