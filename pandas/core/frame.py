@@ -5419,7 +5419,7 @@ class DataFrame(NDFrame):
         if other.empty and self.empty:
             empty_columns = self.columns.union(other_columns)
             for col in empty_columns:
-                other[col] = None
+                other = other.assign(col=None)
             return other.copy()
 
         if other.empty and len(new_index) == len(self.index):
