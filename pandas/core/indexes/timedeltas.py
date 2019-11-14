@@ -406,6 +406,7 @@ class TimedeltaIndex(
         """
         return super().intersection(other, sort=sort)
 
+    @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
         new_idx.freq = None
