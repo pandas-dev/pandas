@@ -218,7 +218,7 @@ html_theme = "pandas_sphinx_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+html_logo = "../../web/pandas/static/img/pandas.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -378,7 +378,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        r"Wes McKinney\n\& PyData Development Team",
+        "Wes McKinney and the Pandas Development Team",
         "manual",
     )
 ]
@@ -608,11 +608,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:

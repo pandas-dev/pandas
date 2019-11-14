@@ -1142,10 +1142,10 @@ cdef class _Timedelta(timedelta):
 
         return fmt.format(**comp_dict)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Timedelta('{val}')".format(val=self._repr_base(format='long'))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._repr_base(format='long')
 
     def __bool__(self):
@@ -1156,8 +1156,6 @@ cdef class _Timedelta(timedelta):
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
         values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
-
-        .. versionadded:: 0.20.0
 
         Returns
         -------

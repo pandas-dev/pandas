@@ -1,3 +1,5 @@
+from typing import Type, Union
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,9 @@ from pandas._libs import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 
 
@@ -52,7 +57,7 @@ def timedelta_index(request):
 
 
 class SharedTests:
-    index_cls = None
+    index_cls = None  # type: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
 
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific
@@ -468,7 +473,15 @@ class TestDatetimeArray(SharedTests):
         arr = DatetimeArray(datetime_index)
 
         result = arr.strftime("%Y %b")
-        expected = np.array(datetime_index.strftime("%Y %b"))
+        expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime_nat(self):
+        # GH 29578
+        arr = DatetimeArray(DatetimeIndex(["2019-01-01", pd.NaT]))
+
+        result = arr.strftime("%Y-%m-%d")
+        expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -674,7 +687,15 @@ class TestPeriodArray(SharedTests):
         arr = PeriodArray(period_index)
 
         result = arr.strftime("%Y")
-        expected = np.array(period_index.strftime("%Y"))
+        expected = np.array([per.strftime("%Y") for per in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime_nat(self):
+        # GH 29578
+        arr = PeriodArray(PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"))
+
+        result = arr.strftime("%Y-%m-%d")
+        expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
 

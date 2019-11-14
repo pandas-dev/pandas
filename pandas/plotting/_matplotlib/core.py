@@ -4,8 +4,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -28,8 +26,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
@@ -40,9 +38,6 @@ from pandas.plotting._matplotlib.tools import (
     format_date_labels,
     table,
 )
-
-if get_option("plotting.matplotlib.register_converters"):
-    converter.register(explicit=False)
 
 
 class MPLPlot:
@@ -112,7 +107,6 @@ class MPLPlot:
 
         import matplotlib.pyplot as plt
 
-        converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
 
@@ -199,6 +193,8 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
+        import matplotlib.colors
+
         if "color" not in self.kwds and "colors" in self.kwds:
             warnings.warn(
                 (
@@ -240,13 +236,14 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                if re.match("^[a-z]+?", s) is not None:
-                    raise ValueError(
-                        "Cannot pass 'style' string with a color "
-                        "symbol and 'color' keyword argument. Please"
-                        " use one or the other or pass 'style' "
-                        "without a color symbol"
-                    )
+                for char in s:
+                    if char in matplotlib.colors.BASE_COLORS:
+                        raise ValueError(
+                            "Cannot pass 'style' string with a color "
+                            "symbol and 'color' keyword argument. Please"
+                            " use one or the other or pass 'style' "
+                            "without a color symbol"
+                        )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -648,6 +645,7 @@ class MPLPlot:
         return x
 
     @classmethod
+    @register_pandas_matplotlib_converters
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
         mask = isna(y)
         if mask.any():

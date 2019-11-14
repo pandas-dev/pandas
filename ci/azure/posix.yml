@@ -9,17 +9,16 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        py35_macos:
-          ENV_FILE: ci/deps/azure-macos-35.yaml
-          CONDA_PY: "35"
+        py36_macos:
+          ENV_FILE: ci/deps/azure-macos-36.yaml
+          CONDA_PY: "36"
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
-        py35_compat:
-          ENV_FILE: ci/deps/azure-35-compat.yaml
-          CONDA_PY: "35"
+        py36_minimum_versions:
+          ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
+          CONDA_PY: "36"
           PATTERN: "not slow and not network"
-
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
@@ -45,13 +44,16 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
 
-        py37_np_dev:
-          ENV_FILE: ci/deps/azure-37-numpydev.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-          TEST_ARGS: "-W error"
-          PANDAS_TESTING_MODE: "deprecate"
-          EXTRA_APT: "xsel"
+        # https://github.com/pandas-dev/pandas/issues/29432
+        # py37_np_dev:
+        #   ENV_FILE: ci/deps/azure-37-numpydev.yaml
+        #   CONDA_PY: "37"
+        #   PATTERN: "not slow and not network"
+        #   TEST_ARGS: "-W error"
+        #   PANDAS_TESTING_MODE: "deprecate"
+        #   EXTRA_APT: "xsel"
+        #   # TODO:
+        #   continueOnError: true
 
   steps:
     - script: |

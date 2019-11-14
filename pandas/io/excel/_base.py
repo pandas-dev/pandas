@@ -79,8 +79,6 @@ index_col : int, list of int, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 usecols : int, str, list-like, or callable default None
-    Return a subset of the columns.
-
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
@@ -98,6 +96,8 @@ usecols : int, str, list-like, or callable default None
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
+    Returns a subset of the columns according to behavior above.
+
       .. versionadded:: 0.24.0
 
 squeeze : bool, default False
@@ -107,9 +107,6 @@ dtype : Type name or dict of column -> type, default None
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-
-    .. versionadded:: 0.20.0
-
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Acceptable values are None, "xlrd", "openpyxl" or "odf".
@@ -136,8 +133,24 @@ na_values : scalar, str, list-like, or dict, default None
     + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
+na_filter : bool, default True
+    Detect missing value markers (empty strings and the value of na_values). In
+    data without any NAs, passing na_filter=False can improve the performance
+    of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
@@ -539,9 +552,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
     date_format : str, default None
-        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
-        Format string for datetime objects written into Excel files
+        Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).

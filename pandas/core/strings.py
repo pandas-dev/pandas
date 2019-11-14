@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_re,
     is_scalar,
-    is_string_like,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -123,8 +122,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
@@ -135,6 +134,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
@@ -491,18 +491,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     ----------
     pat : str or compiled regex
         String can be a character sequence or regular expression.
-
-        .. versionadded:: 0.20.0
-            `pat` also accepts a compiled regex.
-
     repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
-
-        .. versionadded:: 0.20.0
-            `repl` also accepts a callable.
-
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None
@@ -608,7 +600,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
-    if not (is_string_like(repl) or callable(repl)):
+    if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)

@@ -29,13 +29,14 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
 
-    # First pass, determine size of result set, do not use the NA group
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
+    with nogil:
+        # First pass, determine size of result set, do not use the NA group
+        for i in range(1, max_groups + 1):
+            lc = left_count[i]
+            rc = right_count[i]
 
-        if rc > 0 and lc > 0:
-            count += lc * rc
+            if rc > 0 and lc > 0:
+                count += lc * rc
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -44,19 +45,20 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
     left_indexer = np.empty(count, dtype=np.int64)
     right_indexer = np.empty(count, dtype=np.int64)
 
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
+    with nogil:
+        for i in range(1, max_groups + 1):
+            lc = left_count[i]
+            rc = right_count[i]
 
-        if rc > 0 and lc > 0:
-            for j in range(lc):
-                offset = position + j * rc
-                for k in range(rc):
-                    left_indexer[offset + k] = left_pos + j
-                    right_indexer[offset + k] = right_pos + k
-            position += lc * rc
-        left_pos += lc
-        right_pos += rc
+            if rc > 0 and lc > 0:
+                for j in range(lc):
+                    offset = position + j * rc
+                    for k in range(rc):
+                        left_indexer[offset + k] = left_pos + j
+                        right_indexer[offset + k] = right_pos + k
+                position += lc * rc
+            left_pos += lc
+            right_pos += rc
 
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
@@ -79,12 +81,13 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
 
-    # First pass, determine size of result set, do not use the NA group
-    for i in range(1, max_groups + 1):
-        if right_count[i] > 0:
-            count += left_count[i] * right_count[i]
-        else:
-            count += left_count[i]
+    with nogil:
+        # First pass, determine size of result set, do not use the NA group
+        for i in range(1, max_groups + 1):
+            if right_count[i] > 0:
+                count += left_count[i] * right_count[i]
+            else:
+                count += left_count[i]
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -93,24 +96,25 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
     left_indexer = np.empty(count, dtype=np.int64)
     right_indexer = np.empty(count, dtype=np.int64)
 
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
+    with nogil:
+        for i in range(1, max_groups + 1):
+            lc = left_count[i]
+            rc = right_count[i]
 
-        if rc == 0:
-            for j in range(lc):
-                left_indexer[position + j] = left_pos + j
-                right_indexer[position + j] = -1
-            position += lc
-        else:
-            for j in range(lc):
-                offset = position + j * rc
-                for k in range(rc):
-                    left_indexer[offset + k] = left_pos + j
-                    right_indexer[offset + k] = right_pos + k
-            position += lc * rc
-        left_pos += lc
-        right_pos += rc
+            if rc == 0:
+                for j in range(lc):
+                    left_indexer[position + j] = left_pos + j
+                    right_indexer[position + j] = -1
+                position += lc
+            else:
+                for j in range(lc):
+                    offset = position + j * rc
+                    for k in range(rc):
+                        left_indexer[offset + k] = left_pos + j
+                        right_indexer[offset + k] = right_pos + k
+                position += lc * rc
+            left_pos += lc
+            right_pos += rc
 
     left_indexer = _get_result_indexer(left_sorter, left_indexer)
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
@@ -149,15 +153,16 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
 
-    # First pass, determine size of result set, do not use the NA group
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
+    with nogil:
+        # First pass, determine size of result set, do not use the NA group
+        for i in range(1, max_groups + 1):
+            lc = left_count[i]
+            rc = right_count[i]
 
-        if rc > 0 and lc > 0:
-            count += lc * rc
-        else:
-            count += lc + rc
+            if rc > 0 and lc > 0:
+                count += lc * rc
+            else:
+                count += lc + rc
 
     # exclude the NA group
     left_pos = left_count[0]
@@ -166,29 +171,30 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
     left_indexer = np.empty(count, dtype=np.int64)
     right_indexer = np.empty(count, dtype=np.int64)
 
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
+    with nogil:
+        for i in range(1, max_groups + 1):
+            lc = left_count[i]
+            rc = right_count[i]
 
-        if rc == 0:
-            for j in range(lc):
-                left_indexer[position + j] = left_pos + j
-                right_indexer[position + j] = -1
-            position += lc
-        elif lc == 0:
-            for j in range(rc):
-                left_indexer[position + j] = -1
-                right_indexer[position + j] = right_pos + j
-            position += rc
-        else:
-            for j in range(lc):
-                offset = position + j * rc
-                for k in range(rc):
-                    left_indexer[offset + k] = left_pos + j
-                    right_indexer[offset + k] = right_pos + k
-            position += lc * rc
-        left_pos += lc
-        right_pos += rc
+            if rc == 0:
+                for j in range(lc):
+                    left_indexer[position + j] = left_pos + j
+                    right_indexer[position + j] = -1
+                position += lc
+            elif lc == 0:
+                for j in range(rc):
+                    left_indexer[position + j] = -1
+                    right_indexer[position + j] = right_pos + j
+                position += rc
+            else:
+                for j in range(lc):
+                    offset = position + j * rc
+                    for k in range(rc):
+                        left_indexer[offset + k] = left_pos + j
+                        right_indexer[offset + k] = right_pos + k
+                position += lc * rc
+            left_pos += lc
+            right_pos += rc
 
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
@@ -288,14 +294,6 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
             indexer[i] = -1
             i += 1
     return indexer
-
-
-left_join_indexer_unique_float64 = left_join_indexer_unique["float64_t"]
-left_join_indexer_unique_float32 = left_join_indexer_unique["float32_t"]
-left_join_indexer_unique_object = left_join_indexer_unique["object"]
-left_join_indexer_unique_int32 = left_join_indexer_unique["int32_t"]
-left_join_indexer_unique_int64 = left_join_indexer_unique["int64_t"]
-left_join_indexer_unique_uint64 = left_join_indexer_unique["uint64_t"]
 
 
 @cython.wraparound(False)
@@ -401,14 +399,6 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     return result, lindexer, rindexer
 
 
-left_join_indexer_float64 = left_join_indexer["float64_t"]
-left_join_indexer_float32 = left_join_indexer["float32_t"]
-left_join_indexer_object = left_join_indexer["object"]
-left_join_indexer_int32 = left_join_indexer["int32_t"]
-left_join_indexer_int64 = left_join_indexer["int64_t"]
-left_join_indexer_uint64 = left_join_indexer["uint64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
@@ -500,14 +490,6 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-inner_join_indexer_float64 = inner_join_indexer["float64_t"]
-inner_join_indexer_float32 = inner_join_indexer["float32_t"]
-inner_join_indexer_object = inner_join_indexer["object"]
-inner_join_indexer_int32 = inner_join_indexer["int32_t"]
-inner_join_indexer_int64 = inner_join_indexer["int64_t"]
-inner_join_indexer_uint64 = inner_join_indexer["uint64_t"]
 
 
 @cython.wraparound(False)
@@ -637,14 +619,6 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 j += 1
 
     return result, lindexer, rindexer
-
-
-outer_join_indexer_float64 = outer_join_indexer["float64_t"]
-outer_join_indexer_float32 = outer_join_indexer["float32_t"]
-outer_join_indexer_object = outer_join_indexer["object"]
-outer_join_indexer_int32 = outer_join_indexer["int32_t"]
-outer_join_indexer_int64 = outer_join_indexer["int64_t"]
-outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
 
 
 # ----------------------------------------------------------------------

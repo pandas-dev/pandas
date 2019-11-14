@@ -36,7 +36,6 @@ from pandas._libs.tslibs.tzconversion import (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
@@ -194,13 +193,10 @@ class Timestamp(_Timestamp):
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
     year, month, day : int
-        .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
-        .. versionadded:: 0.19.0
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
-        .. versionadded:: 0.19.0
 
     Notes
     -----
@@ -245,8 +241,8 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
@@ -336,7 +332,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -604,7 +600,7 @@ timedelta}, default 'raise'
     @property
     def dayofweek(self):
         """
-        Return day of whe week.
+        Return day of the week.
         """
         return self.weekday()
 
@@ -985,9 +981,8 @@ default 'raise'
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
                       'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo}
-            if PY36:
-                kwargs['fold'] = fold
+                      'microsecond': dts.us, 'tzinfo': _tzinfo,
+                      'fold': fold}
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)

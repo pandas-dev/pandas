@@ -710,11 +710,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
         # ExtensionArray.factorize -> Tuple[EA, EA]
-        # Given that we have to return a dense array of labels, why bother
+        # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
-        labels, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
         uniques = SparseArray(uniques, dtype=self.dtype)
-        return labels, uniques
+        return codes, uniques
 
     def value_counts(self, dropna=True):
         """
@@ -1515,7 +1515,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{self}\nFill: {fill}\n{index}".format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
