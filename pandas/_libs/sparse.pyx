@@ -53,7 +53,7 @@ cdef class IntIndex(SparseIndex):
 
     def __repr__(self) -> str:
         output = 'IntIndex\n'
-        output += 'Indices: %s\n' % repr(self.indices)
+        output += f'Indices: {repr(self.indices)}\n'
         return output
 
     @property
@@ -72,9 +72,8 @@ cdef class IntIndex(SparseIndex):
         """
 
         if self.npoints > self.length:
-            msg = ("Too many indices. Expected "
-                   "{exp} but found {act}").format(
-                exp=self.length, act=self.npoints)
+            msg = (f"Too many indices. Expected "
+                   f"{self.length} but found {self.npoints}")
             raise ValueError(msg)
 
         # Indices are vacuously ordered and non-negative
@@ -343,8 +342,8 @@ cdef class BlockIndex(SparseIndex):
 
     def __repr__(self) -> str:
         output = 'BlockIndex\n'
-        output += 'Block locations: %s\n' % repr(self.blocs)
-        output += 'Block lengths: %s' % repr(self.blengths)
+        output += f'Block locations: {repr(self.blocs)}\n'
+        output += f'Block lengths: {repr(self.blengths)}'
 
         return output
 
@@ -380,15 +379,14 @@ cdef class BlockIndex(SparseIndex):
 
             if i < self.nblocks - 1:
                 if blocs[i] + blengths[i] > blocs[i + 1]:
-                    raise ValueError('Block {idx} overlaps'.format(idx=i))
+                    raise ValueError(f'Block {i} overlaps')
             else:
                 if blocs[i] + blengths[i] > self.length:
-                    raise ValueError('Block {idx} extends beyond end'
-                                     .format(idx=i))
+                    raise ValueError(f'Block {i} extends beyond end')
 
             # no zero-length blocks
             if blengths[i] == 0:
-                raise ValueError('Zero-length block {idx}'.format(idx=i))
+                raise ValueError(f'Zero-length block {i}')
 
     def equals(self, other):
         if not isinstance(other, BlockIndex):

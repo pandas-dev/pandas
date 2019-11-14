@@ -21,7 +21,7 @@ from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, groupby
+from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -187,6 +187,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
+        assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
@@ -334,7 +335,7 @@ class Resampler(_GroupBy, ShallowMixin):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
 
         # try the key selection
         try:
@@ -353,7 +354,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
         obj = self._selected_obj
 
-        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):

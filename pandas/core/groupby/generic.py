@@ -28,7 +28,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -62,7 +61,7 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
+    get_groupby,
 )
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -233,10 +232,6 @@ class SeriesGroupBy(GroupBy):
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -262,10 +257,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError, AttributeError, IndexError):
-                # TODO: IndexError can be removed here following GH#29106
-                # TODO: AttributeError is caused by _index_data hijinx in
-                #  libreduction, can be removed after GH#29160
+            except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -888,6 +880,11 @@ class DataFrameGroupBy(GroupBy):
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
                 result = self._aggregate_frame(func, *args, **kwargs)
+
+            elif self.axis == 1:
+                # _aggregate_multiple_funcs does not allow self.axis == 1
+                result = self._aggregate_frame(func)
+
             else:
 
                 # try to treat as if we are passing a list
@@ -901,17 +898,11 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 except NotImplementedError as err:
-                    if "axis other than 0 is not supported" in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        pass
-                    elif "decimal does not support skipna=True" in str(err):
+                    if "decimal does not support skipna=True" in str(err):
                         # FIXME: kludge for DecimalArray tests
                         pass
                     else:
                         raise
-                    # FIXME: this is raised in a bunch of
-                    #  test_whitelist.test_regression_whitelist_methods tests,
-                    #  can be avoided
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
@@ -997,7 +988,7 @@ class DataFrameGroupBy(GroupBy):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = groupby(obj, self.grouper)
+                s = get_groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
@@ -1067,14 +1058,14 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_frame(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result = OrderedDict()  # type: OrderedDict
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1227,61 +1218,52 @@ class DataFrameGroupBy(GroupBy):
                         # GH 8467
                         return self._concat_objects(keys, values, not_indexed_same=True)
 
-                try:
-                    if self.axis == 0 and isinstance(v, ABCSeries):
-                        # GH6124 if the list of Series have a consistent name,
-                        # then propagate that name to the result.
-                        index = v.index.copy()
-                        if index.name is None:
-                            # Only propagate the series name to the result
-                            # if all series have a consistent name.  If the
-                            # series do not have a consistent name, do
-                            # nothing.
-                            names = {v.name for v in values}
-                            if len(names) == 1:
-                                index.name = list(names)[0]
+                if self.axis == 0 and isinstance(v, ABCSeries):
+                    # GH6124 if the list of Series have a consistent name,
+                    # then propagate that name to the result.
+                    index = v.index.copy()
+                    if index.name is None:
+                        # Only propagate the series name to the result
+                        # if all series have a consistent name.  If the
+                        # series do not have a consistent name, do
+                        # nothing.
+                        names = {v.name for v in values}
+                        if len(names) == 1:
+                            index.name = list(names)[0]
 
-                        # normally use vstack as its faster than concat
-                        # and if we have mi-columns
-                        if (
-                            isinstance(v.index, MultiIndex)
-                            or key_index is None
-                            or isinstance(key_index, MultiIndex)
-                        ):
-                            stacked_values = np.vstack([np.asarray(v) for v in values])
-                            result = DataFrame(
-                                stacked_values, index=key_index, columns=index
-                            )
-                        else:
-                            # GH5788 instead of stacking; concat gets the
-                            # dtypes correct
-                            from pandas.core.reshape.concat import concat
-
-                            result = concat(
-                                values,
-                                keys=key_index,
-                                names=key_index.names,
-                                axis=self.axis,
-                            ).unstack()
-                            result.columns = index
-                    elif isinstance(v, ABCSeries):
+                    # normally use vstack as its faster than concat
+                    # and if we have mi-columns
+                    if (
+                        isinstance(v.index, MultiIndex)
+                        or key_index is None
+                        or isinstance(key_index, MultiIndex)
+                    ):
                         stacked_values = np.vstack([np.asarray(v) for v in values])
                         result = DataFrame(
-                            stacked_values.T, index=v.index, columns=key_index
+                            stacked_values, index=key_index, columns=index
                         )
                     else:
-                        # GH#1738: values is list of arrays of unequal lengths
-                        #  fall through to the outer else clause
-                        # TODO: sure this is right?  we used to do this
-                        #  after raising AttributeError above
-                        return Series(
-                            values, index=key_index, name=self._selection_name
-                        )
+                        # GH5788 instead of stacking; concat gets the
+                        # dtypes correct
+                        from pandas.core.reshape.concat import concat
 
-                except ValueError:
-                    # TODO: not reached in tests; is this still needed?
-                    # GH1738: values is list of arrays of unequal lengths fall
-                    # through to the outer else clause
+                        result = concat(
+                            values,
+                            keys=key_index,
+                            names=key_index.names,
+                            axis=self.axis,
+                        ).unstack()
+                        result.columns = index
+                elif isinstance(v, ABCSeries):
+                    stacked_values = np.vstack([np.asarray(v) for v in values])
+                    result = DataFrame(
+                        stacked_values.T, index=v.index, columns=key_index
+                    )
+                else:
+                    # GH#1738: values is list of arrays of unequal lengths
+                    #  fall through to the outer else clause
+                    # TODO: sure this is right?  we used to do this
+                    #  after raising AttributeError above
                     return Series(values, index=key_index, name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates
@@ -1814,9 +1796,6 @@ def _normalize_keyword_aggregation(kwargs):
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
