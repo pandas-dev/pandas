@@ -92,7 +92,7 @@ if __debug__:
 
 
 def _groupby_and_merge(
-    by, on, left, right, _merge_pieces, check_duplicates: bool = True
+    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
 ):
     """
     groupby & merge; we are always performing a left-by type operation
@@ -1299,11 +1299,13 @@ def _get_join_indexers(
         right_keys
     ), "left_key and right_keys must be the same length"
 
-    # bind `sort` arg. of _factorize_keys
-    fkeys = partial(_factorize_keys, sort=sort)
-
     # get left & right join labels and num. of levels at each location
-    llab, rlab, shape = map(list, zip(*map(fkeys, left_keys, right_keys)))
+    mapped = (
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        for n in range(len(left_keys))
+    )
+    zipped = zip(*mapped)
+    llab, rlab, shape = [list(x) for x in zipped]
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1311,7 +1313,7 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = fkeys(lkey, rkey)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
@@ -1775,11 +1777,11 @@ class _AsOfMerge(_OrderedMerge):
 
 def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
 
-    # bind `sort` argument
-    fkeys = partial(_factorize_keys, sort=sort)
-
     # left & right join labels and num. of levels at each location
-    mapped = (fkeys(index.levels[n], join_keys[n]) for n in range(len(index.levels)))
+    mapped = (
+        _factorize_keys(index.levels[n], join_keys[n], sort=sort)
+        for n in range(len(index.levels))
+    )
     zipped = zip(*mapped)
     rcodes, lcodes, shape = [list(x) for x in zipped]
     if sort:
@@ -1804,7 +1806,7 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
     lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
 
     # factorize keys to a dense i8 space
-    lkey, rkey, count = fkeys(lkey, rkey)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
     return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 

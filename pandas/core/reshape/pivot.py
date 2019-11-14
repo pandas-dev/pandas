@@ -1,3 +1,5 @@
+from typing import Tuple, Union, Dict, Callable
+
 import numpy as np
 
 from pandas.util._decorators import Appender, Substitution
@@ -187,7 +189,7 @@ def _add_margins(
     cols,
     aggfunc,
     observed=None,
-    margins_name="All",
+    margins_name: str = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -207,7 +209,9 @@ def _add_margins(
                 raise ValueError(msg)
 
     if len(rows) > 1:
-        key = (margins_name,) + ("",) * (len(rows) - 1)
+        key = (margins_name,) + ("",) * (
+            len(rows) - 1
+        )  # type: Union[str, Tuple[str, ...]]
     else:
         key = margins_name
 
@@ -266,7 +270,7 @@ def _add_margins(
     return result
 
 
-def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
+def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
 
     if values:
         grand_margin = {}
@@ -289,7 +293,15 @@ def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, grand_margin, margins_name="All"
+    table,
+    data,
+    values,
+    rows,
+    cols,
+    aggfunc,
+    observed,
+    grand_margin,
+    margins_name: str = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -353,7 +365,7 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table, data, rows, cols, aggfunc, observed, margins_name="All"
+    table, data, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -582,7 +594,7 @@ def crosstab(
     return table
 
 
-def _normalize(table, normalize, margins, margins_name="All"):
+def _normalize(table, normalize, margins: bool, margins_name="All"):
 
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}
@@ -598,7 +610,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
-        }
+        }  # type: Dict[Union[bool, str], Callable]
 
         normalizers[True] = normalizers["all"]
 
