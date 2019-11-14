@@ -1061,7 +1061,7 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_frame(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
