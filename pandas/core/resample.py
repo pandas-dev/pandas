@@ -187,6 +187,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
+        assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
