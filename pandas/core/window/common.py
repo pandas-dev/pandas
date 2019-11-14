@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import Callable
 import warnings
 
 import numpy as np
@@ -46,6 +47,8 @@ class WindowGroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
     """
+
+    _shallow_copy: Callable
 
     def __init__(self, obj, *args, **kwargs):
         kwargs.pop("parent", None)

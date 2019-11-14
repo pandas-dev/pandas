@@ -264,7 +264,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz, name):
 
 def _convert_listlike_datetimes(
     arg,
-    box,
+    box: bool,
     format,
     name=None,
     tz=None,
@@ -325,9 +325,7 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]"
-            #  has no attribute "tz_convert"  [union-attr]
-            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
+            arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg):

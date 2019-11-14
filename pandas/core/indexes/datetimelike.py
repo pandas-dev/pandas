@@ -226,7 +226,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
         return np.array_equal(self.asi8, other.asi8)
 
     @staticmethod
-    def _join_i8_wrapper(joinf, dtype, with_indexers=True):
+    def _join_i8_wrapper(joinf, dtype, with_indexers: bool = True):
         """
         Create the join wrapper methods.
         """

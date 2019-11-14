@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, FrozenSet, Sequence, TypeVar, Union
+from typing import TYPE_CHECKING, FrozenSet, Optional, Sequence, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -84,6 +84,8 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas import Series  # noqa: F401
+
+str_ = str
 
 __all__ = ["Index"]
 
@@ -767,12 +769,7 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas import DatetimeIndex
 
             tz = pandas_dtype(dtype).tz
-            # error: "DatetimeIndex" has no attribute "tz_localize"
-            return (
-                DatetimeIndex(np.asarray(self))  # type: ignore
-                .tz_localize("UTC")
-                .tz_convert(tz)
-            )
+            return DatetimeIndex(np.asarray(self)).tz_localize("UTC").tz_convert(tz)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
@@ -4925,7 +4922,9 @@ class Index(IndexOpsMixin, PandasObject):
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(
+        self, start=None, end=None, step=None, kind: Optional[str_] = None
+    ):
         """
         For an ordered or unique index, compute the slice indexer for input
         labels and step.

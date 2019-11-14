@@ -1,6 +1,6 @@
 from datetime import datetime, time, timedelta
 import operator
-from typing import Callable, Type, cast
+from typing import Callable, Optional, Type, cast
 import warnings
 
 import numpy as np
@@ -813,8 +813,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
-                # error: "DatetimeIndex" has no attribute "tz_convert"  [attr-defined]
-                other = other.tz_convert("UTC")  # type: ignore
+                other = other.tz_convert("UTC")
         return this, other
 
     def _wrap_joined_index(self, joined, other):
@@ -1078,7 +1077,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                     raise e
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind: Optional[str]):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -1123,7 +1122,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(
+        self, start=None, end=None, step=None, kind: Optional[str] = None
+    ):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.

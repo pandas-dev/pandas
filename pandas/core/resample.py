@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, no_type_check
+from typing import TYPE_CHECKING, Any, Dict, Union, no_type_check
 import warnings
 
 import numpy as np
@@ -30,6 +30,9 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
 
 _shared_docs_kwargs = dict()  # type: Dict[str, str]
 
@@ -418,7 +421,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         return self._resampler_for_grouping(self, groupby=groupby, **kwargs)
 
-    def _wrap_result(self, result):
+    def _wrap_result(self, result: Union[Any, "Series"]) -> Union[Any, "Series"]:
         """
         Potentially wrap any results.
         """
@@ -874,7 +877,7 @@ class Resampler(_GroupBy, ShallowMixin):
         # a copy of 0-len objects. GH14962
         result = self._downsample("size")
         if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
-            from pandas import Series
+            from pandas import Series  # noqa: F811
 
             result = Series([], index=result.index, dtype="int64")
         return result
@@ -1588,7 +1591,7 @@ class TimeGrouper(Grouper):
 
         return binner, bins, labels
 
-    def _get_period_bins(self, ax):
+    def _get_period_bins(self, ax: PeriodIndex):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
@@ -1822,7 +1825,7 @@ def _adjust_dates_anchored(first, last, offset, closed="right", base=0):
     return fresult, lresult
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
+def asfreq(obj, freq, method=None, how=None, normalize: bool = False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame.
     """

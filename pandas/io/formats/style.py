@@ -1346,7 +1346,7 @@ class Styler:
             )
 
     @classmethod
-    def from_custom_template(cls, searchpath, name):
+    def from_custom_template(cls, searchpath, name: str):
         """
         Factory function for creating a subclass of ``Styler``.
 
