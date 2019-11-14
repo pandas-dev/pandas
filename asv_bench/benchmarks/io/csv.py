@@ -309,9 +309,7 @@ class ReadCSVCachedParseDates(StringIORewind):
     param_names = ["do_cache"]
 
     def setup(self, do_cache):
-        data = (
-            "\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n"
-        ) * 10
+        data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_cached(self, do_cache):

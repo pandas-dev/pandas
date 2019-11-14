@@ -250,9 +250,7 @@ class ParallelReadCSV(BaseIO):
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
             ),
             "object": DataFrame(
-                "foo",
-                index=range(rows),
-                columns=[f"object%03d" for i in range(5)],
+                "foo", index=range(rows), columns=[f"object%03d" for i in range(5)],
             ),
         }
 
