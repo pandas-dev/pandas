@@ -493,7 +493,9 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = _get_objs_combined_axis(data, sort=False)
+        # We know pass_data is non-empty because data[0] is a Series
+        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
+        columns = _get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache = {}
 
