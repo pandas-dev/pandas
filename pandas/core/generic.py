@@ -8,7 +8,6 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -190,12 +189,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata = []  # type: List[str]
     _is_copy = None
     _data = None  # type: BlockManager
-
-    if TYPE_CHECKING:
-        # TODO(PY36): replace with _attrs : Dict[Hashable, Any]
-        # We need the TYPE_CHECKING, because _attrs is not a class attribute
-        # and Py35 doesn't support the new syntax.
-        _attrs = {}  # type: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -569,7 +563,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Return an int representing the number of axes / array dimensions.
 
@@ -7830,7 +7824,6 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys=True,
         squeeze=False,
         observed=False,
-        **kwargs
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7875,10 +7868,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-
-        **kwargs
-            Optional, only accepts keyword argument 'mutated' and is passed
-            to groupby.
 
         Returns
         -------
@@ -7941,12 +7930,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Captive      210.0
         Wild         185.0
         """
-        from pandas.core.groupby.groupby import groupby
+        from pandas.core.groupby.groupby import get_groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
-        return groupby(
+
+        return get_groupby(
             self,
             by=by,
             axis=axis,
@@ -7956,7 +7946,6 @@ class NDFrame(PandasObject, SelectionMixin):
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
-            **kwargs
         )
 
     def asfreq(self, freq, method=None, how=None, normalize=False, fill_value=None):

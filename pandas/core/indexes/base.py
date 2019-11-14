@@ -230,7 +230,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data = None
+    _data: Union[ExtensionArray, np.ndarray]
     _id = None
     name = None
     _comparables = ["name"]
@@ -607,7 +607,7 @@ class Index(IndexOpsMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
-    def is_(self, other):
+    def is_(self, other) -> bool:
         """
         More flexible, faster check like ``is`` but that works through views.
 
@@ -653,8 +653,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the length of the Index.
         """
-        # Assertion needed for mypy, see GH#29475
-        assert self._data is not None
         return len(self._data)
 
     def __array__(self, dtype=None):
@@ -1452,7 +1450,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Level-Centric Methods
 
     @property
-    def nlevels(self):
+    def nlevels(self) -> int:
         """
         Number of levels.
         """
@@ -1677,7 +1675,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return if the index is monotonic decreasing (only equal or
         decreasing) values.
@@ -1735,7 +1733,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_unique
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return not self.is_unique
 
     def is_boolean(self):
