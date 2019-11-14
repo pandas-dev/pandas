@@ -25,7 +25,7 @@ def data():
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return StringArray._from_sequence([np.nan, "A"])
+    return StringArray._from_sequence([pd.NA, "A"])
 
 
 @pytest.fixture
@@ -35,17 +35,17 @@ def data_for_sorting():
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return StringArray._from_sequence(["B", np.nan, "A"])
+    return StringArray._from_sequence(["B", pd.NA, "A"])
 
 
 @pytest.fixture
 def na_value():
-    return np.nan
+    return pd.NA
 
 
 @pytest.fixture
 def data_for_grouping():
-    return StringArray._from_sequence(["B", "B", np.nan, np.nan, "A", "A", "B", "C"])
+    return StringArray._from_sequence(["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"])
 
 
 class TestDtype(base.BaseDtypeTests):

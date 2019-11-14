@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 def test_none_to_nan():
     a = pd.arrays.StringArray._from_sequence(["a", None, "b"])
     assert a[1] is not None
-    assert np.isnan(a[1])
+    assert a[1] is pd.NA
 
 
 def test_setitem_validates():
@@ -22,6 +22,15 @@ def test_setitem_validates():
 
     with pytest.raises(ValueError, match="strings"):
         a[:] = np.array([1, 2])
+
+
+def test_setitem_with_scalar_string():
+    # is_float_dtype considers some strings, like 'd', to be floats
+    # which can cause issues.
+    arr = pd.array(["a", "c"], dtype="string")
+    arr[0] = "d"
+    expected = pd.array(["d", "c"], dtype="string")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 @pytest.mark.parametrize(

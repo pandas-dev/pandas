@@ -446,6 +446,9 @@ def array_equivalent(left, right, strict_nan=False):
             if left_value is NaT and right_value is not NaT:
                 return False
 
+            elif left_value is libmissing.NA and right_value is not libmissing.NA:
+                return False
+
             elif isinstance(left_value, float) and np.isnan(left_value):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
@@ -456,6 +459,8 @@ def array_equivalent(left, right, strict_nan=False):
                 except TypeError as err:
                     if "Cannot compare tz-naive" in str(err):
                         # tzawareness compat failure, see GH#28507
+                        return False
+                    elif "boolean value of NA is ambiguous" in str(err):
                         return False
                     raise
         return True
