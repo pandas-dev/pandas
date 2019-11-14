@@ -81,7 +81,7 @@ cdef class Reducer:
 
         else:
 
-            # we passed a series-like
+            # we passed a Series
             typ = type(dummy)
             index = dummy.index
             dummy = dummy.values
@@ -99,7 +99,6 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i
             flatiter it
-            bint has_labels
             object res, name, labels
             object cached_typ = None
 
@@ -108,8 +107,6 @@ cdef class Reducer:
         dummy_buf = chunk.data
         chunk.data = arr.data
         labels = self.labels
-        has_labels = labels is not None
-        has_index = self.index is not None
 
         result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
@@ -117,33 +114,19 @@ cdef class Reducer:
         try:
             for i in range(self.nresults):
 
-                if has_labels:
-                    name = labels[i]
-                else:
-                    name = None
-
                 # create the cached type
                 # each time just reassign the data
                 if i == 0:
 
                     if self.typ is not None:
-
-                        # recreate with the index if supplied
-                        if has_index:
-
-                            cached_typ = self.typ(
-                                chunk, index=self.index, name=name)
-
-                        else:
-
-                            # use the passsed typ, sans index
-                            cached_typ = self.typ(chunk, name=name)
+                        # In this case, we also have self.index
+                        name = labels[i]
+                        cached_typ = self.typ(chunk, index=self.index, name=name)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
-
-                    if has_index:
-                        object.__setattr__(cached_typ, 'index', self.index)
+                    # In this case, we also have non-None labels
+                    name = labels[i]
 
                     object.__setattr__(
                         cached_typ._data._block, 'values', chunk)
@@ -607,17 +590,21 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
+def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters
     -----------
-    arr : NDFrame object
+    arr : np.ndarray
     f : function
     axis : integer axis
     dummy : type of reduced output (series)
     labels : Index or None
     """
+
+    # We either have both dummy and labels, or neither of them
+    if (labels is None) ^ (dummy is None):
+        raise ValueError("Must pass either dummy and labels, or neither")
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex
