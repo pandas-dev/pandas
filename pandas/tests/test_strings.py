@@ -3509,7 +3509,7 @@ def test_string_array(any_string_method):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="not implmented yet")
+@pytest.mark.xfail(reason="not implemented yet")
 def test_string_dtype_numeric():
     s = Series(["a", "aa", None], dtype="string")
     result = s.str.count("a")

@@ -1,6 +1,8 @@
 import cython
 from cython import Py_ssize_t
 
+import numbers
+
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
@@ -285,7 +287,6 @@ cdef inline bint is_null_period(v):
 
 
 def _create_binary_propagating_op(name):
-    import numbers
 
     def method(self, other):
         if isinstance(other, numbers.Number) or other is NA or isinstance(other, str):
@@ -312,6 +313,15 @@ cdef class C_NAType:
 class NAType(C_NAType):
     """
     NA ("not available") missing value indicator.
+
+    .. warning::
+
+       Experimental: the behaviour of NA can still change without warning.
+
+    .. versionadded:: 1.0.0
+
+    The NA singleton is a missing value indicator defined by pandas. It is
+    used in certain new extension dtypes (currently the "string" dtype).
     """
 
     _instance = None
