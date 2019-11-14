@@ -146,7 +146,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
@@ -154,13 +154,10 @@ class RangeIndex(Int64Index):
             # empty
             values = range(0, 0, 1)
         elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name, **kwargs)
+            return Index(values, dtype=dtype, name=name)
 
         result._range = values
-
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         return result
@@ -353,11 +350,11 @@ class RangeIndex(Int64Index):
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return False
 
     def __contains__(self, key: Union[int, np.integer]) -> bool:
@@ -698,7 +695,7 @@ class RangeIndex(Int64Index):
         # In this case return an empty range index.
         return RangeIndex(0, 0).rename(name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         return the length of the RangeIndex
         """
