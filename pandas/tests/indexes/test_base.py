@@ -350,6 +350,11 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
+    def test_constructor_wrong_kwargs(self):
+        # GH #19348
+        with pytest.raises(TypeError, match="Unexpected keyword argument 'foo'"):
+            Index([], foo="bar")
+
     @pytest.mark.parametrize(
         "vals",
         [

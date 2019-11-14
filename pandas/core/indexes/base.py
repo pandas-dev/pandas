@@ -54,6 +54,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCIndexClass,
+    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
@@ -450,7 +451,13 @@ class Index(IndexOpsMixin, PandasObject):
                             return PeriodIndex(subarr, name=name, **kwargs)
                         except IncompatibleFrequency:
                             pass
-            return cls._simple_new(subarr, name)
+            if kwargs:
+                if len(kwargs) == 1:
+                    msg = f"Unexpected keyword argument {list(kwargs)[0]!r}"
+                else:
+                    msg = f"Unexpected keyword arguments {set(kwargs)!r}"
+                raise TypeError(msg)
+            return cls._simple_new(subarr, name, **kwargs)
 
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
@@ -3391,7 +3398,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        new_index = self._shallow_copy_with_infer(new_labels, freq=None)
+        new_index = self._shallow_copy_with_infer(new_labels)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -4254,7 +4261,13 @@ class Index(IndexOpsMixin, PandasObject):
         Concatenate to_concat which has the same class.
         """
         # must be overridden in specific classes
-        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
+        klasses = (
+            ABCDatetimeIndex,
+            ABCTimedeltaIndex,
+            ABCPeriodIndex,
+            ExtensionArray,
+            ABCIntervalIndex,
+        )
         to_concat = [
             x.astype(object) if isinstance(x, klasses) else x for x in to_concat
         ]
