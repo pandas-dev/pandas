@@ -146,7 +146,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
@@ -154,13 +154,10 @@ class RangeIndex(Int64Index):
             # empty
             values = range(0, 0, 1)
         elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name, **kwargs)
+            return Index(values, dtype=dtype, name=name)
 
         result._range = values
-
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         return result

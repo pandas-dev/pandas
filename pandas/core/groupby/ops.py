@@ -714,6 +714,10 @@ class BinGrouper(BaseGrouper):
         self.mutated = mutated
         self.indexer = indexer
 
+        # These lengths must match, otherwise we could call agg_series
+        #  with empty self.bins, which would raise in libreduction.
+        assert len(self.binlabels) == len(self.bins)
+
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
@@ -821,10 +825,10 @@ class BinGrouper(BaseGrouper):
     def agg_series(self, obj: Series, func):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
+        assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empty SeriesBinGrouper from raising TypeError
-            # TODO: watch out, this can return None
+            # pre-empt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]
