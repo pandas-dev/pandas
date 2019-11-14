@@ -120,7 +120,7 @@ class StringArray(PandasArray):
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', nan, 'data.']
+    ['This is', 'some text', NA, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
