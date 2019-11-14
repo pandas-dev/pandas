@@ -52,7 +52,7 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
-from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
@@ -75,7 +75,7 @@ _take_msg = textwrap.dedent(
 def _cat_compare_op(op):
     opname = "__{op}__".format(op=op.__name__)
 
-    @unpack_and_defer(opname)
+    @unpack_zerodim_and_defer(opname)
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different

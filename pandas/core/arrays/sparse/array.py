@@ -44,7 +44,7 @@ import pandas.core.common as com
 from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
-from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
 
@@ -1406,7 +1406,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
-        @unpack_and_defer(op_name)
+        @unpack_zerodim_and_defer(op_name)
         def sparse_arithmetic_method(self, other):
 
             if isinstance(other, SparseArray):
@@ -1455,7 +1455,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if op_name in {"and_", "or_"}:
             op_name = op_name[:-1]
 
-        @unpack_and_defer(op_name)
+        @unpack_zerodim_and_defer(op_name)
         def cmp_method(self, other):
 
             if not is_scalar(other) and not isinstance(other, type(self)):

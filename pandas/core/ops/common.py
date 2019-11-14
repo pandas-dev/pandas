@@ -8,7 +8,7 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
-def unpack_and_defer(name: str):
+def unpack_zerodim_and_defer(name: str):
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -22,12 +22,12 @@ def unpack_and_defer(name: str):
     """
 
     def wrapper(method):
-        return _unpack_and_defer(method, name)
+        return _unpack_zerodim_and_defer(method, name)
 
     return wrapper
 
 
-def _unpack_and_defer(method, name: str):
+def _unpack_zerodim_and_defer(method, name: str):
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 

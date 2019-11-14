@@ -41,7 +41,7 @@ from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
-from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import make_invalid_op
 
 from pandas.tseries import frequencies
@@ -1190,7 +1190,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
-    @unpack_and_defer("__add__")
+    @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
 
         # scalar others
@@ -1242,7 +1242,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # alias for __add__
         return self.__add__(other)
 
-    @unpack_and_defer("__sub__")
+    @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
 
         # scalar others

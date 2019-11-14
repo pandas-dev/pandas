@@ -29,7 +29,7 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
-from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -490,7 +490,7 @@ def _arith_method_SERIES(cls, op, special):
     op_name = _get_op_name(op, special)
     eval_kwargs = _gen_eval_kwargs(op_name)
 
-    @unpack_and_defer(op_name)
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(left, right):
 
         left, right = _align_method_SERIES(left, right)
@@ -512,7 +512,7 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    @unpack_and_defer(op_name)
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
@@ -538,7 +538,7 @@ def _bool_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
-    @unpack_and_defer(op_name)
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)

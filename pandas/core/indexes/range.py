@@ -29,7 +29,7 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
-from pandas.core.ops.common import unpack_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -735,7 +735,7 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super().__getitem__(key)
 
-    @unpack_and_defer("__floordiv__")
+    @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
 
         if is_integer(other) and other != 0:
@@ -772,7 +772,7 @@ class RangeIndex(Int64Index):
                 if False, use the existing step
             """
 
-            @unpack_and_defer(op.__name__)
+            @unpack_zerodim_and_defer(op.__name__)
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
