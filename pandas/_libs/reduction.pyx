@@ -18,14 +18,12 @@ cimport pandas._libs.util as util
 from pandas._libs.lib import maybe_convert_objects
 
 
-cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
+cdef _check_result_array(object obj, Py_ssize_t cnt):
 
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Function does not reduce')
-
-    return np.empty(size, dtype='O')
 
 
 cdef bint _is_sparse_array(object obj):
@@ -43,11 +41,11 @@ cdef class Reducer:
     """
     cdef:
         Py_ssize_t increment, chunksize, nresults
-        object arr, dummy, f, labels, typ, ityp, index
+        object dummy, f, labels, typ, ityp, index
+        ndarray arr
 
-    def __init__(self, object arr, object f, axis=1, dummy=None,
-                 labels=None):
-        n, k = arr.shape
+    def __init__(self, ndarray arr, object f, axis=1, dummy=None, labels=None):
+        n, k = (<object>arr).shape
 
         if axis == 0:
             if not arr.flags.f_contiguous:
@@ -70,8 +68,9 @@ cdef class Reducer:
         self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
             dummy=dummy)
 
-    def _check_dummy(self, dummy=None):
-        cdef object index=None, typ=None, ityp=None
+    cdef _check_dummy(self, dummy=None):
+        cdef:
+            object index = None, typ = None, ityp = None
 
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
@@ -92,8 +91,7 @@ cdef class Reducer:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length %d' %
-                                 self.chunksize)
+                raise ValueError(f'Dummy array must be length {self.chunksize}')
 
         return dummy, typ, index, ityp
 
@@ -103,9 +101,9 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i, incr
             flatiter it
-            bint has_labels, has_ndarray_labels
+            bint has_labels
             object res, name, labels, index
-            object cached_typ=None
+            object cached_typ = None
 
         arr = self.arr
         chunk = self.dummy
@@ -113,17 +111,16 @@ cdef class Reducer:
         chunk.data = arr.data
         labels = self.labels
         has_labels = labels is not None
-        has_ndarray_labels = util.is_array(labels)
         has_index = self.index is not None
         incr = self.increment
+
+        result = np.empty(self.nresults, dtype='O')
+        it = <flatiter>PyArray_IterNew(result)
 
         try:
             for i in range(self.nresults):
 
-                if has_ndarray_labels:
-                    name = labels[i]
-                elif has_labels:
-                    # labels is an ExtensionArray
+                if has_labels:
                     name = labels[i]
                 else:
                     name = None
@@ -162,42 +159,71 @@ cdef class Reducer:
                         and util.is_array(res.values)):
                     res = res.values
                 if i == 0:
-                    result = _get_result_array(res,
-                                               self.nresults,
-                                               len(self.dummy))
-                    it = <flatiter>PyArray_IterNew(result)
+                    # On the first pass, we check the output shape to see
+                    #  if this looks like a reduction.
+                    _check_result_array(res, len(self.dummy))
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
-        except Exception as err:
-            if hasattr(err, 'args'):
-                err.args = err.args + (i,)
-            raise
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
-
+        result = maybe_convert_objects(result)
         return result
 
 
-cdef class SeriesBinGrouper:
+cdef class _BaseGrouper:
+    cdef _check_dummy(self, dummy):
+        # both values and index must be an ndarray!
+
+        values = dummy.values
+        # GH 23683: datetimetz types are equivalent to datetime types here
+        if (dummy.dtype != self.arr.dtype
+                and values.dtype != self.arr.dtype):
+            raise ValueError('Dummy array must be same dtype')
+        if util.is_array(values) and not values.flags.contiguous:
+            # e.g. Categorical has no `flags` attribute
+            values = values.copy()
+        index = dummy.index.values
+        if not index.flags.contiguous:
+            index = index.copy()
+
+        return values, index
+
+    cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
+                                    Slider islider, Slider vslider, object name):
+        if cached_typ is None:
+            cached_ityp = self.ityp(islider.buf)
+            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=name)
+        else:
+            # See the comment in indexes/base.py about _index_data.
+            # We need this for EA-backed indexes that have a reference
+            # to a 1-d ndarray like datetime / timedelta / period.
+            object.__setattr__(cached_ityp, '_index_data', islider.buf)
+            cached_ityp._engine.clear_mapping()
+            object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ, '_index', cached_ityp)
+            object.__setattr__(cached_typ, 'name', name)
+
+        return cached_typ, cached_ityp
+
+
+cdef class SeriesBinGrouper(_BaseGrouper):
     """
     Performs grouping operation according to bin edges, rather than labels
     """
     cdef:
         Py_ssize_t nresults, ngroups
-        bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index
+        ndarray arr, index, dummy_arr, dummy_index
         object values, f, bins, typ, ityp, name
 
     def __init__(self, object series, object f, object bins, object dummy):
-        n = len(series)
+
+        assert dummy is not None  # always obj[:0]
 
         self.bins = bins
         self.f = f
@@ -213,32 +239,12 @@ cdef class SeriesBinGrouper:
         self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
-        self.passed_dummy = dummy is not None
 
         # kludge for #1688
         if len(bins) > 0 and bins[-1] == len(series):
             self.ngroups = len(bins)
         else:
             self.ngroups = len(bins) + 1
-
-    def _check_dummy(self, dummy=None):
-        # both values and index must be an ndarray!
-
-        if dummy is None:
-            values = np.empty(0, dtype=self.arr.dtype)
-            index = None
-        else:
-            values = dummy.values
-            if values.dtype != self.arr.dtype:
-                raise ValueError('Dummy array must be same dtype')
-            if util.is_array(values) and not values.flags.contiguous:
-                # e.g. Categorical has no `flags` attribute
-                values = values.copy()
-            index = dummy.index.values
-            if not index.flags.contiguous:
-                index = index.copy()
-
-        return values, index
 
     def get_result(self):
         cdef:
@@ -248,7 +254,7 @@ cdef class SeriesBinGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ=None, cached_ityp=None
+            object name, cached_typ = None, cached_ityp = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -267,6 +273,8 @@ cdef class SeriesBinGrouper:
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
+        result = np.empty(self.ngroups, dtype='O')
+
         try:
             for i in range(self.ngroups):
                 group_size = counts[i]
@@ -274,29 +282,18 @@ cdef class SeriesBinGrouper:
                 islider.set_length(group_size)
                 vslider.set_length(group_size)
 
-                if cached_typ is None:
-                    cached_ityp = self.ityp(islider.buf)
-                    cached_typ = self.typ(vslider.buf, index=cached_ityp,
-                                          name=name)
-                else:
-                    # See the comment in indexes/base.py about _index_data.
-                    # We need this for EA-backed indexes that have a reference
-                    # to a 1-d ndarray like datetime / timedelta / period.
-                    object.__setattr__(cached_ityp, '_index_data', islider.buf)
-                    cached_ityp._engine.clear_mapping()
-                    object.__setattr__(
-                        cached_typ._data._block, 'values', vslider.buf)
-                    object.__setattr__(cached_typ, '_index', cached_ityp)
-                    object.__setattr__(cached_typ, 'name', name)
+                cached_typ, cached_ityp = self._update_cached_objs(
+                    cached_typ, cached_ityp, islider, vslider, name)
 
                 cached_ityp._engine.clear_mapping()
                 res = self.f(cached_typ)
                 res = _extract_result(res)
                 if not initialized:
+                    # On the first pass, we check the output shape to see
+                    #  if this looks like a reduction.
                     initialized = 1
-                    result = _get_result_array(res,
-                                               self.ngroups,
-                                               len(self.dummy_arr))
+                    _check_result_array(res, len(self.dummy_arr))
+
                 result[i] = res
 
                 islider.advance(group_size)
@@ -307,28 +304,32 @@ cdef class SeriesBinGrouper:
             islider.reset()
             vslider.reset()
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
-
+        result = maybe_convert_objects(result)
         return result, counts
 
 
-cdef class SeriesGrouper:
+cdef class SeriesGrouper(_BaseGrouper):
     """
     Performs generic grouping operation while avoiding ndarray construction
     overhead
     """
     cdef:
         Py_ssize_t nresults, ngroups
-        bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index
+        ndarray arr, index, dummy_arr, dummy_index
         object f, labels, values, typ, ityp, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
-        n = len(series)
+
+        # in practice we always pass either obj[:0] or the
+        #  safer obj._get_values(slice(None, 0))
+        assert dummy is not None
+
+        if len(series) == 0:
+            # get_result would never assign `result`
+            raise ValueError("SeriesGrouper requires non-empty `series`")
 
         self.labels = labels
         self.f = f
@@ -344,29 +345,7 @@ cdef class SeriesGrouper:
         self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
-        self.passed_dummy = dummy is not None
         self.ngroups = ngroups
-
-    def _check_dummy(self, dummy=None):
-        # both values and index must be an ndarray!
-
-        if dummy is None:
-            values = np.empty(0, dtype=self.arr.dtype)
-            index = None
-        else:
-            values = dummy.values
-            # GH 23683: datetimetz types are equivalent to datetime types here
-            if (dummy.dtype != self.arr.dtype
-                    and values.dtype != self.arr.dtype):
-                raise ValueError('Dummy array must be same dtype')
-            if util.is_array(values) and not values.flags.contiguous:
-                # e.g. Categorical has no `flags` attribute
-                values = values.copy()
-            index = dummy.index.values
-            if not index.flags.contiguous:
-                index = index.copy()
-
-        return values, index
 
     def get_result(self):
         cdef:
@@ -377,7 +356,7 @@ cdef class SeriesGrouper:
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ=None, cached_ityp=None
+            object name, cached_typ = None, cached_ityp = None
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -387,6 +366,8 @@ cdef class SeriesGrouper:
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
+
+        result = np.empty(self.ngroups, dtype='O')
 
         try:
             for i in range(n):
@@ -404,26 +385,17 @@ cdef class SeriesGrouper:
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 
-                    if cached_typ is None:
-                        cached_ityp = self.ityp(islider.buf)
-                        cached_typ = self.typ(vslider.buf, index=cached_ityp,
-                                              name=name)
-                    else:
-                        object.__setattr__(cached_ityp, '_data', islider.buf)
-                        cached_ityp._engine.clear_mapping()
-                        object.__setattr__(
-                            cached_typ._data._block, 'values', vslider.buf)
-                        object.__setattr__(cached_typ, '_index', cached_ityp)
-                        object.__setattr__(cached_typ, 'name', name)
+                    cached_typ, cached_ityp = self._update_cached_objs(
+                        cached_typ, cached_ityp, islider, vslider, name)
 
                     cached_ityp._engine.clear_mapping()
                     res = self.f(cached_typ)
                     res = _extract_result(res)
                     if not initialized:
+                        # On the first pass, we check the output shape to see
+                        #  if this looks like a reduction.
                         initialized = 1
-                        result = _get_result_array(res,
-                                                   self.ngroups,
-                                                   len(self.dummy_arr))
+                        _check_result_array(res, len(self.dummy_arr))
 
                     result[lab] = res
                     counts[lab] = group_size
@@ -437,11 +409,11 @@ cdef class SeriesGrouper:
             islider.reset()
             vslider.reset()
 
-        if result is None:
-            raise ValueError("No result.")
+        # We check for empty series in the constructor, so should always
+        #  have result initialized by this point.
+        assert initialized, "`result` has not been initialized."
 
-        if result.dtype == np.object_:
-            result = maybe_convert_objects(result)
+        result = maybe_convert_objects(result)
 
         return result, counts
 
@@ -470,14 +442,13 @@ cdef class Slider:
         Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
-    def __init__(self, object values, object buf):
-        assert (values.ndim == 1)
+    def __init__(self, ndarray values, ndarray buf):
+        assert values.ndim == 1
+        assert values.dtype == buf.dtype
 
-        if util.is_array(values) and not values.flags.contiguous:
-            # e.g. Categorical has no `flags` attribute
+        if not values.flags.contiguous:
             values = values.copy()
 
-        assert (values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
         self.stride = values.strides[0]
@@ -489,7 +460,7 @@ cdef class Slider:
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
 
-    cpdef advance(self, Py_ssize_t k):
+    cdef advance(self, Py_ssize_t k):
         self.buf.data = <char*>self.buf.data + self.stride * k
 
     cdef move(self, int start, int end):
@@ -499,10 +470,10 @@ cdef class Slider:
         self.buf.data = self.values.data + self.stride * start
         self.buf.shape[0] = end - start
 
-    cpdef set_length(self, Py_ssize_t length):
+    cdef set_length(self, Py_ssize_t length):
         self.buf.shape[0] = length
 
-    cpdef reset(self):
+    cdef reset(self):
 
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
@@ -522,8 +493,8 @@ def apply_frame_axis0(object frame, object f, object names,
         object piece
         dict item_cache
 
-    if frame.index._has_complex_internals:
-        raise InvalidApply('Cannot modify frame index internals')
+    # We have already checked that we don't have a MultiIndex before calling
+    assert frame.index.nlevels == 1
 
     results = []
 
@@ -607,10 +578,10 @@ cdef class BlockSlider:
     def __dealloc__(self):
         free(self.base_ptrs)
 
-    cpdef move(self, int start, int end):
+    cdef move(self, int start, int end):
         cdef:
             ndarray arr
-            object index
+            Py_ssize_t i
 
         # move blocks
         for i in range(self.nblocks):
@@ -629,6 +600,7 @@ cdef class BlockSlider:
     cdef reset(self):
         cdef:
             ndarray arr
+            Py_ssize_t i
 
         # reset blocks
         for i in range(self.nblocks):
@@ -653,7 +625,7 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex
-        assert not labels._has_complex_internals
+        assert labels.nlevels == 1
 
         # pass as an ndarray/ExtensionArray
         labels = labels._values

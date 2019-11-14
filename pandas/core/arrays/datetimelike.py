@@ -175,7 +175,8 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        return self._format_native_types(date_format=date_format).astype(object)
+        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        return result.astype(object)
 
 
 class TimelikeOps:
@@ -392,7 +393,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """The number of elements in this array."""
         return np.prod(self.shape)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     def __getitem__(self, key):
@@ -1295,6 +1296,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if is_datetime64_any_dtype(other) and is_timedelta64_dtype(self.dtype):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
+            if lib.is_scalar(other):
+                # i.e. np.datetime64 object
+                return Timestamp(other) - self
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
                 from pandas.core.arrays import DatetimeArray
@@ -1433,7 +1437,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             values = self.asi8
 
         if not len(values):
-            # short-circut for empty max / min
+            # short-circuit for empty max / min
             return NaT
 
         result = nanops.nanmax(values, skipna=skipna)
@@ -1449,15 +1453,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         Parameters
         ----------
         skipna : bool, default True
-            Whether to ignore any NaT elements
+            Whether to ignore any NaT elements.
 
         Returns
         -------
-        scalar (Timestamp or Timedelta)
+        scalar
+            Timestamp or Timedelta.
 
         See Also
         --------
-        numpy.ndarray.mean
+        numpy.ndarray.mean : Returns the average of array elements along a given axis.
         Series.mean : Return the mean value in a Series.
 
         Notes

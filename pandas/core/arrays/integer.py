@@ -45,7 +45,7 @@ class _IntegerDtype(ExtensionDtype):
     type = None  # type: Type
     na_value = np.nan
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
         return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
 
@@ -469,7 +469,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property

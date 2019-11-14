@@ -52,7 +52,7 @@ class RangeIndex(Int64Index):
     stop : int (default: 0)
     step : int (default: 1)
     name : object, optional
-        Name to be stored in the index
+        Name to be stored in the index.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
@@ -354,11 +354,11 @@ class RangeIndex(Int64Index):
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return False
 
     def __contains__(self, key: Union[int, np.integer]) -> bool:
@@ -699,7 +699,7 @@ class RangeIndex(Int64Index):
         # In this case return an empty range index.
         return RangeIndex(0, 0).rename(name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         return the length of the RangeIndex
         """

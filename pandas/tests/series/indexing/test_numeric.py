@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 def test_get():
@@ -126,11 +125,11 @@ def test_get_nan_multiple():
 
     idx = [2, 30]
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
 
     idx = [2, np.nan]
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
 
     # GH 17295 - all missing keys
     idx = [20, 30]
@@ -147,11 +146,11 @@ def test_delitem():
     del s[0]
 
     expected = Series(range(1, 5), index=range(1, 5))
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     del s[1]
     expected = Series(range(2, 5), index=range(2, 5))
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # empty
     s = Series()
@@ -162,20 +161,20 @@ def test_delitem():
     # only 1 left, del, add, del
     s = Series(1)
     del s[0]
-    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
+    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
     s[0] = 1
-    assert_series_equal(s, Series(1))
+    tm.assert_series_equal(s, Series(1))
     del s[0]
-    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
+    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
 
     # Index(dtype=object)
     s = Series(1, index=["a"])
     del s["a"]
-    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
+    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
     s["a"] = 1
-    assert_series_equal(s, Series(1, index=["a"]))
+    tm.assert_series_equal(s, Series(1, index=["a"]))
     del s["a"]
-    assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
+    tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="object")))
 
 
 def test_slice_float64():
@@ -188,10 +187,10 @@ def test_slice_float64():
 
     result = s[start:end]
     expected = s.iloc[5:16]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = s.loc[start:end]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     df = DataFrame(np.random.randn(20, 3), index=index)
 
@@ -217,19 +216,19 @@ def test_getitem_negative_out_of_bounds():
 def test_getitem_regression():
     s = Series(range(5), index=list(range(5)))
     result = s[list(range(5))]
-    assert_series_equal(result, s)
+    tm.assert_series_equal(result, s)
 
 
 def test_getitem_setitem_slice_bug():
     s = Series(range(10), index=list(range(10)))
     result = s[-12:]
-    assert_series_equal(result, s)
+    tm.assert_series_equal(result, s)
 
     result = s[-7:]
-    assert_series_equal(result, s[3:])
+    tm.assert_series_equal(result, s[3:])
 
     result = s[:-12]
-    assert_series_equal(result, s[:0])
+    tm.assert_series_equal(result, s[:0])
 
     s = Series(range(10), index=list(range(10)))
     s[-12:] = 0
@@ -244,7 +243,7 @@ def test_getitem_setitem_slice_integers():
 
     result = s[:4]
     expected = s.reindex([2, 4, 6, 8])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     s[:4] = 0
     assert (s[:4] == 0).all()
@@ -259,25 +258,25 @@ def test_setitem_float_labels():
     s.loc[1] = "zoo"
     tmp.iloc[2] = "zoo"
 
-    assert_series_equal(s, tmp)
+    tm.assert_series_equal(s, tmp)
 
 
-def test_slice_float_get_set(test_data):
+def test_slice_float_get_set(datetime_series):
     msg = (
         r"cannot do slice indexing on <class 'pandas\.core\.indexes"
         r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
         r" of <class 'float'>"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        test_data.ts[4.0:10.0]
+        datetime_series[4.0:10.0]
 
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        test_data.ts[4.0:10.0] = 0
+        datetime_series[4.0:10.0] = 0
 
     with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        test_data.ts[4.5:10.0]
+        datetime_series[4.5:10.0]
     with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        test_data.ts[4.5:10.0] = 0
+        datetime_series[4.5:10.0] = 0
 
 
 def test_slice_floats2():
@@ -312,6 +311,6 @@ def test_int_indexing():
         s["c"]
 
 
-def test_getitem_int64(test_data):
+def test_getitem_int64(datetime_series):
     idx = np.int64(5)
-    assert test_data.ts[idx] == test_data.ts[5]
+    assert datetime_series[idx] == datetime_series[5]
