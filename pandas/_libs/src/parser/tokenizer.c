@@ -1426,42 +1426,30 @@ int tokenize_all_rows(parser_t *self) {
     return status;
 }
 
-PANDAS_INLINE void uppercase(char *p) {
-    for (; *p; ++p) *p = toupper_ascii(*p);
-}
-
+/*
+ * Function: to_boolean
+ * --------------------
+ *
+ * Validate if item should be recognized as a boolean field.
+ *
+ * item: const char* representing parsed text
+ * val : pointer to a uint8_t of boolean representation
+ *
+ * If item is determined to be boolean, this method will set
+ * the appropriate value of val and return 0. A non-zero exit
+ * status means that item was not inferred to be boolean, and
+ * leaves the value of *val unmodified.
+ */
 int to_boolean(const char *item, uint8_t *val) {
-    char *tmp;
-    int i, status = 0;
-    size_t length0 = (strlen(item) + 1);
-    int bufsize = length0;
-
-    static const char *tstrs[1] = {"TRUE"};
-    static const char *fstrs[1] = {"FALSE"};
-
-    tmp = malloc(bufsize);
-    snprintf(tmp,  length0, "%s", item);
-    uppercase(tmp);
-
-    for (i = 0; i < 1; ++i) {
-        if (strcmp(tmp, tstrs[i]) == 0) {
-            *val = 1;
-            goto done;
-        }
+    if (strcasecmp(item, "TRUE") == 0) {
+      *val = 1;
+      return 0;
+    } else if (strcasecmp(item, "FALSE") == 0) {
+      *val = 0;
+      return 0;
     }
 
-    for (i = 0; i < 1; ++i) {
-        if (strcmp(tmp, fstrs[i]) == 0) {
-            *val = 0;
-            goto done;
-        }
-    }
-
-    status = -1;
-
-done:
-    free(tmp);
-    return status;
+    return -1;
 }
 
 // ---------------------------------------------------------------------------

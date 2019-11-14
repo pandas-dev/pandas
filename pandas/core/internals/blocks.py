@@ -288,7 +288,7 @@ class Block(PandasObject):
 
         return result
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
     def __getstate__(self):
@@ -1088,7 +1088,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1138,7 +1138,7 @@ class Block(PandasObject):
             fill_value=fill_value,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def _interpolate_with_fill(
@@ -1193,7 +1193,7 @@ class Block(PandasObject):
         limit_area=None,
         inplace=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """ interpolate using scipy wrappers """
 
@@ -1231,7 +1231,7 @@ class Block(PandasObject):
                 limit_area=limit_area,
                 fill_value=fill_value,
                 bounds_error=False,
-                **kwargs
+                **kwargs,
             )
 
         # interp each column independently
@@ -2016,7 +2016,7 @@ class FloatBlock(FloatOrComplexBlock):
         float_format=None,
         decimal=".",
         quoting=None,
-        **kwargs
+        **kwargs,
     ):
         """ convert to our native types format, slicing if desired """
 

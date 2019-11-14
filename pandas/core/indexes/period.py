@@ -174,7 +174,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None
+    _data: PeriodArray
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -194,7 +194,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        **fields
+        **fields,
     ):
 
         valid_field_set = {
@@ -574,7 +574,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     @property
@@ -591,7 +591,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return ((values[1:] - values[:-1]) < 2).all()
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c data is represented as ints make sure we can't have ambiguous
         # indexing
         return "period"

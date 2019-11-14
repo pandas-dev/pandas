@@ -363,19 +363,19 @@ class TestMultiLevel(Base):
         [
             (
                 [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3", u"col4"],
+                ["ix1", "ix2", "col1", "col2", "col3", "col4"],
                 2,
                 [None, None, 30.0, None],
             ),
             (
                 [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                ["ix1", "ix2", "col1", "col2", "col3"],
                 2,
                 [None, None, 30.0],
             ),
             (
                 [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                ["ix1", "ix2", "col1", "col2", "col3"],
                 None,
                 [None, None, 30.0],
             ),
@@ -389,7 +389,7 @@ class TestMultiLevel(Base):
         # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
         # and the Index levels contain values that are not present in the subset
         result = pd.DataFrame(result_rows, columns=result_columns).set_index(
-            [u"ix1", "ix2"]
+            ["ix1", "ix2"]
         )
         result = result.iloc[1:2].unstack("ix2")
         expected = pd.DataFrame(

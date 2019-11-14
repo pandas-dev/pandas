@@ -464,6 +464,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx.freq = None
+        return new_idx
+
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -1235,13 +1241,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         return typ == self.inferred_type or typ == "datetime"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return "datetime64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):
@@ -1422,7 +1428,7 @@ def date_range(
     normalize=False,
     name=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex.
@@ -1572,7 +1578,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
@@ -1588,7 +1594,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
@@ -1681,7 +1687,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
 
 
