@@ -110,6 +110,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
+    # actions/checkout doesn't fetch all tags, and that breaks pandas.__version__
+    - name: Fetch tags
+      run: |
+        set -v
+        git tag
+        git fetch --tags
+        git tag
+        set +v
+
     - name: Setup environment and build pandas
       run: |
         export PATH=$HOME/miniconda3/bin:$PATH
