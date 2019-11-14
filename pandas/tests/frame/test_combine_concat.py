@@ -931,6 +931,7 @@ class TestDataFrameCombineFirst:
         pd.concat([df1, df2_obj])
 
     def test_combine_first_empty_dataframe(self):
+        # #29562
         df1 = pd.DataFrame(columns=["a"])
         df2 = pd.DataFrame(columns=["b"])
 
