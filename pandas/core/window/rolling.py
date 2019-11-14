@@ -478,7 +478,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                         window, self.min_periods, len(x), require_min_periods, floor
                     )
                     start, end = window_indexer(
-                        x, window, self.closed, index_as_array
+                        x, min(window, len(x)), self.closed, index_as_array
                     ).get_window_bounds()
                     return func(x, start, end, min_periods)
 
@@ -1092,10 +1092,9 @@ class Window(_Window):
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        window_func = self._get_roll_func("roll_weighted_var")
-        window_func = partial(
-            self._get_weighted_roll_func(window_func, _use_window), ddof=ddof
-        )
+        window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
+        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
         )
