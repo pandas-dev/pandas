@@ -17,4 +17,3 @@ Development
     extending
     developer
     policies
-    roadmap
