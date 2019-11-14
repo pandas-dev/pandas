@@ -133,10 +133,8 @@ class TestReadHtml:
 
     @tm.network
     def test_spam_url(self):
-        # TODO: alimcmaster1 - revert to master
         url = (
-            "https://raw.githubusercontent.com/alimcmaster1/"
-            "pandas/mcmali-tests-dir-struct/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
             "pandas/tests/io/data/html/spam.html"
         )
         df1 = self.read_html(url, ".*Water.*")
