@@ -20,6 +20,8 @@ Triage members can label and close issues and pull requests.
 Core team members can label and close issues and pull request, and can merge
 pull requests.
 
+GitHub publishes the full `list of permissions`_.
+
 Tasks
 -----
 
@@ -82,12 +84,14 @@ Here's a typical workflow for triaging a newly opened issue.
    We'll need a discussion from several pandas maintainers before deciding whether
    the proposal is in scope for pandas.
 
-5. **Is this a usage qusetion?**
+5. **Is this a usage question?**
 
-   We prefer that usage questions are asked on StackOverflow. If it's easy to
-   answer, feel free to link to the relevant documentation section, let them
-   know that in the future this kind of question should be on StackOverflow,
-   and close the issue.
+   We prefer that usage questions are asked on StackOverflow with the pandas
+   tag. https://stackoverflow.com/questions/tagged/pandas
+
+   If it's easy to answer, feel free to link to the relevant documentation section,
+   let them know that in the future this kind of question should be on
+   StackOverflow, and close the issue.
 
 6. **What labels and milestones should I add?**
 
@@ -134,7 +138,7 @@ and that's best done by ensuring that the quality of our open issues is high.
 
 Occasionally, bugs are fixed but the issue isn't linked to in the Pull Request.
 In these cases, comment that "This has been fixed, but could use a test." and
-label the issue as "Good First Issue".
+label the issue as "Good First Issue" and "Needs Test".
 
 If an older issue doesn't follow our issue template, edit the original post to
 include a minimal example, the actual output, and the expected output. Uniformity
@@ -170,3 +174,4 @@ The current list of core-team members is at
 https://github.com/pandas-dev/pandas-governance/blob/master/people.md
 
 .. _governance documents: https://github.com/pandas-dev/pandas-governance
+.. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization
