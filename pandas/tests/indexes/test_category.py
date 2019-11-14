@@ -188,8 +188,8 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = "cannot perform {} with this index type: CategoricalIndex"
-        with pytest.raises(TypeError, match=msg.format(op_name)):
+        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
             func(idx)
 
     def test_method_delegation(self):
