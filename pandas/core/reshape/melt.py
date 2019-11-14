@@ -1,4 +1,5 @@
 import re
+from typing import List
 
 import numpy as np
 
@@ -35,6 +36,7 @@ def melt(
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
@@ -129,6 +131,8 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     groups : dict
         {new_name : list_of_columns}
     dropna : boolean, default True
+    label : object, default None
+        Dummy kwarg, not used.
 
     Examples
     --------
@@ -188,7 +192,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
+def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -412,7 +416,7 @@ def wide_to_long(df, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix):
+    def get_var_names(df, stub: str, sep: str, suffix) -> List[str]:
         regex = r"^{stub}{sep}{suffix}$".format(
             stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
         )
