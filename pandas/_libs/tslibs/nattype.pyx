@@ -230,16 +230,16 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         return np.datetime64(NPY_NAT, 'ns')
 
-    def to_datetime64(self):
+    def to_datetime64(self) -> np.datetime64:
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
         return np.datetime64('NaT', 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -265,7 +265,7 @@ cdef class _NaT(datetime):
     def __str__(self) -> str:
         return 'NaT'
 
-    def isoformat(self, sep='T'):
+    def isoformat(self, sep='T') -> str:
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return 'NaT'
 

@@ -99,7 +99,7 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i
             flatiter it
-            object res, name, labels, index
+            object res, name, labels
             object cached_typ = None
 
         arr = self.arr
@@ -173,10 +173,10 @@ cdef class _BaseGrouper:
         return values, index
 
     cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
-                                    Slider islider, Slider vslider, object name):
+                                    Slider islider, Slider vslider):
         if cached_typ is None:
             cached_ityp = self.ityp(islider.buf)
-            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=name)
+            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=self.name)
         else:
             # See the comment in indexes/base.py about _index_data.
             # We need this for EA-backed indexes that have a reference
@@ -185,7 +185,7 @@ cdef class _BaseGrouper:
             cached_ityp._engine.clear_mapping()
             object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
             object.__setattr__(cached_typ, '_index', cached_ityp)
-            object.__setattr__(cached_typ, 'name', name)
+            object.__setattr__(cached_typ, 'name', self.name)
 
         return cached_typ, cached_ityp
 
@@ -204,6 +204,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
     def __init__(self, object series, object f, object bins, object dummy):
 
         assert dummy is not None  # always obj[:0]
+        assert len(bins) > 0  # otherwise we get IndexError in get_result
 
         self.bins = bins
         self.f = f
@@ -234,7 +235,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ = None, cached_ityp = None
+            object cached_typ = None, cached_ityp = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -248,7 +249,6 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
         group_size = 0
         n = len(self.arr)
-        name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
@@ -263,7 +263,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 vslider.set_length(group_size)
 
                 cached_typ, cached_ityp = self._update_cached_objs(
-                    cached_typ, cached_ityp, islider, vslider, name)
+                    cached_typ, cached_ityp, islider, vslider)
 
                 cached_ityp._engine.clear_mapping()
                 res = self.f(cached_typ)
@@ -336,13 +336,12 @@ cdef class SeriesGrouper(_BaseGrouper):
             object res
             bint initialized = 0
             Slider vslider, islider
-            object name, cached_typ = None, cached_ityp = None
+            object cached_typ = None, cached_ityp = None
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
         group_size = 0
         n = len(self.arr)
-        name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
@@ -366,7 +365,7 @@ cdef class SeriesGrouper(_BaseGrouper):
                     vslider.set_length(group_size)
 
                     cached_typ, cached_ityp = self._update_cached_objs(
-                        cached_typ, cached_ityp, islider, vslider, name)
+                        cached_typ, cached_ityp, islider, vslider)
 
                     cached_ityp._engine.clear_mapping()
                     res = self.f(cached_typ)
