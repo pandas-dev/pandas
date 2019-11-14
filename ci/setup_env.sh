@@ -118,11 +118,6 @@ echo
 echo "conda list pandas"
 conda list pandas
 
-echo "[git info]"
-git describe --tags --dirty --always --long
-git tag
-
-
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
