@@ -33,12 +33,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPeriodArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodArray, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
@@ -46,6 +41,7 @@ from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import make_invalid_op
 
 from pandas.tseries import frequencies
@@ -1194,13 +1190,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
+    @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
         # scalar others
-        elif other is NaT:
+        if other is NaT:
             result = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_delta(other)
@@ -1248,13 +1242,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # alias for __add__
         return self.__add__(other)
 
+    @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
 
         # scalar others
-        elif other is NaT:
+        if other is NaT:
             result = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_delta(-other)
@@ -1343,11 +1335,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return -(self - other)
 
     # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115
-    def __iadd__(self, other):
+    def __iadd__(self, other):  # type: ignore
         # alias for __add__
         return self.__add__(other)
 
-    def __isub__(self, other):
+    def __isub__(self, other):  # type: ignore
         # alias for __sub__
         return self.__sub__(other)
 

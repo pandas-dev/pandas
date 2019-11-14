@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable, lib
+from pandas._libs import algos as libalgos, hashtable as htable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
@@ -52,6 +52,7 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
@@ -74,16 +75,14 @@ _take_msg = textwrap.dedent(
 def _cat_compare_op(op):
     opname = "__{op}__".format(op=op.__name__)
 
+    @unpack_zerodim_and_defer(opname)
     def f(self, other):
         # On python2, you can usually compare any type to any type, and
         # Categoricals can be seen as a custom type, but having different
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
 
-        other = lib.item_from_zerodim(other)
         if is_list_like(other) and len(other) != len(self):
             # TODO: Could this fail if the categories are listlike objects?
             raise ValueError("Lengths must match.")
