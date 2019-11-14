@@ -123,7 +123,9 @@ class TestReducer:
             libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
 
         with pytest.raises(ValueError, match=msg):
-            libreduction.compute_reduction(arr, np.sum, axis=1, labels=Index(np.arange(100)))
+            libreduction.compute_reduction(
+                arr, np.sum, axis=1, labels=Index(np.arange(100))
+            )
 
         dummy = Series(0.0, index=np.arange(100))
         result = libreduction.compute_reduction(
