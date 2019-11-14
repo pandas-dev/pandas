@@ -283,9 +283,7 @@ class SelectionMixin:
             # people may try to aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
-            assert (
-                len([kwarg for kwarg in kwargs if kwarg not in ["axis", "_level"]]) == 0
-            )
+            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
 
         f = getattr(np, arg, None)
@@ -324,7 +322,6 @@ class SelectionMixin:
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
             _axis = getattr(self, "axis", 0)
-        _level = kwargs.pop("_level", None)
 
         if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args, **kwargs), None
@@ -336,21 +333,6 @@ class SelectionMixin:
                 raise ValueError("Can only pass dict with axis=0")
 
             obj = self._selected_obj
-
-            def nested_renaming_depr(level: int = 4):
-                # deprecation of nested renaming
-                # GH 15931
-                msg = textwrap.dedent(
-                    """\
-                using a dict with renaming is deprecated and will be removed
-                in a future version.
-
-                For column-specific groupby renaming, use named aggregation
-
-                    >>> df.groupby(...).agg(name=('column', aggfunc))
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -373,19 +355,8 @@ class SelectionMixin:
 
                     # not ok
                     # {'ra' : { 'A' : 'mean' }}
-                    if isinstance(v, dict):
-                        is_nested_renamer = True
-
-                        if k not in obj.columns:
-                            msg = (
-                                "cannot perform renaming for {key} with a "
-                                "nested dictionary"
-                            ).format(key=k)
-                            raise SpecificationError(msg)
-                        nested_renaming_depr(4 + (_level or 0))
-
-                    elif isinstance(obj, ABCSeries):
-                        nested_renaming_depr()
+                    if isinstance(v, (dict, ABCSeries)):
+                        raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
                         raise KeyError("Column '{col}' does not exist!".format(col=k))
 
@@ -398,7 +369,7 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    nested_renaming_depr()
+                    raise SpecificationError("nested renamer is not supported")
 
             from pandas.core.reshape.concat import concat
 
@@ -411,14 +382,14 @@ class SelectionMixin:
                     raise SpecificationError(
                         "nested dictionary is ambiguous in aggregation"
                     )
-                return colg.aggregate(how, _level=(_level or 0) + 1)
+                return colg.aggregate(how)
 
             def _agg_2dim(name, how):
                 """
                 aggregate a 2-dim with how
                 """
                 colg = self._gotitem(self._selection, ndim=2, subset=obj)
-                return colg.aggregate(how, _level=None)
+                return colg.aggregate(how)
 
             def _agg(arg, func):
                 """
@@ -535,7 +506,7 @@ class SelectionMixin:
             return result, True
         elif is_list_like(arg):
             # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
+            return self._aggregate_multiple_funcs(arg, _axis=_axis), None
         else:
             result = None
 
@@ -546,7 +517,7 @@ class SelectionMixin:
         # caller can react
         return result, True
 
-    def _aggregate_multiple_funcs(self, arg, _level, _axis):
+    def _aggregate_multiple_funcs(self, arg, _axis):
         from pandas.core.reshape.concat import concat
 
         if _axis != 0:

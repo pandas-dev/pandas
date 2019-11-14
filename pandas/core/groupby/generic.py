@@ -23,7 +23,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -225,7 +224,6 @@ class SeriesGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None
         columns = None
@@ -244,7 +242,7 @@ class SeriesGroupBy(GroupBy):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
+            ret = self._aggregate_multiple_funcs(func)
             if relabeling:
                 ret.columns = columns
         else:
@@ -271,8 +269,7 @@ class SeriesGroupBy(GroupBy):
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
 
-        # _level handled at higher
-        if not _level and isinstance(ret, dict):
+        if isinstance(ret, dict):
             from pandas import concat
 
             ret = concat(ret, axis=1)
@@ -280,23 +277,14 @@ class SeriesGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg, _level):
+    def _aggregate_multiple_funcs(self, arg):
         if isinstance(arg, dict):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
             # GH 15931
-            if isinstance(self._selected_obj, Series) and _level <= 1:
-                msg = dedent(
-                    """\
-                using a dict on a Series for aggregation
-                is deprecated and will be removed in a future version. Use \
-                named aggregation instead.
-
-                    >>> grouper.agg(name_1=func_1, name_2=func_2)
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+            if isinstance(self._selected_obj, Series):
+                raise SpecificationError("nested renamer is not supported")
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -332,8 +320,7 @@ class SeriesGroupBy(GroupBy):
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            if _level:
-                return results
+            return results
 
         return DataFrame(results, columns=columns)
 
@@ -859,7 +846,6 @@ class DataFrameGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -872,7 +858,7 @@ class DataFrameGroupBy(GroupBy):
 
         func = _maybe_mangle_lambdas(func)
 
-        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
             return result
 
@@ -892,9 +878,7 @@ class DataFrameGroupBy(GroupBy):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = self._aggregate_multiple_funcs(
-                        [func], _level=_level, _axis=self.axis
-                    )
+                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
                 except ValueError as err:
                     if "no results" not in str(err):
                         # raised directly by _aggregate_multiple_funcs

@@ -10,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 import pandas.util.testing as tm
 
@@ -55,8 +56,9 @@ def test_basic(dtype):
     # complex agg
     agged = grouped.aggregate([np.mean, np.std])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        agged = grouped.aggregate({"one": np.mean, "two": np.std})
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate({"one": np.mean, "two": np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
     agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
@@ -452,9 +454,9 @@ def test_frame_set_name_single(df):
     result = grouped["C"].agg([np.mean, np.std])
     assert result.index.name == "A"
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped["C"].agg({"foo": np.mean, "bar": np.std})
-    assert result.index.name == "A"
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"foo": np.mean, "bar": np.std})
 
 
 def test_multi_func(df):
@@ -602,12 +604,10 @@ def test_groupby_as_index_agg(df):
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
-    expected3 = grouped["C"].sum()
-    expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result3 = grouped["C"].agg({"Q": np.sum})
-    tm.assert_frame_equal(result3, expected3)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": np.sum})
 
     # multi-key
 
