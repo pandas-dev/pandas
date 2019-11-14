@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series, Index
@@ -274,7 +274,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
-            and not self.agg_axis._has_complex_internals
+            and not isinstance(self.agg_axis, ABCMultiIndex)
         ):
 
             values = self.values
