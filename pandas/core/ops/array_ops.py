@@ -160,7 +160,6 @@ def arithmetic_op(
     right: Any,
     op,
     str_rep: str,
-    eval_kwargs: Mapping[str, bool],
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
