@@ -372,11 +372,11 @@ class TestTimeSeries:
 
     def test_pct_change_with_duplicate_axis(self):
         # GH 28664
-        original_idx = date_range("2019-11-14", periods=3, freq="D")
-        s = Series(range(3), original_idx)
+        common_idx = date_range("2019-11-14", periods=5, freq="D")
+        result = Series(range(5), common_idx).pct_change(freq="B")
 
-        result = s.pct_change(freq="B")
-        expected = s.asfreq("B").pct_change().reindex(original_idx)
+        # the reason that the expected should be like this is documented at PR 28681
+        expected = Series([np.NaN, np.inf, np.NaN, np.NaN, 3.0], common_idx)
 
         tm.assert_series_equal(result, expected)
 
