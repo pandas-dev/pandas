@@ -364,7 +364,7 @@ def parallel_coordinates(
     --------
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                        '/pandas/tests/data/iris.csv')
+                        '/pandas/tests/data/csv/iris.csv')
     >>> pd.plotting.parallel_coordinates(
             df, 'Name',
             color=('#556270', '#4ECDC4', '#C7F464'))
@@ -456,9 +456,10 @@ def tsplot(series, plotf, ax=None, **kwargs):
 class _Options(dict):
     """
     Stores pandas plotting options.
+
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
-    format that makes it easy to breakdown into groups later
+    format that makes it easy to breakdown into groups later.
     """
 
     # alias so the names are same as plotting method parameter names

@@ -87,7 +87,8 @@ class ExtensionDtype:
         return self.name
 
     def __eq__(self, other):
-        """Check whether 'other' is equal to self.
+        """
+        Check whether 'other' is equal to self.
 
         By default, 'other' is considered equal if either
 
@@ -115,7 +116,7 @@ class ExtensionDtype:
             )
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
     def __ne__(self, other):
@@ -171,7 +172,8 @@ class ExtensionDtype:
 
     @property
     def names(self) -> Optional[List[str]]:
-        """Ordered list of field names, or None if there are no fields.
+        """
+        Ordered list of field names, or None if there are no fields.
 
         This is for compatibility with NumPy arrays, and may be removed in the
         future.
@@ -233,16 +235,19 @@ class ExtensionDtype:
         ...                         "'{}'".format(cls.__name__, string))
         """
         if not isinstance(string, str):
-            raise TypeError("Expects a string, got {}".format(type(string)))
+            raise TypeError("Expects a string, got {typ}".format(typ=type(string)))
         if string != cls.name:
             raise TypeError(
-                "Cannot construct a '{}' from '{}'".format(cls.__name__, string)
+                "Cannot construct a '{cls}' from '{string}'".format(
+                    cls=cls.__name__, string=string
+                )
             )
         return cls()
 
     @classmethod
     def is_dtype(cls, dtype) -> bool:
-        """Check if we match 'dtype'.
+        """
+        Check if we match 'dtype'.
 
         Parameters
         ----------
