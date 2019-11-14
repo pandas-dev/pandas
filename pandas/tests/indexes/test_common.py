@@ -167,7 +167,7 @@ class TestCommon:
     def test_hash_error(self, indices):
         index = indices
         with pytest.raises(
-            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
+            TypeError, match=(f"unhashable type: {type(index).__name__!r}")
         ):
             hash(indices)
 
@@ -201,8 +201,9 @@ class TestCommon:
         with pytest.raises(IndexError, match=msg):
             indices.unique(level=3)
 
-        msg = r"Requested level \(wrong\) does not match index name \({}\)".format(
-            re.escape(indices.name.__repr__())
+        msg = (
+            fr"Requested level \(wrong\) does not match index name "
+            fr"\({re.escape(indices.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             indices.unique(level="wrong")

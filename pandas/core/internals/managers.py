@@ -166,7 +166,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
@@ -354,7 +354,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager

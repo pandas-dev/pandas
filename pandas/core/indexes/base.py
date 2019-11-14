@@ -230,7 +230,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data = None
+    _data: Union[ExtensionArray, np.ndarray]
     _id = None
     name = None
     _comparables = ["name"]
@@ -265,7 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        **kwargs
+        **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -506,7 +506,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -528,8 +528,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
+
         return result._reset_identity()
 
     @cache_readonly
@@ -607,7 +606,7 @@ class Index(IndexOpsMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
-    def is_(self, other):
+    def is_(self, other) -> bool:
         """
         More flexible, faster check like ``is`` but that works through views.
 
@@ -653,8 +652,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the length of the Index.
         """
-        # Assertion needed for mypy, see GH#29475
-        assert self._data is not None
         return len(self._data)
 
     def __array__(self, dtype=None):
@@ -1452,7 +1449,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Level-Centric Methods
 
     @property
-    def nlevels(self):
+    def nlevels(self) -> int:
         """
         Number of levels.
         """
@@ -1677,7 +1674,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return if the index is monotonic decreasing (only equal or
         decreasing) values.
@@ -1735,7 +1732,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_unique
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return not self.is_unique
 
     def is_boolean(self):
@@ -2675,7 +2672,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return this._shallow_copy(the_diff, name=result_name, freq=None)
+        return this._shallow_copy(the_diff, name=result_name)
 
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
@@ -4088,11 +4085,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_scalar(value):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
-
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks in MultiIndex
-        return False
 
     def _is_memory_usage_qualified(self):
         """
