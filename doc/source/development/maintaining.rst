@@ -22,11 +22,13 @@ Tasks
 -----
 
 Pandas is largely a volunteer project, so these tasks shouldn't be read as
-"expectations" of triage and maintainers.
+"expectations" of triage and maintainers. Rather, they're general descriptions
+of what it means to be a maintainer.
 
 * Triage newly filed issues (see :ref:`maintaining.triage`)
 * Review newly opened pull request
 * Respond to updates on existing issues and pull requests
+* Drive discussion and decisions on stalled issues and pull requests
 
 .. _maintaining.triage:
 
@@ -102,6 +104,10 @@ self-close their issue if it's determined that the behavior is not a bug,
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
 
+And keep in mind that closing issues isn't a goal on its own. Our goal is to
+make pandas the best it can be.
+
+
 Reviewing Pull Requests
 -----------------------
 
@@ -109,7 +115,7 @@ Anybody can review a pull request: regular contributors, triagers, or core-team
 members. Here are some guidelines to check.
 
 * Tests should be in a sensible location.
-* New public APIs should be included in ``doc/source/reference/``.
+* New public APIs should be included somewhere in ``doc/source/reference/``.
 * New / changed API should use the ``versionadded`` or ``versionchanged`` directives in the docstring.
 * User-facing changes should have a whatsnew in the appropriate file.
 * Regression tests should reference the original GitHub issue number like ``# GH-1234``.
