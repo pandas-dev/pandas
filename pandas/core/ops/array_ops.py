@@ -156,10 +156,7 @@ def na_arithmetic_op(left, right, op, str_rep: str):
 
 
 def arithmetic_op(
-    left: Union[np.ndarray, ABCExtensionArray],
-    right: Any,
-    op,
-    str_rep: str,
+    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep: str
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
