@@ -53,7 +53,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -61,12 +61,12 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return '%s(%r)' % (self.__class__.__name__, v)
+        return f'{self.__class__.__name__}({v})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -319,7 +319,7 @@ cdef slice_getitem(slice slc, ind):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(int64_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d

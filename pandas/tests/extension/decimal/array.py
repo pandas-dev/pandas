@@ -22,7 +22,7 @@ class DecimalDtype(ExtensionDtype):
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "DecimalDtype(context={})".format(self.context)
 
     @classmethod
