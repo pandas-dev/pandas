@@ -3,7 +3,7 @@ Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
 import operator
-from typing import Any, Mapping, Union
+from typing import Any, Union
 
 import numpy as np
 
