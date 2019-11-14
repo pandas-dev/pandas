@@ -201,7 +201,7 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -369,18 +369,18 @@ cdef class _Timestamp(datetime):
         return out[0]
 
     @property
-    def _repr_base(self):
+    def _repr_base(self) -> str:
         return '{date} {time}'.format(date=self._date_repr,
                                       time=self._time_repr)
 
     @property
-    def _date_repr(self):
+    def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900
         return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
 
     @property
-    def _time_repr(self):
+    def _time_repr(self) -> str:
         result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
@@ -391,7 +391,7 @@ cdef class _Timestamp(datetime):
         return result
 
     @property
-    def _short_repr(self):
+    def _short_repr(self) -> str:
         # format a Timestamp with only _date_repr if possible
         # otherwise _repr_base
         if (self.hour == 0 and
@@ -403,7 +403,7 @@ cdef class _Timestamp(datetime):
         return self._repr_base
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
         """

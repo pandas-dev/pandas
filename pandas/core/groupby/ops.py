@@ -830,8 +830,7 @@ class BinGrouper(BaseGrouper):
         assert self.ngroups != 0
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empty SeriesBinGrouper from raising TypeError
-            # TODO: watch out, this can return None
+            # pre-empt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]

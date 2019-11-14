@@ -841,15 +841,15 @@ cdef class _Timedelta(timedelta):
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
-    def to_timedelta64(self):
+    def to_timedelta64(self) -> np.timedelta64:
         """
         Return a numpy.timedelta64 object with 'ns' precision.
         """
         return np.timedelta64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.timedelta64:
         """
-        Convert the Timestamp to a NumPy timedelta64.
+        Convert the Timedelta to a NumPy timedelta64.
 
         .. versionadded:: 0.25.0
 
@@ -920,7 +920,7 @@ cdef class _Timedelta(timedelta):
         return self.value
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.timedelta64:
         """
         Return a numpy timedelta64 array scalar view.
 
@@ -955,7 +955,7 @@ cdef class _Timedelta(timedelta):
         return np.int64(self.value).view('m8[ns]')
 
     @property
-    def resolution_string(self):
+    def resolution_string(self) -> str:
         """
         Return a string representing the lowest timedelta resolution.
 
@@ -1095,7 +1095,7 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._ns
 
-    def _repr_base(self, format=None):
+    def _repr_base(self, format=None) -> str:
         """
 
         Parameters
@@ -1148,10 +1148,10 @@ cdef class _Timedelta(timedelta):
     def __str__(self) -> str:
         return self._repr_base(format='long')
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value != 0
 
-    def isoformat(self):
+    def isoformat(self) -> str:
         """
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
