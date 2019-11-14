@@ -132,6 +132,10 @@ python setup.py build_ext -q -i
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 
+echo "[pandas version info]"
+python -c "import pandas ; print(pandas.__version__)"
+python -c "import pandas ; print(pandas._version.get_versions())"
+
 echo "[Install pandas]"
 python -m pip install --no-build-isolation -e .
 
