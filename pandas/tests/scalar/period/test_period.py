@@ -1557,7 +1557,10 @@ def test_period_immutable():
 
 
 @pytest.mark.xfail(
-    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
+    # https://github.com/python/typeshed/tree/master/third_party/2and3/dateutil
+    # error: Module has no attribute "__version__"  [attr-defined]
+    StrictVersion(dateutil.__version__.split(".dev")[0])  # type: ignore
+    < StrictVersion("2.7.0"),
     reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
     strict=False,
 )
