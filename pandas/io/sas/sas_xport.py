@@ -143,7 +143,7 @@ A DataFrame.
 """
 
 
-def _parse_date(datestr):
+def _parse_date(datestr: str) -> datetime:
     """ Given a date in xport format, return Python date. """
     try:
         # e.g. "16FEB11:10:07:55"
@@ -152,11 +152,11 @@ def _parse_date(datestr):
         return pd.NaT
 
 
-def _split_line(s, parts):
+def _split_line(s: str, parts):
     """
     Parameters
     ----------
-    s: string
+    s: str
         Fixed-length string to split
     parts: list of (name, length) pairs
         Used to break up string, name '_' will be filtered from output.
@@ -402,7 +402,7 @@ class XportReader(BaseIterator):
     def __next__(self):
         return self.read(nrows=self._chunksize or 1)
 
-    def _record_count(self):
+    def _record_count(self) -> int:
         """
         Get number of records in file.
 

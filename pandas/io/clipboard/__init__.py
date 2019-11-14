@@ -95,8 +95,8 @@ def _stringifyText(text):
     acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
         raise PyperclipException(
-            "only str, int, float, and bool values"
-            "can be copied to the clipboard, not".format(text.__class__.__name__)
+            f"only str, int, float, and bool values"
+            f"can be copied to the clipboard, not {text.__class__.__name__}"
         )
     return str(text)
 
