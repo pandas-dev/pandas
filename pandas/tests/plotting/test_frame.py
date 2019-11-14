@@ -3472,11 +3472,11 @@ class TestDataFramePlots(TestPlotBase):
         # Bar plot with numeric index have tick location values equal to index
         # values
         # GH: 11465
-        index = np.arange(10, 20, dtype=np.int64)
         df = pd.DataFrame(np.random.rand(10), index=np.arange(10, 20))
         ax = df.plot.bar()
         ticklocs = ax.xaxis.get_ticklocs()
-        tm.assert_numpy_array_equal(ticklocs, index)
+        expected = np.arange(10, 20, dtype=np.int64)
+        tm.assert_numpy_array_equal(ticklocs, expected)
 
     def test_bar_multiindex(self):
         # Test from pandas/doc/source/user_guide/visualization.rst
