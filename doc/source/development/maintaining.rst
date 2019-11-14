@@ -8,6 +8,8 @@ This guide is for pandas' maintainers. It may also be interesting to contributor
 looking to understand the pandas development process and what steps are necessary
 to become a maintainer.
 
+The main contributing guide is available at :ref:`contributing`.
+
 Roles
 -----
 
@@ -47,7 +49,7 @@ Here's a typical workflow for triaging a newly opened issue.
    If crucial information (like the version of pandas they used), is missing
    feel free to ask for that and label the issue with "Needs info".
 
-2. **Check for duplicates**
+2. **Is this a duplicate issue?**
 
    We have many open issues. If a new issue is clearly a duplicate, label the
    new issue as "Duplicate" assign the milestone "No Action", and close the issue
@@ -70,20 +72,24 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example can't be provided, add the "Needs info" label.
 
-4. **Feature Requests**
+4. **Is this a clearly defined feature request?**
 
    Generally, pandas prefers to discuss and design new features in issues, before
    a pull request is made. Encourage the submitter to include a proposed API
-   for the new feature. Having them write a full docstring is a good exercise.
+   for the new feature. Having them write a full docstring is a good way to
+   pin down specifics.
 
-5. **Usage Questions**
+   We'll need a discussion from several pandas maintainers before deciding whether
+   the proposal is in scope for pandas.
+
+5. **Is this a usage qusetion?**
 
    We prefer that usage questions are asked on StackOverflow. If it's easy to
    answer, feel free to link to the relevant documentation section, let them
    know that in the future this kind of question should be on StackOverflow,
    and close the issue.
 
-6. **Labels and Milestones**
+6. **What labels and milestones should I add?**
 
    Apply the relevant labels. This is a bit of an art, and comes with experience.
    Look at similar issues to get a feel for how things are labeled.
@@ -95,6 +101,8 @@ Here's a typical workflow for triaging a newly opened issue.
    unless it's know that this issue should be addressed in a specific release (say
    because it's a large regression).
 
+.. _maintaining.closing:
+
 Closing Issues
 --------------
 
@@ -103,10 +111,6 @@ conversation is over. It's typically best to give the reporter some time to
 self-close their issue if it's determined that the behavior is not a bug,
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
-
-And keep in mind that closing issues isn't a goal on its own. Our goal is to
-make pandas the best it can be.
-
 
 Reviewing Pull Requests
 -----------------------
@@ -120,4 +124,49 @@ members. Here are some guidelines to check.
 * User-facing changes should have a whatsnew in the appropriate file.
 * Regression tests should reference the original GitHub issue number like ``# GH-1234``.
 
-.. _people: https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+Cleaning up old Issues
+----------------------
+
+Every open issue in pandas has a cost. Open issues make finding duplicates harder,
+and can make it harder to know what needs to be done in pandas. That said, closing
+issues isn't a goal on its own. Our goal is to make pandas the best it can be,
+and that's best done by ensuring that the quality of our open issues is high.
+
+Occasionally, bugs are fixed but the issue isn't linked to in the Pull Request.
+In these cases, comment that "This has been fixed, but could use a test." and
+label the issue as "Good First Issue".
+
+If an older issue doesn't follow our issue template, edit the original post to
+include a minimal example, the actual output, and the expected output. Uniformity
+in issue reports is valuable.
+
+If an older issue lacks a reproducible example, label it as "Needs Info" and
+ask them to provide one (or write one yourself if possible). If one isn't
+provide reasonably soon, close it according to the policies in :ref:`maintaining.closing`.
+
+Cleaning up old Pull Requests
+-----------------------------
+
+Occasionally, contributors are unable to finish off a pull request.
+If some time has passed (a week, say) since the last review requesting changes,
+gently ask if they're still interested in working on this. If another week or
+so passes with no response, thank them for their work and close the pull request.
+Comment on the original issue that "There's a stalled PR at #1234 that may be
+helpful.", and perhaps label the issue as "Good first issue" if the PR was relatively
+close to being accepted.
+
+Additionally, core-team members can push to contributors branches. This can be
+helpful for pushing an important PR across the line, or for fixing a small
+merge conflict.
+
+Becoming a pandas maintainer
+----------------------------
+
+The full process is outlined in our `governance documents`_. In summary,
+we're happy to give triage permissions to anyone who shows interest by
+being helpful on the issue tracker.
+
+The current list of core-team members is at
+https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+
+.. _governance documents: https://github.com/pandas-dev/pandas-governance
