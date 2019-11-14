@@ -194,7 +194,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        **fields
+        **fields,
     ):
 
         valid_field_set = {

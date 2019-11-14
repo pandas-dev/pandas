@@ -1437,7 +1437,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -1658,7 +1658,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, TimedeltaIndex],
         nat_rep: str = "NaT",
         box: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep

@@ -1127,7 +1127,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     index = MultiIndex.from_frame(
         DataFrame(
             {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs
+            **kwargs,
         )
     )
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")

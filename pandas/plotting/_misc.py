@@ -82,7 +82,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw a matrix of scatter plots.
@@ -134,7 +134,7 @@ def scatter_matrix(
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,
         range_padding=range_padding,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -207,7 +207,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax=ax,
         color=color,
         colormap=colormap,
-        **kwds
+        **kwds,
     )
 
 
@@ -255,7 +255,7 @@ def andrews_curves(
         samples=samples,
         color=color,
         colormap=colormap,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -325,7 +325,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Parallel coordinates plotting.
@@ -383,7 +383,7 @@ def parallel_coordinates(
         axvlines=axvlines,
         axvlines_kwds=axvlines_kwds,
         sort_labels=sort_labels,
-        **kwargs
+        **kwargs,
     )
 
 

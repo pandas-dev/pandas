@@ -184,7 +184,7 @@ def _grouped_plot_by_column(
     ax=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     grouped = data.groupby(by)
     if columns is None:
@@ -234,7 +234,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
 
     import matplotlib.pyplot as plt
@@ -359,7 +359,7 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
@@ -374,7 +374,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwds,
     )
     plt.draw_if_interactive()
     return ax
@@ -392,7 +392,7 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwds,
 ):
     if subplots is True:
         naxes = len(grouped)
@@ -432,6 +432,6 @@ def boxplot_frame_groupby(
             ax=ax,
             figsize=figsize,
             layout=layout,
-            **kwds
+            **kwds,
         )
     return ret

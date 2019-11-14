@@ -316,7 +316,7 @@ def assert_almost_equal(
             check_exact=False,
             exact=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.Series):
@@ -326,7 +326,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.DataFrame):
@@ -336,7 +336,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     else:
@@ -359,7 +359,7 @@ def assert_almost_equal(
             right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
 

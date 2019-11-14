@@ -168,7 +168,7 @@ class _XlsxWriter(ExcelWriter):
         date_format=None,
         datetime_format=None,
         mode="w",
-        **engine_kwargs
+        **engine_kwargs,
     ):
         # Use the xlsxwriter module as the Excel writer.
         import xlsxwriter
@@ -182,7 +182,7 @@ class _XlsxWriter(ExcelWriter):
             date_format=date_format,
             datetime_format=datetime_format,
             mode=mode,
-            **engine_kwargs
+            **engine_kwargs,
         )
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)

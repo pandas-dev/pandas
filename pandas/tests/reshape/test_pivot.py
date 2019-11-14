@@ -581,23 +581,23 @@ class TestPivotTable:
         df = pd.DataFrame(
             [
                 {
-                    "uid": u"aa",
+                    "uid": "aa",
                     "ts": pd.Timestamp("2016-08-12 13:00:00-0700", tz="US/Pacific"),
                 },
                 {
-                    "uid": u"aa",
+                    "uid": "aa",
                     "ts": pd.Timestamp("2016-08-12 08:00:00-0700", tz="US/Pacific"),
                 },
                 {
-                    "uid": u"aa",
+                    "uid": "aa",
                     "ts": pd.Timestamp("2016-08-12 14:00:00-0700", tz="US/Pacific"),
                 },
                 {
-                    "uid": u"aa",
+                    "uid": "aa",
                     "ts": pd.Timestamp("2016-08-25 11:00:00-0700", tz="US/Pacific"),
                 },
                 {
-                    "uid": u"aa",
+                    "uid": "aa",
                     "ts": pd.Timestamp("2016-08-25 13:00:00-0700", tz="US/Pacific"),
                 },
             ]

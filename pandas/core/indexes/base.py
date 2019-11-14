@@ -265,7 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        **kwargs
+        **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
