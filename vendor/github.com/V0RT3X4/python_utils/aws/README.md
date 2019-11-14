@@ -1,1 +1,0 @@
-# Vortexa AWS Python Utils

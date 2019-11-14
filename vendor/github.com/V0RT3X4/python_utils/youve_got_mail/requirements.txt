@@ -1,2 +1,0 @@
-sendgrid < 6.0.0
-boto3
