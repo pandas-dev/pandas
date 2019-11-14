@@ -1,4 +1,5 @@
 import codecs
+from collections.abc import Iterable, Mapping, Sequence
 from functools import wraps
 import re
 import textwrap
@@ -15,10 +16,12 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_integer,
     is_list_like,
     is_re,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -28,9 +31,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.construction import array, extract_array
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -107,50 +112,117 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
-    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
+def _masked_map(f, arr: ArrayLike, result_dtype, na_result=np.nan, method=None):
+    """
+    Map a method over valid values in an array.
 
+    The callable `f` will *not* be applied to missing values. Instead,
+    it is only applied to valid values. Missing values will be set to
+    `na_result` in the output.
 
-def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
-    if not len(arr):
-        return np.ndarray(0, dtype=dtype)
+    Parameters
+    ----------
+    f : Callable
+        Should be a single-argument callable.
+    arr : ArrayLike
+        Array of values to apply the function to.
+    result_dtype : {"int", "bool", "string", "object"}
+        The output dtype. For most methods (e.g. str.upper, str.isint)
+        this can be known statically. For some, (e.g. str.get) we need
+        to infer the result dtype based on the values. See `method`.
+    na_result : Any
+        The result value to use for missing values.
+    method : str, optional.
+        Most methods should *not* pass this; it's unnecessary. It's
+        only necessary for `.str` methods that don't really operate
+        (just) on strings. For this reason, it's only relevant for
+        object-dtype input, and is completely unnecessary for
+        StringArray.
+    """
+    assert result_dtype in {"int", "bool", "string", "object"}
+    arr = extract_array(arr, extract_numpy=True)
+    mask = isna(arr)
 
-    if isinstance(arr, ABCSeries):
-        arr = arr.values
-    if not isinstance(arr, np.ndarray):
-        arr = np.asarray(arr, dtype=object)
-    if na_mask:
-        mask = isna(arr)
-        convert = not np.all(mask)
-        try:
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
-        except (TypeError, AttributeError) as e:
-            # Reraise the exception if callable `f` got wrong number of args.
-            # The user may want to be warned by this, instead of getting NaN
-            p_err = (
-                r"((takes)|(missing)) (?(2)from \d+ to )?\d+ "
-                r"(?(3)required )positional arguments?"
-            )
+    if is_extension_array_dtype(arr.dtype):
+        # This is our nice, future world.  We *always* know the output
+        # dtype based just on `result_dtype`, no need to look at
+        # the values.
+        notna = ~mask
+        anyna = np.any(mask)
 
-            if len(e.args) >= 1 and re.search(p_err, e.args[0]):
-                # FIXME: this should be totally avoidable
-                raise e
+        if result_dtype == "int":
+            result_dtype = pandas_dtype("Int64")
+            # TODO: Avoid this object allocation
+            #   Should be able to just use zero, and pass through
+            #   the mask to IntegerArray.
+            nd_dtype = "object"
+        elif result_dtype == "bool":
+            # TODO: return a BoolArray here.
+            result_dtype = object
+            nd_dtype = object
+        else:
+            nd_dtype = object
 
-            def g(x):
-                try:
-                    return f(x)
-                except (TypeError, AttributeError):
-                    return na_value
-
-            return _map(g, arr, dtype=dtype)
-        if na_value is not np.nan:
-            np.putmask(result, mask, na_value)
-            if result.dtype == object:
-                result = lib.maybe_convert_objects(result)
-        return result
     else:
-        return lib.map_infer(arr, f)
+        # This is the bad side of things for legacy support. Deprecating
+        # the .str accessor on object dtype will make much of this go away.
+        # 1. The result dtype depends on whether there are any NA values (int, bool)
+        # 2. Non-string `method`s need special handling for "invalid values" detection.
+        #    We were *very* flexible in the past about non-string data.
+        if method == "decode":
+            non_strings = ~np.asarray([isinstance(x, bytes) for x in arr], dtype=bool)
+        elif method in {"get", "join"}:
+            # we want anything that supports __getitem__ or .get
+            non_strings = ~np.asarray(
+                [isinstance(x, (Iterable, Sequence, Mapping)) for x in arr], dtype=bool
+            )
+        else:
+            non_strings = ~np.asarray([isinstance(x, str) for x in arr], dtype=bool)
+
+        mask |= non_strings
+        notna = ~mask
+        anyna = np.any(mask)
+
+        # figure out the proper dtype to hold the results.
+        # This depends on the presence of missing values and the na_result value.
+        if anyna and result_dtype == "int":
+            if isinstance(na_result, int):
+                nd_dtype = result_dtype = "int"
+            else:
+                nd_dtype = result_dtype = "float"
+
+        elif anyna and result_dtype == "bool":
+            if isinstance(na_result, int):
+                nd_dtype = result_dtype = "bool"
+            else:
+                nd_dtype = result_dtype = "object"
+
+        elif anyna and result_dtype == "string":
+            nd_dtype = result_dtype = "object"
+
+        elif result_dtype == "string":
+            # numpy doesn't have a string dtype
+            nd_dtype = result_dtype = "object"
+        else:
+            nd_dtype = result_dtype
+
+    result = np.zeros(len(arr), dtype=nd_dtype)
+
+    # apply the function to valid values
+    result[notna] = lib.map_infer(np.asarray(arr[notna]), f)
+
+    if anyna:
+        result[mask] = na_result
+
+    if method == "get":
+        # this could be anything. Throw away our dtype.
+        # TODO: handle more cases. We should have a helper for this.
+        inferred_dtype = lib.infer_dtype(result, skipna=False)
+        if inferred_dtype == "floating":
+            result_dtype = "float"
+
+    result = extract_array(array(result, dtype=result_dtype), extract_numpy=True)
+    return result
 
 
 def str_count(arr, pat, flags=0):
@@ -219,7 +291,7 @@ def str_count(arr, pat, flags=0):
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
-    return _na_map(f, arr, dtype=int)
+    return _masked_map(f, arr, result_dtype="int")
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
@@ -366,9 +438,10 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
         else:
             upper_pat = pat.upper()
             f = lambda x: upper_pat in x
-            uppered = _na_map(lambda x: x.upper(), arr)
-            return _na_map(f, uppered, na, dtype=bool)
-    return _na_map(f, arr, na, dtype=bool)
+            uppered = _masked_map(lambda x: x.upper(), arr, "string")
+            return _masked_map(f, uppered, "bool", na)
+
+    return _masked_map(f, arr, result_dtype="bool", na_result=na)
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -423,7 +496,7 @@ def str_startswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.startswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _masked_map(f, arr, result_dtype="bool", na_result=na)
 
 
 def str_endswith(arr, pat, na=np.nan):
@@ -478,7 +551,7 @@ def str_endswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.endswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _masked_map(f, arr, "bool", na)
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
@@ -634,7 +707,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             raise ValueError("Cannot use a callable replacement when regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string")
 
 
 def str_repeat(arr, repeats):
@@ -685,7 +758,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return str.__mul__(x, repeats)
 
-        return _na_map(scalar_rep, arr)
+        return _masked_map(scalar_rep, arr, result_dtype="string")
     else:
 
         def rep(x, r):
@@ -729,10 +802,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     regex = re.compile(pat, flags=flags)
 
-    dtype = bool
     f = lambda x: bool(regex.match(x))
 
-    return _na_map(f, arr, na, dtype=dtype)
+    return _masked_map(f, arr, result_dtype="bool", na_result=na)
 
 
 def _get_single_group_name(rx):
@@ -1150,7 +1222,7 @@ def str_join(arr, sep):
     4                    NaN
     dtype: object
     """
-    return _na_map(sep.join, arr)
+    return _masked_map(sep.join, arr, result_dtype="string", method="join")
 
 
 def str_findall(arr, pat, flags=0):
@@ -1244,7 +1316,7 @@ def str_findall(arr, pat, flags=0):
     dtype: object
     """
     regex = re.compile(pat, flags=flags)
-    return _na_map(regex.findall, arr)
+    return _masked_map(regex.findall, arr, result_dtype="object")
 
 
 def str_find(arr, sub, start=0, end=None, side="left"):
@@ -1285,7 +1357,7 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _masked_map(f, arr, result_dtype="int")
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
@@ -1305,7 +1377,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _masked_map(f, arr, result_dtype="int")
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -1381,7 +1453,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
     else:  # pragma: no cover
         raise ValueError("Invalid side")
 
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string")
 
 
 def str_split(arr, pat=None, n=None):
@@ -1400,7 +1472,7 @@ def str_split(arr, pat=None, n=None):
                 n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
-    res = _na_map(f, arr)
+    res = _masked_map(f, arr, result_dtype="object")
     return res
 
 
@@ -1409,7 +1481,7 @@ def str_rsplit(arr, pat=None, n=None):
     if n is None or n == 0:
         n = -1
     f = lambda x: x.rsplit(pat, n)
-    res = _na_map(f, arr)
+    res = _masked_map(f, arr, result_dtype="object")
     return res
 
 
@@ -1487,7 +1559,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string")
 
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
@@ -1578,7 +1650,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
             y += x[local_stop:]
         return y
 
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string")
 
 
 def str_strip(arr, to_strip=None, side="both"):
@@ -1603,7 +1675,7 @@ def str_strip(arr, to_strip=None, side="both"):
         f = lambda x: x.rstrip(to_strip)
     else:  # pragma: no cover
         raise ValueError("Invalid side")
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string")
 
 
 def str_wrap(arr, width, **kwargs):
@@ -1667,7 +1739,7 @@ def str_wrap(arr, width, **kwargs):
 
     tw = textwrap.TextWrapper(**kwargs)
 
-    return _na_map(lambda s: "\n".join(tw.wrap(s)), arr)
+    return _masked_map(lambda s: "\n".join(tw.wrap(s)), arr, result_dtype="string")
 
 
 def str_translate(arr, table):
@@ -1687,7 +1759,7 @@ def str_translate(arr, table):
     -------
     Series or Index
     """
-    return _na_map(lambda x: x.translate(table), arr)
+    return _masked_map(lambda x: x.translate(table), arr, result_dtype="string")
 
 
 def str_get(arr, i):
@@ -1743,13 +1815,17 @@ def str_get(arr, i):
     """
 
     def f(x):
-        if isinstance(x, dict):
-            return x.get(i)
-        elif len(x) > i >= -len(x):
-            return x[i]
+        try:
+            if isinstance(x, dict):
+                return x.get(i)
+            elif len(x) > i >= -len(x):
+                return x[i]
+        except Exception:
+            pass
         return np.nan
 
-    return _na_map(f, arr)
+    # XXX: this one needs to be inferred based on the values, no way around it.
+    return _masked_map(f, arr, result_dtype="object", method="get")
 
 
 def str_decode(arr, encoding, errors="strict"):
@@ -1767,13 +1843,15 @@ def str_decode(arr, encoding, errors="strict"):
     -------
     Series or Index
     """
+    if is_extension_array_dtype(arr.dtype) and arr.dtype == "string":
+        raise ValueError("'.str.decode' requires bytes, not strings.")
     if encoding in _cpython_optimized_decoders:
         # CPython optimized implementation
         f = lambda x: x.decode(encoding, errors)
     else:
         decoder = codecs.getdecoder(encoding)
         f = lambda x: decoder(x, errors)[0]
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="string", method="decode")
 
 
 def str_encode(arr, encoding, errors="strict"):
@@ -1796,7 +1874,7 @@ def str_encode(arr, encoding, errors="strict"):
     else:
         encoder = codecs.getencoder(encoding)
         f = lambda x: encoder(x, errors)[0]
-    return _na_map(f, arr)
+    return _masked_map(f, arr, result_dtype="object")
 
 
 def forbid_nonstring_types(forbidden, name=None):
@@ -1874,12 +1952,12 @@ def _noarg_wrapper(
     name=None,
     docstring=None,
     forbidden_types=["bytes"],
-    returns_string=True,
+    returns_string=None,
     **kargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
-        result = _na_map(f, self._parent, **kargs)
+        result = _masked_map(f, self._parent, **kargs)
         return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
@@ -2636,7 +2714,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
-        result = _na_map(f, self._parent)
+        # TODO: object -> list dtype
+        result = _masked_map(f, self._parent, result_dtype="object")
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(
@@ -2652,7 +2731,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
-        result = _na_map(f, self._parent)
+        # TODO: object -> list dtype
+        result = _masked_map(f, self._parent, result_dtype="object")
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @copy(str_get)
@@ -3025,7 +3105,7 @@ class StringMethods(NoNewAttributesMixin):
         import unicodedata
 
         f = lambda x: unicodedata.normalize(form, x)
-        result = _na_map(f, self._parent)
+        result = _masked_map(f, self._parent, result_dtype="string")
         return self._wrap_result(result)
 
     _shared_docs[
@@ -3129,11 +3209,7 @@ class StringMethods(NoNewAttributesMixin):
     dtype: float64
     """
     len = _noarg_wrapper(
-        len,
-        docstring=_shared_docs["len"],
-        forbidden_types=None,
-        dtype=int,
-        returns_string=False,
+        len, docstring=_shared_docs["len"], forbidden_types=None, result_dtype="int"
     )
 
     _shared_docs[
@@ -3223,31 +3299,37 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.lower(),
         name="lower",
         docstring=_shared_docs["casemethods"] % _doc_args["lower"],
+        result_dtype="string",
     )
     upper = _noarg_wrapper(
         lambda x: x.upper(),
         name="upper",
         docstring=_shared_docs["casemethods"] % _doc_args["upper"],
+        result_dtype="string",
     )
     title = _noarg_wrapper(
         lambda x: x.title(),
         name="title",
         docstring=_shared_docs["casemethods"] % _doc_args["title"],
+        result_dtype="string",
     )
     capitalize = _noarg_wrapper(
         lambda x: x.capitalize(),
         name="capitalize",
         docstring=_shared_docs["casemethods"] % _doc_args["capitalize"],
+        result_dtype="string",
     )
     swapcase = _noarg_wrapper(
         lambda x: x.swapcase(),
         name="swapcase",
         docstring=_shared_docs["casemethods"] % _doc_args["swapcase"],
+        result_dtype="string",
     )
     casefold = _noarg_wrapper(
         lambda x: x.casefold(),
         name="casefold",
         docstring=_shared_docs["casemethods"] % _doc_args["casefold"],
+        result_dtype="string",
     )
 
     _shared_docs[
@@ -3405,55 +3487,55 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
-        returns_string=False,
+        result_dtype="bool",
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
-        returns_string=False,
+        result_dtype="bool",
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
-        returns_string=False,
+        result_dtype="bool",
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
-        returns_string=False,
+        result_dtype="bool",
     )
 
     @classmethod

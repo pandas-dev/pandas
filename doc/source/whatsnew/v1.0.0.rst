@@ -347,7 +347,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Fixed the return dtype to be ``bool`` for empty Series and the following methods: ``isalnum``, ``isalpha``, ``isdigit``, ``isspace``, ``islower``, ``isupper``, ``istitle``, ``isnumeric``,, ``isdecimal`` (:issue:`29624`)
 -
 
 
