@@ -125,7 +125,7 @@ def isna(obj):
 isnull = isna
 
 
-def _isna_new(obj) -> bool:
+def _isna_new(obj):
 
     if is_scalar(obj):
         return libmissing.checknull(obj)
