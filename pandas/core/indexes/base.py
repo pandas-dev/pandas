@@ -4086,11 +4086,6 @@ class Index(IndexOpsMixin, PandasObject):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
 
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks in MultiIndex
-        return False
-
     def _is_memory_usage_qualified(self):
         """
         Return a boolean if we need a qualified .info display.
