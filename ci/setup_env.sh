@@ -133,6 +133,7 @@ echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 
 echo "[pandas version info]"
+git describe --tags --dirty --always --long
 python -c "import pandas ; print(pandas.__version__)"
 python -c "import pandas ; print(pandas._version.get_versions())"
 
