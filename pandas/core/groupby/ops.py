@@ -201,7 +201,7 @@ class BaseGrouper:
                 continue
 
             # group might be modified
-            group_axes = _get_axes(group)
+            group_axes = group.axes
             res = f(group)
             if not _is_indexed_like(res, group_axes):
                 mutated = True
@@ -837,13 +837,6 @@ class BinGrouper(BaseGrouper):
         dummy = obj[:0]
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
-
-def _get_axes(group):
-    if isinstance(group, Series):
-        return [group.index]
-    else:
-        return group.axes
 
 
 def _is_indexed_like(obj, axes) -> bool:
