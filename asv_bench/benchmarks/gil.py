@@ -37,7 +37,7 @@ except ImportError:
         return wrapper
 
 
-from .pandas_vb_common import BaseIO  # noqa: E402 isort:skip
+from .pandas_vb_common import BaseIO  # isort:skip
 
 
 class ParallelGroupbyMethods:
