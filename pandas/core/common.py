@@ -5,7 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -14,7 +14,6 @@ from typing import Any, Iterable, Union
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -213,16 +212,6 @@ def try_sort(iterable):
         return sorted(listed)
     except TypeError:
         return listed
-
-
-def dict_keys_to_ordered_list(mapping):
-    # when pandas drops support for Python < 3.6, this function
-    # can be replaced by a simple list(mapping.keys())
-    if PY36 or isinstance(mapping, OrderedDict):
-        keys = list(mapping.keys())
-    else:
-        keys = try_sort(mapping)
-    return keys
 
 
 def asarray_tuplesafe(values, dtype=None):

@@ -366,7 +366,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "categorical"
 
     @property
@@ -463,7 +463,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
