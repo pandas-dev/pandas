@@ -28,7 +28,7 @@ fi
 PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 if [[ "$AGENT_OS" == "Linux" || "$TRAVIS_OS_NAME" == "linux" ]]; then
     DISPLAY=DISPLAY=:99.0
-    PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
+    PYTEST_CMD="xvfb-run -a $PYTEST_CMD"
 fi
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
