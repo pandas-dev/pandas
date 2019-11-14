@@ -1065,7 +1065,7 @@ class DataFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result = OrderedDict()  # type: OrderedDict
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
