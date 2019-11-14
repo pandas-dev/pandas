@@ -45,6 +45,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
@@ -82,10 +83,8 @@ def _td_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
 
         if _is_convertible_to_td(other) or other is NaT:
             try:

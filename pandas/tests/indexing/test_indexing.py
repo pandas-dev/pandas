@@ -7,7 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
@@ -222,7 +221,7 @@ class TestFancy(Base):
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
-        tm.assert_frame_equal(df, expected, check_like=not PY36)
+        tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(
