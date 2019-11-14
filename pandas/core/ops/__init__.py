@@ -29,6 +29,7 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -453,9 +454,8 @@ def _arith_method_SERIES(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(left, right):
-        if isinstance(right, ABCDataFrame):
-            return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
@@ -476,13 +476,10 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCDataFrame):  # pragma: no cover
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
@@ -505,13 +502,10 @@ def _bool_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCDataFrame):
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)

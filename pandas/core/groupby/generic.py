@@ -1058,14 +1058,14 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_frame(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result = OrderedDict()  # type: OrderedDict
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
