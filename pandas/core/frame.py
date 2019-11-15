@@ -7300,11 +7300,11 @@ class DataFrame(NDFrame):
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
-                and returning a float. Note that the returned matrix from corr
-                will have 1 along the diagonals and will be symmetric
-                regardless of the callable's behavior.
+              and returning a float. Note that the returned matrix from corr
+              will have 1 along the diagonals and will be symmetric
+              regardless of the callable's behavior.
 
-            .. versionadded:: 0.24.0
+              .. versionadded:: 0.24.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
