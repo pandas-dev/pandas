@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas.arrays import BooleanArray
+from pandas.core.arrays.boolean import coerce_to_array
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
 
@@ -99,6 +100,26 @@ def test_to_boolean_array_integer():
 
     # with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
     #     pd.array([1, 2, 3], dtype="boolean")
+
+
+def test_coerce_to_array():
+    # TODO this is currently not public API
+    values = np.array([True, False, True, False], dtype="bool")
+    mask = np.array([False, False, False, True], dtype="bool")
+    result = BooleanArray(*coerce_to_array(values, mask=mask))
+    expected = BooleanArray(values, mask)
+    tm.assert_extension_array_equal(result, expected)
+
+    # mixed missing from values and mask
+    values = [True, False, None, False]
+    mask = np.array([False, False, False, True], dtype="bool")
+    result = BooleanArray(*coerce_to_array(values, mask=mask))
+    expected = BooleanArray(
+        np.array([True, False, True, True]), np.array([False, False, True, True])
+    )
+    tm.assert_extension_array_equal(result, expected)
+    result = BooleanArray(*coerce_to_array(np.array(values, dtype=object), mask=mask))
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_coerce_to_numpy_array():

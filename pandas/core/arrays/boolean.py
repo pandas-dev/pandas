@@ -136,18 +136,19 @@ def coerce_to_array(values, mask=None, copy=False):
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
-    if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
-        if copy:
-            mask = mask.copy()
+    if mask is None and mask_values is None:
+        mask = np.zeros(len(values), dtype=bool)
+    elif mask is None:
+        mask = mask_values
     else:
-        if mask is None:
-            if mask_values is None:
-                # TODO optimize this case?
-                mask = np.zeros(len(values), dtype=bool)
+        if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
+            if mask_values is not None:
+                mask = mask | mask_values
             else:
-                mask = mask_values
+                if copy:
+                    mask = mask.copy()
         else:
-            mask = np.asarray(mask, dtype=bool)
+            mask = np.array(mask, dtype=bool)
             if mask_values is not None:
                 mask = mask | mask_values
 
@@ -160,6 +161,56 @@ def coerce_to_array(values, mask=None, copy=False):
 
 
 class BooleanArray(ExtensionArray, ExtensionOpsMixin):
+    """
+    Array of boolean (True/False) data with missing values.
+
+    This is a pandas Extension array for boolean data, under the hood
+    represented by 2 numpy arrays: a boolean array with the data and
+    a boolean array with the mask (True indicating missing).
+
+    To construct an BooleanArray from generic array-like input, use
+    :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
+    below).
+
+    .. versionadded:: 1.0.0
+
+    .. warning::
+
+       BooleanArray is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        A 1-d boolean-dtype array with the data.
+    mask : numpy.ndarray
+        A 1-d boolean-dtype array indicating missing values (True
+        indicates missing).
+    copy : bool, default False
+        Whether to copy the `values` and `mask` arrays.
+
+    Returns
+    -------
+    BooleanArray
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
+    Examples
+    --------
+    Create an BooleanArray with :func:`pandas.array`:
+
+    >>> pd.array([True, False, None], dtype="boolean")
+    <BooleanArray>
+    [True, False, NaN]
+    Length: 3, dtype: boolean
+    """
+
     def __init__(self, values, mask, copy=False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
@@ -353,7 +404,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def _na_value(self):
-        return np.nan
+        return self._dtype.na_value
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -408,7 +459,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def _ndarray_values(self) -> np.ndarray:
-        """Internal pandas method for lossy conversion to a NumPy ndarray.
+        """
+        Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
 
@@ -465,7 +517,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return Series(array, index=index)
 
     def _values_for_argsort(self) -> np.ndarray:
-        """Return values for sorting.
+        """
+        Return values for sorting.
 
         Returns
         -------
@@ -478,7 +531,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         ExtensionArray.argsort
         """
         data = self._data.copy()
-        data[self._mask] = data.min() - 1
+        data[self._mask] = -1
         return data
 
     @classmethod
