@@ -25,7 +25,7 @@ where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
 When you start working on an issue, it's a good idea to assign the issue to yourself,
-so nobody else diplicates the work on it. GitHub restricts assigning issues to maintainers
+so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
 of the project only. Until recently, contributors added a comment letting others know they
 are working on an issue. But we implemented a workaround consisting of adding
 a comment with the exact text `take`. When you do it, a GitHub action will automatically assign
