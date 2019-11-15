@@ -120,6 +120,7 @@ jobs:
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
+        # TODO fail build if ipython code blocks fail
 
     - name: Build documentation
       run: |
@@ -142,3 +143,6 @@ jobs:
 
     - name: Upload artifact
       uses: actions/upload-artifact@master
+      with:
+        name: pandas_web
+        path: pandas_web.tar.gz
