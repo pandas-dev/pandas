@@ -215,6 +215,12 @@ indicator : bool or str, default False
     for observations whose merge key only appears in 'left' DataFrame,
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
+indicator_assert_set : set, optional
+    If specified, checks if resulting merged dataframe satisifies the desired
+    indicator merge behavior. For example, if ``indicator_assert_set={"both"}``
+    and the merged dataframe contains data only seen in the left input dataframe
+    then an assertion error will be triggered. The set ``indicator_assert_set``
+    should only contain combinations of "left_only", "right_only" and "both".
 
 validate : str, optional
     If specified, checks if merge is of specified type.
@@ -226,6 +232,7 @@ validate : str, optional
     * "many_to_one" or "m:1": check if merge keys are unique in right
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
+
 
     .. versionadded:: 0.21.0
 
@@ -7151,6 +7158,7 @@ class DataFrame(NDFrame):
         suffixes=("_x", "_y"),
         copy=True,
         indicator=False,
+        indicator_assert_set=False,
         validate=None,
     ):
         from pandas.core.reshape.merge import merge
@@ -7168,6 +7176,7 @@ class DataFrame(NDFrame):
             suffixes=suffixes,
             copy=copy,
             indicator=indicator,
+            indicator_assert_set=indicator_assert_set,
             validate=validate,
         )
 

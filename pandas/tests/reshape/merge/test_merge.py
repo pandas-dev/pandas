@@ -1058,6 +1058,88 @@ class TestMerge:
         test5 = df3.merge(df4, on=["col1", "col2"], how="outer", indicator=True)
         tm.assert_frame_equal(test5, hand_coded_result)
 
+    def test_indicator_assert_set(self):
+        df1 = DataFrame({"col1": [1, 2, 3], "col_left": ["a", "b", "c"]})
+        df2 = DataFrame({"col1": [2, 3, 4], "col_left": ["a", "b", "c"]})
+        # test dataset expected to have "left_only", "right_only" and "both"
+        # components
+        test = merge(
+            df1,
+            df2,
+            on="col1",
+            how="outer",
+            indicator_assert_set={"left_only", "right_only", "both"},
+        )
+        assert "_merge" not in test.columns
+
+        good_sets = {
+            "outer": {"left_only", "right_only", "both"},
+            "left": {"left_only", "both"},
+            "right": {"right_only", "both"},
+            "inner": {"both"},
+        }
+        for how, good_set in good_sets.items():
+            result = merge(
+                df1,
+                df2,
+                on="col1",
+                how=how,
+                indicator=True,
+                indicator_assert_set=good_set,
+            )
+            assert set(result._merge) == good_set
+
+        bad_set_dict = {
+            "outer": [
+                {"left_only", "right_only"},
+                {"left_only", "both"},
+                {"right_only", "both"},
+                {"left_only"},
+                {"right_only"},
+                {"both"},
+            ],
+            "left": [
+                {"left_only", "right_only", "both"},
+                {"left_only", "right_only"},
+                {"right_only", "both"},
+                {"left_only"},
+                {"right_only"},
+                {"both"},
+            ],
+            "right": [
+                {"left_only", "right_only", "both"},
+                {"left_only", "right_only"},
+                {"left_only", "both"},
+                {"left_only"},
+                {"right_only"},
+                {"both"},
+            ],
+            "inner": [
+                {"left_only", "right_only", "both"},
+                {"left_only", "right_only"},
+                {"left_only", "both"},
+                {"right_only", "both"},
+                {"left_only"},
+                {"right_only"},
+            ],
+        }
+        for how, bad_set_list in bad_set_dict.items():
+            for bad_set in bad_set_list:
+                expected_assert_not_hit = False
+                try:
+                    # this should cause an AssertionError
+                    # for each bad_set
+                    merge(df1, df2, on="col1", how=how, indicator_assert_set=bad_set)
+                    # if error not hit then flag is True
+                    expected_assert_not_hit = True
+                except AssertionError:
+                    pass
+
+                if expected_assert_not_hit:
+                    raise AssertionError(
+                        "expected assertion not hit for bad set: {}".format(bad_set)
+                    )
+
     def test_validation(self):
         left = DataFrame(
             {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},

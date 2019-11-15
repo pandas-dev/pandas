@@ -67,6 +67,7 @@ def merge(
     suffixes=("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
+    indicator_assert_set: set = None,
     validate=None,
 ):
     op = _MergeOperation(
@@ -82,6 +83,7 @@ def merge(
         suffixes=suffixes,
         copy=copy,
         indicator=indicator,
+        indicator_assert_set=indicator_assert_set,
         validate=validate,
     )
     return op.get_result()
@@ -561,6 +563,7 @@ class _MergeOperation:
         suffixes=("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
+        indicator_assert_set: set = None,
         validate=None,
     ):
         _left = _validate_operand(left)
@@ -582,11 +585,16 @@ class _MergeOperation:
         self.right_index = right_index
 
         self.indicator = indicator
+        self.indicator_assert_set = indicator_assert_set
+        self.indicator_temp = self.indicator_assert_set and not self.indicator
 
         if isinstance(self.indicator, str):
             self.indicator_name = self.indicator  # type: Optional[str]
         elif isinstance(self.indicator, bool):
-            self.indicator_name = "_merge" if self.indicator else None
+            if self.indicator or self.indicator_temp:
+                self.indicator_name = "_merge"
+            else:
+                self.indicator_name = None
         else:
             raise ValueError(
                 "indicator option can only accept boolean or string arguments"
@@ -631,7 +639,7 @@ class _MergeOperation:
             self._validate(validate)
 
     def get_result(self):
-        if self.indicator:
+        if self.indicator or self.indicator_temp:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
@@ -656,8 +664,11 @@ class _MergeOperation:
         typ = self.left._constructor
         result = typ(result_data).__finalize__(self, method=self._merge_type)
 
-        if self.indicator:
+        if self.indicator or self.indicator_temp:
             result = self._indicator_post_merge(result)
+
+        if self.indicator_assert_set:
+            result = self._indicator_assert(result)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -707,6 +718,21 @@ class _MergeOperation:
         )
 
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
+        return result
+
+    def _indicator_assert(self, result):
+        actual_set = set(result[self.indicator_name])
+        if actual_set != self.indicator_assert_set:
+            raise AssertionError(
+                "Merged Failed. The merged dataframe does "
+                "not meet the required `indicator_assert_set` requirement"
+                ". Required set: {}, observed set: {}".format(
+                    self.indicator_assert_set, actual_set
+                )
+            )
+
+        if not self.indicator:
+            result = result.drop(self.indicator_name, axis=1)
         return result
 
     def _maybe_restore_index_levels(self, result):
