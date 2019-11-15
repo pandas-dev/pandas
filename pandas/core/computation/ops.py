@@ -69,7 +69,8 @@ class Term:
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
 
-    def __init__(self, name: str, env, side=None, encoding=None):
+    def __init__(self, name, env, side=None, encoding=None):
+        # name is a str for Term, but may be something else for subclasses
         self._name = name
         self.env = env
         self.side = side
@@ -120,7 +121,7 @@ class Term:
         self.value = value
 
     @property
-    def is_scalar(self):
+    def is_scalar(self) -> bool:
         return is_scalar(self._value)
 
     @property
@@ -139,14 +140,14 @@ class Term:
     return_type = type
 
     @property
-    def raw(self):
+    def raw(self) -> str:
         return pprint_thing(
             "{0}(name={1!r}, type={2})"
             "".format(self.__class__.__name__, self.name, self.type)
         )
 
     @property
-    def is_datetime(self):
+    def is_datetime(self) -> bool:
         try:
             t = self.type.type
         except AttributeError:
@@ -220,7 +221,7 @@ class Op:
         return _result_type_many(*(term.type for term in com.flatten(self)))
 
     @property
-    def has_invalid_return_type(self):
+    def has_invalid_return_type(self) -> bool:
         types = self.operand_types
         obj_dtype_set = frozenset([np.dtype("object")])
         return self.return_type == object and types - obj_dtype_set
@@ -230,11 +231,11 @@ class Op:
         return frozenset(term.type for term in com.flatten(self))
 
     @property
-    def is_scalar(self):
+    def is_scalar(self) -> bool:
         return all(operand.is_scalar for operand in self.operands)
 
     @property
-    def is_datetime(self):
+    def is_datetime(self) -> bool:
         try:
             t = self.return_type.type
         except AttributeError:
@@ -354,7 +355,7 @@ class BinOp(Op):
     right : Term or Op
     """
 
-    def __init__(self, op, lhs, rhs, **kwargs):
+    def __init__(self, op: str, lhs, rhs, **kwargs):
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -505,7 +506,7 @@ class Div(BinOp):
         regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv, *args, **kwargs):
+    def __init__(self, lhs, rhs, truediv: bool, *args, **kwargs):
         super().__init__("/", lhs, rhs, *args, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
@@ -541,7 +542,7 @@ class UnaryOp(Op):
         * If no function associated with the passed operator token is found.
     """
 
-    def __init__(self, op, operand):
+    def __init__(self, op: str, operand):
         super().__init__(op, (operand,))
         self.operand = operand
 
