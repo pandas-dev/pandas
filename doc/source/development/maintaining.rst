@@ -30,28 +30,41 @@ Pandas is largely a volunteer project, so these tasks shouldn't be read as
 of what it means to be a maintainer.
 
 * Triage newly filed issues (see :ref:`maintaining.triage`)
-* Review newly opened pull request
+* Review newly opened pull requests
 * Respond to updates on existing issues and pull requests
 * Drive discussion and decisions on stalled issues and pull requests
+* Provide experience / wisdom on API design questions to ensure consistency and maintainability
+* Project organization (run / attend developer meetings, represent pandas)
+
+http://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background
+reading.
 
 .. _maintaining.triage:
 
 Issue Triage
 ------------
 
-The issue tracker is many people's first interaction with the pandas project itself,
-beyond just using the library. As such, we want it to be a welcoming, pleasant
-experience.
 
 Here's a typical workflow for triaging a newly opened issue.
 
-1. **Is the necessary information provided?**
+1. **Thank the reporter for opening an issue**
+
+   The issue tracker is many people's first interaction with the pandas project itself,
+   beyond just using the library. As such, we want it to be a welcoming, pleasant
+   experience.
+
+2. **Is the necessary information provided?**
 
    Ideally reporters would fill out the issue template, but many don't.
    If crucial information (like the version of pandas they used), is missing
-   feel free to ask for that and label the issue with "Needs info".
+   feel free to ask for that and label the issue with "Needs info". The
+   report should follow the guidelines in :ref:`contributing.bug_reports`.
+   You may want to link to that if they didn't follow the template.
 
-2. **Is this a duplicate issue?**
+   Make sure that the title accurately reflects the issue. Edit it yourself
+   if it's not clear.
+
+3. **Is this a duplicate issue?**
 
    We have many open issues. If a new issue is clearly a duplicate, label the
    new issue as "Duplicate" assign the milestone "No Action", and close the issue
@@ -62,7 +75,7 @@ Here's a typical workflow for triaging a newly opened issue.
    different example, add it to the original issue as a comment or an edit to
    the original post.
 
-3. **Is the issue minimal and reproducible**?
+4. **Is the issue minimal and reproducible**?
 
    For bug reports, we ask that the reporter provide a minimal reproducible
    example. See http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
@@ -74,7 +87,10 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example can't be provided, add the "Needs info" label.
 
-4. **Is this a clearly defined feature request?**
+   If a reproducible example is provided, but you see a simplification,
+   edit the original post with your simpler reproducible example.
+
+5. **Is this a clearly defined feature request?**
 
    Generally, pandas prefers to discuss and design new features in issues, before
    a pull request is made. Encourage the submitter to include a proposed API
@@ -84,7 +100,7 @@ Here's a typical workflow for triaging a newly opened issue.
    We'll need a discussion from several pandas maintainers before deciding whether
    the proposal is in scope for pandas.
 
-5. **Is this a usage question?**
+6. **Is this a usage question?**
 
    We prefer that usage questions are asked on StackOverflow with the pandas
    tag. https://stackoverflow.com/questions/tagged/pandas
@@ -93,12 +109,12 @@ Here's a typical workflow for triaging a newly opened issue.
    let them know that in the future this kind of question should be on
    StackOverflow, and close the issue.
 
-6. **What labels and milestones should I add?**
+7. **What labels and milestones should I add?**
 
    Apply the relevant labels. This is a bit of an art, and comes with experience.
    Look at similar issues to get a feel for how things are labeled.
 
-   If there issue is clearly defined and the fix seems relatively straightforward,
+   If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
    Typically, new issues will be assigned the "Contributions welcome" milestone,
@@ -112,7 +128,7 @@ Closing Issues
 
 Be delicate here: many people interpret closing an issue as us saying that the
 conversation is over. It's typically best to give the reporter some time to
-self-close their issue if it's determined that the behavior is not a bug,
+respond or self-close their issue if it's determined that the behavior is not a bug,
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
 
@@ -152,8 +168,8 @@ Cleaning up old Pull Requests
 -----------------------------
 
 Occasionally, contributors are unable to finish off a pull request.
-If some time has passed (a week, say) since the last review requesting changes,
-gently ask if they're still interested in working on this. If another week or
+If some time has passed (two weeks, say) since the last review requesting changes,
+gently ask if they're still interested in working on this. If another two weeks or
 so passes with no response, thank them for their work and close the pull request.
 Comment on the original issue that "There's a stalled PR at #1234 that may be
 helpful.", and perhaps label the issue as "Good first issue" if the PR was relatively
