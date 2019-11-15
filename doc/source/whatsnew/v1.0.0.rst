@@ -440,6 +440,7 @@ Reshaping
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
 
 Sparse
 ^^^^^^
