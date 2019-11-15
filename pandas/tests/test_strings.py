@@ -731,7 +731,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_count(mixed, "a")
         xp = np.array([1, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, np.nan])
         tm.assert_numpy_array_equal(rs, xp)
@@ -755,14 +758,14 @@ class TestStringMethods:
         expected = np.array([False, np.nan, False, False, True], dtype=np.object_)
         tm.assert_numpy_array_equal(result, expected)
 
-        values = ["foo", "xyz", "fooommm__foo", "mmm_"]
+        values = np.array(["foo", "xyz", "fooommm__foo", "mmm_"], dtype=object)
         result = strings.str_contains(values, pat)
         expected = np.array([False, False, True, True])
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
         # case insensitive using regex
-        values = ["Foo", "xYz", "fOOomMm__fOo", "MMM_"]
+        values = np.array(["Foo", "xYz", "fOOomMm__fOo", "MMM_"], dtype=object)
         result = strings.str_contains(values, "FOO|mmm", case=False)
         expected = np.array([True, False, True, True])
         tm.assert_numpy_array_equal(result, expected)
@@ -773,7 +776,10 @@ class TestStringMethods:
         tm.assert_numpy_array_equal(result, expected)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_contains(mixed, "o")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, True, np.nan, np.nan, np.nan],
@@ -869,7 +875,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_endswith(mixed, "f")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, False, np.nan, np.nan, np.nan],
@@ -3488,10 +3497,13 @@ class TestStringMethods:
 
 
 def test_string_array(any_string_method):
+    method_name, args, kwargs = any_string_method
+    if method_name == "decode":
+        pytest.skip("decode requires bytes.")
+
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
     b = Series(data, dtype="string")
-    method_name, args, kwargs = any_string_method
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
@@ -3502,8 +3514,29 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "string"
             result = result.astype(object)
+
+        elif expected.dtype == "float" and expected.isna().any():
+            assert result.dtype == "Int64"
+            result = result.astype("float")
+
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == "string")
         result[columns] = result[columns].astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,args,expected",
+    [
+        ("count", ("a",), [2, None]),
+        ("find", ("a",), [0, None]),
+        ("index", ("a",), [0, None]),
+        ("rindex", ("a",), [2, None]),
+    ],
+)
+def test_string_array_numeric_integer_array(method, args, expected):
+    s = Series(["aba", None], dtype="string")
+    result = getattr(s.str, method)(*args)
+    expected = Series(expected, dtype="Int64")
+    tm.assert_series_equal(result, expected)

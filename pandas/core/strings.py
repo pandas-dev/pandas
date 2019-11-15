@@ -15,10 +15,14 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_re,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -31,6 +35,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -109,7 +114,44 @@ def cat_safe(list_of_columns: List, sep: str):
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
+    if is_extension_array_dtype(arr.dtype):
+        return _map_ea(f, arr, na_value=na_result, dtype=dtype)
     return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
+
+
+def _map_ea(f, arr, na_value, dtype):
+    from pandas.arrays import IntegerArray, StringArray
+
+    arr = extract_array(arr, extract_numpy=True)
+    mask = isna(arr)
+
+    assert isinstance(arr, StringArray)
+    arr = arr._ndarray
+
+    if is_integer_dtype(dtype):
+        na_value_is_na = isna(na_value)
+        if na_value_is_na:
+            na_value = 1
+        result = lib.map_infer_mask(
+            arr,
+            f,
+            mask.view("uint8"),
+            convert=False,
+            na_value=na_value,
+            dtype=np.dtype("int64"),
+        )
+
+        if not na_value_is_na:
+            mask[:] = False
+
+        return IntegerArray(result, mask)
+
+    elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+        result = lib.map_infer_mask(arr, f, mask.view("uint8"), na_value=na_value)
+        return StringArray(result)
+    # TODO: BooleanArray
+    else:
+        return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
