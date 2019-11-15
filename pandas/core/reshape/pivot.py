@@ -424,7 +424,7 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data, index=None, columns=None, values=None):
+def pivot(data: "DataFrame", index=None, columns=None, values=None):
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -454,8 +454,8 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins=False,
-    margins_name="All",
-    dropna=True,
+    margins_name: str = "All",
+    dropna: bool = True,
     normalize=False,
 ):
     """
@@ -561,7 +561,7 @@ def crosstab(
 
     common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
 
-    data = {}
+    data = {}  # type: dict
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
