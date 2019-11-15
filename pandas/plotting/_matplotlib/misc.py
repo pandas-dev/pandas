@@ -23,7 +23,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwds
+    **kwds,
 ):
     df = frame._get_numeric_data()
     n = df.columns.size
@@ -161,7 +161,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
             to_plot[kls][1],
             color=colors[i],
             label=pprint_thing(kls),
-            **kwds
+            **kwds,
         )
     ax.legend()
 
@@ -316,7 +316,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 

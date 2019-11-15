@@ -956,7 +956,7 @@ class IntervalIndex(IntervalMixin, Index):
             None is specified as these are not yet implemented.
         """
                 )
-            }
+            },
         )
     )
     @Appender(_index_shared_docs["get_indexer"])

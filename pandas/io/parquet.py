@@ -86,7 +86,7 @@ class PyArrowImpl(BaseImpl):
         coerce_timestamps="ms",
         index: Optional[bool] = None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
@@ -104,7 +104,7 @@ class PyArrowImpl(BaseImpl):
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
-                **kwargs
+                **kwargs,
             )
         else:
             self.api.parquet.write_table(
@@ -112,7 +112,7 @@ class PyArrowImpl(BaseImpl):
                 path,
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -174,7 +174,7 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -203,7 +203,7 @@ def to_parquet(
     compression="snappy",
     index: Optional[bool] = None,
     partition_cols=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Write a DataFrame to the parquet format.
@@ -250,7 +250,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
-        **kwargs
+        **kwargs,
     )
 
 

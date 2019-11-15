@@ -730,7 +730,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
     """
 
     # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype):
+    def condition(dtype) -> bool:
         return dtype.kind in ("O", "S", "U") and not is_period_dtype(dtype)
 
     return _is_dtype(arr_or_dtype, condition)
@@ -1500,7 +1500,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_extension_type(arr):
+def is_extension_type(arr) -> bool:
     """
     Check whether an array-like is of a pandas extension class instance.
 
@@ -1565,7 +1565,7 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array_dtype(arr_or_dtype):
+def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     Check if an object is a pandas extension array type.
 

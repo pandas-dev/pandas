@@ -1224,7 +1224,7 @@ class GroupBy(_GroupBy):
         return self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(name="groupby")
@@ -2191,7 +2191,7 @@ class GroupBy(_GroupBy):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Get result for Cythonized functions.

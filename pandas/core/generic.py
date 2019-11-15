@@ -2061,7 +2061,7 @@ class NDFrame(PandasObject, SelectionMixin):
             _typ=self._typ,
             _metadata=self._metadata,
             attrs=self.attrs,
-            **meta
+            **meta,
         )
 
     def __setstate__(self, state):
@@ -7059,7 +7059,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -7133,7 +7133,7 @@ class NDFrame(PandasObject, SelectionMixin):
             limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
         if inplace:
@@ -10452,6 +10452,7 @@ class NDFrame(PandasObject, SelectionMixin):
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
+        rs = rs.loc[~rs.index.duplicated()]
         rs = rs.reindex_like(data)
         if freq is None:
             mask = isna(com.values_from_object(data))
@@ -11581,7 +11582,7 @@ def _make_min_count_stat_function(
         level=None,
         numeric_only=None,
         min_count=0,
-        **kwargs
+        **kwargs,
     ):
         if name == "sum":
             nv.validate_sum(tuple(), kwargs)

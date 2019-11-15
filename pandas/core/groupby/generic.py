@@ -65,7 +65,7 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     get_groupby,
 )
-from pandas.core.index import Index, MultiIndex, _all_indexes_same
+from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
@@ -1060,14 +1060,14 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_frame(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: Dict = OrderedDict()
+        result = OrderedDict()  # type: OrderedDict
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1188,7 +1188,7 @@ class DataFrameGroupBy(GroupBy):
             if isinstance(v, (np.ndarray, Index, Series)):
                 if isinstance(v, Series):
                     applied_index = self._selected_obj._get_axis(self.axis)
-                    all_indexed_same = _all_indexes_same([x.index for x in values])
+                    all_indexed_same = all_indexes_same([x.index for x in values])
                     singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                     # GH3596

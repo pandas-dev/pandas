@@ -354,7 +354,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager

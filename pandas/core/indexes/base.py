@@ -273,7 +273,7 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         fastpath=None,
         tupleize_cols=True,
-        **kwargs
+        **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -514,7 +514,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -536,8 +536,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
+
         return result._reset_identity()
 
     @cache_readonly
@@ -2682,7 +2681,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return this._shallow_copy(the_diff, name=result_name, freq=None)
+        return this._shallow_copy(the_diff, name=result_name)
 
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
@@ -4095,11 +4094,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_scalar(value):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
-
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks in MultiIndex
-        return False
 
     def _is_memory_usage_qualified(self):
         """
