@@ -18,11 +18,8 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
-    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -169,7 +166,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
@@ -322,10 +319,10 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -357,7 +354,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager
@@ -432,7 +429,7 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = getattr(obj, "_info_axis_number", 0)
+                    axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
             applied = getattr(b, f)(**kwargs)
@@ -1034,11 +1031,7 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        # TODO(EA): Remove an is_extension_ when all extension types satisfy
-        # the interface
-        value_is_extension_type = is_extension_type(value) or is_extension_array_dtype(
-            value
-        )
+        value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1079,9 +1072,7 @@ class BlockManager(PandasObject):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
@@ -1278,7 +1269,6 @@ class BlockManager(PandasObject):
         Returns
         -------
         new_blocks : list of Block
-
         """
 
         allow_fill = fill_tuple is not None
@@ -1323,9 +1313,7 @@ class BlockManager(PandasObject):
         # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
         # pytables serialization will break otherwise.
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
                 # If we've got here, fill_tuple was not None.
                 fill_value = fill_tuple[0]
@@ -1936,15 +1924,7 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    # numpy deprecation warning to have i8 vs integer comparisons
-    if is_datetimelike_v_numeric(a, b):
-        result = False
-
-    # numpy deprecation warning if comparing numeric vs string-like
-    elif is_numeric_v_string_like(a, b):
-        result = False
-    else:
-        result = op(a)
+    result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
@@ -2035,7 +2015,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
             values = b.values
             if copy:
                 values = values.copy()
-            elif not copy:
+            else:
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif is_uniform_join_units(join_units):

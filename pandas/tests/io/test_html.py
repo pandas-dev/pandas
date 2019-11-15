@@ -16,7 +16,6 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas.util.testing as tm
-from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -64,7 +63,7 @@ def test_bs4_version_fails(monkeypatch, datapath):
 
     monkeypatch.setattr(bs4, "__version__", "4.2")
     with pytest.raises(ImportError, match="Pandas requires version"):
-        read_html(datapath("io", "data", "spam.html"), flavor="bs4")
+        read_html(datapath("io", "data", "html", "spam.html"), flavor="bs4")
 
 
 def test_invalid_flavor():
@@ -79,7 +78,7 @@ def test_invalid_flavor():
 @td.skip_if_no("bs4")
 @td.skip_if_no("lxml")
 def test_same_ordering(datapath):
-    filename = datapath("io", "data", "valid_markup.html")
+    filename = datapath("io", "data", "html", "valid_markup.html")
     dfs_lxml = read_html(filename, index_col=0, flavor=["lxml"])
     dfs_bs4 = read_html(filename, index_col=0, flavor=["bs4"])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
@@ -96,10 +95,10 @@ def test_same_ordering(datapath):
 class TestReadHtml:
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
-        self.spam_data = datapath("io", "data", "spam.html")
+        self.spam_data = datapath("io", "data", "html", "spam.html")
         self.spam_data_kwargs = {}
         self.spam_data_kwargs["encoding"] = "UTF-8"
-        self.banklist_data = datapath("io", "data", "banklist.html")
+        self.banklist_data = datapath("io", "data", "html", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")
     def set_defaults(self, flavor, request):
@@ -108,7 +107,7 @@ class TestReadHtml:
 
     def test_to_html_compat(self):
         df = (
-            mkdf(
+            tm.makeCustomDataframe(
                 4,
                 3,
                 data_gen_f=lambda *args: rand(),
@@ -122,7 +121,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @network
+    @tm.network
     def test_banklist_url(self):
         url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
@@ -132,11 +131,11 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @network
+    @tm.network
     def test_spam_url(self):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-            "pandas/tests/io/data/spam.html"
+            "pandas/tests/io/data/html/spam.html"
         )
         df1 = self.read_html(url, ".*Water.*")
         df2 = self.read_html(url, "Unit")
@@ -275,12 +274,12 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @network
+    @tm.network
     def test_bad_url_protocol(self):
         with pytest.raises(URLError):
             self.read_html("git://github.com", match=".*Water.*")
 
-    @network
+    @tm.network
     @pytest.mark.slow
     def test_invalid_url(self):
         try:
@@ -361,13 +360,13 @@ class TestReadHtml:
         with pytest.raises(ValueError, match=msg):
             self.read_html(self.spam_data, "Water", skiprows=-1)
 
-    @network
+    @tm.network
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
-    @network
+    @tm.network
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
@@ -377,7 +376,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_thousands_macau_stats(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "macau.html")
+        macau_data = datapath("io", "data", "html", "macau.html")
         dfs = self.read_html(macau_data, index_col=0, attrs={"class": "style1"})
         df = dfs[all_non_nan_table_index]
 
@@ -386,7 +385,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_thousands_macau_index_col(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "macau.html")
+        macau_data = datapath("io", "data", "html", "macau.html")
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
@@ -567,7 +566,7 @@ class TestReadHtml:
         tm.assert_frame_equal(result, expected)
 
     def test_nyse_wsj_commas_table(self, datapath):
-        data = datapath("io", "data", "nyse_wsj.html")
+        data = datapath("io", "data", "html", "nyse_wsj.html")
         df = self.read_html(data, index_col=0, header=0, attrs={"class": "mdcTable"})[0]
 
         expected = Index(
@@ -595,7 +594,7 @@ class TestReadHtml:
 
         df = self.read_html(self.banklist_data, "Metcalf", attrs={"id": "table"})[0]
         ground_truth = read_csv(
-            datapath("io", "data", "banklist.csv"),
+            datapath("io", "data", "csv", "banklist.csv"),
             converters={"Updated Date": Timestamp, "Closing Date": Timestamp},
         )
         assert df.shape == ground_truth.shape
@@ -890,7 +889,7 @@ class TestReadHtml:
         tm.assert_frame_equal(newdf, res[0])
 
     def test_computer_sales_page(self, datapath):
-        data = datapath("io", "data", "computer_sales_page.html")
+        data = datapath("io", "data", "html", "computer_sales_page.html")
         msg = (
             r"Passed header=\[0,1\] are too many "
             r"rows for this multi_index of columns"
@@ -898,11 +897,11 @@ class TestReadHtml:
         with pytest.raises(ParserError, match=msg):
             self.read_html(data, header=[0, 1])
 
-        data = datapath("io", "data", "computer_sales_page.html")
+        data = datapath("io", "data", "html", "computer_sales_page.html")
         assert self.read_html(data, header=[1, 2])
 
     def test_wikipedia_states_table(self, datapath):
-        data = datapath("io", "data", "wikipedia_states.html")
+        data = datapath("io", "data", "html", "wikipedia_states.html")
         assert os.path.isfile(data), "{data!r} is not a file".format(data=data)
         assert os.path.getsize(data), "{data!r} is an empty file".format(data=data)
         result = self.read_html(data, "Arizona", header=1)[0]
@@ -1096,14 +1095,14 @@ class TestReadHtml:
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_works_on_valid_markup(self, datapath):
-        filename = datapath("io", "data", "valid_markup.html")
+        filename = datapath("io", "data", "html", "valid_markup.html")
         dfs = self.read_html(filename, index_col=0)
         assert isinstance(dfs, list)
         assert isinstance(dfs[0], DataFrame)
 
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
-        banklist_data = datapath("io", "data", "banklist.html")
+        banklist_data = datapath("io", "data", "html", "banklist.html")
         self.read_html(banklist_data, ".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
@@ -1233,15 +1232,15 @@ class TestReadHtml:
             def run(self):
                 try:
                     super().run()
-                except Exception as e:
-                    self.err = e
+                except Exception as err:
+                    self.err = err
                 else:
                     self.err = None
 
         # force import check by reinitalising global vars in html.py
         reload(pandas.io.html)
 
-        filename = datapath("io", "data", "valid_markup.html")
+        filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
         helper_thread2 = ErrorThread(target=self.read_html, args=(filename,))
 

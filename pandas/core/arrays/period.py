@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
@@ -35,7 +34,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCPeriodArray,
     ABCPeriodIndex,
@@ -46,6 +44,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -69,12 +68,9 @@ def _period_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        op = getattr(self.asi8, opname)
-
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
+        ordinal_op = getattr(self.asi8, opname)
 
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
@@ -82,11 +78,11 @@ def _period_array_cmp(cls, op):
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
         elif isinstance(other, cls):
             self._check_compatible_with(other)
 
-            result = op(other.asi8)
+            result = ordinal_op(other.asi8)
 
             mask = self._isnan | other._isnan
             if mask.any():
@@ -98,7 +94,7 @@ def _period_array_cmp(cls, op):
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            result = op(other.ordinal)
+            result = ordinal_op(other.ordinal)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -444,7 +440,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         Parameters
         ----------
-        freq : string or DateOffset, optional
+        freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             'S' otherwise
         how : {'s', 'e', 'start', 'end'}
@@ -515,7 +511,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         periods : int
             Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
+        freq : pandas.DateOffset, pandas.Timedelta, or str
             Frequency increment to shift by.
         """
         if freq is not None:
@@ -831,7 +827,9 @@ def _raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Optional[Period]], freq: Optional[Tick] = None, copy: bool = False
+    data: Sequence[Optional[Period]],
+    freq: Optional[Union[str, Tick]] = None,
+    copy: bool = False,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.

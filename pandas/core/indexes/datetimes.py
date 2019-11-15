@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_scalar,
-    is_string_like,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -103,13 +102,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     Parameters
     ----------
     data  : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with
+        Optional datetime-like data to construct index with.
     copy  : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
-        inferred frequency upon creation
+        inferred frequency upon creation.
 
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
@@ -119,19 +118,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     periods  : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
+        over end argument.
 
         .. deprecated:: 0.24.0
 
     end : end time, datetime-like, optional
         If periods is none, generated index will extend to first conforming
-        time on or just past end argument
+        time on or just past end argument.
 
         .. deprecated:: 0.24.0
 
     closed : str or None, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
         .. deprecated:: 0.24. 0
 
@@ -149,13 +148,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
+        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
     dayfirst : bool, default False
-        If True, parse dates in `data` with the day first order
+        If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
-        If True parse dates in `data` with the year first order
+        If True parse dates in `data` with the year first order.
 
     Attributes
     ----------
@@ -230,11 +229,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def _join_i8_wrapper(joinf, **kwargs):
         return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="M8[ns]", **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
+    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
+    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
     _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique_int64, with_indexers=False
+        libjoin.left_join_indexer_unique, with_indexers=False
     )
 
     _engine_type = libindex.DatetimeEngine
@@ -464,6 +463,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if self._has_same_tz(value):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
+
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx.freq = None
+        return new_idx
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -1079,12 +1084,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Returns
         -------
-        label :  object
+        label : object
 
         Notes
         -----
         Value of `side` parameter should be validated in caller.
-
         """
         assert kind in ["ix", "loc", "getitem", None]
 
@@ -1107,7 +1111,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             return label
 
-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         _, parsed, reso = parsing.parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
@@ -1237,13 +1241,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         return typ == self.inferred_type or typ == "datetime"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return "datetime64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):
@@ -1328,7 +1332,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Parameters
         ----------
-        time : datetime.time or string
+        time : datetime.time or str
             datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
             "%I%M%S%p").
@@ -1424,7 +1428,7 @@ def date_range(
     normalize=False,
     name=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex.
@@ -1574,7 +1578,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
@@ -1590,7 +1594,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
@@ -1660,7 +1664,7 @@ def bdate_range(
         msg = "freq must be specified for bdate_range; use date_range instead"
         raise TypeError(msg)
 
-    if is_string_like(freq) and freq.startswith("C"):
+    if isinstance(freq, str) and freq.startswith("C"):
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
@@ -1683,7 +1687,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
 
 

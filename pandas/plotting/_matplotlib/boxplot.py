@@ -11,7 +11,6 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -185,7 +184,7 @@ def _grouped_plot_by_column(
     ax=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     grouped = data.groupby(by)
     if columns is None:
@@ -235,7 +234,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
 
     import matplotlib.pyplot as plt
@@ -331,9 +330,7 @@ def boxplot(
         if return_type is None:
             return_type = "axes"
         if layout is not None:
-            raise ValueError(
-                "The 'layout' keyword is not supported when " "'by' is None"
-            )
+            raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}
@@ -362,11 +359,10 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
-    converter._WARN = False  # no warning for pandas plots
     ax = boxplot(
         self,
         column=column,
@@ -378,7 +374,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwds,
     )
     plt.draw_if_interactive()
     return ax
@@ -396,9 +392,8 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwds,
 ):
-    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(
@@ -437,6 +432,6 @@ def boxplot_frame_groupby(
             ax=ax,
             figsize=figsize,
             layout=layout,
-            **kwds
+            **kwds,
         )
     return ret

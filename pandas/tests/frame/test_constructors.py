@@ -8,7 +8,7 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -50,13 +50,13 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((x for x in [])),
+            lambda: DataFrame((_ for _ in [])),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
-            lambda: DataFrame(data=(x for x in [])),
+            lambda: DataFrame(data=(_ for _ in [])),
             lambda: DataFrame(data=range(0)),
         ],
     )
@@ -72,7 +72,7 @@ class TestDataFrameConstructors:
         [
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
-            ([(x for x in [])], RangeIndex(1), RangeIndex(0)),
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
         ],
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
@@ -387,7 +387,6 @@ class TestDataFrameConstructors:
         result = DataFrame(data, index=idx, columns=cols)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="Insertion order for Python>=3.6")
     def test_constructor_dict_order_insertion(self):
         datetime_series = tm.makeTimeSeries(nper=30)
         datetime_series_short = tm.makeTimeSeries(nper=25)
@@ -397,18 +396,6 @@ class TestDataFrameConstructors:
         d = {"b": datetime_series_short, "a": datetime_series}
         frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list("ba"))
-        tm.assert_frame_equal(frame, expected)
-
-    @pytest.mark.skipif(PY36, reason="order by value for Python<3.6")
-    def test_constructor_dict_order_by_values(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
-
-        # GH19018
-        # initialization ordering: by value if python<3.6
-        d = {"b": datetime_series_short, "a": datetime_series}
-        frame = DataFrame(data=d)
-        expected = DataFrame(data=d, columns=list("ab"))
         tm.assert_frame_equal(frame, expected)
 
     def test_constructor_multi_index(self):
@@ -423,6 +410,25 @@ class TestDataFrameConstructors:
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
         assert pd.isna(df).values.ravel().all()
+
+    def test_constructor_2d_index(self):
+        # GH 25416
+        # handling of 2d index in construction
+        df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.Int64Index([1, 2], dtype="int64"),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
@@ -1354,7 +1360,7 @@ class TestDataFrameConstructors:
             }
         )
         result = DataFrame(data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
@@ -1404,6 +1410,23 @@ class TestDataFrameConstructors:
             DataFrame.from_dict(
                 dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
             )
+
+    @pytest.mark.parametrize(
+        "data_dict, keys",
+        [
+            ([{("a",): 1}, {("a",): 2}], [("a",)]),
+            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)]),
+            ([{("a", "b"): 1}], [("a", "b")]),
+        ],
+    )
+    def test_constructor_from_dict_tuples(self, data_dict, keys):
+        # GH 16769
+        df = DataFrame.from_dict(data_dict)
+
+        result = df.columns
+        expected = Index(keys, dtype="object", tupleize_cols=False)
+
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=["a", "b", "c"], name="x")

@@ -226,11 +226,8 @@ cdef object get_dst_info(object tz):
         if treat_tz_as_pytz(tz):
             trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
             trans = trans.view('i8')
-            try:
-                if tz._utc_transition_times[0].year == 1:
-                    trans[0] = NPY_NAT + 1
-            except Exception:
-                pass
+            if tz._utc_transition_times[0].year == 1:
+                trans[0] = NPY_NAT + 1
             deltas = unbox_utcoffsets(tz._transition_info)
             typ = 'pytz'
 

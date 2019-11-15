@@ -2,7 +2,7 @@ from collections import OrderedDict
 from io import StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
-from pandas._typing import Scalar
+from pandas._typing import JSONSerializable
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -34,8 +34,6 @@ dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = "0.20.0"
 
-Serializable = Union[Scalar, List, Dict]
-
 
 # interface to/from
 def to_json(
@@ -46,7 +44,7 @@ def to_json(
     double_precision: int = 10,
     force_ascii: bool = True,
     date_unit: str = "ms",
-    default_handler: Optional[Callable[[Any], Serializable]] = None,
+    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
     lines: bool = False,
     compression: Optional[str] = "infer",
     index: bool = True,
@@ -110,7 +108,7 @@ class Writer:
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         indent: int = 0,
     ):
         self.obj = obj
@@ -153,7 +151,7 @@ class Writer:
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         return dumps(
@@ -186,7 +184,7 @@ class SeriesWriter(Writer):
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         if not self.index and orient == "split":
@@ -233,7 +231,7 @@ class FrameWriter(Writer):
         ensure_ascii: bool,
         date_unit: str,
         iso_dates: bool,
-        default_handler: Optional[Callable[[Any], Serializable]],
+        default_handler: Optional[Callable[[Any], JSONSerializable]],
         indent: int,
     ):
         if not self.index and orient == "split":
@@ -263,7 +261,7 @@ class JSONTableWriter(FrameWriter):
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], Serializable]] = None,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         indent: int = 0,
     ):
         """
@@ -384,7 +382,7 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    orient : string,
+    orient : str
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -579,6 +577,8 @@ def read_json(
         dtype = True
     if convert_axes is None and orient != "table":
         convert_axes = True
+    if encoding is None:
+        encoding = "utf-8"
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -711,7 +711,7 @@ class JsonReader(BaseIterator):
 
         return data
 
-    def _combine_lines(self, lines):
+    def _combine_lines(self, lines) -> str:
         """
         Combines a list of JSON objects into one JSON object.
         """
@@ -1112,14 +1112,10 @@ class FrameParser(Parser):
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = (
-                DataFrame.from_dict(
-                    loads(json, precise_float=self.precise_float),
-                    dtype=None,
-                    orient="index",
-                )
-                .sort_index(axis="columns")
-                .sort_index(axis="index")
+            self.obj = DataFrame.from_dict(
+                loads(json, precise_float=self.precise_float),
+                dtype=None,
+                orient="index",
             )
         elif orient == "table":
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
@@ -1173,7 +1169,7 @@ class FrameParser(Parser):
             convert_dates = []
         convert_dates = set(convert_dates)
 
-        def is_ok(col):
+        def is_ok(col) -> bool:
             """
             Return if this col is ok to try for a date parse.
             """

@@ -1,5 +1,6 @@
+import abc
 import inspect
-import warnings
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Type, Union
 
 import numpy as np
 
@@ -8,24 +9,25 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
 
-from pandas.io.formats.printing import pprint_thing
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series, Index
+
+ResType = Dict[int, Any]
 
 
 def frame_apply(
-    obj,
+    obj: "DataFrame",
     func,
     axis=0,
-    broadcast=None,
-    raw=False,
-    reduce=None,
+    raw: bool = False,
     result_type=None,
-    ignore_failures=False,
+    ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
@@ -33,16 +35,14 @@ def frame_apply(
 
     axis = obj._get_axis_number(axis)
     if axis == 0:
-        klass = FrameRowApply
+        klass = FrameRowApply  # type: Type[FrameApply]
     elif axis == 1:
         klass = FrameColumnApply
 
     return klass(
         obj,
         func,
-        broadcast=broadcast,
         raw=raw,
-        reduce=reduce,
         result_type=result_type,
         ignore_failures=ignore_failures,
         args=args,
@@ -50,16 +50,40 @@ def frame_apply(
     )
 
 
-class FrameApply:
+class FrameApply(metaclass=abc.ABCMeta):
+
+    # ---------------------------------------------------------------
+    # Abstract Methods
+    axis: int
+
+    @property
+    @abc.abstractmethod
+    def result_index(self) -> "Index":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def result_columns(self) -> "Index":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def series_generator(self) -> Iterator["Series"]:
+        pass
+
+    @abc.abstractmethod
+    def wrap_results_for_axis(self, results: ResType) -> Union["Series", "DataFrame"]:
+        pass
+
+    # ---------------------------------------------------------------
+
     def __init__(
         self,
-        obj,
+        obj: "DataFrame",
         func,
-        broadcast,
-        raw,
-        reduce,
+        raw: bool,
         result_type,
-        ignore_failures,
+        ignore_failures: bool,
         args,
         kwds,
     ):
@@ -74,34 +98,6 @@ class FrameApply:
                 "invalid value for result_type, must be one "
                 "of {None, 'reduce', 'broadcast', 'expand'}"
             )
-
-        if broadcast is not None:
-            warnings.warn(
-                "The broadcast argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='broadcast' to broadcast the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if broadcast:
-                result_type = "broadcast"
-
-        if reduce is not None:
-            warnings.warn(
-                "The reduce argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='reduce' to try to reduce the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if reduce:
-
-                if result_type is not None:
-                    raise ValueError("cannot pass both reduce=True and result_type")
-
-                result_type = "reduce"
 
         self.result_type = result_type
 
@@ -118,15 +114,23 @@ class FrameApply:
 
         # results
         self.result = None
-        self.res_index = None
-        self.res_columns = None
+        self._res_index: Optional["Index"] = None
 
     @property
-    def columns(self):
+    def res_index(self) -> "Index":
+        assert self._res_index is not None
+        return self._res_index
+
+    @property
+    def res_columns(self) -> "Index":
+        return self.result_columns
+
+    @property
+    def columns(self) -> "Index":
         return self.obj.columns
 
     @property
-    def index(self):
+    def index(self) -> "Index":
         return self.obj.index
 
     @cache_readonly
@@ -134,11 +138,11 @@ class FrameApply:
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self):
+    def dtypes(self) -> "Series":
         return self.obj.dtypes
 
     @property
-    def agg_axis(self):
+    def agg_axis(self) -> "Index":
         return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
@@ -173,7 +177,7 @@ class FrameApply:
 
         # broadcasting
         if self.result_type == "broadcast":
-            return self.apply_broadcast()
+            return self.apply_broadcast(self.obj)
 
         # one axis empty
         elif not all(self.obj.shape):
@@ -237,7 +241,7 @@ class FrameApply:
         else:
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
-    def apply_broadcast(self, target):
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
         result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
@@ -274,10 +278,10 @@ class FrameApply:
         # as demonstrated in gh-12244
         if (
             self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_type).any()
+            and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
-            and not self.agg_axis._has_complex_internals
+            and not isinstance(self.agg_axis, ABCMultiIndex)
         ):
 
             values = self.values
@@ -309,12 +313,12 @@ class FrameApply:
                 return self.obj._constructor_sliced(result, index=labels)
 
         # compute the result using the series generator
-        self.apply_series_generator()
+        results = self.apply_series_generator()
 
         # wrap results
-        return self.wrap_results()
+        return self.wrap_results(results)
 
-    def apply_series_generator(self):
+    def apply_series_generator(self) -> ResType:
         series_gen = self.series_generator
         res_index = self.result_index
 
@@ -337,30 +341,19 @@ class FrameApply:
                 res_index = res_index.take(successes)
 
         else:
-            try:
-                for i, v in enumerate(series_gen):
-                    results[i] = self.f(v)
-                    keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
+            for i, v in enumerate(series_gen):
+                results[i] = self.f(v)
+                keys.append(v.name)
 
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
-                raise
+        self._res_index = res_index
+        return results
 
-        self.results = results
-        self.res_index = res_index
-        self.res_columns = self.result_columns
-
-    def wrap_results(self):
-        results = self.results
+    def wrap_results(self, results: ResType) -> Union["Series", "DataFrame"]:
 
         # see if we can infer the results
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
 
-            return self.wrap_results_for_axis()
+            return self.wrap_results_for_axis(results)
 
         # dict of scalars
         result = self.obj._constructor_sliced(results)
@@ -372,37 +365,32 @@ class FrameApply:
 class FrameRowApply(FrameApply):
     axis = 0
 
-    def apply_broadcast(self):
-        return super().apply_broadcast(self.obj)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.columns
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.index
 
-    def wrap_results_for_axis(self):
+    def wrap_results_for_axis(self, results: ResType) -> "DataFrame":
         """ return the results for the rows """
 
-        results = self.results
         result = self.obj._constructor(data=results)
 
         if not isinstance(results[0], ABCSeries):
-            try:
+            if len(result.index) == len(self.res_columns):
                 result.index = self.res_columns
-            except ValueError:
-                pass
 
-        try:
+        if len(result.columns) == len(self.res_index):
             result.columns = self.res_index
-        except ValueError:
-            pass
 
         return result
 
@@ -410,8 +398,8 @@ class FrameRowApply(FrameApply):
 class FrameColumnApply(FrameApply):
     axis = 1
 
-    def apply_broadcast(self):
-        result = super().apply_broadcast(self.obj.T)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        result = super().apply_broadcast(target.T)
         return result.T
 
     @property
@@ -423,20 +411,20 @@ class FrameColumnApply(FrameApply):
         )
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.index
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.columns
 
-    def wrap_results_for_axis(self):
+    def wrap_results_for_axis(self, results: ResType) -> Union["Series", "DataFrame"]:
         """ return the results for the columns """
-        results = self.results
+        result: Union["Series", "DataFrame"]
 
         # we have requested to expand
         if self.result_type == "expand":
-            result = self.infer_to_same_shape()
+            result = self.infer_to_same_shape(results)
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
@@ -447,13 +435,12 @@ class FrameColumnApply(FrameApply):
 
         # we may want to infer results
         else:
-            result = self.infer_to_same_shape()
+            result = self.infer_to_same_shape(results)
 
         return result
 
-    def infer_to_same_shape(self):
+    def infer_to_same_shape(self, results: ResType) -> "DataFrame":
         """ infer the results to the same shape as the input object """
-        results = self.results
 
         result = self.obj._constructor(data=results)
         result = result.T

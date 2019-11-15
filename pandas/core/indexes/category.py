@@ -77,7 +77,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Whether or not this categorical is treated as an ordered
         categorical. If not given here or in `dtype`, the resulting
         categorical will be unordered.
-    dtype : CategoricalDtype or the string "category", optional
+    dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
 
@@ -366,7 +366,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "categorical"
 
     @property
@@ -463,7 +463,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
@@ -552,10 +552,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    def _can_reindex(self, indexer):
-        """ always allow reindexing """
-        pass
-
     @Substitution(klass="CategoricalIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
@@ -585,7 +581,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             Indices of output values in original index
 
         """
-
         if method is not None:
             raise NotImplementedError(
                 "argument method is not implemented for CategoricalIndex.reindex"
@@ -605,9 +600,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             indexer = None
             missing = []
         else:
-            if not target.is_unique:
-                raise ValueError("cannot reindex with a non-unique indexer")
-
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
         if len(self.codes) and indexer is not None:

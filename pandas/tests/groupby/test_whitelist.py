@@ -14,7 +14,7 @@ from pandas.core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
 )
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
