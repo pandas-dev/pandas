@@ -853,19 +853,19 @@ class SQLTable(PandasObject):
         """
         Determines what data to pass to the underlying insert method.
         """
-        if self.if_exists == "upsert_ignore":
-            data = self._upsert_ignore_processing()
-            self._insert(data=data, chunksize=chunksize, method=method)
-        elif self.if_exists == "upsert_delete":
-            delete_statement = self._upsert_delete_processing()
-            # nested transaction to ensure delete is rolled back in case of poor data
-            with self.pd_sql.run_transaction() as trans:
+        with self.pd_sql.run_transaction() as trans:
+            if self.if_exists == "upsert_ignore":
+                data = self._upsert_ignore_processing()
+                self._insert(data=data, chunksize=chunksize, method=method, conn=trans)
+            elif self.if_exists == "upsert_delete":
+                delete_statement = self._upsert_delete_processing()
+                # nested transaction to ensure delete is rolled back in case of poor data
                 trans.execute(delete_statement)
-                self._insert(chunksize=chunksize, method=method)
-        else:
-            self._insert(chunksize=chunksize, method=method)
+                self._insert(chunksize=chunksize, method=method, conn=trans)
+            else:
+                self._insert(chunksize=chunksize, method=method, conn=trans)
 
-    def _insert(self, data=None, chunksize=None, method=None):
+    def _insert(self, data=None, chunksize=None, method=None, conn=None):
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -893,15 +893,14 @@ class SQLTable(PandasObject):
 
         chunks = int(nrows / chunksize) + 1
 
-        with self.pd_sql.run_transaction() as conn:
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, nrows)
-                if start_i >= end_i:
-                    break
+        for i in range(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, nrows)
+            if start_i >= end_i:
+                break
 
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-                exec_insert(conn, keys, chunk_iter)
+            chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+            exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
         self, result, chunksize, columns, coerce_float=True, parse_dates=None
