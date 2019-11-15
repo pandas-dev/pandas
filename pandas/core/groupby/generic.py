@@ -595,7 +595,12 @@ class SeriesGroupBy(GroupBy):
         return result.unstack()
 
     def value_counts(
-        self, normalize: bool = False, sort: bool = True, ascending: bool = False, bins=None, dropna: bool = True
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
     ):
 
         from pandas.core.reshape.tile import cut
