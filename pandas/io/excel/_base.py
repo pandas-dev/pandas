@@ -82,7 +82,7 @@ usecols : int, str, list-like, or callable default None
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
-    .. deprecated:: 0.24.0
+      .. deprecated:: 0.24.0
          Pass in a list of int instead from 0 to `usecols` inclusive.
 
     * If str, then indicates comma separated list of Excel column letters
@@ -91,14 +91,14 @@ usecols : int, str, list-like, or callable default None
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
@@ -124,7 +124,7 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse.
 
-    .. versionadded:: 0.23.0
+      .. versionadded:: 0.23.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
@@ -191,7 +191,7 @@ comment : str, default None
 skip_footer : int, default 0
     Alias of `skipfooter`.
 
-    .. deprecated:: 0.23.0
+      .. deprecated:: 0.23.0
        Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
