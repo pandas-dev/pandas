@@ -24,6 +24,16 @@ and `good first issue
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
+When you start working on an issue, it's a good idea to assign the issue to yourself,
+so nobody else diplicates the work on it. GitHub restricts assigning issues to maintainers
+of the project only. Until recently, contributors added a comment letting others know they
+are working on an issue. But we implemented a workaround consisting of adding
+a comment with the exact text `take`. When you do it, a GitHub action will automatically assign
+you the issue few seconds later. This way, it's possible to filter the list of issues, and find
+only the unassigned ones. Work on assigned issues can be discontinued. Feel free to also
+consider assigned issues. Just kindly ask the current assignee if you can take an issue,
+if it's been inactive for some time (a week at least).
+
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
