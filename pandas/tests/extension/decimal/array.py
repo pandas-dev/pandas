@@ -71,7 +71,15 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(scalars)
+        try:
+            return cls(scalars)
+        except TypeError:
+            # handling int 0 is necessary for groupby tests
+            if isinstance(scalars, np.ndarray):
+                for i, val in enumerate(scalars):
+                    if isinstance(val, (int, float)):
+                        scalars[i] = decimal.Decimal(val)
+            return cls(scalars)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -166,7 +174,10 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _reduce(self, name, skipna=True, **kwargs):
 
         if skipna:
-            raise NotImplementedError("decimal does not support skipna=True")
+            # If we don't have any NAs, we can ignore skipna
+            if self.isna().any():
+                other = self[~self.isna()]
+                return other._reduce(name, **kwargs)
 
         try:
             op = getattr(self.data, name)

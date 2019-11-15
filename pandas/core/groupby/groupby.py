@@ -1349,9 +1349,6 @@ class GroupBy(_GroupBy):
                         # raised in _get_cython_function, in some cases can
                         #  be trimmed by implementing cython funcs for more dtypes
                         pass
-                    elif "decimal does not support skipna=True" in str(err):
-                        # FIXME: kludge for test_decimal:test_in_numeric_groupby
-                        pass
                     else:
                         raise
 
