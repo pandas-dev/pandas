@@ -582,7 +582,6 @@ class TermValue:
         self.value = value
         self.converted = converted
         self.kind = kind
-        assert kind is None or isinstance(kind, str), kind
 
     def tostring(self, encoding):
         """ quote the string if not encoded
