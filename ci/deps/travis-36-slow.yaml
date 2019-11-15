@@ -18,7 +18,7 @@ dependencies:
   - python-dateutil
   - python=3.6.*
   - pytz
-  - s3fs<0.3
+  - s3fs
   - scipy
   - sqlalchemy
   - xlrd
