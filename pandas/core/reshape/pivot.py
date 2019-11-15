@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
 
 import numpy as np
 
@@ -15,6 +15,9 @@ from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 # Note: We need to make sure `frame` is imported before `pivot`, otherwise
@@ -182,7 +185,7 @@ def pivot_table(
 
 
 def _add_margins(
-    table,
+    table: Union["Series", "DataFrame"],
     data,
     values,
     rows,
@@ -202,8 +205,8 @@ def _add_margins(
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
-    # could be passed a Series object with no 'columns'
-    if hasattr(table, "columns"):
+    if table.ndim == 2:
+        # i.e. DataFramae
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
@@ -220,7 +223,7 @@ def _add_margins(
         # one column in the data. Compute grand margin and return it.
         return table.append(Series({key: grand_margin[margins_name]}))
 
-    if values:
+    elif values:
         marginal_result_set = _generate_marginal_results(
             table,
             data,
@@ -236,12 +239,15 @@ def _add_margins(
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
     else:
+        # no values, and table is a DataFrame
+        assert isinstance(table, ABCDataFrame)
         marginal_result_set = _generate_marginal_results_without_values(
             table, data, rows, cols, aggfunc, observed, margins_name
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
+
     row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
@@ -365,7 +371,7 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table, data, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table: "DataFrame", data, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
