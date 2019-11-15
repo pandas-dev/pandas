@@ -213,13 +213,13 @@ SQL_STRINGS = {
         "posgresql": """CREATE TABLE pkey_table (
                 "A" INTEGER PRIMARY KEY,
                 "B" TEXT
-            )"""
+            )""",
     },
     "insert_pkey_table": {
         "sqlite": """INSERT INTO pkey_table VALUES (?, ?)""",
         "mysql": """INSERT INTO pkey_table VALUES (%s, %s)""",
         "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
-    }
+    },
 }
 
 
@@ -330,11 +330,7 @@ class PandasSQLTest:
         self.drop_table("pkey_table")
         self._get_exec().execute(SQL_STRINGS["create_pkey_table"][self.flavor])
         ins = SQL_STRINGS["insert_pkey_table"][self.flavor]
-        data = [
-            (1, 'name1'),
-            (2, 'name2'),
-            (3, 'name3')
-        ]
+        data = [(1, "name1"), (2, "name2"), (3, "name3")]
         self._get_exec().execute(ins, data)
 
     def _load_test1_data(self):
@@ -396,8 +392,7 @@ class PandasSQLTest:
         ]
 
         self.test_frame3 = DataFrame(data, columns=columns)
-    
-    
+
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
         self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
@@ -433,15 +428,10 @@ class PandasSQLTest:
             self._get_exec().execute(
                 ins["query"], [d[field] for field in ins["fields"]]
             )
-    
+
     def _load_pkey_table_data(self):
         columns = ["A", "B"]
-        data = [
-            (1, 'new_name1'),
-            (2, 'new_name2'),
-            (4, 'name4'),
-            (5, 'name5')
-        ]
+        data = [(1, "new_name1"), (2, "new_name2"), (4, "name4"), (5, "name5")]
 
         self.pkey_table_frame = DataFrame(data, columns=columns)
 
@@ -504,9 +494,7 @@ class PandasSQLTest:
 
     def _to_sql_replace(self):
         self.drop_table("test_frame1")
-
         self.pandasSQL.to_sql(self.test_frame1, "test_frame1", if_exists="fail")
-        # Add to table again
         self.pandasSQL.to_sql(self.test_frame1, "test_frame1", if_exists="replace")
         assert self.pandasSQL.has_table("test_frame1")
 
@@ -562,7 +550,7 @@ class PandasSQLTest:
             - dataframe has all original values
         """
         # Nuke
-        self.drop_table('pkey_table')
+        self.drop_table("pkey_table")
         # Re-create original table
         self._create_pkey_table()
         # Original table exists and as 3 rows
@@ -570,21 +558,16 @@ class PandasSQLTest:
         assert self._count_rows("pkey_table") == 3
         # Insert new dataframe
         self.pandasSQL.to_sql(
-            self.pkey_table_frame,
-            "pkey_table",
-            if_exists="upsert_ignore",
-            index=False
-        ) 
+            self.pkey_table_frame, "pkey_table", if_exists="upsert_ignore", index=False
+        )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
         # Check original DB values maintained for duplicate keys
         duplicate_keys = [1, 2]
         duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
-        duplicate_val = self._get_exec().execute(
-            duplicate_key_query, duplicate_keys
-        )
-        data_from_db = sorted([val[0] for val in duplicate_val])
-        expected = sorted(["name1", "name2"])
+        duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
+        data_from_db = [val[0] for val in duplicate_val].sort()
+        expected = ["name1", "name2"].sort()
         assert data_from_db == expected
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
@@ -597,8 +580,8 @@ class PandasSQLTest:
             - table len = 5
             - dataframe values for rows with duplicate keys
         """
-         # Nuke
-        self.drop_table('pkey_table')
+        # Nuke
+        self.drop_table("pkey_table")
         # Re-create original table
         self._create_pkey_table()
         # Original table exists and as 3 rows
@@ -606,25 +589,20 @@ class PandasSQLTest:
         assert self._count_rows("pkey_table") == 3
         # Insert new dataframe
         self.pandasSQL.to_sql(
-            self.pkey_table_frame,
-            "pkey_table",
-            if_exists="upsert_delete",
-            index=False
-        ) 
+            self.pkey_table_frame, "pkey_table", if_exists="upsert_delete", index=False
+        )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
         # Check original DB values maintained for duplicate keys
         duplicate_keys = [1, 2]
         duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
-        duplicate_val = self._get_exec().execute(
-            duplicate_key_query, duplicate_keys
-        )
-        data_from_db = sorted([val[0] for val in duplicate_val])
-        data_from_df = sorted(
-            list(
-                self.pkey_table_frame.loc[self.pkey_table_frame['A'].isin(duplicate_keys), 'B']
-                )
-            )
+        duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
+        data_from_db = [val[0] for val in duplicate_val].sort()
+        data_from_df = list(
+            self.pkey_table_frame.loc[
+                self.pkey_table_frame["A"].isin(duplicate_keys), "B"
+            ]
+        ).sort()
         assert data_from_db == data_from_df
 
     def _roundtrip(self):

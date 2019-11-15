@@ -674,10 +674,10 @@ class SQLTable(PandasObject):
 
     def _upsert_delete_processing(self):
         """
-        Generate delete statement, to remove rows with clashing primary key from database.
+        Generate delete statement for rows with clashing primary key from database.
 
         `upsert_delete` prioritizes incoming data, over existing data in the DB.
-        This method generates the Delete statement for duplicate rows, 
+        This method generates the Delete statement for duplicate rows,
         which is to be executed in the same transaction as the ensuing data insert.
 
         Returns
@@ -736,7 +736,7 @@ class SQLTable(PandasObject):
 
     def _get_primary_key_data(self):
         """
-        Get primary key names from database, and yield columns with same names from dataframe.
+        Get primary keys from database, and yield dataframe columns with same names.
 
         Upsert workflows require knowledge of what is already in the database.
         This method reflects the meta object and gets a list of primary keys,
@@ -745,7 +745,7 @@ class SQLTable(PandasObject):
 
         Returns
         -------
-        primary_keys : list of str 
+        primary_keys : list of str
             Primary key names
         primary_key_values : iterable
             DataFrame rows, for columns corresponding to `primary_key` names
@@ -797,10 +797,10 @@ class SQLTable(PandasObject):
     def _get_index_formatted_dataframe(self):
         """
         Format index of incoming dataframe to be aligned with a database table.
-        
-        Copy original dataframe, and check whether the dataframe index 
-        is to be added to the database table.  
-        If it is, reset the index so that it becomes a normal column, else return 
+
+        Copy original dataframe, and check whether the dataframe index
+        is to be added to the database table.
+        If it is, reset the index so that it becomes a normal column, else return
 
         Returns
         -------
@@ -859,7 +859,6 @@ class SQLTable(PandasObject):
                 self._insert(data=data, chunksize=chunksize, method=method, conn=trans)
             elif self.if_exists == "upsert_delete":
                 delete_statement = self._upsert_delete_processing()
-                # nested transaction to ensure delete is rolled back in case of poor data
                 trans.execute(delete_statement)
                 self._insert(chunksize=chunksize, method=method, conn=trans)
             else:
