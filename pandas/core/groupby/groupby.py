@@ -1357,14 +1357,6 @@ class GroupBy(_GroupBy):
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-
-                # coerce the resulting columns if we can
-                if isinstance(result, DataFrame):
-                    for col in result.columns:
-                        result[col] = self._try_cast(result[col], self.obj[col])
-                else:
-                    result = self._try_cast(result, self.obj)
-
                 return result
 
             set_function_name(f, name, cls)
