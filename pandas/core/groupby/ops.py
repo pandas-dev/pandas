@@ -663,14 +663,6 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-            if isinstance(res, np.bool_):
-                if is_extension_array_dtype(group.dtype):
-                    # FIXME: kludge for DecimalArray on numpy<1.15 returning
-                    #  np.bool_(False) when we have all-NA DecimalArray
-                    if group.isna().all():
-                        res = group.dtype.na_value
-                        result[label] = res
-
         assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
         # TODO: try_cast back to EA?
