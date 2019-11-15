@@ -18,7 +18,7 @@ VERSIONS = {
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.9.0",
     "pytables": "3.4.2",
-    "s3fs": "0.0.8",
+    "s3fs": "0.3.0",
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
     "tables": "3.4.2",
