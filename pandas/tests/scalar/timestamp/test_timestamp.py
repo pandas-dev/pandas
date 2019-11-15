@@ -202,8 +202,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [
@@ -275,8 +273,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [

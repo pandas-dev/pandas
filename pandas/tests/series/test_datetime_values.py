@@ -504,7 +504,7 @@ class TestSeriesDatetimeValues:
         s.iloc[0] = pd.NaT
         result = s.dt.strftime("%Y/%m/%d")
         expected = Series(
-            ["NaT", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
+            [np.nan, "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
@@ -552,6 +552,20 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.003",
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            DatetimeIndex(["2019-01-01", pd.NaT]),
+            PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"),
+        ],
+    )
+    def test_strftime_nat(self, data):
+        # GH 29578
+        s = Series(data)
+        result = s.dt.strftime("%Y-%m-%d")
+        expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
