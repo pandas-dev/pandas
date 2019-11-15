@@ -118,7 +118,3 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
-# pyenv files
-.python-version
-
-vendor/
