@@ -51,6 +51,15 @@ class HistPlot(LinePlot):
         stacking_id=None,
         **kwds,
     ):
+
+        # if bins is a string (e.g. "auto"), get actual number of bins
+        hist, bins = np.histogram(
+            y,
+            bins=bins,
+            range=kwds.get("range", None),
+            weights=kwds.get("weights", None),
+        )
+
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
         y = y[~isna(y)]
