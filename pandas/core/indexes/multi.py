@@ -675,7 +675,7 @@ class MultiIndex(Index):
         raise ValueError(msg)
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """Whether the levels of a MultiIndex all have the same dtype.
 
         This looks at the dtypes of the levels.
@@ -956,7 +956,7 @@ class MultiIndex(Index):
         codes=None,
         deep=False,
         _set_identity=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1020,7 +1020,7 @@ class MultiIndex(Index):
             return MultiIndex(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                **kwargs
+                **kwargs,
             )
         return self._shallow_copy(values, **kwargs)
 
@@ -1217,7 +1217,7 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.codes[0])
 
     def _get_names(self):
@@ -1322,7 +1322,7 @@ class MultiIndex(Index):
         return MultiIndex.from_tuples
 
     @cache_readonly
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "mixed"
 
     def _get_level_number(self, level):
@@ -1396,11 +1396,6 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
-    @property
-    def _has_complex_internals(self):
-        # to disable groupby tricks
-        return True
-
     @cache_readonly
     def is_monotonic_increasing(self):
         """
@@ -1427,7 +1422,7 @@ class MultiIndex(Index):
             return Index(self.values).is_monotonic
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
@@ -1791,7 +1786,7 @@ class MultiIndex(Index):
         return Index(self.values, tupleize_cols=False)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return False
 
     def is_lexsorted(self):

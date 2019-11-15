@@ -2,14 +2,12 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict, abc
+from collections import abc
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-import pandas.compat as compat
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -235,7 +233,7 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-        keys = com.dict_keys_to_ordered_list(data)
+        keys = list(data.keys())
         columns = data_names = Index(keys)
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
@@ -331,7 +329,6 @@ def extract_index(data):
         have_raw_arrays = False
         have_series = False
         have_dicts = False
-        have_ordered = False
 
         for val in data:
             if isinstance(val, ABCSeries):
@@ -339,8 +336,6 @@ def extract_index(data):
                 indexes.append(val.index)
             elif isinstance(val, dict):
                 have_dicts = True
-                if isinstance(val, OrderedDict):
-                    have_ordered = True
                 indexes.append(list(val.keys()))
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
@@ -352,7 +347,7 @@ def extract_index(data):
         if have_series:
             index = _union_indexes(indexes)
         elif have_dicts:
-            index = _union_indexes(indexes, sort=not (compat.PY36 or have_ordered))
+            index = _union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -531,7 +526,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     """Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
-    - for OrderedDict and (on Python>=3.6) dicts, the column names match
+    - for OrderedDict and dicts, the column names match
       the key insertion-order from the first record to the last.
     - For other kinds of dict-likes, the keys are lexically sorted.
 
@@ -548,10 +543,10 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
+
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        types = (dict, OrderedDict) if PY36 else OrderedDict
-        sort = not any(isinstance(d, types) for d in data)
+        sort = not any(isinstance(d, dict) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived

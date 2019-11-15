@@ -406,6 +406,12 @@ class TimedeltaIndex(
         """
         return super().intersection(other, sort=sort)
 
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx.freq = None
+        return new_idx
+
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
         if (
@@ -602,11 +608,11 @@ class TimedeltaIndex(
         return typ == self.inferred_type or typ == "timedelta"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "timedelta64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):
