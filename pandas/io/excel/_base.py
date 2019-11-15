@@ -191,7 +191,7 @@ comment : str, default None
 skip_footer : int, default 0
     Alias of `skipfooter`.
 
-      .. deprecated:: 0.23.0
+    .. deprecated:: 0.23.0
        Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
