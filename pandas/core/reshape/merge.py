@@ -313,7 +313,7 @@ def merge_asof(
     suffixes=("_x", "_y"),
     tolerance=None,
     allow_exact_matches: bool = True,
-    direction="backward",
+    direction: str = "backward",
 ):
     """
     Perform an asof merge. This is similar to a left-join except that we
@@ -1489,12 +1489,12 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(direction):
+def _asof_function(direction: str):
     name = "asof_join_{dir}".format(dir=direction)
     return getattr(libjoin, name, None)
 
 
-def _asof_by_function(direction):
+def _asof_by_function(direction: str):
     name = "asof_join_{dir}_on_X_by_Y".format(dir=direction)
     return getattr(libjoin, name, None)
 
@@ -1538,7 +1538,7 @@ class _AsOfMerge(_OrderedMerge):
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
-        direction="backward",
+        direction: str = "backward",
     ):
 
         self.by = by
