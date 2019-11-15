@@ -124,7 +124,7 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse.
 
-      .. versionadded:: 0.23.0
+    .. versionadded:: 0.23.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
