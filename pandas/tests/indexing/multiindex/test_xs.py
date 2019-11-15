@@ -160,9 +160,7 @@ def test_xs_integer_key():
     # see gh-2107
     dates = range(20111201, 20111205)
     ids = "abcde"
-    index = MultiIndex.from_tuples(
-        [x for x in product(dates, ids)], names=["date", "secid"]
-    )
+    index = MultiIndex.from_tuples(list(product(dates, ids)), names=["date", "secid"])
     df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
 
     result = df.xs(20111201, level="date")

@@ -1952,7 +1952,7 @@ def makeCustomIndex(
             label = "{prefix}_l{i}_g{j}".format(prefix=prefix, i=i, j=j)
             cnt[label] = ndupe_l[i]
         # cute Counter trick
-        result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
+        result = sorted(cnt.elements(), key=keyfunc)[:nentries]
         tuples.append(result)
 
     tuples = list(zip(*tuples))
