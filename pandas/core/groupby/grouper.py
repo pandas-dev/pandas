@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Hashable, List, Optional, Tuple
+from typing import Generic, Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -34,7 +34,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 
-class Grouper:
+class Grouper(Generic[FrameOrSeries]):
     """
     A Grouper allows the user to specify a groupby instruction for a target
     object.
@@ -110,7 +110,7 @@ class Grouper:
         self.sort = sort
 
         self.grouper = None
-        self.obj = None
+        self.obj: Optional[FrameOrSeries] = None
         self.indexer = None
         self.binner = None
         self._grouper = None
@@ -133,6 +133,7 @@ class Grouper:
         """
 
         self._set_grouper(obj)
+        assert self.obj is not None
         self.grouper, exclusions, self.obj = get_grouper(
             self.obj,
             [self.key],
@@ -154,8 +155,6 @@ class Grouper:
         sort : bool, default False
             whether the resulting grouper should be sorted
         """
-        assert obj is not None
-
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
