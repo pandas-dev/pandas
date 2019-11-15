@@ -789,20 +789,7 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_datetime64tz_dtype(dtype):
-                # GH 23683
-                # Prior results _may_ have been generated in UTC.
-                # Ensure we localize to UTC first before converting
-                # to the target timezone
-                arr = extract_array(obj)
-                try:
-                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
-                    result = result.astype(dtype)
-                except TypeError:
-                    # _try_cast was called at a point where the result
-                    # was already tz-aware
-                    pass
-            elif is_extension_array_dtype(dtype):
+            if is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
 
@@ -869,7 +856,7 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            result, names = self.grouper.aggregate(obj._values, how, min_count=min_count)
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
