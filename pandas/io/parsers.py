@@ -707,7 +707,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""

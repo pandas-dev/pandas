@@ -51,6 +51,7 @@ from pandas import (
     Timestamp,
     isna,
 )
+from pandas.core.arrays import IntegerArray
 import pandas.util.testing as tm
 
 
@@ -551,6 +552,20 @@ class TestInference:
         exp = arr.copy()
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+
+        tm.assert_extension_array_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956

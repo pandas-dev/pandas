@@ -468,7 +468,7 @@ class IntervalIndex(IntervalMixin, Index):
             warnings.simplefilter("ignore")
             return self.left.itemsize + self.right.itemsize
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.left)
 
     @cache_readonly
@@ -524,7 +524,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.dtype
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Return a string of the type inferred from the values"""
         return "interval"
 
@@ -558,7 +558,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._engine.is_monotonic_increasing
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
@@ -935,7 +935,7 @@ class IntervalIndex(IntervalMixin, Index):
             None is specified as these are not yet implemented.
         """
                 )
-            }
+            },
         )
     )
     @Appender(_index_shared_docs["get_indexer"])
@@ -1357,7 +1357,7 @@ class IntervalIndex(IntervalMixin, Index):
         return func
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
         This is False even when left/right contain datetime-like objects,
         as the check is done on the Interval itself
