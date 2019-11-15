@@ -856,7 +856,9 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj._values, how, min_count=min_count)
+            result, names = self.grouper.aggregate(
+                obj._values, how, min_count=min_count
+            )
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
