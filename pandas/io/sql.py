@@ -507,7 +507,7 @@ def to_sql(
         "append",
         "upsert_ignore",
         "upsert_delete",
-    ):  
+    ):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -726,9 +726,9 @@ class SQLTable(PandasObject):
         # Delete rows from dataframe where primary keys match
         # Method requires tuples, to account for cases where indexes do not match
         to_be_deleted_mask = (
-            temp[primary_keys].apply(tuple, axis=1).isin(
-                pkeys_from_database[primary_keys].apply(tuple, axis=1)
-            )
+            temp[primary_keys]
+            .apply(tuple, axis=1)
+            .isin(pkeys_from_database[primary_keys].apply(tuple, axis=1))
         )
         temp.drop(temp[to_be_deleted_mask].index, inplace=True)
 
