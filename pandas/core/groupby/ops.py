@@ -201,7 +201,7 @@ class BaseGrouper:
                 continue
 
             # group might be modified
-            group_axes = _get_axes(group)
+            group_axes = group.axes
             res = f(group)
             if not _is_indexed_like(res, group_axes):
                 mutated = True
@@ -358,40 +358,33 @@ class BaseGrouper:
     def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
 
         dtype_str = values.dtype.name
-
-        def get_func(fname):
-            # see if there is a fused-type version of function
-            # only valid for numeric
-            f = getattr(libgroupby, fname, None)
-            if f is not None and is_numeric:
-                return f
-
-            # otherwise find dtype-specific version, falling back to object
-            for dt in [dtype_str, "object"]:
-                f2 = getattr(
-                    libgroupby,
-                    "{fname}_{dtype_str}".format(fname=fname, dtype_str=dt),
-                    None,
-                )
-                if f2 is not None:
-                    return f2
-
-            if hasattr(f, "__signatures__"):
-                # inspect what fused types are implemented
-                if dtype_str == "object" and "object" not in f.__signatures__:
-                    # return None so we get a NotImplementedError below
-                    #  instead of a TypeError at runtime
-                    return None
-            return f
-
         ftype = self._cython_functions[kind][how]
 
-        func = get_func(ftype)
+        # see if there is a fused-type version of function
+        # only valid for numeric
+        f = getattr(libgroupby, ftype, None)
+        if f is not None and is_numeric:
+            return f
+
+        # otherwise find dtype-specific version, falling back to object
+        for dt in [dtype_str, "object"]:
+            f2 = getattr(libgroupby, f"{ftype}_{dt}", None)
+            if f2 is not None:
+                return f2
+
+        if hasattr(f, "__signatures__"):
+            # inspect what fused types are implemented
+            if dtype_str == "object" and "object" not in f.__signatures__:
+                # disallow this function so we get a NotImplementedError below
+                #  instead of a TypeError at runtime
+                f = None
+
+        func = f
 
         if func is None:
             raise NotImplementedError(
-                "function is not implemented for this dtype: "
-                "[how->{how},dtype->{dtype_str}]".format(how=how, dtype_str=dtype_str)
+                f"function is not implemented for this dtype: "
+                f"[how->{how},dtype->{dtype_str}]"
             )
 
         return func
@@ -721,6 +714,10 @@ class BinGrouper(BaseGrouper):
         self.mutated = mutated
         self.indexer = indexer
 
+        # These lengths must match, otherwise we could call agg_series
+        #  with empty self.bins, which would raise in libreduction.
+        assert len(self.binlabels) == len(self.bins)
+
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
@@ -828,22 +825,15 @@ class BinGrouper(BaseGrouper):
     def agg_series(self, obj: Series, func):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
+        assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empty SeriesBinGrouper from raising TypeError
-            # TODO: watch out, this can return None
+            # pre-empt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
-
-def _get_axes(group):
-    if isinstance(group, Series):
-        return [group.index]
-    else:
-        return group.axes
 
 
 def _is_indexed_like(obj, axes) -> bool:

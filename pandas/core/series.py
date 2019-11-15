@@ -3788,7 +3788,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs
+        **_shared_doc_kwargs,
     )
     @Appender(generic._shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
@@ -4012,7 +4012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             skipna=skipna,
             numeric_only=numeric_only,
             filter_type=filter_type,
-            **kwds
+            **kwds,
         )
 
     def _reindex_indexer(self, new_index, indexer, copy):
@@ -4249,7 +4249,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         return super().fillna(
             value=value,
@@ -4258,7 +4258,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)

@@ -1875,7 +1875,7 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs
+    **kargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
@@ -1898,7 +1898,7 @@ def _pat_wrapper(
     name=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kwargs
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
