@@ -63,7 +63,7 @@ Previously, strings were typically stored in object-dtype NumPy arrays.
    ``StringDtype`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
-The text extension type solves several issues with object-dtype NumPy arrays:
+The ``'string'`` extension type solves several issues with object-dtype NumPy arrays:
 
 1. You can accidentally store a *mixture* of strings and non-strings in an
    ``object`` dtype array. A ``StringArray`` can only store strings.

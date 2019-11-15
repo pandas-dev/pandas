@@ -2210,6 +2210,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 _no_default = object()
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
