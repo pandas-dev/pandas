@@ -129,12 +129,12 @@ class BinOp(ops.BinOp):
         return rhs
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """ return True if this is a valid field """
         return self.lhs in self.queryables
 
     @property
-    def is_in_table(self):
+    def is_in_table(self) -> bool:
         """ return True if this is a valid column name for generation (e.g. an
         actual column in the table) """
         return self.queryables.get(self.lhs) is not None
@@ -154,12 +154,12 @@ class BinOp(ops.BinOp):
         """ the metadata of my field """
         return getattr(self.queryables.get(self.lhs), "metadata", None)
 
-    def generate(self, v):
+    def generate(self, v) -> str:
         """ create and return the op string for this TermValue """
         val = v.tostring(self.encoding)
         return "({lhs} {op} {val})".format(lhs=self.lhs, op=self.op, val=val)
 
-    def convert_value(self, v):
+    def convert_value(self, v) -> "TermValue":
         """ convert the expression that is in the term to something that is
         accepted by pytables """
 
@@ -574,10 +574,11 @@ class Expr(expr.Expr):
 class TermValue:
     """ hold a term value the we use to construct a condition/filter """
 
-    def __init__(self, value, converted, kind):
+    def __init__(self, value, converted, kind: str):
         self.value = value
         self.converted = converted
         self.kind = kind
+        assert isinstance(kind, str), kind
 
     def tostring(self, encoding):
         """ quote the string if not encoded
@@ -593,7 +594,7 @@ class TermValue:
         return self.converted
 
 
-def maybe_expression(s):
+def maybe_expression(s) -> bool:
     """ loose checking if s is a pytables-acceptable expression """
     if not isinstance(s, str):
         return False
