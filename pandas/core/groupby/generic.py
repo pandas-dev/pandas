@@ -334,7 +334,9 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_series_output(self, output, index, names=None):
+    def _wrap_series_output(
+        self, output: dict, index: Index, names=None
+    ) -> Union[Series, DataFrame]:
         """ common agg/transform wrapping logic """
         output = output[self._selection_name]
 
@@ -346,18 +348,22 @@ class SeriesGroupBy(GroupBy):
                 name = self._selected_obj.name
             return Series(output, index=index, name=name)
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(
+        self, output: dict, names=None
+    ) -> Union[Series, DataFrame]:
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index, names=names
         )
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
+    def _wrap_transformed_output(
+        self, output: dict, names=None
+    ) -> Union[Series, DataFrame]:
         return self._wrap_series_output(
             output=output, index=self.obj.index, names=names
         )
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         if len(keys) == 0:
             # GH #6265
             return Series([], name=self._selection_name, index=keys)
@@ -389,8 +395,8 @@ class SeriesGroupBy(GroupBy):
             result = Series(data=values, index=_get_index(), name=self._selection_name)
             return self._reindex_output(result)
 
-    def _aggregate_named(self, func, *args, **kwargs):
-        result = OrderedDict()
+    def _aggregate_named(self, func, *args, **kwargs) -> OrderedDict:
+        result = OrderedDict()  # type: OrderedDict
 
         for name, group in self:
             group.name = name
@@ -455,18 +461,16 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func, func_nm) -> Series:
+    def _transform_fast(self, func: Callable, func_nm: str) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        if isinstance(func, str):
-            func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        cast = self._transform_should_cast(func_nm)
+        should_cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(func()._values, ids)
-        if cast:
+        if should_cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
@@ -1081,6 +1085,7 @@ class DataFrameGroupBy(GroupBy):
     def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
         # only for axis==0
 
+        should_cast = self._transform_should_cast(func)
         obj = self._obj_with_exclusions
         result = OrderedDict()  # type: dict
         cannot_agg = []
@@ -1089,9 +1094,8 @@ class DataFrameGroupBy(GroupBy):
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
-            cast = self._transform_should_cast(func)
             try:
-                result[item] = colg.aggregate(func, *args, **kwargs)
+                res = colg.aggregate(func, *args, **kwargs)
 
             except ValueError as err:
                 if "Must produce aggregated value" in str(err):
@@ -1103,8 +1107,9 @@ class DataFrameGroupBy(GroupBy):
                 continue
 
             else:
-                if cast:
-                    result[item] = self._try_cast(result[item], data)
+                if should_cast:
+                    res = self._try_cast(res, data)
+                result[item] = res
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1127,7 +1132,7 @@ class DataFrameGroupBy(GroupBy):
 
         return output_keys
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         if len(keys) == 0:
             return DataFrame(index=keys)
 
@@ -1379,13 +1384,15 @@ class DataFrameGroupBy(GroupBy):
 
         return self._transform_fast(result, obj, func)
 
-    def _transform_fast(self, result: DataFrame, obj: DataFrame, func_nm) -> DataFrame:
+    def _transform_fast(
+        self, result: DataFrame, obj: DataFrame, func_nm: str
+    ) -> DataFrame:
         """
         Fast transform path for aggregations
         """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
-        cast = self._transform_should_cast(func_nm)
+        should_cast = self._transform_should_cast(func_nm)
 
         # for each col, reshape to to size of original frame
         # by take operation
@@ -1393,7 +1400,7 @@ class DataFrameGroupBy(GroupBy):
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
-            if cast:
+            if should_cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
 
@@ -1591,7 +1598,7 @@ class DataFrameGroupBy(GroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output, names=None):
+    def _wrap_aggregated_output(self, output: dict, names=None):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
 
@@ -1610,7 +1617,7 @@ class DataFrameGroupBy(GroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None) -> DataFrame:
+    def _wrap_transformed_output(self, output: dict, names=None) -> DataFrame:
         return DataFrame(output, index=self.obj.index)
 
     def _wrap_agged_blocks(self, items, blocks):
