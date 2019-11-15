@@ -14,8 +14,8 @@ class ToTimedelta:
         self.str_days = []
         self.str_seconds = []
         for i in self.ints:
-            self.str_days.append("{0} days".format(i))
-            self.str_seconds.append("00:00:{0:02d}".format(i))
+            self.str_days.append(f"{i} days")
+            self.str_seconds.append(f"00:00:{i:02d}")
 
     def time_convert_int(self):
         to_timedelta(self.ints, unit="s")
@@ -34,7 +34,7 @@ class ToTimedeltaErrors:
 
     def setup(self, errors):
         ints = np.random.randint(0, 60, size=10000)
-        self.arr = ["{0} days".format(i) for i in ints]
+        self.arr = [f"{i} days" for i in ints]
         self.arr[-1] = "apple"
 
     def time_convert(self, errors):
