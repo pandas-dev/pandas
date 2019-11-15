@@ -51,7 +51,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
 
 class Registry:
     """
-    Registry for dtype inference
+    Registry for dtype inference.
 
     The registry allows one to map a string repr of a extension
     dtype to an extension dtype. The string alias can be used in several

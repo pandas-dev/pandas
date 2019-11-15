@@ -86,7 +86,7 @@ class ExtensionDtype:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """
         Check whether 'other' is equal to self.
 
@@ -119,7 +119,7 @@ class ExtensionDtype:
     def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     @property
