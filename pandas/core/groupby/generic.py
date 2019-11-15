@@ -1412,19 +1412,12 @@ class DataFrameGroupBy(GroupBy):
             )
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path, slow_path, group):
+    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
         path = slow_path
         res = slow_path(group)
 
         # if we make it here, test if we can use the fast path
-        try:
-            res_fast = fast_path(group)
-        except AssertionError:
-            raise
-        except Exception:
-            # Hard to know ex-ante what exceptions `fast_path` might raise
-            # TODO: no test cases get here
-            return path, res
+        res_fast = fast_path(group)
 
         # verify fast path does not change columns (and names), otherwise
         # its results cannot be joined with those of the slow path
