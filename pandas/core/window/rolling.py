@@ -74,7 +74,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
 
         self.__dict__.update(kwargs)
@@ -417,7 +417,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Rolling statistical measure using supplied function.
