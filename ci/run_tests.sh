@@ -27,8 +27,8 @@ fi
 
 PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
-# Travis may not have xvfb active
-if [[ "$TRAVIS_OS_NAME" == "linux" && -z "$DISPLAY" ]]; then
+# Travis does not have have an X server
+if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     DISPLAY=DISPLAY=:99.0
     PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
 fi
