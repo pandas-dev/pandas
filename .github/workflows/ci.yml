@@ -1,4 +1,4 @@
-name: Web docs and checks
+name: CI
 
 on:
   push:
@@ -130,6 +130,7 @@ jobs:
         # (https://github.com/ipython/ipython/issues/11547)
         doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
         echo "Sphinx exit status: $SPHINX_RET"
+        ls
         grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
         echo "Grep to detect IPython code block errors exit: $IPY_RET"
         exit $(( $SPHINX_RET + $IPY_RET ))
