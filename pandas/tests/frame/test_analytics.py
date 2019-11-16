@@ -1244,7 +1244,7 @@ class TestDataFrameAnalytics:
             }
         )
 
-        result = df[sorted(list(expected.keys()))].mode(dropna=dropna)
+        result = df[sorted(expected.keys())].mode(dropna=dropna)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
