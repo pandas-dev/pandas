@@ -368,7 +368,7 @@ class MultiIndex(Index):
             if not level.is_unique:
                 raise ValueError(
                     "Level values must be unique: {values} on "
-                    "level {level}".format(values=[value for value in level], level=i)
+                    "level {level}".format(values=list(level), level=i)
                 )
         if self.sortorder is not None:
             if self.sortorder > self._lexsort_depth():
@@ -1992,8 +1992,8 @@ class MultiIndex(Index):
     def __reduce__(self):
         """Necessary for making this object picklable"""
         d = dict(
-            levels=[lev for lev in self.levels],
-            codes=[level_codes for level_codes in self.codes],
+            levels=list(self.levels),
+            codes=list(self.codes),
             sortorder=self.sortorder,
             names=list(self.names),
         )

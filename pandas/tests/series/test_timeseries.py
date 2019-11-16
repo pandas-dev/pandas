@@ -604,7 +604,7 @@ class TestTimeSeries:
         # GH #9854
         index_name = "bar"
         index = pd.date_range("20130101", periods=20, name=index_name)
-        df = pd.DataFrame([x for x in range(20)], columns=["foo"], index=index)
+        df = pd.DataFrame(list(range(20)), columns=["foo"], index=index)
 
         assert index_name == df.index.name
         assert index_name == df.asfreq("10D").index.name

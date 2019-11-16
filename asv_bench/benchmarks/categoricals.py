@@ -164,7 +164,7 @@ class Isin:
         np.random.seed(1234)
         n = 5 * 10 ** 5
         sample_size = 100
-        arr = [i for i in np.random.randint(0, n // 10, size=n)]
+        arr = list(np.random.randint(0, n // 10, size=n))
         if dtype == "object":
             arr = [f"s{i:04d}" for i in arr]
         self.sample = np.random.choice(arr, sample_size)

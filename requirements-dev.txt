@@ -6,7 +6,7 @@ cython>=0.29.13
 black<=19.3b0
 cpplint
 flake8
-flake8-comprehensions
+flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort
 mypy==0.720

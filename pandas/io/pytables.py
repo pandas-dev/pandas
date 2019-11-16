@@ -1341,7 +1341,7 @@ class HDFStore:
             type=type(self), path=pprint_thing(self._path)
         )
         if self.is_open:
-            lkeys = sorted(list(self.keys()))
+            lkeys = sorted(self.keys())
             if len(lkeys):
                 keys = []
                 values = []

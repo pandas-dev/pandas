@@ -699,7 +699,7 @@ class TestDataFrameReshape:
             for i, j in zip(rows, cols):
                 left = sorted(df.iloc[i, j].split("."))
                 right = mk_list(df.index[i]) + mk_list(df.columns[j])
-                right = sorted(list(map(cast, right)))
+                right = sorted(map(cast, right))
                 assert left == right
 
         df = DataFrame(

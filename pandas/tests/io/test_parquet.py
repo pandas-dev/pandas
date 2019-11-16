@@ -405,7 +405,7 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            {"one": [i for i in range(8)], "two": [-i for i in range(8)]}, index=arrays
+            {"one": list(range(8)), "two": [-i for i in range(8)]}, index=arrays
         )
 
         expected = df.reset_index(drop=True)

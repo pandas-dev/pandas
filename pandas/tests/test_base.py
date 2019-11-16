@@ -653,7 +653,7 @@ class TestIndexOps(Ops):
 
         # with NaT
         s = df["dt"].copy()
-        s = klass([v for v in s.values] + [pd.NaT])
+        s = klass(list(s.values) + [pd.NaT])
 
         result = s.value_counts()
         assert result.index.dtype == "datetime64[ns]"

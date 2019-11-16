@@ -857,7 +857,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(list(set(required) - set(unit_rev.keys())))
+    req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
         raise ValueError(
             "to assemble mappings requires at least that "
@@ -866,7 +866,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
         )
 
     # keys we don't recognize
-    excess = sorted(list(set(unit_rev.keys()) - set(_unit_map.values())))
+    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
         raise ValueError(
             "extra keys have been passed "

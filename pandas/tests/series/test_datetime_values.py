@@ -208,20 +208,18 @@ class TestSeriesDatetimeValues:
         # test limited display api
         def get_dir(s):
             results = [r for r in s.dt.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         s = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
         results = get_dir(s)
         tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_period + ok_for_period_methods)))
+            results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
         # 11295
@@ -229,9 +227,7 @@ class TestSeriesDatetimeValues:
         s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")

@@ -1110,7 +1110,7 @@ class Categorical(ExtensionArray, PandasObject):
         if not is_list_like(removals):
             removals = [removals]
 
-        removal_set = set(list(removals))
+        removal_set = set(removals)
         not_included = removal_set - set(self.dtype.categories)
         new_categories = [c for c in self.dtype.categories if c not in removal_set]
 

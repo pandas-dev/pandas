@@ -262,7 +262,7 @@ def test_css_to_excel_inherited(css, inherited, expected):
 @pytest.mark.parametrize(
     "input_color,output_color",
     (
-        [(name, rgb) for name, rgb in CSSToExcelConverter.NAMED_COLORS.items()]
+        list(CSSToExcelConverter.NAMED_COLORS.items())
         + [("#" + rgb, rgb) for rgb in CSSToExcelConverter.NAMED_COLORS.values()]
         + [("#F0F", "FF00FF"), ("#ABC", "AABBCC")]
     ),
