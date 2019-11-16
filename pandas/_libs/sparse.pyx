@@ -57,7 +57,7 @@ cdef class IntIndex(SparseIndex):
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.indices.nbytes
 
     def check_integrity(self):
@@ -91,7 +91,7 @@ cdef class IntIndex(SparseIndex):
         if not monotonic:
             raise ValueError("Indices must be strictly increasing")
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if not isinstance(other, IntIndex):
             return False
 
@@ -103,7 +103,7 @@ cdef class IntIndex(SparseIndex):
         return same_length and same_indices
 
     @property
-    def ngaps(self):
+    def ngaps(self) -> int:
         return self.length - self.npoints
 
     def to_int_index(self):
@@ -348,11 +348,11 @@ cdef class BlockIndex(SparseIndex):
         return output
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self.blocs.nbytes + self.blengths.nbytes
 
     @property
-    def ngaps(self):
+    def ngaps(self) -> int:
         return self.length - self.npoints
 
     cpdef check_integrity(self):
@@ -388,7 +388,7 @@ cdef class BlockIndex(SparseIndex):
             if blengths[i] == 0:
                 raise ValueError(f'Zero-length block {i}')
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         if not isinstance(other, BlockIndex):
             return False
 

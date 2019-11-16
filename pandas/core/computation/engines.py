@@ -46,8 +46,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.aligned_axes = None
         self.result_type = None
 
-    def convert(self):
-        """Convert an expression for evaluation.
+    def convert(self) -> str:
+        """
+        Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """
@@ -75,7 +76,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         )
 
     @property
-    def _is_aligned(self):
+    def _is_aligned(self) -> bool:
         return self.aligned_axes is not None and self.result_type is not None
 
     @abc.abstractmethod
@@ -104,7 +105,7 @@ class NumExprEngine(AbstractEngine):
     def __init__(self, expr):
         super().__init__(expr)
 
-    def convert(self):
+    def convert(self) -> str:
         return str(super().convert())
 
     def _evaluate(self):

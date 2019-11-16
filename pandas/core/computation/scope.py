@@ -29,7 +29,7 @@ def _ensure_scope(
     )
 
 
-def _replacer(x):
+def _replacer(x) -> str:
     """Replace a number with its hexadecimal representation. Used to tag
     temporary variables with their calling scope's id.
     """
@@ -44,11 +44,11 @@ def _replacer(x):
     return hex(hexin)
 
 
-def _raw_hex_id(obj):
+def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
-    return "".join(map(_replacer, packed))
+    return "".join(_replacer(x) for x in packed)
 
 
 _DEFAULT_GLOBALS = {
@@ -63,7 +63,7 @@ _DEFAULT_GLOBALS = {
 }
 
 
-def _get_pretty_string(obj):
+def _get_pretty_string(obj) -> str:
     """
     Return a prettier version of obj.
 
@@ -74,7 +74,7 @@ def _get_pretty_string(obj):
 
     Returns
     -------
-    s : str
+    str
         Pretty print object repr
     """
     sio = StringIO()
@@ -148,8 +148,9 @@ class Scope:
         )
 
     @property
-    def has_resolvers(self):
-        """Return whether we have any extra scope.
+    def has_resolvers(self) -> bool:
+        """
+        Return whether we have any extra scope.
 
         For example, DataFrames pass Their columns as resolvers during calls to
         ``DataFrame.eval()`` and ``DataFrame.query()``.
@@ -250,13 +251,13 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level):
+    def update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 
         Parameters
         ----------
-        level : int or None, optional, default None
+        level : int
         """
         sl = level + 1
 
@@ -270,7 +271,7 @@ class Scope:
         finally:
             del stack[:], stack
 
-    def add_tmp(self, value):
+    def add_tmp(self, value) -> str:
         """
         Add a temporary variable to the scope.
 
@@ -281,7 +282,7 @@ class Scope:
 
         Returns
         -------
-        name : basestring
+        str
             The name of the temporary variable created.
         """
         name = "{name}_{num}_{hex_id}".format(
@@ -297,7 +298,7 @@ class Scope:
         return name
 
     @property
-    def ntemps(self):
+    def ntemps(self) -> int:
         """The number of temporary variables in this scope"""
         return len(self.temps)
 
