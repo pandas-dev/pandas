@@ -338,16 +338,16 @@ class RangeIndex(Int64Index):
         return self.nbytes
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return np.dtype(np.int64)
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """ return if the index has unique values """
         return True
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
@@ -703,7 +703,7 @@ class RangeIndex(Int64Index):
         return len(self._range)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self)
 
     def __getitem__(self, key):
