@@ -39,7 +39,7 @@ class TestTimedeltaIndex:
         rng_b = timedelta_range("1 day", periods=4, freq="4H")
 
         result = rng_a.union(rng_b)
-        exp = TimedeltaIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
+        exp = TimedeltaIndex(sorted(set(rng_a) | set(rng_b)))
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_1745(self):
@@ -50,7 +50,7 @@ class TestTimedeltaIndex:
         )
 
         result = left.union(right)
-        exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
+        exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
@@ -59,7 +59,7 @@ class TestTimedeltaIndex:
         right = left + pd.offsets.Minute(15)
 
         result = left.union(right)
-        exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
+        exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
 
     def test_intersection_bug_1708(self):
