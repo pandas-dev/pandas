@@ -148,7 +148,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return wrapper
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
     # ------------------------------------------------------------------------
