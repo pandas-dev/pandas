@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -200,7 +201,7 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = data.take([0, -n, n - 1, -1])
         expected = data.take([0, 0, n - 1, n - 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_non_na_fill_value(self, data_missing):
         fill_value = data_missing[1]  # valid
@@ -209,7 +210,7 @@ class BaseGetitemTests(BaseExtensionTests):
         array = data_missing._from_sequence([na, fill_value, na])
         result = array.take([-1, 1], fill_value=fill_value, allow_fill=True)
         expected = array.take([1, 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError):

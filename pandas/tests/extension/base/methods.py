@@ -120,7 +120,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
@@ -128,7 +128,7 @@ class BaseMethodsTests(BaseExtensionTests):
         codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
-        self.assert_extension_array_equal(uniques_1, uniques_2)
+        tm.assert_extension_array_equal(uniques_1, uniques_2)
 
     def test_factorize_empty(self, data):
         codes, uniques = pd.factorize(data[:0])
@@ -136,7 +136,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -240,7 +240,7 @@ class BaseMethodsTests(BaseExtensionTests):
         subset = data[:2]
         result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [-4, -1, 0, 1, 4])
     def test_shift_empty_array(self, data, periods):
@@ -248,18 +248,18 @@ class BaseMethodsTests(BaseExtensionTests):
         empty = data[:0]
         result = empty.shift(periods)
         expected = empty
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_shift_fill_value(self, data):
         arr = data[:4]
         fill_value = data[0]
         result = arr.shift(1, fill_value=fill_value)
         expected = data.take([0, 0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = arr.shift(-2, fill_value=fill_value)
         expected = data.take([2, 3, 0, 0])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066

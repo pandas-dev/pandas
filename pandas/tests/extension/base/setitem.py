@@ -181,7 +181,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_slice_array(self, data):
         arr = data[:5].copy()
         arr[:5] = data[-5:]
-        self.assert_extension_array_equal(arr, data[-5:])
+        tm.assert_extension_array_equal(arr, data[-5:])
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()

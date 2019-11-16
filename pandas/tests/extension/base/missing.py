@@ -25,7 +25,7 @@ class BaseMissingTests(BaseExtensionTests):
     def test_dropna_array(self, data_missing):
         result = data_missing.dropna()
         expected = data_missing[[1]]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_dropna_series(self, data_missing):
         ser = pd.Series(data_missing)
@@ -56,7 +56,7 @@ class BaseMissingTests(BaseExtensionTests):
         valid = data_missing[1]
         result = data_missing.fillna(valid)
         expected = data_missing.fillna(valid)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
