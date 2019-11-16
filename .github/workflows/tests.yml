@@ -32,7 +32,7 @@ jobs:
       run: |
         export PATH=$HOME/miniconda3/bin:$PATH
         ci/setup_env.sh
-      with:
+      env:
         ENV_FILE: ci/deps/${{ matrix.env_file }}
 
     - name: Run tests
@@ -40,7 +40,7 @@ jobs:
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         ci/run_tests.sh
-      with:
+      env:
         PATTERN: ${{ matrix.pattern }}
         PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode }}
         COVERAGE: ${{ matrix.coverage }}
