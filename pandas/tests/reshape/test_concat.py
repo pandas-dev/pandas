@@ -27,7 +27,6 @@ from pandas import (
     isna,
     read_csv,
 )
-import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 import pandas.util.testing as tm
 
@@ -1264,7 +1263,7 @@ class TestConcatenate:
             "qux": DataFrame(np.random.randn(4, 3)),
         }
 
-        sorted_keys = com.dict_keys_to_ordered_list(frames)
+        sorted_keys = list(frames.keys())
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
@@ -2745,6 +2744,22 @@ def test_concat_categorical_tz():
         ]
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_categorical_unchanged():
+    # GH-12007
+    # test fix for when concat on categorical and float
+    # coerces dtype categorical -> float
+    df = pd.DataFrame(pd.Series(["a", "b", "c"], dtype="category", name="A"))
+    ser = pd.Series([0, 1, 2], index=[0, 1, 3], name="B")
+    result = pd.concat([df, ser], axis=1)
+    expected = pd.DataFrame(
+        {
+            "A": pd.Series(["a", "b", "c", np.nan], dtype="category"),
+            "B": pd.Series([0, 1, np.nan, 2], dtype="float"),
+        }
+    )
+    tm.assert_equal(result, expected)
 
 
 def test_concat_datetimeindex_freq():

@@ -174,7 +174,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None
+    _data: PeriodArray
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -194,7 +194,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        **fields
+        **fields,
     ):
 
         valid_field_set = {
