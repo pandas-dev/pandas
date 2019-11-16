@@ -467,9 +467,14 @@ def test_agg_tzaware_non_datetime_result():
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
-    # Case that does _not_ preserve the dtype
+    # Cases that do _not_ preserve the dtype
     result = gb["b"].agg(lambda x: x.iloc[0].year)
     expected = pd.Series([2012, 2012], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+    result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
+    expected = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
