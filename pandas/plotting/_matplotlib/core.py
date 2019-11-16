@@ -102,7 +102,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        **kwds
+        **kwds,
     ):
 
         import matplotlib.pyplot as plt
@@ -985,7 +985,7 @@ class ScatterPlot(PlanePlot):
             c=c_values,
             label=label,
             cmap=cmap,
-            **self.kwds
+            **self.kwds,
         )
         if cb:
             cbar_label = c if c_is_column else ""
@@ -1095,7 +1095,7 @@ class LinePlot(MPLPlot):
                 column_num=i,
                 stacking_id=stacking_id,
                 is_errorbar=is_errorbar,
-                **kwds
+                **kwds,
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
@@ -1250,7 +1250,7 @@ class AreaPlot(LinePlot):
         column_num=None,
         stacking_id=None,
         is_errorbar=False,
-        **kwds
+        **kwds,
     ):
 
         if column_num == 0:
@@ -1386,7 +1386,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 ax.set_title(label)
             elif self.stacked:
@@ -1401,7 +1401,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
@@ -1415,7 +1415,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
             self._add_legend_handle(rect, label, index=i)
 

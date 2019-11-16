@@ -23,7 +23,7 @@ def hist_series(
     figsize=None,
     bins=10,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw histogram of the input series using matplotlib.
@@ -83,7 +83,7 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -103,7 +103,7 @@ def hist_frame(
     layout=None,
     bins=10,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Make a histogram of the DataFrame's.
@@ -206,7 +206,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
         bins=bins,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -400,7 +400,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
@@ -414,7 +414,7 @@ def boxplot(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -432,7 +432,7 @@ def boxplot_frame(
     layout=None,
     return_type=None,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame(
@@ -446,7 +446,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -463,7 +463,7 @@ def boxplot_frame_groupby(
     sharex=False,
     sharey=True,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Make box plots from DataFrameGroupBy data.
@@ -536,7 +536,7 @@ def boxplot_frame_groupby(
         layout=layout,
         sharex=sharex,
         sharey=sharey,
-        **kwargs
+        **kwargs,
     )
 
 
