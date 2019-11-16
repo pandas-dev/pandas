@@ -1297,3 +1297,9 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
+
+
+def test_dataframe_not_equal():
+    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    assert df1.equals(df2) is False

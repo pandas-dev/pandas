@@ -1399,7 +1399,7 @@ class BlockManager(PandasObject):
         # blocks (say, Categorical) which can only be distinguished by
         # the iteration order
         def canonicalize(block):
-            return (block.dtype.name, block.mgr_locs.as_array.tolist())
+            return (block.mgr_locs.as_array.tolist(), block.dtype.name)
 
         self_blocks = sorted(self.blocks, key=canonicalize)
         other_blocks = sorted(other.blocks, key=canonicalize)
