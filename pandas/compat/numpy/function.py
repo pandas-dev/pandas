@@ -58,9 +58,7 @@ class CompatValidator:
                     fname, args, kwargs, max_fname_arg_count, self.defaults
                 )
             else:
-                raise ValueError(
-                    "invalid validation method '{method}'".format(method=method)
-                )
+                raise ValueError(f"invalid validation method '{method}'")
 
 
 ARGMINMAX_DEFAULTS = dict(out=None)
@@ -312,9 +310,8 @@ validate_transpose = CompatValidator(
 def validate_window_func(name, args, kwargs):
     numpy_args = ("axis", "dtype", "out")
     msg = (
-        "numpy operations are not "
-        "valid with window objects. "
-        "Use .{func}() directly instead ".format(func=name)
+        f"numpy operations are not valid with window objects. "
+        f"Use .{name}() directly instead "
     )
 
     if len(args) > 0:
@@ -328,9 +325,8 @@ def validate_window_func(name, args, kwargs):
 def validate_rolling_func(name, args, kwargs):
     numpy_args = ("axis", "dtype", "out")
     msg = (
-        "numpy operations are not "
-        "valid with window objects. "
-        "Use .rolling(...).{func}() instead ".format(func=name)
+        f"numpy operations are not valid with window objects. "
+        f"Use .rolling(...).{name}() instead "
     )
 
     if len(args) > 0:
@@ -344,9 +340,8 @@ def validate_rolling_func(name, args, kwargs):
 def validate_expanding_func(name, args, kwargs):
     numpy_args = ("axis", "dtype", "out")
     msg = (
-        "numpy operations are not "
-        "valid with window objects. "
-        "Use .expanding(...).{func}() instead ".format(func=name)
+        f"numpy operations are not valid with window objects. "
+        f"Use .expanding(...).{name}() instead "
     )
 
     if len(args) > 0:
@@ -371,11 +366,9 @@ def validate_groupby_func(name, args, kwargs, allowed=None):
 
     if len(args) + len(kwargs) > 0:
         raise UnsupportedFunctionCall(
-            (
-                "numpy operations are not valid "
-                "with groupby. Use .groupby(...)."
-                "{func}() instead".format(func=name)
-            )
+            f"numpy operations are not valid with "
+            f"groupby. Use .groupby(...).{name}() "
+            f"instead"
         )
 
 
@@ -391,11 +384,9 @@ def validate_resampler_func(method, args, kwargs):
     if len(args) + len(kwargs) > 0:
         if method in RESAMPLER_NUMPY_OPS:
             raise UnsupportedFunctionCall(
-                (
-                    "numpy operations are not valid "
-                    "with resample. Use .resample(...)."
-                    "{func}() instead".format(func=method)
-                )
+                f"numpy operations are not "
+                f"valid with resample. Use "
+                f".resample(...).{method}() instead"
             )
         else:
             raise TypeError("too many arguments passed in")
@@ -418,7 +409,4 @@ def validate_minmax_axis(axis):
     if axis is None:
         return
     if axis >= ndim or (axis < 0 and ndim + axis < 0):
-        raise ValueError(
-            "`axis` must be fewer than the number of "
-            "dimensions ({ndim})".format(ndim=ndim)
-        )
+        raise ValueError(f"`axis` must be fewer than the number of dimensions ({ndim})")
