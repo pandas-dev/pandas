@@ -115,6 +115,11 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
@@ -143,7 +148,7 @@ conda list
 if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
-  psql -p 5432 -c 'create database pandas_nosetest;' -U postgres
+  psql -c 'create database pandas_nosetest;' -U postgres
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
