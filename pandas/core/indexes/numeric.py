@@ -482,7 +482,7 @@ class Float64Index(NumericIndex):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)

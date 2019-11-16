@@ -1725,7 +1725,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_unique and self.is_monotonic_decreasing
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return if the index has unique values.
         """
@@ -1868,7 +1868,7 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _nan_idxs(self):
         if self._can_hold_na:
-            w, = self._isnan.nonzero()
+            (w,) = self._isnan.nonzero()
             return w
         else:
             return np.array([], dtype=np.int64)

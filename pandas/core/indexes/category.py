@@ -455,7 +455,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     # introspection
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return self._engine.is_unique
 
     @property
