@@ -112,10 +112,7 @@ class TestRangeIndex(Numeric):
 
         with pytest.raises(
             ValueError,
-            match=(
-                f"Incorrect `dtype` passed: expected signed integer"
-                ", received float64"
-            ),
+            match="Incorrect `dtype` passed: expected signed integer, received float64",
         ):
             RangeIndex(index, dtype="float64")
 
@@ -148,10 +145,7 @@ class TestRangeIndex(Numeric):
 
         with pytest.raises(
             ValueError,
-            match=(
-                f"Incorrect `dtype` passed: expected signed integer"
-                ", received float64"
-            ),
+            match="Incorrect `dtype` passed: expected signed integer, received float64",
         ):
             Index(range(1, 5, 2), dtype="float64")
         msg = r"^from_range\(\) got an unexpected keyword argument"
@@ -192,10 +186,7 @@ class TestRangeIndex(Numeric):
         # invalid passed type
         with pytest.raises(
             ValueError,
-            match=(
-                f"Incorrect `dtype` passed: expected signed integer"
-                ", received float64"
-            ),
+            match="Incorrect `dtype` passed: expected signed integer, received float64",
         ):
             RangeIndex(1, 5, dtype="float64")
 
