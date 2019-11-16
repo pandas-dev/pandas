@@ -2,3 +2,4 @@
 
 scanner:
     diff_only: True  # If True, errors caused by only the patch are shown
+    formatter: black
