@@ -16,8 +16,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
-from pandas.api.types import is_scalar
+from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
