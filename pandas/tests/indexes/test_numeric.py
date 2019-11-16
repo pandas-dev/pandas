@@ -945,7 +945,7 @@ class TestUInt64Index(NumericInt):
         tm.assert_index_equal(res, idx)
 
         # https://github.com/pandas-dev/pandas/issues/29526
-        idx = UInt64Index([1, 2**63 + 1])
+        idx = UInt64Index([1, 2**63 + 1], dtype=np.uint64)
         res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
         tm.assert_index_equal(res, idx)
 
@@ -1192,13 +1192,3 @@ def test_range_float_union_dtype():
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
-
-
-def test_index_construction_respects_dtype():
-    # https://github.com/pandas-dev/pandas/issues/29526
-    index_list = [1, 2**63 + 1]
-
-    result = UInt64Index(index_list)
-    expected = UInt64Index(np.array(index_list, dtype="uint64"))
-
-    tm.assert_equal(expected, result)

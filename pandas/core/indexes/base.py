@@ -4046,9 +4046,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_scalar(data):
             raise cls._scalar_data_error(data)
 
-        if lib.infer_dtype(data) == 'string':
-            raise cls._string_data_error(data)
-
         # other iterable of some kind
         if not isinstance(data, (ABCSeries, list, tuple)):
             data = list(data)
