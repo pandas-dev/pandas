@@ -1397,7 +1397,7 @@ class MultiIndex(Index):
         return self._tuples
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         """
         return if the index is monotonic increasing (only equal or
         increasing) values.
@@ -1789,7 +1789,7 @@ class MultiIndex(Index):
     def is_all_dates(self) -> bool:
         return False
 
-    def is_lexsorted(self):
+    def is_lexsorted(self) -> bool:
         """
         Return True if the codes are lexicographically sorted.
 
@@ -3126,7 +3126,7 @@ class MultiIndex(Index):
 
         return MultiIndex(levels=new_levels, codes=new_codes, verify_integrity=False)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
@@ -3459,7 +3459,7 @@ MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
 
 
-def _sparsify(label_list, start=0, sentinel=""):
+def _sparsify(label_list, start: int = 0, sentinel=""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 
@@ -3487,7 +3487,7 @@ def _sparsify(label_list, start=0, sentinel=""):
     return list(zip(*result))
 
 
-def _get_na_rep(dtype):
+def _get_na_rep(dtype) -> str:
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
 
 
