@@ -4131,14 +4131,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         hash(key)
         try:
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
 
-    def contains(self, key):
+    def contains(self, key) -> bool:
         """
         Return a boolean indicating whether the provided key is in the index.
 
@@ -4199,7 +4199,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
-    def _can_hold_identifiers_and_holds_name(self, name):
+    def _can_hold_identifiers_and_holds_name(self, name) -> bool:
         """
         Faster check for ``name in self`` when we know `name` is a Python
         identifier (e.g. in NDFrame.__getattr__, which hits this to support
@@ -4290,7 +4290,7 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determine if two Index objects contain the same elements.
 
@@ -4314,7 +4314,7 @@ class Index(IndexOpsMixin, PandasObject):
             com.values_from_object(self), com.values_from_object(other)
         )
 
-    def identical(self, other):
+    def identical(self, other) -> bool:
         """
         Similar to equals, but check that other comparable attributes are
         also equal.
