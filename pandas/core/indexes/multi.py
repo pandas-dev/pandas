@@ -1062,11 +1062,11 @@ class MultiIndex(Index):
         return self._nbytes(deep)
 
     @cache_readonly
-    def nbytes(self):
+    def nbytes(self) -> int:
         """ return the number of bytes in the underlying data """
         return self._nbytes(False)
 
-    def _nbytes(self, deep=False):
+    def _nbytes(self, deep: bool = False) -> int:
         """
         return the number of bytes in the underlying data
         deeply introspect the level data if deep=True
@@ -1325,7 +1325,7 @@ class MultiIndex(Index):
     def inferred_type(self) -> str:
         return "mixed"
 
-    def _get_level_number(self, level):
+    def _get_level_number(self, level) -> int:
         count = self.names.count(level)
         if (count > 1) and not is_integer(level):
             raise ValueError(
