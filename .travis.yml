@@ -81,6 +81,10 @@ before_install:
 
 
 install:
+  - echo "ls -a /tmp/*"
+  - ls -a /tmp/*
+  - echo "ps -ef"
+  - ps -ef
   - echo "install start"
   - ci/prep_cython_cache.sh
   - ci/setup_env.sh
