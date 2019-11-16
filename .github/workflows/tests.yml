@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+
+jobs:
+  tests:
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+    services:
+      postgres:
+        image: postgres:10.8
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        include:
+        - os: ubuntu-latest
+          env_file: travis-36-cov.yaml
+          pattern: "((not slow and not network) or (single and db))"
+          pandas_testing_mode: deprecate
+          coverage: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Setup environment and build pandas
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        ci/setup_env.sh
+      with:
+        ENV_FILE: ci/deps/${{ matrix.env_file }}
+
+    - name: Run tests
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/run_tests.sh
+      with:
+        PATTERN: ${{ matrix.pattern }}
+        PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode }}
+        COVERAGE: ${{ matrix.coverage }}
