@@ -381,7 +381,7 @@ class TestDataFrameAlterAxes:
         class Thing(frozenset):
             # need to stabilize repr for KeyError (due to random order in sets)
             def __repr__(self) -> str:
-                tmp = sorted(list(self))
+                tmp = sorted(self)
                 # double curly brace prints one brace in format string
                 return "frozenset({{{}}})".format(", ".join(map(repr, tmp)))
 
@@ -745,8 +745,7 @@ class TestDataFrameAlterAxes:
         # GH 19978
         mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
         df = DataFrame(
-            {"x": [i for i in range(len(mi))], "y": [i * 10 for i in range(len(mi))]},
-            index=mi,
+            {"x": list(range(len(mi))), "y": [i * 10 for i in range(len(mi))]}, index=mi
         )
 
         # Test for rename of the Index object of columns
