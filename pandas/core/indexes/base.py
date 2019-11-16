@@ -1650,7 +1650,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Introspection Methods
 
     @property
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         """
         Alias for is_monotonic_increasing.
         """
@@ -1691,7 +1691,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine.is_monotonic_decreasing
 
     @property
-    def _is_strictly_monotonic_increasing(self):
+    def _is_strictly_monotonic_increasing(self) -> bool:
         """
         Return if the index is strictly monotonic increasing
         (only increasing) values.
@@ -1708,7 +1708,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_unique and self.is_monotonic_increasing
 
     @property
-    def _is_strictly_monotonic_decreasing(self):
+    def _is_strictly_monotonic_decreasing(self) -> bool:
         """
         Return if the index is strictly monotonic decreasing
         (only decreasing) values.
