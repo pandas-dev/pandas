@@ -1335,7 +1335,7 @@ class MultiIndex(Index):
             level = self.names.index(level)
         except ValueError:
             if not is_integer(level):
-                raise KeyError(f"Level {str(level)} not found")
+                raise KeyError(f"Level {level} not found")
             elif level < 0:
                 level += self.nlevels
                 if level < 0:

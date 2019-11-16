@@ -692,7 +692,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         if name is None:
             name = type(self).__name__
-        result = f"{printing.pprint_thing(name)}: {len(self)} entries{index_summary}"
+        result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
             result += "\nFreq: %s" % self.freqstr
 

@@ -960,7 +960,8 @@ class Index(IndexOpsMixin, PandasObject):
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
-        prepr = f",{space}".join(f"{k}={v}" for k, v in attrs)
+        attrs_str = [f"{k}={v}" for k, v in attrs]
+        prepr = f",{space}".join(attrs_str)
 
         # no data provided, just attributes
         if data is None:
@@ -1120,7 +1121,7 @@ class Index(IndexOpsMixin, PandasObject):
             tail = self[-1]
             if hasattr(tail, "format") and not isinstance(tail, str):
                 tail = tail.format()
-            index_summary = f", {pprint_thing(head)} to {pprint_thing(tail)}"
+            index_summary = f", {head} to {tail}"
         else:
             index_summary = ""
 

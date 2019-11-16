@@ -429,7 +429,8 @@ class MilliSecondLocator(dates.DateLocator):
                 ).format(estimate=estimate, dmin=dmin, dmax=dmax, arg=self.MAXTICKS * 2)
             )
 
-        freq = f"{self._get_interval()}L"
+        interval = self._get_interval()
+        freq = f"{interval}L"
         tz = self.tz.tzname(None)
         st = _from_ordinal(dates.date2num(dmin))  # strip tz
         ed = _from_ordinal(dates.date2num(dmax))

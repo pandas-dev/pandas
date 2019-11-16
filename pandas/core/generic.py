@@ -6793,8 +6793,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError(
-                            f"Replacement lists must match in length."
-                            f" Expecting {len(to_replace)} got {len(value)} "
+                            f"Replacement lists must match in length. "
+                            f"Expecting {len(to_replace)} got {len(value)} "
                         )
 
                     new_data = self._data.replace_list(

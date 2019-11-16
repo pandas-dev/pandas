@@ -1303,7 +1303,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
-            raise ValueError(f"{str(key[mask])} not contained in the index")
+            raise ValueError(f"{key[mask]} not contained in the index")
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
