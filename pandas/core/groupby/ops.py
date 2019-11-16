@@ -660,8 +660,9 @@ class BaseGrouper:
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
                         # FIXME: are we potentially losing import res.index info?
-                        res = getattr(res, "_values", res)
-                        res = res[0]
+
+                        # For non-Series we could just do `res[0]`
+                        res = next(iter(res))
                     else:
                         raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")
