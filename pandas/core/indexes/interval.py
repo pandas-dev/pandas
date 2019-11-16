@@ -1213,7 +1213,7 @@ class IntervalIndex(IntervalMixin, Index):
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two IntervalIndex objects contain the same elements
         """
@@ -1374,7 +1374,7 @@ class IntervalIndex(IntervalMixin, Index):
 IntervalIndex._add_logical_methods_disabled()
 
 
-def _is_valid_endpoint(endpoint):
+def _is_valid_endpoint(endpoint) -> bool:
     """helper for interval_range to check if start/end are valid types"""
     return any(
         [
@@ -1386,7 +1386,7 @@ def _is_valid_endpoint(endpoint):
     )
 
 
-def _is_type_compatible(a, b):
+def _is_type_compatible(a, b) -> bool:
     """helper for interval_range to check type compat of start/end/freq"""
     is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
     is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
