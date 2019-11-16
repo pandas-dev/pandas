@@ -129,7 +129,14 @@ jobs:
         # Next we should simply have `doc/make.py --warnings-are-errors`,
         # everything else is required because the ipython directive doesn't fail the build on errors
         # (https://github.com/ipython/ipython/issues/11547)
-        doc/make.py --warnings-are-errors
+        doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
+        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
+        set -v
+        echo $SPHINX_RET
+        echo $IPY_RET
+        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log
+        set +v
+        exit $(( $SPHINX_RET + $IPY_RET ))
 
     - name: Merge website and docs
       run: |
