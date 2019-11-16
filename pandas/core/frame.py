@@ -4281,7 +4281,7 @@ class DataFrame(NDFrame):
         arrays = []
         names = []
         if append:
-            names = [x for x in self.index.names]
+            names = list(self.index.names)
             if isinstance(self.index, ABCMultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
@@ -7268,7 +7268,7 @@ class DataFrame(NDFrame):
             if isinstance(decimals, Series):
                 if not decimals.index.is_unique:
                     raise ValueError("Index of decimals must be unique")
-            new_cols = [col for col in _dict_round(self, decimals)]
+            new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
             # Dispatch to Series.round
             new_cols = [_series_round(v, decimals) for _, v in self.items()]
