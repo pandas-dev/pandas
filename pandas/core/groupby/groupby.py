@@ -14,7 +14,7 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
+from typing import FrozenSet, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -439,7 +439,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         def get_converter(s):
             # possibly convert to the actual key types
             # in the indices, could be a Timestamp or a np.datetime64
-            if isinstance(s, (Timestamp, datetime.datetime)):
+            if isinstance(s, datetime.datetime):
                 return lambda key: Timestamp(key)
             elif isinstance(s, np.datetime64):
                 return lambda key: Timestamp(key).asm8
@@ -488,6 +488,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     @cache_readonly
     def _selected_obj(self):
+        # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
 
         if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
@@ -736,7 +737,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def _iterate_slices(self) -> Iterable[Series]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -832,7 +833,8 @@ b  2""",
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output = collections.OrderedDict()  # type: dict
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -864,7 +866,8 @@ b  2""",
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
         output = {}
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -883,7 +886,8 @@ b  2""",
 
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             if self.grouper.ngroups == 0:
                 # agg_series below assumes ngroups > 0
                 continue
@@ -1214,7 +1218,7 @@ class GroupBy(_GroupBy):
         return self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(name="groupby")
@@ -1357,14 +1361,6 @@ class GroupBy(_GroupBy):
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-
-                # coerce the resulting columns if we can
-                if isinstance(result, DataFrame):
-                    for col in result.columns:
-                        result[col] = self._try_cast(result[col], self.obj[col])
-                else:
-                    result = self._try_cast(result, self.obj)
-
                 return result
 
             set_function_name(f, name, cls)
@@ -2181,7 +2177,7 @@ class GroupBy(_GroupBy):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Get result for Cythonized functions.
@@ -2242,7 +2238,8 @@ class GroupBy(_GroupBy):
         output = collections.OrderedDict()  # type: dict
         base_func = getattr(libgroupby, how)
 
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             values = obj._data._values
 
             if aggregate:
