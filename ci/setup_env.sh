@@ -141,13 +141,9 @@ conda list
 
 # Install DB for Linux
 if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-  echo "ls /tmp/*"
-  ls /tmp/*
-  echo "ps -ef"
-  ps -ef
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
-  psql -c 'create database pandas_nosetest;' -U postgres
+  psql -p 5432 -c 'create database pandas_nosetest;' -U postgres
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
