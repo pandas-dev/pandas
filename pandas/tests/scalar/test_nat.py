@@ -23,7 +23,7 @@ from pandas import (
 )
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

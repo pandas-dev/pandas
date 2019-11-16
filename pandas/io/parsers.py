@@ -707,7 +707,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""
@@ -1605,7 +1605,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for i in reversed(sorted(to_remove)):
+        for i in sorted(to_remove, reverse=True):
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
@@ -1637,7 +1637,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for c in reversed(sorted(to_remove)):
+        for c in sorted(to_remove, reverse=True):
             data.pop(c)
             col_names.remove(c)
 
@@ -2929,7 +2929,7 @@ class PythonParser(ParserBase):
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
 
-                if "NULL byte" in msg:
+                if "NULL byte" in msg or "line contains NUL" in msg:
                     msg = (
                         "NULL byte detected. This byte "
                         "cannot be processed in Python's "

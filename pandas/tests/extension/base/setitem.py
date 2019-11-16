@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -46,7 +47,7 @@ class BaseSetitemTests(BaseExtensionTests):
             data = pd.Series(data)
         original = data.copy()
         data[np.array([], dtype=int)] = []
-        self.assert_equal(data, original)
+        tm.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         if box_in_series:

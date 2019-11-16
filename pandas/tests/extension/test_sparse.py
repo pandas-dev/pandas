@@ -172,7 +172,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         expected = SparseArray([True, False], dtype=expected_dtype)
 
         result = pd.isna(data_missing)
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = pd.Series(data_missing).isna()
         expected = pd.Series(expected)

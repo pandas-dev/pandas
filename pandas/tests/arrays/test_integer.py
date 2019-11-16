@@ -819,7 +819,7 @@ def test_ufunc_reduce_raises(values):
         np.add.reduce(a)
 
 
-@td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
     import pyarrow as pa

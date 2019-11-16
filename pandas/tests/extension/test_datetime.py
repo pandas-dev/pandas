@@ -6,6 +6,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=["US/Central"])
@@ -199,7 +200,7 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
             expected.columns.names = [None, "a"]
 
         result = ser.unstack(0)
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):

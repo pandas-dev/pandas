@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import Categorical, IntervalIndex
 from pandas.core.indexes.api import CategoricalIndex, Index
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 from .common import Base
 
@@ -189,8 +188,8 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = "cannot perform {} with this index type: CategoricalIndex"
-        with pytest.raises(TypeError, match=msg.format(op_name)):
+        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
             func(idx)
 
     def test_method_delegation(self):
@@ -678,7 +677,7 @@ class TestCategoricalIndex(Base):
 
         for indexer in [idx2, list("abf"), Index(list("abf"))]:
             r1 = idx1.get_indexer(idx2)
-            assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
+            tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
         msg = (
             "method='pad' and method='backfill' not implemented yet for"

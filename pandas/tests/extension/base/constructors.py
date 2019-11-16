@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -73,4 +74,4 @@ class BaseConstructorsTests(BaseExtensionTests):
         # ... but specifying dtype will override idempotency
         result = pd.array(data, dtype=np.dtype(object))
         expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)

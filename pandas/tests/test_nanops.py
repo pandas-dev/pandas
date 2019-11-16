@@ -151,7 +151,7 @@ class TestnanopsDataFrame:
         targarval,
         check_dtype=True,
         empty_targfunc=None,
-        **kwargs
+        **kwargs,
     ):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
@@ -186,7 +186,7 @@ class TestnanopsDataFrame:
             targarval2,
             check_dtype=check_dtype,
             empty_targfunc=empty_targfunc,
-            **kwargs
+            **kwargs,
         )
 
     def check_fun(self, testfunc, targfunc, testar, empty_targfunc=None, **kwargs):
@@ -203,7 +203,7 @@ class TestnanopsDataFrame:
             testarval,
             targarval,
             empty_targfunc=empty_targfunc,
-            **kwargs
+            **kwargs,
         )
 
     def check_funs(
@@ -215,7 +215,7 @@ class TestnanopsDataFrame:
         allow_date=True,
         allow_tdelta=True,
         allow_obj=True,
-        **kwargs
+        **kwargs,
     ):
         self.check_fun(testfunc, targfunc, "arr_float", **kwargs)
         self.check_fun(testfunc, targfunc, "arr_float_nan", **kwargs)
@@ -476,7 +476,7 @@ class TestnanopsDataFrame:
             self.arr_float_2d,
             self.arr_float1_2d,
             min_periods=len(self.arr_float_2d) - 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ0, res00)
         tm.assert_almost_equal(targ0, res01)
@@ -486,7 +486,7 @@ class TestnanopsDataFrame:
             self.arr_float_nan_2d,
             self.arr_float1_nan_2d,
             min_periods=len(self.arr_float_2d) - 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ1, res10)
         tm.assert_almost_equal(targ1, res11)
@@ -500,13 +500,13 @@ class TestnanopsDataFrame:
             self.arr_float_nan_2d,
             self.arr_nan_float1_2d,
             min_periods=len(self.arr_float_2d) - 1,
-            **kwargs
+            **kwargs,
         )
         res25 = checkfun(
             self.arr_float_2d,
             self.arr_float1_2d,
             min_periods=len(self.arr_float_2d) + 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ2, res20)
         tm.assert_almost_equal(targ2, res21)
@@ -521,7 +521,7 @@ class TestnanopsDataFrame:
             self.arr_float_1d,
             self.arr_float1_1d,
             min_periods=len(self.arr_float_1d) - 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ0, res00)
         tm.assert_almost_equal(targ0, res01)
@@ -531,7 +531,7 @@ class TestnanopsDataFrame:
             self.arr_float_nan_1d,
             self.arr_float1_nan_1d,
             min_periods=len(self.arr_float_1d) - 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ1, res10)
         tm.assert_almost_equal(targ1, res11)
@@ -545,13 +545,13 @@ class TestnanopsDataFrame:
             self.arr_float_nan_1d,
             self.arr_nan_float1_1d,
             min_periods=len(self.arr_float_1d) - 1,
-            **kwargs
+            **kwargs,
         )
         res25 = checkfun(
             self.arr_float_1d,
             self.arr_float1_1d,
             min_periods=len(self.arr_float_1d) + 1,
-            **kwargs
+            **kwargs,
         )
         tm.assert_almost_equal(targ2, res20)
         tm.assert_almost_equal(targ2, res21)
@@ -703,46 +703,6 @@ class TestnanopsDataFrame:
             self.check_bool(nanops._has_infs, val, correct)
             self.check_bool(nanops._has_infs, val.astype("f4"), correct)
             self.check_bool(nanops._has_infs, val.astype("f2"), correct)
-
-    def test__isfinite(self):
-        pairs = [
-            ("arr_complex", False),
-            ("arr_int", False),
-            ("arr_bool", False),
-            ("arr_str", False),
-            ("arr_utf", False),
-            ("arr_complex", False),
-            ("arr_complex_nan", True),
-            ("arr_nan_nanj", True),
-            ("arr_nan_infj", True),
-            ("arr_complex_nan_infj", True),
-        ]
-        pairs_float = [
-            ("arr_float", False),
-            ("arr_nan", True),
-            ("arr_float_nan", True),
-            ("arr_nan_nan", True),
-            ("arr_float_inf", True),
-            ("arr_inf", True),
-            ("arr_nan_inf", True),
-            ("arr_float_nan_inf", True),
-            ("arr_nan_nan_inf", True),
-        ]
-
-        func1 = lambda x: np.any(nanops._isfinite(x).ravel())
-
-        # TODO: unused?
-        # func2 = lambda x: np.any(nanops._isfinite(x).values.ravel())
-
-        for arr, correct in pairs:
-            val = getattr(self, arr)
-            self.check_bool(func1, val, correct)
-
-        for arr, correct in pairs_float:
-            val = getattr(self, arr)
-            self.check_bool(func1, val, correct)
-            self.check_bool(func1, val.astype("f4"), correct)
-            self.check_bool(func1, val.astype("f2"), correct)
 
     def test__bn_ok_dtype(self):
         assert nanops._bn_ok_dtype(self.arr_float.dtype, "test")

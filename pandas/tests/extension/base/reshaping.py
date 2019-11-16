@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -239,7 +240,7 @@ class BaseReshapingTests(BaseExtensionTests):
             assert all(result.dtypes == df.iloc[:, 0].dtype)
 
         result = result.astype(object)
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "index",

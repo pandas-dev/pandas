@@ -1,7 +1,7 @@
 import pytest
 
 from pandas import DataFrame
-from pandas.util.testing import ensure_clean
+import pandas.util.testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
@@ -65,7 +65,7 @@ def test_write_cells_merge_styled(ext):
         )
     ]
 
-    with ensure_clean(ext) as path:
+    with tm.ensure_clean(ext) as path:
         writer = _OpenpyxlWriter(path)
         writer.write_cells(initial_cells, sheet_name=sheet_name)
         writer.write_cells(merge_cells, sheet_name=sheet_name)
@@ -83,7 +83,7 @@ def test_write_cells_merge_styled(ext):
 def test_write_append_mode(ext, mode, expected):
     df = DataFrame([1], columns=["baz"])
 
-    with ensure_clean(ext) as f:
+    with tm.ensure_clean(ext) as f:
         wb = openpyxl.Workbook()
         wb.worksheets[0].title = "foo"
         wb.worksheets[0]["A1"].value = "foo"

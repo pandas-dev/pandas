@@ -11,7 +11,6 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -33,17 +32,12 @@ from pandas import (
     isna,
     period_range,
 )
-from pandas.core.index import (
-    _get_combined_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
-from pandas.core.indexes.api import Index, MultiIndex
-from pandas.core.sorting import safe_sort
+from pandas.core.algorithms import safe_sort
+from pandas.core.index import ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):
@@ -1452,7 +1446,7 @@ class TestIndex(Base):
 
         r1 = index1.get_indexer(index2)
         e1 = np.array([1, 3, -1], dtype=np.intp)
-        assert_almost_equal(r1, e1)
+        tm.assert_almost_equal(r1, e1)
 
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize(
@@ -1473,7 +1467,7 @@ class TestIndex(Base):
             expected = expected[::-1]
 
         result = index2.get_indexer(index1, method=method)
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def test_get_indexer_invalid(self):
         # GH10411
@@ -1617,11 +1611,7 @@ class TestIndex(Base):
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
-            # Messages vary across versions
-            if PY36:
-                msg = "not supported between"
-            else:
-                msg = "unorderable types"
+            msg = "not supported between"
         else:
             msg = "invalid key"
 
@@ -1838,7 +1828,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = r"\"\[{}\] not found in axis\"".format(re.escape(to_drop[1].__repr__()))
+        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -1921,7 +1911,7 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        assert_almost_equal(index.get_value(values, value), values[67])
+        tm.assert_almost_equal(index.get_value(values, value), values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -2006,11 +1996,11 @@ class TestIndex(Base):
         index = indices
         if isinstance(index, MultiIndex):
             index = index.rename(["foo", "bar"])
-            msg = "'Level {} not found'"
+            msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = r"Requested level \({}\) does not match index name \(foo\)"
-        with pytest.raises(KeyError, match=msg.format(label)):
+            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+        with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
@@ -2445,21 +2435,13 @@ class TestMixedIntIndex(Base):
 
     def test_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                index.argsort()
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                index.argsort()
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            index.argsort()
 
     def test_numpy_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                np.argsort(index)
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                np.argsort(index)
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            np.argsort(index)
 
     def test_copy_name(self):
         # Check that "name" argument passed at initialization is honoured
@@ -2769,7 +2751,7 @@ def test_generated_op_names(opname, indices):
         # pd.Index.__rsub__ does not exist; though the method does exist
         # for subclasses.  see GH#19723
         return
-    opname = "__{name}__".format(name=opname)
+    opname = f"__{opname}__"
     method = getattr(indices, opname)
     assert method.__name__ == opname
 
