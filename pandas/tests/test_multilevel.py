@@ -257,7 +257,7 @@ class TestMultiLevel(Base):
         assert lines[2].startswith("a 0 foo")
 
     def test_delevel_infer_dtype(self):
-        tuples = [tuple for tuple in product(["foo", "bar"], [10, 20], [1.0, 1.1])]
+        tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
         df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
         deleveled = df.reset_index()

@@ -26,7 +26,7 @@ dependencies:
   - python-dateutil
   - python=3.6.*
   - pytz
-  - s3fs=0.0.8
+  - s3fs=0.3.0
   - scipy
   - sqlalchemy=1.1.4
   - xarray=0.10
