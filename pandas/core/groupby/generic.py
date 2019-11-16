@@ -397,7 +397,7 @@ class SeriesGroupBy(GroupBy):
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
                 raise ValueError("Must produce aggregated value")
-            result[name] = self._try_cast(output, group)
+            result[name] = output
 
         return result
 
