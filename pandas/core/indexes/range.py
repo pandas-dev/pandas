@@ -302,7 +302,7 @@ class RangeIndex(Int64Index):
         return self.step
 
     @cache_readonly
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
@@ -312,7 +312,7 @@ class RangeIndex(Int64Index):
             for attr_name in ["start", "stop", "step"]
         )
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
