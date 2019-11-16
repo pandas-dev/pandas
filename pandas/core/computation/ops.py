@@ -506,8 +506,8 @@ class Div(BinOp):
         regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv: bool, *args, **kwargs):
-        super().__init__("/", lhs, rhs, *args, **kwargs)
+    def __init__(self, lhs, rhs, truediv: bool, **kwargs):
+        super().__init__("/", lhs, rhs, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
