@@ -2222,6 +2222,15 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     ----------
     arr : ndarray
     f : function
+    mask : ndarray
+        uint8 dtype ndarray indicating values not to apply `f` to.
+    convert : bool, default True
+        Whether to call `maybe_convert_objects` on the resulting ndarray
+    na_value : Any, optional
+        The result value to use for masked values. By default, the
+        input value is used
+    dtype : type
+        The numpy dtype to use for the result ndarray.
 
     Returns
     -------

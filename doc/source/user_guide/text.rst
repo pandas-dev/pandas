@@ -71,7 +71,7 @@ Behavior differences
 These are places where the behavior of ``StringDtype`` objects differ from
 ``object`` dtype
 
-l. For ``StringDtype``, :ref:`String accessor methods<api.series.str>`
+l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather either int or float dtype, depending on the presence of NA values.
 

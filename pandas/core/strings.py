@@ -119,7 +119,7 @@ def cat_safe(list_of_columns: List, sep: str):
 def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
     if is_extension_array_dtype(arr.dtype):
-        arr = extract_array(arr, extract_numpy=True)
+        arr = extract_array(arr)
         return _map_ea(f, arr, na_value=na_result, dtype=dtype)
     return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
@@ -153,7 +153,10 @@ def _map_ea(
         return IntegerArray(result, mask)
 
     elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-        result = lib.map_infer_mask(arr, func, mask.view("uint8"), na_value=na_value)
+        # i.e. StringDtype
+        result = lib.map_infer_mask(
+            arr, func, mask.view("uint8"), convert=False, na_value=na_value
+        )
         return StringArray(result)
     # TODO: BooleanArray
     else:
