@@ -1,9 +1,9 @@
+from pandas.core.algorithms import safe_sort
 import warnings
 
 import pytest
 
 from pandas import DataFrame, Series
-from pandas.core.algorithms import safe_sort
 import pandas.util.testing as tm
 
 
