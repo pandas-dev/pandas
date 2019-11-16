@@ -490,7 +490,7 @@ class TestInsertIndexCoercion(CoercionBase):
             exp = pd.PeriodIndex(data, freq="M")
             self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
         else:
-            msg = r"Unexpected keyword argument 'freq'"
+            msg = r"Unexpected keyword arguments {'freq'}"
             with pytest.raises(TypeError, match=msg):
                 pd.Index(data, freq="M")
 

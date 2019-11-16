@@ -352,7 +352,7 @@ class TestIndex(Base):
 
     def test_constructor_wrong_kwargs(self):
         # GH #19348
-        with pytest.raises(TypeError, match="Unexpected keyword argument 'foo'"):
+        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
             Index([], foo="bar")
 
     @pytest.mark.parametrize(

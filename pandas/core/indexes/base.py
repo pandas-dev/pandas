@@ -452,11 +452,7 @@ class Index(IndexOpsMixin, PandasObject):
                         except IncompatibleFrequency:
                             pass
             if kwargs:
-                if len(kwargs) == 1:
-                    msg = f"Unexpected keyword argument {list(kwargs)[0]!r}"
-                else:
-                    msg = f"Unexpected keyword arguments {set(kwargs)!r}"
-                raise TypeError(msg)
+                raise TypeError(f"Unexpected keyword arguments {set(kwargs)!r}")
             return cls._simple_new(subarr, name, **kwargs)
 
         elif hasattr(data, "__array__"):
