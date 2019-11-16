@@ -10,19 +10,7 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import (
-    Any,
-    Callable,
-    FrozenSet,
-    Hashable,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import Any, Callable, FrozenSet, Iterable, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -142,8 +130,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
-        yield self._selection_name, self._selected_obj
+    def _iterate_slices(self) -> Iterable[Series]:
+        yield self._selected_obj
 
     @property
     def _selection_name(self):
@@ -923,20 +911,20 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
-            yield obj.name, obj
+            yield obj
         else:
             for label, values in obj.items():
                 if label in self.exclusions:
                     continue
 
-                yield label, values
+                yield values
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
