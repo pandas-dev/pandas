@@ -1,7 +1,6 @@
 """
 Routines for filling missing data.
 """
-import warnings
 
 import numpy as np
 
@@ -14,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_integer_dtype,
+    is_numeric_v_string_like,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -40,9 +40,10 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            with warnings.catch_warnings():
-                # suppress FutureWarning about elementwise comparison
-                warnings.simplefilter("always")
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                mask = False
+            else:
                 mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
@@ -50,9 +51,10 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            with warnings.catch_warnings():
-                # suppress FutureWarning about elementwise comparison
-                warnings.simplefilter("always")
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                mask |= False
+            else:
                 mask |= arr == x
 
     if na_mask.any():

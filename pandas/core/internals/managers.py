@@ -4,7 +4,6 @@ import itertools
 import operator
 import re
 from typing import List, Optional, Sequence, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -19,8 +18,10 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
+    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -1861,7 +1862,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-    blocks: List[Block]
+    blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
@@ -1925,9 +1926,10 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    with warnings.catch_warnings():
-        # suppress FutureWarning about elementwise comparison
-        warnings.simplefilter("always")
+    if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
+        # GH#29553 avoid deprecation warnings from numpy
+        result = False
+    else:
         result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
