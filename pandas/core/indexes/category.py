@@ -276,7 +276,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             dtype = self.dtype
         return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
-    def _is_dtype_compat(self, other):
+    def _is_dtype_compat(self, other) -> bool:
         """
         *this is an internal non-public method*
 
