@@ -29,7 +29,7 @@ so nobody else duplicates the work on it. GitHub restricts assigning issues to m
 of the project only. Until recently, contributors added a comment letting others know they
 are working on an issue. But we implemented a workaround consisting of adding
 a comment with the exact text `take`. When you do it, a GitHub action will automatically assign
-you the issue few seconds later. This way, it's possible to filter the list of issues, and find
+you the issue a few seconds later. This way, it's possible to filter the list of issues and find
 only the unassigned ones. Work on assigned issues can be discontinued. Feel free to also
 consider assigned issues. Just kindly ask the current assignee if you can take an issue,
 if it's been inactive for some time (a week at least).
