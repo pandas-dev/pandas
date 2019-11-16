@@ -1735,22 +1735,22 @@ class Index(IndexOpsMixin, PandasObject):
     def has_duplicates(self) -> bool:
         return not self.is_unique
 
-    def is_boolean(self):
+    def is_boolean(self) -> bool:
         return self.inferred_type in ["boolean"]
 
-    def is_integer(self):
+    def is_integer(self) -> bool:
         return self.inferred_type in ["integer"]
 
-    def is_floating(self):
+    def is_floating(self) -> bool:
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
-    def is_numeric(self):
+    def is_numeric(self) -> bool:
         return self.inferred_type in ["integer", "floating"]
 
-    def is_object(self):
+    def is_object(self) -> bool:
         return is_object_dtype(self.dtype)
 
-    def is_categorical(self):
+    def is_categorical(self) -> bool:
         """
         Check if the Index holds categorical data.
 
@@ -1786,10 +1786,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["categorical"]
 
-    def is_interval(self):
+    def is_interval(self) -> bool:
         return self.inferred_type in ["interval"]
 
-    def is_mixed(self):
+    def is_mixed(self) -> bool:
         return self.inferred_type in ["mixed"]
 
     def holds_integer(self):
@@ -4086,13 +4086,13 @@ class Index(IndexOpsMixin, PandasObject):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
 
-    def _is_memory_usage_qualified(self):
+    def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind):
+    def is_type_compatible(self, kind) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """
