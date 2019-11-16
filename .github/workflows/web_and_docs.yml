@@ -1,4 +1,4 @@
-name: pandas
+name: Web docs and checks
 
 on:
   push:
@@ -120,7 +120,6 @@ jobs:
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
-        # TODO fail build if ipython code blocks fail
 
     - name: Build documentation
       run: |
@@ -130,12 +129,9 @@ jobs:
         # everything else is required because the ipython directive doesn't fail the build on errors
         # (https://github.com/ipython/ipython/issues/11547)
         doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
+        echo "Sphinx exit status: $SPHINX_RET"
         grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
-        set -v
-        echo $SPHINX_RET
-        echo $IPY_RET
-        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log
-        set +v
+        echo "Grep to detect IPython code block errors exit: $IPY_RET"
         exit $(( $SPHINX_RET + $IPY_RET ))
 
     - name: Merge website and docs
