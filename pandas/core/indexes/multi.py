@@ -1025,7 +1025,7 @@ class MultiIndex(Index):
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         hash(key)
         try:
             self.get_loc(key)
@@ -1043,10 +1043,10 @@ class MultiIndex(Index):
         return self.copy(**kwargs)
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return np.dtype("O")
 
-    def _is_memory_usage_qualified(self):
+    def _is_memory_usage_qualified(self) -> bool:
         """ return a boolean if we need a qualified .info display """
 
         def f(l):
@@ -1055,7 +1055,7 @@ class MultiIndex(Index):
         return any(f(l) for l in self._inferred_type_levels)
 
     @Appender(Index.memory_usage.__doc__)
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
         # a tuple representation unnecessarily
