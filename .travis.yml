@@ -1,5 +1,9 @@
 language: python
 python: 3.5
+services:
+  - postgresql
+addons:
+  postgresql: "10"
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
