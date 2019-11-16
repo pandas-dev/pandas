@@ -501,13 +501,7 @@ def to_sql(
 
         .. versionadded:: 0.24.0
     """
-    if if_exists not in (
-        "fail",
-        "replace",
-        "append",
-        "upsert_ignore",
-        "upsert_delete",
-    ):
+    if if_exists not in ("fail", "replace", "append", "upsert_ignore", "upsert_delete"):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
