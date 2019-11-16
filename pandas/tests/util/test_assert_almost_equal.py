@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, Series, Timestamp
-from pandas.util.testing import assert_almost_equal
+import pandas.util.testing as tm
 
 
 def _assert_almost_equal_both(a, b, **kwargs):
@@ -18,10 +18,10 @@ def _assert_almost_equal_both(a, b, **kwargs):
     b : object
         The second object to compare.
     kwargs : dict
-        The arguments passed to `assert_almost_equal`.
+        The arguments passed to `tm.assert_almost_equal`.
     """
-    assert_almost_equal(a, b, **kwargs)
-    assert_almost_equal(b, a, **kwargs)
+    tm.assert_almost_equal(a, b, **kwargs)
+    tm.assert_almost_equal(b, a, **kwargs)
 
 
 def _assert_not_almost_equal(a, b, **kwargs):
@@ -35,10 +35,10 @@ def _assert_not_almost_equal(a, b, **kwargs):
     b : object
         The second object to compare.
     kwargs : dict
-        The arguments passed to `assert_almost_equal`.
+        The arguments passed to `tm.assert_almost_equal`.
     """
     try:
-        assert_almost_equal(a, b, **kwargs)
+        tm.assert_almost_equal(a, b, **kwargs)
         msg = (
             "{a} and {b} were approximately equal when they shouldn't have been"
         ).format(a=a, b=b)
@@ -240,7 +240,7 @@ def test_assert_almost_equal_value_mismatch():
     msg = "expected 2\\.00000 but got 1\\.00000, with decimal 5"
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(1, 2)
+        tm.assert_almost_equal(1, 2)
 
 
 @pytest.mark.parametrize(
@@ -257,7 +257,7 @@ numpy array classes are different
     )
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(a, b)
+        tm.assert_almost_equal(a, b)
 
 
 def test_assert_almost_equal_value_mismatch1():
@@ -268,7 +268,7 @@ numpy array values are different \\(66\\.66667 %\\)
 \\[right\\]: \\[1\\.0, nan, 3\\.0\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+        tm.assert_almost_equal(np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
 
 
 def test_assert_almost_equal_value_mismatch2():
@@ -279,7 +279,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[right\\]: \\[1, 3\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array([1, 2]), np.array([1, 3]))
+        tm.assert_almost_equal(np.array([1, 2]), np.array([1, 3]))
 
 
 def test_assert_almost_equal_value_mismatch3():
@@ -290,7 +290,7 @@ numpy array values are different \\(16\\.66667 %\\)
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\], \\[5, 6\\]\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(
+        tm.assert_almost_equal(
             np.array([[1, 2], [3, 4], [5, 6]]), np.array([[1, 3], [3, 4], [5, 6]])
         )
 
@@ -303,7 +303,7 @@ numpy array values are different \\(25\\.0 %\\)
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\]\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array([[1, 2], [3, 4]]), np.array([[1, 3], [3, 4]]))
+        tm.assert_almost_equal(np.array([[1, 2], [3, 4]]), np.array([[1, 3], [3, 4]]))
 
 
 def test_assert_almost_equal_shape_mismatch_override():
@@ -313,7 +313,7 @@ Index shapes are different
 \\[left\\]:  \\(2L*,\\)
 \\[right\\]: \\(3L*,\\)"""
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]), obj="Index")
+        tm.assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]), obj="Index")
 
 
 def test_assert_almost_equal_unicode():
@@ -325,7 +325,7 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[á, à, å\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array(["á", "à", "ä"]), np.array(["á", "à", "å"]))
+        tm.assert_almost_equal(np.array(["á", "à", "ä"]), np.array(["á", "à", "å"]))
 
 
 def test_assert_almost_equal_timestamp():
@@ -339,7 +339,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[right\\]: \\[2011-01-01 00:00:00, 2011-01-02 00:00:00\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(a, b)
+        tm.assert_almost_equal(a, b)
 
 
 def test_assert_almost_equal_iterable_length_mismatch():
@@ -350,7 +350,7 @@ Iterable length are different
 \\[right\\]: 3"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal([1, 2], [3, 4, 5])
+        tm.assert_almost_equal([1, 2], [3, 4, 5])
 
 
 def test_assert_almost_equal_iterable_values_mismatch():
@@ -361,4 +361,4 @@ Iterable values are different \\(50\\.0 %\\)
 \\[right\\]: \\[1, 3\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal([1, 2], [1, 3])
+        tm.assert_almost_equal([1, 2], [1, 3])

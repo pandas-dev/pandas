@@ -1,4 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
+from typing import Dict, List, Tuple, Type
 
 import numpy as np
 import pytest
@@ -30,6 +31,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthBegin,
     BMonthEnd,
@@ -89,10 +91,11 @@ def test_to_M8():
 #####
 # DateOffset Tests
 #####
+_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
-    _offset = None
+    _offset = None  # type: Type[DateOffset]
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -132,10 +135,7 @@ class Base:
         elif klass is DateOffset:
             klass = klass(days=value, normalize=normalize)
         else:
-            try:
-                klass = klass(value, normalize=normalize)
-            except Exception:
-                klass = klass(normalize=normalize)
+            klass = klass(value, normalize=normalize)
         return klass
 
     def test_apply_out_of_range(self, tz_naive_fixture):
@@ -672,7 +672,7 @@ class TestBusinessDay(Base):
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -743,7 +743,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             BDay(),
@@ -914,7 +914,7 @@ class TestBusinessHour(Base):
             BusinessHour(start=start, end=end)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2280,7 +2280,7 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start="14:00:05")
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2558,7 +2558,7 @@ class TestCustomBusinessDay(Base):
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2631,7 +2631,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CDay(),
@@ -2829,7 +2829,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -2878,7 +2878,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -2978,7 +2978,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        # GH#21404 changed __eq__ to return False when `normalize` does not match
         offset = self._offset()
         offset2 = self._offset(normalize=True)
         assert offset != offset2
@@ -3027,7 +3027,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []
+    apply_cases = []  # type: _ApplyCases
     apply_cases.append(
         (
             CBMonthBegin(),
@@ -4253,7 +4253,7 @@ def test_valid_default_arguments(offset_types):
     cls()
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
@@ -4262,14 +4262,14 @@ def test_valid_month_attributes(kwd, month_classes):
         cls(**{kwd: 3})
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
     # Check that all the arguments specified in liboffsets.relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
@@ -4351,3 +4351,12 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+def test_week_add_invalid():
+    # Week with weekday should raise TypeError and _not_ AttributeError
+    #  when adding invalid offset
+    offset = Week(weekday=1)
+    other = Day()
+    with pytest.raises(TypeError, match="Cannot add"):
+        offset + other

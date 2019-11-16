@@ -3,6 +3,7 @@ import contextlib
 from datetime import datetime, time
 from functools import partial
 import os
+from urllib.error import URLError
 import warnings
 
 import numpy as np
@@ -13,8 +14,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
-
-from pandas.io.common import URLError
 
 
 @contextlib.contextmanager
@@ -82,7 +81,7 @@ class TestReaders:
             pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
     def test_usecols_int(self, read_ext, df_ref):
@@ -500,12 +499,10 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
-        if read_ext == ".ods":  # TODO: remove once on master
-            pytest.skip()
 
         url = (
-            "https://raw.github.com/pandas-dev/pandas/master/"
-            "pandas/tests/io/data/test1" + read_ext
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
         local_table = pd.read_excel("test1" + read_ext)
@@ -528,7 +525,7 @@ class TestReaders:
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
-        localtable = os.path.join(datapath("io", "data"), "test1" + read_ext)
+        localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
 
         try:
@@ -829,7 +826,7 @@ class TestExcelFileRead:
             pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
     def test_excel_passes_na(self, read_ext):
@@ -869,6 +866,27 @@ class TestExcelFileRead:
         expected = DataFrame(
             [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]], columns=["Test"]
         )
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize("na_filter", [None, True, False])
+    def test_excel_passes_na_filter(self, read_ext, na_filter):
+        # gh-25453
+        kwargs = {}
+
+        if na_filter is not None:
+            kwargs["na_filter"] = na_filter
+
+        with pd.ExcelFile("test5" + read_ext) as excel:
+            parsed = pd.read_excel(
+                excel, "Sheet1", keep_default_na=True, na_values=["apple"], **kwargs
+            )
+
+        if na_filter is False:
+            expected = [["1.#QNAN"], [1], ["nan"], ["apple"], ["rabbit"]]
+        else:
+            expected = [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]]
+
+        expected = DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
     @pytest.mark.parametrize("arg", ["sheet", "sheetname", "parse_cols"])

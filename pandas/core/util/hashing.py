@@ -5,8 +5,8 @@ import itertools
 
 import numpy as np
 
+from pandas._libs import Timestamp
 import pandas._libs.hashing as hashing
-import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -26,7 +26,7 @@ from pandas.core.dtypes.missing import isna
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items):
+def _combine_hash_arrays(arrays, num_items: int):
     """
     Parameters
     ----------
@@ -55,32 +55,32 @@ def _combine_hash_arrays(arrays, num_items):
 
 
 def hash_pandas_object(
-    obj, index=True, encoding="utf8", hash_key=None, categorize=True
+    obj,
+    index: bool = True,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
 ):
     """
-    Return a data hash of the Index/Series/DataFrame
+    Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------
-    index : boolean, default True
-        include the index in the hash (if Series/DataFrame)
-    encoding : string, default 'utf8'
-        encoding for data & key when strings
-    hash_key : string key to encode, default to _default_hash_key
+    index : bool, default True
+        Include the index in the hash (if Series/DataFrame).
+    encoding : str, default 'utf8'
+        Encoding for data & key when strings.
+    hash_key : str, default _default_hash_key
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
     Series of uint64, same length as the object
     """
     from pandas import Series
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
@@ -125,7 +125,10 @@ def hash_pandas_object(
                 for _ in [None]
             )
             num_items += 1
-            hashes = itertools.chain(hashes, index_hash_generator)
+
+            # keep `hashes` specifically a generator to keep mypy happy
+            _hashes = itertools.chain(hashes, index_hash_generator)
+            hashes = (x for x in _hashes)
         h = _combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
@@ -134,17 +137,15 @@ def hash_pandas_object(
     return h
 
 
-def hash_tuples(vals, encoding="utf8", hash_key=None):
+def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     """
     Hash an MultiIndex / list-of-tuples efficiently
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
     vals : MultiIndex, list-of-tuples, or single tuple
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -179,15 +180,15 @@ def hash_tuples(vals, encoding="utf8", hash_key=None):
     return h
 
 
-def hash_tuple(val, encoding="utf8", hash_key=None):
+def hash_tuple(val, encoding: str = "utf8", hash_key: str = _default_hash_key):
     """
     Hash a single tuple efficiently
 
     Parameters
     ----------
     val : single tuple
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -201,7 +202,7 @@ def hash_tuple(val, encoding="utf8", hash_key=None):
     return h
 
 
-def _hash_categorical(c, encoding, hash_key):
+def _hash_categorical(c, encoding: str, hash_key: str):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
     to the hashes
@@ -209,8 +210,8 @@ def _hash_categorical(c, encoding, hash_key):
     Parameters
     ----------
     c : Categorical
-    encoding : string, default 'utf8'
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str
+    hash_key : str
 
     Returns
     -------
@@ -239,21 +240,25 @@ def _hash_categorical(c, encoding, hash_key):
     return result
 
 
-def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
+def hash_array(
+    vals,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+):
     """
     Given a 1d array, return an array of deterministic integers.
 
     Parameters
     ----------
     vals : ndarray, Categorical
-    encoding : string, default 'utf8'
-        encoding for data & key when strings
-    hash_key : string key to encode, default to _default_hash_key
+    encoding : str, default 'utf8'
+        Encoding for data & key when strings.
+    hash_key : str, default _default_hash_key
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -263,9 +268,6 @@ def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
-
-    if hash_key is None:
-        hash_key = _default_hash_key
 
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask
@@ -317,9 +319,17 @@ def hash_array(vals, encoding="utf8", hash_key=None, categorize=True):
     return vals
 
 
-def _hash_scalar(val, encoding="utf8", hash_key=None):
+def _hash_scalar(
+    val, encoding: str = "utf8", hash_key: str = _default_hash_key
+) -> np.ndarray:
     """
-    Hash scalar value
+    Hash scalar value.
+
+    Parameters
+    ----------
+    val : scalar
+    encoding : str, default "utf8"
+    hash_key : str, default _default_hash_key
 
     Returns
     -------
@@ -334,8 +344,8 @@ def _hash_scalar(val, encoding="utf8", hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslibs.Timestamp):
-            val = tslibs.Timestamp(val)
+        if not isinstance(val, Timestamp):
+            val = Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)

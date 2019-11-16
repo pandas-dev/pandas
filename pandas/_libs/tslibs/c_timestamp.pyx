@@ -14,8 +14,8 @@ shadows the python class, where we do any heavy lifting.
 
 import warnings
 
-from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                      Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
+from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
+                             Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
 import numpy as np
 cimport numpy as cnp
@@ -40,6 +40,15 @@ from pandas._libs.tslibs.timezones cimport (
     get_timezone, is_utc, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+    pass
 
 
 def maybe_integer_op_deprecated(obj):
@@ -115,7 +124,7 @@ cdef class _Timestamp(datetime):
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         stamp = self._repr_base
         zone = None
 
@@ -131,7 +140,8 @@ cdef class _Timestamp(datetime):
 
         try:
             stamp += zone.strftime(' %%Z')
-        except:
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
             pass
 
         tz = ", tz='{0}'".format(zone) if zone is not None else ""
@@ -191,7 +201,7 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -227,8 +237,8 @@ cdef class _Timestamp(datetime):
                 # to be compat with Period
                 return NaT
             elif self.freq is None:
-                raise ValueError("Cannot add integral value to Timestamp "
-                                 "without freq.")
+                raise NullFrequencyError(
+                    "Cannot add integral value to Timestamp without freq.")
             return self.__class__((self.freq * other).apply(self),
                                   freq=self.freq)
 
@@ -246,10 +256,16 @@ cdef class _Timestamp(datetime):
 
             result = self.__class__(self.value + nanos,
                                     tz=self.tzinfo, freq=self.freq)
-            if getattr(other, 'normalize', False):
-                # DateOffset
-                result = result.normalize()
             return result
+
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise NullFrequencyError(
+                        "Cannot add integer-dtype array "
+                        "to Timestamp without freq.")
+                return self.freq * other + self
 
         # index/series like
         elif hasattr(other, '_typ'):
@@ -262,24 +278,27 @@ cdef class _Timestamp(datetime):
         return result
 
     def __sub__(self, other):
+
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
             # `delta` attribute is for offsets.Tick or offsets.Week obj
             neg_other = -other
             return self + neg_other
 
+        elif is_array(other):
+            if other.dtype.kind in ['i', 'u']:
+                maybe_integer_op_deprecated(self)
+                if self.freq is None:
+                    raise NullFrequencyError(
+                        "Cannot subtract integer-dtype array "
+                        "from Timestamp without freq.")
+                return self - self.freq * other
+
         typ = getattr(other, '_typ', None)
+        if typ is not None:
+            return NotImplemented
 
-        # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        if typ in ('datetimeindex', 'datetimearray'):
-            # timezone comparison is performed in DatetimeIndex._sub_datelike
-            return -other.__sub__(self)
-
-        # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif typ in ('timedeltaindex', 'timedeltaarray'):
-            return (-other).__add__(self)
-
-        elif other is NaT:
+        if other is NaT:
             return NaT
 
         # coerce if necessary if we are a Timestamp-like
@@ -302,10 +321,12 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
+        elif is_datetime64_object(self):
+            # GH#28286 cython semantics for __rsub__, `other` is actually
+            #  the Timestamp
+            return type(other)(self) - other
 
-        # scalar Timestamp/datetime - Timedelta -> yields a Timestamp (with
-        # same timezone if specified)
-        return datetime.__sub__(self, other)
+        return NotImplemented
 
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
@@ -348,18 +369,18 @@ cdef class _Timestamp(datetime):
         return out[0]
 
     @property
-    def _repr_base(self):
+    def _repr_base(self) -> str:
         return '{date} {time}'.format(date=self._date_repr,
                                       time=self._time_repr)
 
     @property
-    def _date_repr(self):
+    def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900
         return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
 
     @property
-    def _time_repr(self):
+    def _time_repr(self) -> str:
         result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
@@ -370,7 +391,7 @@ cdef class _Timestamp(datetime):
         return result
 
     @property
-    def _short_repr(self):
+    def _short_repr(self) -> str:
         # format a Timestamp with only _date_repr if possible
         # otherwise _repr_base
         if (self.hour == 0 and
@@ -382,7 +403,7 @@ cdef class _Timestamp(datetime):
         return self._repr_base
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
         """

@@ -5,7 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -14,7 +14,6 @@ from typing import Any, Iterable, Union
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -165,51 +164,39 @@ def cast_scalar_indexer(val):
     return val
 
 
-def _not_none(*args):
+def not_none(*args):
     """
     Returns a generator consisting of the arguments that are not None.
     """
     return (arg for arg in args if arg is not None)
 
 
-def _any_none(*args):
+def any_none(*args):
     """
     Returns a boolean indicating if any argument is None.
     """
-    for arg in args:
-        if arg is None:
-            return True
-    return False
+    return any(arg is None for arg in args)
 
 
-def _all_none(*args):
+def all_none(*args):
     """
     Returns a boolean indicating if all arguments are None.
     """
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
+    return all(arg is None for arg in args)
 
 
-def _any_not_none(*args):
+def any_not_none(*args):
     """
     Returns a boolean indicating if any argument is not None.
     """
-    for arg in args:
-        if arg is not None:
-            return True
-    return False
+    return any(arg is not None for arg in args)
 
 
-def _all_not_none(*args):
+def all_not_none(*args):
     """
     Returns a boolean indicating if all arguments are not None.
     """
-    for arg in args:
-        if arg is None:
-            return False
-    return True
+    return all(arg is not None for arg in args)
 
 
 def count_not_none(*args):
@@ -223,18 +210,8 @@ def try_sort(iterable):
     listed = list(iterable)
     try:
         return sorted(listed)
-    except Exception:
+    except TypeError:
         return listed
-
-
-def dict_keys_to_ordered_list(mapping):
-    # when pandas drops support for Python < 3.6, this function
-    # can be replaced by a simple list(mapping.keys())
-    if PY36 or isinstance(mapping, OrderedDict):
-        keys = list(mapping.keys())
-    else:
-        keys = try_sort(mapping)
-    return keys
 
 
 def asarray_tuplesafe(values, dtype=None):
@@ -447,7 +424,7 @@ def random_state(state=None):
         )
 
 
-def _pipe(obj, func, *args, **kwargs):
+def pipe(obj, func, *args, **kwargs):
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -457,15 +434,15 @@ def _pipe(obj, func, *args, **kwargs):
 
     Parameters
     ----------
-    func : callable or tuple of (callable, string)
+    func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
         string indicating the keyword of `callable`` that expects the
         object.
-    args : iterable, optional
-        positional arguments passed into ``func``.
-    kwargs : dict, optional
-        a dictionary of keyword arguments passed into ``func``.
+    *args : iterable, optional
+        Positional arguments passed into ``func``.
+    **kwargs : dict, optional
+        A dictionary of keyword arguments passed into ``func``.
 
     Returns
     -------
@@ -482,7 +459,7 @@ def _pipe(obj, func, *args, **kwargs):
         return func(obj, *args, **kwargs)
 
 
-def _get_rename_function(mapper):
+def get_rename_function(mapper):
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.

@@ -11,17 +11,17 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+import argparse
+import csv
 import importlib
-import sys
 import os
 import shutil
-import csv
 import subprocess
-import argparse
+import sys
 import webbrowser
+
 import docutils
 import docutils.parsers.rst
-
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, "source")

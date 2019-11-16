@@ -299,12 +299,6 @@ class TestIndexReductions:
         result = td.to_frame().std()
         assert result[0] == expected
 
-        # invalid ops
-        for op in ["skew", "kurt", "sem", "prod"]:
-            msg = "reduction operation '{}' not allowed for this dtype"
-            with pytest.raises(TypeError, match=msg.format(op)):
-                getattr(td, op)()
-
         # GH#10040
         # make sure NaT is properly handled by median()
         s = Series([Timestamp("2015-02-03"), Timestamp("2015-02-07")])
@@ -314,6 +308,22 @@ class TestIndexReductions:
             [Timestamp("2015-02-03"), Timestamp("2015-02-07"), Timestamp("2015-02-15")]
         )
         assert s.diff().median() == timedelta(days=6)
+
+    @pytest.mark.parametrize("opname", ["skew", "kurt", "sem", "prod", "var"])
+    def test_invalid_td64_reductions(self, opname):
+        s = Series(
+            [Timestamp("20130101") + timedelta(seconds=i * i) for i in range(10)]
+        )
+        td = s.diff()
+
+        msg = "reduction operation '{op}' not allowed for this dtype"
+        msg = msg.format(op=opname)
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(td, opname)()
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(td.to_frame(), opname)(numeric_only=False)
 
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -636,8 +646,13 @@ class TestSeriesReductions:
         assert pd.isna(result)
 
         # timedelta64[ns]
-        result = getattr(Series(dtype="m8[ns]"), method)()
-        assert result is pd.NaT
+        tdser = Series([], dtype="m8[ns]")
+        if method == "var":
+            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+                getattr(tdser, method)()
+        else:
+            result = getattr(tdser, method)()
+            assert result is pd.NaT
 
     def test_nansum_buglet(self):
         ser = Series([1.0, np.nan], index=[0, 1])

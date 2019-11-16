@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython>=0.28.2
+  - cython>=0.29.13
   - html5lib
   - lxml
   - matplotlib
@@ -25,8 +25,8 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest>=4.0.2,<5.0.0
-  - pytest-xdist
+  - pytest>=5.0.0
+  - pytest-xdist>=1.29.0
   - pytest-mock
   - moto
   - hypothesis>=3.58.0

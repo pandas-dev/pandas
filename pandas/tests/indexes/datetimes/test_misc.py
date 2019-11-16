@@ -377,3 +377,11 @@ class TestDatetime64:
         dti = DatetimeIndex(np.arange(10))
 
         tm.assert_index_equal(dti.nanosecond, pd.Index(np.arange(10, dtype=np.int64)))
+
+
+def test_iter_readonly():
+    # GH#28055 ints_to_pydatetime with readonly array
+    arr = np.array([np.datetime64("2012-02-15T12:00:00.000000000")])
+    arr.setflags(write=False)
+    dti = pd.to_datetime(arr)
+    list(dti)

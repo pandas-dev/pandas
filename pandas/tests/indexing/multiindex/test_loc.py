@@ -1,12 +1,10 @@
-import itertools
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -223,17 +221,13 @@ class TestMultiIndexLoc:
         # GH 3053
         # loc should treat integer slices like label slices
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([6, 7, 8], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([10, 20, 30], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]
@@ -390,3 +384,26 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     expected = 0
     result = df.sort_index().loc[("bar", "three"), "B"]
     assert result == expected
+
+
+def test_loc_setitem_single_column_slice():
+    # case from https://github.com/pandas-dev/pandas/issues/27841
+    df = DataFrame(
+        "string",
+        index=list("abcd"),
+        columns=MultiIndex.from_product([["Main"], ("another", "one")]),
+    )
+    df["labels"] = "a"
+    df.loc[:, "labels"] = df.index
+    tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
+
+    # test with non-object block
+    df = DataFrame(
+        np.nan,
+        index=range(4),
+        columns=MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")]),
+    )
+    expected = df.copy()
+    df.loc[:, "B"] = np.arange(4)
+    expected.iloc[:, 2] = np.arange(4)
+    tm.assert_frame_equal(df, expected)

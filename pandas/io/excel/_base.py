@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
 from textwrap import fill
-from urllib.request import urlopen
 
 from pandas._config import config
 
@@ -21,6 +20,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
+    urlopen,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -79,8 +79,6 @@ index_col : int, list of int, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 usecols : int, str, list-like, or callable default None
-    Return a subset of the columns.
-
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
@@ -98,6 +96,8 @@ usecols : int, str, list-like, or callable default None
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
+    Returns a subset of the columns according to behavior above.
+
       .. versionadded:: 0.24.0
 
 squeeze : bool, default False
@@ -107,12 +107,9 @@ dtype : Type name or dict of column -> type, default None
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-
-    .. versionadded:: 0.20.0
-
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd.
+    Acceptable values are None, "xlrd", "openpyxl" or "odf".
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -136,8 +133,24 @@ na_values : scalar, str, list-like, or dict, default None
     + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
+na_filter : bool, default True
+    Detect missing value markers (empty strings and the value of na_values). In
+    data without any NAs, passing na_filter=False can improve the performance
+    of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
@@ -291,13 +304,13 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    **kwds
+    **kwds,
 ):
 
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
             raise TypeError(
-                "read_excel() got an unexpected keyword argument " "`{}`".format(arg)
+                "read_excel() got an unexpected keyword argument `{}`".format(arg)
             )
 
     if not isinstance(io, ExcelFile):
@@ -331,7 +344,7 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
-        **kwds
+        **kwds,
     )
 
 
@@ -353,7 +366,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         else:
             raise ValueError(
-                "Must explicitly set engine if not passing in" " buffer or path for io."
+                "Must explicitly set engine if not passing in buffer or path for io."
             )
 
     @property
@@ -404,7 +417,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
 
         _validate_header_arg(header)
@@ -504,7 +517,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     skipfooter=skipfooter,
                     usecols=usecols,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    **kwds
+                    **kwds,
                 )
 
                 output[asheetname] = parser.read(nrows=nrows)
@@ -532,16 +545,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : string
+    path : str
         Path to xls or xlsx file.
-    engine : string (optional)
+    engine : str (optional)
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
-    date_format : string, default None
-        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
-    datetime_format : string, default None
-        Format string for datetime objects written into Excel files
+    date_format : str, default None
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
+    datetime_format : str, default None
+        Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
@@ -658,11 +671,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ----------
         cells : generator
             cell of formatted data to save to Excel sheet
-        sheet_name : string, default None
+        sheet_name : str, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow : upper left cell row to dump data frame
         startcol : upper left cell column to dump data frame
-        freeze_panes: integer tuple of length 2
+        freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
         pass
@@ -681,7 +694,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format=None,
         datetime_format=None,
         mode="w",
-        **engine_kwargs
+        **engine_kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -713,9 +726,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise ValueError(
-                "Must pass explicit sheet_name or set " "cur_sheet property"
-            )
+            raise ValueError("Must pass explicit sheet_name or set cur_sheet property")
         return sheet_name
 
     def _value_with_fmt(self, val):
@@ -784,12 +795,13 @@ class ExcelFile:
 
     Parameters
     ----------
-    io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object or xlrd workbook
-        If a string or path object, expected to be a path to xls or xlsx file.
-    engine : string, default None
+    io : str, path object (pathlib.Path or py._path.local.LocalPath),
+        a file-like object, xlrd workbook or openpypl workbook.
+        If a string or path object, expected to be a path to xls, xlsx or odf file.
+    engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or ``xlrd``.
+        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -836,13 +848,13 @@ class ExcelFile:
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
         """
-        Parse specified sheet(s) into a DataFrame
+        Parse specified sheet(s) into a DataFrame.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
-        docstring for more info on accepted parameters
+        docstring for more info on accepted parameters.
 
         Returns
         -------
@@ -851,7 +863,7 @@ class ExcelFile:
         """
         if "chunksize" in kwds:
             raise NotImplementedError(
-                "chunksize keyword of read_excel " "is not implemented"
+                "chunksize keyword of read_excel is not implemented"
             )
 
         return self._reader.parse(
@@ -874,7 +886,7 @@ class ExcelFile:
             skipfooter=skipfooter,
             convert_float=convert_float,
             mangle_dupe_cols=mangle_dupe_cols,
-            **kwds
+            **kwds,
         )
 
     @property
