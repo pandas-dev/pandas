@@ -11,7 +11,6 @@ from typing import Type
 
 import numpy as np
 
-import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
@@ -600,6 +599,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
+        import pandas as pd
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         result = pd.eval(
