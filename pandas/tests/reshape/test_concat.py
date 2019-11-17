@@ -2776,3 +2776,154 @@ def test_concat_datetimeindex_freq():
     expected = pd.DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
     expected.index.freq = None
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "obj1, obj2",
+    [
+        (pd.Series([1, 2, 3], name="a"), pd.Series([2, 3, 4], name="a")),
+        (pd.Series([1, 2, 3], name="a"), pd.DataFrame({"a": [2, 3, 4]})),
+        (pd.DataFrame({"a": [1, 2, 3]}), pd.DataFrame({"a": [2, 3, 4]})),
+    ],
+)
+def test_concat_suffixes_warning(obj1, obj2):
+    # GH 21791, add test for warning when suffix is None and columns overlap
+    with catch_warnings(record=True):
+        output = pd.concat([obj1, obj2], axis=1)
+
+    tm.assert_series_equal(output.iloc[:, 0], pd.Series([1, 2, 3], name="a"))
+    tm.assert_series_equal(output.iloc[:, 1], pd.Series([2, 3, 4], name="a"))
+
+
+@pytest.mark.parametrize("suffixes", ["_a", ("_x"), ["a", "b"]])
+def test_concat_suffixes_type(suffixes):
+    # GH 21791, like pd.merge, here suffixes type should be tuple
+    objs = [pd.Series([1, 2], name="a"), pd.DataFrame({"a": [2, 3]})]
+    with pytest.raises(ValueError, match="only <class 'tuple'> is allowed"):
+        pd.concat(objs, axis=1, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "objs, suffixes",
+    [
+        (
+            [
+                pd.Series([1, 2], name="a"),
+                pd.Series([2, 3], name="a"),
+                pd.Series([2, 3]),
+            ],
+            ("_x", "_y"),
+        ),
+        (
+            [
+                pd.DataFrame({"a": [1, 2]}),
+                pd.DataFrame({"a": [2, 3]}, pd.Series([1, 2])),
+            ],
+            ("_x", "_y", "_z", "_k"),
+        ),
+        (
+            [pd.DataFrame({"a": [1, 2]}), pd.DataFrame({"a": [2, 3]})],
+            ("_x", "_y", "_z"),
+        ),
+    ],
+)
+def test_concat_suffixes_length_unmatch_error(objs, suffixes):
+    # GH 21791, add test to see if warning is raise when columns overlap but length of
+    # suffixes does not match the length of objs
+    with pytest.raises(ValueError, match="Number of objects for concatenation is not"):
+        pd.concat(objs, axis=1, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "objs, suffixes, expected",
+    [
+        (
+            [pd.Series([1, 2], name="a"), pd.Series([2, 3], name="a")],
+            ("_x", "_y"),
+            pd.DataFrame({"a_x": [1, 2], "a_y": [2, 3]}),
+        ),
+        (
+            [
+                pd.Series([1, 2]),
+                pd.Series([2, 3], name="b"),
+                pd.Series([3, 4], name="b"),
+            ],
+            ("_x", "_y", "_z"),
+            pd.DataFrame({0: [1, 2], "b_y": [2, 3], "b_z": [3, 4]}),
+        ),
+        (
+            [
+                pd.Series([1, 2], name="a"),
+                pd.Series([2, 3], name="b"),
+                pd.Series([3, 4], name="b"),
+                pd.Series([3, 5], name="a"),
+            ],
+            ("_x", "_y", "_z", "_k"),
+            pd.DataFrame({"a_x": [1, 2], "b_y": [2, 3], "b_z": [3, 4], "a_k": [3, 5]}),
+        ),
+    ],
+)
+def test_concat_suffixes_series(objs, suffixes, expected):
+    # GH 21791, test if suffixes is assigned correctly when objs are all Series
+    output = pd.concat(objs, axis=1, suffixes=suffixes)
+    tm.assert_frame_equal(output, expected)
+
+
+@pytest.mark.parametrize(
+    "objs, suffixes, expected",
+    [
+        (
+            [pd.DataFrame({"a": [1, 2]}), pd.DataFrame({"a": [2, 3], "b": [3, 4]})],
+            ("_x", "_y"),
+            pd.DataFrame({"a_x": [1, 2], "a_y": [2, 3], "b": [3, 4]}),
+        ),
+        (
+            [
+                pd.DataFrame({"a": [1, 2], "b": [2, 3]}),
+                pd.DataFrame({"a": [2, 3]}),
+                pd.DataFrame({"a": [3, 4], "b": [4, 5], "c": [5, 6]}),
+            ],
+            ("_x", "_y", "_z"),
+            pd.DataFrame(
+                {
+                    "a_x": [1, 2],
+                    "b_x": [2, 3],
+                    "a_y": [2, 3],
+                    "a_z": [3, 4],
+                    "b_z": [4, 5],
+                    "c": [5, 6],
+                }
+            ),
+        ),
+    ],
+)
+def test_concat_suffixes_dataframes(objs, suffixes, expected):
+    # GH 21791, test if suffixes is assigned correctly when objs are all DataFrames
+    output = pd.concat(objs, axis=1, suffixes=suffixes)
+    tm.assert_frame_equal(output, expected)
+
+
+@pytest.mark.parametrize(
+    "objs, suffixes, expected",
+    [
+        (
+            [pd.Series([1, 2], name="a"), pd.DataFrame({"a": [2, 3], "b": [2, 5]})],
+            ("_x", "_y"),
+            pd.DataFrame({"a_x": [1, 2], "a_y": [2, 3], "b": [2, 5]}),
+        ),
+        (
+            [
+                pd.Series([1, 2], name="a"),
+                pd.DataFrame({"a": [2, 3], "b": [2, 5]}),
+                pd.Series([3, 4], name="b"),
+            ],
+            ("_x", "_y", "_z"),
+            pd.DataFrame({"a_x": [1, 2], "a_y": [2, 3], "b_y": [2, 5], "b_z": [3, 4]}),
+        ),
+    ],
+)
+def test_concat_suffixes_mixed_series_dataframe(objs, suffixes, expected):
+    # GH 21791, test if suffixes is assigned correctly when objs are mixed Series and
+    # DataFrames
+    output = pd.concat(objs, axis=1, suffixes=suffixes)
+    tm.assert_frame_equal(output, expected)

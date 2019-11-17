@@ -2,6 +2,9 @@
 concat routines
 """
 
+from collections import Counter
+from functools import partial
+from itertools import chain
 import warnings
 
 import numpy as np
@@ -21,6 +24,7 @@ from pandas.core.indexes.api import (
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
+from pandas.core.internals.managers import _transform_index
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -37,6 +41,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort=None,
+    suffixes=None,
     copy: bool = True,
 ):
     """
@@ -93,6 +98,15 @@ def concat(
         the order of the non-concatenation axis.
 
         .. versionadded:: 0.23.0
+
+    suffixes: tuple of str, default None
+        Suffix to apply to overlapping column names for each concatenated object
+        respectively. If None and there is overlapping column names after concat,
+        DataFrame with duplicated names will be outputted along with a warning
+        message. If the length of suffixes does not match with number of
+        concatenated objects, an error will raise.
+
+        This has no effect if there is no overlapping column names or if axis=0.
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
@@ -238,6 +252,16 @@ def concat(
     Traceback (most recent call last):
         ...
     ValueError: Indexes have overlapping values: ['a']
+
+    If objects have overlapping column names when passing in ``axis=1``,
+    specifying suffixes using tuple can add suffix to each object respecitvely.
+
+    >>> df7 = pd.DataFrame({"a": [1, 2]})
+    >>> df8 = pd.DataFrame({"a": [3, 4], "b": [4, 6]})
+    >>> pd.concat([df7, df8], axis=1, suffixes=("_x", "_y"))
+      a_x  a_y  b
+    0   1    3  4
+    1   2    4  6
     """
     op = _Concatenator(
         objs,
@@ -251,6 +275,7 @@ def concat(
         verify_integrity=verify_integrity,
         copy=copy,
         sort=sort,
+        suffixes=suffixes,
     )
 
     return op.get_result()
@@ -274,6 +299,7 @@ class _Concatenator:
         verify_integrity: bool = False,
         copy: bool = True,
         sort=False,
+        suffixes=None,
     ):
         if isinstance(objs, (NDFrame, str)):
             raise TypeError(
@@ -418,6 +444,16 @@ class _Concatenator:
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
         self.sort = sort
+        self.suffixes = suffixes
+
+        if self.axis == 0 and not self._is_series:
+
+            # If objs is not composed of pure Series, and if BlockManager axis is 1,
+            # then will check the overlapping of columns, and directly rename them
+            # if overlapping is the case
+            self.objs = self._items_overlap_with_suffix(
+                self.objs, suffixes=self.suffixes
+            )
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
@@ -447,6 +483,10 @@ class _Concatenator:
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
+
+                # before assigning columns to composed DataFrame, check if columns
+                # are overlapped
+                columns = self._items_overlap_with_suffix(columns, self.suffixes)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -588,6 +628,79 @@ class _Concatenator:
                     "Indexes have overlapping values: "
                     "{overlap!s}".format(overlap=overlap)
                 )
+
+    def _items_overlap_with_suffix(self, objs, suffixes):
+        """
+        Adding suffix for items if there is overlapping situation.
+
+        Be aware that `objs` can be either DataFrame-like or Index-like given
+        if `self._is_series` is True or False.
+
+        Since default is None, therefore, if overlapping is found and suffixes
+        is default None, will raise a warning and return the objs as is.
+        """
+        if self._is_series:
+
+            # when _is_series is True, objs are actually column Index
+            overlap_cols = [obj for obj in objs]
+        else:
+            overlap_cols = chain.from_iterable([obj.columns for obj in objs])
+        to_rename = [col for col, cnt in Counter(overlap_cols).items() if cnt > 1]
+
+        if len(to_rename) == 0:
+            return objs
+
+        if suffixes is None:
+
+            # this is to keep current behavior unchanged for users, so just raise
+            # a warning instead of error
+            warnings.warn(
+                "There will have duplicated columns after concatenation,"
+                "you could avoid it by setting suffixes."
+            )
+            return objs
+
+        if not isinstance(suffixes, tuple):
+            raise ValueError(
+                "Invalid type {t} is assigned to suffixes, only"
+                " <class 'tuple'> is allowed.".format(t=type(suffixes))
+            )
+
+        if len(objs) != len(suffixes):
+            raise ValueError(
+                "Number of objects for concatenation is not"
+                "equal to number of suffixes"
+            )
+
+        def renamer(x, suffix):
+            """
+            Rename the indices.
+
+            If there is overlap, and suffix is not None, add
+            suffix, otherwise, leave it as-is.
+
+            Parameters
+            ----------
+            x : original column name
+            suffix : str or None
+
+            Returns
+            -------
+            x : renamed column name
+            """
+            if x in to_rename and suffix is not None:
+                return "{x}{suffix}".format(x=x, suffix=suffix)
+            return x
+
+        if self._is_series:
+            new_cols = [renamer(obj, suffix) for obj, suffix in zip(objs, suffixes)]
+            return new_cols
+
+        for obj, suffix in zip(objs, suffixes):
+            col_renamer = partial(renamer, suffix=suffix)
+            obj.columns = _transform_index(obj.columns, col_renamer)
+
+        return objs
 
 
 def _concat_indexes(indexes) -> Index:
