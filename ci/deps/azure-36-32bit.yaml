@@ -4,13 +4,15 @@ channels:
   - conda-forge
 dependencies:
   - python=3.6.*
+
   # tools
-  # - cython=0.29.13 ### Cython 0.29.13 for 32 bits is not available with conda, installing below with pip instead
-  - pytest
+  # - cython>=0.29.13 ### Cython 0.29.13 for 32 bits is not available with conda, installing below with pip instead
+  - pytest>=4.0.2
   - pytest-xdist>=1.21
   - pytest-mock
   - hypothesis>=3.58.0
   - pytest-azurepipelines
+
   # pandas dependencies
   - attrs=19.1.0
   - gcc_linux-32
@@ -22,4 +24,4 @@ dependencies:
   # see comment above
   - pip
   - pip:
-    - cython==0.29.13
+    - cython>=0.29.13

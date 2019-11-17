@@ -4,13 +4,15 @@ channels:
   - conda-forge
 dependencies:
   - python=3.6.*
+
   # tools
-  - cython=0.29.13
-  - pytest
+  - cython>=0.29.13
+  - pytest>=4.0.2
   - pytest-xdist>=1.21
   - pytest-mock
   - hypothesis>=3.58.0
   - pytest-cov  # this is only needed in the coverage build
+
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
