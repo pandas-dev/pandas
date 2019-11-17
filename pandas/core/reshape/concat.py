@@ -41,7 +41,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort=None,
-    suffixes=None,
+    suffixes: tuple = None,
     copy: bool = True,
 ):
     """
