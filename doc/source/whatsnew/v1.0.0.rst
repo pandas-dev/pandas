@@ -114,6 +114,7 @@ Other enhancements
 - Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
+- Added ``suffixes`` argument to :meth:`pandas.concat` to distinguish overlapping column names after concatenation (:issue:`21791`)
 
 Build Changes
 ^^^^^^^^^^^^^
