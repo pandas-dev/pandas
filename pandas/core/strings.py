@@ -120,11 +120,11 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
     if is_extension_array_dtype(arr.dtype):
         arr = extract_array(arr)
-        return _map_ea(f, arr, na_value=na_result, dtype=dtype)
+        return _stringarray_map(f, arr, na_value=na_result, dtype=dtype)
     return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
-def _map_ea(
+def _stringarray_map(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     from pandas.arrays import IntegerArray, StringArray
@@ -160,9 +160,6 @@ def _map_ea(
         return StringArray(result)
     # TODO: BooleanArray
     else:
-        import pdb
-
-        pdb.set_trace()
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 
@@ -688,7 +685,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             raise ValueError("Cannot use a callable replacement when regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_repeat(arr, repeats):
@@ -739,7 +736,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return str.__mul__(x, repeats)
 
-        return _na_map(scalar_rep, arr)
+        return _na_map(scalar_rep, arr, dtype=str)
     else:
 
         def rep(x, r):
@@ -1204,7 +1201,7 @@ def str_join(arr, sep):
     4                    NaN
     dtype: object
     """
-    return _na_map(sep.join, arr)
+    return _na_map(sep.join, arr, dtype=str)
 
 
 def str_findall(arr, pat, flags=0):
@@ -1435,7 +1432,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
     else:  # pragma: no cover
         raise ValueError("Invalid side")
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_split(arr, pat=None, n=None):
@@ -1541,7 +1538,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
@@ -1632,7 +1629,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
             y += x[local_stop:]
         return y
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_strip(arr, to_strip=None, side="both"):
@@ -1657,7 +1654,7 @@ def str_strip(arr, to_strip=None, side="both"):
         f = lambda x: x.rstrip(to_strip)
     else:  # pragma: no cover
         raise ValueError("Invalid side")
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_wrap(arr, width, **kwargs):
@@ -1721,7 +1718,7 @@ def str_wrap(arr, width, **kwargs):
 
     tw = textwrap.TextWrapper(**kwargs)
 
-    return _na_map(lambda s: "\n".join(tw.wrap(s)), arr)
+    return _na_map(lambda s: "\n".join(tw.wrap(s)), arr, dtype=str)
 
 
 def str_translate(arr, table):
@@ -1741,7 +1738,7 @@ def str_translate(arr, table):
     -------
     Series or Index
     """
-    return _na_map(lambda x: x.translate(table), arr)
+    return _na_map(lambda x: x.translate(table), arr, dtype=str)
 
 
 def str_get(arr, i):
@@ -3079,7 +3076,7 @@ class StringMethods(NoNewAttributesMixin):
         import unicodedata
 
         f = lambda x: unicodedata.normalize(form, x)
-        result = _na_map(f, self._parent)
+        result = _na_map(f, self._parent, dtype=str)
         return self._wrap_result(result)
 
     _shared_docs[
@@ -3277,31 +3274,37 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.lower(),
         name="lower",
         docstring=_shared_docs["casemethods"] % _doc_args["lower"],
+        dtype=str,
     )
     upper = _noarg_wrapper(
         lambda x: x.upper(),
         name="upper",
         docstring=_shared_docs["casemethods"] % _doc_args["upper"],
+        dtype=str,
     )
     title = _noarg_wrapper(
         lambda x: x.title(),
         name="title",
         docstring=_shared_docs["casemethods"] % _doc_args["title"],
+        dtype=str,
     )
     capitalize = _noarg_wrapper(
         lambda x: x.capitalize(),
         name="capitalize",
         docstring=_shared_docs["casemethods"] % _doc_args["capitalize"],
+        dtype=str,
     )
     swapcase = _noarg_wrapper(
         lambda x: x.swapcase(),
         name="swapcase",
         docstring=_shared_docs["casemethods"] % _doc_args["swapcase"],
+        dtype=str,
     )
     casefold = _noarg_wrapper(
         lambda x: x.casefold(),
         name="casefold",
         docstring=_shared_docs["casemethods"] % _doc_args["casefold"],
+        dtype=str,
     )
 
     _shared_docs[
