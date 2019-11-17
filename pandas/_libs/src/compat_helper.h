@@ -38,13 +38,9 @@ PANDAS_INLINE int slice_get_indices(PyObject *s,
                                     Py_ssize_t *stop,
                                     Py_ssize_t *step,
                                     Py_ssize_t *slicelength) {
-#if PY_VERSION_HEX >= 0x03000000
+
   return PySlice_GetIndicesEx(s, length, start, stop,
                               step, slicelength);
-#else
-  return PySlice_GetIndicesEx((PySliceObject *)s, length, start,
-                              stop, step, slicelength);
-#endif  // PY_VERSION_HEX
 }
 
 #endif  // PANDAS__LIBS_SRC_COMPAT_HELPER_H_
