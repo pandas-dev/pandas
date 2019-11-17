@@ -21,8 +21,9 @@ jobs:
         image: mysql:latest
         ports:
         - 8888:3306
-        # healthy checks not passing, no idea why
-        # options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
+        env:
+          MYSQL_ROOT_PASSWORD: password
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -39,7 +40,7 @@ jobs:
 
     - name: Create databases
       run: |
-        mysql -e 'create database pandas_nosetest;'
+        mysql -e 'create database pandas_nosetest;' || mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} --user root --password password -e "CREATE DATABASE pandas_nosetest;"
         psql -c 'create database pandas_nosetest;' -U postgres
       if: matrix.coverage
 
