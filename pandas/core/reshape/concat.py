@@ -5,6 +5,7 @@ concat routines
 from collections import Counter
 from functools import partial
 from itertools import chain
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -41,7 +42,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort=None,
-    suffixes=None,
+    suffixes: Optional[tuple] = None,
     copy: bool = True,
 ):
     """
@@ -644,8 +645,8 @@ class _Concatenator:
 
         if not isinstance(suffixes, tuple):
             raise ValueError(
-                "Invalid type {t} is assigned to suffixes, only"
-                " <class 'tuple'> is allowed.".format(t=type(suffixes))
+                f"Invalid type {type(suffixes)} is assigned to suffixes, only"
+                f"'tuple' is allowed."
             )
 
         if len(objs) != len(suffixes):
@@ -671,7 +672,7 @@ class _Concatenator:
             x : renamed column name
             """
             if x in to_rename and suffix is not None:
-                return "{x}{suffix}".format(x=x, suffix=suffix)
+                return f"{x}{suffix}"
             return x
 
         if self._is_series:
