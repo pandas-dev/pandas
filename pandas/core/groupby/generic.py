@@ -384,7 +384,7 @@ class SeriesGroupBy(GroupBy):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs) -> Dict:
-        result = {}  # type: Dict
+        result: Dict = {}
 
         for name, group in self:
             group.name = name
