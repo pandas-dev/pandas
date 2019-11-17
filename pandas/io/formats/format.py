@@ -1187,7 +1187,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: bool = "compat",
+        leading_space: Union[bool, str] = "compat",
     ):
         self.values = values
         self.digits = digits
