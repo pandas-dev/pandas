@@ -4,7 +4,6 @@ import distutils
 from typing import List, Optional
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 from pandas._typing import FilePathOrBuffer
@@ -35,47 +34,16 @@ def get_engine(engine: str) -> "PyArrowImpl":
     if engine not in ["pyarrow"]:
         raise ValueError("engine must be 'pyarrow'")
 
-    if engine == "pyarrow":
-        return PyArrowImpl()
+    return PyArrowImpl()
 
 
-class BaseImpl:
-
-    api = None  # module
-
-    @staticmethod
-    def validate_dataframe(df: DataFrame):
-
-        if not isinstance(df, DataFrame):
-            raise ValueError("to_orc only supports IO with DataFrames")
-
-        # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
-            raise ValueError("ORC must have string column names")
-
-        # index level names must be strings
-        valid_names = all(
-            isinstance(name, str) for name in df.index.names if name is not None
-        )
-        if not valid_names:
-            raise ValueError("Index level names must be strings")
-
-    def write(self, df: DataFrame, path: FilePathOrBuffer, compression: str, **kwargs):
-        raise AbstractMethodError(self)
-
-    def read(
-        self, path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
-    ):
-        raise AbstractMethodError(self)
-
-
-class PyArrowImpl(BaseImpl):
+class PyArrowImpl:
     def __init__(self):
         pyarrow = import_optional_dependency(
             "pyarrow", extra="pyarrow is required for orc support."
         )
 
-        # we require a newer version of pyarrow that we support for parquet
+        # we require a newer version of pyarrow thaN we support for parquet
         import pyarrow
 
         if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
