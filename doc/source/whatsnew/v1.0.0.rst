@@ -354,7 +354,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Calling :meth:`Series.str.isalnum` (and other "ismethods") on an empty Series would return an object dtype instead of bool (:issue:`29624`)
 -
 
 
