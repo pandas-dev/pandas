@@ -1,4 +1,3 @@
-from typing import Optional
 import warnings
 
 import numpy as np
@@ -58,8 +57,16 @@ class NumericIndex(Index):
             if fastpath:
                 return cls._simple_new(data, name=name)
 
-        # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data, dtype=dtype)
+        # Coerce to ndarray if not already ndarray or Index
+        if not isinstance(data, (np.ndarray, Index)):
+            if is_scalar(data):
+                raise cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+
+            data = np.asarray(data, dtype=dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -129,45 +136,6 @@ class NumericIndex(Index):
         truncation (e.g. float to int).
         """
         pass
-
-    @classmethod
-    def _coerce_to_ndarray(cls, data, dtype: Optional[np.dtype]):
-        """
-        Coerce data to ndarray unless it's an instance of pd.Index.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Parameters
-        ----------
-        data : array-like (1-dimensional)
-        dtype : numpy.dtype or None
-            If a numpy.dtype is passed, data will be casted to the type when
-            possible.
-
-        Returns
-        -------
-        numpy.ndarray or pd.Index
-            Numpy.ndarray created from data, or data itself if an instance of
-            pd.Index is passed.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if isinstance(data, (np.ndarray, Index)):
-            return data
-
-        if is_scalar(data):
-            raise cls._scalar_data_error(data)
-
-        # other iterable of some kind
-        if not isinstance(data, (ABCSeries, list, tuple)):
-            data = list(data)
-
-        return np.asarray(data, dtype=dtype)
 
     def _concat_same_dtype(self, indexes, name):
         result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
