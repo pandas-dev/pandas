@@ -125,7 +125,7 @@ class Scope:
             self.scope.update(local_dict.scope)
             if local_dict.target is not None:
                 self.target = local_dict.target
-            self.update(local_dict.level)
+            self._update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -251,9 +251,9 @@ class Scope:
             evaluate to a dictionary. For example, ('locals', 'globals')
         """
         variables = itertools.product(scopes, stack)
-        for scope, (frame, _, _, _, _, _) in variables:
+        for name, (frame, _, _, _, _, _) in variables:
             try:
-                d = getattr(frame, "f_" + scope)
+                d = getattr(frame, "f_" + name)
                 self.scope = self.scope.new_child(d)
             finally:
                 # won't remove it, but DECREF it
@@ -261,7 +261,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level: int):
+    def _update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 
