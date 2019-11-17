@@ -1,15 +1,21 @@
 """ test orc compat """
 import datetime
+import distutils
 import os
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
+
 from pandas.io.orc import PyArrowImpl, get_engine, read_orc
 
 try:
     import pyarrow  # noqa
+
+    if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
+        raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
 
     _HAVE_PYARROW = True
 except ImportError:

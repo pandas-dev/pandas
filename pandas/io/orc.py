@@ -1,5 +1,7 @@
 """ orc compat """
 
+import distutils
+
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
@@ -68,6 +70,13 @@ class PyArrowImpl(BaseImpl):
         pyarrow = import_optional_dependency(
             "pyarrow", extra="pyarrow is required for orc support."
         )
+
+        # we require a newer version of pyarrow that we support for parquet
+        import pyarrow
+
+        if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
+            raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
+
         import pyarrow.orc
 
         self.api = pyarrow
