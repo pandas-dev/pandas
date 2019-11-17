@@ -87,7 +87,7 @@ def read_orc(path, engine="auto", columns=None, **kwargs):
     """
     Load an ORC object from the file path, returning a DataFrame.
 
-    .. versionadded:: 0.21.0
+    .. versionadded:: 1.0.0
 
     Parameters
     ----------
@@ -108,8 +108,6 @@ def read_orc(path, engine="auto", columns=None, **kwargs):
         used. The default ``io.orc.engine`` behavior is to try 'pyarrow'.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
-        .. versionadded:: 0.21.1
     **kwargs
         Any additional kwargs are passed to the engine.
 
