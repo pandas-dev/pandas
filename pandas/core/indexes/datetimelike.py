@@ -15,6 +15,7 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64,
+    is_bool_dtype,
     is_dtype_equal,
     is_float,
     is_integer,
@@ -26,7 +27,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -77,7 +78,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     common ops mixin to support a unified interface datetimelike Index
     """
 
-    _data = None
+    _data: ExtensionArray
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -147,7 +148,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return wrapper
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
     # ------------------------------------------------------------------------
@@ -163,6 +164,20 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def asi8(self):
         return self._data.asi8
 
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc.
+        """
+        result = lib.item_from_zerodim(result)
+        if is_bool_dtype(result) or lib.is_scalar(result):
+            return result
+
+        attrs = self._get_attributes_dict()
+        if not is_period_dtype(self) and attrs["freq"]:
+            # no need to infer if freq is None
+            attrs["freq"] = "infer"
+        return Index(result, **attrs)
+
     # ------------------------------------------------------------------------
 
     def equals(self, other):
@@ -177,7 +192,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
+                # e.g.
+                #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
+                #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
+                #  OverflowError -> Index([very_large_timedeltas])
                 return False
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -817,7 +836,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties = set()  # type: Set[str]
     name = None
-    _data = None
+    _data: ExtensionArray
 
     @property
     def _delegate_class(self):

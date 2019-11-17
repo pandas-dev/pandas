@@ -306,15 +306,14 @@ class TestTimestampTZOperations:
 
     @td.skip_if_windows
     def test_tz_convert_utc_with_system_utc(self):
-        from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 

@@ -4,7 +4,7 @@
 Expose public exceptions & warnings
 """
 
-from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
 
 
 class PerformanceWarning(Warning):
@@ -25,8 +25,6 @@ class UnsortedIndexError(KeyError):
     """
     Error raised when attempting to get a slice of a MultiIndex,
     and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
     """
 
 
@@ -157,14 +155,6 @@ class MergeError(ValueError):
     """
 
 
-class NullFrequencyError(ValueError):
-    """
-    Error raised when a null `freq` attribute is used in an operation
-    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
-    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
-    """
-
-
 class AccessorRegistrationWarning(Warning):
     """Warning for attribute conflicts in accessor registration."""
 
@@ -184,7 +174,7 @@ class AbstractMethodError(NotImplementedError):
         self.methodtype = methodtype
         self.class_instance = class_instance
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:

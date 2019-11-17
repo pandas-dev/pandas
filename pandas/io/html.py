@@ -1,4 +1,5 @@
-""":mod:`pandas.io.html` is a module containing functionality for dealing with
+"""
+:mod:`pandas.io.html` is a module containing functionality for dealing with
 HTML IO.
 
 """
@@ -8,7 +9,6 @@ import numbers
 import os
 import re
 
-from pandas.compat import raise_with_traceback
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
 
@@ -57,15 +57,15 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s, regex=_RE_WHITESPACE):
-    """Replace extra whitespace inside of a string with a single space.
+def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
+    """
+    Replace extra whitespace inside of a string with a single space.
 
     Parameters
     ----------
     s : str or unicode
         The string from which to remove extra whitespace.
-
-    regex : regex
+    regex : re.Pattern
         The regular expression to use to remove extra whitespace.
 
     Returns
@@ -77,7 +77,8 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
 
 
 def _get_skiprows(skiprows):
-    """Get an iterator given an integer, slice or container.
+    """
+    Get an iterator given an integer, slice or container.
 
     Parameters
     ----------
@@ -107,7 +108,8 @@ def _get_skiprows(skiprows):
 
 
 def _read(obj):
-    """Try to read from a url, file or string.
+    """
+    Try to read from a url, file or string.
 
     Parameters
     ----------
@@ -136,7 +138,8 @@ def _read(obj):
 
 
 class _HtmlFrameParser:
-    """Base class for parsers that parse HTML into DataFrames.
+    """
+    Base class for parsers that parse HTML into DataFrames.
 
     Parameters
     ----------
@@ -249,7 +252,8 @@ class _HtmlFrameParser:
         raise AbstractMethodError(self)
 
     def _parse_td(self, obj):
-        """Return the td elements from a row element.
+        """
+        Return the td elements from a row element.
 
         Parameters
         ----------
@@ -515,7 +519,8 @@ class _HtmlFrameParser:
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
-    """HTML to DataFrame parser that uses BeautifulSoup under the hood.
+    """
+    HTML to DataFrame parser that uses BeautifulSoup under the hood.
 
     See Also
     --------
@@ -595,7 +600,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         )
 
 
-def _build_xpath_expr(attrs):
+def _build_xpath_expr(attrs) -> str:
     """Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
@@ -622,7 +627,8 @@ _valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
-    """HTML to DataFrame parser that uses lxml under the hood.
+    """
+    HTML to DataFrame parser that uses lxml under the hood.
 
     Warning
     -------
@@ -804,7 +810,8 @@ _valid_parsers = {
 
 
 def _parser_dispatch(flavor):
-    """Choose the parser based on the input flavor.
+    """
+    Choose the parser based on the input flavor.
 
     Parameters
     ----------
@@ -844,7 +851,7 @@ def _parser_dispatch(flavor):
     return _valid_parsers[flavor]
 
 
-def _print_as_set(s):
+def _print_as_set(s) -> str:
     return "{" + "{arg}".format(arg=", ".join(pprint_thing(el) for el in s)) + "}"
 
 
@@ -882,7 +889,6 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    # hack around python 3 deleting the exception variable
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
@@ -909,7 +915,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
-        raise_with_traceback(retained)
+        raise retained
 
     ret = []
     for table in tables:
@@ -937,7 +943,8 @@ def read_html(
     keep_default_na=True,
     displayed_only=True,
 ):
-    r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
+    r"""
+    Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
     ----------
@@ -954,7 +961,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str or None, container of strings
+    flavor : str or None
         The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
         each other, they are both there for backwards compatibility. The
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
@@ -968,7 +975,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int or list-like or slice or None, optional
-        0-based. Number of rows to skip after parsing the column integer. If a
+        Number of rows to skip after parsing the column integer. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
@@ -1018,18 +1025,19 @@ def read_html(
         transformed content.
 
     na_values : iterable, default None
-        Custom NA values
+        Custom NA values.
 
     keep_default_na : bool, default True
         If na_values are specified and keep_default_na is False the default NaN
-        values are overridden, otherwise they're appended to
+        values are overridden, otherwise they're appended to.
 
     displayed_only : bool, default True
-        Whether elements with "display: none" should be parsed
+        Whether elements with "display: none" should be parsed.
 
     Returns
     -------
-    dfs : list of DataFrames
+    dfs
+        A list of DataFrames.
 
     See Also
     --------

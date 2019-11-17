@@ -1,10 +1,8 @@
 from collections import OrderedDict
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import operator
 import re
-import sys
 
 import numpy as np
 import pytest
@@ -25,15 +23,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-    randn,
-)
-
-# in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
-PY361 = LooseVersion(sys.version) >= LooseVersion("3.6.1")
 
 
 @pytest.fixture
@@ -261,8 +250,8 @@ class TestBlock:
         assert len(self.fblock) == len(self.fblock.values)
 
     def test_merge(self):
-        avals = randn(2, 10)
-        bvals = randn(2, 10)
+        avals = tm.randn(2, 10)
+        bvals = tm.randn(2, 10)
 
         ref_cols = Index(["e", "a", "b", "d", "f"])
 
@@ -327,19 +316,27 @@ class TestBlock:
 
 
 class TestDatetimeBlock:
-    def test_try_coerce_arg(self):
+    def test_can_hold_element(self):
         block = create_block("datetime", [0])
 
-        # coerce None
-        none_coerced = block._try_coerce_args(None)
-        assert pd.Timestamp(none_coerced) is pd.NaT
+        # We will check that block._can_hold_element iff arr.__setitem__ works
+        arr = pd.array(block.values.ravel())
 
-        # coerce different types of date bojects
-        vals = (np.datetime64("2010-10-10"), datetime(2010, 10, 10), date(2010, 10, 10))
+        # coerce None
+        assert block._can_hold_element(None)
+        arr[0] = None
+        assert arr[0] is pd.NaT
+
+        # coerce different types of datetime objects
+        vals = [np.datetime64("2010-10-10"), datetime(2010, 10, 10)]
         for val in vals:
-            coerced = block._try_coerce_args(val)
-            assert np.datetime64 == type(coerced)
-            assert pd.Timestamp("2010-10-10") == pd.Timestamp(coerced)
+            assert block._can_hold_element(val)
+            arr[0] = val
+
+        val = date(2010, 10, 10)
+        assert not block._can_hold_element(val)
+        with pytest.raises(TypeError):
+            arr[0] = val
 
 
 class TestBlockManager:
@@ -382,7 +379,7 @@ class TestBlockManager:
     def test_pickle(self, mgr):
 
         mgr2 = tm.round_trip_pickle(mgr)
-        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         # share ref_items
         # assert mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items
@@ -399,20 +396,20 @@ class TestBlockManager:
 
         mgr = create_mgr("a,a,a:f8")
         mgr2 = tm.round_trip_pickle(mgr)
-        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         mgr = create_mgr("a: f8; a: i8")
         mgr2 = tm.round_trip_pickle(mgr)
-        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(Series(smgr), Series(smgr2))
 
     def test_get(self):
         cols = Index(list("abc"))
@@ -420,9 +417,9 @@ class TestBlockManager:
         block = make_block(values=values.copy(), placement=np.arange(3))
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
-        assert_almost_equal(mgr.get("a").internal_values(), values[0])
-        assert_almost_equal(mgr.get("b").internal_values(), values[1])
-        assert_almost_equal(mgr.get("c").internal_values(), values[2])
+        tm.assert_almost_equal(mgr.get("a").internal_values(), values[0])
+        tm.assert_almost_equal(mgr.get("b").internal_values(), values[1])
+        tm.assert_almost_equal(mgr.get("c").internal_values(), values[2])
 
     def test_set(self):
         mgr = create_mgr("a,b,c: int", item_shape=(3,))
@@ -448,10 +445,10 @@ class TestBlockManager:
         mgr2.set("baz", np.repeat("foo", N))
         assert mgr2.get("baz").dtype == np.object_
 
-        mgr2.set("quux", randn(N).astype(int))
+        mgr2.set("quux", tm.randn(N).astype(int))
         assert mgr2.get("quux").dtype == np.int_
 
-        mgr2.set("quux", randn(N))
+        mgr2.set("quux", tm.randn(N))
         assert mgr2.get("quux").dtype == np.float_
 
     def test_set_change_dtype_slice(self):  # GH8850
@@ -461,10 +458,10 @@ class TestBlockManager:
 
         blocks = df._to_dict_of_blocks()
         assert sorted(blocks.keys()) == ["float64", "int64"]
-        assert_frame_equal(
+        tm.assert_frame_equal(
             blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
         )
-        assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
+        tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
@@ -528,32 +525,33 @@ class TestBlockManager:
         assert mgr.get("g").dtype == "datetime64[ns, CET]"
         assert mgr.as_array().dtype == "object"
 
-    def test_astype(self):
+    @pytest.mark.parametrize("t", ["float16", "float32", "float64", "int32", "int64"])
+    def test_astype(self, t):
         # coerce all
         mgr = create_mgr("c: f4; d: f2; e: f8")
-        for t in ["float16", "float32", "float64", "int32", "int64"]:
-            t = np.dtype(t)
-            tmgr = mgr.astype(t)
-            assert tmgr.get("c").dtype.type == t
-            assert tmgr.get("d").dtype.type == t
-            assert tmgr.get("e").dtype.type == t
+
+        t = np.dtype(t)
+        tmgr = mgr.astype(t)
+        assert tmgr.get("c").dtype.type == t
+        assert tmgr.get("d").dtype.type == t
+        assert tmgr.get("e").dtype.type == t
 
         # mixed
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
-        for t in ["float16", "float32", "float64", "int32", "int64"]:
-            t = np.dtype(t)
-            tmgr = mgr.astype(t, errors="ignore")
-            assert tmgr.get("c").dtype.type == t
-            assert tmgr.get("e").dtype.type == t
-            assert tmgr.get("f").dtype.type == t
-            assert tmgr.get("g").dtype.type == t
 
-            assert tmgr.get("a").dtype.type == np.object_
-            assert tmgr.get("b").dtype.type == np.object_
-            if t != np.int64:
-                assert tmgr.get("d").dtype.type == np.datetime64
-            else:
-                assert tmgr.get("d").dtype.type == t
+        t = np.dtype(t)
+        tmgr = mgr.astype(t, errors="ignore")
+        assert tmgr.get("c").dtype.type == t
+        assert tmgr.get("e").dtype.type == t
+        assert tmgr.get("f").dtype.type == t
+        assert tmgr.get("g").dtype.type == t
+
+        assert tmgr.get("a").dtype.type == np.object_
+        assert tmgr.get("b").dtype.type == np.object_
+        if t != np.int64:
+            assert tmgr.get("d").dtype.type == np.datetime64
+        else:
+            assert tmgr.get("d").dtype.type == t
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
@@ -679,11 +677,11 @@ class TestBlockManager:
         pass
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.set("f", randn(N))
-        mgr.set("d", randn(N))
-        mgr.set("b", randn(N))
-        mgr.set("g", randn(N))
-        mgr.set("h", randn(N))
+        mgr.set("f", tm.randn(N))
+        mgr.set("d", tm.randn(N))
+        mgr.set("b", tm.randn(N))
+        mgr.set("g", tm.randn(N))
+        mgr.set("h", tm.randn(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
@@ -706,16 +704,16 @@ class TestBlockManager:
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 2
         tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("g").internal_values(), reindexed.get("g").internal_values()
         )
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("c").internal_values(), reindexed.get("c").internal_values()
         )
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("a").internal_values(), reindexed.get("a").internal_values()
         )
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("d").internal_values(), reindexed.get("d").internal_values()
         )
 
@@ -731,13 +729,13 @@ class TestBlockManager:
         tm.assert_index_equal(
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("float").internal_values(), numeric.get("float").internal_values()
         )
 
         # Check sharing
         numeric.set("float", np.array([100.0, 200.0, 300.0]))
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
 
@@ -746,7 +744,7 @@ class TestBlockManager:
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
         numeric2.set("float", np.array([1000.0, 2000.0, 3000.0]))
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("float").internal_values(), np.array([100.0, 200.0, 300.0])
         )
 
@@ -760,7 +758,7 @@ class TestBlockManager:
 
         bools = mgr.get_bool_data()
         tm.assert_index_equal(bools.items, pd.Index(["bool"]))
-        assert_almost_equal(
+        tm.assert_almost_equal(
             mgr.get("bool").internal_values(), bools.get("bool").internal_values()
         )
 
@@ -1093,10 +1091,6 @@ class TestBlockPlacement:
 
         assert_as_slice_equals([2, 1], slice(2, 0, -1))
 
-        if not PY361:
-            assert_as_slice_equals([2, 1, 0], slice(2, None, -1))
-            assert_as_slice_equals([100, 0], slice(100, None, -100))
-
     def test_not_slice_like_arrays(self):
         def assert_not_slice_like(arr):
             assert not BlockPlacement(arr).is_slice_like
@@ -1116,10 +1110,6 @@ class TestBlockPlacement:
         assert list(BlockPlacement(slice(0, 0))) == []
         assert list(BlockPlacement(slice(3, 0))) == []
 
-        if not PY361:
-            assert list(BlockPlacement(slice(3, 0, -1))) == [3, 2, 1]
-            assert list(BlockPlacement(slice(3, None, -1))) == [3, 2, 1, 0]
-
     def test_slice_to_array_conversion(self):
         def assert_as_array_equals(slc, asarray):
             tm.assert_numpy_array_equal(
@@ -1131,10 +1121,6 @@ class TestBlockPlacement:
         assert_as_array_equals(slice(3, 0), [])
 
         assert_as_array_equals(slice(3, 0, -1), [3, 2, 1])
-
-        if not PY361:
-            assert_as_array_equals(slice(3, None, -1), [3, 2, 1, 0])
-            assert_as_array_equals(slice(31, None, -10), [31, 21, 11, 1])
 
     def test_blockplacement_add(self):
         bpl = BlockPlacement(slice(0, 5))
@@ -1165,14 +1151,6 @@ class TestBlockPlacement:
         with pytest.raises(ValueError):
             BlockPlacement([1, 2, 4]).add(-10)
 
-        if not PY361:
-            assert_add_equals(slice(3, 0, -1), -1, [2, 1, 0])
-            assert_add_equals(slice(2, None, -1), 0, [2, 1, 0])
-            assert_add_equals(slice(2, None, -1), 10, [12, 11, 10])
-
-            with pytest.raises(ValueError):
-                BlockPlacement(slice(2, None, -1)).add(-1)
-
 
 class DummyElement:
     def __init__(self, value, dtype):
@@ -1182,10 +1160,10 @@ class DummyElement:
     def __array__(self):
         return np.array(self.value, dtype=self.dtype)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "DummyElement({}, {})".format(self.value, self.dtype)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def astype(self, dtype, copy=False):
@@ -1259,7 +1237,7 @@ class TestCanHoldElement:
             # asserts anything meaningful
             result = op(s, e.value).dtypes
             expected = op(s, value).dtypes
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(

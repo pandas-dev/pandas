@@ -10,7 +10,7 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import _stringify_path
 
 
-def to_feather(df, path):
+def to_feather(df: DataFrame, path):
     """
     Write a DataFrame to the feather-format
 
@@ -39,7 +39,7 @@ def to_feather(df, path):
     if not isinstance(df.index, Int64Index):
         raise ValueError(
             "feather does not support serializing {} "
-            "for the index; you can .reset_index()"
+            "for the index; you can .reset_index() "
             "to make the index into column(s)".format(type(df.index))
         )
 
@@ -53,7 +53,7 @@ def to_feather(df, path):
 
     if df.index.name is not None:
         raise ValueError(
-            "feather does not serialize index meta-data on a " "default index"
+            "feather does not serialize index meta-data on a default index"
         )
 
     # validate columns
@@ -70,8 +70,6 @@ def to_feather(df, path):
 def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------

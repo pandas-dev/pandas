@@ -5,6 +5,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import Appender, cache_readonly
 
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
@@ -36,10 +36,9 @@ _num_index_shared_docs = dict()
 
 class NumericIndex(Index):
     """
-    Provide numeric type operations
+    Provide numeric type operations.
 
-    This is an abstract class
-
+    This is an abstract class.
     """
 
     _is_numeric_dtype = True
@@ -87,7 +86,9 @@ class NumericIndex(Index):
         return super()._shallow_copy(values=values, **kwargs)
 
     def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
+        """
+        Convert value to be insertable to ndarray.
+        """
 
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
@@ -129,12 +130,13 @@ class NumericIndex(Index):
         pass
 
     def _concat_same_dtype(self, indexes, name):
-        return _concat._concat_index_same_dtype(indexes).rename(name)
+        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
+        return result.rename(name)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
-        Checks that all the labels are datetime objects
+        Checks that all the labels are datetime objects.
         """
         return False
 
@@ -168,16 +170,16 @@ _num_index_shared_docs[
 ] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s
+    of `Index` with purely %(ltype)s labels. %(extra)s.
 
     Parameters
     ----------
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: %(dtype)s)
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -204,7 +206,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
         """
@@ -226,12 +228,12 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.int64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``Int64Index``"""
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("i8")
 
@@ -281,12 +283,12 @@ class UInt64Index(IntegerIndex):
     _default_dtype = np.uint64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``UInt64Index``"""
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("u8")
 
@@ -354,7 +356,7 @@ class Float64Index(NumericIndex):
     _default_dtype = np.float64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'floating' for ``Float64Index``"""
         return "floating"
 
@@ -367,12 +369,11 @@ class Float64Index(NumericIndex):
                 "values are required for conversion"
             ).format(dtype=dtype)
             raise TypeError(msg)
-        elif (
-            is_integer_dtype(dtype) and not is_extension_array_dtype(dtype)
-        ) and self.hasnans:
+        elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            raise ValueError("Cannot convert NA to integer")
+            arr = astype_nansafe(self.values, dtype=dtype)
+            return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
@@ -412,7 +413,9 @@ class Float64Index(NumericIndex):
         return formatter.get_result_as_array()
 
     def get_value(self, series, key):
-        """ we always want to get an index value, never a value """
+        """
+        We always want to get an index value, never a value.
+        """
         if not is_scalar(key):
             raise InvalidIndexError
 
@@ -422,7 +425,7 @@ class Float64Index(NumericIndex):
 
         return new_values
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -444,7 +447,7 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other):
+    def __contains__(self, other) -> bool:
         if super().__contains__(other):
             return True
 
@@ -479,7 +482,7 @@ class Float64Index(NumericIndex):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)

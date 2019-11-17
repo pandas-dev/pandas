@@ -15,7 +15,6 @@ from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, ensure_clean
 
 from pandas.tseries.offsets import DateOffset
 
@@ -628,7 +627,7 @@ class TestTSPlot(TestPlotBase):
         axes = fig.get_axes()
         line = ax.get_lines()[0]
         xp = Series(line.get_ydata(), line.get_xdata())
-        assert_series_equal(ser, xp)
+        tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()
         self.plt.close(fig)
@@ -658,7 +657,7 @@ class TestTSPlot(TestPlotBase):
         axes = fig.get_axes()
         line = ax.get_lines()[0]
         xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
-        assert_series_equal(ser, xp)
+        tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()
         self.plt.close(fig)
@@ -1098,7 +1097,6 @@ class TestTSPlot(TestPlotBase):
                 assert xp == rs
 
     @pytest.mark.slow
-    @pytest.mark.xfail(strict=False, reason="Unreliable test")
     def test_time_change_xlim(self):
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
@@ -1411,7 +1409,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in range(10)]
+        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
@@ -1554,14 +1552,11 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             assert ax.freq == freq
 
         ax = fig.add_subplot(212)
-        try:
-            kwargs["ax"] = ax
-            ret = f(*args, **kwargs)
-            assert ret is not None  # do something more intelligent
-        except Exception:
-            pass
+        kwargs["ax"] = ax
+        ret = f(*args, **kwargs)
+        assert ret is not None  # TODO: do something more intelligent
 
-        with ensure_clean(return_filelike=True) as path:
+        with tm.ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
 
         # GH18439
@@ -1571,7 +1566,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         # https://github.com/pandas-dev/pandas/issues/24088
         # https://github.com/statsmodels/statsmodels/issues/4772
         if "statsmodels" not in sys.modules:
-            with ensure_clean(return_filelike=True) as path:
+            with tm.ensure_clean(return_filelike=True) as path:
                 pickle.dump(fig, path)
     finally:
         plt.close(fig)

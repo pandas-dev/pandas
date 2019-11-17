@@ -7,7 +7,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
+from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -18,11 +18,8 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
-    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -169,7 +166,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
@@ -263,7 +260,7 @@ class BlockManager(PandasObject):
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = [ax for ax in self.axes]
+        axes_array = list(self.axes)
 
         extra_state = {
             "0.14.1": {
@@ -322,10 +319,10 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -357,7 +354,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager
@@ -432,7 +429,7 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = getattr(obj, "_info_axis_number", 0)
+                    axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
             applied = getattr(b, f)(**kwargs)
@@ -602,9 +599,10 @@ class BlockManager(PandasObject):
             """
             if isna(s):
                 return isna(values)
-            if hasattr(s, "asm8"):
+            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
+
                 return _compare_or_regex_search(
-                    maybe_convert_objects(values), getattr(s, "asm8"), regex
+                    maybe_convert_objects(values), s.asm8, regex
                 )
             return _compare_or_regex_search(values, s, regex)
 
@@ -908,7 +906,7 @@ class BlockManager(PandasObject):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+                result[rl] = blk.iget((i, loc))
 
         if is_extension_array_dtype(dtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
@@ -975,8 +973,6 @@ class BlockManager(PandasObject):
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
-        if values.ndim != 1:
-            return values
 
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
@@ -1035,11 +1031,7 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        # TODO(EA): Remove an is_extension_ when all extension types satisfy
-        # the interface
-        value_is_extension_type = is_extension_type(value) or is_extension_array_dtype(
-            value
-        )
+        value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1080,9 +1072,7 @@ class BlockManager(PandasObject):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
@@ -1279,7 +1269,6 @@ class BlockManager(PandasObject):
         Returns
         -------
         new_blocks : list of Block
-
         """
 
         allow_fill = fill_tuple is not None
@@ -1324,9 +1313,7 @@ class BlockManager(PandasObject):
         # FIXME: mgr_groupby_blknos must return mgr_locs in ascending order,
         # pytables serialization will break otherwise.
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(
-            blknos, self.nblocks, group=True
-        ):
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
             if blkno == -1:
                 # If we've got here, fill_tuple was not None.
                 fill_value = fill_tuple[0]
@@ -1583,10 +1570,6 @@ class SingleBlockManager(BlockManager):
     def internal_values(self):
         return self._block.internal_values()
 
-    def formatting_values(self):
-        """Return the internal values used by the DataFrame/SeriesFormatter"""
-        return self._block.formatting_values()
-
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
@@ -1824,7 +1807,7 @@ def _simple_blockify(tuples, dtype):
     """
     values, placement = _stack_arrays(tuples, dtype)
 
-    # CHECK DTYPE?
+    # TODO: CHECK DTYPE?
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
@@ -1941,15 +1924,7 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    # numpy deprecation warning to have i8 vs integer comparisons
-    if is_datetimelike_v_numeric(a, b):
-        result = False
-
-    # numpy deprecation warning if comparing numeric vs string-like
-    elif is_numeric_v_string_like(a, b):
-        result = False
-    else:
-        result = op(a)
+    result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
@@ -2040,7 +2015,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
             values = b.values
             if copy:
                 values = values.copy()
-            elif not copy:
+            else:
                 values = values.view()
             b = b.make_block_same_class(values, placement=placement)
         elif is_uniform_join_units(join_units):

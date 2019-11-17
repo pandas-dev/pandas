@@ -1,4 +1,5 @@
 import itertools
+from typing import Dict, List
 
 import numpy as np
 import pytest
@@ -478,22 +479,20 @@ class TestInsertIndexCoercion(CoercionBase):
         obj = pd.PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq="M")
         assert obj.dtype == "period[M]"
 
+        data = [
+            pd.Period("2011-01", freq="M"),
+            coerced_val,
+            pd.Period("2011-02", freq="M"),
+            pd.Period("2011-03", freq="M"),
+            pd.Period("2011-04", freq="M"),
+        ]
         if isinstance(insert, pd.Period):
-            index_type = pd.PeriodIndex
+            exp = pd.PeriodIndex(data, freq="M")
+            self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
         else:
-            index_type = pd.Index
-
-        exp = index_type(
-            [
-                pd.Period("2011-01", freq="M"),
-                coerced_val,
-                pd.Period("2011-02", freq="M"),
-                pd.Period("2011-03", freq="M"),
-                pd.Period("2011-04", freq="M"),
-            ],
-            freq="M",
-        )
-        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
+            msg = r"Unexpected keyword arguments {'freq'}"
+            with pytest.raises(TypeError, match=msg):
+                pd.Index(data, freq="M")
 
     def test_insert_index_complex128(self):
         pass
@@ -928,7 +927,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep = {}
+    rep = {}  # type: Dict[str, List]
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]
@@ -1029,22 +1028,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    # TODO(jbrockmendel) commented out to only have a single xfail printed
-    @pytest.mark.xfail(
-        reason="GH #18376, tzawareness-compat bug in BlockManager.replace_list"
+    @pytest.mark.parametrize("how", ["dict", "series"])
+    @pytest.mark.parametrize(
+        "to_key",
+        ["timedelta64[ns]", "bool", "object", "complex128", "float64", "int64"],
     )
-    # @pytest.mark.parametrize('how', ['dict', 'series'])
-    # @pytest.mark.parametrize('to_key', ['timedelta64[ns]', 'bool', 'object',
-    #                                     'complex128', 'float64', 'int64'])
-    # @pytest.mark.parametrize('from_key', ['datetime64[ns, UTC]',
-    #                                       'datetime64[ns, US/Eastern]'])
-    # def test_replace_series_datetime_tz(self, how, to_key, from_key):
-    def test_replace_series_datetime_tz(self):
-        how = "series"
-        from_key = "datetime64[ns, US/Eastern]"
-        to_key = "timedelta64[ns]"
-
-        index = pd.Index([3, 4], name="xxx")
+    @pytest.mark.parametrize(
+        "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"]
+    )
+    def test_replace_series_datetime_tz(self, how, to_key, from_key):
+        index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
@@ -1061,24 +1054,17 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    # TODO(jreback) commented out to only have a single xfail printed
-    @pytest.mark.xfail(
-        reason="different tz, currently mask_missing raises SystemError", strict=False
+    @pytest.mark.parametrize("how", ["dict", "series"])
+    @pytest.mark.parametrize(
+        "to_key",
+        ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
     )
-    # @pytest.mark.parametrize('how', ['dict', 'series'])
-    # @pytest.mark.parametrize('to_key', [
-    #    'datetime64[ns]', 'datetime64[ns, UTC]',
-    #    'datetime64[ns, US/Eastern]'])
-    # @pytest.mark.parametrize('from_key', [
-    #    'datetime64[ns]', 'datetime64[ns, UTC]',
-    #    'datetime64[ns, US/Eastern]'])
-    # def test_replace_series_datetime_datetime(self, how, to_key, from_key):
-    def test_replace_series_datetime_datetime(self):
-        how = "dict"
-        to_key = "datetime64[ns]"
-        from_key = "datetime64[ns]"
-
-        index = pd.Index([3, 4], name="xxx")
+    @pytest.mark.parametrize(
+        "from_key",
+        ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
+    )
+    def test_replace_series_datetime_datetime(self, how, to_key, from_key):
+        index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 

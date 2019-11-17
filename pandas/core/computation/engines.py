@@ -17,7 +17,8 @@ class NumExprClobberingError(NameError):
 
 
 def _check_ne_builtin_clash(expr):
-    """Attempt to prevent foot-shooting in a helpful way.
+    """
+    Attempt to prevent foot-shooting in a helpful way.
 
     Parameters
     ----------
@@ -28,7 +29,7 @@ def _check_ne_builtin_clash(expr):
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ", ".join(map(repr, overlap))
+        s = ", ".join(repr(x) for x in overlap)
         raise NumExprClobberingError(
             'Variables in expression "{expr}" '
             "overlap with builtins: ({s})".format(expr=expr, s=s)
@@ -45,15 +46,17 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.aligned_axes = None
         self.result_type = None
 
-    def convert(self):
-        """Convert an expression for evaluation.
+    def convert(self) -> str:
+        """
+        Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """
         return printing.pprint_thing(self.expr)
 
     def evaluate(self):
-        """Run the engine on the expression
+        """
+        Run the engine on the expression.
 
         This method performs alignment which is necessary no matter what engine
         is being used, thus its implementation is in the base class.
@@ -73,12 +76,13 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         )
 
     @property
-    def _is_aligned(self):
+    def _is_aligned(self) -> bool:
         return self.aligned_axes is not None and self.result_type is not None
 
     @abc.abstractmethod
     def _evaluate(self):
-        """Return an evaluated expression.
+        """
+        Return an evaluated expression.
 
         Parameters
         ----------
@@ -94,7 +98,6 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
 
 class NumExprEngine(AbstractEngine):
-
     """NumExpr engine class"""
 
     has_neg_frac = True
@@ -102,7 +105,7 @@ class NumExprEngine(AbstractEngine):
     def __init__(self, expr):
         super().__init__(expr)
 
-    def convert(self):
+    def convert(self) -> str:
         return str(super().convert())
 
     def _evaluate(self):
@@ -127,8 +130,8 @@ class NumExprEngine(AbstractEngine):
 
 
 class PythonEngine(AbstractEngine):
-
-    """Evaluate an expression in Python space.
+    """
+    Evaluate an expression in Python space.
 
     Mostly for testing purposes.
     """
