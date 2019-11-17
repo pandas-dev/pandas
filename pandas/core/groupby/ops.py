@@ -661,6 +661,7 @@ class BaseGrouper:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
                         # FIXME: are we potentially losing import res.index info?
 
+                        # TODO: use `.item()` if/when we un-deprecate it.
                         # For non-Series we could just do `res[0]`
                         res = next(iter(res))
                     else:
