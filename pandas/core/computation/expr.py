@@ -39,7 +39,7 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source):
+def tokenize_string(source: str):
     """
     Tokenize a Python source code string.
 
@@ -170,7 +170,7 @@ def _compose(*funcs):
 
 
 def _preparse(
-    source,
+    source: str,
     f=_compose(
         _replace_locals,
         _replace_booleans,
