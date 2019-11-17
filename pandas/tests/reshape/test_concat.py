@@ -2778,23 +2778,6 @@ def test_concat_datetimeindex_freq():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "obj1, obj2",
-    [
-        (pd.Series([1, 2, 3], name="a"), pd.Series([2, 3, 4], name="a")),
-        (pd.Series([1, 2, 3], name="a"), pd.DataFrame({"a": [2, 3, 4]})),
-        (pd.DataFrame({"a": [1, 2, 3]}), pd.DataFrame({"a": [2, 3, 4]})),
-    ],
-)
-def test_concat_suffixes_warning(obj1, obj2):
-    # GH 21791, add test for warning when suffix is None and columns overlap
-    with catch_warnings(record=True):
-        output = pd.concat([obj1, obj2], axis=1)
-
-    tm.assert_series_equal(output.iloc[:, 0], pd.Series([1, 2, 3], name="a"))
-    tm.assert_series_equal(output.iloc[:, 1], pd.Series([2, 3, 4], name="a"))
-
-
 @pytest.mark.parametrize("suffixes", ["_a", ("_x"), ["a", "b"]])
 def test_concat_suffixes_type(suffixes):
     # GH 21791, like pd.merge, here suffixes type should be tuple

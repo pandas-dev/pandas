@@ -101,9 +101,7 @@ def concat(
 
     suffixes : tuple of str, default None
         Suffix to apply to overlapping column names for each concatenated object
-        respectively. If None and there is overlapping column names after concat,
-        DataFrame with duplicated names will be outputted along with a warning
-        message. If the length of suffixes does not match with number of
+        respectively. If the length of suffixes does not match with number of
         concatenated objects, an error will raise.
 
         This has no effect if there is no overlapping column names or if axis=0.
@@ -631,9 +629,6 @@ class _Concatenator:
 
         Be aware that `objs` can be either DataFrame-like or Index-like given
         if `self._is_series` is True or False.
-
-        Since default is None, therefore, if overlapping is found and suffixes
-        is default None, will raise a warning and return the objs as is.
         """
         if self._is_series:
 
@@ -643,17 +638,7 @@ class _Concatenator:
             overlap_cols = chain.from_iterable([obj.columns for obj in objs])
         to_rename = [col for col, cnt in Counter(overlap_cols).items() if cnt > 1]
 
-        if len(to_rename) == 0:
-            return objs
-
-        if suffixes is None:
-
-            # this is to keep current behavior unchanged for users, so just raise
-            # a warning instead of error
-            warnings.warn(
-                "There will have duplicated columns after concatenation,"
-                "you could avoid it by setting suffixes."
-            )
+        if len(to_rename) == 0 or suffixes is None:
             return objs
 
         if not isinstance(suffixes, tuple):
