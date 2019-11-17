@@ -4026,32 +4026,6 @@ class Index(IndexOpsMixin, PandasObject):
             "to explicitly cast to a numeric type"
         )
 
-    @classmethod
-    def _coerce_to_ndarray(cls, data, dtype=None):
-        """
-        Coerces data to ndarray.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if isinstance(data, (np.ndarray, Index)):
-            return data
-
-        if is_scalar(data):
-            raise cls._scalar_data_error(data)
-
-        # other iterable of some kind
-        if not isinstance(data, (ABCSeries, list, tuple)):
-            data = list(data)
-
-        return np.asarray(data, dtype=dtype)
-
     def _coerce_scalar_to_index(self, item):
         """
         We need to coerce a scalar to a compat for our index type.
