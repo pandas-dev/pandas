@@ -149,10 +149,17 @@ class TestGrouperGrouping:
             expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
             tm.assert_frame_equal(result, expected)
 
-        for f in ["linear", "lower", "higher", "midpoint", "nearest"]:
-            result = r.quantile(0.4, interpolation=f)
-            expected = g.apply(lambda x: x.expanding().quantile(0.4, interpolation=f))
-            tm.assert_frame_equal(result, expected)
+    @pytest.mark.parametrize(
+        "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
+    )
+    def test_expanding_quantile(self, interpolation):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+        result = r.quantile(0.4, interpolation=interpolation)
+        expected = g.apply(
+            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_expanding_corr_cov(self):
         g = self.frame.groupby("A")
