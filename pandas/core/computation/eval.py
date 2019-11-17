@@ -10,6 +10,7 @@ import warnings
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
+from pandas.core.computation.expr import _parsers
 from pandas.core.computation.scope import _ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
@@ -64,7 +65,7 @@ def _check_engine(engine):
     return engine
 
 
-def _check_parser(parser):
+def _check_parser(parser: str):
     """
     Make sure a valid parser is passed.
 
@@ -77,7 +78,6 @@ def _check_parser(parser):
     KeyError
       * If an invalid parser is passed
     """
-    from pandas.core.computation.expr import _parsers
 
     if parser not in _parsers:
         raise KeyError(
@@ -115,7 +115,7 @@ def _check_expression(expr):
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr):
+def _convert_expression(expr) -> str:
     """
     Convert an object to an expression.
 
@@ -131,7 +131,7 @@ def _convert_expression(expr):
 
     Returns
     -------
-    s : unicode
+    str
         The string representation of an object.
 
     Raises
