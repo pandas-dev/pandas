@@ -160,6 +160,9 @@ def _map_ea(
         return StringArray(result)
     # TODO: BooleanArray
     else:
+        import pdb
+
+        pdb.set_trace()
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 

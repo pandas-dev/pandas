@@ -3527,16 +3527,16 @@ def test_string_array(any_string_method):
 
 
 @pytest.mark.parametrize(
-    "method,args,expected",
+    "method,expected",
     [
-        ("count", ("a",), [2, None]),
-        ("find", ("a",), [0, None]),
-        ("index", ("a",), [0, None]),
-        ("rindex", ("a",), [2, None]),
+        ("count", [2, None]),
+        ("find", [0, None]),
+        ("index", [0, None]),
+        ("rindex", [2, None]),
     ],
 )
-def test_string_array_numeric_integer_array(method, args, expected):
+def test_string_array_numeric_integer_array(method, expected):
     s = Series(["aba", None], dtype="string")
-    result = getattr(s.str, method)(*args)
+    result = getattr(s.str, method)("a")
     expected = Series(expected, dtype="Int64")
     tm.assert_series_equal(result, expected)

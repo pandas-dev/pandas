@@ -78,6 +78,7 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    .. ipython:: python
 
       s = pd.Series(["a", None, "b"], dtype="string")
+      s
       s.str.count("a")
       s.dropna().str.count("a")
 
