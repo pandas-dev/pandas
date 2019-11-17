@@ -658,12 +658,16 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,])  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
@@ -823,11 +827,11 @@ class TestSparseArray:
         # Tests regression #21172.
         sa = pd.SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         expected = np.array([2, 5, 9], dtype=np.int32)
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
         sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
 
