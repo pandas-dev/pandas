@@ -10,7 +10,7 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterable, Sequence, Type, Union, cast
+from typing import Any, Callable, Dict, FrozenSet, Iterable, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -383,8 +383,8 @@ class SeriesGroupBy(GroupBy):
             result = Series(data=values, index=_get_index(), name=self._selection_name)
             return self._reindex_output(result)
 
-    def _aggregate_named(self, func, *args, **kwargs) -> dict:
-        result = {}  # type: dict
+    def _aggregate_named(self, func, *args, **kwargs) -> Dict:
+        result = {}  # type: Dict
 
         for name, group in self:
             group.name = name
