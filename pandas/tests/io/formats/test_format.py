@@ -3275,15 +3275,6 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
 
 
 @pytest.mark.parametrize(
-    "inputs, expected",
-    [([" a", " b"], " a\n b"), ([".1", "1"], ".1\n 1"), (["10", "-10"], " 10\n-10")],
-)
-def test_to_string_index_false_corner_case(inputs, expected):
-    s = pd.Series(inputs).to_string(index=False)
-    assert s == expected
-
-
-@pytest.mark.parametrize(
     "input_array, expected",
     [
         ("a", "a"),
@@ -3292,6 +3283,9 @@ def test_to_string_index_false_corner_case(inputs, expected):
         (1, "1"),
         ([0, -1], " 0\n-1"),
         (1.0, "1.0"),
+        ([" a", " b"], " a\n b"),
+        ([".1", "1"], ".1\n 1"),
+        (["10", "-10"], " 10\n-10"),
     ],
 )
 def test_format_remove_leading_space_series(input_array, expected):
