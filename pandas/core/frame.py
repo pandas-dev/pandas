@@ -4774,7 +4774,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
@@ -6943,10 +6943,13 @@ class DataFrame(NDFrame):
             other = other._convert(datetime=True, timedelta=True)
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
-        elif isinstance(other, list) and not isinstance(other[0], DataFrame):
-            other = DataFrame(other)
-            if (self.columns.get_indexer(other.columns) >= 0).all():
-                other = other.reindex(columns=self.columns)
+        elif isinstance(other, list):
+            if not other:
+                pass
+            elif not isinstance(other[0], DataFrame):
+                other = DataFrame(other)
+                if (self.columns.get_indexer(other.columns) >= 0).all():
+                    other = other.reindex(columns=self.columns)
 
         from pandas.core.reshape.concat import concat
 
