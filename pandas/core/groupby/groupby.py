@@ -845,7 +845,8 @@ b  2""",
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
         names = []  # type: List[Optional[Hashable]]
-        for idx, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -889,7 +890,8 @@ b  2""",
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
         # need to slice that up into 1D arrays
         idx = 0
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -925,7 +927,8 @@ b  2""",
         output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
         names = []  # type: List[Hashable]
 
-        for idx, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
             if self.grouper.ngroups == 0:
                 # agg_series below assumes ngroups > 0
                 continue
@@ -2279,7 +2282,8 @@ class GroupBy(_GroupBy):
         names = []  # List[Hashable]
         base_func = getattr(libgroupby, how)
 
-        for idx, (name, obj) in enumerate(self._iterate_slices()):
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
             values = obj._data._values
 
             if aggregate:
