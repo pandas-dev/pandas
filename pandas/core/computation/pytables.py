@@ -24,7 +24,7 @@ from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 class Scope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    def __init__(self, level, global_dict=None, local_dict=None, queryables=None):
+    def __init__(self, level: int, global_dict=None, local_dict=None, queryables=None):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or dict()
 
@@ -40,6 +40,7 @@ class Term(ops.Term):
     def _resolve_name(self):
         # must be a queryables
         if self.side == "left":
+            # Note: The behavior of __new__ ensures that self.name is a str here
             if self.name not in self.env.queryables:
                 raise NameError("name {name!r} is not defined".format(name=self.name))
             return self.name
