@@ -85,15 +85,6 @@ install:
   - ci/submit_cython_cache.sh
   - echo "install done"
 
-
-before_script:
-  # display server (for clipboard functionality) needs to be started here,
-  # does not work if done in install:setup_env.sh (GH-26103)
-  - export DISPLAY=":99.0"
-  - echo "sh -e /etc/init.d/xvfb start"
-  - if [ "$JOB" != "3.8-dev" ]; then sh -e /etc/init.d/xvfb start; fi
-  - sleep 3
-
 script:
   - echo "script start"
   - echo "$JOB"
