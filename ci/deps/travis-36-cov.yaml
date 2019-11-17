@@ -10,6 +10,7 @@ dependencies:
   - pytest-xdist>=1.21
   - pytest-mock
   - hypothesis>=3.58.0
+  - pytest-cov  # this is only needed in the coverage build
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
