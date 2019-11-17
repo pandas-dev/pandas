@@ -3,13 +3,13 @@ python-dateutil>=2.6.1
 pytz
 asv
 cython>=0.29.13
-black<=19.3b0
+black>=19.10b0
 cpplint
 flake8
-flake8-comprehensions
+flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort
-mypy==0.720
+mypy==0.730
 pycodestyle
 gitpython
 sphinx
@@ -32,7 +32,7 @@ hypothesis>=3.82
 moto
 pytest>=4.0.2
 pytest-cov
-pytest-xdist
+pytest-xdist>=1.21
 seaborn
 statsmodels
 ipywidgets

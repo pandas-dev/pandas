@@ -33,12 +33,8 @@ from pandas import (
     period_range,
 )
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import (
-    _get_combined_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.index import ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
@@ -353,6 +349,11 @@ class TestIndex(Base):
         index = Index(vals, name=dtype)
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
+
+    def test_constructor_wrong_kwargs(self):
+        # GH #19348
+        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
+            Index([], foo="bar")
 
     @pytest.mark.parametrize(
         "vals",

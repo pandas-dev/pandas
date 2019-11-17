@@ -288,9 +288,11 @@ class Grouping:
             if self.name is None:
                 self.name = index.names[level]
 
-            self.grouper, self._codes, self._group_index = index._get_grouper_for_level(  # noqa: E501
-                self.grouper, level
-            )
+            (
+                self.grouper,
+                self._codes,
+                self._group_index,
+            ) = index._get_grouper_for_level(self.grouper, level)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes

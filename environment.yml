@@ -15,13 +15,13 @@ dependencies:
   - cython>=0.29.13
 
   # code checks
-  - black<=19.3b0
+  - black>=19.10b0
   - cpplint
   - flake8
-  - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
+  - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
-  - mypy=0.720
+  - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
@@ -53,7 +53,7 @@ dependencies:
   - moto  # mock S3
   - pytest>=4.0.2
   - pytest-cov
-  - pytest-xdist
+  - pytest-xdist>=1.21
   - seaborn
   - statsmodels
 
