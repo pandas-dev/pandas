@@ -308,7 +308,7 @@ class _FrequencyInferer:
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return len(self.deltas) == 1
 
     @cache_readonly

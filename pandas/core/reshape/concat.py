@@ -562,13 +562,9 @@ class _Concatenator:
 
     def _get_comb_axis(self, i):
         data_axis = self.objs[0]._get_block_manager_axis(i)
-        try:
-            return get_objs_combined_axis(
-                self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
-            )
-        except IndexError:
-            types = [type(x).__name__ for x in self.objs]
-            raise TypeError("Cannot concatenate list of {types}".format(types=types))
+        return get_objs_combined_axis(
+            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+        )
 
     def _get_concat_axis(self):
         """
