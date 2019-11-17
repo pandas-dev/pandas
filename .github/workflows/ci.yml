@@ -69,7 +69,7 @@ jobs:
       run: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas-dev
-        ci/code_checks.sh docstrings
+        ci/code_checks.sh typing
       if: true
 
     - name: Testing docstring validation script
