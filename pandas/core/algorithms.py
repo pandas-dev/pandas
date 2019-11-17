@@ -1159,7 +1159,7 @@ class SelectNSeries(SelectN):
         n = min(n, narr)
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
-        ns, = np.nonzero(arr <= kth_val)
+        (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
         if self.keep != "all":
