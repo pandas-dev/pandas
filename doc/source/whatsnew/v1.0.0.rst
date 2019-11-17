@@ -130,34 +130,39 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api_breaking.MultiIndex._names:
 
-``MultiIndex.levels`` do not hold level names any longer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Avoid using names from ``MultiIndex.levels``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A :class:`MultiIndex` previously stored the level names as attributes of each of its
-  :attr:`MultiIndex.levels`. From Pandas 1.0, the names are only accessed through
-  :attr:`MultiIndex.names` (which was also possible previously). This is done in order to
-  make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories` (:issue:`27242`:).
+As part of a larger refactor to :class:`MultiIndex` the level names are now
+stored separately from the levels (:issue:`27242`). We recommend using
+:attr:`MultiIndex.names` to access the names, and :meth:`Index.set_names`
+to update the names.
 
-*pandas 0.25.x*
-
-.. code-block:: ipython
-
-   In [1]: mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
-   Out[2]: mi
-   MultiIndex([(1, 'a'),
-               (1, 'b'),
-               (2, 'a'),
-               (2, 'b')],
-              names=['x', 'y'])
-   Out[3]: mi.levels[0].name
-   'x'
-
-*pandas 1.0.0*
+For backwards compatibility, you can still *access* the names via the levels.
 
 .. ipython:: python
 
    mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
    mi.levels[0].name
+
+However, it is no longer possible to *update* the names of the ``MultiIndex``
+via the name of the level. The following will **silently** fail to update the
+name of the ``MultiIndex``
+
+.. ipython:: python
+
+   mi.levels[0].name = "new name"
+   mi.names
+
+To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
+
+.. ipython:: python
+
+   mi2 = mi.set_names("new name", level=0)
+   mi2.names
+
+New repr for :class:`pandas.core.arrays.IntervalArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
@@ -183,6 +188,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
+- Bumpded the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
@@ -297,6 +303,7 @@ Categorical
 - Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning an object of the
   same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue: `27952`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` that would give incorrect results on categorical data (:issue:`26988`)
 
 
 Datetimelike
@@ -440,6 +447,7 @@ Reshaping
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
 
 Sparse
 ^^^^^^
@@ -463,6 +471,7 @@ Other
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
 
