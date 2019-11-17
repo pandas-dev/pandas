@@ -1106,7 +1106,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Union[str, bool] = "compat",
+    leading_space="compat",
 ) -> List[str]:
     """
     Format an array for printing.
