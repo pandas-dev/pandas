@@ -34,12 +34,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCSeries,
-    ABCSparseArray,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -49,6 +44,7 @@ import pandas.core.common as com
 from pandas.core.construction import sanitize_array
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
 
@@ -1410,12 +1406,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @unpack_zerodim_and_defer(op_name)
         def sparse_arithmetic_method(self, other):
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
@@ -1463,11 +1455,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if op_name in {"and_", "or_"}:
             op_name = op_name[:-1]
 
+        @unpack_zerodim_and_defer(op_name)
         def cmp_method(self, other):
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             if not is_scalar(other) and not isinstance(other, type(self)):
                 # convert list-like to ndarray

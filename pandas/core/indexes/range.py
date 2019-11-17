@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 import pandas.core.common as com
@@ -29,6 +29,7 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -146,7 +147,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
@@ -154,13 +155,10 @@ class RangeIndex(Int64Index):
             # empty
             values = range(0, 0, 1)
         elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name, **kwargs)
+            return Index(values, dtype=dtype, name=name)
 
         result._range = values
-
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         return result
@@ -304,7 +302,7 @@ class RangeIndex(Int64Index):
         return self.step
 
     @cache_readonly
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
@@ -314,7 +312,7 @@ class RangeIndex(Int64Index):
             for attr_name in ["start", "stop", "step"]
         )
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -340,16 +338,16 @@ class RangeIndex(Int64Index):
         return self.nbytes
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return np.dtype(np.int64)
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """ return if the index has unique values """
         return True
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
@@ -705,7 +703,7 @@ class RangeIndex(Int64Index):
         return len(self._range)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self)
 
     def __getitem__(self, key):
@@ -734,9 +732,8 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super().__getitem__(key)
 
+    @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
 
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
@@ -772,10 +769,9 @@ class RangeIndex(Int64Index):
                 if False, use the existing step
             """
 
+            @unpack_zerodim_and_defer(op.__name__)
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-                elif isinstance(other, ABCTimedeltaIndex):
+                if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented
                 elif isinstance(other, (timedelta, np.timedelta64)):

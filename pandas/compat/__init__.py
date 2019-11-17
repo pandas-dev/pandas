@@ -12,7 +12,6 @@ import struct
 import sys
 import warnings
 
-PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
 PYPY = platform.python_implementation() == "PyPy"
@@ -31,7 +30,7 @@ def set_function_name(f, name, cls):
     Bind the name/qualname attributes of the function.
     """
     f.__name__ = name
-    f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
+    f.__qualname__ = f"{cls.__name__}.{name}"
     f.__module__ = cls.__module__
     return f
 

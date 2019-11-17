@@ -1088,7 +1088,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1138,7 +1138,7 @@ class Block(PandasObject):
             fill_value=fill_value,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def _interpolate_with_fill(
@@ -1193,7 +1193,7 @@ class Block(PandasObject):
         limit_area=None,
         inplace=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """ interpolate using scipy wrappers """
 
@@ -1231,7 +1231,7 @@ class Block(PandasObject):
                 limit_area=limit_area,
                 fill_value=fill_value,
                 bounds_error=False,
-                **kwargs
+                **kwargs,
             )
 
         # interp each column independently
@@ -2016,7 +2016,7 @@ class FloatBlock(FloatOrComplexBlock):
         float_format=None,
         decimal=".",
         quoting=None,
-        **kwargs
+        **kwargs,
     ):
         """ convert to our native types format, slicing if desired """
 
@@ -2923,6 +2923,30 @@ class CategoricalBlock(ExtensionBlock):
                 other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
             )
         return result
+
+    def replace(
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter=None,
+        regex: bool = False,
+        convert: bool = True,
+    ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = self if inplace else self.copy()
+        if filter is None:  # replace was called on a series
+            result.values.replace(to_replace, value, inplace=True)
+            if convert:
+                return result.convert(numeric=False, copy=not inplace)
+            else:
+                return result
+        else:  # replace was called on a DataFrame
+            if not isna(value):
+                result.values.add_categories(value, inplace=True)
+            return super(CategoricalBlock, result).replace(
+                to_replace, value, inplace, filter, regex, convert
+            )
 
 
 # -----------------------------------------------------------------

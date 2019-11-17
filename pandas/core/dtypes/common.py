@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -727,7 +726,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
     """
 
     # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype):
+    def condition(dtype) -> bool:
         return dtype.kind in ("O", "S", "U") and not is_period_dtype(dtype)
 
     return _is_dtype(arr_or_dtype, condition)
@@ -1266,9 +1265,6 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     """
     Check if the exception raised is an unorderable exception.
 
-    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
-    we need to condition based on Python version.
-
     Parameters
     ----------
     e : Exception or sub-class
@@ -1276,14 +1272,10 @@ def _is_unorderable_exception(e: TypeError) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the exception raised is an unorderable exception.
     """
-
-    if PY36:
-        return "'>' not supported between instances of" in str(e)
-
-    return "unorderable" in str(e)
+    return "'>' not supported between instances of" in str(e)
 
 
 def needs_i8_conversion(arr_or_dtype) -> bool:
@@ -1504,7 +1496,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_extension_type(arr):
+def is_extension_type(arr) -> bool:
     """
     Check whether an array-like is of a pandas extension class instance.
 
@@ -1569,7 +1561,7 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array_dtype(arr_or_dtype):
+def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     Check if an object is a pandas extension array type.
 
