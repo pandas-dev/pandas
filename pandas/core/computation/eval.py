@@ -191,7 +191,7 @@ def eval(
 
     Parameters
     ----------
-    expr : str or unicode
+    expr : str
         The expression to evaluate. This string cannot contain any Python
         `statements
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
