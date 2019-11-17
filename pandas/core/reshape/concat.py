@@ -41,7 +41,7 @@ def concat(
     names=None,
     verify_integrity: bool = False,
     sort=None,
-    suffixes: tuple = None,
+    suffixes=None,
     copy: bool = True,
 ):
     """
@@ -99,7 +99,7 @@ def concat(
 
         .. versionadded:: 0.23.0
 
-    suffixes: tuple of str, default None
+    suffixes : tuple of str, default None
         Suffix to apply to overlapping column names for each concatenated object
         respectively. If None and there is overlapping column names after concat,
         DataFrame with duplicated names will be outputted along with a warning
