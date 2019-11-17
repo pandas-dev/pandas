@@ -337,11 +337,17 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self) -> List[str]:
+        if self.index:
+            leading_space = "compat"
+        else:
+            leading_space = False
+
         return format_array(
             self.tr_series._values,
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            leading_space=leading_space,
         )
 
     def to_string(self) -> str:
@@ -937,6 +943,10 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
+        if self.index:
+            leading_space = "compat"
+        else:
+            leading_space = False
         return format_array(
             frame.iloc[:, i]._values,
             formatter,
@@ -944,6 +954,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space,
             decimal=self.decimal,
+            leading_space=leading_space,
         )
 
     def to_html(
@@ -1095,7 +1106,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Optional[bool] = None,
+    leading_space: bool = "compat",
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1110,7 +1121,7 @@ def format_array(
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, default is 'compat'
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
@@ -1176,7 +1187,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: Optional[bool] = None,
+        leading_space: bool = "compat",
     ):
         self.values = values
         self.digits = digits
@@ -1238,7 +1249,7 @@ class GenericArrayFormatter:
 
         is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = self.leading_space
-        if leading_space is None:
+        if leading_space == "compat":
             leading_space = is_float_type.any()
 
         fmt_values = []
@@ -1377,8 +1388,12 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # The default is otherwise to use str instead of a formatting string
         if self.float_format is None:
             if self.fixed_width:
+                if self.leading_space is not False:
+                    fmt_str = "{value: .{digits:d}f}"
+                else:
+                    fmt_str = "{value:.{digits:d}f}"
                 float_format = partial(
-                    "{value: .{digits:d}f}".format, digits=self.digits
+                    fmt_str.format, digits=self.digits
                 )  # type: Optional[float_format_type]
             else:
                 float_format = self.float_format
@@ -1411,7 +1426,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = partial("{value: .{digits:d}e}".format, digits=self.digits)
+            if self.leading_space is not False:
+                fmt_str = "{value: .{digits:d}e}"
+            else:
+                fmt_str = "{value:.{digits:d}e}"
+            float_format = partial(fmt_str.format, digits=self.digits)
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1426,7 +1445,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: "{x: d}".format(x=x))
+        if self.leading_space is False:
+            fmt_str = "{x:d}"
+        else:
+            fmt_str = "{x: d}"
+        formatter = self.formatter or (lambda x: fmt_str.format(x=x))
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
