@@ -27,6 +27,13 @@ _int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
+cdef enum InterpolationEnumType:
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_LOWER,
+    INTERPOLATION_HIGHER,
+    INTERPOLATION_NEAREST,
+    INTERPOLATION_MIDPOINT
+
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
@@ -746,8 +753,7 @@ def group_quantile(ndarray[float64_t] out,
     assert values.shape[0] == N
 
     if not (0 <= q <= 1):
-        raise ValueError("'q' must be between 0 and 1. Got"
-                         " '{}' instead".format(q))
+        raise ValueError(f"'q' must be between 0 and 1. Got '{q}' instead")
 
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,

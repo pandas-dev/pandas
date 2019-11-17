@@ -10,7 +10,7 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import _stringify_path
 
 
-def to_feather(df, path):
+def to_feather(df: DataFrame, path):
     """
     Write a DataFrame to the feather-format
 

@@ -781,6 +781,22 @@ def test_categorical_no_compress():
     tm.assert_numpy_array_equal(result, exp)
 
 
+def test_groupby_empty_with_category():
+    # GH-9614
+    # test fix for when group by on None resulted in
+    # coercion of dtype categorical -> float
+    df = pd.DataFrame(
+        {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
+    )
+    result = df.groupby("A").first()["B"]
+    expected = pd.Series(
+        pd.Categorical([], categories=["test", "train"]),
+        index=pd.Series([], dtype="object", name="A"),
+        name="B",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_sort():
 
     # http://stackoverflow.com/questions/23814368/sorting-pandas-
@@ -1111,7 +1127,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     index = MultiIndex.from_frame(
         DataFrame(
             {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs
+            **kwargs,
         )
     )
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
@@ -1190,6 +1206,13 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     result = df_cat.groupby(["A", "B"], observed=observed)["C"].apply(
         lambda x: OrderedDict([("min", x.min()), ("max", x.max())])
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_series_dataframe_consistent(df_cat):
+    # GH 20416
+    expected = df_cat.groupby(["A", "B"])["C"].mean()
+    result = df_cat.groupby(["A", "B"]).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 

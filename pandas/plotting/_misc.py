@@ -82,7 +82,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw a matrix of scatter plots.
@@ -134,7 +134,7 @@ def scatter_matrix(
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,
         range_padding=range_padding,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -168,7 +168,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     colormap : str or :class:`matplotlib.colors.Colormap`, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
-    kwds : optional
+    **kwds
         Options to pass to matplotlib scatter plotting method.
 
     Returns
@@ -207,7 +207,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax=ax,
         color=color,
         colormap=colormap,
-        **kwds
+        **kwds,
     )
 
 
@@ -255,7 +255,7 @@ def andrews_curves(
         samples=samples,
         color=color,
         colormap=colormap,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -283,7 +283,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    **kwds :
+    **kwds
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -325,7 +325,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Parallel coordinates plotting.
@@ -364,7 +364,7 @@ def parallel_coordinates(
     --------
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                        '/pandas/tests/data/iris.csv')
+                        '/pandas/tests/data/csv/iris.csv')
     >>> pd.plotting.parallel_coordinates(
             df, 'Name',
             color=('#556270', '#4ECDC4', '#C7F464'))
@@ -383,7 +383,7 @@ def parallel_coordinates(
         axvlines=axvlines,
         axvlines_kwds=axvlines_kwds,
         sort_labels=sort_labels,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -396,7 +396,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     series : Time series
     lag : lag of the scatter plot, default 1
     ax : Matplotlib axis object, optional
-    kwds : Matplotlib scatter method keyword arguments, optional
+    **kwds
+        Matplotlib scatter method keyword arguments.
 
     Returns
     -------
@@ -455,9 +456,10 @@ def tsplot(series, plotf, ax=None, **kwargs):
 class _Options(dict):
     """
     Stores pandas plotting options.
+
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
-    format that makes it easy to breakdown into groups later
+    format that makes it easy to breakdown into groups later.
     """
 
     # alias so the names are same as plotting method parameter names
