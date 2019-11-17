@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.6.*
   # tools
-  - cython=0.29.13
+  # - cython=0.29.13 ### Cython 0.29.13 for 32 bits is not available with conda, installing below with pip instead
   - pytest
   - pytest-xdist>=1.21
   - pytest-mock
@@ -18,3 +18,8 @@ dependencies:
   - numpy=1.14.*
   - python-dateutil
   - pytz=2017.2
+
+  # see comment above
+  - pip
+  - pip:
+    - cython==0.29.13
