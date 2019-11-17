@@ -1051,12 +1051,12 @@ class DataFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
-                result[name] = self._try_cast(fres, data)
+                result[name] = fres
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
                 fres = func(data, *args, **kwargs)
-                result[name] = self._try_cast(fres, data)
+                result[name] = fres
 
         return self._wrap_frame_output(result, obj)
 
