@@ -2782,7 +2782,7 @@ def test_concat_datetimeindex_freq():
 def test_concat_suffixes_type(suffixes):
     # GH 21791, like pd.merge, here suffixes type should be tuple
     objs = [pd.Series([1, 2], name="a"), pd.DataFrame({"a": [2, 3]})]
-    with pytest.raises(ValueError, match="only <class 'tuple'> is allowed"):
+    with pytest.raises(ValueError, match="only 'tuple' is allowed"):
         pd.concat(objs, axis=1, suffixes=suffixes)
 
 

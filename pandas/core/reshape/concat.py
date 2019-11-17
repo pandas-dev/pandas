@@ -645,7 +645,7 @@ class _Concatenator:
 
         if not isinstance(suffixes, tuple):
             raise ValueError(
-                f"Invalid type {type(suffixes)} is assigned to suffixes, only"
+                f"Invalid type {type(suffixes)} is assigned to suffixes, only "
                 f"'tuple' is allowed."
             )
 
