@@ -144,7 +144,7 @@ def _convert_expression(expr) -> str:
     return s
 
 
-def _check_for_locals(expr, stack_level, parser):
+def _check_for_locals(expr: str, stack_level: int, parser: str):
 
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
