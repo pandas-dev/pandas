@@ -133,10 +133,23 @@ class NumericIndex(Index):
     @classmethod
     def _coerce_to_ndarray(cls, data, dtype: Optional[np.dtype]):
         """
-        Coerces data to ndarray.
+        Coerce data to ndarray unless it's instance of pd.Index.
 
         Converts other iterables to list first and then to array.
         Does not touch ndarrays.
+
+        Parameters
+        ----------
+        data : array-like (1-dimensional)
+        dtype : numpy.dtype or None
+            If a numpy.dtype is passed, data will be casted to the type when
+            possible.
+
+        Returns
+        -------
+        numpy.ndarray or pd.Index
+            Numpy.ndarray created from data, or data itself if an instance of
+            pd.Index is passed.
 
         Raises
         ------
