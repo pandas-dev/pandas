@@ -43,7 +43,7 @@ If for whatever reason you are not able to continue working with the issue, plea
 unassign it, so other people know it's available again. You can check the list of
 assigned issues, since people may not be working in them anymore. If you want to work on one
 that is assigned, feel free to kindly ask the current assignee if you can take it
-(please allow at least a week on inactivity before considering work in the issue can be discontinued).
+(please allow at least a week of inactivity before considering work in the issue discontinued).
 
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
