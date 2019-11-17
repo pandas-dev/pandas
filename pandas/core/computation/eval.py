@@ -10,7 +10,7 @@ import warnings
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import _parsers
+from pandas.core.computation.expr import Expr, _parsers, tokenize_string
 from pandas.core.computation.scope import _ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
@@ -145,7 +145,6 @@ def _convert_expression(expr) -> str:
 
 
 def _check_for_locals(expr, stack_level, parser):
-    from pandas.core.computation.expr import tokenize_string
 
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
@@ -282,7 +281,6 @@ def eval(
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
     """
-    from pandas.core.computation.expr import Expr
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
