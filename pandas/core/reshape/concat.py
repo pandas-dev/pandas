@@ -102,7 +102,8 @@ def concat(
     suffixes : tuple of str, default None
         Suffix to apply to overlapping column names for each concatenated object
         respectively. If the length of suffixes does not match with number of
-        concatenated objects, an error will raise.
+        concatenated objects, an error will raise. If None, the output will remain
+        as is with duplicated column names.
 
         This has no effect if there is no overlapping column names or if axis=0.
 
