@@ -642,7 +642,7 @@ class _Concatenator:
         if self._is_series:
 
             # when _is_series is True, objs are actually column Index
-            overlap_cols = [obj for obj in objs]
+            overlap_cols = list(objs)
         else:
             overlap_cols = chain.from_iterable([obj.columns for obj in objs])
         to_rename = [col for col, cnt in Counter(overlap_cols).items() if cnt > 1]
