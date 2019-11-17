@@ -406,7 +406,7 @@ class SeriesGroupBy(GroupBy):
                 # result to the whole group. Compute func result
                 # and deal with possible broadcasting below.
                 return self._transform_fast(
-                    lambda: getattr(self, func)(*args, **kwargs)
+                    lambda: getattr(self, func)(*args, **kwargs), func
                 )
 
         # reg transform
@@ -443,7 +443,7 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func) -> Series:
+    def _transform_fast(self, func, func_nm) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
@@ -1109,6 +1109,7 @@ class DataFrameGroupBy(GroupBy):
 
         return output_keys
 
+    # TODO: this function is way too big
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             return DataFrame(index=keys)
