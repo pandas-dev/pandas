@@ -472,7 +472,7 @@ class TestCategoricalIndex:
             [[1, 0], [0, 1]], dtype="uint8", index=[0, 1], columns=cats
         )
         dummies = pd.get_dummies(cats)
-        result = dummies[[c for c in dummies.columns]]
+        result = dummies[list(dummies.columns)]
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_listlike(self):

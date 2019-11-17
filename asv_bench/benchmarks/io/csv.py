@@ -132,7 +132,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
     param_names = ["bad_date_value"]
 
     def setup(self, bad_date_value):
-        self.StringIO_input = StringIO(("%s,\n" % bad_date_value) * 50000)
+        self.StringIO_input = StringIO((f"{bad_date_value},\n") * 50000)
 
     def time_read_csv(self, bad_date_value):
         read_csv(

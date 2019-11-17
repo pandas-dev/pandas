@@ -1,4 +1,5 @@
 import textwrap
+from typing import List, Set
 import warnings
 
 from pandas._libs import NaT, lib
@@ -64,7 +65,9 @@ __all__ = [
 ]
 
 
-def get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
+def get_objs_combined_axis(
+    objs, intersect: bool = False, axis=0, sort: bool = True
+) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
@@ -72,9 +75,8 @@ def get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
     Parameters
     ----------
-    objs : list of objects
-        Each object will only be considered if it has a _get_axis
-        attribute.
+    objs : list
+        Series or DataFrame objects, may be mix of the two.
     intersect : bool, default False
         If True, calculate the intersection between indexes. Otherwise,
         calculate the union.
@@ -87,26 +89,27 @@ def get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     -------
     Index
     """
-    obs_idxes = [obj._get_axis(axis) for obj in objs if hasattr(obj, "_get_axis")]
-    if obs_idxes:
-        return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
+    obs_idxes = [obj._get_axis(axis) for obj in objs]
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
-def _get_distinct_objs(objs):
+def _get_distinct_objs(objs: List[Index]) -> List[Index]:
     """
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids = set()
+    ids: Set[int] = set()
     res = []
     for obj in objs:
-        if not id(obj) in ids:
+        if id(obj) not in ids:
             ids.add(id(obj))
             res.append(obj)
     return res
 
 
-def _get_combined_index(indexes, intersect: bool = False, sort=False) -> Index:
+def _get_combined_index(
+    indexes: List[Index], intersect: bool = False, sort: bool = False
+) -> Index:
     """
     Return the union or intersection of indexes.
 
@@ -147,7 +150,7 @@ def _get_combined_index(indexes, intersect: bool = False, sort=False) -> Index:
     return index
 
 
-def union_indexes(indexes, sort=True):
+def union_indexes(indexes, sort=True) -> Index:
     """
     Return the union of indexes.
 
@@ -173,7 +176,7 @@ def union_indexes(indexes, sort=True):
 
     indexes, kind = _sanitize_and_check(indexes)
 
-    def _unique_indices(inds):
+    def _unique_indices(inds) -> Index:
         """
         Convert indexes to lists and concatenate them, removing duplicates.
 
