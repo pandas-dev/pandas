@@ -1,16 +1,18 @@
 """ orc compat """
 
 import distutils
+from typing import List, Optional
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
+from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import get_filepath_or_buffer
 
 
-def get_engine(engine):
+def get_engine(engine: str) -> "PyArrowImpl":
     """ return our implementation """
 
     if engine == "auto":
@@ -42,7 +44,7 @@ class BaseImpl:
     api = None  # module
 
     @staticmethod
-    def validate_dataframe(df):
+    def validate_dataframe(df: DataFrame):
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_orc only supports IO with DataFrames")
@@ -58,10 +60,12 @@ class BaseImpl:
         if not valid_names:
             raise ValueError("Index level names must be strings")
 
-    def write(self, df, path, compression, **kwargs):
+    def write(self, df: DataFrame, path: FilePathOrBuffer, compression: str, **kwargs):
         raise AbstractMethodError(self)
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self, path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
+    ):
         raise AbstractMethodError(self)
 
 
@@ -81,7 +85,9 @@ class PyArrowImpl(BaseImpl):
 
         self.api = pyarrow
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self, path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
+    ) -> DataFrame:
         path, _, _, _ = get_filepath_or_buffer(path)
 
         py_file = self.api.input_stream(path)
@@ -92,7 +98,12 @@ class PyArrowImpl(BaseImpl):
         return result
 
 
-def read_orc(path, engine="auto", columns=None, **kwargs):
+def read_orc(
+    path: FilePathOrBuffer,
+    engine: str = "auto",
+    columns: Optional[List[str]] = None,
+    **kwargs,
+):
     """
     Load an ORC object from the file path, returning a DataFrame.
 
