@@ -609,12 +609,11 @@ def test_create_index_existing_name(idx):
                 ("qux", "two"),
             ],
             dtype="object",
-        ),
-        names=["foo", "bar"],
+        )
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, names=["A", "B"])
+    result = pd.Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -627,7 +626,7 @@ def test_create_index_existing_name(idx):
             ],
             dtype="object",
         ),
-        names=["A", "B"],
+        name="A",
     )
     tm.assert_index_equal(result, expected)
 

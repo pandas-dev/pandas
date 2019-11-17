@@ -893,7 +893,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = "unexpected keyword argument `{}`".format(arg)
+        msg = r"unexpected keyword argument `{}`".format(arg)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):

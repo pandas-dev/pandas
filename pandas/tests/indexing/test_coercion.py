@@ -479,22 +479,20 @@ class TestInsertIndexCoercion(CoercionBase):
         obj = pd.PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq="M")
         assert obj.dtype == "period[M]"
 
+        data = [
+            pd.Period("2011-01", freq="M"),
+            coerced_val,
+            pd.Period("2011-02", freq="M"),
+            pd.Period("2011-03", freq="M"),
+            pd.Period("2011-04", freq="M"),
+        ]
         if isinstance(insert, pd.Period):
-            index_type = pd.PeriodIndex
+            exp = pd.PeriodIndex(data, freq="M")
+            self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
         else:
-            index_type = pd.Index
-
-        exp = index_type(
-            [
-                pd.Period("2011-01", freq="M"),
-                coerced_val,
-                pd.Period("2011-02", freq="M"),
-                pd.Period("2011-03", freq="M"),
-                pd.Period("2011-04", freq="M"),
-            ],
-            freq="M",
-        )
-        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
+            msg = r"Unexpected keyword arguments {'freq'}"
+            with pytest.raises(TypeError, match=msg):
+                pd.Index(data, freq="M")
 
     def test_insert_index_complex128(self):
         pass
