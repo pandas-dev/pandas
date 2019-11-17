@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+from pandas.core.groupby.groupby import get_groupby
 import pandas.util.testing as tm
 
 
@@ -13,18 +14,18 @@ class TestGrouperGrouping:
 
     def test_mutated(self):
 
-        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             self.frame.groupby("A", foo=1)
 
         g = self.frame.groupby("A")
         assert not g.mutated
-        g = self.frame.groupby("A", mutated=True)
+        g = get_groupby(self.frame, by="A", mutated=True)
         assert g.mutated
 
     def test_getitem(self):
         g = self.frame.groupby("A")
-        g_mutated = self.frame.groupby("A", mutated=True)
+        g_mutated = get_groupby(self.frame, by="A", mutated=True)
 
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
@@ -45,7 +46,7 @@ class TestGrouperGrouping:
         # GH 13174
         g = self.frame.groupby("A")
         r = g.rolling(2)
-        g_mutated = self.frame.groupby("A", mutated=True)
+        g_mutated = get_groupby(self.frame, by="A", mutated=True)
         expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
 
         result = r.B.count()

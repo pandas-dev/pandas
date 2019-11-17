@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
 
@@ -60,10 +58,7 @@ class TestDataFrameMutateColumns:
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         result = df.assign(D=df.A + df.B, C=df.A - df.B)
 
-        if PY36:
-            expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]], columns=list("ABDC"))
-        else:
-            expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]], columns=list("ABCD"))
+        expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]], columns=list("ABDC"))
         tm.assert_frame_equal(result, expected)
         result = df.assign(C=df.A - df.B, D=df.A + df.B)
 
@@ -80,25 +75,6 @@ class TestDataFrameMutateColumns:
         with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
 
-    @pytest.mark.skipif(
-        PY36,
-        reason="""Issue #14207: valid for python
-                        3.6 and above""",
-    )
-    def test_assign_dependent_old_python(self):
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        # Key C does not exist at definition time of df
-        with pytest.raises(KeyError, match="^'C'$"):
-            df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
-        with pytest.raises(KeyError, match="^'C'$"):
-            df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
-
-    @pytest.mark.skipif(
-        not PY36,
-        reason="""Issue #14207: not valid for
-                        python 3.5 and below""",
-    )
     def test_assign_dependent(self):
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
 

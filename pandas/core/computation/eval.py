@@ -10,6 +10,7 @@ import warnings
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
+from pandas.core.computation.expr import Expr, _parsers, tokenize_string
 from pandas.core.computation.scope import _ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
@@ -64,7 +65,7 @@ def _check_engine(engine):
     return engine
 
 
-def _check_parser(parser):
+def _check_parser(parser: str):
     """
     Make sure a valid parser is passed.
 
@@ -77,7 +78,6 @@ def _check_parser(parser):
     KeyError
       * If an invalid parser is passed
     """
-    from pandas.core.computation.expr import _parsers
 
     if parser not in _parsers:
         raise KeyError(
@@ -115,7 +115,7 @@ def _check_expression(expr):
         raise ValueError("expr cannot be an empty string")
 
 
-def _convert_expression(expr):
+def _convert_expression(expr) -> str:
     """
     Convert an object to an expression.
 
@@ -131,7 +131,7 @@ def _convert_expression(expr):
 
     Returns
     -------
-    s : unicode
+    str
         The string representation of an object.
 
     Raises
@@ -144,8 +144,7 @@ def _convert_expression(expr):
     return s
 
 
-def _check_for_locals(expr, stack_level, parser):
-    from pandas.core.computation.expr import tokenize_string
+def _check_for_locals(expr: str, stack_level: int, parser: str):
 
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
@@ -192,7 +191,7 @@ def eval(
 
     Parameters
     ----------
-    expr : str or unicode
+    expr : str
         The expression to evaluate. This string cannot contain any Python
         `statements
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
@@ -282,7 +281,6 @@ def eval(
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
     """
-    from pandas.core.computation.expr import Expr
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
