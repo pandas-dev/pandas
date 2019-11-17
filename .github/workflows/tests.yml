@@ -13,14 +13,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     services:
       postgres:
-        image: postgres:10.8
+        image: postgres:latest
         ports:
         - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
-        # (copied from https://github.com/actions/example-services/blob/master/.github/workflows/postgres-service.yml)
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       mysql:
-        image: mysql:8.0
+        image: mysql:latest
         ports:
         - 8888:3306
         # healthy checks not passing, no idea why
