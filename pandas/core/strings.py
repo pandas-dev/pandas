@@ -125,7 +125,7 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
 
 
 def _map_ea(
-    func: Callable, arr: "StringArray", na_value: Any, dtype: Dtype
+    func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     from pandas.arrays import IntegerArray, StringArray
 
