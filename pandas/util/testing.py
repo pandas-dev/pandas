@@ -1199,7 +1199,7 @@ def assert_series_equal(
                 right._internal_get_values(),
                 check_dtype=check_dtype,
             )
-    elif is_interval_dtype(left) or is_interval_dtype(left):
+    elif is_interval_dtype(left) or is_interval_dtype(right):
         left_array = cast(IntervalArray, left.array)
         right_array = cast(IntervalArray, right.array)
         assert_interval_array_equal(left_array, right_array)
