@@ -883,8 +883,6 @@ def assert_interval_array_equal(
     assert_index_equal(
         left.right, right.right, exact=exact, obj="{obj}.left".format(obj=obj)
     )
-    left = cast(IntervalArray, left)
-    right = cast(IntervalArray, right)
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -1202,7 +1200,6 @@ def assert_series_equal(
                 check_dtype=check_dtype,
             )
     elif is_interval_dtype(left) or is_interval_dtype(left):
-        # must cast to interval dtype to keep mypy happy
         left_array = cast(IntervalArray, left.array)
         right_array = cast(IntervalArray, right.array)
         assert_interval_array_equal(left_array, right_array)
