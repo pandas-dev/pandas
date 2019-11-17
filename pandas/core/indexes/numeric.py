@@ -1,3 +1,4 @@
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -130,7 +131,7 @@ class NumericIndex(Index):
         pass
 
     @classmethod
-    def _coerce_to_ndarray(cls, data, dtype=None):
+    def _coerce_to_ndarray(cls, data, dtype: Optional[np.dtype]):
         """
         Coerces data to ndarray.
 
