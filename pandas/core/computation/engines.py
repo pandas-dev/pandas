@@ -48,7 +48,8 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.result_type = None
 
     def convert(self) -> str:
-        """Convert an expression for evaluation.
+        """
+        Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """

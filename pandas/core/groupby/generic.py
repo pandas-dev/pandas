@@ -14,10 +14,8 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
-    Hashable,
     Iterable,
     List,
-    Optional,
     Sequence,
     Tuple,
     Type,
@@ -144,8 +142,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
-        yield self._selection_name, self._selected_obj
+    def _iterate_slices(self) -> Iterable[Series]:
+        yield self._selected_obj
 
     @property
     def _selection_name(self):
@@ -399,7 +397,7 @@ class SeriesGroupBy(GroupBy):
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
                 raise ValueError("Must produce aggregated value")
-            result[name] = self._try_cast(output, group)
+            result[name] = output
 
         return result
 
@@ -925,20 +923,20 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
-            yield obj.name, obj
+            yield obj
         else:
             for label, values in obj.items():
                 if label in self.exclusions:
                     continue
 
-                yield label, values
+                yield values
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1

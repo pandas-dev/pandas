@@ -545,7 +545,10 @@ def crosstab(
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")
 
-    common_idx = get_objs_combined_axis(index + columns, intersect=True, sort=False)
+    common_idx = None
+    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    if pass_objs:
+        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
     data: Dict = {}
     data.update(zip(rownames, index))

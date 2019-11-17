@@ -2,7 +2,7 @@
 
 import ast
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -130,12 +130,12 @@ class BinOp(ops.BinOp):
         return rhs
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """ return True if this is a valid field """
         return self.lhs in self.queryables
 
     @property
-    def is_in_table(self):
+    def is_in_table(self) -> bool:
         """ return True if this is a valid column name for generation (e.g. an
         actual column in the table) """
         return self.queryables.get(self.lhs) is not None
@@ -155,12 +155,12 @@ class BinOp(ops.BinOp):
         """ the metadata of my field """
         return getattr(self.queryables.get(self.lhs), "metadata", None)
 
-    def generate(self, v):
+    def generate(self, v) -> str:
         """ create and return the op string for this TermValue """
         val = v.tostring(self.encoding)
         return "({lhs} {op} {val})".format(lhs=self.lhs, op=self.op, val=val)
 
-    def convert_value(self, v):
+    def convert_value(self, v) -> "TermValue":
         """ convert the expression that is in the term to something that is
         accepted by pytables """
 
@@ -281,7 +281,7 @@ class FilterBinOp(BinOp):
 
         return self
 
-    def generate_filter_op(self, invert=False):
+    def generate_filter_op(self, invert: bool = False):
         if (self.op == "!=" and not invert) or (self.op == "==" and invert):
             return lambda axis, vals: ~axis.isin(vals)
         else:
@@ -507,7 +507,7 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    def __init__(self, where, queryables=None, encoding=None, scope_level=0):
+    def __init__(self, where, queryables=None, encoding=None, scope_level: int = 0):
 
         where = _validate_where(where)
 
@@ -522,18 +522,21 @@ class Expr(expr.Expr):
 
         if isinstance(where, Expr):
             local_dict = where.env.scope
-            where = where.expr
+            _where = where.expr
 
         elif isinstance(where, (list, tuple)):
+            where = list(where)
             for idx, w in enumerate(where):
                 if isinstance(w, Expr):
                     local_dict = w.env.scope
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            where = " & ".join(map("({})".format, com.flatten(where)))  # noqa
+            _where = " & ".join(map("({})".format, com.flatten(where)))
+        else:
+            _where = where
 
-        self.expr = where
+        self.expr = _where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
 
         if queryables is not None and isinstance(self.expr, str):
@@ -576,7 +579,7 @@ class Expr(expr.Expr):
 class TermValue:
     """ hold a term value the we use to construct a condition/filter """
 
-    def __init__(self, value, converted, kind):
+    def __init__(self, value, converted, kind: Optional[str]):
         self.value = value
         self.converted = converted
         self.kind = kind
@@ -595,7 +598,7 @@ class TermValue:
         return self.converted
 
 
-def maybe_expression(s):
+def maybe_expression(s) -> bool:
     """ loose checking if s is a pytables-acceptable expression """
     if not isinstance(s, str):
         return False
