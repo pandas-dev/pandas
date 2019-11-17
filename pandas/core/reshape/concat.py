@@ -2,6 +2,7 @@
 concat routines
 """
 
+from typing import List
 import warnings
 
 import numpy as np
@@ -537,7 +538,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)  # type: list
+                names = [None] * len(self.objs)  # type: List
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):

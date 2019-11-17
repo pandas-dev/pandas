@@ -416,7 +416,7 @@ def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix) -> List[str]:
+    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
         regex = r"^{stub}{sep}{suffix}$".format(
             stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
         )
