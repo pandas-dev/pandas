@@ -1,7 +1,6 @@
 """
 Module for scope operations
 """
-
 import datetime
 import inspect
 from io import StringIO
@@ -9,6 +8,7 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import Any, List, MutableMapping
 
 import numpy as np
 
@@ -16,9 +16,9 @@ from pandas._libs.tslibs import Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
 
-def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-):
+def ensure_scope(
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+) -> "Scope":
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -104,16 +104,22 @@ class Scope:
     """
 
     __slots__ = ["level", "scope", "target", "resolvers", "temps"]
+    level: int
+    scope: DeepChainMap
+    resolvers: DeepChainMap
+    temps: MutableMapping[str, Any]
 
     def __init__(
-        self, level, global_dict=None, local_dict=None, resolvers=(), target=None
+        self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None,
     ):
         self.level = level + 1
 
         # shallow copy because we don't want to keep filling this up with what
-        # was there before if there are multiple calls to Scope/_ensure_scope
+        # was there before if there are multiple calls to Scope/ensure_scope
         self.scope = DeepChainMap(_DEFAULT_GLOBALS.copy())
         self.target = target
+
+        assert all(isinstance(x, str) for x in self.scope), self.scope
 
         if isinstance(local_dict, Scope):
             self.scope.update(local_dict.scope)
@@ -161,7 +167,7 @@ class Scope:
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
@@ -203,7 +209,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local)
 
-    def swapkey(self, old_key, new_key, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
         """
         Replace a variable name, with a potentially new value.
 
@@ -216,10 +222,14 @@ class Scope:
         new_value : object
             Value to be replaced along with the possible renaming
         """
+        maps: List[MutableMapping]
+        mapping: MutableMapping
+
+        # TODO: convince mypy that these maps are in fact mutable
         if self.has_resolvers:
-            maps = self.resolvers.maps + self.scope.maps
+            maps = self.resolvers.maps + self.scope.maps  # type: ignore
         else:
-            maps = self.scope.maps
+            maps = self.scope.maps  # type: ignore
 
         maps.append(self.temps)
 
@@ -228,7 +238,7 @@ class Scope:
                 mapping[new_key] = new_value
                 return
 
-    def _get_vars(self, stack, scopes):
+    def _get_vars(self, stack, scopes: List[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -303,7 +313,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self):
+    def full_scope(self) -> DeepChainMap:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.
@@ -313,5 +323,6 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        # TODO: convince mypy that all of the maps are mutable
+        maps = [self.temps] + self.resolvers.maps + self.scope.maps  # type: ignore
         return DeepChainMap(*maps)

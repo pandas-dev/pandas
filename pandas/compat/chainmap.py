@@ -15,3 +15,8 @@ class DeepChainMap(ChainMap):
                 del mapping[key]
                 return
         raise KeyError(key)
+
+    def new_child(self, *args, **kwargs) -> "DeepChainMap":
+        # ChainMap.new_child returns self.__class__(...) but mypy
+        #  doesn't know that, so we annotate it explicitly here.
+        return super().new_child(*args, **kwargs)  # type: ignore

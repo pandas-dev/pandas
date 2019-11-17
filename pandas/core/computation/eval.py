@@ -10,7 +10,7 @@ import warnings
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.scope import _ensure_scope
+from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -311,7 +311,7 @@ def eval(
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope
-        env = _ensure_scope(
+        env = ensure_scope(
             level + 1,
             global_dict=global_dict,
             local_dict=local_dict,
