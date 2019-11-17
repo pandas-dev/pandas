@@ -843,8 +843,8 @@ b  2""",
         )
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
-        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
-        names = []  # type: List[Optional[Hashable]]
+        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        names: List[Optional[Hashable]] = []
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -882,8 +882,8 @@ b  2""",
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
-        names = []  # type: List[Hashable]
+        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        names: List[Hashable] = []
 
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
@@ -924,8 +924,8 @@ b  2""",
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
-        names = []  # type: List[Hashable]
+        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        names: List[Hashable] = []
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -2278,8 +2278,8 @@ class GroupBy(_GroupBy):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()  # type: Dict[int, np.ndarray]
-        names = []  # List[Hashable]
+        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        names: List[Optional[Hashable]] = []
         base_func = getattr(libgroupby, how)
 
         for idx, obj in enumerate(self._iterate_slices()):

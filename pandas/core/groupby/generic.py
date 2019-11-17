@@ -363,8 +363,9 @@ class SeriesGroupBy(GroupBy):
         assert len(output) == len(columns)
         assert list(output.keys()) == sorted(output.keys())
 
+        result: Union[Series, DataFrame]
         if len(output) > 1:
-            result = DataFrame(output, index=index)  # type: Union[Series, DataFrame]
+            result = DataFrame(output, index=index)
             result.columns = columns
         else:
             result = Series(output[0], index=index, name=columns[0])
