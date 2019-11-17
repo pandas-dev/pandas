@@ -3868,30 +3868,21 @@ class Table(Fixed):
             else:
                 existing_col = None
 
-            try:
-                col = klass.create_for_block(i=i, name=name, version=self.version)
-                col.set_atom(
-                    block=b,
-                    block_items=b_items,
-                    existing_col=existing_col,
-                    min_itemsize=min_itemsize,
-                    nan_rep=nan_rep,
-                    encoding=self.encoding,
-                    errors=self.errors,
-                    info=self.info,
-                )
-                col.set_pos(j)
+            col = klass.create_for_block(i=i, name=name, version=self.version)
+            col.set_atom(
+                block=b,
+                block_items=b_items,
+                existing_col=existing_col,
+                min_itemsize=min_itemsize,
+                nan_rep=nan_rep,
+                encoding=self.encoding,
+                errors=self.errors,
+                info=self.info,
+            )
+            col.set_pos(j)
 
-                self.values_axes.append(col)
-            except (NotImplementedError, ValueError, TypeError) as e:
-                raise e
-            except Exception as detail:
-                raise Exception(
-                    "cannot find the correct atom type -> "
-                    "[dtype->{name},items->{items}] {detail!s}".format(
-                        name=b.dtype.name, items=b_items, detail=detail
-                    )
-                )
+            self.values_axes.append(col)
+
             j += 1
 
         # validate our min_itemsize

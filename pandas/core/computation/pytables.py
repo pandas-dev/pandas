@@ -2,7 +2,7 @@
 
 import ast
 from functools import partial
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -72,7 +72,6 @@ class BinOp(ops.BinOp):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
-        self.filter = None
         self.condition = None
 
     def _disallow_scalar_only_bool_ops(self):
@@ -230,7 +229,11 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
+    filter: Optional[Tuple[Any, Any, pd.Index]] = None
+
     def __repr__(self) -> str:
+        if self.filter is None:
+            return "Filter: Not Initialized"
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )
