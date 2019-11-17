@@ -46,7 +46,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import base, ops
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -343,7 +343,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         keys=None,
         axis: int = 0,
         level=None,
-        grouper=None,
+        grouper: "Optional[ops.BaseGrouper]" = None,
         exclusions=None,
         selection=None,
         as_index: bool = True,
@@ -2469,7 +2469,7 @@ def get_groupby(
     by=None,
     axis: int = 0,
     level=None,
-    grouper=None,
+    grouper: "Optional[ops.BaseGrouper]" = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,
