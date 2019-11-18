@@ -155,7 +155,7 @@ def _stringarray_map(
     mask = isna(arr)
 
     assert isinstance(arr, StringArray)
-    arr = np.asarray(arr._ndarray)
+    arr = np.asarray(arr)
 
     if is_integer_dtype(dtype):
         na_value_is_na = isna(na_value)
