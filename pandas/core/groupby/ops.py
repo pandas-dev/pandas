@@ -611,11 +611,11 @@ class BaseGrouper:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        elif is_extension_array_dtype(obj.dtype):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
+            # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
         elif isinstance(obj.index, MultiIndex):
@@ -664,7 +664,15 @@ class BaseGrouper:
             res = func(group)
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
-                    raise ValueError("Function does not reduce")
+                    if len(res) == 1:
+                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
+                        # FIXME: are we potentially losing import res.index info?
+
+                        # TODO: use `.item()` if/when we un-deprecate it.
+                        # For non-Series we could just do `res[0]`
+                        res = next(iter(res))
+                    else:
+                        raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")
 
             counts[label] = group.shape[0]

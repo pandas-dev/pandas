@@ -54,6 +54,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCIndexClass,
+    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
@@ -450,7 +451,9 @@ class Index(IndexOpsMixin, PandasObject):
                             return PeriodIndex(subarr, name=name, **kwargs)
                         except IncompatibleFrequency:
                             pass
-            return cls._simple_new(subarr, name)
+            if kwargs:
+                raise TypeError(f"Unexpected keyword arguments {set(kwargs)!r}")
+            return cls._simple_new(subarr, name, **kwargs)
 
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
@@ -1868,8 +1871,7 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _nan_idxs(self):
         if self._can_hold_na:
-            w = self._isnan.nonzero()[0]
-            return w
+            return self._isnan.nonzero()[0]
         else:
             return np.array([], dtype=np.int64)
 
@@ -3391,7 +3393,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        new_index = self._shallow_copy_with_infer(new_labels, freq=None)
+        new_index = self._shallow_copy_with_infer(new_labels)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -4025,30 +4027,6 @@ class Index(IndexOpsMixin, PandasObject):
             "to explicitly cast to a numeric type"
         )
 
-    @classmethod
-    def _coerce_to_ndarray(cls, data):
-        """
-        Coerces data to ndarray.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if not isinstance(data, (np.ndarray, Index)):
-            if data is None or is_scalar(data):
-                raise cls._scalar_data_error(data)
-
-            # other iterable of some kind
-            if not isinstance(data, (ABCSeries, list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
-        return data
-
     def _coerce_scalar_to_index(self, item):
         """
         We need to coerce a scalar to a compat for our index type.
@@ -4254,7 +4232,13 @@ class Index(IndexOpsMixin, PandasObject):
         Concatenate to_concat which has the same class.
         """
         # must be overridden in specific classes
-        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
+        klasses = (
+            ABCDatetimeIndex,
+            ABCTimedeltaIndex,
+            ABCPeriodIndex,
+            ExtensionArray,
+            ABCIntervalIndex,
+        )
         to_concat = [
             x.astype(object) if isinstance(x, klasses) else x for x in to_concat
         ]
