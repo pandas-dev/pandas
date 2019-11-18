@@ -31,7 +31,6 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -45,7 +44,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops
@@ -790,22 +788,11 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_datetime64tz_dtype(dtype):
-                # GH 23683
-                # Prior results _may_ have been generated in UTC.
-                # Ensure we localize to UTC first before converting
-                # to the target timezone
-                arr = extract_array(obj)
-                try:
-                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
-                    result = result.astype(dtype)
-                except TypeError:
-                    # _try_cast was called at a point where the result
-                    # was already tz-aware
-                    pass
-            elif is_extension_array_dtype(dtype):
+            if is_extension_array_dtype(dtype) and dtype.kind != "M":
                 # The function can return something of any type, so check
-                # if the type is compatible with the calling EA.
+                #  if the type is compatible with the calling EA.
+                # datetime64tz is handled correctly in agg_series,
+                #  so is excluded here.
 
                 # return the same type (Series) as our caller
                 cls = dtype.construct_array_type()
@@ -872,7 +859,9 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            result, names = self.grouper.aggregate(
+                obj._values, how, min_count=min_count
+            )
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
