@@ -1871,7 +1871,7 @@ class IndexCol:
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler, append):
+    def validate_and_set(self, handler, append: bool):
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -1901,7 +1901,7 @@ class IndexCol:
 
         return None
 
-    def validate_attr(self, append):
+    def validate_attr(self, append: bool):
         # check for backwards incompatibility
         if append:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
