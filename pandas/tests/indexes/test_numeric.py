@@ -944,6 +944,11 @@ class TestUInt64Index(NumericInt):
         res = Index(np.array([-1, 2 ** 63], dtype=object))
         tm.assert_index_equal(res, idx)
 
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = UInt64Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        tm.assert_index_equal(res, idx)
+
     def test_get_indexer(self, index_large):
         target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
         indexer = index_large.get_indexer(target)
