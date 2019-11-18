@@ -33,21 +33,6 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-# setup engines & skips
-@pytest.fixture(
-    params=[
-        pytest.param(
-            "pyarrow",
-            marks=pytest.mark.skipif(
-                not _HAVE_PYARROW, reason="pyarrow is not installed"
-            ),
-        )
-    ]
-)
-def engine(request):
-    return request.param
-
-
 @pytest.fixture
 def pa():
     if not _HAVE_PYARROW:
@@ -76,7 +61,7 @@ def test_invalid_engine(dirpath):
         read_orc(inputfile, engine=engine, columns=["boolean1"])
 
 
-def test_orc_reader_empty(dirpath, engine):
+def test_orc_reader_empty(dirpath, pa):
     columns = [
         "boolean1",
         "byte1",
@@ -104,12 +89,12 @@ def test_orc_reader_empty(dirpath, engine):
         expected[colname] = pd.Series(dtype=dtype)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
-    got = read_orc(inputfile, engine=engine, columns=columns)
+    got = read_orc(inputfile, columns=columns)
 
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_basic(dirpath, engine):
+def test_orc_reader_basic(dirpath, pa):
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -124,12 +109,12 @@ def test_orc_reader_basic(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.test1.orc")
-    got = read_orc(inputfile, engine=engine, columns=data.keys())
+    got = read_orc(inputfile, columns=data.keys())
 
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_decimal(dirpath, engine):
+def test_orc_reader_decimal(dirpath, pa):
     from decimal import Decimal
 
     # Only testing the first 10 rows of data
@@ -153,12 +138,12 @@ def test_orc_reader_decimal(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.decimal.orc")
-    got = read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_date_low(dirpath, engine):
+def test_orc_reader_date_low(dirpath, pa):
     data = {
         "time": np.array(
             [
@@ -194,12 +179,12 @@ def test_orc_reader_date_low(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate1900.orc")
-    got = read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_date_high(dirpath, engine):
+def test_orc_reader_date_high(dirpath, pa):
     data = {
         "time": np.array(
             [
@@ -235,12 +220,12 @@ def test_orc_reader_date_high(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate2038.orc")
-    got = read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_snappy_compressed(dirpath, engine):
+def test_orc_reader_snappy_compressed(dirpath, pa):
     data = {
         "int1": np.array(
             [
@@ -276,6 +261,6 @@ def test_orc_reader_snappy_compressed(dirpath, engine):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testSnappy.orc")
-    got = read_orc(inputfile, engine=engine).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
