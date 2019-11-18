@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+env:
+  ENV_FILE: environment.yml
+  # TODO: remove export PATH=... in each step once this works
+  # PATH: $HOME/miniconda3/bin:$PATH
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Looking for unwanted patterns
+      run: ci/code_checks.sh patterns
+      if: true
+
+    - name: Setup environment and build pandas
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        ci/setup_env.sh
+      if: true
+
+    - name: Linting
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh lint
+      if: true
+
+    - name: Dependencies consistency
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh dependencies
+      if: true
+
+    - name: Checks on imported code
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh code
+      if: true
+
+    - name: Running doctests
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh doctests
+      if: true
+
+    - name: Docstring validation
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh docstrings
+      if: true
+
+    - name: Typing validation
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/code_checks.sh typing
+      if: true
+
+    - name: Testing docstring validation script
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        pytest --capture=no --strict scripts
+      if: true
+
+    - name: Running benchmarks
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        cd asv_bench
+        asv check -E existing
+        git remote add upstream https://github.com/pandas-dev/pandas.git
+        git fetch upstream
+        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+            asv machine --yes
+            ASV_OUTPUT="$(asv dev)"
+            if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
+                echo "##vso[task.logissue type=error]Benchmarks run with errors"
+                echo "$ASV_OUTPUT"
+                exit 1
+            else
+                echo "Benchmarks run without errors"
+            fi
+        else
+            echo "Benchmarks did not run, no changes detected"
+        fi
+      if: true
