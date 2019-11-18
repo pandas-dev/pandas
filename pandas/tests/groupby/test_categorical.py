@@ -4,8 +4,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat import PY37
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -15,7 +16,7 @@ from pandas import (
     Series,
     qcut,
 )
-from pandas.compat import PY37
+import pandas.util.testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):
