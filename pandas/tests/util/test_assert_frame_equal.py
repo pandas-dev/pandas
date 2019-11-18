@@ -202,7 +202,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
         (
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
-            """{obj}\\.iloc\\[:, 1\\] \\(column name="E"\\)
+            """{obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
@@ -211,7 +211,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
         (
             DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
             DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
-            """{obj}\\.iloc\\[:, 0\\] \\(column name="A"\\)
+            """{obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) are different
 
 {obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) values are different \\(100\\.0 %\\)
 \\[left\\]:  \\[á, à, ä\\]
