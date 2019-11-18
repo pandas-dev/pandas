@@ -30,7 +30,7 @@ def set_function_name(f, name, cls):
     Bind the name/qualname attributes of the function.
     """
     f.__name__ = name
-    f.__qualname__ = "{klass}.{name}".format(klass=cls.__name__, name=name)
+    f.__qualname__ = f"{cls.__name__}.{name}"
     f.__module__ = cls.__module__
     return f
 

@@ -37,13 +37,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import (
-    Index,
-    _get_objs_combined_axis,
-    _union_indexes,
-    ensure_index,
-)
+from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
+from pandas.core.indexes.api import union_indexes
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -345,9 +341,9 @@ def extract_index(data):
             raise ValueError("If using all scalar values, you must pass an index")
 
         if have_series:
-            index = _union_indexes(indexes)
+            index = union_indexes(indexes)
         elif have_dicts:
-            index = _union_indexes(indexes, sort=False)
+            index = union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -493,7 +489,9 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = _get_objs_combined_axis(data, sort=False)
+        # We know pass_data is non-empty because data[0] is a Series
+        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
+        columns = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache = {}
 
