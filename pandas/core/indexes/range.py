@@ -14,7 +14,6 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -164,12 +163,6 @@ class RangeIndex(Int64Index):
         return result
 
     # --------------------------------------------------------------------
-
-    @staticmethod
-    def _validate_dtype(dtype):
-        """ require dtype to be None or int64 """
-        if not (dtype is None or is_int64_dtype(dtype)):
-            raise TypeError("Invalid to pass a non-int64 dtype to RangeIndex")
 
     @cache_readonly
     def _constructor(self):
