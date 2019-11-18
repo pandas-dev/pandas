@@ -38,7 +38,6 @@ PANDAS_INLINE int slice_get_indices(PyObject *s,
                                     Py_ssize_t *stop,
                                     Py_ssize_t *step,
                                     Py_ssize_t *slicelength) {
-
   return PySlice_GetIndicesEx(s, length, start, stop,
                               step, slicelength);
 }
