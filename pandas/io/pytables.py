@@ -1691,29 +1691,37 @@ class IndexCol:
     is_data_indexable = True
     _info_fields = ["freq", "tz", "index_name"]
 
+    name: str
+    cname: str
+    kind_attr: str
+
     def __init__(
         self,
+        name: str,
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: Optional[str] = None,
         itemsize=None,
-        name=None,
         axis=None,
-        kind_attr=None,
+        kind_attr: Optional[str] = None,
         pos=None,
         freq=None,
         tz=None,
         index_name=None,
         **kwargs,
     ):
+
+        if not isinstance(name, str):
+            raise ValueError("`name` must be a str.")
+
         self.values = values
         self.kind = kind
         self.typ = typ
         self.itemsize = itemsize
         self.name = name
-        self.cname = cname
-        self.kind_attr = kind_attr
+        self.cname = cname or name
+        self.kind_attr = kind_attr or f"{name}_kind"
         self.axis = axis
         self.pos = pos
         self.freq = freq
@@ -1723,19 +1731,14 @@ class IndexCol:
         self.meta = None
         self.metadata = None
 
-        if name is not None:
-            self.set_name(name, kind_attr)
         if pos is not None:
             self.set_pos(pos)
 
-    def set_name(self, name, kind_attr=None):
-        """ set the name of this indexer """
-        self.name = name
-        self.kind_attr = kind_attr or "{name}_kind".format(name=name)
-        if self.cname is None:
-            self.cname = name
-
-        return self
+        # These are ensured as long as the passed arguments match the
+        #  constructor annotations.
+        assert isinstance(self.name, str)
+        assert isinstance(self.cname, str)
+        assert isinstance(self.kind_attr, str)
 
     def set_axis(self, axis: int):
         """ set the axis over which I index """
@@ -1752,7 +1755,6 @@ class IndexCol:
 
     def set_table(self, table):
         self.table = table
-        return self
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -1778,10 +1780,11 @@ class IndexCol:
     @property
     def is_indexed(self) -> bool:
         """ return whether I am an indexed column """
-        try:
-            return getattr(self.table.cols, self.cname).is_indexed
-        except AttributeError:
+        if not hasattr(self.table, "cols"):
+            # e.g. if self.set_table hasn't been called yet, self.table
+            #  will be None.
             return False
+        return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def copy(self):
         new_self = copy.copy(self)
@@ -2481,6 +2484,7 @@ class DataIndexableCol(DataCol):
 
     def validate_names(self):
         if not Index(self.values).is_object():
+            # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
     def get_atom_string(self, block, itemsize):
@@ -2813,8 +2817,8 @@ class GenericFixed(Fixed):
         else:
             setattr(self.attrs, "{key}_variety".format(key=key), "regular")
             converted = _convert_index(
-                index, self.encoding, self.errors, self.format_type
-            ).set_name("index")
+                "index", index, self.encoding, self.errors, self.format_type
+            )
 
             self.write_array(key, converted.values)
 
@@ -2864,8 +2868,8 @@ class GenericFixed(Fixed):
                 )
             level_key = "{key}_level{idx}".format(key=key, idx=i)
             conv_level = _convert_index(
-                lev, self.encoding, self.errors, self.format_type
-            ).set_name(level_key)
+                level_key, lev, self.encoding, self.errors, self.format_type
+            )
             self.write_array(level_key, conv_level.values)
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
@@ -3403,9 +3407,10 @@ class Table(Fixed):
 
     def index_cols(self):
         """ return a list of my index cols """
+        # Note: each `i.cname` below is assured to be a str.
         return [(i.axis, i.cname) for i in self.index_axes]
 
-    def values_cols(self):
+    def values_cols(self) -> List[str]:
         """ return a list of my values cols """
         return [i.cname for i in self.values_axes]
 
@@ -3507,6 +3512,8 @@ class Table(Fixed):
 
             self._indexables = []
 
+            # Note: each of the `name` kwargs below are str, ensured
+            #  by the definition in index_cols.
             # index columns
             self._indexables.extend(
                 [
@@ -3520,6 +3527,7 @@ class Table(Fixed):
             base_pos = len(self._indexables)
 
             def f(i, c):
+                assert isinstance(c, str)
                 klass = DataCol
                 if c in dc:
                     klass = DataIndexableCol
@@ -3527,6 +3535,8 @@ class Table(Fixed):
                     i=i, name=c, pos=base_pos + i, version=self.version
                 )
 
+            # Note: the definition of `values_cols` ensures that each
+            #  `c` below is a str.
             self._indexables.extend(
                 [f(i, c) for i, c in enumerate(self.attrs.values_cols)]
             )
@@ -3764,11 +3774,9 @@ class Table(Fixed):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                index_axes_map[i] = (
-                    _convert_index(a, self.encoding, self.errors, self.format_type)
-                    .set_name(name)
-                    .set_axis(i)
-                )
+                index_axes_map[i] = _convert_index(
+                    name, a, self.encoding, self.errors, self.format_type
+                ).set_axis(i)
             else:
 
                 # we might be able to change the axes on the appending data if
@@ -3867,6 +3875,9 @@ class Table(Fixed):
             if data_columns and len(b_items) == 1 and b_items[0] in data_columns:
                 klass = DataIndexableCol
                 name = b_items[0]
+                if not (name is None or isinstance(name, str)):
+                    # TODO: should the message here be more specifically non-str?
+                    raise ValueError("cannot have non-object label DataIndexableCol")
                 self.data_columns.append(name)
 
             # make sure that we match up the existing columns
@@ -4531,6 +4542,7 @@ class GenericTable(AppendableFrameTable):
             self._indexables = [GenericIndexCol(name="index", axis=0)]
 
             for i, n in enumerate(d._v_names):
+                assert isinstance(n, str)
 
                 dc = GenericDataIndexableCol(
                     name=n, pos=i, values=[n], version=self.version
@@ -4649,12 +4661,15 @@ def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
     return values
 
 
-def _convert_index(index, encoding=None, errors="strict", format_type=None):
+def _convert_index(name: str, index, encoding=None, errors="strict", format_type=None):
+    assert isinstance(name, str)
+
     index_name = getattr(index, "name", None)
 
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
         return IndexCol(
+            name,
             converted,
             "datetime64",
             _tables().Int64Col(),
@@ -4665,6 +4680,7 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
     elif isinstance(index, TimedeltaIndex):
         converted = index.asi8
         return IndexCol(
+            name,
             converted,
             "timedelta64",
             _tables().Int64Col(),
@@ -4675,6 +4691,7 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
         atom = _tables().Int64Col()
         # avoid to store ndarray of Period objects
         return IndexCol(
+            name,
             index._ndarray_values,
             "integer",
             atom,
@@ -4692,6 +4709,7 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
     if inferred_type == "datetime64":
         converted = values.view("i8")
         return IndexCol(
+            name,
             converted,
             "datetime64",
             _tables().Int64Col(),
@@ -4702,6 +4720,7 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
     elif inferred_type == "timedelta64":
         converted = values.view("i8")
         return IndexCol(
+            name,
             converted,
             "timedelta64",
             _tables().Int64Col(),
@@ -4714,11 +4733,13 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
             dtype=np.float64,
         )
         return IndexCol(
-            converted, "datetime", _tables().Time64Col(), index_name=index_name
+            name, converted, "datetime", _tables().Time64Col(), index_name=index_name
         )
     elif inferred_type == "date":
         converted = np.asarray([v.toordinal() for v in values], dtype=np.int32)
-        return IndexCol(converted, "date", _tables().Time32Col(), index_name=index_name)
+        return IndexCol(
+            name, converted, "date", _tables().Time32Col(), index_name=index_name,
+        )
     elif inferred_type == "string":
         # atom = _tables().ObjectAtom()
         # return np.asarray(values, dtype='O'), 'object', atom
@@ -4726,6 +4747,7 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
+            name,
             converted,
             "string",
             _tables().StringCol(itemsize),
@@ -4736,7 +4758,11 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
         if format_type == "fixed":
             atom = _tables().ObjectAtom()
             return IndexCol(
-                np.asarray(values, dtype="O"), "object", atom, index_name=index_name
+                name,
+                np.asarray(values, dtype="O"),
+                "object",
+                atom,
+                index_name=index_name,
             )
         raise TypeError(
             "[unicode] is not supported as a in index type for [{0}] formats".format(
@@ -4748,17 +4774,25 @@ def _convert_index(index, encoding=None, errors="strict", format_type=None):
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
         return IndexCol(
-            np.asarray(values, dtype=np.int64), "integer", atom, index_name=index_name
+            name,
+            np.asarray(values, dtype=np.int64),
+            "integer",
+            atom,
+            index_name=index_name,
         )
     elif inferred_type == "floating":
         atom = _tables().Float64Col()
         return IndexCol(
-            np.asarray(values, dtype=np.float64), "float", atom, index_name=index_name
+            name,
+            np.asarray(values, dtype=np.float64),
+            "float",
+            atom,
+            index_name=index_name,
         )
     else:  # pragma: no cover
         atom = _tables().ObjectAtom()
         return IndexCol(
-            np.asarray(values, dtype="O"), "object", atom, index_name=index_name
+            name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
         )
 
 
