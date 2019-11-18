@@ -162,13 +162,21 @@ jobs:
         - 5432/tcp
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
+      #mysql:
+      #  image: mysql:latest
+      #  ports:
+      #  - 3306/tcp
+      #  env:
+      #    MYSQL_ROOT_PASSWORD: password
+      #  options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
+
       mysql:
-        image: mysql:latest
-        ports:
-        - 3306/tcp
+        image: mysql:5.7
         env:
-          MYSQL_ROOT_PASSWORD: password
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+        - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     strategy:
       fail-fast: false
@@ -196,6 +204,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
+
+    - name: Verify MySQL connection from host
+      run: |
+        sudo apt-get install -y mysql-client libmysqlclient-dev
+        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "SHOW GRANTS FOR 'root'@'localhost'"
 
     - name: Create PostgreSQL database
       run: |
