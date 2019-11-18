@@ -73,7 +73,7 @@ These are places where the behavior of ``StringDtype`` objects differ from
 
 l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
-   rather either int or float dtype, depending on the presence of NA values.
+   rather than either int or float dtype, depending on the presence of NA values.
 
    .. ipython:: python
 

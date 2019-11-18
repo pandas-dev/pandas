@@ -119,6 +119,7 @@ def cat_safe(list_of_columns: List, sep: str):
 def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
     if is_extension_array_dtype(arr.dtype):
+        # just StringDtype
         arr = extract_array(arr)
         return _stringarray_map(f, arr, na_value=na_result, dtype=dtype)
     return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)

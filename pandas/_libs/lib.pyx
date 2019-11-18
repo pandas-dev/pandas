@@ -2229,7 +2229,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     na_value : Any, optional
         The result value to use for masked values. By default, the
         input value is used
-    dtype : type
+    dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
 
     Returns
