@@ -38,10 +38,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Create databases
-      run: |
-        mysql -e 'create database pandas_nosetest;' || mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} --user root --password password -e "CREATE DATABASE pandas_nosetest;"
-        psql -c 'create database pandas_nosetest;' -U postgres
+    - name: Create PostgreSQL database
+      run: psql -c 'CREATE DATABASE pandas_nosetest;' -U postgres
+      if: matrix.coverage
+
+    - name: Create MySQL database
+      run: mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} --user root --password password -e "CREATE DATABASE pandas_nosetest;"
       if: matrix.coverage
 
     - name: Setup environment and build pandas
