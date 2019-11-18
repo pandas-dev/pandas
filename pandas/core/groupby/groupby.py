@@ -892,7 +892,6 @@ b  2""",
             else:
                 assert result.ndim == 1
 
-                breakpoint()
                 if isinstance(result, np.ndarray):
                     result = result.reshape(-1, 1)
                 agg_names = [name]
