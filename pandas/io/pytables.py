@@ -943,13 +943,13 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key, value, format=None, append=False, **kwargs):
+    def put(self, key: str, value, format=None, append=False, **kwargs):
         """
         Store object in HDFStore.
 
         Parameters
         ----------
-        key : object
+        key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
@@ -1028,7 +1028,14 @@ class HDFStore:
             return s.delete(where=where, start=start, stop=stop)
 
     def append(
-        self, key, value, format=None, append=True, columns=None, dropna=None, **kwargs
+        self,
+        key: str,
+        value,
+        format=None,
+        append=True,
+        columns=None,
+        dropna=None,
+        **kwargs,
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1036,7 +1043,7 @@ class HDFStore:
 
         Parameters
         ----------
-        key : object
+        key : str
         value : {Series, DataFrame}
         format : 'table' is the default
             table(t) : table format
@@ -1077,7 +1084,14 @@ class HDFStore:
         self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(
-        self, d, value, selector, data_columns=None, axes=None, dropna=False, **kwargs
+        self,
+        d: Dict,
+        value,
+        selector,
+        data_columns=None,
+        axes=None,
+        dropna=False,
+        **kwargs,
     ):
         """
         Append to multiple tables
@@ -1123,7 +1137,7 @@ class HDFStore:
 
         # figure out how to split the value
         remain_key = None
-        remain_values = []
+        remain_values: List = []
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
